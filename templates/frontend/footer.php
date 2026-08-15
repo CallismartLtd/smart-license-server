@@ -21,7 +21,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 $scripts = $scripts ?? [ 'smliser-client-dashboard' ];
 
 ?>
-<?php AssetsManager::print_scripts( ...$scripts ); ?>
+<?php AssetsManager::instance()->print_scripts( ...$scripts ); ?>
 </div><!-- /.smlcd-layout -->
 </body>
 </html>

@@ -88,7 +88,7 @@ class ApplicationEnvironment extends Environment {
      * {@inheritdoc}
      */
     public static function adminUrl( string $path = '', array $q = [] ) : URL {
-        return static::url( '/admin/', $q )
+        return static::url( smliser_get_admin_url_prefix(), $q )
         ->append_path( $path );
     }
 

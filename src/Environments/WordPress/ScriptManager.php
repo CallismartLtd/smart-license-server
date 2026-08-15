@@ -109,6 +109,10 @@ final class ScriptManager {
         if ( 'smliser-settings' === $this->request->get( 'page' ) ) {
             wp_enqueue_style( 'smliser-cache-stats' );
         }
+
+        if ( 'smliser-bulk-messages' === $this->request->get( 'page' ) ) {
+            wp_enqueue_script( 'smliser-tinymce' );
+        }
     }
 
     /**

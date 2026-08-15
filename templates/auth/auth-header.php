@@ -22,7 +22,7 @@
      <meta name="viewport" content="width=device-width" />
      <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
      <meta name="robots" content="noindex, nofollow" />
-     <title><?php esc_html_e( 'Application Authorization', 'smliser' ); ?></title>
+     <title><?php echo escHtml( 'Application Authorization' ); ?></title>
      <link rel="stylesheet" href="<?php echo escUrl( assetsUrl( '/css/auth-style.css' )->url() ); ?>" type="text/css" />
  </head>
  <body class="smliser-auth-body">

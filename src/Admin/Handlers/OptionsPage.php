@@ -628,24 +628,28 @@ class OptionsPage implements AdminPageInterface {
     public static function get_submenu() : array {
         return [
             [
-                'title'     => 'Routes',
-                'slug'      => 'routes',
-                'callback'  => [static::class, 'routes_setting']
+                'title'         => 'Routes',
+                'slug'          => 'routes',
+                'callback'      => [static::class, 'routes_setting'],
+                'visibility'    => true,
             ],
             [
-                'title'     => 'Monetization',
-                'slug'      => 'monetization',
-                'callback'  => [static::class, 'monetization_options']
+                'title'         => 'Monetization',
+                'slug'          => 'monetization',
+                'callback'      => [static::class, 'monetization_options'],
+                'visibility'    => true,
             ],
             [
                 'title'         => 'Email',
                 'slug'          => 'email',
                 'callback'      => [static::class, 'email_options'],
+                'visibility'    => true,
             ],
             [
                 'title'         => 'Cache',
                 'slug'          => 'cache',
                 'callback'      => [static::class, 'cache_options'],
+                'visibility'    => true,
             ]
         ];
     }
@@ -660,10 +664,11 @@ class OptionsPage implements AdminPageInterface {
 
     public static function get_menu_data() : array {
         return [
-            'title'   => 'Settings',
-            'slug'    => 'settings',
-            'handler' => static::class,
-            'icon'    => 'ti ti-license',
+            'title'         => 'Settings',
+            'slug'          => 'settings',
+            'handler'       => static::class,
+            'icon'          => 'ti ti-settings',
+            'visibility'    => true
         ];
     }
 }

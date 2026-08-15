@@ -801,3 +801,40 @@ function dd( mixed ...$vars ): never {
 
 	exit( 1 );
 }
+
+/**
+ * Render or return a string indication of matched HTML attribute.
+ * 
+ * @param mixed $value The attribute value to compare.
+ * @param mixed $current    The current value to check.
+ * @param bool  $echo       Whether to echo or return the attribute string.
+ * @param string $attr_name The HTML attribute name.
+ * 
+ * @return string
+ */
+function attribute_matched( mixed $value, mixed $current, bool $echo, string $attr_name ) : string {
+    $attr_str   = '';
+
+    if ( (string) $value === (string) $current ) {
+        $attr_str = " $attr_name='$attr_name'";
+    }
+
+    if ( $echo ) {
+        echo $attr_str;
+    }
+
+    return $attr_str;
+}
+
+if ( ! function_exists( 'selected' ) ) {
+    /**
+     * Outputs the HTML selected attribute.
+     * 
+     * @param mixed $value The attribute value to compare.
+     * @param mixed $current    The current value to check.
+     * @param bool  $echo       Whether to echo or return the attribute string.d 
+     */
+    // function selected( mixed $value, mixed $current, bool $echo ) : string {
+    //     return attribute_matched( $value, $current, $echo, 'selected' );
+    // }
+}

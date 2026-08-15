@@ -37,7 +37,7 @@ defined( 'SMLISER_ROOT' ) || exit;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo escHtml( $repo_name ); ?> — Dashboard</title>
 
-    <?php AssetsManager::print_styles( ...$styles ); ?>
+    <?php AssetsManager::instance()->print_styles( ...$styles ); ?>
 
     <meta name="smliser-rest-base" content="<?php echo escAttr( $rest_base ); ?>">
     <meta name="smliser-active-slug" content="<?php echo escAttr( $active_slug ); ?>">

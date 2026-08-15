@@ -9,13 +9,22 @@
 namespace SmartLicenseServer\Assets;
 
 use function assetsUrl;
+
+/**
+ * CSS asset registry.
+ */
 final class CSS {
 
     /**
-     * Get all CSS files and their dependencies.
-     * 
-     * @param string $suffix Script suffix (minified or not)
-     * @return array<string, array<string, mixed>>
+     * Get all registered CSS assets and their dependencies.
+     *
+     * @param string $suffix Optional CSS filename suffix, e.g. ".min".
+     * @return array<string, array{
+     *     url: \SmartLicenseServer\Core\URL,
+     *     dependencies: string[],
+     *     version: string,
+     *     media-type: string
+     * }>
      */
     public static function all( string $suffix = '' ) : array {
         return [

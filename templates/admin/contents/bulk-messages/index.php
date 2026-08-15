@@ -19,7 +19,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
         <?php endif; ?>
 
         <?php if ( empty( $messages ) ) : ?>
-            <?php echo wp_kses_post( smliser_not_found_container( '<span class="dashicons dashicons-email-alt"></span> All bulk messages with be listed here' ) ); ?>
+            <?php echo smliser_not_found_container( '<span class="dashicons dashicons-email-alt"></span> All bulk messages with be listed here' ); ?>
         <?php else : ?>
             <form id="smliser-bulk-action-form" method="post">
             

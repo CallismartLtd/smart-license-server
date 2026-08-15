@@ -907,24 +907,28 @@ class AccessControlPage implements AdminPageInterface {
     public static function get_submenu() : array {
         return [
             [
-                'title'     => 'Users',
-                'slug'      => 'users',
-                'callback'  => [static::class, 'users_page']
+                'title'         => 'Users',
+                'slug'          => 'users',
+                'callback'      => [static::class, 'users_page'],
+                'visibility'    => true,
             ],
             [
-                'title'     => 'Organizations',
-                'slug'      => 'organizations',
-                'callback'  => [static::class, 'organizations_page']
+                'title'         => 'Organizations',
+                'slug'          => 'organizations',
+                'callback'      => [static::class, 'organizations_page'],
+                'visibility'    => true,
             ],
             [
                 'title'         => 'Resource Owners',
                 'slug'          => 'owners',
                 'callback'      => [static::class, 'owners_page'],
+                'visibility'    => true,
             ],
             [
                 'title'         => 'Service Accounts',
                 'slug'          => 'service-account',
                 'callback'      => [static::class, 'rest_api_page'],
+                'visibility'    => true,
             ]
         ];
     }
@@ -939,10 +943,11 @@ class AccessControlPage implements AdminPageInterface {
 
     public static function get_menu_data() : array {
         return [
-            'title'   => 'Accounts',
-            'slug'    => 'accounts',
-            'handler' => static::class,
-            'icon'    => 'ti ti-license',
+            'title'         => 'Accounts',
+            'slug'          => 'accounts',
+            'handler'       => static::class,
+            'icon'          => 'ti ti-cloud-lock',
+            'visibility'    => true
         ];
     }
 }

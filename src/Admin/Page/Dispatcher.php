@@ -22,8 +22,8 @@ final class Dispatcher {
      * The route callback to handle the admin dashboard page.
      */
     public static function render_admin_dashboard( Request $request ) : Response {
-        $registry       = smliserAdminTemplate();
-        // \dd( $registry );
+        // $registry       = smliserAdminTemplate();
+        $registry       = smliserAdminDashboardRegistry();
         $locator        = smliser_template_locator();
 
         $renderer       = new Shell( $registry, $locator, \smliser_request() );

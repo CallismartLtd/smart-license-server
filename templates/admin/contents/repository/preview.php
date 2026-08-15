@@ -45,7 +45,7 @@ defined( 'SMLISER_ROOT' ) || exit;
             
             <?php if ( array_key_exists( 'short_description', $template_header ) ) : ?>
                 <p class="smliser-app-description">
-                    <?php echo wp_kses_post( $template_header['short_description'] ); ?>
+                    <?php echo sanitize_html( $template_header['short_description'] ); ?>
                 </p>
             <?php endif; ?>
             
@@ -82,7 +82,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                         <div class="smliser-card-icon">
                             <i class="dashicons dashicons-format-image"></i>
                         </div>
-                        <h2 class="smliser-card-title"><?php esc_html_e( 'Visual Preview', 'smliser' ); ?></h2>
+                        <h2 class="smliser-card-title"><?php echo escHtml( 'Visual Preview' ); ?></h2>
                     </div>
                     
                     <div class="smliser-screenshot-gallery">
@@ -119,10 +119,10 @@ defined( 'SMLISER_ROOT' ) || exit;
                         <div class="smliser-card-icon">
                             <i class="dashicons dashicons-download"></i>
                         </div>
-                        <h2 class="smliser-card-title"><?php esc_html_e( 'Installation', 'smliser' ); ?></h2>
+                        <h2 class="smliser-card-title"><?php echo escHtml( 'Installation' ); ?></h2>
                     </div>
                     <div class="smliser-card-content">
-                        <?php echo wp_kses_post( $template_content['Installation'] ); ?>
+                        <?php echo sanitize_html( $template_content['Installation'] ); ?>
                     </div>
                 </div>
             <?php endif; ?>
@@ -134,10 +134,10 @@ defined( 'SMLISER_ROOT' ) || exit;
                         <div class="smliser-card-icon">
                             <i class="dashicons dashicons-list-view"></i>
                         </div>
-                        <h2 class="smliser-card-title"><?php esc_html_e( 'Changelog', 'smliser' ); ?></h2>
+                        <h2 class="smliser-card-title"><?php echo escHtml( 'Changelog' ); ?></h2>
                     </div>
                     <div class="smliser-card-content smliser-changelog">
-                        <?php echo wp_kses_post( $template_content['Changelog'] ); ?>
+                        <?php echo sanitize_html( $template_content['Changelog'] ); ?>
                     </div>
                 </div>
             <?php endif; ?>

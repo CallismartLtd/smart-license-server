@@ -78,9 +78,9 @@ class URL implements JsonSerializable{
      * instance instead of modifying $this.
      *
      * @param array $components New components to apply.
-     * @return self
+     * @return static
      */
-    private function with_components( array $components ): self {
+    private function with_components( array $components ): static {
         $clone             = clone $this;
         $clone->components = $components;
         return $clone;
@@ -98,7 +98,7 @@ class URL implements JsonSerializable{
      * @return string Full URL.
      */
     public function url(): string {
-        return self::build_url( $this->components );
+        return static::build_url( $this->components );
     }
 
     /**
@@ -233,9 +233,9 @@ class URL implements JsonSerializable{
      * Return a new instance with the given scheme.
      *
      * @param string $scheme URL scheme (http, https, ftp, etc.).
-     * @return self
+     * @return static
      */
-    public function set_scheme( string $scheme ): self {
+    public function set_scheme( string $scheme ): static {
         $components           = $this->components;
         $components['scheme'] = rtrim( strtolower( $scheme ), '://' );
         return $this->with_components( $components );
@@ -245,9 +245,9 @@ class URL implements JsonSerializable{
      * Return a new instance with the given path.
      *
      * @param string $path New path.
-     * @return self
+     * @return static
      */
-    public function set_path( string $path ): self {
+    public function set_path( string $path ): static {
         $components         = $this->components;
         $components['path'] = '/' . ltrim( $path, '/' );
         return $this->with_components( $components );
@@ -257,9 +257,9 @@ class URL implements JsonSerializable{
      * Return a new instance with the given path segment appended.
      *
      * @param string $pathname Path segment to append.
-     * @return self
+     * @return static
      */
-    public function append_path( string $pathname ): self {
+    public function append_path( string $pathname ): static {
         $components         = $this->components;
         $components['path'] = rtrim( ( $components['path'] ?? '' ), '/' ) . '/' . ltrim( $pathname, '/' );
         return $this->with_components( $components );
@@ -269,9 +269,9 @@ class URL implements JsonSerializable{
      * Return a new instance with the given fragment/hash.
      *
      * @param string $hash New fragment (with or without '#').
-     * @return self
+     * @return static
      */
-    public function set_hash( string $hash ): self {
+    public function set_hash( string $hash ): static {
         $components              = $this->components;
         $components['fragment']  = ltrim( $hash, '#' );
         return $this->with_components( $components );
@@ -282,9 +282,9 @@ class URL implements JsonSerializable{
      *
      * @param string $key   Parameter name.
      * @param mixed  $value Parameter value.
-     * @return self
+     * @return static
      */
-    public function add_query_param( string $key, $value ): self {
+    public function add_query_param( string $key, $value ): static {
         $params        = $this->get_query_params();
         $params[ $key] = $value;
 
@@ -297,9 +297,9 @@ class URL implements JsonSerializable{
      * Return a new instance with the given query parameters merged in.
      *
      * @param array $params Associative array of parameters.
-     * @return self
+     * @return static
      */
-    public function add_query_params( array $params ): self {
+    public function add_query_params( array $params ): static {
         $merged = array_merge( $this->get_query_params(), $params );
 
         $components          = $this->components;
@@ -311,10 +311,10 @@ class URL implements JsonSerializable{
      * Return a new instance with the given port set.
      *
      * @param int $port Port number (1–65535).
-     * @return self
+     * @return static
      * @throws \InvalidArgumentException If the port is out of range.
      */
-    public function set_port( int $port ): self {
+    public function set_port( int $port ): static {
         if ( $port < 1 || $port > 65535 ) {
             throw new \InvalidArgumentException( 'Invalid port number.' );
         }
@@ -328,9 +328,9 @@ class URL implements JsonSerializable{
      * Return a new instance with the given username set.
      *
      * @param string $user Username.
-     * @return self
+     * @return static
      */
-    public function set_user( string $user ): self {
+    public function set_user( string $user ): static {
         $components         = $this->components;
         $components['user'] = rawurlencode( $user );
         return $this->with_components( $components );
@@ -340,9 +340,9 @@ class URL implements JsonSerializable{
      * Return a new instance with the given password set.
      *
      * @param string $pass Password.
-     * @return self
+     * @return static
      */
-    public function set_pass( string $pass ): self {
+    public function set_pass( string $pass ): static {
         $components         = $this->components;
         $components['pass'] = rawurlencode( $pass );
         return $this->with_components( $components );
@@ -353,18 +353,18 @@ class URL implements JsonSerializable{
      *
      * @param string $user Username.
      * @param string $pass Password.
-     * @return self
+     * @return static
      */
-    public function set_credentials( string $user, string $pass ): self {
+    public function set_credentials( string $user, string $pass ): static {
         return $this->set_user( $user )->set_pass( $pass );
     }
 
     /**
      * Return a new instance with credentials removed.
      *
-     * @return self
+     * @return static
      */
-    public function remove_credentials(): self {
+    public function remove_credentials(): static {
         $components = $this->components;
         unset( $components['user'], $components['pass'] );
         return $this->with_components( $components );
@@ -374,9 +374,9 @@ class URL implements JsonSerializable{
      * Return a new instance with the given query parameter(s) removed.
      *
      * @param string|array $keys Parameter key(s) to remove.
-     * @return self
+     * @return static
      */
-    public function remove_query_param( ...$keys ): self {
+    public function remove_query_param( ...$keys ): static {
         $params = $this->get_query_params();
         foreach ( (array) $keys as $key ) {
             unset( $params[ $key ] );
@@ -390,9 +390,9 @@ class URL implements JsonSerializable{
     /**
      * Return a new instance with the port removed.
      *
-     * @return self
+     * @return static
      */
-    public function remove_port(): self {
+    public function remove_port(): static {
         $components = $this->components;
         unset( $components['port'] );
         return $this->with_components( $components );
@@ -401,9 +401,9 @@ class URL implements JsonSerializable{
     /**
      * Return a new instance with the username removed.
      *
-     * @return self
+     * @return static
      */
-    public function remove_user(): self {
+    public function remove_user(): static {
         $components = $this->components;
         unset( $components['user'] );
         return $this->with_components( $components );
@@ -412,9 +412,9 @@ class URL implements JsonSerializable{
     /**
      * Return a new instance with the password removed.
      *
-     * @return self
+     * @return static
      */
-    public function remove_pass(): self {
+    public function remove_pass(): static {
         $components = $this->components;
         unset( $components['pass'] );
         return $this->with_components( $components );
@@ -624,9 +624,9 @@ class URL implements JsonSerializable{
      * parameters safely, and ensures structural consistency — without
      * altering the original instance.
      *
-     * @return self
+     * @return static
      */
-    public function sanitize(): self {
+    public function sanitize(): static {
         $c = $this->components;
 
         // Normalize scheme.

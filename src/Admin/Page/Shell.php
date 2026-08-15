@@ -83,7 +83,7 @@ class Shell {
      */
     public function render() : void {
         $this->locator->render( self::SHELL_TEMPLATE, [
-            'menu_registry'	=> $this->registry,
+            'registry'	=> $this->registry,
 			'request'		=> $this->request,
         ] );
     }

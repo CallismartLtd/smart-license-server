@@ -23,7 +23,8 @@ abstract class AbstractDashboardRegistry {
      *     title: string,
      *     slug: string,
      *     handler: class-string<AdminPageInterface>,
-     *     icon: string
+     *     icon: string,
+     *     visibility: bool|callable():bool
      * }>
      */
     protected array $menu = [];
@@ -34,7 +35,8 @@ abstract class AbstractDashboardRegistry {
      * @var array<string, array<int, array{
      *     title: string,
      *     slug: string,
-     *     callback: callable
+     *     callback: callable,
+     *     visibility: bool|callable():bool
      * }>>
      */
     protected array $submenu = [];
@@ -60,6 +62,7 @@ abstract class AbstractDashboardRegistry {
      *     title: string,
      *     slug: string,
      *     handler: class-string<AdminPageInterface>,
+     *     visibility: bool|callable():bool,
      *     icon?: string
      * } $data
      * @param int|null $position Optional zero-based index to insert into.
@@ -94,6 +97,13 @@ abstract class AbstractDashboardRegistry {
             }
         }
 
+        if ( ! isset( $data['visibility'] ) || ( ! is_bool( $data['visibility'] ) && ! is_callable( $data['visibility'] ) ) ) {
+            throw new EnvironmentBootstrapException(
+                'menu_error',
+                sprintf( 'Menu %s visibility must be a boolean or callable type.', $key )
+            );
+        }
+
         $this->assert_menu_handler_implements_admin_page( $data['handler'], $key );
 
         if ( ! is_callable( $data['handler']::index_page_handler() ) ) {
@@ -106,10 +116,11 @@ abstract class AbstractDashboardRegistry {
         $this->assert_request_is_first_arg( $data['handler']::index_page_handler(), 'menu', $data['slug'] );
 
         $menu = [
-            'title'   => (string) $data['title'],
-            'slug'    => trim( (string) $data['slug'], '/' ),
-            'handler' => $data['handler'],
-            'icon'    => isset( $data['icon'] ) ? (string) $data['icon'] : '',
+            'title'         => (string) $data['title'],
+            'slug'          => trim( (string) $data['slug'], '/' ),
+            'handler'       => $data['handler'],
+            'icon'          => isset( $data['icon'] ) ? (string) $data['icon'] : '',
+            'visibility'    => $data['visibility']
         ];
 
         return $this->insert_menu_item( $key, $menu, $position );
@@ -122,7 +133,8 @@ abstract class AbstractDashboardRegistry {
      * @param array{
      *     title: string,
      *     slug: string,
-     *     callback: callable
+     *     callback: callable,
+     *     visibility: bool|callable():bool
      * } $data
      * 
      * @param int|null $position Optional zero-based index to insert into.
@@ -149,12 +161,20 @@ abstract class AbstractDashboardRegistry {
             );
         }
 
+        if ( ! isset( $data['visibility'] ) || ( ! is_bool( $data['visibility'] ) && ! is_callable( $data['visibility'] ) ) ) {
+            throw new EnvironmentBootstrapException(
+                'menu_error',
+                sprintf( 'Submenu %s visibility must be a boolean or callable type.', "{$parent_key} -> {$data['slug']}" )
+            );
+        }
+
         $this->assert_request_is_first_arg( $data['callback'], 'submenu', "{$parent_key} -> {$data['slug']}" );
 
         $submenu = [
-            'title'    => (string) $data['title'],
-            'slug'     => trim( (string) $data['slug'], '/' ),
-            'callback' => $data['callback'],
+            'title'         => (string) $data['title'],
+            'slug'          => trim( (string) $data['slug'], '/' ),
+            'callback'      => $data['callback'],
+            'visibility'    => $data['visibility']
         ];
 
         return $this->insert_submenu( $parent_key, $submenu, $position );
@@ -222,7 +242,13 @@ abstract class AbstractDashboardRegistry {
     /**
      * Get all menu items.
      *
-     * @return array<string, array{title: string, slug: string, handler: class-string<AdminPageInterface>, icon: string}>
+     * @return array<string,
+     *      array{title: string,
+     *      slug: string,
+     *      handler: class-string<AdminPageInterface>,
+     *      icon: string,
+     *      visibility: bool|callable():bool
+     * }>
      */
     public function all() : array {
         $this->boot();
@@ -233,7 +259,13 @@ abstract class AbstractDashboardRegistry {
      * Get a single menu item.
      *
      * @param string $key
-     * @return array{title: string, slug: string, handler: class-string<AdminPageInterface>, icon: string}|null
+     * @return array{
+     *      title: string,
+     *      slug: string,
+     *      handler: class-string<AdminPageInterface>,
+     *      icon: string,
+     *      visibility: bool|callable():bool
+     * }|null
      */
     public function get( string $key ) : ?array {
         $this->boot();
@@ -243,7 +275,12 @@ abstract class AbstractDashboardRegistry {
     /**
      * Get all submenus.
      * 
-     * @return array<string, array<int, array{title: string, slug: string, callback: callable}>>
+     * @return array<string,array<int, array{
+     *      title: string,
+     *      slug: string,
+     *      callback: callable,
+     *      visibility: bool|callable():bool
+     * }>>
      */
     public function get_submenus() : array {
         $this->boot();
@@ -254,15 +291,49 @@ abstract class AbstractDashboardRegistry {
      * Get the submenu items associated with a given menu key.
      *
      * @param string $parent_key
-     * @return array<int, array{title: string, slug: string, callback: callable}>|null
+     * @return array<int, array{
+     *      title: string,
+     *      slug: string,
+     *      callback: callable,
+     *      visibility: bool|callable():bool
+     * }>|null
      */
     public function get_submenu( string $parent_key ) : ?array {
         $this->boot();
         $key = $this->canonical_key( $parent_key );
-
         return $this->submenu[$key] ?? null;
     }
 
+    /**
+     * Get a single submenu item under a parent menu by its slug.
+     *
+     * @param string $parent_key
+     * @param string $slug
+     * @return array{
+     *      title: string,
+     *      slug: string,
+     *      callback: callable,
+     *      visibility: bool|callable():bool
+     * }|null
+     */
+    public function get_submenu_by_slug( string $parent_key, string $slug ) : ?array {
+        $this->boot();
+
+        $parent_key = $this->canonical_key( $parent_key );
+        $slug       = trim( $slug, '/' );
+
+        if ( empty( $this->submenu[ $parent_key ] ) ) {
+            return null;
+        }
+
+        foreach ( $this->submenu[ $parent_key ] as $submenu ) {
+            if ( $submenu['slug'] === $slug ) {
+                return $submenu;
+            }
+        }
+
+        return null;
+    }
     /**
      * Get the callback for a menu item.
      *
@@ -292,22 +363,7 @@ abstract class AbstractDashboardRegistry {
      * @return callable|null
      */
     public function get_submenu_callback( string $parent_key, string $slug ) : ?callable {
-        $this->boot();
-
-        $parent_key = $this->canonical_key( $parent_key );
-        $slug       = trim( $slug, '/' );
-
-        if ( empty( $this->submenu[ $parent_key ] ) ) {
-            return null;
-        }
-
-        foreach ( $this->submenu[ $parent_key ] as $submenu ) {
-            if ( $submenu['slug'] === $slug ) {
-                return $submenu['callback'];
-            }
-        }
-
-        return null;
+        return $this->get_submenu_by_slug( $parent_key, $slug )['callback'] ?? null;
     }
 
     /**
@@ -335,6 +391,20 @@ abstract class AbstractDashboardRegistry {
     public function has( string $key ) : bool {
         $this->boot();
         return isset( $this->menu[ $this->canonical_key( $key ) ] );
+    }
+
+    /**
+     * Check if a menu has at least one submenu.
+     * 
+     * @param string $parent_key
+     * @return bool
+     */
+    public function has_submenu( string $parent_key ) : bool {
+        $this->boot();
+
+        $parent_key    = $this->canonical_key( $parent_key );
+
+        return array_key_exists( $parent_key, $this->submenu );
     }
 
     /**

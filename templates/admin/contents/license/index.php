@@ -46,7 +46,7 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
         <?php endif; ?>
 
         <?php if ( empty( $licenses ) ) : ?>
-            <?php echo wp_kses_post( smliser_not_found_container( 'All licenses will appear here' ) ); ?>
+            <?php echo sanitize_html( smliser_not_found_container( 'All licenses will appear here' ) ); ?>
         <?php else : ?>
             <form id="smliser-bulk-action-form" method="post">
             

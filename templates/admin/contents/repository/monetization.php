@@ -7,6 +7,7 @@
  * @subpackage Admin
  * @since 0.0.5 
  * @var SmartLicenseServer\Core\URL $url
+ * @var SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Monetization\Monetization|null $monetization
  * @var array<int|string, class-string<\SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface>|\SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface> $providers
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $app
@@ -19,7 +20,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 <div class="smliser-admin-repository-template repo-page">
     <?php smliser_print_admin_content_header( RepositoryPage::get_menu_args( $request, $app ) ); ?>
     <?php if ( empty( $app ) ) : ?>
-        <?php echo wp_kses_post( smliser_not_found_container( 'This app does not exist in the repository <a href="' . smliser_repository_url( 'admin' ) . '">Back</a>' ) ); ?>
+        <?php echo sanitize_html( smliser_not_found_container( 'This app does not exist in the repository <a href="' . smliser_repository_url( 'admin' ) . '">Back</a>' ) ); ?>
     <?php else : ?>
         <div class="smliser-monetization-ui">
             <div class="smliser-monetization-ui__software-info">
@@ -43,7 +44,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         </tr>
                         <tr>
                             <th>Description:</th>
-                            <td><?php echo wp_kses_post( $app->get_short_description() ); ?></td>
+                            <td><?php echo sanitize_html( $app->get_short_description() ); ?></td>
                         </tr>
                         <tr>
                             <th>Author:</th>

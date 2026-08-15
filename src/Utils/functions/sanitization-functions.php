@@ -46,3 +46,13 @@ function escAttr( mixed $value ) : string {
 function escUrl( string $url ) : string {
     return Sanitizer::esc_url( $url );
 }
+
+/**
+ * Sanitizes HTML Element
+ * 
+ * @param string $html
+ * @return string Cleaned HTML
+ */
+function sanitize_html( string $html ) : string {
+    return Sanitizer::sanitize_html( $html );
+}

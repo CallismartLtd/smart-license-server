@@ -130,13 +130,19 @@ final class RouteManager {
         $admin_url_prefix   = smliser_get_admin_url_prefix();
 
         $this->router->any( '/', $this->defaultHomeHandler );
-        $this->router->withMiddleware(
-            methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
-            pattern: "$admin_url_prefix",
-            handler: [Dispatcher::class, 'render_admin_dashboard'],
-            middleware: []
+        // $this->router->withMiddleware(
+        //     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+        //     pattern: "$admin_url_prefix",
+        //     handler: [Dispatcher::class, 'render_admin_dashboard'],
+        //     middleware: []
             
-        );
+        // );
+
+        $this->router->group( $admin_url_prefix, function() {
+            $this->router->add( '/', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
+            $this->router->add( '/{tab:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
+            $this->router->add( '/{tab:slug}/{submenu:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
+        });
         
         $this->router->group( 'documentation', function () {
             $this->router->get( '/', [DefaultPage::class, 'doc_page'] );

@@ -27,7 +27,7 @@ $is_enabled = $entry['is_enabled'];
 $has_custom = $entry['has_custom'];
 $back_url   = $current_url->remove_query_param( 'template', 'noheader' );
 
-$assets = AssetsManager::get_email_editor_assets();
+$assets = AssetsManager::instance()->get_email_editor_assets();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -38,7 +38,7 @@ $assets = AssetsManager::get_email_editor_assets();
 
     <?php foreach ( $assets['styles'] as $style ) : ?>
         <link rel="stylesheet"
-              href="<?php echo htmlspecialchars( $style['src'], ENT_QUOTES, 'UTF-8' ); ?>"
+              href="<?php echo htmlspecialchars( $style['url'], ENT_QUOTES, 'UTF-8' ); ?>"
               id="<?php echo htmlspecialchars( $style['handle'], ENT_QUOTES, 'UTF-8' ); ?>-css">
     <?php endforeach; ?>
 
@@ -492,7 +492,7 @@ $assets = AssetsManager::get_email_editor_assets();
 <!-- /EMAIL EDITOR -->
 
 <?php foreach ( $assets['scripts'] as $script ) : ?>
-    <script src="<?php echo htmlspecialchars( $script['src'], ENT_QUOTES, 'UTF-8' ); ?>"
+    <script src="<?php echo htmlspecialchars( $script['url'], ENT_QUOTES, 'UTF-8' ); ?>"
             id="<?php echo htmlspecialchars( $script['handle'], ENT_QUOTES, 'UTF-8' ); ?>-js">
     </script>
 <?php endforeach; ?>

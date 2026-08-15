@@ -594,10 +594,11 @@ class DashboardPage implements AdminPageInterface {
 
     public static function get_menu_data(): array {
         return [
-            'title'     => 'Overview',
-            'handler'   => static::class,
-            'slug'      => 'overview',
-            'icon'      => 'ti ti-home'
+            'title'         => 'Overview',
+            'handler'       => static::class,
+            'slug'          => 'overview',
+            'icon'          => 'ti ti-home',
+            'visibility'    => true,
         ];
     }
 

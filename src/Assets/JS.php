@@ -12,10 +12,15 @@ use function assetsUrl;
 final class JS {
 
     /**
-     * Get all JS files and their dependencies.
-     * 
-     * @param string $suffix Script suffix (minified or not)
-     * @return array<string, array<string, mixed>>
+     * Get all registered JavaScript assets and their dependencies.
+     *
+     * @param string $suffix Optional JavaScript filename suffix, e.g. ".min".
+     * @return array<string, array{
+     *     url: \SmartLicenseServer\Core\URL,
+     *     dependencies: string[],
+     *     version: string,
+     *     footer: bool
+     * }>
      */
     public static function all( string $suffix = '' ) : array {
         return [

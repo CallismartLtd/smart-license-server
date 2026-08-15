@@ -152,14 +152,16 @@ class BulkMessagePage implements AdminPageInterface{
     public static function get_submenu() : array {
         return [
             [
-                'title'     => 'Compose New',
-                'slug'      => 'compose-new',
-                'callback'  => [ static::class, 'message_editor']
+                'title'         => 'Compose New',
+                'slug'          => 'compose-new',
+                'callback'      => [ static::class, 'message_editor'],
+                'visibility'    => true,
             ],
             [
-                'title'     => 'Search Messages',
-                'slug'      => 'search',
-                'callback'  => [static::class, 'search_page']
+                'title'         => 'Search Messages',
+                'slug'          => 'search',
+                'callback'      => [static::class, 'search_page'],
+                'visibility'    => true,
             ],
             [
                 'title'         => 'Edit Message',
@@ -180,10 +182,11 @@ class BulkMessagePage implements AdminPageInterface{
 
     public static function get_menu_data() : array {
         return [
-            'title'   => 'Bulk Messages',
-            'slug'    => 'bulk-messages',
-            'handler' => static::class,
-            'icon'    => 'ti ti-license',
+            'title'         => 'Bulk Messages',
+            'slug'          => 'bulk-messages',
+            'handler'       => static::class,
+            'icon'          => 'ti ti-message-code',
+            'visibility'    => true
         ];
     }
 }

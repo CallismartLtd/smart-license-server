@@ -50,22 +50,22 @@
 
 		if ( leftMenu ) {
 			leftMenu.addEventListener( 'click', function ( event ) {
-				var link = event.target.closest( '[data-toggle="submenu"]' );
+				var toggle = event.target.closest( '[data-toggle="submenu"]' );
 
-				if ( ! link ) {
+				if ( ! toggle ) {
 					return;
 				}
 
 				var isCollapsed = wrapper.classList.contains( 'is-collapsed' ) && window.innerWidth > MOBILE_BREAKPOINT;
 
-				// When collapsed to icon-only on desktop, let the link navigate
-				// instead of trying to expand a hidden submenu.
+				// When collapsed to icon-only on desktop, the submenu isn't
+				// visible to expand — do nothing rather than fight the CSS.
 				if ( isCollapsed ) {
 					return;
 				}
 
 				event.preventDefault();
-				link.closest( '.dashboard-menu-item' ).classList.toggle( 'is-open' );
+				toggle.closest( '.dashboard-menu-item' ).classList.toggle( 'is-open' );
 			} );
 		}
 

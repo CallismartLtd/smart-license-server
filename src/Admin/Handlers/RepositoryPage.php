@@ -194,14 +194,14 @@ class RepositoryPage implements AdminPageInterface {
         $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
     
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' )->url() ) ) );
             return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
         
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', escUrl( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', escUrl( smliser_repository_url( 'admin' )->url() ) ) );
             return;
         }
 
@@ -233,14 +233,14 @@ class RepositoryPage implements AdminPageInterface {
         $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
     
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' )->url() ) ) );
             return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
         
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', escUrl( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', escUrl( smliser_repository_url( 'admin' )->url() ) ) );
             return;
         }
 
@@ -273,14 +273,14 @@ class RepositoryPage implements AdminPageInterface {
         $type   = $request->get( 'type' );
         
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' )->url() ) ) );
             return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
 
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' ) ) ) );
+            echo smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' )->url() ) ) );
             return;
         }
 
@@ -395,7 +395,7 @@ class RepositoryPage implements AdminPageInterface {
      * Manage plugin monetization page
      */
     public static function monetization_page( Request $request ) {
-        $url    = \smliser_repository_url( 'admin' );
+        $url    = \smliser_repository_url( 'admin' )->url();
         $id         = smliser_get_query_param( 'app_id' );
         $app_type   = smliser_get_query_param( 'type' );
         $is_new     = false;
@@ -555,7 +555,7 @@ class RepositoryPage implements AdminPageInterface {
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Repository',
-                    'url'   => \smliser_repository_url( 'admin' ),
+                    'url'   => \smliser_repository_url( 'admin' )->url(),
                     'icon'  => 'ti ti-home-filled'
                 ),
 
@@ -935,14 +935,16 @@ class RepositoryPage implements AdminPageInterface {
     public static function get_submenu() : array {
         return [
             [
-                'title'     => 'Add New',
-                'slug'      => 'add-new',
-                'callback'  => [ static::class, 'upload_page']
+                'title'         => 'Add New',
+                'slug'          => 'add-new',
+                'callback'      => [ static::class, 'upload_page'],
+                'visibility'    => true,
             ],
             [
-                'title'     => 'Search Repository',
-                'slug'      => 'search',
-                'callback'  => [static::class, 'search_page']
+                'title'         => 'Search Repository',
+                'slug'          => 'search',
+                'callback'      => [static::class, 'search_page'],
+                'visibility'    => true,
             ],
             [
                 'title'         => 'Edit App',
@@ -981,10 +983,11 @@ class RepositoryPage implements AdminPageInterface {
 
     public static function get_menu_data() : array {
         return [
-            'title'   => 'Repository',
-            'slug'    => 'repository',
-            'handler' => static::class,
-            'icon'    => 'ti ti-license',
+            'title'         => 'Repository',
+            'slug'          => 'repository',
+            'handler'       => static::class,
+            'icon'          => 'ti ti-folder-open',
+            'visibility'    => true
         ];
     }
 }

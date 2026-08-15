@@ -36,7 +36,8 @@ interface AdminPageInterface {
      *     title: string,
      *     slug: string,
      *     handler: class-string<static>,
-     *     icon: string
+     *     icon: string,
+     *     visibility: bool|callable():bool
      * }
      */
     public static function get_menu_data() : array;

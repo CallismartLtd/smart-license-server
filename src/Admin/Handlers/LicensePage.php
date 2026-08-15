@@ -326,19 +326,22 @@ class LicensePage implements AdminPageInterface {
     public static function get_submenu() : array {
         return [
             [
-                'title'     => 'Add New',
-                'slug'      => 'add-new',
-                'callback'  => [ static::class, 'add_license_page']
+                'title'         => 'Add New',
+                'slug'          => 'add-new',
+                'callback'      => [ static::class, 'add_license_page'],
+                'visibility'    => true,
             ],
             [
-                'title'     => 'Activity Logs',
-                'slug'      => 'logs',
-                'callback'  => [static::class, 'license_logs_page']
+                'title'         => 'Activity Logs',
+                'slug'          => 'logs',
+                'callback'      => [static::class, 'license_logs_page'],
+                'visibility'    => true,
             ],
             [
-                'title'     => 'Search Licenses',
-                'slug'      => 'search',
-                'callback'  => [static::class, 'search_page']
+                'title'         => 'Search Licenses',
+                'slug'          => 'search',
+                'callback'      => [static::class, 'search_page'],
+                'visibility'    => true,
             ]
         ];
     }
@@ -353,10 +356,11 @@ class LicensePage implements AdminPageInterface {
 
     public static function get_menu_data() : array {
         return [
-            'title'   => 'Licenses',
-            'slug'    => 'licenses',
-            'handler' => static::class,
-            'icon'    => 'ti ti-license',
+            'title'         => 'Licenses',
+            'slug'          => 'licenses',
+            'handler'       => static::class,
+            'icon'          => 'ti ti-license',
+            'visibility'    => true
         ];
     }
 }

@@ -12,6 +12,7 @@
  */
 
 use SmartLicenseServer\Admin\Handlers\AccessControlPage;
+use SmartLicenseServer\Utils\Format;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
@@ -52,7 +53,7 @@ function smliser_format_metric_value( $value ) {
     }
     
     if ( is_numeric( $value ) ) {
-        return number_format_i18n( $value );
+        return Format::number( $value );
     }
     
     return $value;

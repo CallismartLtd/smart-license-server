@@ -122,7 +122,7 @@ body {
 	width: 20px;
 	height: 20px;
 	display: inline-block;
-	background: currentColor;
+	/* background: currentColor; */
 	opacity: 0.75;
 	-webkit-mask-size: contain;
 	mask-size: contain;
@@ -145,6 +145,36 @@ body {
 	border-bottom: 2px solid var( --dashboard-text-muted );
 	transform: rotate( 45deg );
 	transition: transform var( --dashboard-transition );
+}
+
+/* ==========================================================
+   Current Page Indicator
+========================================================== */
+
+.dashboard-menu-item.is-current > .dashboard-menu-link {
+	position: relative;
+	background: var( --dashboard-hover-bg );
+	color: var( --dashboard-accent );
+	font-weight: 600;
+}
+
+.dashboard-menu-item.is-current > .dashboard-menu-link::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 3px;
+	background: var( --dashboard-accent );
+}
+
+.dashboard-submenu-item.is-current {
+	background: var( --dashboard-hover-bg );
+}
+
+.dashboard-submenu-item.is-current .dashboard-submenu-link {
+	color: var( --dashboard-accent );
+	font-weight: 600;
 }
 
 .dashboard-menu-item.is-open > .dashboard-menu-link .dashboard-menu-arrow {
