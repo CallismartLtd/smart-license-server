@@ -27,6 +27,17 @@ if ( ! function_exists( 'is_json' ) ) {
     }    
 }
 
+if ( ! function_exists( 'is_wp' ) ) {
+	/**
+	 * Tells whether this app is running on WordPress.
+	 * 
+	 * @return bool
+	 */
+	function is_wp() : bool {
+		return function_exists( 'wp_die' );
+	}
+}
+
 if ( ! function_exists( 'is_base64_encoded' ) ) {
     /**
      * Check if a string is base64 encoded.
@@ -198,6 +209,81 @@ if ( ! function_exists( 'is_utf8' ) ) {
 
 			// Invalid leading byte.
 			return false;
+		}
+
+		return true;
+	}
+}
+
+if ( ! function_exists( 'is_email' ) ) {
+	/**
+	 * Validate an email address for syntactic validity, structural constraints, 
+	 * security risks, and optional MX record deliverability.
+	 *
+	 * @param string $email        The email address to validate.
+	 * @param bool   $check_dns    Whether to perform a DNS MX/A record check on the domain.
+	 * @return bool True if the email is valid, false otherwise.
+	 */
+	function is_email( string $email, bool $check_dns = false ) : bool {
+		// Sanitize and check total length boundaries (RFC 5321 max length is 254 octets).
+		$email = trim( $email );
+		$length = strlen( $email );
+
+		if ( $length < 6 || $length > 254 ) {
+			return false;
+		}
+
+		// Guard against header injection attacks (CR / LF characters).
+		if ( preg_match( '/[\r\n]/', $email ) ) {
+			return false;
+		}
+
+		// Must contain exactly one '@' symbol.
+		$parts = explode( '@', $email );
+		if ( count( $parts ) !== 2 ) {
+			return false;
+		}
+
+		[ $local, $domain ] = $parts;
+
+		// Validate Local-Part length (RFC 5321 max length is 64 octets) and Domain length.
+		$local_length  = strlen( $local );
+		$domain_length = strlen( $domain );
+
+		if ( $local_length < 1 || $local_length > 64 || $domain_length < 3 || $domain_length > 255 ) {
+			return false;
+		}
+
+		// Prevent consecutive dots or leading/trailing dots in either part.
+		if ( str_contains( $local, '..' ) || str_contains( $domain, '..' ) ) {
+			return false;
+		}
+
+		if ( str_starts_with( $local, '.' ) || str_ends_with( $local, '.' ) ||
+			str_starts_with( $domain, '.' ) || str_ends_with( $domain, '.' ) ) {
+			return false;
+		}
+
+		// Canonical PHP filter check using native engine (RFC-compliant parser).
+		if ( ! filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
+			return false;
+		}
+
+		// Ensure domain contains a valid TLD dot structure (excluding IP literal domains unless intentional).
+		if ( ! str_contains( $domain, '.' ) && ! str_starts_with( $domain, '[' ) ) {
+			return false;
+		}
+
+		// Optional DNS check for active mail exchanger (MX or fallback A/AAAA records).
+		if ( $check_dns ) {
+			// Normalize internationalized domain names (IDN) if intl extension is present.
+			if ( function_exists( 'idn_to_ascii' ) ) {
+				$domain = idn_to_ascii( $domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46 ) ?: $domain;
+			}
+
+			if ( ! checkdnsrr( $domain, 'MX' ) && ! checkdnsrr( $domain, 'A' ) && ! checkdnsrr( $domain, 'AAAA' ) ) {
+				return false;
+			}
 		}
 
 		return true;

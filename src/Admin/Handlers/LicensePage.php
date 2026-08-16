@@ -19,25 +19,6 @@ use function compact, smliser_render_template;
  * The admin license page class
  */
 class LicensePage implements AdminPageInterface {
-    /**
-     * Page sub-router.
-     * 
-     * @param Request $request
-     */
-    public static function sub_router( Request $request ) {
-        $tab = $request->get( 'tab' );
-        switch ( $tab ) {
-            case 'edit':
-                self::edit_license_page( $request );
-                break;
-            case 'view':
-                self::view_license_page( $request );
-                break;    
-            default:
-            self::dashboard( $request );
-        }
-    
-    }
 
     /**
      * The license page dashbard
@@ -61,7 +42,7 @@ class LicensePage implements AdminPageInterface {
         
         $licenses       = $license_data['items'] ?? [];
         $pagination     = $license_data['pagination'] ?? [];
-        $add_url        = smliser_license_page()->add_query_param( 'tab', 'add-new' );
+        $add_url        = \smliser_license_admin_action_page();
 
         $vars   = compact( 'request', 'current_url', 'licenses', 'pagination', 'add_url' );
         smliser_render_template( 'admin.contents.license.index', $vars );    
@@ -85,7 +66,7 @@ class LicensePage implements AdminPageInterface {
         ]);
         $licenses       = $license_data['items'] ?? [];
         $pagination     = $license_data['pagination'] ?? [];
-        $add_url        = smliser_license_page()->add_query_param( 'tab', 'add-new' );
+        $add_url        = smliser_license_admin_action_page();
     
         $vars   = compact( 'request', 'current_url', 'licenses', 'pagination', 'add_url' );
         smliser_render_template( 'admin.contents.license.search', $vars );  
@@ -97,8 +78,7 @@ class LicensePage implements AdminPageInterface {
      */
     public static function add_license_page( Request $request ) : void {
         $form_fields    = static::get_form_fields();
-        $tab            = $request->get( 'tab' );
-
+        $tab            = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         $vars   = compact( 'request', 'form_fields', 'tab' );
         smliser_render_template( 'admin.contents.license.form', $vars );
     }
@@ -110,7 +90,7 @@ class LicensePage implements AdminPageInterface {
 
         $license_id     = $request->get( 'license_id' );        
         $license        = License::get_by_id( $license_id );
-        $tab            = $request->get( 'tab' );
+        $tab            = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         
         $form_fields    = static::get_form_fields( $license );
         $vars           = compact( 'request', 'form_fields', 'tab', 'license', 'license_id' );
@@ -165,7 +145,8 @@ class LicensePage implements AdminPageInterface {
      * @return array
      */
     public static function get_menu_args( Request $request ) : array {
-        $tab        = $request->get( 'tab' );
+        $tab    = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
+
         $title  = match ( $tab ) {
             'logs'      => 'License Activity Logs',
             'add-new'   => 'Add new license',
@@ -180,7 +161,7 @@ class LicensePage implements AdminPageInterface {
                 array(
                     'label' => 'Licenses',
                     'url'   => smliser_license_page(),
-                    'icon'  => 'dashicons dashicons-admin-home'
+                    'icon'  => 'ti ti-home'
                 ),
                 array(
                     'label' => $title,
@@ -190,8 +171,8 @@ class LicensePage implements AdminPageInterface {
                 array(
                     'title' => 'Settings',
                     'label' => 'Settings',
-                    'url'   => \adminUrl( 'admin.php', ['page' => 'smliser-settings'] ),
-                    'icon'  => 'dashicons dashicons-admin-generic'
+                    'url'   => \smliser_options_url(),
+                    'icon'  => 'ti ti-settings'
                 )
             )
         );
@@ -317,7 +298,7 @@ class LicensePage implements AdminPageInterface {
     */
 
     public static function index_page_handler() : callable {
-        return [static::class, 'sub_router'];
+        return [static::class, 'dashboard'];
     }
 
     /**

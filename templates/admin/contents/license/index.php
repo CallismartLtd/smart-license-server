@@ -32,7 +32,7 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
     array(
         'title'     => 'View Activity Logs',
         'label'     => 'Activity Logs',
-        'url'       => smliser_license_page()->add_query_param( 'tab', 'logs' ),
+        'url'       => smliser_license_admin_action_page( 'logs' ),
         'icon'      => 'ti ti-activity',
     )
 

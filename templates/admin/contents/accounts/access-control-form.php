@@ -53,10 +53,6 @@ if ( $render_image_only ) {
 
                     <div class="smliser-avatar-upload">
 
-                        <h3 id="avatar-upload-heading" class="screen-reader-text">
-                            Avatar Upload
-                        </h3>
-
                         <div class="smliser-avatar-upload_image-holder">
                             <img 
                                 class="smliser-avatar-upload_image-preview"
@@ -90,7 +86,7 @@ if ( $render_image_only ) {
 
                                 <button
                                     type="button"
-                                    class="button clear hidden"
+                                    class="button clear smliser-hide"
                                     aria-label="Clear selected avatar image"
                                 >
                                     <i class="ti ti-x" aria-hidden="true"></i>

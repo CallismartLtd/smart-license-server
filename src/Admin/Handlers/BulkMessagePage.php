@@ -121,7 +121,7 @@ class BulkMessagePage implements AdminPageInterface{
                 array(
                     'title' => 'Compose new message',
                     'label' => 'Compose New',
-                    'url'   => \smliser_bulk_messages_url()->add_query_param( 'tab', 'compose-new' ),
+                    'url'   => \smliser_bulk_messages_url( 'compose-new' ),
                     'icon'  => 'ti ti-plus',
                     'active'    => 'compose-new' === $tab
                 ),

@@ -240,7 +240,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 /**
  * Get icon for domain
  */
-function get_domain_icon( $domain_name ) {
+function get_domain_icon( mixed $domain_name ) {
     $icons = [
         'Repository Overview'   => 'ti-database',
         'Download Analytics'    => 'ti-download',
@@ -254,7 +254,7 @@ function get_domain_icon( $domain_name ) {
 /**
  * Get icon for metric key
  */
-function get_metric_icon( $key ) {
+function get_metric_icon( mixed $key ) {
     $icons = [
         'active_installations'      => 'ti-server',
         'total_downloads'           => 'ti-download',

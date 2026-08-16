@@ -405,7 +405,7 @@ class AppUploader {
             this.currentConfig.set( 'observer', this._observeImageSrcChange( this.imagePreview ) );
         }        
         
-        this.appAssetUploadModal.classList.remove( 'hidden' );
+        this.appAssetUploadModal.classList.remove( 'smliser-hide' );
     }
 
     /**
@@ -413,7 +413,7 @@ class AppUploader {
      */
     closeModal() {
         this.resetModal( true );
-        this.appAssetUploadModal.classList.add( 'hidden' );
+        this.appAssetUploadModal.classList.add( 'smliser-hide' );
     }
 
     /**

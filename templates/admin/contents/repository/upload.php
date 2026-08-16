@@ -4,6 +4,8 @@
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer
+ * @var string $title
+ * @var array $app_action
  */
 
 defined( 'SMLISER_ROOT' ) || exit; ?>

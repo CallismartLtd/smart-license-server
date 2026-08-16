@@ -42,7 +42,7 @@ $menu_args  = array(
         array(
             'title'     => 'Upload New Application',
             'label'     => 'Upload New',
-            'url'       => $add_url->get_href(),
+            'url'       => $add_url->url(),
             'icon'      => 'ti ti-upload',
         ),
 
@@ -72,7 +72,7 @@ $menu_args  = array(
     )
 );
 
-if ( count( $current_url ->get_query_params() ) === 1 ) {
+if ( count( $current_url ->get_query_params() ) <= 1 ) {
     unset( $menu_args['breadcrumbs'][0] ); // Remove the home link on home page.
 }
 
@@ -104,7 +104,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
 
                 <li class="smliser-status-item">
                     <a 
-                        href="<?php echo escUrl( $current_url->add_query_param( 'status', $k ) ); ?>"
+                        href="<?php echo escUrl( $current_url->add_query_param( 'status', $k )->url() ); ?>"
                         class="smliser-status-link<?php echo $is_active ? ' is-active' : ''; ?>"
                         aria-current="<?php echo $is_active ? 'page' : 'false'; ?>"
                     >
@@ -129,7 +129,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                     'No app found in the repository, upload new %1$s <a href="%3$s">here</a>.',
                     escHtml( $type_name ), 
                     escHtml( $status ?? '' ),
-                    escUrl( $add_url->get_href() )
+                    escUrl( $add_url->url() )
                 );
             else:
                 $message    = 'No app found matching this status';
@@ -137,7 +137,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                 <?php echo smliser_not_found_container( $message ); ?>       
         <?php else: ?>
 
-            <form id="smliser-bulk-action-form" method="post" action="<?php echo escUrl( adminUrl( 'admin-post.php' ) ); ?>">
+            <form id="smliser-bulk-action-form" method="post">
                 <div class="smliser-actions-wrapper">
                     <div class="smliser-bulk-actions">
                         <select name="bulk_action" id="smliser-bulk-action" class="smliser-bulk-action-select" required>
@@ -149,7 +149,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo escHtml( 'Apply' ); ?></button>
                     </div>
-                    <a href="<?php echo escUrl( $current_url->remove_query_param( 'type', 'status' )->add_query_param( 'tab', 'search' ) ); ?>" class="smliser-btn smliser-btn-white">Search Repository</a>
+                    <a href="<?php echo escUrl( smliser_admin_repo_tab( 'search' )->url() ); ?>" class="smliser-btn smliser-btn-white">Search Repository</a>
                 </div>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">
@@ -177,9 +177,9 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                                 <td class="smliser-edit-row">
                                     <?php echo intval( $app->get_id() ); ?>
                                     <div class="smliser-edit-link">
-                                        <a href="<?php echo escUrl( smliser_admin_repo_tab( 'edit', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">edit</a> 
+                                        <a href="<?php echo escUrl( smliser_admin_repo_tab( 'edit', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) )->url() ); ?>">edit</a> 
                                         |
-                                        <a href="<?php echo escUrl( smliser_admin_repo_tab( 'view', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">view</a>
+                                        <a href="<?php echo escUrl( smliser_admin_repo_tab( 'view', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) )->url() ); ?>">view</a>
                                     </div>
                                 </td>
                                 <td><?php echo escHtml( $app->get_name() ); ?></td>

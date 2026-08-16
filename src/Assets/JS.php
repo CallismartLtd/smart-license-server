@@ -32,7 +32,7 @@ final class JS {
             ],
             'smliser-admin-scripts' => [
                 'url'           => assetsUrl( sprintf( 'js/admin/dashboard%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-script', 'smliser-apps-uploader'],
+                'dependencies'  => ['smliser-script', 'smliser-apps-uploader', 'smliser-chart'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
@@ -65,7 +65,7 @@ final class JS {
             ],
             'smliser-admin-repository' => [
                 'url'           => assetsUrl( sprintf( 'js/admin/admin-repository%s.js', $suffix ) ),
-                'dependencies'  => ['jquery', 'smliser-script'],
+                'dependencies'  => ['smliser-jquery', 'smliser-script'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],

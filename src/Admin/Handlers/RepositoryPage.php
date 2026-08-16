@@ -38,7 +38,6 @@ class RepositoryPage implements AdminPageInterface {
         );
 
         $type   = $request->get( 'type', null );
-        $tab    = $request->get( 'tab', '' );
         if ( $type ) {
             $args['types']   = $type;
         }
@@ -55,9 +54,8 @@ class RepositoryPage implements AdminPageInterface {
         $apps           = $result['items'];
         $pagination     = $result['pagination'];
         $current_url    = smliser_get_current_url()->remove_query_param( 'message', 'tab' );
-        $add_url        = $current_url
-        ->add_query_param( 'tab', 'add-new' )
-        ->remove_query_param( 'status' );
+        $add_url        = \smliser_admin_repo_tab()
+        ->remove_query_param( 'status' )->add_query_params( $current_url->get_query_params() );
 
         $page_title = \sprintf( '%s Repository', ucfirst( (string) $type ) );
 
@@ -538,7 +536,7 @@ class RepositoryPage implements AdminPageInterface {
      * @return array
      */
     public static function get_menu_args( Request $request, ?HostedAppsInterface $app = null ) : array {
-        $tab        = $request->get( 'tab', '' );
+        $tab        = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         $app_type   = \ucfirst( $app?->get_type() ?? $request->get( 'type', '' ) );
         $app_name   = $app?->get_name() ?? '';
 
@@ -572,11 +570,10 @@ class RepositoryPage implements AdminPageInterface {
                 array(
                     'title' => 'Edit App',
                     'label' => 'Edit',
-                    'url'   => smliser_get_current_url()->add_query_params( 
+                    'url'   => smliser_admin_repo_tab( 'edit' )->add_query_params( 
                         array(
                             'app_id'    => $app?->get_id() ?? 0, 
                             'type'      => $app?->get_type() ?? $app_type,
-                            'tab'       => 'edit' 
                         ) 
                     ),
                     'icon'  => 'ti ti-edit',
@@ -586,11 +583,10 @@ class RepositoryPage implements AdminPageInterface {
                 array(
                     'title' => 'View App',
                     'label' => 'View',
-                    'url'   => smliser_get_current_url()->add_query_params( 
+                    'url'   => \smliser_admin_repo_tab( 'view' )->add_query_params( 
                         array(
                             'app_id'    => $app?->get_id() ?? 0, 
                             'type'      => $app?->get_type() ?? '',
-                            'tab'       => 'view' 
                         ) 
                     ),
                     'icon'  => 'ti ti-eye',
@@ -600,22 +596,14 @@ class RepositoryPage implements AdminPageInterface {
                 array(
                     'title' => 'App monetization',
                     'label' => 'Monetization',
-                    'url'   => smliser_get_current_url()->add_query_params( 
+                    'url'   => smliser_admin_repo_tab( 'monetization' )->add_query_params( 
                         array(
                             'app_id'    => $app?->get_id() ?? 0, 
                             'type'      => $app?->get_type() ?? '',
-                            'tab'       => 'monetization' 
                         ) 
                     ),
                     'icon'  => 'ti ti-basket-dollar',
                     'active'    => 'monetization' === $tab
-                ),
-
-                array(
-                    'title' => 'Settings',
-                    'label' => 'Settings',
-                    'url'   => smliser_options_url(),
-                    'icon'  => 'dashicons dashicons-admin-generic'
                 )
             )
         ];

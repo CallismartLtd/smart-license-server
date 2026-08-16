@@ -10,7 +10,9 @@
  */
 
 unset( $menu_args['breadcrumbs'][0] ); 
+
 defined( 'SMLISER_ROOT' ) || exit; ?>
+
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>
     <div class="smliser-table-wrapper">
@@ -36,7 +38,6 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">
                 <input type="hidden" name="context" value="bulk-message">
-                <?php wp_nonce_field( 'smliser_table_nonce', 'smliser_table_nonce'); ?>
                 <table class="widefat striped">
                     <thead>
                         <tr>

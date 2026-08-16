@@ -57,7 +57,11 @@ function restAPIUrl( string $path = '', array $params = [] ) : URL {
  * @return URL
  */
 function smliser_license_page() : URL {
-    return adminUrl( 'admin.php', ['page' => 'smliser-licenses'] );
+    if ( is_wp() ) {
+        return adminUrl( '', ['page' => 'smliser-licenses'] );
+    }
+    
+    return adminUrl( 'licenses' );
 }
 
 /**
@@ -68,8 +72,9 @@ function smliser_license_page() : URL {
 function smliser_repository_url( string $context = '' ) : URL {
 
     if ( 'admin' === $context ) {
-        $url = adminUrl( 'admin.php' )
-        ->add_query_param( 'page', 'smliser-repository' );
+        $url = is_wp()
+        ? adminUrl( 'admin.php' )->add_query_param( 'page', 'smliser-repository' )
+        : adminUrl( 'repository' );
     } else {
         $url    = url( smliser_get_repository_url_prefix() );
     }
@@ -79,24 +84,48 @@ function smliser_repository_url( string $context = '' ) : URL {
 
 /**
  * Bulk messages URL.
+ * 
+ * @param string|null $tab
  */
-function smliser_bulk_messages_url() : URL {
-    $url    = adminUrl( 'admin.php' )
-    ->add_query_params([
-        'page'  => 'smliser-bulk-messages'
-    ]);
+function smliser_bulk_messages_url( ?string $tab = null ) : URL {
+    $url    = adminUrl();
 
+    if ( is_wp() ) {
+        $url = $url
+            ->add_query_params([
+                'page'  => 'smliser-bulk-messages'
+            ]);
+    } else {
+        $url    = $url->append_path( 'bulk-messages' );
+    }
+
+    if ( $tab ) {
+        $url = is_wp() ? $url->add_query_param( 'tab', $tab ) : $url->append_path( $tab );
+    }
+    
     return $url;
 }
 
 /**
  * The settings page URL.
+ * 
+ * @param string|null $tab
  */
-function smliser_options_url() : URL {
-    $url    = adminUrl( 'admin.php' )
-    ->add_query_params([
-        'page'  => 'smliser-settings'
-    ]);
+function smliser_options_url( ?string $tab = null ) : URL {
+    $url    = adminUrl();
+
+    if ( is_wp() ) {
+        $url    = $url
+            ->add_query_params([
+                'page'  => 'smliser-settings'
+            ]);
+    } else {
+        $url    = $url->append_path( 'settings' );
+    }
+
+    if ( $tab ) {
+        $url = is_wp() ? $url->add_query_param( 'tab', $tab ) : $url->append_path( $tab );
+    }
 
     return $url;
 }
@@ -104,19 +133,18 @@ function smliser_options_url() : URL {
 /**
  * Action url constructor for admin license page
  * 
- * @param string $action Action query variable for the page.
+ * @param string $tab
  * @param int $license_id   The ID of the license.
  * @return \SmartLicenseServer\Core\URL
  */
-function smliser_license_admin_action_page( $action = 'add-new', $license_id = '' ) : URL {
-    if ( 'edit' === $action || 'view' === $action ) {
-        $url = smliser_license_page()->add_query_params( array(
-            'tab'        => $action,
-            'license_id'    => $license_id,
-        ));
+function smliser_license_admin_action_page( $tab = 'add-new', $license_id = '' ) : URL {
+    if ( is_wp() ) {
+        $url = $url = smliser_license_page()->add_query_param( 'tab', $tab );
     } else {
-        $url = smliser_license_page()->add_query_param( 'tab', $action );
+        $url = smliser_license_page()->append_path( $tab );
     }
+
+    $url    =  $license_id ? $url->add_query_param( 'license_id', $license_id ) : $url;
 
     return $url;
 }
@@ -136,10 +164,16 @@ function smliser_admin_repo_tab( $tab = 'add-new', $args = array() ) : URL {
             $args = array( 'type' => $args );
         }
     }
-    
-    $args['tab'] = $tab;
 
-    return smliser_repository_url( 'admin' )->add_query_params( $args );
+    $url    = smliser_repository_url( 'admin' );
+    
+    if ( is_wp() ) {
+        $args['tab'] = $tab;
+    } else {
+        $url    = $url->append_path( $tab );
+    }
+
+    return $url->add_query_params( $args );
 }
 
 /**

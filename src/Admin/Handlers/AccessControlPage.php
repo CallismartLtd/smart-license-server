@@ -30,7 +30,7 @@ class AccessControlPage implements AdminPageInterface {
      * @return bool
      */
     private static function sub_router( Request $request ) : bool {
-        $tab     = $request->get( 'tab' );
+        $submenu     = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         $section = $request->get( 'section' );
 
         $routes = [
@@ -54,8 +54,8 @@ class AccessControlPage implements AdminPageInterface {
             ],
         ];
 
-        if ( isset( $routes[ $tab ][ $section ] ) ) {
-            $handler = $routes[ $tab ][ $section ];
+        if ( isset( $routes[ $submenu ][ $section ] ) ) {
+            $handler = $routes[ $submenu ][ $section ];
             $handler( $request );
             return true;
         }

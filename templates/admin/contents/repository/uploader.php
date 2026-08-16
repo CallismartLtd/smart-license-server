@@ -13,13 +13,13 @@
  */
 
 use SmartLicenseServer\Admin\Handlers\RepositoryPage;
+use SmartLicenseServer\Utils\Format;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$max_upload_size_bytes  = wp_max_upload_size();
-$max_upload_size_mb     = $max_upload_size_bytes / 1024 / 1024;
-$args                   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null );
-$is_edit                = 'edit' === smliser_get_query_param( 'tab' );
+$max_upload_size    = Format::bytes( smliser_max_upload_size() );
+$args               = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null );
+$is_edit            = 'edit' === smliser_get_query_param( 'tab' );
 
 if ( ! isset( $app ) ) {
     unset(
@@ -33,7 +33,6 @@ if ( ! isset( $app ) ) {
 
 <div class="application-uploader-page">
     <?php smliser_print_admin_content_header( $args ); ?>
- 
 
     <form action="" class="app-uploader-form" id="appUploaderForm">
         <input type="hidden" name="action" value="smliser_save_<?php printf( '%s', escHtml( $type ) ) ?>">
@@ -48,13 +47,13 @@ if ( ! isset( $app ) ) {
             </div>
             <div class="app-uploader-right">
                 <h3><?php printf( 'Upload %s Zip File', $type_title ) ?></h3>
-                <em>Max Upload Size: <?php echo escHtml( $max_upload_size_mb ) . 'MB'; ?></em>
+                <em>Max Upload Size: <?php echo escHtml( $max_upload_size ); ?></em>
                 <div class="smliser-form-file-row">
                     <input type="file" name="app_zip_file" id="smliser-file-input"  style="display: none;">
-                    <div class="smliser-file-info" wp-max-upload-size= "<?php echo intval( $max_upload_size_mb ) ?>">
+                    <div class="smliser-file-info">
                         <span>No file selected.</span>
                     </div>
-                    <button type="button" class="smliser-upload-btn button">Drag over or click to upload file</button>
+                    <button type="button" class="smliser-upload-btn">Drag over or click to upload file</button>
                     <button type="button" class="smliser-file-remove button smliser-hide"><span class="ti ti-x" title="remove file"></span> Clear</button>
                 </div>
 

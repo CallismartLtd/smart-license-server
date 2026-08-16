@@ -1546,7 +1546,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
          */
         const smliserModalActions = {
             addNewTier: () => {
-                tierModal.classList.remove( 'hidden' );
+                tierModal.classList.remove( 'smliser-hide' );
                 tierForm.querySelectorAll( 'input, select, textarea' ).forEach( input => {
                     if ( 'action' === input.name ) {
                         input.value = 'smliser_save_monetization_tier';
@@ -1559,7 +1559,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
             editTier: ( json ) => {
                 let tier = StringUtils.JSONparse( json );
-                tierModal.classList.remove( 'hidden' );
+                tierModal.classList.remove( 'smliser-hide' );
 
                 // Switch action to update
                 tierForm.querySelector( 'input[name="action"]' ).value = 'smliser_save_monetization_tier';
@@ -1599,7 +1599,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             },
 
             closeModal: () => {
-                tierModal.classList.add( 'hidden' );
+                tierModal.classList.add( 'smliser-hide' );
             },
 
             viewProductData: ( json ) => {
@@ -2310,8 +2310,8 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 imageNamePreview.textContent    = defaultFilename;
                 imagePreview.title              = originalImageTitle;
 
-                buttonsRow.querySelector( '.clear' )?.classList.add( 'hidden' );
-                buttonsRow.querySelector( '.add-file' )?.classList.remove( 'hidden' );
+                buttonsRow.querySelector( '.clear' )?.classList.add( 'smliser-hide' );
+                buttonsRow.querySelector( '.add-file' )?.classList.remove( 'smliser-hide' );
             }
 
             imageNamePreview?.addEventListener( 'click', imageFullScreenMode );
@@ -2363,7 +2363,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 imagePreview.src = objectUrl;
                 imagePreview.title = image.name;
                 imageNamePreview.textContent = image.name;
-                buttonsRow.querySelector( '.clear' )?.classList.remove( 'hidden' );
+                buttonsRow.querySelector( '.clear' )?.classList.remove( 'smliser-hide' );
                 
             });
         });
@@ -2388,7 +2388,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                         ${notFoundMessage}
                     </td>
                 </tr>`;
-            table.querySelector( 'thead' )?.classList.add( 'hidden' );
+            table.querySelector( 'thead' )?.classList.add( 'smliser-hide' );
             table.tBodies[0].innerHTML = emptyRow;
         }
         deleteEntities.forEach( deleteBtn => {

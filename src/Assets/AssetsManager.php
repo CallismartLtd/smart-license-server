@@ -19,7 +19,9 @@ namespace SmartLicenseServer\Assets;
 
 
 use SmartLicenseServer\Core\URL;
-
+use SmartLicenseServer\Security\Permission\Capability;
+use SmartLicenseServer\Security\Permission\Role;
+use SmartLicenseServer\Utils\Format;
 
 final class AssetsManager {
 
@@ -104,6 +106,7 @@ final class AssetsManager {
 	 * Private: use instance() to obtain the singleton.
 	 */
 	private function __construct() {
+        $this->register_default_js_constants();
 		$this->register_default_styles();
 		$this->register_default_scripts();
 	}
@@ -265,11 +268,11 @@ final class AssetsManager {
 		}
 
 		$this->scripts[ $handle ] = [
-			'url'           => $url,
-			'dependencies'  => array_values( $dependencies ),
-			'version'       => $version,
-			'footer'        => $footer,
-			'category'      => $category,
+			'url'          => $url,
+			'dependencies' => array_values( $dependencies ),
+			'version'      => $version,
+			'footer'       => $footer,
+			'category'     => $category,
 		];
 	}
 
@@ -705,7 +708,7 @@ final class AssetsManager {
 	 * @throws \InvalidArgumentException If the name is not a valid JS identifier.
 	 * @throws \LogicException If the name is already registered.
 	 */
-	public function add_js_constant( string $name, array $data ) : void {
+	public function register_js_constant( string $name, array $data ) : void {
 
 		$this->validate_js_constant_name( $name );
 
@@ -813,7 +816,7 @@ final class AssetsManager {
 
 		$html = sprintf(
 			'<script id="smliser-js-constants">%s</script>',
-			implode( ' ', $statements )
+			implode( "\n\r", $statements )
 		);
 
 		if ( $echo ) {
@@ -849,6 +852,7 @@ final class AssetsManager {
 					'smliser-client-dashboard',
 					'smliser-datetime-picker',
 					'select2',
+                    'smliser-cache-stats'
 				],
 				'scripts' => [
 					'smliser-admin-scripts',
@@ -858,7 +862,8 @@ final class AssetsManager {
 					'smliser-script',
 					'smliser-modal',
 					'smliser-client-dashboard',
-					'smliser-tinymce'
+					'smliser-tinymce',
+
 				],
 			],
 
@@ -1018,6 +1023,30 @@ final class AssetsManager {
 				$style['media-type']
 			);
 		}
+	}
+
+	/**
+	 * Register the default JS constants.
+	 *
+	 * @return void
+	 */
+	private function register_default_js_constants() : void {
+		$this->register_js_constant( 'smliser_var', [
+            'ajaxURL'           => adminUrl( 'admin-ajax.php' )->url(),
+            'csrf_token'        => '',
+            'admin_url'         => \adminUrl()->url(),
+            'spinner_gif'       => \adminUrl( 'images/spinner.gif' )->url(),
+            'spinner_gif_2x'    => \adminUrl( 'images/spinner-2x.gif' )->url(),
+            'app_search_api'    => \restAPIUrl( '/repository/' ),
+            'default_roles'     => [
+                'roles'         => Role::all( true ),
+                'capabilities'  => Capability::get_caps()
+            ],
+            'uploads'            => [
+                'max_upload_size'           => smliser_max_upload_size(),
+                'max_upload_size_readable'  => Format::bytes( smliser_max_upload_size() ) 
+            ]
+        ]);
 	}
 
 

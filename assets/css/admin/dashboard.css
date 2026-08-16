@@ -3,9 +3,9 @@
 ========================================================== */
 
 :root {
-	--dashboard-sidebar-width: 260px;
+	--dashboard-sidebar-width: 160px;
 	--dashboard-sidebar-collapsed-width: 64px;
-	--dashboard-topbar-height: 56px;
+	--dashboard-topbar-height: 37px;
 	--dashboard-transition: 0.2s ease;
 
 	--dashboard-bg: #f4f5f7;
@@ -17,6 +17,15 @@
 	--dashboard-accent-contrast: #ffffff;
 	--dashboard-hover-bg: #eef1f6;
 	--dashboard-shadow: 0 1px 3px rgba( 0, 0, 0, 0.08 );
+
+	--dashboard-danger: #d33f3f;
+	--dashboard-success: #2f9e58;
+	--dashboard-warning: #b8860b;
+
+	--dashboard-font-size: 12px;
+	--dashboard-line-height: 1.5;
+	--dashboard-radius: 6px;
+	--dashboard-focus-ring: 0 0 0 3px rgba( 59, 110, 246, 0.35 );
 }
 
 html[data-theme="dark"] {
@@ -29,17 +38,424 @@ html[data-theme="dark"] {
 	--dashboard-accent-contrast: #0f1117;
 	--dashboard-hover-bg: #232733;
 	--dashboard-shadow: 0 1px 3px rgba( 0, 0, 0, 0.4 );
+
+	--dashboard-danger: #e5645f;
+	--dashboard-success: #4cbf7a;
+	--dashboard-warning: #d6a03c;
+
+	--dashboard-focus-ring: 0 0 0 3px rgba( 109, 147, 255, 0.4 );
 }
 
-* {
+/* ==========================================================
+   Global Reset & Base Elements
+   Normalizes user-agent defaults so untyped content dropped
+   into .dashboard-content (via app APIs) looks consistent
+   across browsers without needing per-page styling.
+========================================================== */
+
+*,
+*::before,
+*::after {
 	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
 }
 
 body {
 	margin: 0;
-	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	font-size: var( --dashboard-font-size );
+	line-height: var( --dashboard-line-height );
 	background: var( --dashboard-bg );
 	color: var( --dashboard-text );
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+	margin: 0 0 12px;
+	font-weight: 600;
+	line-height: 1.25;
+	color: var( --dashboard-text );
+}
+
+h1 { font-size: 24px; }
+h2 { font-size: 20px; }
+h3 { font-size: 17px; }
+h4 { font-size: 15px; }
+h5, h6 { font-size: 14px; }
+
+p {
+	margin: 0 0 12px;
+}
+
+p:last-child {
+	margin-bottom: 0;
+}
+
+ul, ol {
+	margin: 0 0 12px;
+	padding-left: 22px;
+}
+
+a {
+	color: var( --dashboard-accent );
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: none;
+}
+
+img, svg, video, canvas {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}
+
+hr {
+	border: none;
+	border-top: 1px solid var( --dashboard-border );
+	margin: 20px 0;
+}
+
+code, pre, kbd, samp {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+	font-size: 0.9em;
+}
+
+pre {
+	padding: 12px 14px;
+	overflow-x: auto;
+	background: var( --dashboard-bg );
+	border: 1px solid var( --dashboard-border );
+	border-radius: var( --dashboard-radius );
+}
+
+code {
+	padding: 2px 5px;
+	background: var( --dashboard-bg );
+	border-radius: 4px;
+}
+
+pre code {
+	padding: 0;
+	background: none;
+}
+
+ /* ==========================================================
+    Tables
+ ========================================================== */
+
+table {
+	width: 100%;
+	margin: 0 0 20px;
+	border-collapse: collapse;
+	border-spacing: 0;
+	font-size: var( --dashboard-font-size );
+	color: var( --dashboard-text );
+	background: var( --dashboard-surface );
+}
+
+caption {
+	padding: 0 0 8px;
+	color: var( --dashboard-text-muted );
+	font-size: 13px;
+	text-align: left;
+}
+
+th,
+td {
+	padding: 10px 12px;
+	border-bottom: 1px solid var( --dashboard-border );
+	text-align: left;
+	vertical-align: middle;
+}
+
+th {
+	font-weight: 600;
+	color: var( --dashboard-text-muted );
+	background: var( --dashboard-bg );
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+/* ==========================================================
+   Table Variants
+========================================================== */
+
+/* Striped rows */
+
+table.striped tbody tr:nth-child( even ) {
+	background: var( --dashboard-bg );
+}
+
+/* Hoverable rows */
+
+table.hover tbody tr:hover {
+	background: var( --dashboard-hover-bg );
+}
+
+/* Bordered table */
+
+table.bordered {
+	border: 1px solid var( --dashboard-border );
+}
+
+table.bordered th,
+table.bordered td {
+	border: 1px solid var( --dashboard-border );
+}
+
+/* Compact table */
+
+table.compact th,
+table.compact td {
+	padding: 6px 8px;
+	font-size: 13px;
+}
+
+/* Spacious table */
+
+table.spacious th,
+table.spacious td {
+	padding: 14px 16px;
+}
+
+/* ==========================================================
+   Widefat
+========================================================== */
+
+/*
+ * WordPress-style "widefat" table modifier.
+ *
+ * Provides the familiar admin-table appearance while remaining
+ * independent of WordPress itself.
+ */
+
+table.widefat {
+	width: 100%;
+	border: 1px solid var( --dashboard-border );
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+table.widefat th,
+table.widefat td {
+	padding: 10px 12px;
+}
+
+table.widefat th {
+	color: var( --dashboard-text );
+	background: var( --dashboard-bg );
+	font-weight: 600;
+}
+
+table.widefat tbody tr:hover {
+	background: var( --dashboard-hover-bg );
+}
+
+/* ==========================================================
+   Table Alignment
+========================================================== */
+
+table .align-left {
+	text-align: left;
+}
+
+table .align-center {
+	text-align: center;
+}
+
+table .align-right {
+	text-align: right;
+}
+
+/* ==========================================================
+   Table Cell Utilities
+========================================================== */
+
+table .nowrap {
+	white-space: nowrap;
+}
+
+table .wrap {
+	white-space: normal;
+}
+
+table .muted {
+	color: var( --dashboard-text-muted );
+}
+
+/* ==========================================================
+   Table Links
+========================================================== */
+
+table a {
+	color: var( --dashboard-accent );
+	text-decoration: none;
+}
+
+table a:hover {
+	text-decoration: underline;
+}
+
+/* ==========================================================
+   Table Actions
+========================================================== */
+
+table .actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	white-space: nowrap;
+}
+
+/* ==========================================================
+   Empty Table State
+========================================================== */
+
+table .empty-state {
+	padding: 32px 16px;
+	color: var( --dashboard-text-muted );
+	text-align: center;
+}
+
+/* ==========================================================
+   Responsive Tables
+========================================================== */
+
+.table-responsive {
+	width: 100%;
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.table-responsive > table {
+	min-width: 600px;
+}
+
+/* Forms */
+
+form {
+	margin: 0;
+}
+
+label {
+	display: inline-block;
+	margin-bottom: 6px;
+	font-size: 13px;
+	font-weight: 500;
+	color: var( --dashboard-text );
+}
+
+fieldset {
+	border: 1px solid var( --dashboard-border );
+	border-radius: var( --dashboard-radius );
+	padding: 16px;
+	margin: 0 0 16px;
+}
+
+legend {
+	padding: 0 6px;
+	font-weight: 600;
+	font-size: 13px;
+}
+
+input,
+select,
+textarea,
+button {
+	font-family: inherit;
+	font-size: var( --dashboard-font-size );
+	color: var( --dashboard-text );
+}
+
+input:not( [type="checkbox"] ):not( [type="radio"] ),
+select,
+textarea {
+	display: block;
+	width: 100%;
+	padding: 8px 12px;
+	background: var( --dashboard-surface );
+	border: 1px solid var( --dashboard-border );
+	border-radius: var( --dashboard-radius );
+	transition: border-color var( --dashboard-transition ), box-shadow var( --dashboard-transition );
+}
+
+textarea {
+	resize: vertical;
+	min-height: 80px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+	outline: none;
+	border-color: var( --dashboard-accent );
+	box-shadow: var( --dashboard-focus-ring );
+}
+
+input::placeholder,
+textarea::placeholder {
+	color: var( --dashboard-text-muted );
+	opacity: 1;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled,
+button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+button {
+	cursor: pointer;
+	background: var( --dashboard-accent );
+	color: var( --dashboard-accent-contrast );
+	border: 1px solid transparent;
+	border-radius: var( --dashboard-radius );
+	padding: 8px 16px;
+	font-weight: 500;
+	transition: background var( --dashboard-transition ), opacity var( --dashboard-transition );
+}
+
+button:hover:not( :disabled ) {
+	opacity: 0.9;
+}
+
+/* Selection & scrollbars */
+
+::selection {
+	background: var( --dashboard-accent );
+	color: var( --dashboard-accent-contrast );
+}
+
+* {
+	scrollbar-width: thin;
+	scrollbar-color: var( --dashboard-text-muted ) transparent;
+}
+
+*::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+	background: var( --dashboard-text-muted );
+	border-radius: 4px;
+}
+
+*::-webkit-scrollbar-track {
+	background: transparent;
 }
 
 /* ==========================================================
@@ -49,6 +465,7 @@ body {
 .dashboard-wrapper {
 	display: flex;
 	min-height: 100vh;
+	transform: translateZ( 0 )
 }
 
 .dashboard-main {
@@ -64,15 +481,28 @@ body {
 	margin-left: var( --dashboard-sidebar-collapsed-width );
 }
 
+.dashboard-main:has( .smliser-top-nav ) {
+	margin-top: 70px;
+}
+
+.dashboard-main:has( .smliser-top-nav ) .smliser-top-nav {
+	top: 0;
+	width: calc( 100% - var( --dashboard-sidebar-width ) );
+}
+
+.dashboard-wrapper.is-collapsed .smliser-top-nav {
+	width: calc( 100% - var( --dashboard-sidebar-collapsed-width ) );
+}
+
 /* ==========================================================
    Left Menu
 ========================================================== */
 
 .dashboard-left-menu {
 	position: fixed;
-	top: 0;
+	top: 1;
 	left: 0;
-	bottom: 0;
+	height: 100%;
 	width: var( --dashboard-sidebar-width );
 	background: var( --dashboard-surface );
 	border-right: 1px solid var( --dashboard-border );
@@ -105,11 +535,11 @@ body {
 .dashboard-menu-link {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	padding: 10px 18px;
+	gap: 10px;
+	padding: 10px;
 	color: var( --dashboard-text );
 	text-decoration: none;
-	white-space: nowrap;
+	white-space: wrap;
 	cursor: pointer;
 }
 
@@ -119,11 +549,9 @@ body {
 
 .dashboard-menu-icon {
 	flex: 0 0 auto;
-	width: 20px;
-	height: 20px;
 	display: inline-block;
-	/* background: currentColor; */
 	opacity: 0.75;
+	font-size: 16px;
 	-webkit-mask-size: contain;
 	mask-size: contain;
 	-webkit-mask-repeat: no-repeat;
@@ -139,6 +567,19 @@ body {
 
 .dashboard-menu-arrow {
 	flex: 0 0 auto;
+	width: 28px;
+	height: 28px;
+	margin: -10px -6px -10px 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	position: absolute;
+	right: 5px;
+}
+
+.dashboard-menu-arrow::after {
+	content: '';
 	width: 8px;
 	height: 8px;
 	border-right: 2px solid var( --dashboard-text-muted );
@@ -177,7 +618,7 @@ body {
 	font-weight: 600;
 }
 
-.dashboard-menu-item.is-open > .dashboard-menu-link .dashboard-menu-arrow {
+.dashboard-menu-item.is-open > .dashboard-menu-link .dashboard-menu-arrow::after {
 	transform: rotate( -135deg );
 }
 
@@ -197,8 +638,8 @@ body {
 
 .dashboard-submenu-link {
 	display: block;
-	padding: 8px 18px 8px 50px;
-	font-size: 13px;
+	padding: 8px;
+	font-size: 12px;
 	color: var( --dashboard-text-muted );
 	text-decoration: none;
 }
@@ -215,15 +656,15 @@ body {
 .dashboard-top-menu {
 	position: sticky;
 	top: 0;
-	z-index: 90;
+	z-index: 9999;
 	height: var( --dashboard-topbar-height );
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	padding: 0 16px;
 	background: var( --dashboard-surface );
-	border-bottom: 1px solid var( --dashboard-border );
-	box-shadow: var( --dashboard-shadow );
+	/* border-bottom: 1px solid var( --dashboard-border ); */
+	/* box-shadow: var( --dashboard-shadow ); */
 }
 
 .dashboard-top-menu-left,

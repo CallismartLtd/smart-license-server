@@ -144,7 +144,7 @@ class WordPressEnvironment extends Environment {
     }
     
     public static function adminUrl( string $path = '', array $qv = [] ) : URL {
-        return URL::from( admin_url() )
+        return URL::from( admin_url( 'admin.php' ) )
             ->append_path( $path )
             ->add_query_params( $qv );
     }

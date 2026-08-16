@@ -551,9 +551,6 @@ class OptionsPage implements AdminPageInterface {
             default                                              => 'General Settings',
         };
 
-        $email_url = $current_url->add_query_param( 'tab', 'email' );
-        $cache_url = $current_url->add_query_param( 'tab', 'cache' );
-
         return [
             'breadcrumbs' => [
                 [
@@ -569,42 +566,42 @@ class OptionsPage implements AdminPageInterface {
                 [
                     'title'  => 'Monetization Provider Settings',
                     'label'  => 'Monetizations',
-                    'url'    => $current_url->add_query_param( 'tab', 'monetization' ),
+                    'url'    => \smliser_options_url( 'monetization' ),
                     'icon'   => 'ti ti-basket-dollar',
                     'active' => 'monetization' === $tab,
                 ],
                 [
                     'title'  => 'Email Provider Settings',
                     'label'  => 'Email Providers',
-                    'url'    => $email_url,
+                    'url'    => \smliser_options_url( 'email' ),
                     'icon'   => 'ti ti-mail',
                     'active' => 'email' === $tab && 'templates' !== $section,
                 ],
                 [
                     'title'  => 'Email Templates',
                     'label'  => 'Email Templates',
-                    'url'    => $email_url->add_query_param( 'section', 'templates' ),
+                    'url'    => \smliser_options_url( 'email' )->add_query_param( 'section', 'templates' ),
                     'icon'   => 'ti ti-template',
                     'active' => 'email' === $tab && 'templates' === $section,
                 ],
                 [
                     'title'  => 'Cache Adapters',
                     'label'  => 'Cache',
-                    'url'    => $cache_url,
+                    'url'    => \smliser_options_url( 'cache' ),
                     'icon'   => 'ti ti-database-search',
                     'active' => 'cache' === $tab && 'stats' !== $section,
                 ],
                 [
                     'title'  => 'Cache Statistics',
                     'label'  => 'Cache Stats',
-                    'url'    => $cache_url->add_query_param( 'section', 'stats' ),
+                    'url'    => \smliser_options_url( 'cache' )->add_query_param( 'section', 'stats' ),
                     'icon'   => 'ti ti-chart-bar',
                     'active' => 'cache' === $tab && 'stats' === $section,
                 ],
                 [
                     'title'  => 'Routes Settings',
                     'label'  => 'Routes',
-                    'url'    => $current_url->add_query_param( 'tab', 'routes' ),
+                    'url'    => \smliser_options_url( 'routes' ),
                     'icon'   => 'ti ti-globe',
                     'active' => 'routes' === $tab,
                 ],
@@ -648,6 +645,12 @@ class OptionsPage implements AdminPageInterface {
             [
                 'title'         => 'Cache',
                 'slug'          => 'cache',
+                'callback'      => [static::class, 'cache_options'],
+                'visibility'    => true,
+            ],
+            [
+                'title'         => 'Routes',
+                'slug'          => 'routes',
                 'callback'      => [static::class, 'cache_options'],
                 'visibility'    => true,
             ]

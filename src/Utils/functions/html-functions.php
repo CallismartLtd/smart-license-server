@@ -834,7 +834,20 @@ if ( ! function_exists( 'selected' ) ) {
      * @param mixed $current    The current value to check.
      * @param bool  $echo       Whether to echo or return the attribute string.d 
      */
-    // function selected( mixed $value, mixed $current, bool $echo ) : string {
-    //     return attribute_matched( $value, $current, $echo, 'selected' );
-    // }
+    function selected( mixed $value, mixed $current, bool $echo = true ) : string {
+        return attribute_matched( $value, $current, $echo, 'selected' );
+    }
+}
+
+if ( ! function_exists( 'checked' ) ) {
+    /**
+     * Outputs the HTML checked attribute.
+     * 
+     * @param mixed $value The attribute value to compare.
+     * @param mixed $current    The current value to check.
+     * @param bool  $echo       Whether to echo or return the attribute string.d 
+     */
+    function checked( mixed $value, mixed $current, bool $echo ) : string {
+        return attribute_matched( $value, $current, $echo, 'checked' );
+    }
 }

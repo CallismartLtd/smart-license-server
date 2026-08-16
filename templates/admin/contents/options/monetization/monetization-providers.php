@@ -27,7 +27,12 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                     <tr>
                         <td><?php echo escHtml( $id ); ?></td>
                         <td><?php echo escHtml( $provider::get_name() ); ?></td>
-                        <td><a href="<?php echo escUrl( smliser_options_url()->add_query_params( ['tab' => 'monetization',  'provider' => $provider::get_id() ] ) ); ?>" class="button smliser-nav-btn"> <i class="ti ti-settings"></i> Configure</a></td>
+                        <td>
+                            <a href="<?php 
+                            echo escUrl( smliser_options_url( 'monetization' )
+                                ->add_query_params(  ['provider' => $provider::get_id() ] )->url()
+                            ); ?>"
+                            class="button smliser-nav-btn"> <i class="ti ti-settings"></i> Configure</a></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

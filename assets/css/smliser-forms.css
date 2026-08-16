@@ -73,13 +73,6 @@
     border: dashed 4px #dcdcde;
 }
 
-#smliser-file-remove {
-    float: right;
-    padding: 15px;
-    color: red;
-    cursor: pointer;
-}
-
 .smliser-file-info {
     display: flex;
     flex-direction: column;
@@ -93,12 +86,19 @@ button.smliser-upload-btn,
 button.smliser-file-remove {
     display: inline-block;
     width: 80%;
+    height: 60px;
     border: solid #dcdcde .5px !important;
     border-radius: 5px;
     cursor: pointer;
     margin-bottom: 10px !important;
     line-height: 1.5 !important;
     border-radius: 8px !important;
+    color: #333;
+    background-color: #fff !important;
+}
+
+button.smliser-file-remove {
+    height: 40px;
 }
 
 button.smliser-upload-btn {
@@ -504,10 +504,9 @@ button.smliser-upload-btn {
 
 
 .application-uploader-page {
-    background: #f1f1f1;
     min-height: 100vh;
     margin-left: -20px;
-    margin-top: -10px;
+    margin-top: 10px;
 }
 
 .smliser-access-control-form,
@@ -1009,7 +1008,9 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     min-height: 150px;
     overflow: hidden;
 }
-
+.smliser-avatar-upload h3 {
+    width: 100%;
+}
 .smliser-avatar-upload img {
     border: dotted 0.5px #dcdcde;
     width: 150px;
@@ -1548,4 +1549,5 @@ li.smliser-org-member .smliser-org-member_header img {
     border-radius: 4px;
     height: 40px;
     line-height: 3;
+    width: unset;
 }
