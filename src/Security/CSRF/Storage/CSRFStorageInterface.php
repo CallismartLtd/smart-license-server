@@ -194,7 +194,7 @@ class CustomStorage implements CSRFStorage {
      *
      * @param callable|null $persist_callback Optional callback( $tokens ) for persistence
      */
-    public function __construct( callable $persist_callback = null ) {
+    public function __construct( ?callable $persist_callback = null ) {
         $this->persist_callback = $persist_callback;
     }
 

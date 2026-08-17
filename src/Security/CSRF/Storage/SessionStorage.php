@@ -36,7 +36,7 @@ class SessionStorage implements CSRFStorage {
      * @param string $prefix Optional key prefix (default: '_csrf_tokens_')
      */
     public function __construct( $prefix = '' ) {
-        $this->prefix = $prefix ? $prefix : $this->prefix;
+        $this->prefix = $prefix ?: $this->prefix;
 
         // Ensure session is started
         if ( session_status() === PHP_SESSION_NONE ) {

@@ -1033,7 +1033,7 @@ final class AssetsManager {
 	 */
 	private function register_default_js_constants() : void {
 		$this->register_js_constant( 'smliser_var', [
-            'ajaxURL'           => adminUrl( 'admin-ajax.php' )->url(),
+            'ajaxURL'           => adminUrl()->url(),
             'csrf_token'        => '',
             'spinner_gif'       => \assetsUrl( 'images/spinner.gif' )->url(),
             'spinner_gif_2x'    => \assetsUrl( 'images/spinner-2x.gif' )->url(),

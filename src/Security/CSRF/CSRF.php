@@ -83,14 +83,14 @@ class CSRF {
      */
     public function __construct(
         CSRFStorage $storage,
-        $session_id = null,
-        $field_name = '_token',
-        $header_name = 'X-CSRF-Token'
+        $session_id     = null,
+        $field_name     = '_token',
+        $header_name    = 'X-CSRF-Token'
     ) {
-        $this->storage = $storage;
-        $this->session_id = $session_id ?? $this->getDefaultSessionId();
-        $this->field_name = $field_name;
-        $this->header_name = $header_name;
+        $this->storage      = $storage;
+        $this->session_id   = $session_id ?? $this->getDefaultSessionId();
+        $this->field_name   = $field_name;
+        $this->header_name  = $header_name;
     }
 
     /**
