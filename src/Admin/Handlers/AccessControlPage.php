@@ -107,8 +107,6 @@ class AccessControlPage implements AdminPageInterface {
         $user           = User::get_by_id( (int) $user_id );
 
         $title          = sprintf( '%s User', $user ? 'Edit' : 'Add New' );
-        $roles_title    = sprintf( '%s User Role', $user ? 'Update' : 'Set' );
-
         $_user_statuses = User::get_allowed_statuses();
         $_status_titles = array_map( 'ucwords', array_values( $_user_statuses ) );
         $_status_keys   = array_values( $_user_statuses );
@@ -248,7 +246,7 @@ class AccessControlPage implements AdminPageInterface {
         }
 
         $vars           = compact( 'request', 'form_fields', 'avatar_name',
-        'avatar_url', 'role', 'title', 'roles_title' );
+        'avatar_url', 'role', 'title' );
 
         smliser_render_template( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -390,7 +388,6 @@ class AccessControlPage implements AdminPageInterface {
         $org_name           = $organization?->get_display_name();
 
         $title              = sprintf( '%s %s Member', $member ? 'Edit' : 'Add New', $org_name );
-        $roles_title        = sprintf( '%s Member Role in %s', $member ? 'Update' : 'Set', $org_name );
 
         $_org_statuses      = Organization::get_allowed_statuses();
         $_status_titles     = array_map( 'ucwords', array_values( $_org_statuses ) );
@@ -502,7 +499,7 @@ class AccessControlPage implements AdminPageInterface {
         $avatar_name    = $member ? 'View image' : $avatar_url->basename();
 
         $vars = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
-        'title', 'organization', 'role', 'roles_title'  );
+        'title', 'organization', 'role' );
 
         smliser_render_template( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -534,9 +531,7 @@ class AccessControlPage implements AdminPageInterface {
         $owner_id           = $request->get( 'id' );
         $owner              = Owner::get_by_id( (int) $owner_id );
 
-        $title          = sprintf( '%s Resource Owner', $owner ? 'Edit' : 'Add New' );
-        $roles_title        = 'Ownership Roles';
-
+        $title              = sprintf( '%s Resource Owner', $owner ? 'Edit' : 'Add New' );
         $_owner_statuses    = Owner::get_allowed_statuses();
         $_status_titles     = array_map( 'ucwords', array_values( $_owner_statuses ) );
         $_status_keys       = $_owner_statuses;
@@ -683,7 +678,6 @@ class AccessControlPage implements AdminPageInterface {
         $sa_acc         = ServiceAccount::get_by_id( (int) $user_id );
 
         $title          = sprintf( '%s Service Account', $sa_acc ? 'Edit' : 'Add New' );
-        $roles_title    = sprintf( '%s Service Account Role & Permissions', $sa_acc ? 'Update' : 'Set' );
 
         $_sa_statuses = ServiceAccount::get_allowed_statuses();
         $_status_titles = array_map( 'ucwords', array_values( $_sa_statuses ) );
@@ -816,7 +810,7 @@ class AccessControlPage implements AdminPageInterface {
         $avatar_name    = $sa_acc ? 'View image' : $avatar_url->basename();
 
         $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url', 'role',
-        'title', 'roles_title' );
+        'title' );
 
         smliser_render_template( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -907,15 +901,21 @@ class AccessControlPage implements AdminPageInterface {
     public static function get_submenu() : array {
         return [
             [
+                'title'         => 'Accounts overview',
+                'slug'          => 'index',
+                'callback'      => [static::class, 'dashboard'],
+                'visibility'    => true,
+            ],
+            [
                 'title'         => 'Users',
                 'slug'          => 'users',
                 'callback'      => [static::class, 'users_page'],
                 'visibility'    => true,
             ],
             [
-                'title'         => 'Organizations',
-                'slug'          => 'organizations',
-                'callback'      => [static::class, 'organizations_page'],
+                'title'         => 'Service Accounts',
+                'slug'          => 'service-account',
+                'callback'      => [static::class, 'rest_api_page'],
                 'visibility'    => true,
             ],
             [
@@ -925,11 +925,12 @@ class AccessControlPage implements AdminPageInterface {
                 'visibility'    => true,
             ],
             [
-                'title'         => 'Service Accounts',
-                'slug'          => 'service-account',
-                'callback'      => [static::class, 'rest_api_page'],
+                'title'         => 'Organizations',
+                'slug'          => 'organizations',
+                'callback'      => [static::class, 'organizations_page'],
                 'visibility'    => true,
-            ]
+            ],
+            
         ];
     }
     

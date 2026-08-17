@@ -100,6 +100,7 @@ if ( $current_submenu ) {
 } else {
     $callback   = $current_menu['handler']::index_page_handler();
 }
+
 $this->render( $content_template, [
     'principal' => $principal,
     'callback'  => $callback,

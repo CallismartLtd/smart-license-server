@@ -88,7 +88,7 @@ class RoleBuilder {
                         aria-label="Select role preset"
                         aria-controls="rb-capabilities-area"
                     >
-                        <option value="">Custom role</option>
+                        <option value="">Create role</option>
                         ${this.renderRoleOptions()}
                     </select>
                 </div>
@@ -227,7 +227,7 @@ class RoleBuilder {
             .querySelector('.rb-role-name')
             .addEventListener('input', () => {
                 // Typing in the name field always means the user is customising,
-                // so reset the preset dropdown to "Custom role".
+                // so reset the preset dropdown to "Create role".
                 this.container.querySelector('.rb-role-select').value = '';
             });
 
@@ -521,7 +521,7 @@ class RoleBuilder {
         }
 
         // Point the dropdown at the matching option if one exists, otherwise
-        // fall back to "Custom role". Either way, lock state comes from is_canonical.
+        // fall back to "Create role". Either way, lock state comes from is_canonical.
         const matchingOption = roleSelect.querySelector( `option[value="${roleData.slug}"]` );
         roleSelect.value     = matchingOption ? roleData.slug : '';
 

@@ -5,7 +5,6 @@
  * @author Callistus Nwachukwu
  * @see \SmartLicenseServer\Admin\Handlers\AccessControlPage
  * @var string $title
- * @var string $roles_title
  * @var array $form_fields
  * @var \SmartLicenseServer\Core\URL $avatar_url
  * @var string $avatar_name
@@ -239,7 +238,7 @@ if ( $render_image_only ) {
                 id="smliser-roles-title"
                 class="smliser-access-control-role-deading"
             >
-                <?php echo escHtml( $roles_title ); ?>
+                Manage Roles & Permissions
             </h2>
 
             <div

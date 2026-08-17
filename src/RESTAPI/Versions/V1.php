@@ -178,7 +178,7 @@ class V1 implements RESTVersionInterface {
 	 * 
 	 * @var string
 	 */
-	private const BULK_MESSAGES_ROUTE = 'bulk-messages';
+	private const BULK_MESSAGES_ROUTE = 'broadcasts';
 
 	/**
 	 * Client dashboard content route.
@@ -445,7 +445,7 @@ class V1 implements RESTVersionInterface {
 					'handler'       => array( BulkMessages::class, 'dispatch_response' ),
 					'guard'         => array( BulkMessages::class, 'permission_callback' ),
 					'args'          => self::get_bulk_messages_args(),
-					'category'      => 'bulk-messages',
+					'category'      => 'broadcasts',
 					'name'          => 'Bulk Messages',
 				),
 				array(

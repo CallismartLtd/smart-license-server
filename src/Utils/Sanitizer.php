@@ -706,7 +706,7 @@ class Sanitizer {
      * @param mixed $text The input value.
      * @return string Escaped text safe for textarea.
      */
-    public static function esc_textarea( $text ) : string {
+    public static function esc_textarea( mixed $text ) : string {
         if ( ! is_scalar( $text ) ) {
             return '';
         }

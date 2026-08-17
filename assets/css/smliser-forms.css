@@ -502,13 +502,6 @@ button.smliser-upload-btn {
     }
 }
 
-
-.application-uploader-page {
-    min-height: 100vh;
-    margin-left: -20px;
-    margin-top: 10px;
-}
-
 .smliser-access-control-form,
 .app-uploader-form,
 .smliser-app-files-list {

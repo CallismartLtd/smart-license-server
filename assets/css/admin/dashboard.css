@@ -60,12 +60,15 @@ html[data-theme="dark"] {
 }
 
 html {
+	height: 100%;
 	-webkit-text-size-adjust: 100%;
 	text-size-adjust: 100%;
 }
 
 body {
 	margin: 0;
+	height: 100%;
+	overflow: hidden;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 	font-size: var( --dashboard-font-size );
 	line-height: var( --dashboard-line-height );
@@ -459,39 +462,71 @@ button:hover:not( :disabled ) {
 }
 
 /* ==========================================================
+   Top Menu
+========================================================== */
+
+.dashboard-top-menu {
+	grid-area: topbar;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 16px;
+	background: var( --dashboard-surface );
+	/* border-bottom: 1px solid var( --dashboard-border ); */
+	box-shadow: var( --dashboard-shadow );
+}
+
+.dashboard-top-menu-left,
+.dashboard-top-menu-right {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+/* ==========================================================
    Layout
 ========================================================== */
 
 .dashboard-wrapper {
-	display: flex;
-	min-height: 100vh;
-	transform: translateZ( 0 )
+	display: grid;
+	grid-template-columns: var( --dashboard-sidebar-width ) 1fr;
+	grid-template-rows: var( --dashboard-topbar-height ) 1fr;
+	grid-template-areas:
+		"topbar topbar"
+		"sidebar main";
+	height: 100vh;
+	transition: grid-template-columns var( --dashboard-transition );
+}
+
+.dashboard-wrapper.is-collapsed {
+	grid-template-columns: var( --dashboard-sidebar-collapsed-width ) 1fr;
 }
 
 .dashboard-main {
-	flex: 1;
+	grid-area: main;
 	display: flex;
 	flex-direction: column;
 	min-width: 0;
-	margin-left: var( --dashboard-sidebar-width );
-	transition: margin-left var( --dashboard-transition );
+	min-height: 0; /* grid/flex items don't shrink below content size by default — this lets .dashboard-content's own scroll take over instead of the row growing */
 }
 
-.dashboard-wrapper.is-collapsed .dashboard-main {
-	margin-left: var( --dashboard-sidebar-collapsed-width );
-}
-
-.dashboard-main:has( .smliser-top-nav ) {
-	margin-top: 70px;
-}
 
 .dashboard-main:has( .smliser-top-nav ) .smliser-top-nav {
-	top: 0;
+	top: var( --dashboard-topbar-height );
 	width: calc( 100% - var( --dashboard-sidebar-width ) );
+	background-color: rgba(255, 255, 255, 0.95)
 }
 
-.dashboard-wrapper.is-collapsed .smliser-top-nav {
-	width: calc( 100% - var( --dashboard-sidebar-collapsed-width ) );
+/* ============================================
+   SMLISER REPOSITORY PREVIEW TEMPLATE STYLES
+   ============================================ */
+.smliser-admin-dashboard-template,
+.smliser-admin-page,
+.smliser-admin-repository-template,
+.application-uploader-page {
+    margin-left: -20px;
+    margin-top: 60px;
 }
 
 /* ==========================================================
@@ -499,17 +534,13 @@ button:hover:not( :disabled ) {
 ========================================================== */
 
 .dashboard-left-menu {
-	position: fixed;
-	top: 1;
-	left: 0;
-	height: 100%;
-	width: var( --dashboard-sidebar-width );
+	grid-area: sidebar;
+	min-height: 0;
 	background: var( --dashboard-surface );
 	border-right: 1px solid var( --dashboard-border );
 	overflow-x: hidden;
 	overflow-y: auto;
-	z-index: 100;
-	transition: width var( --dashboard-transition ), transform var( --dashboard-transition );
+	transition: transform var( --dashboard-transition );
 }
 
 .dashboard-wrapper.is-collapsed .dashboard-left-menu {
@@ -649,31 +680,6 @@ button:hover:not( :disabled ) {
 	background: var( --dashboard-hover-bg );
 }
 
-/* ==========================================================
-   Top Menu
-========================================================== */
-
-.dashboard-top-menu {
-	position: sticky;
-	top: 0;
-	z-index: 9999;
-	height: var( --dashboard-topbar-height );
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 0 16px;
-	background: var( --dashboard-surface );
-	/* border-bottom: 1px solid var( --dashboard-border ); */
-	/* box-shadow: var( --dashboard-shadow ); */
-}
-
-.dashboard-top-menu-left,
-.dashboard-top-menu-right {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-}
-
 .dashboard-menu-toggle,
 .dashboard-mobile-menu-toggle,
 .dashboard-theme-toggle {
@@ -728,6 +734,8 @@ html[data-theme="dark"] .dashboard-theme-icon-dark {
 
 .dashboard-content {
 	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
 	padding: 20px;
 }
 
@@ -761,32 +769,33 @@ html[data-theme="dark"] .dashboard-theme-icon-dark {
 		display: flex;
 	}
 
-	.dashboard-main {
-		margin-left: 0;
-	}
-
-	.dashboard-wrapper.is-collapsed .dashboard-main {
-		margin-left: 0;
+	.dashboard-wrapper,
+	.dashboard-wrapper.is-collapsed {
+		grid-template-columns: 1fr;
+		grid-template-areas:
+			"topbar"
+			"main";
 	}
 
 	.dashboard-left-menu {
-		transform: translateX( -100% );
+		position: fixed;
+		top: var( --dashboard-topbar-height );
+		left: 0;
 		width: var( --dashboard-sidebar-width );
+		height: calc( 100vh - var( --dashboard-topbar-height ) );
+		transform: translateX( -100% );
+		z-index: 999;
 		box-shadow: var( --dashboard-shadow );
 	}
 
-	.dashboard-wrapper.is-collapsed .dashboard-left-menu {
-		width: var( --dashboard-sidebar-width );
+	.dashboard-wrapper.mobile-menu-open .dashboard-left-menu {
+		transform: translateX( 0 );
 	}
 
 	.dashboard-wrapper.is-collapsed .dashboard-menu-text,
 	.dashboard-wrapper.is-collapsed .dashboard-menu-arrow,
 	.dashboard-wrapper.is-collapsed .dashboard-submenu {
 		display: initial;
-	}
-
-	.dashboard-wrapper.mobile-menu-open .dashboard-left-menu {
-		transform: translateX( 0 );
 	}
 
 }

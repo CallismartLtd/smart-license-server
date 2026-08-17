@@ -625,9 +625,9 @@ class OptionsPage implements AdminPageInterface {
     public static function get_submenu() : array {
         return [
             [
-                'title'         => 'Routes',
-                'slug'          => 'routes',
-                'callback'      => [static::class, 'routes_setting'],
+                'title'         => 'General',
+                'slug'          => 'index',
+                'callback'      => [static::class, 'general_settings'],
                 'visibility'    => true,
             ],
             [

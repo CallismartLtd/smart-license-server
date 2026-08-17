@@ -52,7 +52,7 @@ class BulkMessagePage implements AdminPageInterface{
         $menu_args      = static::get_menu_args( $request );
         
         $vars           = compact( 'messages', 'current_url', 'menu_args', 'pagination' );
-        smliser_render_template( 'admin.contents.bulk-messages.index', $vars );
+        smliser_render_template( 'admin.contents.broadcasts.index', $vars );
     }
 
     /**
@@ -66,7 +66,7 @@ class BulkMessagePage implements AdminPageInterface{
         $message    = BulkMessageService::raw()->get_message( $message_id );
         $vars       = compact( 'menu_args', 'request', 'message' );
         
-        smliser_render_template( 'admin.contents.bulk-messages.compose', $vars );
+        smliser_render_template( 'admin.contents.broadcasts.compose', $vars );
     }
 
     /**
@@ -86,7 +86,7 @@ class BulkMessagePage implements AdminPageInterface{
 
         $vars           = compact( 'current_url', 'menu_args', 'search', 'messages', 'pagination' );
 
-        smliser_render_template( 'admin.contents.bulk-messages.search', $vars );
+        smliser_render_template( 'admin.contents.broadcasts.search', $vars );
        
     }
 
@@ -152,6 +152,12 @@ class BulkMessagePage implements AdminPageInterface{
     public static function get_submenu() : array {
         return [
             [
+                'title'         => 'All messages',
+                'slug'          => 'index',
+                'callback'      => [ static::class, 'dashboard'],
+                'visibility'    => true,
+            ],
+            [
                 'title'         => 'Compose New',
                 'slug'          => 'compose-new',
                 'callback'      => [ static::class, 'message_editor'],
@@ -173,13 +179,13 @@ class BulkMessagePage implements AdminPageInterface{
     }
     
     public static function get_menu_key() : string {
-        return 'bulk_messages';
+        return 'broadcasts';
     }
 
     public static function get_menu_data() : array {
         return [
-            'title'         => 'Bulk Messages',
-            'slug'          => 'bulk-messages',
+            'title'         => 'Broadcasts',
+            'slug'          => 'broadcasts',
             'handler'       => static::class,
             'icon'          => 'ti ti-message-code',
             'visibility'    => true

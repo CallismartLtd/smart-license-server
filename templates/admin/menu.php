@@ -57,7 +57,8 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <?php endif; ?>
                             <?php
                             $sub_url        = adminUrl( "{$menu['slug']}/{$submenu['slug']}" );
-                            $is_current_sub = null !== $current_submenu && $submenu['slug'] === $current_submenu['slug'];
+                            $is_current_sub = ( null !== $current_submenu && $submenu['slug'] === $current_submenu['slug'] ) || 
+                                ( ! $current_submenu && 'index' === $submenu['slug'] );
                             ?>
                             <li class="dashboard-submenu-item<?php echo $is_current_sub ? ' is-current' : ''; ?>" id="submenu-<?php echo escAttr( $submenu['slug'] ); ?>">
                                 <a

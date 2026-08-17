@@ -93,10 +93,10 @@ function smliser_bulk_messages_url( ?string $tab = null ) : URL {
     if ( is_wp() ) {
         $url = $url
             ->add_query_params([
-                'page'  => 'smliser-bulk-messages'
+                'page'  => 'smliser-broadcasts'
             ]);
     } else {
-        $url    = $url->append_path( 'bulk-messages' );
+        $url    = $url->append_path( 'broadcasts' );
     }
 
     if ( $tab ) {

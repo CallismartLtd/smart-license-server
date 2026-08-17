@@ -863,6 +863,7 @@ final class AssetsManager {
 					'smliser-modal',
 					'smliser-client-dashboard',
 					'smliser-tinymce',
+					
 
 				],
 			],

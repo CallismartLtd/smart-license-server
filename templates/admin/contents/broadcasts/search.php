@@ -21,7 +21,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 
         <div class="smliser-app-search-page smliser-table-wrapper">
             <form class="smliser-admin-search" method="GET" action="<?php echo escUrl( $current_url->get_href() ) ?>">
-                <input type="hidden" name="page" value="smliser-bulk-messages">
+                <input type="hidden" name="page" value="smliser-broadcasts">
                 <input type="hidden" name="tab" value="search">
                 
                 <input type="search" name="msg_search" value="<?php echo smliser_get_query_param( 'msg_search' ) ?>" id="smliser-msg-search-input" placeholder="Search messages">

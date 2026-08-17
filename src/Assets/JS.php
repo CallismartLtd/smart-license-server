@@ -32,7 +32,9 @@ final class JS {
             ],
             'smliser-admin-scripts' => [
                 'url'           => assetsUrl( sprintf( 'js/admin/dashboard%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-script', 'smliser-apps-uploader', 'smliser-chart'],
+                'dependencies'  => [
+                    'smliser-script', 'smliser-apps-uploader', 'smliser-chart',
+                ],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
@@ -40,7 +42,7 @@ final class JS {
                 'url'           => assetsUrl( sprintf( 'js/main-script%s.js', $suffix ) ),
                 'dependencies'  => [
                     'string-utils', 'smliser-jquery', 'select2', 'smliser-datetime-picker',
-                    'smliser-modal','smliser-toast'
+                    'smliser-modal','smliser-toast', 'smliser-role-builder'
                 ],
                 'version'   => SMLISER_VER,
                 'footer'    => true

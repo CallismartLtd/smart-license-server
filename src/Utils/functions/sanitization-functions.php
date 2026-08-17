@@ -56,3 +56,13 @@ function escUrl( string $url ) : string {
 function sanitize_html( string $html ) : string {
     return Sanitizer::sanitize_html( $html );
 }
+
+/**
+ * Escape text area field.
+ * 
+ * @param string $text
+ * @return string
+ */
+function escTextArea( string $text ) : string {
+    return Sanitizer::esc_textarea( $text );
+}

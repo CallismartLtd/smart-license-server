@@ -307,6 +307,12 @@ class LicensePage implements AdminPageInterface {
     public static function get_submenu() : array {
         return [
             [
+                'title'         => 'All licenses',
+                'slug'          => 'index',
+                'callback'      => [static::class, 'dashboard'],
+                'visibility'    => true,
+            ],
+            [
                 'title'         => 'Add New',
                 'slug'          => 'add-new',
                 'callback'      => [ static::class, 'add_license_page'],

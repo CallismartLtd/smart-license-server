@@ -923,6 +923,12 @@ class RepositoryPage implements AdminPageInterface {
     public static function get_submenu() : array {
         return [
             [
+                'title'         => 'Hosted apps',
+                'slug'          => 'index',
+                'callback'      => [ static::class, 'dashboard'],
+                'visibility'    => true,
+            ],
+            [
                 'title'         => 'Add New',
                 'slug'          => 'add-new',
                 'callback'      => [ static::class, 'upload_page'],

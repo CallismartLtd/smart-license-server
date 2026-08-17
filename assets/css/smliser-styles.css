@@ -1,3 +1,16 @@
+.screen-reader-text {
+  border: 0;
+  clip: rect(1px, 1px, 1px, 1px);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  word-wrap: normal !important;
+}
+
 /* Full-page spinner overlay */
 .spinner-overlay {
     display: none;
@@ -613,8 +626,8 @@ input.smliser_toggle-switch-input {
    ============================================ */
 .smliser-admin-dashboard-template,
 .smliser-admin-page,
-.smliser-admin-repository-template {
-    min-height: 100vh;
+.smliser-admin-repository-template,
+.application-uploader-page {
     margin-left: -20px;
     margin-top: -10px;
 }

@@ -166,7 +166,7 @@ function smliser_render_input_field( array $args = [] ): void {
                 escAttr( $input['name'] ),
                 escAttr( $id ),
                 $attr_str,
-                esc_textarea( $input['value'] )
+                escTextArea( $input['value'] )
             );
             break;
 
