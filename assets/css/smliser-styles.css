@@ -31,6 +31,7 @@
 
 .bg-white {
     background-color: #ffffff;
+    color: #333333;
 }
 
 /* Show spinner overlay */
@@ -993,7 +994,7 @@ input.smliser_toggle-switch-input {
     border-bottom: 1px solid #dcdcde;
     position: fixed;
     top: 20px;
-    right: auto;
+    right: 0;
     z-index: 100;
     width: calc(100% - 160px);
 }

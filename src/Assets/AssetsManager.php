@@ -1035,9 +1035,8 @@ final class AssetsManager {
 		$this->register_js_constant( 'smliser_var', [
             'ajaxURL'           => adminUrl( 'admin-ajax.php' )->url(),
             'csrf_token'        => '',
-            'admin_url'         => \adminUrl()->url(),
-            'spinner_gif'       => \adminUrl( 'images/spinner.gif' )->url(),
-            'spinner_gif_2x'    => \adminUrl( 'images/spinner-2x.gif' )->url(),
+            'spinner_gif'       => \assetsUrl( 'images/spinner.gif' )->url(),
+            'spinner_gif_2x'    => \assetsUrl( 'images/spinner-2x.gif' )->url(),
             'app_search_api'    => \restAPIUrl( '/repository/' ),
             'default_roles'     => [
                 'roles'         => Role::all( true ),

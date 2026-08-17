@@ -537,7 +537,7 @@ class OptionsPage implements AdminPageInterface {
      * @return array<string, mixed>
      */
     public static function get_menu_args( Request $request ): array {
-        $tab         = $request->get( 'tab' );
+        $tab         = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         $section     = $request->get( 'section' );
         $current_url = smliser_get_current_url()->remove_query_param( 'message', 'tab', 'section', 'provider', 'adapter', 'template' );
 
@@ -651,7 +651,7 @@ class OptionsPage implements AdminPageInterface {
             [
                 'title'         => 'Routes',
                 'slug'          => 'routes',
-                'callback'      => [static::class, 'cache_options'],
+                'callback'      => [static::class, 'routes_setting'],
                 'visibility'    => true,
             ]
         ];

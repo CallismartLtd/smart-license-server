@@ -49,8 +49,8 @@ class AccessControlPage implements AdminPageInterface {
                 'edit'      => [__CLASS__, 'owners_form_page'],
             ],
             'service-account'  => [
-                'add-new'   => [__CLASS__, 'rest_api_form_page'],
-                'edit'      => [__CLASS__, 'rest_api_form_page'],
+                'add-new'   => [__CLASS__, 'service_accounts_form_page'],
+                'edit'      => [__CLASS__, 'service_accounts_form_page'],
             ],
         ];
 
@@ -65,7 +65,7 @@ class AccessControlPage implements AdminPageInterface {
 
 
     /**
-     * Access control page dashbard.
+     * Access control page dashbard callback.
      * 
      * @param Request $request
      */
@@ -77,7 +77,7 @@ class AccessControlPage implements AdminPageInterface {
     }
 
     /**
-     * Users page.
+     * Users submenu page callback.
      * 
      * @param Request $request
      */
@@ -92,13 +92,15 @@ class AccessControlPage implements AdminPageInterface {
         $entity_class   = User::class;
         $type           = 'user';
 
-        $vars           = compact( 'request', 'all', 'entity_class', 'type' );
+        $description    = 'Manage users';
+
+        $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description' );
 
         smliser_render_template( 'admin.contents.accounts.principals', $vars );
     }
 
     /**
-     * The users creation and edit page
+     * The user account creation and edit page callback.
      * 
      * @param Request $request
      */
@@ -252,7 +254,7 @@ class AccessControlPage implements AdminPageInterface {
     }
 
     /**
-     * Organizations page.
+     * Organizations submenu page callback.
      * 
      * @param Request $request
      */
@@ -266,8 +268,8 @@ class AccessControlPage implements AdminPageInterface {
         $all            = Organization::get_all( $page, $limit );
         $entity_class   = Organization::class;
         $type           = 'organization';
-
-        $vars           = compact( 'request', 'all', 'entity_class', 'type' );
+        $description    = 'An organization is an account that represents a group, business, or other entity under which users, service accounts, resources, and access policies can be managed collectively.';
+        $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description' );
 
         smliser_render_template( 'admin.contents.accounts.principals', $vars );
     }
@@ -649,11 +651,11 @@ class AccessControlPage implements AdminPageInterface {
     }
 
     /**
-     * REST API setting page.
+     * Service accounts submenu page callback.
      * 
      * @param Request $request
      */
-    public static function rest_api_page( Request $request ) {
+    public static function service_accounts_page( Request $request ) {
         if ( static::sub_router( $request ) ) {
             return;
         }
@@ -663,17 +665,18 @@ class AccessControlPage implements AdminPageInterface {
         $all            = ServiceAccount::get_all( $page, $limit );
         $entity_class   = ServiceAccount::class;
         $type           = 'Service Account';
-        $vars           = compact( 'request', 'all', 'entity_class', 'type' );
+        $description    = 'A service account is a non-human account used by software, an application, server, or automated process to authenticate and access resources.';
+        $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description' );
 
         smliser_render_template( 'admin.contents.accounts.principals', $vars );      
     }
 
     /**
-     * The users creation and edit page.
+     * The service account creation and edit page callback.
      * 
      * @param Request $request
      */
-    private static function rest_api_form_page( Request $request ) {
+    private static function service_accounts_form_page( Request $request ) {
         $user_id        = $request->get( 'id' );
         $sa_acc         = ServiceAccount::get_by_id( (int) $user_id );
 
@@ -827,7 +830,7 @@ class AccessControlPage implements AdminPageInterface {
             'organizations'     => 'Organizations',
             'owners'            => 'Resource Owners',
             'service-account'   => 'Service Accounts',
-            default             => 'Security & Access Control'
+            default             => 'Accounts Overview'
 
         };
 
@@ -872,9 +875,9 @@ class AccessControlPage implements AdminPageInterface {
             )
         );
 
-        if ( $tab ) {
+        if ( $tab && 'index' !== $tab ) {
             $home = array(
-                'label' => 'Security & Access Control',
+                'label' => 'Accounts Overview',
                 'url'   => smliser_access_control_page_url(),
                 'icon'  => 'ti ti-home'
             );
@@ -915,7 +918,7 @@ class AccessControlPage implements AdminPageInterface {
             [
                 'title'         => 'Service Accounts',
                 'slug'          => 'service-account',
-                'callback'      => [static::class, 'rest_api_page'],
+                'callback'      => [static::class, 'service_accounts_page'],
                 'visibility'    => true,
             ],
             [

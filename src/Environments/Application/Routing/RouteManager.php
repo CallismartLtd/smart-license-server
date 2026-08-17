@@ -10,7 +10,6 @@ declare(strict_types=1);
 namespace SmartLicenseServer\Environments\Application\Routing;
 
 use SmartLicenseServer\Admin\Page\Dispatcher;
-use SmartLicenseServer\Admin\Page\Shell;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Environments\Application\DefaultPage;

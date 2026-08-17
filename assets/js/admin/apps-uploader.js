@@ -270,7 +270,7 @@ class AppUploader {
 
         if ( this.editor ) {
             const jsonString    = await this.editor.getJSON( true );
-            const jsonFile      = new File( [jsonString], 'app.json', { 
+            const jsonFile      = new File( [jsonString], 'app.json', {
                 type: 'application/json',
                 lastModified: this.editor.lastModified ?? Date.now(),
             });
@@ -283,6 +283,9 @@ class AppUploader {
             const response = await fetch( smliser_var.ajaxURL, {
                 method      : 'POST',
                 credentials : 'same-origin',
+                headers: {
+                    'Accept': 'application/json'
+                },
                 body        : payLoad,
             });
 
@@ -821,6 +824,9 @@ class AppUploader {
 
             const response  = await fetch( url.href, {
                 method      : method,
+                headers: {
+                    'Accept': 'application/json'
+                },
                 body        : payLoad,
                 credentials : 'same-origin',
             });
@@ -968,6 +974,9 @@ class AppUploader {
         try {
             const response  = await fetch( smliser_var.ajaxURL, {
                 method      : 'POST',
+                headers: {
+                    'Accept': 'application/json'
+                },
                 body        : payLoad,
                 credentials : 'same-origin',
             });

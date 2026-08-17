@@ -8,6 +8,7 @@
  * @var \SmartLicenseServer\Security\Actors\ActorInterface[] $all
  * @var \SmartLicenseServer\Core\Request $request
  * @var string $type
+ * @var string $description
  */
 
 use SmartLicenseServer\Admin\Handlers\AccessControlPage;
@@ -25,7 +26,10 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 <div class="notice notice-info is-dismissible"><p><?php echo escHtml( $message ); ?></p></div>
             <?php endif; ?>
         </div>
-
+        <p>
+            <i class="ti ti-info-square-rounded" style="font-size: 1.2em; color: #0073aa;"></i>
+            <?php print_r( $description ); ?>
+        </p>
         <ul class="subsubsub">
             <?php foreach ( $entity_class::get_allowed_statuses() as $k => $v ) : $st_v = $entity_class::count_status( $v ); ?>
                 <?php if ( $st_v > 0 ) : ?>
@@ -53,7 +57,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
             <tbody>
                 <?php if ( empty( $all ) ) : ?>
                     <tr>
-                        <td colspan="4" class="align-center bg-white">
+                        <td colspan="5" class="align-center bg-white">
                             <?php printf(
                                 'All %s all will be listed here',
                                 escHtml( smliser_pluralize( $type ) )

@@ -97,7 +97,7 @@ class BulkMessagePage implements AdminPageInterface{
      * @return array
      */
     protected static function get_menu_args( Request $request ) : array {
-        $tab    = $request->get( 'tab', '' );
+        $tab    = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         $title  = match( $tab ) {
             'edit'          => 'Edit Bulk Message',
             'compose-new'   => 'Compose Bulk Message',

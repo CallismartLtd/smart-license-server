@@ -50,7 +50,7 @@ function smliser_send_json( $data, $status_code = 200, $flags = 0 ) {
     }
 
     if ( ! headers_sent() ) {
-        status_header( $status_code );
+        http_response_code( $status_code );
         header( 'Content-Type: application/json; charset=' . smliser_settings()->get( 'charset', 'UTF-8', false ) );
     }
 

@@ -768,7 +768,21 @@ final class DefaultPage {
 	 *
 	 * @return Response
 	 */
-	public static function not_found(): Response {
+	public static function not_found( Request $request ): Response {
+		if ( $request->wantsJson() ) {
+			$message	= 'The requested resource could not be found.';
+			smliser_send_json(
+				[
+					'error'	=> 'Not found',
+					'message'	=> $message,
+					'data'	=> [
+						'message'	=> $message
+					]
+				],
+				404
+			);
+		}
+
 		$content = '
 			<div class="message">
 				<div class="card">

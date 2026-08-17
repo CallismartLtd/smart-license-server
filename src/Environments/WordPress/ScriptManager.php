@@ -122,7 +122,6 @@ final class ScriptManager {
         return [
             'ajaxURL'           => adminUrl( 'admin-ajax.php' )->url(),
             'csrf_token'        => wp_create_nonce( 'smliser_nonce' ),
-            'admin_url'         => \adminUrl()->url(),
             'spinner_gif'       => \adminUrl( 'images/spinner.gif' )->url(),
             'spinner_gif_2x'    => \adminUrl( 'images/spinner-2x.gif' )->url(),
             'app_search_api'    => \restAPIUrl( '/repository/' ),

@@ -6,7 +6,7 @@
 	--dashboard-sidebar-width: 160px;
 	--dashboard-sidebar-collapsed-width: 64px;
 	--dashboard-topbar-height: 37px;
-	--dashboard-transition: 0.2s ease;
+	--dashboard-transition: 0.1s ease;
 
 	--dashboard-bg: #f4f5f7;
 	--dashboard-surface: #ffffff;
@@ -26,6 +26,38 @@
 	--dashboard-line-height: 1.5;
 	--dashboard-radius: 6px;
 	--dashboard-focus-ring: 0 0 0 3px rgba( 59, 110, 246, 0.35 );
+}
+
+@view-transition {
+	navigation: auto;
+}
+
+::view-transition-old(root) {
+	animation: fade-out 0.5s ease;
+}
+
+::view-transition-new(root) {
+	animation: fade-in 0.5s ease;
+}
+
+@keyframes fade-out {
+	from {
+		opacity: 1;
+	}
+
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
 }
 
 html[data-theme="dark"] {
@@ -415,12 +447,14 @@ textarea::placeholder {
 input:disabled,
 select:disabled,
 textarea:disabled,
-button:disabled {
+button:disabled,
+.button:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
 }
 
-button {
+button,
+.button {
 	cursor: pointer;
 	background: var( --dashboard-accent );
 	color: var( --dashboard-accent-contrast );
@@ -431,7 +465,8 @@ button {
 	transition: background var( --dashboard-transition ), opacity var( --dashboard-transition );
 }
 
-button:hover:not( :disabled ) {
+button:hover:not( :disabled ),
+.button:hover:not( :disabled ) {
 	opacity: 0.9;
 }
 
@@ -511,9 +546,12 @@ button:hover:not( :disabled ) {
 	min-height: 0; /* grid/flex items don't shrink below content size by default — this lets .dashboard-content's own scroll take over instead of the row growing */
 }
 
-
+.dashboard-wrapper.is-collapsed .dashboard-main:has( .smliser-top-nav ) .smliser-top-nav {
+	width: calc( 100% - var( --dashboard-sidebar-collapsed-width ) );
+}
 .dashboard-main:has( .smliser-top-nav ) .smliser-top-nav {
 	top: var( --dashboard-topbar-height );
+	left: auto;
 	width: calc( 100% - var( --dashboard-sidebar-width ) );
 	background-color: rgba(255, 255, 255, 0.95)
 }

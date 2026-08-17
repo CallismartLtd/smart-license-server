@@ -27,7 +27,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 
         <p>
             <i class="ti ti-info-square-rounded" style="font-size: 1.2em; color: #0073aa;"></i>
-            Resource owners are individual users or organizations that own resources in this repository.
+            Resource owners are individual users or organizations that own or host resources in this repository.
         </p>
 
 
