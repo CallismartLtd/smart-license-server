@@ -18,10 +18,11 @@ use SmartLicenseServer\Admin\Handlers\AccessControlPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$current_tab        = $request->get( 'tab', '' );
-$current_section    = $request->get( 'section', '' );
+$current_tab        = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
+$current_section    = $request->query( 'section', '' );
 $render_roles       = in_array( $current_tab, ['service-account', 'users', ], true )
     || in_array( $current_section, ['add-new-member', 'edit-member'], true );
+
 $render_avatar      = ! in_array( $current_tab, ['owners'] );
 
 $render_image_only  = in_array( $current_section, ['add-new-member', 'edit-member'], true );

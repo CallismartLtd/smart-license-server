@@ -827,7 +827,7 @@ class AccessControlPage implements AdminPageInterface {
      * @param Request $request
      */
     public static function print_header( Request $request ) {
-        $tab        = $request->get( 'tab' );
+        $tab        = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         $title      = match( $tab ) {
             'users'             => 'Users',
             'organizations'     => 'Organizations',
@@ -847,7 +847,7 @@ class AccessControlPage implements AdminPageInterface {
                 array(
                     'title'     => 'Users',
                     'label'     => 'Users',
-                    'url'       => smliser_access_control_page_url()->add_query_param( 'tab', 'users' ),
+                    'url'       => smliser_access_control_page_url( 'users' ),
                     'icon'      => 'ti ti-user',
                     'active'    => $tab === 'users'
                 ),
@@ -855,7 +855,7 @@ class AccessControlPage implements AdminPageInterface {
                 array(
                     'title'     => 'REST API Service Accounts',
                     'label'     => 'Service Accounts',
-                    'url'       => smliser_access_control_page_url()->add_query_param( 'tab', 'service-account' ),
+                    'url'       => smliser_access_control_page_url( 'service-account' ),
                     'icon'      => 'ti ti-robot',
                     'active'    => $tab === 'service-account'
                 ),
@@ -863,7 +863,7 @@ class AccessControlPage implements AdminPageInterface {
                 array(
                     'title'     => 'Resource Owners',
                     'label'     => 'Owners',
-                    'url'       => smliser_access_control_page_url()->add_query_param( 'tab', 'owners' ),
+                    'url'       => smliser_access_control_page_url( 'owners' ),
                     'icon'      => 'ti ti-source-code',
                     'active'    => $tab === 'owners'
                 ),
@@ -871,7 +871,7 @@ class AccessControlPage implements AdminPageInterface {
                 array(
                     'title'     => 'Organizations',
                     'label'     => 'Organizations',
-                    'url'       => smliser_access_control_page_url()->add_query_param( 'tab', 'organizations' ),
+                    'url'       => smliser_access_control_page_url( 'organizations' ),
                     'icon'      => 'ti ti-users-group',
                     'active'    => $tab === 'organizations'
                 ),
@@ -931,10 +931,6 @@ class AccessControlPage implements AdminPageInterface {
                 'visibility'    => true,
             ]
         ];
-    }
-
-    public static function routing_var() : string {
-        return 'tab';
     }
     
     public static function get_menu_key() : string {

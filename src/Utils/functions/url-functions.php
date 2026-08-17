@@ -179,12 +179,25 @@ function smliser_admin_repo_tab( $tab = 'add-new', $args = array() ) : URL {
 /**
  * Get access control page url.
  * 
+ * @param string|null $tab
  * @return URL
  */
-function smliser_access_control_page_url() : URL {
-    return adminUrl( 'admin.php' )->add_query_params([
-        'page'  => 'smliser-accounts',
-    ]);
+function smliser_access_control_page_url( ?string $tab = null ) : URL {
+    $url    = adminUrl();
+
+    if ( is_wp() ) {
+        $url = $url->add_query_params([
+            'page'  => 'smliser-accounts',
+        ]);
+    } else{
+        $url    = $url->append_path( 'accounts' );
+    }
+
+    if ( $tab ) {
+        $url = is_wp() ? $url->add_query_param( 'tab', $tab ) : $url->append_path( $tab );
+    }
+
+    return $url;
 }
 
 /**

@@ -656,10 +656,6 @@ class OptionsPage implements AdminPageInterface {
             ]
         ];
     }
-
-    public static function routing_var() : string {
-        return 'tab';
-    }
     
     public static function get_menu_key() : string {
         return 'settings';

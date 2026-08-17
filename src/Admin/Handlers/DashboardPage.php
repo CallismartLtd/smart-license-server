@@ -609,8 +609,4 @@ class DashboardPage implements AdminPageInterface {
     public static function get_submenu() : array {
         return [];
     }
-
-    public static function routing_var(): ?string {
-        return null;
-    }
 }

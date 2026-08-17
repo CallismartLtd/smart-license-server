@@ -88,7 +88,7 @@ class AdminMenu {
             $target_menu    = $this->registry->get( 'overview' );
         }
 
-        $routing_var    = $target_menu['handler']::routing_var();
+        $routing_var    = 'tab';
 
         if ( $routing_var && $this->request->hasValue( $routing_var ) ) {
             $submenu    = $target_menu['handler']::get_submenu();

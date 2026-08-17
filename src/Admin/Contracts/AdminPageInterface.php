@@ -53,11 +53,4 @@ interface AdminPageInterface {
      * }[]
      */
     public static function get_submenu() : array;
-
-    /**
-     * Get the routing variable name for the submenu if applicable.
-     * 
-     * @return string|null
-     */
-    public static function routing_var() : ?string;
 }
