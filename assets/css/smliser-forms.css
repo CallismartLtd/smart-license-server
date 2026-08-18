@@ -1,6 +1,6 @@
 /**Forms CSS */
 #remove {
-    color: #000;
+    color: var(--dashboard-text);
     font-size: 24px;
     font-weight: bold;
     float: right;
@@ -10,7 +10,7 @@
 }
 
 .smliser-options-form {
-    background-color: #fff;
+    background-color: var(--dashboard-surface);
     display: block;
     margin: 20px;
     padding: 10px;
@@ -42,7 +42,7 @@
 }
 
 .smliser-form-container {
-    background-color: #ffffff;
+    background-color: var(--dashboard-surface);
     padding: 20px;
     margin: 20px auto;
     border-radius: 9px;
@@ -70,7 +70,7 @@
 }
 
 .smliser-form-file-row.active {
-    border: dashed 4px #dcdcde;
+    border: dashed 4px var(--dashboard-border);
 }
 
 .smliser-file-info {
@@ -87,14 +87,14 @@ button.smliser-file-remove {
     display: inline-block;
     width: 80%;
     height: 60px;
-    border: solid #dcdcde .5px !important;
+    border: solid var(--dashboard-border) .5px !important;
     border-radius: 5px;
     cursor: pointer;
     margin-bottom: 10px !important;
     line-height: 1.5 !important;
     border-radius: 8px !important;
-    color: #333;
-    background-color: #fff !important;
+    color: var(--dashboard-text);
+    background-color: var(--dashboard-surface) !important;
 }
 
 button.smliser-file-remove {
@@ -102,7 +102,7 @@ button.smliser-file-remove {
 }
 
 button.smliser-upload-btn {
-    border: dashed #dcdcde 3px !important;
+    border: dashed var(--dashboard-border) 3px !important;
 }
 
 .smliser-form-label {
@@ -116,8 +116,8 @@ button.smliser-upload-btn {
     margin-right: 5px;
     font-size: 14px;
     font-weight: bold;
-    color: #fff;
-    background-color: #000;
+    color: var(--dashboard-surface);
+    background-color: var(--dashboard-text);
     width: 6px;
     height: 16px;
     border-radius: 50%;
@@ -128,9 +128,9 @@ button.smliser-upload-btn {
 /* Custom Tooltip Styles */
 .custom-tooltip {
     position: absolute;
-    background-color: #333;
+    background-color: var(--dashboard-text);
     /* Background color */
-    color: #fff;
+    color: var(--dashboard-surface);
     /* Text color */
     padding: 5px 10px;
     border-radius: 4px;
@@ -150,7 +150,7 @@ button.smliser-upload-btn {
 }
 
 .smliser-form-container .smliser-form-input {
-    border: 1px solid #2b0808;
+    border: 1px solid var(--dashboard-border);
     border-radius: 3px;
     width: 350px;
 }
@@ -161,7 +161,7 @@ button.smliser-upload-btn {
 }
 
 .smliser-form-notice-container {
-    background-color: rgba(236, 161, 49, 0.295);
+    background-color: var(--dashboard-warning-bg);
     width: 100%;
     border-radius: 9px;
     margin-bottom: 9px;
@@ -170,7 +170,7 @@ button.smliser-upload-btn {
 .smliser-form-notice-container p {
     text-align: left;
     font-weight: bolder;
-    color: #000;
+    color: var(--dashboard-text);
     padding-left: 9px;
 
 }
@@ -180,8 +180,8 @@ button.smliser-upload-btn {
     display: grid;
     gap: 15px;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    color: #333333;
-    background-color: #f1f1f1;
+    color: var(--dashboard-text);
+    background-color: var(--dashboard-bg);
 }
 
 .smliser-license-download-token-form label {
@@ -190,7 +190,7 @@ button.smliser-upload-btn {
 
 .smliser-license-download-token-form input {
     height: 40px;
-    border: solid 1px #dcdcde;
+    border: solid 1px var(--dashboard-border);
 }
 
 .smliser-loader-container {
@@ -201,10 +201,10 @@ button.smliser-upload-btn {
     transform: translate(-50%, -50%);
     z-index: 1000;
     padding: 20px;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: var(--dashboard-scrim);
     width: 100%;
     height: 100% !important;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: var(--dashboard-scrim);
 
 }
 
@@ -222,7 +222,7 @@ button.smliser-upload-btn {
 }
 
 .rotate {
-    color: #000000;
+    color: var(--dashboard-text);
     animation: rotation 2s linear infinite;
 }
 
@@ -247,7 +247,7 @@ button.smliser-upload-btn {
 }
 
 .smliser-monetization-ui {
-    background-color: #fff;
+    background-color: var(--dashboard-surface);
     display: flex;
     flex-direction: row;
     gap: 15px;
@@ -258,13 +258,13 @@ button.smliser-upload-btn {
 }
 
 .smliser-monetization-ui table {
-    border-color: #dcdcde;
+    border-color: var(--dashboard-border);
 }
 
 .smliser-monetization-ui__software-info {
     flex: 1 1 400px;
     width: 70%;
-    background-color: #f1f1f1;
+    background-color: var(--dashboard-bg);
     padding: 10px;
 
 }
@@ -274,7 +274,7 @@ button.smliser-upload-btn {
 }
 
 .smliser-monetization-ui__providiers-list {
-    border: 1px #dcdcde solid;
+    border: 1px var(--dashboard-border) solid;
     position: sticky;
     top: 50px;
     padding: 10px;
@@ -289,7 +289,7 @@ button.smliser-upload-btn {
 }
 
 .smliser-monetization-ui__monetization-provider {
-    background-color: #f1f1f1;
+    background-color: var(--dashboard-bg);
     padding: 10px;
 }
 
@@ -300,12 +300,12 @@ button.smliser-upload-btn {
     height: 100%;
     width: 100%;
     transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: var(--dashboard-scrim);
     z-index: 9999;
 }
 
 .smliser-pricing-tier-info {
-    border: solid 1px #dcdcde;
+    border: solid 1px var(--dashboard-border);
     display: flex;
     flex-direction: column;
     padding: 5px;
@@ -335,7 +335,7 @@ button.smliser-upload-btn {
     top: 50%;
     min-height: 300px;
     width: 60%;
-    background-color: #fff;
+    background-color: var(--dashboard-surface);
     padding: 10px;
     transform: translate(-50%, -50%);
     border-radius: 8px;
@@ -351,7 +351,7 @@ button.smliser-upload-btn {
 }
 
 .smliser-admin-modal_content-form {
-    background-color: #f1f1f1;
+    background-color: var(--dashboard-bg);
     margin: 10px auto;
     padding: 10px;
     display: flex;
@@ -374,7 +374,7 @@ button.smliser-upload-btn {
 .smliser-admin-modal_content-form label input,
 .smliser-admin-modal_content-form label select,
 .smliser-admin-modal_content-form label textarea {
-    border-color: #dcdcde;
+    border-color: var(--dashboard-border);
 }
 
 .smliser-admin-modal_content-form label textarea {
@@ -398,7 +398,7 @@ button.smliser-upload-btn {
     height: 40px;
     object-fit: contain;
     border-radius: 4px;
-    background: #f1f1f1;
+    background: var(--dashboard-bg);
     padding: 2px;
 }
 
@@ -423,16 +423,16 @@ button.smliser-upload-btn {
 
 .smliser-page-subtitle {
     font-size: 1rem;
-    color: #555;
+    color: var(--dashboard-text-muted);
 }
 
 /* Instructions section */
 .smliser-upload-instructions {
     margin-bottom: 2rem;
     padding: 1rem 1.5rem;
-    background-color: #f1f1f1;
-    border-left: 4px solid #0073aa;
-    /* WordPress blue */
+    background-color: var(--dashboard-bg);
+    border-left: 4px solid var(--dashboard-accent);
+    /* was WordPress blue #0073aa, consolidated onto the shell accent */
 }
 
 .smliser-instructions-title {
@@ -454,7 +454,7 @@ button.smliser-upload-btn {
 
 .smliser-upload-types-subtitle {
     font-size: 0.95rem;
-    color: #555;
+    color: var(--dashboard-text-muted);
     margin-bottom: 1rem;
 }
 
@@ -469,17 +469,17 @@ button.smliser-upload-btn {
 .smliser-upload-card {
     display: block;
     padding: 1rem;
-    background-color: #fff;
-    border: 1px solid #ddd;
+    background-color: var(--dashboard-surface);
+    border: 1px solid var(--dashboard-border);
     border-radius: 6px;
     text-decoration: none;
-    color: #333;
+    color: var(--dashboard-text);
     transition: all 0.2s ease;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .smliser-upload-card:hover {
-    border-color: #0073aa;
+    border-color: var(--dashboard-accent);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
@@ -492,7 +492,7 @@ button.smliser-upload-btn {
 
 .smliser-upload-card-description {
     font-size: 0.9rem;
-    color: #555;
+    color: var(--dashboard-text-muted);
 }
 
 /* Responsive tweaks */
@@ -506,7 +506,7 @@ button.smliser-upload-btn {
 .app-uploader-form,
 .smliser-app-files-list {
     display: block;
-    background-color: #FFFFFF;
+    background-color: var(--dashboard-surface);
     padding: 10px;
     margin: 20px;
     border-radius: 8px;
@@ -523,8 +523,8 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 	display: flex;
 	flex-direction: column;
 	gap: 10px;
-	background-color: #f1f1f1;
-	border: 1px solid #dcdcde;
+	background-color: var(--dashboard-bg);
+	border: 1px solid var(--dashboard-border);
 	border-radius: 4px;
 	padding: 10px;
 }
@@ -538,7 +538,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 .smliser-app-artifacts_item-info {
     margin: 10px 2px 2px 2px;
     padding: 10px;
-    background-color: #fff;
+    background-color: var(--dashboard-surface);
 }
 
 .smliser-app-artifacts_item-buttons {
@@ -547,10 +547,10 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 }
 
 .smliser-app-artifacts_item-buttons button {
-    background-color: #fff;
-    color: #333333;
+    background-color: var(--dashboard-surface);
+    color: var(--dashboard-text);
     cursor: pointer;
-    border: solid #dcdcde 1px;
+    border: solid var(--dashboard-border) 1px;
     font-size: 16px;
 }
 
@@ -585,7 +585,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 .app-uploader-right {
     flex: 1 1 45%;
     justify-self: flex-end;
-    border: 1px solid #dcdcde;
+    border: 1px solid var(--dashboard-border);
     border-radius: 8px;
     padding: 10px;
 }
@@ -595,7 +595,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 .app-uploader-below-section_assets h2,
 .app-uploader-asset-container h3 {
     width: 100%;
-    color: #333333;
+    color: var(--dashboard-text);
     padding: 0;
     margin-top: 10px;
 }
@@ -624,24 +624,24 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 .app-uploader-form-row select {
     max-width: unset;
     min-height: 30px;
-    border: 1px #dedcde solid;
+    border: 1px var(--dashboard-border) solid;
 }
 
 .smliser-form-label-row textarea {
     min-height: 130px;
-    border: 1px #dedcde solid;
+    border: 1px var(--dashboard-border) solid;
     resize: vertical;
 }
 
 .smliser-form-label-row textarea:focus {
     outline: none;
-    border-color: #000000;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    border-color: var(--dashboard-accent);
+    box-shadow: var(--dashboard-focus-ring);
 }
 
 .smliser-form-label-row input[type="text"]:read-only,
 .app-uploader-form-row input[type="text"]:read-only {
-    background-color: #fafafa;
+    background-color: var(--dashboard-bg);
     opacity: .5;
 }
 
@@ -663,7 +663,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     border: none;
     background: none;
     cursor: help;
-    color: #555555;
+    color: var(--dashboard-text-muted);
     line-height: 1;
     transition: color 0.15s ease;
 }
@@ -674,21 +674,24 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     height: 16px;
 }
 
-/* Dark circle background */
+/* Dark circle background — uses the text/surface pair so it always
+   inverts correctly: ink-colored circle, paper-colored glyph, in
+   both themes, instead of a fixed near-black that vanishes on a
+   dark page. */
 .smliser-help-icon svg circle:first-child {
-    fill: #1e1e1e;
-    stroke: #1e1e1e;
+    fill: var(--dashboard-text);
+    stroke: var(--dashboard-text);
 }
 
-/* White question mark */
+/* Question mark */
 .smliser-help-icon svg text {
-    fill: #ffffff;
+    fill: var(--dashboard-surface);
 }
 
 .smliser-help-icon:hover,
 .smliser-help-icon:focus-visible {
-    color: #2271b1;
-    /* WP admin blue */
+    color: var(--dashboard-accent);
+    /* was WP admin blue #2271b1, consolidated onto the shell accent */
     outline: none;
 }
 
@@ -706,8 +709,8 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     padding: 8px 10px;
     border-radius: 4px;
 
-    background: #1e1e1e;
-    color: #ffffff;
+    background: var(--dashboard-text);
+    color: var(--dashboard-surface);
     font-size: 12px;
     line-height: 1.5;
     text-align: left;
@@ -729,7 +732,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     left: 50%;
     transform: translateX(-50%);
     border: 5px solid transparent;
-    border-top-color: #1e1e1e;
+    border-top-color: var(--dashboard-text);
 }
 
 /* Flip below the icon when .smliser-tooltip-below is set by JS */
@@ -742,7 +745,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     top: auto;
     bottom: 100%;
     border-top-color: transparent;
-    border-bottom-color: #1e1e1e;
+    border-bottom-color: var(--dashboard-text);
 }
 
 /* Flip leftward when .smliser-tooltip-left is set by JS */
@@ -782,7 +785,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 
 .app-uploader-form-row span:not(.smliser-help-tooltip) {
     font-weight: 500;
-    color: #333333;
+    color: var(--dashboard-text);
 }
 
 .app-uploader-below-section_extras {
@@ -798,7 +801,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    border: 1px solid #dcdcde;
+    border: 1px solid var(--dashboard-border);
     border-radius: 4px;
     padding: 10px;
 }
@@ -807,12 +810,12 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background-color: #f1f1f1;
+    background-color: var(--dashboard-bg);
     padding: 0 5px;
 }
 
 .app-uploader-asset-container h3 {
-    border-bottom: solid 1px #dcdcde;
+    border-bottom: solid 1px var(--dashboard-border);
 }
 
 .app-uploader-asset-container_images {
@@ -828,7 +831,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 .smliser-uploader-add-image {
     position: relative;
     display: inline;
-    border: dashed 1px #000000;
+    border: dashed 1px var(--dashboard-border);
     height: 80px;
     width: 80px;
     cursor: pointer;
@@ -841,7 +844,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     transform: translate(-50%, -50%);
     display: inline-block;
     font-size: 25px;
-    color: #333333;
+    color: var(--dashboard-text);
 }
 
 .app-uploader-image-preview {
@@ -886,7 +889,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     gap: 20px;
     width: 97%;
     padding: 10px;
-    background-color: #fff;
+    background-color: var(--dashboard-surface);
     box-shadow: 0 10px 10px rgba(3, 1, 2, 0.2);
     border-radius: 8px;
     margin: 20px auto;
@@ -924,13 +927,13 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 .smliser-compose-message-form-row label {
     font-size: 16px;
     font-weight: 700;
-    color: #333;
+    color: var(--dashboard-text);
 }
 
 .smliser-compose-message-form-row input#subject {
     height: 40px;
     width: 100%;
-    border: solid 1px #dcdcde;
+    border: solid 1px var(--dashboard-border);
 }
 
 .app-uploader-form-row:has(.smliser-json-textarea).json-mounted {
@@ -962,8 +965,8 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     max-width: 100%;
     min-height: 320px;
     padding: 12px;
-    background: #f1f1f1;
-    border: 1px solid #ccd0d4;
+    background: var(--dashboard-bg);
+    border: 1px solid var(--dashboard-border);
     border-radius: 4px;
     overflow: auto;
 }
@@ -987,7 +990,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 .smliser-two-rows .smliser-two-rows_right {
     flex: 1 1 45%;
     justify-self: flex-end;
-    border: 1px solid #dcdcde;
+    border: 1px solid var(--dashboard-border);
     border-radius: 8px;
     padding: 10px;
 }
@@ -1005,7 +1008,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     width: 100%;
 }
 .smliser-avatar-upload img {
-    border: dotted 0.5px #dcdcde;
+    border: dotted 0.5px var(--dashboard-border);
     width: 150px;
 }
 
@@ -1043,7 +1046,7 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     position: absolute;
     bottom: 5px;
     left: 10px;
-    color: #333333;
+    color: var(--dashboard-text);
     font-weight: 700;
     cursor: pointer;
 }
@@ -1116,19 +1119,19 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #6b7280;
+    color: var(--dashboard-text-muted);
     transition: color 0.2s ease;
     outline: none;
     max-height: 20px;
 }
 
 .smliser-password-toggle:hover {
-    color: #374151;
+    color: var(--dashboard-text);
 }
 
 .smliser-password-toggle:focus {
-    color: #1f2937;
-    outline: 2px solid #3b82f6;
+    color: var(--dashboard-text);
+    outline: 2px solid var(--dashboard-accent);
     outline-offset: 1px;
     border-radius: 4px;
 }
@@ -1148,12 +1151,12 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
 
 .smliser-organization-members-list li {
     min-height: 100px;
-    border: 1px solid #dcdcde;
+    border: 1px solid var(--dashboard-border);
     display: flex;
     flex-direction: column;
     gap: 10px;
     padding: 8px;
-    background-color: #ffffff;
+    background-color: var(--dashboard-surface);
     border-radius: 6px;
     transition: box-shadow .5s ease-in-out;
 }
@@ -1169,7 +1172,7 @@ li.smliser-org-member .smliser-org-member_header {
     gap: 6px;
     font-weight: 600;
     font-size: 14px;
-    color: #333333;
+    color: var(--dashboard-text);
 }
 
 li.smliser-org-member .smliser-org-member_header img {
@@ -1179,7 +1182,7 @@ li.smliser-org-member .smliser-org-member_header img {
 .smliser-organization-members-list li button.smliser-add-member-to-org-btn[type="button"] {
     width: 100%;
     min-height: 100%;
-    background-color: #ffffff;
+    background-color: var(--dashboard-surface);
     border: none;
     cursor: pointer;
     transition: transform 0.2s ease-in-out;
@@ -1210,11 +1213,11 @@ li.smliser-org-member .smliser-org-member_header img {
 }
 
 .smliser-api-key-warning {
-    background-color: #fff4e5;
-    color: #663c00;
+    background-color: var(--dashboard-warning-bg);
+    color: var(--dashboard-warning-text);
     padding: 12px;
     border-radius: 4px;
-    border-left: 4px solid #ff9800;
+    border-left: 4px solid var(--dashboard-warning);
     margin-bottom: 20px;
     font-size: 14px;
 }
@@ -1224,12 +1227,12 @@ li.smliser-org-member .smliser-org-member_header img {
     display: block;
     font-weight: bold;
     margin-bottom: 8px;
-    color: #333;
+    color: var(--dashboard-text);
 }
 
 .smliser-api-key-display {
-    background: #f8f9fa;
-    border: 1px solid #e0e0e0;
+    background: var(--dashboard-bg);
+    border: 1px solid var(--dashboard-border);
     padding: 15px;
     font-family: 'Courier New', Courier, monospace;
     font-size: 13px;
@@ -1238,7 +1241,7 @@ li.smliser-org-member .smliser-org-member_header img {
     user-select: all;
     margin-bottom: 10px;
     line-height: 1.5;
-    color: #222;
+    color: var(--dashboard-text);
 }
 
 /* Footer Action Layout */
@@ -1250,21 +1253,25 @@ li.smliser-org-member .smliser-org-member_header img {
     gap: 15px;
 }
 
-/* Primary Action: Copy */
+/* Primary Action: Copy
+   was a separate Bootstrap-style blue (#007bff/#0056b3), not the WP
+   accent used everywhere else — consolidated onto var(--dashboard-accent)
+   so there's one accent hue across the app instead of two. Revert if
+   this component was meant to keep its own distinct brand color. */
 .smliser-copy-btn {
-    background: #007bff;
-    color: white;
+    background: var(--dashboard-accent);
+    color: var(--dashboard-accent-contrast);
     border: none;
     padding: 10px 20px;
     border-radius: 4px;
     cursor: pointer;
     font-weight: 600;
     font-size: 13px;
-    transition: background 0.2s, transform 0.1s;
+    transition: background 0.2s, transform 0.1s, opacity 0.2s;
 }
 
 .smliser-copy-btn:hover {
-    background: #0056b3;
+    opacity: 0.9;
 }
 
 .smliser-copy-btn:active {
@@ -1272,14 +1279,15 @@ li.smliser-org-member .smliser-org-member_header img {
 }
 
 .smliser-copy-btn.copied {
-    background: #28a745;
+    background: var(--dashboard-success);
+    color: var(--dashboard-accent-contrast);
 }
 
 /* Secondary Action: Download */
 .smliser-btn-secondary {
-    background: #f0f0f0;
-    color: #444;
-    border: 1px solid #ccc;
+    background: var(--dashboard-hover-bg);
+    color: var(--dashboard-text);
+    border: 1px solid var(--dashboard-border);
     padding: 10px 15px;
     border-radius: 4px;
     cursor: pointer;
@@ -1289,9 +1297,9 @@ li.smliser-org-member .smliser-org-member_header img {
 }
 
 .smliser-btn-secondary:hover {
-    background: #e4e4e4;
-    border-color: #bbb;
-    color: #000;
+    background: var(--dashboard-border);
+    border-color: var(--dashboard-border);
+    color: var(--dashboard-text);
 }
 
 /* Mobile Responsiveness */
@@ -1312,31 +1320,31 @@ li.smliser-org-member .smliser-org-member_header img {
 .smliser-account-summary-wrapper {
     margin: 20px;
     font-family: inherit;
-    color: #23282d;
+    color: var(--dashboard-text);
 }
 
 /* Domain Section */
 .smliser-account-domain-section {
     margin-bottom: 40px;
-    border: 1px solid #ccd0d4;
+    border: 1px solid var(--dashboard-border);
     border-radius: 6px;
     padding: 20px;
-    background: #fff;
+    background: var(--dashboard-surface);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 /* Status variants for integrity section */
 .smliser-account-domain-section.smliser-status-warning {
-    border-left: 4px solid #f0b849;
+    border-left: 4px solid var(--dashboard-warning);
 }
 
 .smliser-account-domain-section.smliser-status-success {
-    border-left: 4px solid #46b450;
+    border-left: 4px solid var(--dashboard-success);
 }
 
 /* Domain Header */
 .smliser-account-domain-header {
-    border-bottom: 1px solid #e1e1e1;
+    border-bottom: 1px solid var(--dashboard-border);
     margin-bottom: 15px;
     padding-bottom: 10px;
 }
@@ -1359,10 +1367,10 @@ li.smliser-org-member .smliser-org-member_header img {
 }
 
 .smliser-account-metric-card {
-    border: 1px solid #e1e1e1;
+    border: 1px solid var(--dashboard-border);
     border-radius: 4px;
     padding: 15px 12px;
-    background: #fafafa;
+    background: var(--dashboard-bg);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -1371,12 +1379,12 @@ li.smliser-org-member .smliser-org-member_header img {
 
 .smliser-account-metric-card:hover {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    border-color: #0073aa;
+    border-color: var(--dashboard-accent);
 }
 
 .smliser-account-metric-icon {
     font-size: 28px;
-    color: #0073aa;
+    color: var(--dashboard-accent);
     flex-shrink: 0;
 }
 
@@ -1389,14 +1397,14 @@ li.smliser-org-member .smliser-org-member_header img {
     font-size: 13px;
     font-weight: 600;
     margin: 0 0 6px 0;
-    color: #555;
+    color: var(--dashboard-text-muted);
 }
 
 .smliser-account-metric-value {
     font-size: 20px;
     font-weight: 700;
     margin: 0;
-    color: #23282d;
+    color: var(--dashboard-text);
 }
 
 /* Info Block (for warnings and notices) */
@@ -1404,8 +1412,8 @@ li.smliser-org-member .smliser-org-member_header img {
     margin: 15px 0 0 0;
     padding: 12px 15px;
     font-size: 14px;
-    background: #f7f7f7;
-    border-left: 3px solid #ccd0d4;
+    background: var(--dashboard-bg);
+    border-left: 3px solid var(--dashboard-border);
     border-radius: 3px;
     display: flex;
     align-items: center;
@@ -1413,12 +1421,12 @@ li.smliser-org-member .smliser-org-member_header img {
 }
 
 .smliser-account-info-block.smliser-account-warning {
-    background: #fff8e5;
-    border-left-color: #f0b849;
+    background: var(--dashboard-warning-bg);
+    border-left-color: var(--dashboard-warning);
 }
 
 .smliser-account-info-block .dashicons {
-    color: #f0b849;
+    color: var(--dashboard-warning);
     font-size: 20px;
     flex-shrink: 0;
 }
@@ -1432,14 +1440,14 @@ li.smliser-org-member .smliser-org-member_header img {
 .smliser-account-empty-state {
     text-align: center;
     padding: 60px 20px;
-    border: 1px dashed #ccd0d4;
+    border: 1px dashed var(--dashboard-border);
     border-radius: 6px;
-    color: #555;
+    color: var(--dashboard-text-muted);
 }
 
 .smliser-account-empty-state .dashicons {
     font-size: 48px;
-    color: #ccd0d4;
+    color: var(--dashboard-border);
 }
 
 .smliser-account-empty-state h3 {
@@ -1450,7 +1458,7 @@ li.smliser-org-member .smliser-org-member_header img {
 
 .smliser-account-empty-state p {
     font-size: 14px;
-    color: #666;
+    color: var(--dashboard-text-muted);
     margin-top: 8px;
 }
 
@@ -1489,8 +1497,8 @@ li.smliser-org-member .smliser-org-member_header img {
     border: 1px solid transparent;
     border-radius: 4px;
 
-    background-color: #2271b1;
-    color: #ffffff;
+    background-color: var(--dashboard-accent);
+    color: var(--dashboard-accent-contrast);
 
     font-size: 14px;
     font-weight: 500;
@@ -1498,16 +1506,16 @@ li.smliser-org-member .smliser-org-member_header img {
     text-decoration: none;
 
     cursor: pointer;
-    transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, transform 0.05s ease-in-out;
+    transition: background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, transform 0.05s ease-in-out, opacity 0.2s ease-in-out;
 }
 
 .smliser-submit-button:hover {
-    background-color: #135e96;
+    opacity: 0.9;
 }
 
 .smliser-submit-button:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.3);
+    box-shadow: var(--dashboard-focus-ring);
 }
 
 .smliser-submit-button:active {
@@ -1516,10 +1524,12 @@ li.smliser-org-member .smliser-org-member_header img {
 
 .smliser-submit-button:disabled,
 .smliser-submit-button.is-disabled {
-    background-color: #a7aaad;
+    background-color: var(--dashboard-border);
+    color: var(--dashboard-text-muted);
     cursor: not-allowed;
     box-shadow: none;
     transform: none;
+    opacity: 1;
 }
 
 .smliser-app-search-page {
@@ -1538,7 +1548,7 @@ li.smliser-org-member .smliser-org-member_header img {
 .smliser-admin-search input[type="search"],
 .smliser-admin-search select,
 .smliser-admin-search button[type="submit"] {
-    border: solid 1px #dcdcde;
+    border: solid 1px var(--dashboard-border);
     border-radius: 4px;
     height: 40px;
     line-height: 3;

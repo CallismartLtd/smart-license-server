@@ -15,15 +15,13 @@ use DateTimeZone;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
 use const SMLISER_SERVICE_ACCOUNTS_TABLE;
-use function is_string, boolval, smliser_db, defined, uniqid, md5,
-smliser_safe_json_encode, smliser_avatar_url;
+use function smliser_avatar_url;
 
 /**
  * Represents a service account that can act as a Principal.
@@ -637,7 +635,7 @@ class ServiceAccount implements ActorInterface {
         $parts = explode( '.', $decoded, 3 );
         if ( count( $parts ) !== 3 ) {
             throw new \SmartLicenseServer\Exceptions\Exception(
-                'service_account_invalid',
+                'malformed_payload',
                 'Malformed API key',
                 ['status' => 400]
             );
@@ -650,7 +648,7 @@ class ServiceAccount implements ActorInterface {
         $known_hash = self::hmac_hash( $encoded_payload, $secret, 'sha256' );
         if ( ! hash_equals( $known_hash, $signature ) ) {
             throw new \SmartLicenseServer\Exceptions\Exception(
-                'service_account_invalid',
+                'signature_mismatch',
                 'Invalid API key signature',
                 ['status' => 403]
             );
@@ -661,7 +659,7 @@ class ServiceAccount implements ActorInterface {
         
         if ( ! is_array( $payload ) || empty( $payload['sa_id'] ) ) {
             throw new \SmartLicenseServer\Exceptions\Exception(
-                'service_account_invalid',
+                'invalid_payload',
                 'Invalid API key payload',
                 ['status' => 400]
             );
@@ -689,7 +687,7 @@ class ServiceAccount implements ActorInterface {
         // Verify raw key against stored bcrypt hash.
         if ( ! self::verify_password( $raw_key, $sa->get_api_key_hash() ) ) {
             throw new \SmartLicenseServer\Exceptions\Exception(
-                'service_account_invalid',
+                'key_mismatch',
                 'API cannot be verified.',
                 ['status' => 403]
             );

@@ -1,0 +1,90 @@
+:root {
+    /* Layout & System */
+    --dashboard-sidebar-width: 160px;
+    --dashboard-sidebar-collapsed-width: 64px;
+    --dashboard-topbar-height: 37px;
+    --dashboard-transition: 0.1s ease;
+    --dashboard-font-size: 12px;
+    --dashboard-line-height: 1.5;
+    --dashboard-radius: 6px;
+    --dashboard-focus-ring: 0 0 0 3px rgba( 59, 110, 246, 0.35 );
+
+    /* Core Surfaces & Text */
+    --dashboard-bg: #f4f5f7;
+    --dashboard-surface: #ffffff;
+    --dashboard-border: #e2e4e9;
+    --dashboard-text: #1f2430;
+    --dashboard-text-muted: #6b7280;
+    --dashboard-hover-bg: #eef1f6;
+    --dashboard-shadow: 0 1px 3px rgba( 0, 0, 0, 0.08 );
+
+    /* Accent Palette */
+    --dashboard-accent: #3b6ef6;
+    --dashboard-accent-contrast: #ffffff;
+    --dashboard-accent-purple: #4928be;
+    --dashboard-accent-purple-soft: #896eeb;
+    --dashboard-accent-indigo: #6366f1;
+    --dashboard-accent-indigo-strong: #4f46e5;
+    --dashboard-accent-cyan: #06b6d4;
+    --dashboard-accent-sky: #0ea5e9;
+
+    /* Status Colors */
+    --dashboard-danger: #d33f3f;
+    --dashboard-danger-bg: #fdecea;
+    --dashboard-danger-text: #8a1f1f;
+    --dashboard-success: #2f9e58;
+    --dashboard-success-bg: #dcfce7;
+    --dashboard-success-text: #166534;
+    --dashboard-warning: #b8860b;
+    --dashboard-warning-bg: #fff8e5;
+    --dashboard-warning-text: #6b5500;
+    --dashboard-info-bg: #dbeafe;
+    --dashboard-info-text: #1e40af;
+
+    /* Overlays & Effects */
+    --dashboard-surface-overlay: rgba( 255, 255, 255, 0.85 );
+    --dashboard-surface-highlight: rgba( 255, 255, 255, 0.4 );
+    --dashboard-scrim: rgba( 0, 0, 0, 0.4 );
+}
+
+html[data-theme="dark"] {
+    /* System Adjustments */
+    --dashboard-focus-ring: 0 0 0 3px rgba( 109, 147, 255, 0.4 );
+
+    /* Core Surfaces & Text */
+    --dashboard-bg: #14161c;
+    --dashboard-surface: #1b1e27;
+    --dashboard-border: #2a2e3a;
+    --dashboard-text: #e6e8ee;
+    --dashboard-text-muted: #9aa0ae;
+    --dashboard-hover-bg: #232733;
+    --dashboard-shadow: 0 1px 3px rgba( 0, 0, 0, 0.4 );
+
+    /* Accent Palette */
+    --dashboard-accent: #6d93ff;
+    --dashboard-accent-contrast: #0f1117;
+    --dashboard-accent-purple: #9c8cf0;
+    --dashboard-accent-purple-soft: #b5a4ff;
+    --dashboard-accent-indigo: #818cf8;
+    --dashboard-accent-indigo-strong: #a5b4fc;
+    --dashboard-accent-cyan: #22d3ee;
+    --dashboard-accent-sky: #38bdf8;
+
+    /* Status Colors */
+    --dashboard-danger: #e5645f;
+    --dashboard-danger-bg: #3a1f22;
+    --dashboard-danger-text: #f5a8a4;
+    --dashboard-success: #4cbf7a;
+    --dashboard-success-bg: #1d3327;
+    --dashboard-success-text: #7fe0ab;
+    --dashboard-warning: #d6a03c;
+    --dashboard-warning-bg: #3a331a;
+    --dashboard-warning-text: #e8c473;
+    --dashboard-info-bg: #1c2c46;
+    --dashboard-info-text: #93c1fb;
+
+    /* Overlays & Effects */
+    --dashboard-surface-overlay: rgba( 27, 30, 39, 0.85 );
+    --dashboard-surface-highlight: rgba( 255, 255, 255, 0.05 );
+    --dashboard-scrim: rgba( 0, 0, 0, 0.6 );
+}

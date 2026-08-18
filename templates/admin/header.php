@@ -12,6 +12,7 @@
  * @var string $title
  * @var string $theme
  * @var bool $collapsed
+ * @var \SmartLicenseServer\Admin\AdminDashboardRegistry $registry
  */
 
 use SmartLicenseServer\Assets\AssetsManager;
@@ -44,11 +45,8 @@ define( 'SCRIPT_DEBUG', TRUE );
 			</div>
 
 			<div class="dashboard-top-menu-right">
-				<button type="button" class="dashboard-theme-toggle" id="dashboard-theme-toggle" aria-label="Toggle theme">
-					<span class="dashboard-theme-icon dashboard-theme-icon-light" aria-hidden="true">&#9728;&#65039;</span>
-					<span class="dashboard-theme-icon dashboard-theme-icon-dark" aria-hidden="true">&#127769;</span>
-				</button>
-
-				Add notifications, user menu, or other app-specific top menu items here.
+				<?php foreach ( $registry->get_top_menus() as $key => $item ) : ?>
+					<?php echo render_top_menu_item( $item ); ?>
+				<?php endforeach; ?>
 			</div>
 		</header>

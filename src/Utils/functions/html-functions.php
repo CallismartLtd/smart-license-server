@@ -851,3 +851,47 @@ if ( ! function_exists( 'checked' ) ) {
         return attribute_matched( $value, $current, $echo, 'checked' );
     }
 }
+
+/**
+ * @param array $item One entry from $dashboard->get_top_menus()
+ * @return string
+ */
+function render_top_menu_item( array $item ) : string {
+	$visible = is_callable( $item['visibility'] ) ? (bool) call_user_func( $item['visibility'] ) : (bool) $item['visibility'];
+
+	if ( ! $visible ) {
+		return '';
+	}
+
+	$tag        = 'link' === $item['type'] ? 'a' : 'button';
+	$attributes = $item['attributes'];
+
+	if ( 'a' === $tag ) {
+		$attributes['href'] = $item['href'];
+	} else {
+		$attributes['type'] = $attributes['type'] ?? 'button';
+	}
+
+	$attr_string = '';
+	foreach ( $attributes as $name => $value ) {
+		$attr_string .= sprintf( ' %s="%s"', htmlspecialchars( $name ), htmlspecialchars( $value ) );
+	}
+
+    $icon_html = '';
+
+	if ( ! empty( $item['icons'] ) ) {
+		foreach ( $item['icons'] as $icon ) {
+			$icon_attr_string = '';
+			foreach ( $icon['attributes'] as $name => $value ) {
+				$icon_attr_string .= sprintf( ' %s="%s"', htmlspecialchars( $name ), htmlspecialchars( $value ) );
+			}
+			$icon_html .= sprintf( '<i class="%s"%s></i>', htmlspecialchars( $icon['class'] ), $icon_attr_string );
+		}
+	} elseif ( $item['icon'] ) {
+		$icon_html = sprintf( '<i class="icon icon-%s"></i>', htmlspecialchars( $item['icon'] ) );
+	}
+
+	$title = $item['title'] ? sprintf( '<span class="label">%s</span>', htmlspecialchars( $item['title'] ) ) : '';
+
+	return sprintf( '<%1$s%2$s>%3$s%4$s</%1$s>', $tag, $attr_string, $icon_html, $title );
+}

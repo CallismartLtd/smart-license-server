@@ -57,7 +57,8 @@ if ( null === $current_menu ) { // @TODO add && Guard::has_principal().
 $this->render( Shell::HEADER_TEMPLATE, [
     'title'     => $current_menu ? $current_menu['title'] : SMLISER_APP_NAME,
     'theme'     => $theme,
-    'collapsed'  => $collapsed
+    'collapsed' => $collapsed,
+    'registry'  => $registry
 ]);
 
 /*
@@ -105,7 +106,6 @@ $this->render( $content_template, [
     'principal' => $principal,
     'callback'  => $callback,
     'request'   => $request
-
 ]);
 
 /*

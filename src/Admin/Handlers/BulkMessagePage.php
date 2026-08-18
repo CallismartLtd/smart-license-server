@@ -130,7 +130,7 @@ class BulkMessagePage implements AdminPageInterface{
                     'title' => 'Settings',
                     'label' => 'Settings',
                     'url'   => smliser_options_url(),
-                    'icon'  => 'dashicons dashicons-admin-generic'
+                    'icon'  => 'ti ti-settings'
                 )
             )
         ];

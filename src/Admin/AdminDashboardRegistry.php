@@ -43,6 +43,20 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
                 $this->add_submenu( $class::get_menu_key(), $value );
             }
         }
+
+        $this->add_top_menu( 'theme_toggle', [
+            'type'  => 'button',
+            'icons' => [
+                [ 'class' => 'dashboard-theme-icon dashboard-theme-icon-light ti ti-moon', 'attributes' => [ 'aria-hidden' => 'true' ] ],
+                [ 'class' => 'dashboard-theme-icon dashboard-theme-icon-dark ti ti-sun', 'attributes' => [ 'aria-hidden' => 'true' ] ],
+            ],
+            'attributes' => [
+                'id'         => 'dashboard-theme-toggle',
+                'class'      => 'dashboard-theme-toggle',
+                'aria-label' => 'Toggle theme',
+            ],
+            'visibility' => true,
+        ] );
     }
 
     /**

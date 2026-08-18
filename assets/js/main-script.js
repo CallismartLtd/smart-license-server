@@ -733,6 +733,66 @@ async function smliserActionBtns( e ) {
     }
 }
 
+/**
+ * Initialize the editor for broadcast messages with zero theme flash.
+ */
+function initBroadcastEditor() {
+    const isDark   = document.documentElement.getAttribute( 'data-theme' ) === 'dark';
+    const selector = '#message-body';
+    const targetEl = document.querySelector( selector );
+
+    if ( ! targetEl ) return;
+
+    let container = targetEl.closest( '.tox-tinymce-wrapper' );
+    if ( ! container ) {
+        container = document.createElement( 'div' );
+        container.className = 'tox-tinymce-wrapper';
+        targetEl.parentNode.insertBefore( container, targetEl );
+        container.appendChild( targetEl );
+    }
+
+    container.style.opacity = '0';
+    container.style.pointerEvents = 'none';
+
+    if ( tinymce.get( 'message-body' ) ) {
+        tinymce.remove( selector );
+    }
+
+    tinymce.init({
+        selector: selector,
+        skin: isDark ? 'oxide-dark' : 'oxide',
+        content_css: isDark ? 'dark' : 'default',
+        branding: false,
+        license_key: 'gpl',
+        menubar: 'file insert table',
+        plugins: 'lists link image media table code preview fullscreen autosave searchreplace visualblocks insertdatetime emoticons',
+        toolbar: 'add_media_button | styles | alignleft aligncenter alignjustify alignright bullist numlist outdent indent | forecolor backcolor | code fullscreen preview | undo redo',
+        height: 600,
+        relative_urls: false,
+        remove_script_host: false,
+        promotion: false,
+        valid_children: '+div[div|span],+span[span|div]',
+        font_formats: 'Inter=Inter, sans-serif; Arial=Arial, Helvetica, sans-serif; Verdana=Verdana, Geneva, sans-serif; Tahoma=Tahoma, Geneva, sans-serif; Trebuchet MS=Trebuchet MS, Helvetica, sans-serif; Times New Roman=Times New Roman, Times, serif; Georgia=Georgia, serif; Palatino Linotype=Palatino Linotype, Palatino, serif; Courier New=Courier New, Courier, monospace',
+        toolbar_mode: 'sliding',
+        content_style: `
+            body { 
+                font-family: "Inter", sans-serif; 
+                font-size: 16px; 
+                background-color: ${ isDark ? '#1b1e27' : '#ffffff' }; 
+                color: ${ isDark ? '#e6e8ee' : '#1f2430' }; 
+            }
+        `,
+        setup: function ( editor ) {
+            editor.on( 'init', function () {
+                requestAnimationFrame( () => {
+                    container.style.opacity = '1';
+                    container.style.pointerEvents = 'all';
+                });
+            });
+        }
+    });
+}
+
 document.addEventListener( 'DOMContentLoaded', async function() {
     let licenseDownloadTokenBtn = document.querySelector( '.smliser-generate-download-token-btn' );
     let licenseKeyContainers    = document.querySelectorAll( '.smliser-license-obfuscation' );
@@ -1761,23 +1821,21 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             smliserSelect2AppSelect( appSelect );
         }
 
-        //Initialize the editor.
-        tinymce.init({
-            selector: '#message-body',
-            skin: 'oxide',
-            branding: false,
-            license_key: 'gpl',
-            menubar: 'file insert table',
-            plugins: 'lists link image media table code preview fullscreen autosave searchreplace visualblocks insertdatetime emoticons',
-            toolbar: 'add_media_button | styles | alignleft aligncenter alignjustify alignright bullist numlist outdent indent | forecolor backcolor | code fullscreen preview | undo redo',
-            height: 600,
-            relative_urls: false,
-            remove_script_host: false,
-            promotion: false,
-            valid_children: '+div[div|span],+span[span|div]',
-            font_formats: 'Inter=Inter, sans-serif; Arial=Arial, Helvetica, sans-serif; Verdana=Verdana, Geneva, sans-serif; Tahoma=Tahoma, Geneva, sans-serif; Trebuchet MS=Trebuchet MS, Helvetica, sans-serif; Times New Roman=Times New Roman, Times, serif; Georgia=Georgia, serif; Palatino Linotype=Palatino Linotype, Palatino, serif; Courier New=Courier New, Courier, monospace',
-            toolbar_mode: 'sliding',
-            content_style: 'body { font-family: "Inter", sans-serif; font-size: 16px; }',
+        // Initial boot.
+        initBroadcastEditor();
+
+        // Listen for theme toggles using MutationObserver.
+        const observer = new MutationObserver( ( mutations ) => {
+            for ( const mutation of mutations ) {
+                if ( mutation.type === 'attributes' && mutation.attributeName === 'data-theme' ) {
+                    initBroadcastEditor();
+                }
+            }
+        });
+
+        observer.observe( document.documentElement, {
+            attributes: true,
+            attributeFilter: [ 'data-theme' ]
         });
 
         const clearValidity = ( e ) => {

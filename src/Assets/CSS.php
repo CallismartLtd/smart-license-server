@@ -28,15 +28,22 @@ final class CSS {
      */
     public static function all( string $suffix = '' ) : array {
         return [
+            'smliser-variables' => [
+                'url'   => assetsUrl( sprintf( 'css/variables%s.css', $suffix ) ),
+                'dependencies'  => [],
+                'version'       => SMLISER_VER,
+                'media-type'    => 'all'
+            ],
             'smliser-admin-styles'  => [
                 'url'   => assetsUrl( sprintf( 'css/admin/dashboard%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-styles'],
+                'dependencies'  => ['smliser-variables', 'smliser-styles'],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
             'smliser-styles'    => [
                 'url'   => assetsUrl( sprintf( 'css/smliser-styles%s.css', $suffix ) ),
                 'dependencies'  => [
+                    'smliser-variables',
                     'smliser-toast',
                     'smliser-modal',
                     'smliser-datetime-picker',
@@ -54,7 +61,7 @@ final class CSS {
             ],
             'smliser-form-styles' => [
                 'url'   => assetsUrl( sprintf( 'css/smliser-forms%s.css', $suffix ) ),
-                'dependencies'  => [],
+                'dependencies'  => ['smliser-variables'],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
@@ -108,7 +115,7 @@ final class CSS {
             ],
             'smliser-client-dashboard' => [
                 'url'   => assetsUrl( sprintf( 'css/client-dashboard%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-modal', 'smliser-tabler-icons', 'smliser-utils', 'select2'],
+                'dependencies'  => ['smliser-variables', 'smliser-modal', 'smliser-tabler-icons', 'smliser-utils', 'select2'],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],

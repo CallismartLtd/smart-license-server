@@ -14,8 +14,6 @@ use DateTimeImmutable;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Security\Permission\Role;
 
-use function defined;
-
 /**
  * Classical representation of a single member of an organization.
  */

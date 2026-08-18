@@ -539,7 +539,6 @@ class OptionsPage implements AdminPageInterface {
     public static function get_menu_args( Request $request ): array {
         $tab         = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         $section     = $request->get( 'section' );
-        $current_url = smliser_get_current_url()->remove_query_param( 'message', 'tab', 'section', 'provider', 'adapter', 'template' );
 
         $title = match ( true ) {
             'routes'       === $tab                              => 'Page Routing',
@@ -555,7 +554,7 @@ class OptionsPage implements AdminPageInterface {
             'breadcrumbs' => [
                 [
                     'label' => 'General Settings',
-                    'url'   => $current_url,
+                    'url'   => smliser_options_url(),
                     'icon'  => 'dashicons dashicons-admin-home',
                 ],
                 [

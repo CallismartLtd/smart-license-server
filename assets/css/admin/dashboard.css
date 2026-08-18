@@ -1,33 +1,3 @@
-/* ==========================================================
-   Dashboard Shell — Base Styles & Theme Variables
-========================================================== */
-
-:root {
-	--dashboard-sidebar-width: 160px;
-	--dashboard-sidebar-collapsed-width: 64px;
-	--dashboard-topbar-height: 37px;
-	--dashboard-transition: 0.1s ease;
-
-	--dashboard-bg: #f4f5f7;
-	--dashboard-surface: #ffffff;
-	--dashboard-border: #e2e4e9;
-	--dashboard-text: #1f2430;
-	--dashboard-text-muted: #6b7280;
-	--dashboard-accent: #3b6ef6;
-	--dashboard-accent-contrast: #ffffff;
-	--dashboard-hover-bg: #eef1f6;
-	--dashboard-shadow: 0 1px 3px rgba( 0, 0, 0, 0.08 );
-
-	--dashboard-danger: #d33f3f;
-	--dashboard-success: #2f9e58;
-	--dashboard-warning: #b8860b;
-
-	--dashboard-font-size: 12px;
-	--dashboard-line-height: 1.5;
-	--dashboard-radius: 6px;
-	--dashboard-focus-ring: 0 0 0 3px rgba( 59, 110, 246, 0.35 );
-}
-
 @view-transition {
 	navigation: auto;
 }
@@ -58,24 +28,6 @@
 	to {
 		opacity: 1;
 	}
-}
-
-html[data-theme="dark"] {
-	--dashboard-bg: #14161c;
-	--dashboard-surface: #1b1e27;
-	--dashboard-border: #2a2e3a;
-	--dashboard-text: #e6e8ee;
-	--dashboard-text-muted: #9aa0ae;
-	--dashboard-accent: #6d93ff;
-	--dashboard-accent-contrast: #0f1117;
-	--dashboard-hover-bg: #232733;
-	--dashboard-shadow: 0 1px 3px rgba( 0, 0, 0, 0.4 );
-
-	--dashboard-danger: #e5645f;
-	--dashboard-success: #4cbf7a;
-	--dashboard-warning: #d6a03c;
-
-	--dashboard-focus-ring: 0 0 0 3px rgba( 109, 147, 255, 0.4 );
 }
 
 /* ==========================================================
@@ -742,7 +694,7 @@ button:hover:not( :disabled ),
 }
 
 .dashboard-menu-toggle span,
-.dashboard-mobile-menu-toggle span {
+.dashboard-mobile-menu-toggle i {
 	display: block;
 	width: 18px;
 	height: 2px;
@@ -756,6 +708,13 @@ button:hover:not( :disabled ),
 
 .dashboard-theme-icon-dark {
 	display: none;
+	color: #fff;
+	font-size: 16px;
+}
+
+.dashboard-theme-icon-light {
+	color: #333333;
+	font-size: 16px;
 }
 
 html[data-theme="dark"] .dashboard-theme-icon-light {
