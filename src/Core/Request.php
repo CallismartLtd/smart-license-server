@@ -787,7 +787,13 @@ class Request {
      * @return bool
      */
     public function wantsJson(): bool {
-        return $this->accepts( 'application/json' );
+        $media  = $this->get_header( 'accept', '*/*' );
+
+        if ( (bool) preg_match( '/(^|\s|,)application\/([\w!#\$&-\^\.\+]+\+)?json(\+oembed)?($|\s|;|,)/i', $media ) ) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
