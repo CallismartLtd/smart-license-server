@@ -7,7 +7,7 @@
 
 declare(strict_types=1);
 
-namespace SmartLicenseServer\Environments\Application\Routing;
+namespace SmartLicenseServer\Environments\Application\Middlewares;
 
 use SmartLicenseServer\Core\Request;
 
