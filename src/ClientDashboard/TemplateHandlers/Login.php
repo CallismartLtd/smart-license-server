@@ -1,9 +1,6 @@
 <?php
 /**
- * Login Form Handler
- *
- * Renders the login form HTML for the auth SPA.
- * Fetched via GET /dashboard/auth/login
+ * Login form class file.
  *
  * @package SmartLicenseServer\ClientDashboard\Auth
  */
@@ -16,7 +13,18 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 
+/**
+ * Handles the login form rendering.
+ */
 class Login implements DashboardHandlerInterface {
+    public const INDEX_TEMPLATE             = 'frontend.index';
+    public const AUTH_INDEX_TEMPLATE        = 'frontend.auth.index';
+    public const AUTH_LOGIN_TEMPLATE        = 'frontend.auth.login';
+    public const AUTH_SIGNUP_TEMPLATE       = 'frontend.auth.signup';
+    public const AUTH_FORGOT_PWD_TEMPLATE   = 'frontend.auth.forgot-password';
+    public const AUTH_RESET_PWD_TEMPLATE    = 'frontend.auth.reset-password';
+    public const AUTH_2FA_TEMPLATE          = 'frontend.auth.2fa';
+    public const FOOTER_TEMPLATE            = 'frontend.footer';
 
     public static function slug() : string {
         return 'login';
@@ -44,5 +52,26 @@ class Login implements DashboardHandlerInterface {
                 'success' => true,
                 'html'    => $html,
             ] );
+    }
+
+    /**
+     * Renders the full login form page.
+     * 
+     * @param Request $request
+     * @return Response
+     */
+    public static function render_login_form( Request $request ) : Response {
+        $registry       = \authTemplateRegistry();
+        $locator        = smliser_template_locator();
+
+        return Response::make(
+            $locator->render_to_string(
+                static::INDEX_TEMPLATE,
+                [
+                    'menu'      => $registry->all(),
+                    'rest_base' => \url( \smliser_login_url_prefix() . '/fetch-forms/' )
+                ]
+            )
+        );
     }
 }

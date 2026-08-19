@@ -43,7 +43,7 @@ class SmliserAuth {
 
         this.REPO_NAME = document.querySelector(
             'meta[name="smliser-repo-name"]'
-        )?.content ?? 'Dashboard';
+        )?.content ?? 'Login';
 
 
         this.ACTIVE_SLUG = document.querySelector(
@@ -87,7 +87,7 @@ class SmliserAuth {
 
         const formSlug = this.getSlug();
         const slug = formSlug || this.DEFAULT_FORM;
-
+        
         if ( slug ) {
             this.loadForm( slug, true, false );
         }

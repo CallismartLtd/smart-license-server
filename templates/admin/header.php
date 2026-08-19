@@ -17,7 +17,6 @@
 
 use SmartLicenseServer\Assets\AssetsManager;
 
-define( 'SCRIPT_DEBUG', TRUE );
 ?>
 <!DOCTYPE html>
 <html lang="en"<?php echo $theme ? ' data-theme="' . escAttr( $theme ) . '"' : ''; ?>>

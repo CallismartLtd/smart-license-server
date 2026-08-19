@@ -13,8 +13,8 @@
  *     e.g. https://example.com/smliser/v1/dashboard/
  *
  * @var string $active_slug
+ * @var string $title
  * @var string $repo_name
- *     The slug of the initially active menu section.
  * @var \SmartLicenseServer\Security\Context\Principal|null $principal
  * @var array $styles
  * @var array $allowed_slugs
@@ -35,7 +35,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo escHtml( $repo_name ); ?> — Dashboard</title>
+    <title><?php echo escHtml( $title ); ?></title>
 
     <?php AssetsManager::instance()->print_styles( ...$styles ); ?>
 

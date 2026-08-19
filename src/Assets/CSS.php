@@ -127,7 +127,7 @@ final class CSS {
             ],
             'smliser-client-auth' => [
                 'url'   => assetsUrl( sprintf( 'css/smliser-client-auth%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-client-dashboard', 'smliser-modal'],
+                'dependencies'  => ['smliser-modal'],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],

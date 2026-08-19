@@ -214,14 +214,14 @@ function smliser_url_origin( string $url ) {
  * Get the base downloads url prefix.
  */
 function smliser_get_download_url_prefix() : string {
-    return (string) smliser_settings()->get( 'download_url_prefix', 'downloads', true );
+    return (string) smliser_settings()->get( 'download_url_prefix', 'downloads' );
 }
 
 /**
  * Get the base admin url prefix.
  */
 function smliser_get_admin_url_prefix() : string {
-    return (string) smliser_settings()->get( 'admin_url_prefix', 'smliser-admin', true );
+    return (string) smliser_settings()->get( 'admin_url_prefix', 'smliser-admin' );
 }
 
 /**
@@ -230,7 +230,7 @@ function smliser_get_admin_url_prefix() : string {
  * @return string
  */
 function smliser_get_repository_url_prefix() : string {
-    return (string) smliser_settings()->get( 'repository_url_prefix', 'repository', true );
+    return (string) smliser_settings()->get( 'repository_url_prefix', 'repository' );
 }
 
 /**
@@ -239,7 +239,7 @@ function smliser_get_repository_url_prefix() : string {
  * @return string
  */
 function smliser_get_client_dashboard_url_prefix() : string {
-    return (string) smliser_settings()->get( 'client_dashboard_url_prefix', 'client-dashboard', true );
+    return (string) smliser_settings()->get( 'client_dashboard_url_prefix', 'client-dashboard' );
 }
 
 /**
@@ -453,4 +453,24 @@ function smliser_download_url( string|URL $url, int $timeout = 30, bool $autocle
     } catch ( FileRequestException $e ) {
         return $e;
     }
+}
+
+/**
+ * Get the login URL prefix.
+ * 
+ * @return string
+ */
+function smliser_login_url_prefix() : string {
+    return (string) smliser_settings()->get( 'login_url_prefix', 'login' );
+}
+
+/**
+ * Get the login url.
+ * 
+ * @param string $path
+ * @param array $params
+ */
+function smliser_login_url( string $path = '', array $params = [] ) : URL {
+    return url( smliser_login_url_prefix(), $params )
+        ->append_path( $path );
 }

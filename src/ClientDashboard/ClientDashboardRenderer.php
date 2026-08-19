@@ -66,7 +66,7 @@ class ClientDashboardRenderer {
      * content → footer in order.
      *
      * @param string $rest_base   Full REST base URL for content requests.
-     *                            e.g. https://example.com/wp-json/smliser/v1/dashboard/
+     *                            e.g. https://example.com/smliser/v1/dashboard/
      * @param string $active_slug Slug of the initially active section.
      * @return void
      */

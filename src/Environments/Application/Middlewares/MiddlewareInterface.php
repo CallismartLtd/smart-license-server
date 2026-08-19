@@ -19,8 +19,8 @@ interface MiddlewareInterface {
 	/**
 	 * Process an incoming request and pass execution to the next layer.
 	 *
-	 * @param Request  $request Framework request object.
-	 * @param callable $next    Next middleware or route handler closure in the pipeline.
+	 * @param Request  $request Request object.
+	 * @param callable(Request $request) $next    Next middleware or route handler closure in the pipeline.
 	 * @return mixed
 	 */
 	public function handle( Request $request, callable $next ): mixed;

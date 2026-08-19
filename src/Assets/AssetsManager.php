@@ -167,7 +167,7 @@ final class AssetsManager {
 	 * @return string
 	 */
 	public static function script_suffix() : string {
-		return defined( 'SCRIPT_DEBUG' ) && \SCRIPT_DEBUG ? '' : '.min';
+		return $_ENV['SCRIPT_SUFFIX'] ?? '';
 	}
 
 
@@ -849,7 +849,6 @@ final class AssetsManager {
 					'smliser-styles',
 					'smliser-form-styles',
 					'smliser-modal',
-					'smliser-client-dashboard',
 					'smliser-datetime-picker',
 					'select2',
                     'smliser-cache-stats'
@@ -861,7 +860,6 @@ final class AssetsManager {
 					'smliser-datetime-picker',
 					'smliser-script',
 					'smliser-modal',
-					'smliser-client-dashboard',
 					'smliser-tinymce',
 					
 

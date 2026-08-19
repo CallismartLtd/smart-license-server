@@ -10,6 +10,9 @@ declare(strict_types=1);
 namespace SmartLicenseServer\Environments\Application\Routing;
 
 use SmartLicenseServer\Admin\Page\Dispatcher;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\ForgotPassword;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\Login;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\Signup;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Environments\Application\DefaultPage;
@@ -25,48 +28,30 @@ use SmartLicenseServer\RESTAPI\RESTVersionInterface;
  * This class is: registers
  * routes onto the core Router, and is also the thing that resolves a live
  * request all the way through to calling a handler, middleware included.
- *
- * ## Registering routes
- *
- * Two ways in, both ending up on the same core Router:
- *
- *   1. Direct access for routes specific to this environment:
- *
- *          $manager->router()->get( 'health', $healthHandler );
- *
- *   2. From a provider shaped like RESTVersionInterface (route/methods/handler/
- *      guard/args) — the exact shape SmartLicenseServer\RESTAPI\Versions\V1
- *      already returns, `guard`, if present, becomes middleware — run before anything else on
- *      that route, since a guard's whole job is "reject before work starts."
- *      `namespace`, if present, becomes a group prefix.
- *
- * ## Dispatching a request
- *
- *      $manager->notFound( fn( $request ) => /* build a 404 *\/ );
- *      $manager->methodNotAllowed( fn( $request, $allowed ) => /* build a 405 *\/ );
- *
- *      $manager->dispatch( $_SERVER['REQUEST_METHOD'], RouteManager::pathFromServer( $_SERVER ), $request );
- *
- * Assumption worth double-checking against the real Request/Response
- * classes: handlers, guards, and middleware here are all called as
- * `($request, array $params[, callable $next])` — $request is passed
- * through untouched (this class never inspects or builds one), matching
- * the `(Request $request)` shape WordPress' Dispatcher handlers already
- * use, with `$params` added since there's no query-var indirection to pull
- * them from here. If the real calling convention differs, that's isolated
- * to this file and MiddlewarePipeline — nothing in core needs to change.
  */
 final class RouteManager {
 
 	private CoreRouter $router;
 
-	/** @var callable|null */
+	/** 
+     * The 404 page response callback.
+     * 
+     * @var callable
+     */
 	private $notFoundHandler;
 
-	/** @var callable|null */
+	/**
+     * The 405 method not allowed page response callback. 
+     * 
+     * @var callable
+     */
 	private $methodNotAllowedHandler;
 
-    /** @var callable|null */
+    /**
+     * The default home page response callback. 
+     * 
+     * @var callable
+     */
     private $defaultHomeHandler;
 
 	public function __construct( ?CoreRouter $router = null ) {
@@ -127,22 +112,48 @@ final class RouteManager {
      * @return void
      */
     public function registerCoreRoutes() : void {
-        $admin_url_prefix   = smliser_get_admin_url_prefix();
+        $admin_url_prefix           = \smliser_get_admin_url_prefix();
+        $client_dashboard_prefix    = \smliser_get_client_dashboard_url_prefix();
+
 
         $this->router->any( '/', $this->defaultHomeHandler );
-        // $this->router->withMiddleware(
-        //     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
-        //     pattern: "$admin_url_prefix",
-        //     handler: [Dispatcher::class, 'render_admin_dashboard'],
-        //     middleware: []
-            
-        // );
+        $this->router->any( '/', $this->defaultHomeHandler );
 
-        $this->router->group( $admin_url_prefix, function() {
-            $this->router->add( '/', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
-            $this->router->add( '/{tab:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
-            $this->router->add( '/{tab:slug}/{submenu:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
-        }, [AdminAccessMiddleware::class] );
+        $this->router->group( smliser_login_url_prefix(),
+            function() {
+                $this->router->add(
+                    methods: ['GET'],
+                    pattern: '/',
+                    handler: [Login::class, 'render_login_form'],
+                );
+
+                $this->router->get(
+                    pattern: 'fetch-forms/login',
+                    handler: [Login::class, 'handle']
+                );
+                $this->router->get(
+                    pattern: 'fetch-forms/signup',
+                    handler: [Signup::class, 'handle']
+                );
+                $this->router->get(
+                    pattern: 'fetch-forms/forgot-password',
+                    handler: [ForgotPassword::class, 'handle']
+                );
+            },
+            middleware: []
+        );
+
+        $this->router->group( $admin_url_prefix,
+            function() {
+                $this->router->add( '/', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
+                $this->router->add( '/{tab:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
+                $this->router->add( '/{tab:slug}/{submenu:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
+            },
+
+            middleware: [
+                AdminAccessMiddleware::class
+            ]
+        );
         
         $this->router->group( 'documentation', function () {
             $this->router->get( '/', [DefaultPage::class, 'doc_page'] );

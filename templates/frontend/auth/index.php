@@ -15,16 +15,11 @@
  *
  * Expected variables (from shell.php):
  *
- * @var string $repo_name    Repository/app name from settings
  * @var string $rest_base    REST API base URL (used by JS)
  * @var string $principal    Null (not authenticated)
  */
 
-defined( 'SMLISER_ROOT' ) || exit;
-
-$repo_name = $repo_name ?? 'Dashboard';
-
-?>
+defined( 'SMLISER_ROOT' ) || exit; ?>
 <div class="smlag-container">
     <div class="smlag-card">
         <!-- Loading state: shown while fetching form -->

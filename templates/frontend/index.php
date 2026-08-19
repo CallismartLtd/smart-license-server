@@ -32,7 +32,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 $menu        = $menu        ?? [];
 $rest_base   = $rest_base   ?? '';
 $active_slug = $active_slug ?? array_key_first( $menu ) ?? '';
-$repo_name   = smliser_settings()->get( 'smliser_repository_name' ) ?? 'Dashboard';
+$repo_name   = smliser_settings()->get( 'smliser_repository_name', SMLISER_APP_NAME );
 
 /*
 |--------------------------------------------------
@@ -57,9 +57,8 @@ if ( $principal ) {
     $theme     = (string) $settings->get( 'theme', 'dark' );
     $collapsed = (bool) $settings->get( 'sidebar_collapsed', false );
 } else {
-    $styles[]       = 'smliser-client-auth';
-    $scripts[]      = 'smliser-client-auth';
-    $active_slug    = '';
+    $styles     = ['smliser-client-auth', 'smliser-client-dashboard'];
+    $scripts    = ['smliser-client-auth'];
 }
 
 /*
@@ -69,12 +68,18 @@ if ( $principal ) {
 |    opens <div class="smlcd-layout" id="smlcd-layout">
 |--------------------------------------------------
 */
+$title  = $repo_name;
+$title  = ! empty( $menu )
+    ? sprintf( '%s — %s', $menu[$active_slug]['title'], $title ) ?? $title
+    : $title;
+
 $this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
     'menu'          => $menu,
     'rest_base'     => $rest_base,
     'active_slug'   => $active_slug,
     'principal'     => $principal,
     'styles'        => $styles,
+    'title'         => $title,
     'repo_name'     => $repo_name,
     'theme'         => $theme,
     'collapsed'     => $collapsed,
