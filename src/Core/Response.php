@@ -31,11 +31,11 @@ class Response {
 	use HttpStatusAwareTrait;
 
 	/**
-	 * HTTP protocol version.
+	 * HTTP protocol protocol.
 	 *
 	 * @var string
 	 */
-	protected $protocol_version = '1.1';
+	protected string $http_protocol;
 
 	/**
 	 * HTTP status code.
@@ -86,18 +86,14 @@ class Response {
 	 */
 	protected  $error;
 
-	/*--------------------------------------------------------------
-	# Constructor
-	--------------------------------------------------------------*/
-
 	/**
 	 * Constructor.
 	 *
-	 * @param int    $status_code Optional. Initial HTTP status code.
-	 * @param array  $headers     Optional. Initial headers.
-	 * @param string $body        Optional. Initial body content.
+	 * @param int    $status_code	Optional. Initial HTTP status code.
+	 * @param array  $headers		Optional. Initial headers.
+	 * @param string|string $body	Optional. Initial body content.
 	 */
-	public function __construct( int $status_code = 200, $headers = array(), $body = '' ) {
+	public function __construct( int $status_code = 200, $headers = [], string|array $body = '' ) {
 		$this->error	= new Exception();
 		
 		$this->set_status_code( $status_code );
@@ -268,28 +264,11 @@ class Response {
 	/**
 	 * Set the response body.
 	 *
-	 * @param mixed $content Body content.
+	 * @param string|array $content Body content.
 	 * @return static
 	 */
-	public function set_body( mixed $content ) : static {
-		$this->body = $content;
-		$this->remove_header( 'Content-Length' );
-		return $this;
-	}
-
-	/**
-	 * Append content to the body.
-	 *
-	 * @param string $content Content to append.
-	 * @return static
-	 */
-	public function append_body( $content ) {
-		if ( is_array( $this->body ) ) {
-			array_push( $this->body, $content );
-		} else {
-			$this->body .= (string) $content;
-		}
-
+	public function set_body( string|array $content ) : static {
+		$this->body	= $content;
 		return $this;
 	}
 
@@ -302,27 +281,33 @@ class Response {
 		return $this->body;
 	}
 
-	/*--------------------------------------------------------------
-	# Protocol
-	--------------------------------------------------------------*/
+	/*
+	|---------------
+	| PROTOCOL
+	|---------------
+	*/
 
 	/**
-	 * Get the protocol version.
+	 * Get the protocol.
 	 *
 	 * @return string
 	 */
-	public function get_protocol_version() : string {
-		return $this->protocol_version;
+	public function get_http_protocol() : string {
+		if ( ! isset( $this->http_protocol ) ) {
+			$this->http_protocol = smliser_get_server_protocol();
+		}
+
+		return $this->http_protocol;
 	}
 
 	/**
-	 * Set the protocol version.
+	 * Set the HTTP protocol.
 	 *
-	 * @param string $version HTTP protocol version.
+	 * @param string $protocol HTTP protocol.
 	 * @return static
 	 */
-	public function set_protocol_version( $version ) : static {
-		$this->protocol_version = $version;
+	public function set_http_protocol( string $protocol ) : static {
+		$this->http_protocol = $protocol;
 		return $this;
 	}
 
@@ -368,8 +353,8 @@ class Response {
 		// Send the status line.
 		header(
 			sprintf(
-				'HTTP/%s %d %s',
-				$this->protocol_version,
+				'%s %d %s',
+				$this->get_http_protocol(),
 				$this->status_code,
 				$this->reason_phrase
 			),

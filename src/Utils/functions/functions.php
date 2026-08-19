@@ -858,3 +858,24 @@ function safe_worker_memory_limit_mb(): int {
     // Apply 80% safety factor and floor at 32MB.
     return max( 32, (int) ( $mb * 0.8 ) );
 }
+
+/**
+ * Safely retrieve and validate the HTTP server protocol version.
+ *
+ * @param string $default Fallback protocol if invalid or missing (default: 'HTTP/1.1').
+ * @return string Validated protocol string (e.g., 'HTTP/1.1', 'HTTP/2', 'HTTP/3').
+ */
+function smliser_get_server_protocol( string $default = 'HTTP/1.0' ): string {
+    if ( empty( $_SERVER['SERVER_PROTOCOL'] ) || ! is_string( $_SERVER['SERVER_PROTOCOL'] ) ) {
+        return $default;
+    }
+
+    $protocol = strtoupper( trim( $_SERVER['SERVER_PROTOCOL'] ) );
+
+    // Strictly validate against standard HTTP protocol patterns (HTTP/1.0, HTTP/1.1, HTTP/2, HTTP/3, etc.)
+    if ( preg_match( '/^HTTP\/(0\.9|1\.0|1\.1|2(\.0)?|3)$/', $protocol ) ) {
+        return $protocol;
+    }
+
+    return $default;
+}
