@@ -5,7 +5,7 @@
  * Pure orchestrator. Resolves the principal once and passes it
  * explicitly to every partial. Contains no HTML of its own.
  * 
- * @var \SmartLicenseServer\Admin\AdminDashboardRegistry|\SmartLicenseServer\ClientDashboard\AuthTemplateRegistry $registry
+ * @var \SmartLicenseServer\Admin\AdminDashboardRegistry $registry
  * @var SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Templates\TemplateLocator $this
  */
@@ -16,42 +16,51 @@ use SmartLicenseServer\SettingsAPI\UserSettings;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$menus  = $registry->all();
+$principal = Guard::get_principal();
 
-// if ( Guard::has_principal() ) {
-    $default_dashboard_key  = 'overview';
-// } else {
-//     $default_dashboard_key  = 'login';
-// }
+if ( ! $principal ) {
+    smliser_abort_request(
+        'Access Denied. You must be logged into a valid administrator account to view this page.',
+        '🛑 401 - Authentication Required',
+        [
+            'status'    => 401,
+            'link_url'  => url( 'login/' )->add_query_param( 'redirect_url', smliser_get_current_url()->url() )->url(),
+            'link_text' => 'Login',
+        ]    
+    );
+}
+
+if ( ! $principal->is( 'system_admin' ) ) {
+    smliser_abort_request(
+        'Access Denied. You must be logged into a valid administrator account to view this page.[Log In Again][Return to Homepage]',
+        '🚫 403 - Access Denied',
+        [
+            'status' => 403,
+            'back_link' => true
+        ]
+    );
+}
 
 /*
 |--------------------------------------------------
-| RESOLVE PRINCIPAL & USER PREFERENCES
+| RESOLVE USER PREFERENCES
 |--------------------------------------------------
 */
-$principal = Guard::get_principal();
 
-$theme    = ''; // 'dark';
-$collapsed = false;
+$settings   = UserSettings::for( $principal->get_actor() );
+$theme      = (string) $settings->get( UserSettings::DASHBOARD_THEME_NAME, 'auto' );
+$collapsed  = (bool) $settings->get( UserSettings::DASHBOARD_SIDEBAR_COLLAPSED_NAME, false );
 
-if ( $principal ) {
-    $settings   = UserSettings::for( $principal->get_actor() );
-    $theme      = (string) $settings->get( UserSettings::DASHBOARD_THEME_NAME, $theme );
-    $collapsed  = (bool) $settings->get( UserSettings::DASHBOARD_SIDEBAR_COLLAPSED_NAME, $collapsed );
-}
 
-$current_slug   = $request->route_param( 'tab', $default_dashboard_key );
+$current_slug   = $request->route_param( 'tab', 'overview' );
 $current_menu   = $registry->get( $current_slug );
-
-// Guarenteed current menu for logged in users.
-if ( null === $current_menu ) { // @TODO add && Guard::has_principal().
-    $current_menu = $registry->get( 'overview' );
-}
 
 /*
 |--------------------------------------------------
 | 1. HEADER
-|    Auth guard, <head>, <body>
+|    <head>, <body>, 
+|       <div class="dashboard-wrapper>,
+|           <header class="dashboard-top-menu" ... </header>
 |--------------------------------------------------
 */
 $this->render( Shell::HEADER_TEMPLATE, [
@@ -65,7 +74,6 @@ $this->render( Shell::HEADER_TEMPLATE, [
 |--------------------------------------------------
 | 2. MENU
 |    <nav class="dashboard-left-menu" ... </nav>
-|    Only rendered if authenticated.
 |--------------------------------------------------
 */
 $submenu_slug       = $request->route_param( 'submenu' );
@@ -75,26 +83,18 @@ if ( $submenu_slug ) {
     $current_submenu    = $registry->get_submenu_by_slug( $current_slug, $submenu_slug );
 }
 
-// if ( Guard::has_principal() ) { // still developing...
-    $this->render( Shell::MENU_TEMPLATE, [
-        'registry'          => $registry,
-        'current_menu'      => $current_menu,
-        'current_submenu'   => $current_submenu
-    ]);
-// }
+$this->render( Shell::MENU_TEMPLATE, [
+    'registry'          => $registry,
+    'current_menu'      => $current_menu,
+    'current_submenu'   => $current_submenu
+]);
 
 /*
 |--------------------------------------------------
 | 3. CONTENT
 |    <div class="dashboard-main"> ... </div>
-|    OR login form (frontend.auth.login)
 |--------------------------------------------------
 */
-// $content_template = $principal
-//     ? Shell::CONTENT_TEMPLATE
-//     : Shell::AUTH_INDEX_TEMPLATE;
-
-$content_template   = Shell::CONTENT_TEMPLATE;
 
 if ( $current_submenu ) {
     $callback    = $current_submenu['callback'];
@@ -102,7 +102,7 @@ if ( $current_submenu ) {
     $callback   = $current_menu['handler']::index_page_handler();
 }
 
-$this->render( $content_template, [
+$this->render( Shell::CONTENT_TEMPLATE, [
     'principal' => $principal,
     'callback'  => $callback,
     'request'   => $request

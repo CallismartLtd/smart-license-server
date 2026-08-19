@@ -13,6 +13,7 @@ use SmartLicenseServer\Admin\Page\Dispatcher;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Environments\Application\DefaultPage;
+use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddleware;
 use SmartLicenseServer\Routing\Router as CoreRouter;
 use SmartLicenseServer\Routing\DispatchStatus;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
@@ -141,7 +142,7 @@ final class RouteManager {
             $this->router->add( '/', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
             $this->router->add( '/{tab:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
             $this->router->add( '/{tab:slug}/{submenu:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
-        });
+        }, [AdminAccessMiddleware::class] );
         
         $this->router->group( 'documentation', function () {
             $this->router->get( '/', [DefaultPage::class, 'doc_page'] );
@@ -215,7 +216,7 @@ final class RouteManager {
 	 * no assumption about what that is (a Response object, void, anything),
 	 * since that's the handler's decision, not the router's.
 	 */
-	public function dispatch( string $method, string $path, ?Request $request = null ): Response {
+	public function dispatch( string $method, string $path, Request $request ): Response {
 		$result = $this->router->dispatch( $method, $path );
 
         $request->set_route_param( $result->params );

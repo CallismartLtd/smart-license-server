@@ -503,14 +503,16 @@ class Dispatcher implements RequestDispatcherInterface {
         }
 
         smliser_settings()->set( 'smliser_repo_version', SMLISER_VER );
-
-        smliser_send_json_success( [
+        
+        $data   = \smliser_safe_json_encode([
             'message' => sprintf(
                 'The repository has been migrated from version "%s" to version "%s".',
                 $repo_version,
                 SMLISER_VER
-            ),
-        ] );
+            )
+        ]);
+        return Response::make( $data, 200 )
+            ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
     }
 
     public static function handle_save_provider_options_request( Request $request ) : Response {
@@ -564,8 +566,8 @@ class Dispatcher implements RequestDispatcherInterface {
         $response = MessageController::save_bulk_message( $request );
 
         if ( $response->ok() && $response->is_json_response() ) {
-            $body = $response->get_body();
-            $body['data']['redirect_url'] = smliser_bulk_messages_url()
+            $body                           = $response->get_body();
+            $body['data']['redirect_url']   = smliser_bulk_messages_url()
             ->add_query_params( ['tab' => 'edit', 'msg_id' => $request->get( 'message_id' )] );
 
             $response->set_body( $body );

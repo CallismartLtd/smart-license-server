@@ -35,7 +35,9 @@ class MessageController {
             if ( empty( $subject ) ) {
                 throw new RequestException( 'required_param', 'The message subject is required.', ['status' => 400] );
             }
+
             $body       = $request->get( 'message_body' );
+            
             if ( empty( $body ) ) {
                 throw new RequestException( 'required_param', 'The message body is required.', ['status' => 400] );
             }

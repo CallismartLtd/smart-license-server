@@ -1,31 +1,37 @@
 <?php
 /**
- * MiddlewarePipeline class file.
- *
- * @package SmartLicenseServer\Environments\Application\Routing
+ * Middleware class file.
+ * 
+ * @author Callistus NWachukwu
  */
-
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Routing;
-
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Environments\Application\Middlewares\MiddlewareInterface;
 
 /**
- * Executes a resolved middleware stack around a final handler.
+ * Executes a middleware stack around a final route handler.
+ *
+ * The pipeline resolves and normalizes all middleware definitions into
+ * executable callables before dispatching the request, allowing the same
+ * prepared pipeline to be dispatched multiple times without resolving the
+ * middleware again.
+ *
+ * Middleware are executed in the order in which they are provided. Each
+ * middleware receives the current request and a callable representing the
+ * next step in the pipeline. The final step invokes the route handler.
+ *
+ * @package SmartLicenseServer\Environments\Application\Routing
  */
 final class MiddlewarePipeline {
 
 	/**
-	 * Resolved middleware items.
-	 *
-	 * @var array<int,callable|string|object>
+	 * @var callable[]
 	 */
-	private array $middleware;
+	private array $middleware = [];
 
 	/**
-	 * The final route handler.
-	 *
 	 * @var callable
 	 */
 	private $handler;
@@ -33,20 +39,23 @@ final class MiddlewarePipeline {
 	/**
 	 * Constructor.
 	 *
-	 * @param array<int,callable|string|object> $middleware Resolved middleware stack.
-	 * @param callable                          $handler    Final route handler.
+	 * @param array<int,mixed> $middleware
+	 * @param callable         $handler
 	 */
-	private function __construct( array $middleware, callable $handler ) {
-		$this->middleware = $middleware;
-		$this->handler    = $handler;
+	public function __construct( array $middleware, callable $handler ) {
+		foreach ( $middleware as $item ) {
+			$this->middleware[] = $this->resolveMiddleware( $item );
+		}
+
+		$this->handler = $handler;
 	}
 
 	/**
-	 * Static helper to instantiate and execute the pipeline in one call.
+	 * Run a middleware pipeline.
 	 *
-	 * @param array<int,callable|string|object> $middleware Stack to execute.
-	 * @param callable                          $handler    Route handler.
-	 * @param Request                           $request    Request instance.
+	 * @param array<int,mixed> $middleware
+	 * @param callable         $handler
+	 * @param Request           $request
 	 * @return mixed
 	 */
 	public static function run( array $middleware, callable $handler, Request $request ): mixed {
@@ -56,65 +65,48 @@ final class MiddlewarePipeline {
 	/**
 	 * Dispatch the request through the middleware stack.
 	 *
-	 * @param Request $request Framework request instance.
+	 * @param Request $request
 	 * @return mixed
 	 */
 	public function dispatch( Request $request ): mixed {
-		$pipeline = array_reduce(
-			array_reverse( $this->middleware ),
-			array( $this, 'carry' ),
-			array( $this, 'finalDestination' )
-		);
-
-		return $pipeline( $request );
+		return $this->handleStep( 0, $request );
 	}
 
 	/**
-	 * Creates a closure layer wrapping a single middleware step.
+	 * Execute a middleware step.
 	 *
-	 * @param callable $next Next closure in the stack.
-	 * @param mixed    $mw   Current middleware item to execute.
-	 * @return callable
-	 */
-	private function carry( callable $next, mixed $mw ): callable {
-		return function ( Request $request ) use ( $mw, $next ): mixed {
-			$resolved = $this->resolveMiddleware( $mw );
-
-			return $resolved( $request, $next );
-		};
-	}
-
-	/**
-	 * The terminal closure invoked at the bottom of the middleware stack.
-	 *
-	 * @param Request $request Framework request instance.
+	 * @param int     $index
+	 * @param Request $request
 	 * @return mixed
 	 */
-	private function finalDestination( Request $request ): mixed {
-		return ( $this->handler )( $request );
+	private function handleStep( int $index, Request $request ): mixed {
+		if ( ! isset( $this->middleware[ $index ] ) ) {
+			return ( $this->handler )( $request );
+		}
+
+		$next = function ( Request $request ) use ( $index ): mixed {
+			return $this->handleStep( $index + 1, $request );
+		};
+
+		return ( $this->middleware[ $index ] )( $request, $next );
 	}
 
 	/**
-	 * Resolves a middleware item to an invokable callable.
+	 * Resolve a middleware definition to an executable callable.
 	 *
-	 * @param mixed $middleware Item to resolve (callable, class-string, or object).
+	 * @param mixed $middleware
 	 * @return callable
-	 * @throws \InvalidArgumentException If the middleware cannot be resolved.
 	 */
 	private function resolveMiddleware( mixed $middleware ): callable {
-		if ( is_callable( $middleware ) ) {
-			return $middleware;
-		}
-
 		if ( is_string( $middleware ) && class_exists( $middleware ) ) {
 			$middleware = new $middleware();
 		}
 
 		if ( $middleware instanceof MiddlewareInterface ) {
-			return array( $middleware, 'handle' );
+			return [ $middleware, 'handle' ];
 		}
 
-		if ( is_object( $middleware ) && is_callable( $middleware ) ) {
+		if ( is_callable( $middleware ) ) {
 			return $middleware;
 		}
 
