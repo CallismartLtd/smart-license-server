@@ -8,7 +8,6 @@
 namespace SmartLicenseServer\Admin\Page;
 
 use SmartLicenseServer\Admin\AdminDashboardRegistry;
-use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Templates\TemplateLocator;
@@ -52,24 +51,19 @@ class Shell {
     public const HEADER_TEMPLATE            = 'admin.header';
     public const MENU_TEMPLATE              = 'admin.menu';
     public const CONTENT_TEMPLATE           = 'admin.content';
-    public const AUTH_INDEX_TEMPLATE        = 'frontend.auth.index';
-    public const AUTH_LOGIN_TEMPLATE        = 'frontend.auth.login';
-    public const AUTH_SIGNUP_TEMPLATE       = 'frontend.auth.signup';
-    public const AUTH_FORGOT_PWD_TEMPLATE   = 'frontend.auth.forgot-password';
-    public const AUTH_RESET_PWD_TEMPLATE    = 'frontend.auth.reset-password';
-    public const AUTH_2FA_TEMPLATE          = 'frontend.auth.2fa';
     public const FOOTER_TEMPLATE            = 'admin.footer';
 
     /**
-     * @param AdminDashboardRegistry|AuthTemplateRegistry	$registry
+     * @param AdminDashboardRegistry	$registry
      * @param TemplateLocator			$locator
 	 * @param Request					$request
      */
     public function __construct(
-        protected AdminDashboardRegistry|AuthTemplateRegistry	$registry,
+        protected AdminDashboardRegistry	$registry,
         protected TemplateLocator	$locator,
 		protected Request			$request
     ) {}
+
     /*
     |---------
     | RENDER
