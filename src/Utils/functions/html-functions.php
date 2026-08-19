@@ -512,45 +512,23 @@ function smliser_dump_url( ?string $url = null ) : void {
 }
 
 /**
- * Kills appliaction execution and displays HTML page with an error message.
+ * Kills the current PHP execution and displays message.
  *
- * This function complements the `die()` PHP function. The difference is that
- * HTML will be displayed to the user. It is recommended to use this function
- * only when the execution should not continue any further. It is not recommended
- * to call this function very often, and try to handle as many errors as possible
- * silently or more gracefully.
- *
- * As a shorthand, the desired HTTP response code may be passed as an integer to
- * the `$title` parameter (the default title would apply) or the `$args` parameter.
- *
- *
- * @param string|SmartLicenseServer\Exceptions\Exception  $message Optional. Error message. If this is an error object,
- *                                  and not an Ajax or XML-RPC request, the error's messages are used.
- *                                  Default empty string.
- * @param string|int       $title   Optional. Error title. If `$message` is a `SmartLicenseServer\Exceptions\Exception;` object,
- *                                  error data with the key 'title' may be used to specify the title.
- *                                  If `$title` is an integer, then it is treated as the response code.
- *                                  Default empty string.
- * @param string|array|int $args {
- *     Optional. Arguments to control behavior. If `$args` is an integer, then it is treated
- *     as the response code. Default empty array.
- *
- *     @type int    $response       The HTTP response code. Default 200 for Ajax requests, 500 otherwise.
- *     @type string $link_url       A URL to include a link to. Only works in combination with $link_text.
- *                                  Default empty string.
- *     @type string $link_text      A label for the link to include. Only works in combination with $link_url.
- *                                  Default empty string.
- *     @type bool   $back_link      Whether to include a link to go back. Default false.
- *                                  Default is the value of is_rtl().
- *     @type string $charset        Character set of the HTML output. Default 'utf-8'.
- *     @type string $code           Error code to use. Default is 'smliser_error', or the main error code if $message
- *                                  is an Exception instance.
- * }
+ * Writes to STDERR stream on CLI, renders HTML message with optional links.
+ * 
+ * @param Throwable|\SmartLicenseServer\Exceptions\Exception|string $message The message can be a throwable error or string.
+ * @param string $title
+ * @param array{
+ *  response: int,
+    link_url: string,
+    link_text: string,
+    back_link: bool
+ * } $args
+ * 
  * @return never
  */
 function smliser_abort_request( $message = '', $title = '', $args = [] ) : never {
-    $is_request_error   = ( $message instanceof RequestException ) || ( $message instanceof FileRequestException );
-    if ( $is_request_error ) {
+    if ( ( $message instanceof RequestException ) || ( $message instanceof FileRequestException ) ) {
         $error_data = $message->get_error_data();
         $message    = $message->get_error_message();
         $title      = $error_data['title'] ?? '';
