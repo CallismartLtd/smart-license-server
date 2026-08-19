@@ -289,3 +289,76 @@ if ( ! function_exists( 'is_email' ) ) {
 		return true;
 	}
 }
+
+if ( ! function_exists( 'is_url' ) ) {
+    /**
+     * Validate whether a given string is a syntactically valid URL.
+     *
+     * @param string $url                The URL string to validate.
+     * @param array  $allowed_protocols  List of allowed schemes/protocols (default: http, https).
+     * @return bool True if valid, false otherwise.
+     */
+    function is_url( string $url, array $allowed_protocols = [ 'http', 'https' ] ) : bool {
+        // Basic sanity checks and boundaries.
+        $url	= trim( $url );
+        $length = strlen( $url );
+
+        if ( $length < 8 || $length > 2083 ) {
+            return false;
+        }
+
+        // Protect against CRLF / header injection attacks.
+        if ( preg_match( '/[\r\n\t]/', $url ) ) {
+            return false;
+        }
+
+        // Extract and check scheme.
+        $scheme_end = strpos( $url, '://' );
+        if ( $scheme_end === false ) {
+            return false;
+        }
+
+        $scheme = strtolower( substr( $url, 0, $scheme_end ) );
+        if ( ! in_array( $scheme, $allowed_protocols, true ) ) {
+            return false;
+        }
+
+        // Parse components.
+        $parsed = parse_url( $url );
+        if ( ! is_array( $parsed ) || empty( $parsed['host'] ) ) {
+            return false;
+        }
+
+        // Convert Internationalized Domain Names (IDN) to ASCII / Punycode if intl is installed.
+        $host = $parsed['host'];
+        if ( function_exists( 'idn_to_ascii' ) ) {
+            $ascii_host = idn_to_ascii( $host, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46 );
+            if ( false !== $ascii_host ) {
+                $host = $ascii_host;
+                $url  = str_replace( $parsed['host'], $host, $url );
+            }
+        }
+
+        // Validate port boundary if specified.
+        if ( isset( $parsed['port'] ) && ( $parsed['port'] < 1 || $parsed['port'] > 65535 ) ) {
+            return false;
+        }
+
+        // Validate host format (IPv4, IPv6 enclosed in brackets, or standard hostname with TLD).
+        $is_ip = filter_var( $host, FILTER_VALIDATE_IP );
+        if ( ! $is_ip ) {
+            // Require a dot for non-IP hosts (filters out single-word hostnames like 'localhost')
+            if ( ! str_contains( $host, '.' ) ) {
+                return false;
+            }
+
+            // Prevent leading/trailing dots or double dots in host
+            if ( str_starts_with( $host, '.' ) || str_ends_with( $host, '.' ) || str_contains( $host, '..' ) ) {
+                return false;
+            }
+        }
+
+        // Canonical native filter check.
+        return filter_var( $url, FILTER_VALIDATE_URL ) !== false;
+    }
+}
