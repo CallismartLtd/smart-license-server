@@ -116,17 +116,17 @@ abstract class Environment implements EnvironmentProviderInterface {
     protected Cache $cache;
 
     /**
-     * Environment configuration data.
+     * Overridable properties map
      * 
-     * @var array $env
+     * @var array $prop_map
      */
-    protected array $env = [
+    protected array $prop_map = [
         'filesystem_adapter'    => null,
         'settings_provider'     => null,
         'database_adapter'      => null,
         'rest_api_provider'     => null,
         'admin_menu_config'     => null,
-        'identity_provider'     => null,
+        'identity_provider'     => null
     ];
 
     /**
@@ -134,9 +134,7 @@ abstract class Environment implements EnvironmentProviderInterface {
      * 
      * @var string[] $required_config
      */
-    protected array $required_config = [
-        'identity_provider',
-    ];
+    protected array $required_config = [];
 
     /**
      * The current request object.
@@ -274,19 +272,19 @@ abstract class Environment implements EnvironmentProviderInterface {
     */
 
     /**
-     * Parse environment configuration file to ensure that required variables are set.
+     * Parse overridable property values
      * 
-     * @param array $env_config The configuration options from the environment adapter.
+     * @param array $props
      */
-    private function parse_config( $env_config ) : void {
-        $parsed_config  = array_intersect_key( 
-            array_merge( $this->env, $env_config ),
-            $this->env
+    private function parse_config( $props ) : void {
+        $parsed_props  = array_intersect_key( 
+            array_merge( $this->prop_map, $props ),
+            $this->prop_map
         );
 
         $missing_config = [];
 
-        foreach ( $parsed_config as $key => $value ) {
+        foreach ( $parsed_props as $key => $value ) {
             if ( in_array( $key, $this->required_config, true ) && $value === null ) {
                 $missing_config[] = $key;
             }
@@ -301,7 +299,7 @@ abstract class Environment implements EnvironmentProviderInterface {
             throw new EnvironmentBootstrapException( 'misconfiguration', $message );
         }
 
-        $this->env  = $parsed_config;
+        $this->prop_map  = $parsed_props;
     }
 
     /**
@@ -323,7 +321,7 @@ abstract class Environment implements EnvironmentProviderInterface {
                 continue;
             }
 
-            if ( ! isset( $this->env[$env_k] ) ) {
+            if ( ! isset( $this->prop_map[$env_k] ) ) {
                 continue;
             }
 
@@ -334,7 +332,7 @@ abstract class Environment implements EnvironmentProviderInterface {
                 );
             }
             
-            $this->{$prop_k}    = $this->env[$env_k];
+            $this->{$prop_k}    = $this->prop_map[$env_k];
         }
 
         // instanciate the cache registry.
@@ -685,6 +683,15 @@ abstract class Environment implements EnvironmentProviderInterface {
      * Get the identity provider.
      */
     public function identityProvider() : IdentityProviderInterface {
+        if ( ! isset( $this->identityProvider ) ) {
+            throw new EnvironmentBootstrapException(
+                'misconfiguration',
+                sprintf(
+                    'The current envronment provider "%s" did not set its auth or identity provider property.',
+                    \get_class( static::$envProvider )
+                )
+            );
+        }
         return $this->identityProvider;
     }
 

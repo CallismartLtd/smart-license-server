@@ -11,7 +11,6 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
-use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Inspection\Inspector;
 use Callismart\DBPrism\Utils\Table;

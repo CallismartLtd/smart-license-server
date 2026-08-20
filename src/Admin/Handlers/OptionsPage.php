@@ -118,7 +118,7 @@ class OptionsPage implements AdminPageInterface {
      * is present, otherwise renders the full template list.
      */
     private static function email_template_options( Request $request ): void {
-        if ( smliser_has_query_param( 'template' ) ) {
+        if ( $request->has( 'template' ) ) {
             self::email_template_editor( $request );
             return;
         }
@@ -191,7 +191,7 @@ class OptionsPage implements AdminPageInterface {
             return;
         }
 
-        if ( smliser_has_query_param( 'adapter' ) ) {
+        if ( $request->has( 'adapter' ) ) {
             self::cache_adapter_settings( $request );
             return;
         }

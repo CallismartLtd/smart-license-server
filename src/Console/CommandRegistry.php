@@ -42,6 +42,7 @@ use SmartLicenseServer\Console\Commands\Apps\PluginCommand;
 use SmartLicenseServer\Console\Commands\Apps\SoftwareCommand;
 use SmartLicenseServer\Console\Commands\Apps\ThemeCommand;
 use SmartLicenseServer\Console\Commands\CacheCommand;
+use SmartLicenseServer\Console\Commands\Installer;
 use SmartLicenseServer\Console\Commands\InstallRolesCommand;
 use SmartLicenseServer\Console\Commands\MigrateCommand;
 use SmartLicenseServer\Console\Commands\ScheduleCommand;
@@ -87,6 +88,7 @@ class CommandRegistry extends AbstractRegistry {
         WorkScheduleCommand::class,
         MigrateCommand::class,
         InstallRolesCommand::class,
+        Installer::class,
         CacheCommand::class,
         AppCommand::class,
         PluginCommand::class,

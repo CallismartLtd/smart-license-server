@@ -28,5 +28,8 @@
         "psr-4": {
             "SmartLicenseServer\\": "src/"
         }
+    },
+    "config": {
+        "platform-check": false
     }
 }

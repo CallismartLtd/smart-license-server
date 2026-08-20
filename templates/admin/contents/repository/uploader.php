@@ -19,7 +19,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 
 $max_upload_size    = Format::bytes( smliser_max_upload_size() );
 $args               = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null );
-$is_edit            = 'edit' === smliser_get_query_param( 'tab' );
+$is_edit            = 'edit' === $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
 
 if ( ! isset( $app ) ) {
     unset(
@@ -37,7 +37,7 @@ if ( ! isset( $app ) ) {
     <form action="" class="app-uploader-form" id="appUploaderForm">
         <input type="hidden" name="action" value="smliser_save_<?php printf( '%s', escHtml( $type ) ) ?>">
         <input type="hidden" name="app_type" value="<?php printf( '%s', escHtml( $type ) ) ?>">
-        <input type="hidden" name="app_id" value="<?php printf( '%s', escHtml( smliser_get_query_param( 'app_id' ) ) ) ?>">
+        <input type="hidden" name="app_id" value="<?php printf( '%s', escHtml( $request->query( 'app_id' ) ) ) ?>">
         <div class="app-uploader-top-section">
             <div class="app-uploader-left">
                 <h3><?php echo escHtml( $type_title ) ?> Details</h3>

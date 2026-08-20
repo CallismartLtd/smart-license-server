@@ -409,7 +409,7 @@ class Controller {
             $allowed_options    = array_keys( $provider->get_settings_schema() );
 
             foreach( $allowed_options as $name ) {
-                if ( $value = smliser_get_post_param( $name, null ) ) {
+                if ( $value = $request->post( $name, null ) ) {
                     MonetizationRegistry::update_option( $provider->get_id(), $name, $value );
                 } else {
                     MonetizationRegistry::update_option( $provider->get_id(), $name, '' );

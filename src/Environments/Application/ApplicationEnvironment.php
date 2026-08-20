@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Environments\Application;
 use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Environment;
+use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\RuntimeConfig;
 
@@ -23,7 +24,7 @@ class ApplicationEnvironment extends Environment {
         $this->prepare_db_config();
 
         $this->setup([
-            'identity_provider' => new IdentityProvider(),
+            'identity_provider' => new IdentityService(),
             'rest_api_provider' => RestAPIProvider::init( new V1() )
         ]);
     }
@@ -99,5 +100,4 @@ class ApplicationEnvironment extends Environment {
         return static::url( '/api/', $q )
         ->append_path( $path );
     }
-
 }

@@ -6,6 +6,7 @@
  * @package SmartLicenseServer\templates
  * 
  * @var SmartLicenseServer\Core\URL $current_url
+ * @var SmartLicenseServer\Core\Request $request
  * @var array $pagination
  */
 
@@ -16,7 +17,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>
     <div class="smliser-table-wrapper">
-        <?php if ( $notice = smliser_get_query_param( 'message' ) ) : ?>
+        <?php if ( $notice = $request->query( 'message' ) ) : ?>
             <?php wp_admin_notice( $notice, ['type' => 'success', 'dismissible' => true] ) ?>
         <?php endif; ?>
 

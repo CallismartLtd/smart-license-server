@@ -10,6 +10,7 @@
  * @var string|null $status
  * @var \SmartLicenseServer\Core\URL $add_url
  * @var \SmartLicenseServer\Core\URL $current_url
+ * @var \SmartLicenseServer\Core\Request $request
  * @var string $page_title
  */
 
@@ -84,12 +85,12 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
     <?php smliser_print_admin_content_header( $menu_args ); ?>
     <div class="smliser-table-wrapper">
       
-        <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
+        <?php if ( $message = $request->query( 'message' ) ) : ?>
             <div class="notice notice-info is-dismissible"><p><?php echo escHtml( $message ); ?></p></div>
         <?php endif; ?>
 
         <ul class="subsubsub smliser-status-filter">
-            <?php $current_status = smliser_get_query_param( 'status', '' ); ?>
+            <?php $current_status = $request->query( 'status', '' ); ?>
 
             <?php foreach ( AbstractHostedApp::STATUSES as $k => $label ) : 
 

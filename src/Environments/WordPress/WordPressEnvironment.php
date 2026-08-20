@@ -72,9 +72,9 @@ class WordPressEnvironment extends Environment {
             'settings_provider'    => new WPSettingsProvider(),
             'database_adapter'     => new WPDBAdapter( $GLOBALS['wpdb'] ),
             'rest_api_provider'    => RESTAPI::init( new V1 ),
-            'identity_provider'    => new IdentityService()
         ]);
         
+        $this->identityProvider = new IdentityService();
         $this->script_manager   = new ScriptManager( $this->request );
         $this->menu             = new AdminMenu( $this->adminDashboardRegistry(), $this->request );
 

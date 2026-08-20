@@ -12,7 +12,6 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CommandInput;
-use SmartLicenseServer\Console\Contracts\CommandInterface;
 
 /**
  * Execute PHPUnit test suites.
@@ -85,5 +84,16 @@ class TestCommand extends AbstractCommand {
         passthru( $command, $exit_code );
 
         return $exit_code;
+    }
+
+    public function get_subcommands(): array {
+        return [
+            'script-name'   => [$this, 'test_script_name']
+        ];
+    }
+
+    public function test_script_name() : int {
+        $this->output->writeln( $this->script_name );
+        return 0;
     }
 }

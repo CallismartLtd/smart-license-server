@@ -32,7 +32,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 $menu        = $menu        ?? [];
 $rest_base   = $rest_base   ?? '';
 $active_slug = $active_slug ?? array_key_first( $menu ) ?? '';
-$repo_name   = smliser_settings()->get( 'smliser_repository_name', SMLISER_APP_NAME );
+$repo_name   = (string) smliser_settings()->get( 'smliser_repository_name', SMLISER_APP_NAME );
 
 /*
 |--------------------------------------------------

@@ -6,7 +6,8 @@
  * 
  * @var array $menu_args
  * @var array $pagination
- * @var \SmartLicenseServer\Core\URL $current_url 
+ * @var \SmartLicenseServer\Core\URL $current_url
+ * @var \SmartLicenseServer\Core\Request $request
  */
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
@@ -15,7 +16,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
     <?php smliser_print_admin_content_header( $menu_args ); ?>
     <div class="smliser-table-wrapper">
       
-        <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
+        <?php if ( $message = $request->query( 'message' ) ) : ?>
             <div class="notice notice-info is-dismissible"><p><?php echo escHtml( $message ); ?></p></div>
         <?php endif; ?>
 
@@ -24,7 +25,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 <input type="hidden" name="page" value="smliser-broadcasts">
                 <input type="hidden" name="tab" value="search">
                 
-                <input type="search" name="msg_search" value="<?php echo smliser_get_query_param( 'msg_search' ) ?>" id="smliser-msg-search-input" placeholder="Search messages">
+                <input type="search" name="msg_search" value="<?php echo $request->query( 'msg_search' ) ?>" id="smliser-msg-search-input" placeholder="Search messages">
                 <button type="submit" class="button smliser-btn">Search</button>
             </form>
 

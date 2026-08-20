@@ -9,6 +9,8 @@
 namespace SmartLicenseServer\Security\Authentication;
 
 use SmartLicenseServer\Security\Actors\ActorInterface;
+use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Security\Permission\Role;
 
 final readonly class AuthenticationResult {
 
@@ -67,16 +69,24 @@ final readonly class AuthenticationResult {
     */
 
     /**
-     * @param string              $status
-     * @param ActorInterface|null $actor
-     * @param string|null         $error_code
-     * @param string|null         $message
+     * Authentication result constructor.
+     * 
+     * Use the authenticated or failure factories only.
+     * 
+     * @param string              $status       The authentication status.
+     * @param ActorInterface|null $actor        The authenticated actor if authenticated.
+     * @param Owner|null            $owner      The resource owner this actor is working for.
+     * @param Role|null             $role       The role of this actor.
+     * @param string|null           $error_code Error code on failure.
+     * @param string|null           $message    Success or error message.
      */
-    public function __construct(
+    private function __construct(
         public string $status,
-        public ?ActorInterface $actor = null,
-        public ?string $error_code = null,
-        public ?string $message = null,
+        public ?ActorInterface $actor   = null,
+        public ?Owner $owner            = null,
+        public ?Role $role              = null,
+        public ?string $error_code      = null,
+        public ?string $message         = null,
     ) {}
 
     /*
@@ -94,11 +104,15 @@ final readonly class AuthenticationResult {
      */
     public static function authenticated(
         ActorInterface $actor,
+        Owner $owner,
+        Role $role,
         ?string $message = null
     ) : static {
         return new static(
             status: static::STATUS_AUTHENTICATED,
             actor: $actor,
+            owner: $owner,
+            role: $role,
             message: $message
         );
     }

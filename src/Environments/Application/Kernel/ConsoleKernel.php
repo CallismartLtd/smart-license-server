@@ -158,14 +158,11 @@ class ConsoleKernel extends Kernel {
      * {@inheritdoc}
      */
     public function boot() : static {
-        $this->registry = CommandRegistry::instance();
-        $this->terminal = new Terminal();
-        $this->signal   = new SignalManager( $this->terminal );
-        $this->output   = new ConsoleOutput( $this->terminal, $this->stdout, $this->stderr );
-        $this->input    = new ConsoleInput( $this->terminal, $this->stdin, $this->stdout );
-        $this->tokens   = $this->environment->request()->server()['argv'];
+        $this->environment->identityProvider()->authenticate();
+        
+        $this->init_runner();
 
-        $this->runner = $this->build_runner();
+        $this->build_runner();
 
         if ( is_subclass_of( $this->runner, AbstractCommandRouter::class ) ) {
             $this->output->set_verbosity(
@@ -199,6 +196,20 @@ class ConsoleKernel extends Kernel {
     */
 
     /**
+     * Initialize the runner dependencies.
+     * 
+     * @return void
+     */
+    protected function init_runner() : void {
+        $this->registry = CommandRegistry::instance();
+        $this->terminal = new Terminal();
+        $this->signal   = new SignalManager( $this->terminal );
+        $this->output   = new ConsoleOutput( $this->terminal, $this->stdout, $this->stderr );
+        $this->input    = new ConsoleInput( $this->terminal, $this->stdin, $this->stdout );
+        $this->tokens   = $this->environment->request()->server()['argv'];
+    }
+
+    /**
      * Validates that the provided argument is an active stream resource.
      *
      * @param mixed  $stream Stream variable to validate.
@@ -206,7 +217,7 @@ class ConsoleKernel extends Kernel {
      * @return resource
      * @throws \InvalidArgumentException If stream is invalid.
      */
-    private function validate_stream( mixed $stream, string $name ) {
+    protected function validate_stream( mixed $stream, string $name ) {
         if ( ! is_resource( $stream ) || 'stream' !== get_resource_type( $stream ) ) {
             throw new \InvalidArgumentException(
                 sprintf(
@@ -228,30 +239,32 @@ class ConsoleKernel extends Kernel {
      *
      * @return RunnerInterface
      */
-    private function build_runner() : RunnerInterface {
+    protected function build_runner() : RunnerInterface {
         $script_name = $this->tokens[0] ?? 'smliser';
 
         if ( isset( $this->tokens[1] ) ) {
-            return new NonInteractiveRunner( 
+            $this->runner = new NonInteractiveRunner( 
                 registry: $this->registry,
                 tokens: $this->tokens, 
                 io: $this->input,
                 output: $this->output,
                 terminal: $this->terminal,
-                script_name: $script_name,
+                script_name: basename( $script_name ),
                 signal: $this->signal
+            );
+        } else {
+            $this->runner = new InteractiveShell(
+                registry: $this->registry,
+                io: $this->build_shell_input( $this->input, $this->terminal ),
+                output: $this->output,
+                terminal: $this->terminal,
+                script_name: basename( $script_name ),
+                signal: $this->signal,
+                logo_mode: LogoMode::from_env()
             );
         }
 
-        return new InteractiveShell(
-            registry: $this->registry,
-            io: $this->build_shell_input( $this->input, $this->terminal ),
-            output: $this->output,
-            terminal: $this->terminal,
-            script_name: $script_name,
-            signal: $this->signal,
-            logo_mode: LogoMode::from_env()
-        );
+        return $this->runner;
     }
 
     /**
@@ -263,7 +276,7 @@ class ConsoleKernel extends Kernel {
      * @param Terminal     $terminal
      * @return HistoryAwareInput
      */
-    private function build_shell_input( ConsoleInput $input, Terminal $terminal ) : HistoryAwareInput {
+    protected function build_shell_input( ConsoleInput $input, Terminal $terminal ) : HistoryAwareInput {
         return new HistoryAwareInput( $input, $terminal, $this->shell_history_path() );
     }
 
@@ -272,7 +285,7 @@ class ConsoleKernel extends Kernel {
      *
      * @return string
      */
-    private function shell_history_path() : string {
+    protected function shell_history_path() : string {
         return \SMLISER_STORAGE_DIR . 'logs/.shell_history';
     }
 }

@@ -1,23 +1,22 @@
 <?php
 /**
- * Identity provider class file
+ * Web identity provider class file.
+ * 
  * 
  * @author Callistus Nwachukwu
- * @since 0.3.0
+ * @package SmartLicenseServer
  */
+declare( strict_types=1 );
 
-namespace SmartLicenseServer\Environments\Application;
+namespace SmartLicenseServer\Environments\Application\Auth;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\RequestException;
-use SmartLicenseServer\Security\Actors\User;
-use SmartLicenseServer\Security\Context\AbstractIdentityProvider;
+use SmartLicenseServer\Security\Context\IdentityProviderInterface;
 use SmartLicenseServer\Security\Context\Principal;
+use SmartLicenseServer\Security\Actors\User;
 
-/**
- * Identity and authentication provider.
- */
-class IdentityProvider extends AbstractIdentityProvider {
+class WebIdentityProvider implements IdentityProviderInterface {
     /**
      * {@inheritdoc}
      */
@@ -49,7 +48,7 @@ class IdentityProvider extends AbstractIdentityProvider {
     /**
      * {@inheritdoc}
      */
-    public function reset_password(User $user, string $new_pwd): bool {
+    public function reset_password( User $user, string $new_pwd): bool {
         throw new \Exception('Not implemented');
     }
 }

@@ -45,8 +45,8 @@ class Installer {
      */
     public static function install() : Exception|true {
         wp_installing( true );
-        $installation_error     = new Exception();
-        $init_repo  = static::init_repo_dir();
+        $installation_error = new Exception();
+        $init_repo          = static::init_repo_dir();
 
         if ( $init_repo instanceof Exception ) {
             $installation_error->merge_from( $init_repo );

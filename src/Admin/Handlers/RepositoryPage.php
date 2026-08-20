@@ -394,8 +394,8 @@ class RepositoryPage implements AdminPageInterface {
      */
     public static function monetization_page( Request $request ) {
         $url    = \smliser_repository_url( 'admin' )->url();
-        $id         = smliser_get_query_param( 'app_id' );
-        $app_type   = smliser_get_query_param( 'type' );
+        $id         = $request->query( 'app_id' );
+        $app_type   = $request->query( 'type' );
         $is_new     = false;
 
         $monetization   = Monetization::get_by_app( $app_type, $id );

@@ -5,6 +5,7 @@
  * @author Callistus
  * @package Smliser\templates
  * @since 0.2.0
+ * @var \SmartLicenseServer\Core\Request $request
  */
 
 use SmartLicenseServer\Admin\Handlers\OptionsPage;
@@ -17,7 +18,7 @@ $menu_args = OptionsPage::get_menu_args( $request );
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>
 
-    <?php if ( $message = smliser_get_query_param( 'message' ) ) : ?>
+    <?php if ( $message = $request->query( 'message' ) ) : ?>
         <div class="notice notice-success is-dismissible">
             <p><?php echo escHtml( $message ); ?></p>
         </div>
