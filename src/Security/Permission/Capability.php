@@ -26,14 +26,14 @@ final class Capability {
          * Hosted Applications (Plugin, Theme, Software).
          */
         'hosted_apps' => [
-            'hosted_apps.create'            => 'Create hosted applications',
-            'hosted_apps.update'            => 'Update hosted application details',
-            'hosted_apps.delete'            => 'Delete hosted applications',
-            'hosted_apps.change_status'     => 'Change hosted application status',
-            'hosted_apps.upload_assets'     => 'Upload application assets',
-            'hosted_apps.edit_assets'       => 'Edit application assets',
-            'hosted_apps.delete_assets'     => 'Delete application assets',
-            'hosted_apps.access_files'      => 'Access application package files',
+            'hosted_apps.create'        => 'Create hosted applications',
+            'hosted_apps.update'        => 'Update hosted application details',
+            'hosted_apps.delete'        => 'Delete hosted applications',
+            'hosted_apps.change_status' => 'Change hosted application status',
+            'hosted_apps.upload_assets' => 'Upload application assets',
+            'hosted_apps.edit_assets'   => 'Edit application assets',
+            'hosted_apps.delete_assets' => 'Delete application assets',
+            'hosted_apps.access_files'  => 'Access application package files',
         ],
 
         /**
@@ -61,60 +61,67 @@ final class Capability {
          * Repository & Downloads
          */
         'repository' => [
-            'repository.view'       => 'View repository contents',
-            'repository.download'   => 'Download application packages',
+            'repository.view'     => 'View repository contents',
+            'repository.download' => 'Download application packages',
         ],
 
         /**
          * Analytics & Reporting
          */
         'analytics' => [
-            'analytics.view'    => 'View analytics data',
+            'analytics.view' => 'View analytics data',
         ],
 
         /**
          * Messaging
          */
         'messaging' => [
-            'messaging.send_bulk'   => 'Send bulk messages',
+            'messaging.send_bulk' => 'Send bulk messages',
         ],
 
         /**
          * Security & Identity Management
          */
         'security' => [
-            'security.owner.create'             => 'Create owners',
-            'security.owner.update'             => 'Update owners',
-            'security.owner.delete'             => 'Delete owners',
-            'security.owner.view'               => 'View owners',
-            
-            'security.organization.create'      => 'Create organizations',
-            'security.organization.update'      => 'Update organizations',
-            'security.organization.delete'      => 'Delete organizations',
-            'security.organization.view'        => 'View organizations',
-            'security.organization.add_members'  => 'Add members to organizations',
-            'security.organization.update_members'  => 'Update organization members',
-            'security.organization.remove_members'  => 'Remove members from organizations',
+            'security.owner.create'                => 'Create owners',
+            'security.owner.update'                => 'Update owners',
+            'security.owner.delete'                => 'Delete owners',
+            'security.owner.view'                  => 'View owners',
 
-            'security.user.create'              => 'Create users',
-            'security.user.update'              => 'Update users',
-            'security.user.delete'              => 'Delete users',
-            'security.user.view'                => 'View users',
-            'security.user.invite'              => 'Invite users',
+            'security.organization.create'         => 'Create organizations',
+            'security.organization.update'         => 'Update organizations',
+            'security.organization.delete'         => 'Delete organizations',
+            'security.organization.view'           => 'View organizations',
+            'security.organization.add_members'    => 'Add members to organizations',
+            'security.organization.update_members' => 'Update organization members',
+            'security.organization.remove_members' => 'Remove members from organizations',
 
-            'security.service_account.create'   => 'Create service accounts',
-            'security.service_account.update'   => 'Update service accounts',
-            'security.service_account.delete'   => 'Delete service accounts',
-            'security.service_account.view'     => 'View service accounts',
+            'security.user.create'                 => 'Create users',
+            'security.user.update'                 => 'Update users',
+            'security.user.delete'                 => 'Delete users',
+            'security.user.view'                   => 'View users',
+            'security.user.invite'                 => 'Invite users',
 
-            'security.role.create'              => 'Create roles',
-            'security.role.update'              => 'Update roles',
-            'security.role.delete'              => 'Delete roles',
-            'security.role.assign'              => 'Assign roles',
+            'security.service_account.create'      => 'Create service accounts',
+            'security.service_account.update'      => 'Update service accounts',
+            'security.service_account.delete'      => 'Delete service accounts',
+            'security.service_account.view'        => 'View service accounts',
 
-            'security.capability.assign'        => 'Assign capabilities to roles',
+            'security.role.create'                 => 'Create roles',
+            'security.role.update'                 => 'Update roles',
+            'security.role.delete'                 => 'Delete roles',
+            'security.role.assign'                 => 'Assign roles',
+
+            'security.capability.assign'           => 'Assign capabilities to roles',
         ],
     ];
+
+    /**
+     * Cached flattened capability list.
+     *
+     * @var array<string, string>|null
+     */
+    private static ?array $flatCache = null;
 
     /**
      * Prevent instantiation.
@@ -122,20 +129,16 @@ final class Capability {
     private function __construct() {}
 
     /**
-     * Get all registered capabilities.
+     * Get all registered capabilities flattened into a key-value array.
      *
-     * @return array<string, string> Flat list [ capability => description ]
+     * @return array<string, string> Flat list [ capability_slug => description ]
      */
-    public static function all() : array {
-        $all = [];
-
-        foreach ( self::$capabilities as $group ) {
-            foreach ( $group as $capability => $description ) {
-                $all[ $capability ] = $description;
-            }
+    public static function all(): array {
+        if ( self::$flatCache === null ) {
+            self::$flatCache = array_merge( ...array_values( self::$capabilities ) );
         }
 
-        return $all;
+        return self::$flatCache;
     }
 
     /**
@@ -144,8 +147,8 @@ final class Capability {
      * @param string $capability
      * @return bool
      */
-    public static function exists( string $capability ) : bool {
-        return array_key_exists( $capability, self::all() );
+    public static function exists( string $capability ): bool {
+        return isset( self::all()[ $capability ] );
     }
 
     /**
@@ -154,7 +157,7 @@ final class Capability {
      * @param string $capability
      * @throws InvalidArgumentException
      */
-    public static function assert_exists( string $capability ) : void {
+    public static function assert_exists( string $capability ): void {
         if ( ! self::exists( $capability ) ) {
             throw new InvalidArgumentException(
                 sprintf( 'Unknown capability "%s".', $capability )
@@ -168,7 +171,7 @@ final class Capability {
      * @param string $domain
      * @return array<string, string>
      */
-    public static function by_domain( string $domain ) : array {
+    public static function by_domain( string $domain ): array {
         return self::$capabilities[ $domain ] ?? [];
     }
 
@@ -177,7 +180,7 @@ final class Capability {
      *
      * @return array<string, array<string, string>>
      */
-    public static function get_caps() : array {
+    public static function get_caps(): array {
         return self::$capabilities;
     }
 
@@ -186,8 +189,7 @@ final class Capability {
      *
      * @return string[]
      */
-    public static function domains() : array {
+    public static function domains(): array {
         return array_keys( self::$capabilities );
     }
-
 }
