@@ -20,7 +20,9 @@ final class DefaultRoles {
      *
      * @var array<string, array{
      *     label: string,
-     *     capabilities: string[]|callable():string[]
+     *     is_canonical: bool,
+     *     slug: string,
+     *     capabilities: string[]|callable(): string[]
      * }>
      */
     protected static array $roles = [
@@ -32,10 +34,10 @@ final class DefaultRoles {
          * Automatically inherits ALL registered capabilities.
          */
         'system_admin' => [
-            'label'         => 'System Administrator',
-            'is_canonical'  => true,
-            'slug'          => 'system_admin',
-            'capabilities'  => [ self::class, 'all_capabilities' ],
+            'label'        => 'System Administrator',
+            'is_canonical' => true,
+            'slug'         => 'system_admin',
+            'capabilities' => [ self::class, 'all_capabilities' ],
         ],
 
         /**
@@ -44,10 +46,10 @@ final class DefaultRoles {
          * Owns hosted applications.
          */
         'resource_owner' => [
-            'label'         => 'Resource Owner',
-            'is_canonical'  => true,
-            'slug'          => 'resource_owner',
-            'capabilities'  => [
+            'label'        => 'Resource Owner',
+            'is_canonical' => true,
+            'slug'         => 'resource_owner',
+            'capabilities' => [
                 // Hosted applications.
                 'hosted_apps.create',
                 'hosted_apps.update',
@@ -57,8 +59,6 @@ final class DefaultRoles {
                 'hosted_apps.edit_assets',
                 'hosted_apps.delete_assets',
                 'hosted_apps.access_files',
-                
-                'security.user.invite',
 
                 // Monetization.
                 'monetization.pricing.create',
@@ -87,19 +87,20 @@ final class DefaultRoles {
                 'security.service_account.delete',
                 'security.service_account.view',
 
-                'security.user.invite'
+                'security.user.invite',
             ],
         ],
+
         /**
          * Resource Administrator.
          *
          * Manages applications, monetization, and visibility layers.
          */
         'resource_admin' => [
-            'label'         => 'Resource Administrator',
-            'is_canonical'  => true,
-            'slug'          => 'resource_admin',
-            'capabilities'  => [
+            'label'        => 'Resource Administrator',
+            'is_canonical' => true,
+            'slug'         => 'resource_admin',
+            'capabilities' => [
                 // Hosted applications
                 'hosted_apps.create',
                 'hosted_apps.update',
@@ -132,10 +133,10 @@ final class DefaultRoles {
          * Identity, access control, and role management.
          */
         'security_admin' => [
-            'label'         => 'Security Administrator',
-            'is_canonical'  => true,
-            'slug'          => 'security_admin',
-            'capabilities'  => [
+            'label'        => 'Security Administrator',
+            'is_canonical' => true,
+            'slug'         => 'security_admin',
+            'capabilities' => [
                 'security.owner.create',
                 'security.organization.create',
                 'security.user.create',
@@ -153,10 +154,10 @@ final class DefaultRoles {
          * Application Manager.
          */
         'app_manager' => [
-            'label'         => 'Application Manager',
-            'is_canonical'  => true,
-            'slug'          => 'app_manager',
-            'capabilities'  => [
+            'label'        => 'Application Manager',
+            'is_canonical' => true,
+            'slug'         => 'app_manager',
+            'capabilities' => [
                 'hosted_apps.create',
                 'hosted_apps.update',
                 'hosted_apps.upload_assets',
@@ -168,10 +169,10 @@ final class DefaultRoles {
          * License & Pricing Manager.
          */
         'license_manager' => [
-            'label'         => 'License Manager',
-            'is_canonical'  => true,
-            'slug'          => 'license_manager',
-            'capabilities'  => [
+            'label'        => 'License Manager',
+            'is_canonical' => true,
+            'slug'         => 'license_manager',
+            'capabilities' => [
                 'monetization.pricing.create',
                 'monetization.pricing.update',
 
@@ -187,10 +188,10 @@ final class DefaultRoles {
          * Analyst.
          */
         'analyst' => [
-            'label'         => 'Analyst',
-            'is_canonical'  => true,
-            'slug'          => 'analyst',
-            'capabilities'  => [
+            'label'        => 'Analyst',
+            'is_canonical' => true,
+            'slug'         => 'analyst',
+            'capabilities' => [
                 'analytics.view',
             ],
         ],
@@ -200,9 +201,9 @@ final class DefaultRoles {
          */
         'viewer' => [
             'label'        => 'Viewer',
-            'is_canonical'  => true,
-            'slug'          => 'viewer',
-            'capabilities'  => [
+            'is_canonical' => true,
+            'slug'         => 'viewer',
+            'capabilities' => [
                 'repository.view',
                 'repository.download',
             ],
@@ -218,21 +219,21 @@ final class DefaultRoles {
      * Get all default role definitions.
      *
      * @return array<string, array{
-     *      label:string, 
-     *      capabilities:string[],
+     *      label: string, 
      *      is_canonical: bool,
-     *      slug: string
+     *      slug: string,
+     *      capabilities: string[]
      * }>
      */
-    public static function all() : array {
+    public static function all(): array {
         $roles = [];
 
         foreach ( static::$roles as $key => $role ) {
             $roles[ $key ] = [
-                'label'         => $role['label'],
-                'is_canonical'  => $role['is_canonical'],
-                'slug'          => $role['slug'],
-                'capabilities'  => static::resolve_capabilities( $role['capabilities'] ),
+                'label'        => $role['label'],
+                'is_canonical' => $role['is_canonical'],
+                'slug'         => $role['slug'],
+                'capabilities' => static::resolve_capabilities( $role['capabilities'] ),
             ];
         }
 
@@ -242,11 +243,11 @@ final class DefaultRoles {
     /**
      * Resolve role capabilities.
      *
-     * @param string[]|callable $caps
+     * @param string[]|callable(): string[] $caps
      * @return string[]
      */
-    protected static function resolve_capabilities( $caps ) : array {
-        return is_callable( $caps ) ? (array) call_user_func( $caps ) : $caps;
+    protected static function resolve_capabilities( mixed $caps ): array {
+        return is_callable( $caps ) ? (array) call_user_func( $caps ) : (array) $caps;
     }
 
     /**
@@ -256,23 +257,30 @@ final class DefaultRoles {
      *
      * @return string[]
      */
-    protected static function all_capabilities() : array {
+    protected static function all_capabilities(): array {
         return array_keys( Capability::all() );
     }
 
     /**
      * Check if a default role exists.
      */
-    public static function exists( string $name ) : bool {
+    public static function exists( string $name ): bool {
         return isset( static::$roles[ $name ] );
     }
 
     /**
      * Retrieve a default role definition.
      *
+     * @param string $name
+     * @return array{
+     *      label: string, 
+     *      is_canonical: bool,
+     *      slug: string,
+     *      capabilities: string[]
+     * }
      * @throws \InvalidArgumentException
      */
-    public static function get( string $name ) : array {
+    public static function get( string $name ): array {
         if ( ! static::exists( $name ) ) {
             throw new \InvalidArgumentException(
                 sprintf( 'Unknown default role "%s".', $name )
