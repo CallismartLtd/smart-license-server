@@ -17,7 +17,8 @@ namespace SmartLicenseServer\Exceptions;
  * Can carry an optional code and status for structured error handling.
  */
 class FileSystemException extends Exception {
-    public function __construct( string $message ) {
-        parent::__construct( 'file_system_error', $message );
+    public function __construct( string $message = '' ) {
+        $code   = $message ? 'file_system_error' : '';
+        parent::__construct( $code, $message );
     }
 }

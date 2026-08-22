@@ -253,21 +253,6 @@ class SettingsCommand extends AbstractCommand {
         return 0;
     }
 
-    /**
-     * Print help for the settings command.
-     */
-    public function handle_help(): int {
-        $this->output->info( 'Settings Command' );
-        $this->output->newline();
-        $this->output->info( 'Usage:' );
-        $this->output->writeln( '  smliser settings <subcommand> [arguments]' );
-        $this->output->writeln( $this->help() );
-        
-        $this->output->newline();
-
-        return 0;
-    }
-
     /*
     |--------------------------------------------
     | FORMATTING

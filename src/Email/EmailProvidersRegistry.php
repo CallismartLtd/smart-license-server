@@ -179,7 +179,7 @@ class EmailProvidersRegistry  extends AbstractRegistry {
      * @return string|null
      */
     public static function get_default_provider_id(): string {
-        $default    = 'php_mail';
+        $default    = $_ENV['SMLISER_EMAIL_PROVIDER'] ?? 'php_mail';
         $value      = (string) static::instance()->settings->get( static::DEFAULT_PROVIDER_KEY, $default, true );
 
         if ( ! static::instance()->has( $value ) ) {

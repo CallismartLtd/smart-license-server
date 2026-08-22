@@ -226,7 +226,7 @@ if ( ! function_exists( 'is_email' ) ) {
 	 */
 	function is_email( string $email, bool $check_dns = false ) : bool {
 		// Sanitize and check total length boundaries (RFC 5321 max length is 254 octets).
-		$email = trim( $email );
+		$email	= trim( $email );
 		$length = strlen( $email );
 
 		if ( $length < 6 || $length > 254 ) {

@@ -51,4 +51,13 @@ class Stopwatch {
 
         return round( microtime( true ) - $this->started_at, 3 );
     }
+
+    /**
+     * Reset timer.
+     * 
+     * @return void
+     */
+    public function reset() : void {
+        $this->started_at = null;
+    }
 }

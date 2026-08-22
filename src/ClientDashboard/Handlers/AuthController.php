@@ -276,7 +276,7 @@ class AuthController {
             );
         }
 
-        // static::cache_delete( $cache_key );
+        static::cache_delete( $cache_key );
         
         return static::success_response(
             200,

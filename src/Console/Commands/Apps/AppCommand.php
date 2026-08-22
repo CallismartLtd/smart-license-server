@@ -289,20 +289,4 @@ class AppCommand extends AbstractCommand {
 
         return 0;
     }
-
-    /*
-    |--------------------------------------------
-    | HELP / DEFAULT / UNKNOWN
-    |--------------------------------------------
-    */
-
-    public function handle_help(): int {
-        $this->output->info( 'App Command' );
-        $this->output->newline();
-        $this->output->writeln( 'Usage:' );
-        $this->output->writeln( '  ' . static::synopsis() );
-        $this->output->newline();
-        $this->output->writeln( static::help() );
-        return 0;
-    }
 }

@@ -630,15 +630,26 @@ final class DefaultPage {
 	 * @return string
 	 */
 	private function render_navigation(): string {
-		return '
-		<nav>
-			<a class="brand" href="/">Smart License Server</a>
+		return \sprintf(
+			'<nav>
+				<a class="brand" href="/">Smart License Server</a>
 
-			<div class="nav-links">
-				<a href="/">Home</a>
-				<a href="/documentation/">Documentation</a>
-			</div>
-		</nav>';
+				<div class="nav-links">
+					<a href="%s">Home</a>
+					<a href="%s">login</a>
+					<a href="%s">Client Area</a>
+					%s
+					<a href="%s">Documentation</a>
+				</div>
+			</nav>',
+			\url()->url(),
+			\smliser_login_url()->url(),
+			\smliser_client_dashboard_url()->url(),
+			\smliser_debug_enabled() ? sprintf(
+				'<a href="%s">Admin Area</a>', \adminUrl()->url() 
+			) : '',
+			\url( 'documentation' )->url(),
+		);
 	}
 
 

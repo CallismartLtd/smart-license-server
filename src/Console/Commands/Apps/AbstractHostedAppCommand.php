@@ -148,24 +148,6 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
      */
     abstract static protected function get_type() : string;
 
-
-    /*
-    |--------------------------------------------
-    | HELP / DEFAULT / UNKNOWN
-    |--------------------------------------------
-    */
-
-    public function handle_help(): int {
-        $this->output->info( sprintf( '%s Command', \ucfirst( static::get_type() ) ) );
-        $this->output->newline();
-        $this->output->info( 'Usage:' );
-        $this->output->writeln( '  ' . static::synopsis() );
-        $this->output->newline();
-        $this->output->writeln( static::help() );
-
-        return 0;
-    }
-
     /*
     |----------------------------------
     | CREATE|UPDATE|DELETE HOSTED APP
@@ -293,7 +275,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
             new CommandInput( ['yes'], [
                 'slug'  => $slug,
                 'status'    => AbstractHostedApp::STATUS_TRASH,
-            ], $input->script_name )
+            ])
         );
     }
 

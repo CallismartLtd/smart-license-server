@@ -11,9 +11,11 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Utils\Stopwatch;
 
 /**
  * Base class for leaf commands — the constructor shape
@@ -30,6 +32,10 @@ use SmartLicenseServer\Console\Contracts\OutputInterface;
  * doesn't impose one.
  */
 abstract class AbstractCommand implements CommandInterface {
+    /**
+     * Timer
+     */
+    protected Stopwatch $timer;
 
     /**
      * @param InputInterface  $io
@@ -74,5 +80,54 @@ abstract class AbstractCommand implements CommandInterface {
      */
     public function get_subcommands(): array {
         return [];
+    }
+
+    /**
+     * Handle help subcommand.
+     * 
+     * @param CommandInput $input
+     * @return int
+     */
+    public function handle_help( CommandInput $input ) : int {
+        $this->output->info( $this->description() );
+        $this->output->newline();
+        $this->output->info( 'Usage:' );
+        $this->output->writeln( $this->synopsis() );
+        $this->output->writeln( $this->help() );
+        
+        $this->output->newline();
+
+        return 0;
+    }
+
+    /*
+    |-----------------------
+    | PRIVATE HELPERS
+    |-----------------------
+    */
+    /**
+     * Start the timer.
+     */
+    protected function start_timer() : static {
+        if ( ! isset( $this->timer ) ) {
+            $this->timer = new Stopwatch();
+        }
+
+        $this->timer->start();
+
+        return $this;
+    }
+
+    /**
+     * Stop the timer and return time elapsed.
+     */
+    protected function stop_timer() : float {
+        if ( ! isset( $this->timer ) ) {
+            $this->timer = new Stopwatch();
+        }
+        
+        $elaped = $this->timer->elapsed();
+        $this->timer->reset();
+        return $elaped;
     }
 }

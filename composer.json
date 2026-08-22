@@ -13,12 +13,15 @@
         "league/commonmark": "^2.7",
         "callismart/http": "^1.0",
         "callismart/dto": "^1.0",
-        "callismart/dbprism": "^0.2.0"
+        "callismart/dbprism": "^0.2.0",
+        "ext-zip": "Required for zip file handling"
     },
     "suggest": {
         "ext-pdo_mysql": "Required for MySQL 8.0.45 support.",
+        "ext-mysqli": "Required for MySQL 8.0.45 support.",
         "ext-pdo_pgsql": "Required for PostgreSQL support.",
-        "ext-sqlite3": "Required for SQLite support (v3.35+ for expanded ALTER TABLE)."
+        "ext-sqlite3": "Required for SQLite support (v3.35+ for expanded ALTER TABLE).",
+        "ext-imagick": "Recommended for image processing"
     },
     "require-dev": {
         "php-stubs/wp-cli-stubs": "^2.12",

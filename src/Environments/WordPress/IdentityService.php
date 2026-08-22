@@ -514,8 +514,8 @@ final class IdentityService extends AbstractIdentityProvider {
                 );
             }
 
-            $password_1 = $_POST['password_1'];
-            $password_2 = $_POST['password_2'] ?? '';
+            $password_1 = $request->get( 'password_1', '', false );
+            $password_2 = $request->get( 'password_2', '', false );
 
             if ( $password_1 !== $password_2 ) {
                 throw new RequestException(

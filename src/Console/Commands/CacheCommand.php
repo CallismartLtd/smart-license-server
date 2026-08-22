@@ -120,12 +120,12 @@ class CacheCommand extends AbstractCommand {
         $this->output->table(
             [ 'Metric', 'Value' ],
             [
-                [ 'Uptime',       $this->format_uptime( (int) ( $stats->uptime ?? 0 ) ) ],
-                [ 'Hits',         number_format( (float) ( $stats->hits ?? 0 ) ) ],
-                [ 'Misses',       number_format( (float) ( $stats->misses ?? 0 ) ) ],
-                [ 'Entries',      number_format( (float) ( $stats->entries ?? 0 ) ) ],
-                [ 'Memory Used',  $this->format_bytes( (int) ( $stats->memory_used ?? 0 ) ) ],
-                [ 'Memory Total', $this->format_bytes( (int) ( $stats->memory_total ?? 0 ) ) ],
+                [ 'Uptime',       Format::duration( (int) ( $stats->uptime ?? 0 ), 'short' ) ],
+                [ 'Hits',         Format::number( (float) ( $stats->hits ?? 0 ) ) ],
+                [ 'Misses',       Format::number( (float) ( $stats->misses ?? 0 ) ) ],
+                [ 'Entries',      Format::number( (float) ( $stats->entries ?? 0 ) ) ],
+                [ 'Memory Used',  Format::bytes( (int) ( $stats->memory_used ?? 0 ) ) ],
+                [ 'Memory Total', Format::bytes( (int) ( $stats->memory_total ?? 0 ) ) ],
             ]
         );
 
@@ -258,93 +258,5 @@ class CacheCommand extends AbstractCommand {
         $this->output->success( sprintf( 'Now using %s.', $adapter_name ) );
 
         return 0;
-    }
-
-    /**
-     * Print help for the cache command.
-     *
-     * @param CommandInput $input
-     * @return int
-     */
-    public function handle_help( CommandInput $input ): int {
-        $this->output->info( 'Cache Command' );
-        $this->output->newline();
-        $this->output->writeln( 'Usage:' );
-        $this->output->writeln( '  smliser cache <subcommand> [argument]' );
-        $this->output->newline();
-
-        $this->output->table(
-            [ 'Subcommand', 'Argument', 'Description' ],
-            [
-                [ 'stats',       '',             'Show cache engine metrics.' ],
-                [ 'clear',       '',             'Flush all cached data (confirms first).' ],
-                [ 'get',         '<key>',        'Retrieve and display a specific cache key.' ],
-                [ 'delete',      '<key>',        'Remove a specific key from the cache.' ],
-                [ 'use-adapter', '<adapter_id>', 'Switch to a specific cache adapter.' ],
-                [ 'help',        '',             'Show this help message.' ],
-            ]
-        );
-
-        $this->output->newline();
-        $this->output->writeln( 'Examples:' );
-        $this->output->writeln( '  smliser cache stats' );
-        $this->output->writeln( '  smliser cache clear' );
-        $this->output->writeln( '  smliser cache get smliser_some_key' );
-        $this->output->writeln( '  smliser cache delete smliser_some_key' );
-
-        return 0;
-    }
-
-    /*
-    |--------------------------------------------
-    | PRIVATE HELPERS
-    |--------------------------------------------
-    */
-
-    /**
-     * Format bytes into a human-readable string.
-     *
-     * @param int $bytes
-     * @return string
-     */
-    private function format_bytes( int $bytes ): string {
-        if ( $bytes <= 0 ) {
-            return '0 B';
-        }
-
-        $units = [ 'B', 'KB', 'MB', 'GB' ];
-        $i     = (int) floor( log( $bytes, 1024 ) );
-
-        return round( $bytes / pow( 1024, $i ), 2 ) . ' ' . $units[ $i ];
-    }
-
-    /**
-     * Format seconds into a human-readable uptime string.
-     *
-     * @param int $seconds
-     * @return string
-     */
-    private function format_uptime( int $seconds ): string {
-        if ( $seconds < 1 ) {
-            return 'N/A';
-        }
-
-        $days    = intdiv( $seconds, 86400 );
-        $hours   = intdiv( $seconds % 86400, 3600 );
-        $minutes = intdiv( $seconds % 3600, 60 );
-
-        $parts = [];
-
-        if ( $days > 0 ) {
-            $parts[] = "{$days}d";
-        }
-        if ( $hours > 0 ) {
-            $parts[] = "{$hours}h";
-        }
-        if ( $minutes > 0 ) {
-            $parts[] = "{$minutes}m";
-        }
-
-        return $parts ? implode( ' ', $parts ) : '< 1m';
     }
 }

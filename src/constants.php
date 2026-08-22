@@ -112,6 +112,13 @@ define( 'SMLISER_TMP_DIR', SMLISER_STORAGE_DIR . '.tmp/' );
 define( 'SMLISER_UPLOADS_DIR', SMLISER_STORAGE_DIR . 'uploads/' );
 
 /**
+ * Absolute path to the logs directory.
+ * 
+ * @var string
+ */
+define( 'SMLISER_LOGS_DIR', SMLISER_STORAGE_DIR . 'logs/' );
+
+/**
  * Absolute path to the application entry point file.
  *
  * @var string
