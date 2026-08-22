@@ -127,6 +127,64 @@ class Installer extends AbstractCommand {
     }
 
     /**
+     * Run environment sanity checks and render diagnostic output.
+     *
+     * @param CommandInput|null $input
+     * @return int
+     */
+    public function handle_checks( ?CommandInput $input = null ) : int {
+        $this->start_timer();
+        $this->output->info( 'Performing system sanity checks...' );
+        $this->output->writeln( '' );
+
+        $results   = [];
+        $installer = $this->get_installer();
+
+        $success_callback = function( string $check, string $status, string $message ) use ( &$results ) {
+            $results[] = [ $check, "<info>{$status}</info>", $message ];
+        };
+
+        $failure_callback = function( string $check, string $status, string $message ) use ( &$results ) {
+            $tag       = 'CRITICAL' === $status ? 'error' : 'comment';
+            $results[] = [ $check, "<{$tag}>{$status}</{$tag}>", $message ];
+        };
+
+        $report = $installer->verify_environment_sanity( $success_callback, $failure_callback );
+
+        $this->output->table(
+            [ 'Check Point', 'Status', 'Diagnostic / Recommendation' ],
+            $results
+        );
+
+        $this->output->writeln( '' );
+
+        if ( ! $report['passed'] ) {
+            $this->output->error(
+                sprintf(
+                    'Environment check failed with %d critical error(s). Please fix the issues above before running %s.',
+                    count( $report['errors'] ),
+                    SMLISER_APP_NAME
+                )
+            );
+            return 1;
+        }
+
+        if ( ! empty( $report['warnings'] ) ) {
+            $this->output->warning(
+                sprintf( 'Environment check passed with %d warning(s). Review recommendations above for security and performance.', count( $report['warnings'] ) )
+            );
+        } else {
+            $this->output->success( 'Environment check passed with zero critical errors!' );
+        }
+
+        $this->output->success(
+            sprintf( 'Completed in %fs', $this->stop_timer() )
+        );
+
+        return 0;
+    }
+
+    /**
      * Create the required directories.
      * 
      * @param CommandInput|null $input
@@ -202,6 +260,39 @@ class Installer extends AbstractCommand {
             sprintf( 'Completed in %fs', $this->stop_timer() )
         );
         
+        return 0;
+    }
+
+    /**
+     * Create or update the .htaccess file.
+     *
+     * @param CommandInput|null $input
+     * @return int
+     */
+    public function make_dot_htaccess( ?CommandInput $input = null ) : int {
+        $this->start_timer();
+        $path_to_eg = $input->get_option( 'dotenv-example-path', null );
+        $force      = (bool) $input->get_option( 'force', false );
+
+        try {
+            $htaccess_file = $this->get_installer()->make_htaccess_file( $path_to_eg, $force );
+
+            $this->output->success( 'The .htaccess file has been created or updated successfully.' );
+            $this->output->writeln(
+                implode( PHP_EOL, [
+                    'Path to .htaccess file: ',
+                    "   {$htaccess_file}"
+                ])
+            );
+        } catch ( \RuntimeException $e ) {
+            $this->output->error( $e->getMessage() );
+            return 1;
+        }
+
+        $this->output->success(
+            sprintf( 'Completed in %fs', $this->stop_timer() )
+        );
+
         return 0;
     }
 

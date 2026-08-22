@@ -56,6 +56,130 @@ class AppInstaller {
 	);
 
     /**
+     * Performs environment sanity checks and evaluates database, cache, and package management requirements.
+     *
+     * @param callable(string $check, string $status, string $message)|null $success_callback
+     * @param callable(string $check, string $status, string $message)|null $failure_callback
+     * @return array{passed: bool, errors: array<string, string>, warnings: array<string, string>, recommendations: array<string, string>}
+     */
+    public function verify_environment_sanity(
+        ?callable $success_callback = null,
+        ?callable $failure_callback = null
+    ): array {
+        $results = [
+            'passed'          => true,
+            'errors'          => [],
+            'warnings'        => [],
+            'recommendations' => [],
+        ];
+
+        $report = function( string $check, bool $is_ok, string $message, string $level = 'CRITICAL' ) use ( &$results, $success_callback, $failure_callback ): void {
+            if ( $is_ok && 'CRITICAL' === $level ) {
+                $success_callback && $success_callback( $check, 'OK', $message );
+                return;
+            }
+
+            if ( 'CRITICAL' === $level && ! $is_ok ) {
+                $results['passed']           = false;
+                $results['errors'][ $check ] = $message;
+                $failure_callback && $failure_callback( $check, 'CRITICAL', $message );
+            } elseif ( 'WARNING' === $level ) {
+                $results['warnings'][ $check ] = $message;
+                $failure_callback && $failure_callback( $check, 'WARNING', $message );
+            } else {
+                $results['recommendations'][ $check ] = $message;
+                $success_callback && $success_callback( $check, 'RECOMMENDED', $message );
+            }
+        };
+
+        // PHP Version
+        $report(
+            'PHP Version',
+            version_compare( PHP_VERSION, '8.4.0', '>=' ),
+            version_compare( PHP_VERSION, '8.4.0', '>=' )
+                ? sprintf( 'PHP %s installed.', PHP_VERSION )
+                : sprintf( 'PHP 8.4.0+ required. Current version: %s', PHP_VERSION ),
+            'CRITICAL'
+        );
+
+        // Package Management & Updates
+        $report(
+            'Zip Extension',
+            extension_loaded( 'zip' ),
+            extension_loaded( 'zip' )
+				? 'ZipArchive loaded for software updates, themes, and package extraction.'
+				: 'The "zip" extension is missing. Package uploads and updates will fail.',
+            'CRITICAL'
+        );
+
+        // Database Engine Breakdown
+        $db_extensions = [
+            'mysqli'     => extension_loaded( 'mysqli' ),
+            'sqlite3'    => extension_loaded( 'sqlite3' ),
+            'pdo'        => extension_loaded( 'pdo' ),
+            'pdo_mysql'  => extension_loaded( 'pdo_mysql' ),
+            'pdo_pgsql'  => extension_loaded( 'pdo_pgsql' ),
+            'pdo_sqlite' => extension_loaded( 'pdo_sqlite' ),
+        ];
+
+        $has_any_db = array_reduce( $db_extensions, fn( $carry, $status ) => $carry || $status, false );
+
+        $report(
+            'Database Availability',
+            $has_any_db,
+            $has_any_db
+                ? 'At least one supported database extension is loaded.'
+                : 'No supported database drivers found (mysqli, sqlite3, or pdo extensions missing).',
+            'CRITICAL'
+        );
+
+        // Detailed Database Driver Recommendations & Remarks
+        if ( $db_extensions['mysqli'] ) {
+            $report( 'DB: mysqli (MySQL)', true, 'Native mysqli driver loaded. Preferred for low-overhead MySQL connections.', 'RECOMMENDATION' );
+        } elseif ( $db_extensions['pdo_mysql'] ) {
+            $report( 'DB: pdo_mysql', true, 'PDO MySQL loaded. Consider enabling native "mysqli" for better performance and speed.', 'RECOMMENDATION' );
+        }
+
+        if ( $db_extensions['sqlite3'] ) {
+            $report( 'DB: SQLite3', true, 'Native SQLite3 driver loaded. Preferred for light, zero-config file databases.', 'RECOMMENDATION' );
+        } elseif ( $db_extensions['pdo_sqlite'] ) {
+            $report( 'DB: pdo_sqlite', true, 'PDO SQLite loaded.', 'RECOMMENDATION' );
+        }
+
+        if ( $db_extensions['pdo_pgsql'] ) {
+            $report( 'DB: PostgreSQL (PDO)', true, 'pdo_pgsql loaded for PostgreSQL connections.', 'RECOMMENDATION' );
+        }
+
+        // Cache Adapters & Security Persistence Check
+        $cache_adapters = [
+            'redis'     => extension_loaded( 'redis' ),
+            'memcached' => extension_loaded( 'memcached' ),
+            'apcu'      => extension_loaded( 'apcu' ),
+            'sqlite3'   => extension_loaded( 'sqlite3' ),
+        ];
+
+        $active_persistent_caches = array_keys( array_filter( $cache_adapters ) );
+
+        if ( ! empty( $active_persistent_caches ) ) {
+            $report(
+                'Persistent Cache',
+                true,
+                sprintf( 'Persistent cache available via [%s]. MFA tokens, reset tokens, and brute-force tracking will persist accurately.', implode( ', ', $active_persistent_caches ) ),
+                'RECOMMENDATION'
+            );
+        } else {
+            $report(
+                'Persistent Cache',
+                false,
+                'No persistent cache extension (redis, memcached, apcu, sqlite3) found. Defaulting to in-memory array cache. CAUTION: Password resets, MFA tokens, and rate-limiting counters will NOT persist across process restarts!',
+                'WARNING'
+            );
+        }
+
+        return $results;
+    }
+
+    /**
      * Creates the required directories.
      * 
      * @param callable(string $type, string $dir, string $message)|null $success_callback
@@ -99,7 +223,7 @@ class AppInstaller {
      * @throws \RuntimeException If target directory is not writable.
      */
     public function make_dot_env_file( ?string $env_example_path = null, bool $overwrite = false ) : ?string {
-        $env_file   = SMLISER_ROOT . '.env.dev';
+        $env_file   = SMLISER_ROOT . '.env';
 
         if ( file_exists( $env_file ) && ! $overwrite ) {
             return $env_file;
@@ -117,7 +241,7 @@ class AppInstaller {
             }
         }
 
-        if ( ! file_exists( $env_example_path ) ) {
+        if ( '' === $env_example_path || ! file_exists( $env_example_path ) ) {
             return throw new \RuntimeException(
                 "The path \"{$env_example_path}\" to env.example file does not exist."
             );
@@ -128,6 +252,51 @@ class AppInstaller {
 
         return $env_file;
        
+    }
+
+    /**
+     * Make the .htaccess file.
+     * 
+     * @param string|null $htaccess_example_path Absolute path to the .htaccess.example file, passing null
+     * will force us to look up the file in the root directory, the parent directory of the app root or
+     * in the runtime directory.
+     * 
+     * @param bool $overwrite Overwrite existing file.
+     * 
+     * @return string|null Absolute path to the newly created .htaccess file,
+     * null if the .htaccess.example file was not found.
+     * 
+     * @throws \RuntimeException If target directory is not writable.
+     */
+    public function make_htaccess_file( ?string $htaccess_example_path = null, bool $overwrite = false ) : ?string {
+        $htaccess_file = SMLISER_ROOT . 'public/.htaccess';
+
+        if ( file_exists( $htaccess_file ) && ! $overwrite ) {
+            return $htaccess_file;
+        }
+
+        if ( null === $htaccess_example_path ) {
+            $htaccess_example_path = SMLISER_ROOT . '.htaccess.example';
+
+            if ( ! file_exists( $htaccess_example_path ) ) {
+                $htaccess_example_path = dirname( \SMLISER_ROOT ) . '/.htaccess.example';
+            }
+
+            if ( ! file_exists( $htaccess_example_path ) ) {
+                $htaccess_example_path = SMLISER_RUNTIME_DIR . '.htaccess.example';
+            }
+        }
+
+        if ( '' === $htaccess_example_path || ! file_exists( $htaccess_example_path ) ) {
+            return throw new \RuntimeException(
+                "The path \"{$htaccess_example_path}\" to .htaccess.example file does not exist."
+            );
+        }
+
+        HtaccessWriter::create_from_example( $htaccess_example_path, $htaccess_file )
+            ->save();
+
+        return $htaccess_file;
     }
 
     /**
