@@ -16,7 +16,7 @@ use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
-use SmartLicenseServer\Security\Permission\Role;
+use SmartLicenseServer\Utils\Stopwatch;
 
 /**
  * Handles installation processes through the console.
@@ -57,7 +57,7 @@ class Installer extends AbstractCommand {
 
     public static function synopsis() : string {
         $name   = static::name();
-        return "smliser {$name} <subcommands> [arguments]";
+        return "smliser {$name} <subcommands> [options]";
     }
 
     public static function help() : string {
@@ -65,6 +65,7 @@ class Installer extends AbstractCommand {
         $app_name   = SMLISER_APP_NAME;
 
         return \implode( PHP_EOL, [
+            "smliser {$name}  run                   Executes full automated installation wizard.",
             "smliser {$name}  check                 Performs environment sanity checks.",
             "smliser {$name}  make:dir              Creates all required directories.",
             "smliser {$name}  make:dotenv           Create a .env file if missing.",
@@ -75,6 +76,10 @@ class Installer extends AbstractCommand {
             '',
             'OPTIONS: ',
             '',
+            '   Full Installation: ',
+            '--skip-admin       Skip interactive administrator account creation step.',
+            '--force            Force overwrite existing configuration files.',
+            '',
             '   Creating admin account: ',
             '--name             The administrator\'s name.',
             '--email            The administrator\'s email address.',
@@ -82,10 +87,133 @@ class Installer extends AbstractCommand {
             'Note: Creating administrator account requires special authentication (usually done automatically).',
             '',
             '   Creating .env file: ',
-            '--dotenv-example-path      The absolute path to the .env.example file. The file will searched for in',
+            '--dotenv-example-path      The absolute path to the .env.example file. The file will be searched for in',
             '                           the parent directory and the runtime directory.',
-            "Note: The .env file is required to bootstrap {$app_name}."
+            "Note: The .env file is required to bootstrap {$app_name}.",
+            '',
+            '   Creating .htaccess file: ',
+            '--htaccess-example-path    The absolute path to the .htaccess.example file. The file will be searched for in',
+            '                           the parent directory and the runtime directory.'
         ]);
+    }
+
+    public function get_subcommands() : array {
+        return [
+            'run'           => [$this, 'run_wizard'],
+            'help'          => [$this, 'handle_help'],
+            'check'         => [$this, 'handle_checks'],
+            'make:dir'      => [$this, 'make_directories'],
+            'make:dotenv'   => [$this, 'make_dot_env'],
+            'make:tables'   => [$this, 'make_db_tables'],
+            'make:roles'    => [$this, 'make_roles'],
+            'make:admin'    => [$this, 'make_admin'],
+            'make:htaccess' => [$this, 'make_dot_htaccess'],
+        ];
+    }
+
+    /**
+     * Interactive setup wizard running all installation steps sequentially.
+     *
+     * @param CommandInput $input
+     * @return int
+     */
+    public function run_wizard( CommandInput $input ) : int {
+        $timer  = new Stopwatch();
+
+        $timer->start();
+
+        $this->output->info( sprintf( 'Starting automated installation wizard for %s...', SMLISER_APP_NAME ) );
+        $this->output->writeln( '' );
+
+        // Step 1: Sanity Checks.
+        $this->output->info( '--- Step 1/6: Checking Environment ---' );
+
+        sleep(1);
+
+        $code = $this->handle_checks( $input );
+        if ( 0 !== $code ) {
+            $this->output->error( 'Installation aborted: Environment sanity checks failed.' );
+            return $code;
+        }
+        $this->output->writeln( '' );
+
+        // Step 2: Directories.
+        $this->output->info( '--- Step 2/6: Creating Directories ---' );
+
+        sleep(1);
+
+        $code = $this->make_directories( $input );
+        if ( 0 !== $code ) {
+            $this->output->error( 'Installation aborted: Directory creation failed.' );
+            return $code;
+        }
+        $this->output->writeln( '' );
+
+        // Step 3: Environment File.
+        $this->output->info( '--- Step 3/6: Bootstrapping .env File ---' );
+
+        sleep(1);
+
+        $code = $this->make_dot_env( $input );
+        if ( 0 !== $code ) {
+            $this->output->error( 'Installation aborted: Failed to create .env file.' );
+            return $code;
+        }
+        $this->output->writeln( '' );
+
+        // Step 4: Web Server (.htaccess) Configuration.
+        $this->output->info( '--- Step 4/6: Writing Apache Web Rules (.htaccess) ---' );
+
+        sleep(1);
+
+        $code = $this->make_dot_htaccess( $input );
+        if ( 0 !== $code ) {
+            $this->output->error( 'Installation aborted: Failed to create .htaccess file.' );
+            return $code;
+        }
+        $this->output->writeln( '' );
+
+        // Step 5: Database Schema & Default Roles.
+        $this->output->info( '--- Step 5/6: Migrating Database Schema & Roles ---' );
+
+        sleep(1);
+
+        $code = $this->make_db_tables( $input );
+        if ( 0 !== $code ) {
+            $this->output->error( 'Installation aborted: Table creation failed.' );
+            return $code;
+        }
+
+        $code = $this->make_roles( $input );
+        if ( 0 !== $code ) {
+            $this->output->error( 'Installation aborted: Default role installation failed.' );
+            return $code;
+        }
+        $this->output->writeln( '' );
+
+        // Step 6: Administrator Account Creation.
+        $this->output->info( '--- Step 6/6: Administrator Account Setup ---' );
+
+        sleep(1);
+
+        $skip_admin = (bool) $input->get_option( 'skip-admin', false );
+
+        if ( $skip_admin ) {
+            $this->output->info( 'Skipped admin creation via --skip-admin flag.' );
+        } else {
+            $code = $this->make_admin( $input );
+            if ( 0 !== $code ) {
+                $this->output->error( 'Installation incomplete: Administrator creation failed.' );
+                return $code;
+            }
+        }
+
+        $this->output->writeln( '' );
+        $this->output->success(
+            sprintf( '%s installation completed successfully in %fs!', SMLISER_APP_NAME, $timer->elapsed() )
+        );
+
+        return 0;
     }
 
     public function run( CommandInput $input ) : int {
@@ -111,19 +239,6 @@ class Installer extends AbstractCommand {
         $this->output->writeln('');
 
         return 0;
-    }
-
-    public function get_subcommands() : array {
-        return [
-            'help'          => [$this, 'handle_help'],
-            'check'         => [$this, 'handle_checks'],
-            'make:dir'      => [$this, 'make_directories'],
-            'make:dotenv'   => [$this, 'make_dot_env'],
-            'make:tables'   => [$this, 'make_db_tables'],
-            'make:roles'    => [$this, 'make_roles'],
-            'make:admin'    => [$this, 'make_admin'],
-            'make:htaccess' => [$this, 'make_dot_htaccess'],
-        ];
     }
 
     /**
@@ -271,8 +386,8 @@ class Installer extends AbstractCommand {
      */
     public function make_dot_htaccess( ?CommandInput $input = null ) : int {
         $this->start_timer();
-        $path_to_eg = $input->get_option( 'dotenv-example-path', null );
-        $force      = (bool) $input->get_option( 'force', false );
+        $path_to_eg = $input ? $input->get_option( 'htaccess-example-path', null ) : null;
+        $force      = $input ? (bool) $input->get_option( 'force', false ) : false;
 
         try {
             $htaccess_file = $this->get_installer()->make_htaccess_file( $path_to_eg, $force );

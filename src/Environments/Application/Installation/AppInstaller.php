@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Environments\Application\Installation;
 
 use Callismart\DBPrism\Database;
+use Callismart\DBPrism\DBConfigDTO;
 use Callismart\DBPrism\Inspection\Inspector;
 use Callismart\DBPrism\Utils\Table;
 use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
@@ -455,5 +456,14 @@ class AppInstaller {
         ));
 
         return $admin;
+    }
+
+    /**
+     * Test the given credentials against a database engine.
+     * 
+     * @param DBConfigDTO $config
+     */
+    public function test_db_connection( DBConfigDTO $config ) {
+        
     }
 }

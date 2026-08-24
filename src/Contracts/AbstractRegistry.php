@@ -113,7 +113,7 @@ abstract class AbstractRegistry implements RegistryInterface {
     public function all( bool $assoc = true, bool $instantiate = false ) : array {
         $this->ensure_core();
         /** @var array<string, class-string> $all */
-        $all    = array_merge( $this->custom, $this->core );
+        $all = $this->core + $this->custom;
 
         if ( $instantiate ) {
             foreach ( $all as $_ => &$value ) {
@@ -139,7 +139,8 @@ abstract class AbstractRegistry implements RegistryInterface {
         if ( ! in_array( ServiceProviderInterface::class, class_implements( $class_string ) ?: [], true ) ) {
             throw new InvalidArgumentException(
                 sprintf(
-                    'MonetizationRegistry: "%s" must implement %s.',
+                    '%s: "%s" must implement %s.',
+                    static::class,
                     $class_string,
                     ServiceProviderInterface::class
                 )
@@ -171,7 +172,7 @@ abstract class AbstractRegistry implements RegistryInterface {
     */
 
     /**
-     * Load core adapters/providers.
+     * Load core entries.
      * 
      * @return void
      */
@@ -184,7 +185,7 @@ abstract class AbstractRegistry implements RegistryInterface {
     */
 
     /**
-     * Return only core commands keyed by name.
+     * Return only core entries keyed by name.
      *
      * @return array<string, class-string>
      */
@@ -193,7 +194,7 @@ abstract class AbstractRegistry implements RegistryInterface {
     }
 
     /**
-     * Return only custom commands keyed by name.
+     * Return only custom entries keyed by name.
      *
      * @return array<string, class-string>
      */

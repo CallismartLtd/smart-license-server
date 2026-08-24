@@ -44,6 +44,7 @@ use SmartLicenseServer\Events\Bootstrap\EnvironmentBooted;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentBooting;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentReady;
 use SmartLicenseServer\Events\EventServiceProvider;
+use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
 use SmartLicenseServer\Security\Context\IdentityProviderInterface;
 use SmartLicenseServer\Templates\TemplateDiscovery;
 use SmartLicenseServer\Templates\TemplateLocator;
@@ -354,23 +355,10 @@ abstract class Environment implements EnvironmentProviderInterface {
                 throw new EnvironmentBootstrapException( 'missing_db_config' );
             }
 
-            $adapter    = match( $this->dbConfig->driver ) {
-                'mysql'     => MysqliAdapter::class,
-                'sqlite'    => SqliteAdapter::class,
-                'pgsql'     => PostgresAdapter::class,
-                default     => PdoAdapter::class
+            $db_registry        = DatabaseAdapterRegistry::instance();
+            $adapter            = $db_registry->select( $this->dbConfig->driver );
 
-            };
-
-            if ( PdoAdapter::class === $adapter && ! in_array( $this->dbConfig->driver, \PDO::getAvailableDrivers() ) ) {
-                throw new EnvironmentBootstrapException(
-                    'no_db_adapter_found',
-                    sprintf( 'No supported database adapter for "%s" driver.', $this->dbConfig->driver )
-                    
-                ); 
-            }
-
-            $this->dbadapter    = new $adapter( $this->dbConfig );         
+            $this->dbadapter    = new $adapter( $this->dbConfig );
         }
         
         $this->database = new Database( $this->dbadapter );

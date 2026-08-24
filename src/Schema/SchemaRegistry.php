@@ -113,17 +113,18 @@ class SchemaRegistry extends AbstractRegistry {
      * @return string[]
      */
     public function get_table_column_names( string $table_name ) : array {
-        $columns        = $this->get_table_columns( $table_name );
+        $columns    = $this->get_table_columns( $table_name );
+        $names      = [];
 
         if ( ! $columns ) {
-            return [];
+            return $names;
         }
 
-        foreach( $columns as &$column_name ) {
-            $column_name    = $column_name->to_array()['name'];
+        foreach( $columns as $column ) {
+            $names[]    = $column->name;
         }
 
-        return $columns;
+        return $names;
     }
 
     /**
@@ -141,7 +142,12 @@ class SchemaRegistry extends AbstractRegistry {
      * @return void
      */
     protected function load_core() : void {
-        $core = [
+        if ( $this->core_loaded ) {
+            return;
+        }
+
+        /** @var class-string<DatabaseSchemaInterface>[] */
+        $schemas = [
             LicenseSchema::class,
             LicenseMetaSchema::class,
             PluginSchema::class,
@@ -172,9 +178,9 @@ class SchemaRegistry extends AbstractRegistry {
             FailedJobsSchema::class,
         ];
 
-        foreach ( $core as $schema_class ) {
-            // Index by table name for easy retrieval via get()
-            $this->core[ $schema_class::get_table_name() ] = $schema_class;
+        foreach ( $schemas as $schema ) {
+            // Index by table name for easy retrieval via $this->get()
+            $this->core[ $schema::get_table_name() ] = $schema;
         }
 
         $this->core_loaded = true;

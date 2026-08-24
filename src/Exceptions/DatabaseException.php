@@ -2,12 +2,13 @@
 /**
  * Specialized Exception for Database Layer Failures.
  *
- * This exception abstracts all database-related errors including:
- * connection failures, query execution errors, constraint violations,
- * transaction issues, and CRUD operation failures.
+ * This exception abstracts database-related failures including connection
+ * failures, adapter configuration, query execution, constraint violations,
+ * transaction issues, migrations, and CRUD operation failures.
  *
- * It is intended for use inside repositories, query builders,
- * and persistence services.
+ * It is intended for use throughout the database abstraction and persistence
+ * layers, including database adapters, registries, repositories, query
+ * builders, migrations, and persistence services.
  *
  * @package SmartLicenseServer\Exceptions
  * @author Callistus
@@ -25,9 +26,65 @@ class DatabaseException extends Exception {
     /**
      * Database error map.
      *
-     * Each key represents a shorthand error code used across the DB layer.
+     * Each key represents a shorthand error slug used across the DB layer.
+     *
+     * @var array<string, array{code: string, message: string}>
      */
     protected $error_map = [
+
+        /*
+        |-----------------------
+        | ADAPTER / REGISTRY
+        |-----------------------
+        */
+        'adapter_not_found' => [
+            'code'    => 'DB_ADAPTER_NOT_FOUND',
+            'message' => 'The requested database adapter was not found.',
+        ],
+        'adapter_not_registered' => [
+            'code'    => 'DB_ADAPTER_NOT_REGISTERED',
+            'message' => 'The requested database adapter is not registered.',
+        ],
+        'adapter_invalid' => [
+            'code'    => 'DB_ADAPTER_INVALID',
+            'message' => 'The specified database adapter is invalid.',
+        ],
+        'adapter_class_not_found' => [
+            'code'    => 'DB_ADAPTER_CLASS_NOT_FOUND',
+            'message' => 'The specified database adapter class does not exist.',
+        ],
+        'adapter_interface_invalid' => [
+            'code'    => 'DB_ADAPTER_INTERFACE',
+            'message' => 'The specified class does not implement the required database adapter interface.',
+        ],
+        'adapter_id_invalid' => [
+            'code'    => 'DB_ADAPTER_ID_INVALID',
+            'message' => 'The specified database adapter ID is invalid.',
+        ],
+        'adapter_id_conflict' => [
+            'code'    => 'DB_ADAPTER_ID_CONFLICT',
+            'message' => 'The specified database adapter ID is already registered.',
+        ],
+        'core_adapter_override' => [
+            'code'    => 'DB_CORE_ADAPTER_OVERRIDE',
+            'message' => 'A core database adapter cannot be overridden.',
+        ],
+        'no_adapter_for_engine' => [
+            'code'    => 'DB_NO_ADAPTER_ENGINE',
+            'message' => 'No database adapter is registered for the specified database engine.',
+        ],
+        'adapter_engine_mismatch' => [
+            'code'    => 'DB_ADAPTER_ENGINE_MISMATCH',
+            'message' => 'The specified database adapter is not registered for the requested database engine.',
+        ],
+        'default_adapter_not_found' => [
+            'code'    => 'DB_DEFAULT_ADAPTER_NOT_FOUND',
+            'message' => 'No default database adapter is configured for the specified database engine.',
+        ],
+        'default_adapter_invalid' => [
+            'code'    => 'DB_DEFAULT_ADAPTER_INVALID',
+            'message' => 'The configured default database adapter is not registered for the specified database engine.',
+        ],
 
         /*
         |-----------------------
@@ -45,6 +102,10 @@ class DatabaseException extends Exception {
         'invalid_dsn' => [
             'code'    => 'DB_INVALID_DSN',
             'message' => 'The database DSN configuration is invalid.',
+        ],
+        'unsupported_engine' => [
+            'code'    => 'DB_ENGINE_UNSUPPORTED',
+            'message' => 'The specified database engine is not supported.',
         ],
 
         /*
@@ -108,7 +169,7 @@ class DatabaseException extends Exception {
         /*
         |-----------------------
         | CONSTRAINT / INTEGRITY
-        | -----------------------
+        |-----------------------
         */
         'duplicate_entry' => [
             'code'    => 'DB_DUPLICATE',
@@ -157,17 +218,18 @@ class DatabaseException extends Exception {
      *
      * @param string      $error_slug Known DB error key.
      * @param string|null $custom_message Optional override message.
-     * @param mixed       $custom_data Optional metadata (query, bindings, etc).
+     * @param mixed       $custom_data Optional metadata.
      */
-    public function __construct( string $error_slug, ?string $custom_message = null, $custom_data = [] ) {
-
+    public function __construct(
+        string $error_slug,
+        ?string $custom_message = null,
+        $custom_data = []
+    ) {
         $has_map = isset( $this->error_map[ $error_slug ] );
 
         $default_data = $has_map
             ? $this->error_map[ $error_slug ]
             : $this->error_map['unknown_db_error'];
-
-        $resolved_slug = $error_slug;
 
         $message = $custom_message ?? $default_data['message'];
 
@@ -178,6 +240,6 @@ class DatabaseException extends Exception {
             (array) $custom_data
         );
 
-        parent::__construct( $resolved_slug, $message, $data );
+        parent::__construct( $error_slug, $message, $data );
     }
 }
