@@ -64,6 +64,13 @@ class RedisCacheAdapter implements CacheAdapterInterface {
     protected int $database = 0;
 
     /**
+     * Maximum retry attempts for WATCH/MULTI/EXEC atomic operations.
+     *
+     * @var int
+     */
+    protected int $max_retries = 10;
+
+    /**
      * Constructor.
      *
      * The client is not connected at construction time.
@@ -253,6 +260,141 @@ class RedisCacheAdapter implements CacheAdapterInterface {
     }
 
     /*
+    |--------------------------------------------------------------------------
+    | ATOMIC OPERATIONS
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * @inheritDoc
+     */
+    public function modify( string $key, callable $callback, int $ttl = 0, mixed $default = null ): mixed {
+        if ( ! $this->is_active() ) {
+            return false;
+        }
+
+        $rkey     = $this->key( $key );
+        $attempts = 0;
+
+        while ( $attempts < $this->max_retries ) {
+            try {
+                $this->redis->watch( $rkey );
+
+                $raw     = $this->redis->get( $rkey );
+                $current = ( $raw !== false ) ? unserialize( $raw ) : $default;
+
+                $updated = $callback( $current );
+
+                if ( false === $updated ) {
+                    $this->redis->unwatch();
+                    return false;
+                }
+
+                $payload = serialize( $updated );
+
+                $tx = $this->redis->multi();
+
+                if ( $ttl > 0 ) {
+                    $tx->setex( $rkey, $ttl, $payload );
+                } else {
+                    $tx->set( $rkey, $payload );
+                }
+
+                $result = $tx->exec();
+
+                // If $result is non-empty array, the transaction succeeded.
+                if ( is_array( $result ) && ! empty( $result ) ) {
+                    return $updated;
+                }
+
+            } catch ( RedisException ) {
+                try {
+                    $this->redis->unwatch();
+                } catch ( \Throwable ) {}
+                return false;
+            }
+
+            $attempts++;
+        }
+
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function increment( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        if ( ! $this->is_active() ) {
+            return false;
+        }
+
+        $rkey = $this->key( $key );
+
+        try {
+            if ( ! $this->redis->exists( $rkey ) ) {
+                $tx = $this->redis->multi();
+                $new_val = $initial + $offset;
+                
+                if ( $ttl > 0 ) {
+                    $tx->setex( $rkey, $ttl, (string) $new_val );
+                } else {
+                    $tx->set( $rkey, (string) $new_val );
+                }
+                
+                $res = $tx->exec();
+                return ( is_array( $res ) && ! empty( $res ) ) ? $new_val : false;
+            }
+
+            $value = $this->redis->incrBy( $rkey, $offset );
+
+            if ( $ttl > 0 ) {
+                $this->redis->expire( $rkey, $ttl );
+            }
+
+            return (int) $value;
+        } catch ( RedisException ) {
+            return false;
+        }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function decrement( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        if ( ! $this->is_active() ) {
+            return false;
+        }
+
+        $rkey = $this->key( $key );
+
+        try {
+            if ( ! $this->redis->exists( $rkey ) ) {
+                $tx = $this->redis->multi();
+                $new_val = $initial - $offset;
+
+                if ( $ttl > 0 ) {
+                    $tx->setex( $rkey, $ttl, (string) $new_val );
+                } else {
+                    $tx->set( $rkey, (string) $new_val );
+                }
+
+                $res = $tx->exec();
+                return ( is_array( $res ) && ! empty( $res ) ) ? $new_val : false;
+            }
+
+            $value = $this->redis->decrBy( $rkey, $offset );
+
+            if ( $ttl > 0 ) {
+                $this->redis->expire( $rkey, $ttl );
+            }
+
+            return (int) $value;
+        } catch ( RedisException ) {
+            return false;
+        }
+    }
+
+    /*
     |----------------------
     | ADAPTER IDENTITY
     |----------------------
@@ -379,7 +521,7 @@ class RedisCacheAdapter implements CacheAdapterInterface {
             }
 
             // Keyspace hits/misses live under the 'stats' section.
-            $hits  = (int) ( $info['keyspace_hits']   ?? 0 );
+            $hits   = (int) ( $info['keyspace_hits']   ?? 0 );
             $misses = (int) ( $info['keyspace_misses'] ?? 0 );
 
             // used_memory reflects actual heap allocation by Redis.

@@ -49,6 +49,13 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
     protected int $port = 11211;
 
     /**
+     * Maximum CAS retries for atomic read-modify-write operations.
+     *
+     * @var int
+     */
+    protected int $max_cas_retries = 10;
+
+    /**
      * Constructor.
      *
      * The client is not connected at construction time.
@@ -204,7 +211,103 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
         return $this->memcached->flush();
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | ATOMIC OPERATIONS
+    |--------------------------------------------------------------------------
+    */
+
     /**
+     * @inheritDoc
+     */
+    public function modify( string $key, callable $callback, int $ttl = 0, mixed $default = null ): mixed {
+        if ( ! $this->is_active() ) {
+            return false;
+        }
+
+        $full_key = $this->key( $key );
+        $attempts = 0;
+
+        do {
+            $cas_token = null;
+            $current   = $this->memcached->get( $full_key, null, Memcached::GET_EXTENDED );
+            $res_code  = $this->memcached->getResultCode();
+
+            if ( $res_code === Memcached::RES_SUCCESS && is_array( $current ) ) {
+                $cas_token = $current['cas'] ?? null;
+                $current   = $current['value'] ?? $default;
+            } else {
+                $current = $default;
+            }
+
+            $updated = $callback( $current );
+
+            if ( false === $updated ) {
+                return false;
+            }
+
+            if ( null !== $cas_token ) {
+                if ( $this->memcached->cas( $cas_token, $full_key, $updated, $ttl ) ) {
+                    return $updated;
+                }
+            } else {
+                if ( $this->memcached->add( $full_key, $updated, $ttl ) ) {
+                    return $updated;
+                }
+            }
+
+            $attempts++;
+        } while ( $attempts < $this->max_cas_retries && $this->memcached->getResultCode() === Memcached::RES_DATA_EXISTS );
+
+        return false;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function increment( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        if ( ! $this->is_active() ) {
+            return false;
+        }
+
+        $full_key = $this->key( $key );
+        $result   = $this->memcached->increment( $full_key, $offset, $initial, $ttl );
+
+        if ( false !== $result ) {
+            return $result;
+        }
+
+        // If key doesn't exist yet and server implementation doesn't support initial param natively:
+        if ( $this->memcached->add( $full_key, $initial, $ttl ) ) {
+            return $initial;
+        }
+
+        return $this->memcached->increment( $full_key, $offset, $initial, $ttl );
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function decrement( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        if ( ! $this->is_active() ) {
+            return false;
+        }
+
+        $full_key = $this->key( $key );
+        $result   = $this->memcached->decrement( $full_key, $offset, $initial, $ttl );
+
+        if ( false !== $result ) {
+            return $result;
+        }
+
+        if ( $this->memcached->add( $full_key, $initial, $ttl ) ) {
+            return $initial;
+        }
+
+        return $this->memcached->decrement( $full_key, $offset, $initial, $ttl );
+    }
+
+    /*
     |----------------------
     | ADAPTER IDENTITY
     |----------------------
@@ -276,7 +379,7 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
         return class_exists( Memcached::class );
     }
 
-    /**
+    /*
     |----------------------
     | DIAGNOSTICS
     |----------------------

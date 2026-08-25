@@ -9,7 +9,6 @@
 namespace SmartLicenseServer\Cache\Adapters;
 
 use Exception;
-use LogicException;
 use SmartLicenseServer\Cache\CacheStats;
 use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 use SQLite3;
@@ -382,6 +381,69 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         );
 
         return $this->db->changes();
+    }
+
+    /*
+    |--------------------------------------------
+    | ATOMIC OPERATIONS
+    |--------------------------------------------
+    */
+
+    public function modify( string $key, callable $callback, int $ttl = 0, mixed $default = null ): mixed {
+        if ( ! $this->is_active() ) {
+            return false;
+        }
+
+        $this->db->exec( 'BEGIN IMMEDIATE TRANSACTION' );
+
+        try {
+            $current = $this->get( $key );
+            if ( false === $current ) {
+                $current = $default;
+            }
+
+            $updated = $callback( $current );
+
+            if ( false === $updated ) {
+                $this->db->exec( 'ROLLBACK' );
+                return false;
+            }
+
+            if ( $this->set( $key, $updated, $ttl ) ) {
+                $this->db->exec( 'COMMIT' );
+                return $updated;
+            }
+
+            $this->db->exec( 'ROLLBACK' );
+            return false;
+        } catch ( \Throwable ) {
+            $this->db->exec( 'ROLLBACK' );
+            return false;
+        }
+    }
+
+    public function increment( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        return $this->modify(
+            $key,
+            static function ( mixed $value ) use ( $offset, $initial ): int {
+                $num = is_numeric( $value ) ? (int) $value : $initial;
+                return $num + $offset;
+            },
+            $ttl,
+            $initial
+        );
+    }
+
+    public function decrement( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        return $this->modify(
+            $key,
+            static function ( mixed $value ) use ( $offset, $initial ): int {
+                $num = is_numeric( $value ) ? (int) $value : $initial;
+                return $num - $offset;
+            },
+            $ttl,
+            $initial
+        );
     }
 
     /*

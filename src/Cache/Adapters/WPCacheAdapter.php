@@ -3,11 +3,12 @@
  * WordPress cache adapter class file.
  *
  * @author Callistus Nwachukwu
- * @package SmartLicenseServer\Cache
+ * @package SmartLicenseServer\Cache\Adapters
  */
 
 namespace SmartLicenseServer\Cache\Adapters;
 
+use Throwable;
 use SmartLicenseServer\Cache\CacheStats;
 
 /**
@@ -24,58 +25,53 @@ class WPCacheAdapter implements CacheAdapterInterface {
      */
     protected string $group = 'smliser';
 
-    /**
-     * Retrieve a value from WordPress cache.
-     *
-     * @param string $key Cache key.
-     * @return mixed|false Cached value or false if not found.
-     */
+    /*
+    |--------------------------------------------
+    | ServiceProviderInterface Implementation
+    |--------------------------------------------
+    */
+
+    public function register(): void {}
+
+    public function boot(): void {}
+
+    /*
+    |--------------------------------------------
+    | CacheAdapterInterface — READ
+    |--------------------------------------------
+    */
+
     public function get( string $key ): mixed {
         $found = false;
         $value = wp_cache_get( $key, $this->group, false, $found );
         return $found ? $value : false;
     }
 
-    /**
-     * Store a value in WordPress cache.
-     *
-     * @param string $key   Cache key.
-     * @param mixed  $value Value to cache.
-     * @param int    $ttl   Time-to-live in seconds. 0 = no expiry.
-     * @return bool True on success.
-     */
+    public function has( string $key ): bool {
+        $found = false;
+        wp_cache_get( $key, $this->group, false, $found );
+        return $found;
+    }
+
+    /*
+    |--------------------------------------------
+    | CacheAdapterInterface — WRITE & CLEANUP
+    |--------------------------------------------
+    */
+
     public function set( string $key, mixed $value, int $ttl = 0 ): bool {
         return wp_cache_set( $key, $value, $this->group, $ttl );
     }
 
-    /**
-     * Delete a cache entry.
-     *
-     * @param string $key Cache key.
-     * @return bool True if deleted.
-     */
     public function delete( string $key ): bool {
         return wp_cache_delete( $key, $this->group );
     }
 
-    /**
-     * Clear all entries in this adapter's cache group.
-     *
-     * Uses wp_cache_flush_group() when the active object cache supports
-     * group flushing (WP 6.1+, or persistent cache plugins that declare
-     * WP_CACHE_GROUP_FLUSH). Falls back to wp_cache_flush() — which flushes
-     * the entire object cache — only as a last resort, with a warning so the
-     * caller is aware of the wider impact.
-     *
-     * @return bool True on success.
-     */
     public function clear(): bool {
         if ( function_exists( 'wp_cache_flush_group' ) ) {
             return wp_cache_flush_group( $this->group );
         }
 
-        // Fallback: flush the entire object cache. Broader than ideal but
-        // unavoidable on sites without group-flush support.
         _doing_it_wrong(
             __METHOD__,
             'wp_cache_flush_group() is not available. Falling back to wp_cache_flush(), which clears the entire object cache.',
@@ -86,21 +82,107 @@ class WPCacheAdapter implements CacheAdapterInterface {
     }
 
     /**
-     * Check if a cache entry exists.
+     * Prune expired entries.
      *
-     * @param string $key Cache key.
-     * @return bool
+     * WP object cache handles garbage collection and TTL expiration internally.
+     *
+     * @return int Number of pruned items (always 0 for WP Object Cache).
      */
-    public function has( string $key ): bool {
-        $found = false;
-        wp_cache_get( $key, $this->group, false, $found );
-        return $found;
+    public function prune_expired(): int {
+        return 0;
     }
 
-    /**
-    |----------------------
-    | ADAPTER IDENTITY
-    |----------------------
+    /*
+    |--------------------------------------------
+    | ATOMIC OPERATIONS
+    |--------------------------------------------
+    */
+
+    public function modify( string $key, callable $callback, int $ttl = 0, mixed $default = null ): mixed {
+        if ( ! $this->is_active() ) {
+            return false;
+        }
+
+        try {
+            $current = $this->get( $key );
+            if ( false === $current ) {
+                $current = $default;
+            }
+
+            $updated = $callback( $current );
+
+            if ( false === $updated ) {
+                return false;
+            }
+
+            if ( $this->set( $key, $updated, $ttl ) ) {
+                return $updated;
+            }
+
+            return false;
+        } catch ( Throwable ) {
+            return false;
+        }
+    }
+
+    public function increment( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        if ( ! $this->is_active() ) {
+            return false;
+        }
+
+        if ( function_exists( 'wp_cache_incr' ) ) {
+            if ( ! $this->has( $key ) ) {
+                $this->set( $key, $initial, $ttl );
+            }
+            
+            $result = wp_cache_incr( $key, $offset, $this->group );
+            if ( false !== $result ) {
+                return (int) $result;
+            }
+        }
+
+        return $this->modify(
+            $key,
+            static function ( mixed $value ) use ( $offset, $initial ): int {
+                $num = is_numeric( $value ) ? (int) $value : $initial;
+                return $num + $offset;
+            },
+            $ttl,
+            $initial
+        );
+    }
+
+    public function decrement( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        if ( ! $this->is_active() ) {
+            return false;
+        }
+
+        if ( function_exists( 'wp_cache_decr' ) ) {
+            if ( ! $this->has( $key ) ) {
+                $this->set( $key, $initial, $ttl );
+            }
+
+            $result = wp_cache_decr( $key, $offset, $this->group );
+            if ( false !== $result ) {
+                return (int) $result;
+            }
+        }
+
+        return $this->modify(
+            $key,
+            static function ( mixed $value ) use ( $offset, $initial ): int {
+                $num = is_numeric( $value ) ? (int) $value : $initial;
+                return $num - $offset;
+            },
+            $ttl,
+            $initial
+        );
+    }
+
+    /*
+    |--------------------------------------------
+    | ADAPTER IDENTITY & CONFIGURATION
+    |--------------------------------------------
     */
 
     public static function get_id(): string {
@@ -117,15 +199,6 @@ class WPCacheAdapter implements CacheAdapterInterface {
 
     public function set_settings( array $settings ): void {}
 
-    /**
-     * Determine whether this adapter can run in the current environment.
-     *
-     * Requires WordPress core cache functions to be defined. These are
-     * loaded very early in wp-settings.php, so if they are missing the
-     * WordPress bootstrap has not run and this adapter cannot be used.
-     *
-     * @return bool
-     */
     public function is_supported(): bool {
         return function_exists( 'wp_cache_get' )
             && function_exists( 'wp_cache_set' )
@@ -133,10 +206,14 @@ class WPCacheAdapter implements CacheAdapterInterface {
             && function_exists( 'wp_cache_flush' );
     }
 
-    /**
-    |----------------------
-    | DIAGNOSTICS
-    |----------------------
+    public function is_active(): bool {
+        return $this->is_supported();
+    }
+
+    /*
+    |--------------------------------------------
+    | DIAGNOSTICS & STATS
+    |--------------------------------------------
     */
 
     /**
@@ -203,20 +280,6 @@ class WPCacheAdapter implements CacheAdapterInterface {
         );
     }
 
-    /**
-     * Test whether the WordPress cache API is operational.
-     *
-     * Uses an isolated key in a dedicated probe group (never the live group)
-     * to avoid any risk of polluting or evicting real cached data. The probe
-     * key is explicitly deleted before returning so it does not linger in
-     * non-persistent memory for the rest of the request.
-     *
-     * $settings is intentionally ignored — WPCacheAdapter has no external
-     * connection to configure; the only meaningful test is a live round-trip.
-     *
-     * @param array<string, mixed> $settings Ignored — no configuration required.
-     * @return bool True if a write → read → delete round-trip succeeds.
-     */
     public function test( array $settings = [] ): bool {
         if ( ! $this->is_supported() ) {
             return false;
@@ -226,21 +289,14 @@ class WPCacheAdapter implements CacheAdapterInterface {
             $probe_group = 'smliser_probe';
             $probe_key   = '__smliser_wpcache_probe_' . \uniqid( '', true );
 
-            $found  = false;
-            $stored = wp_cache_set( $probe_key, 1, $probe_group, 10 );
-            $value  = wp_cache_get( $probe_key, $probe_group, false, $found );
+            $found   = false;
+            $stored  = wp_cache_set( $probe_key, 1, $probe_group, 10 );
+            $value   = wp_cache_get( $probe_key, $probe_group, false, $found );
             $deleted = wp_cache_delete( $probe_key, $probe_group );
 
             return $stored && $found && $value === 1 && $deleted;
-        } catch ( \Throwable ) {
+        } catch ( Throwable ) {
             return false;
         }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function is_active() : bool {
-        return function_exists( 'wp_cache_set' );
     }
 }

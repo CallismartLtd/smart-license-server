@@ -1,13 +1,14 @@
 <?php
 /**
- * In-memory cache adapter class file
+ * In-memory cache adapter class file.
  *
  * @author Callistus Nwachukwu
- * @package SmartLicenseServer\Cache
+ * @package SmartLicenseServer\Cache\Adapters
  */
 
 namespace SmartLicenseServer\Cache\Adapters;
 
+use Throwable;
 use SmartLicenseServer\Cache\CacheStats;
 use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 
@@ -27,16 +28,18 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
     protected array $cache = [];
 
     /**
-     * Tracks hit and miss counts for the lifetime of this instance.
+     * Tracks operation counters for the lifetime of this instance.
      *
-     * @var array{hits: int, misses: int}
+     * @var array{hits: int, misses: int, writes: int}
      */
-    private array $counters = [ 'hits' => 0, 'misses' => 0 ];
+    private array $counters = [
+        'hits'   => 0,
+        'misses' => 0,
+        'writes' => 0,
+    ];
 
     /**
      * Unix timestamp of when this adapter was instantiated.
-     *
-     * Used to compute a meaningful uptime figure in get_stats().
      *
      * @var int
      */
@@ -49,28 +52,22 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
         $this->born_at = time();
     }
 
-    /**
-     * Store a value in the cache.
-     *
-     * @param string $key
-     * @param mixed  $value
-     * @param int    $ttl Time-to-live in seconds. 0 = infinite.
-     * @return bool
-     */
-    public function set( string $key, mixed $value, int $ttl = 0 ): bool {
-        $this->cache[ $key ] = [
-            'value'   => $value,
-            'expires' => $ttl > 0 ? time() + $ttl : 0,
-        ];
-        return true;
-    }
+    /*
+    |--------------------------------------------
+    | ServiceProviderInterface Implementation
+    |--------------------------------------------
+    */
 
-    /**
-     * Retrieve a value from the cache.
-     *
-     * @param string $key
-     * @return mixed|false
-     */
+    public function register(): void {}
+
+    public function boot(): void {}
+
+    /*
+    |--------------------------------------------
+    | CacheAdapterInterface — READ
+    |--------------------------------------------
+    */
+
     public function get( string $key ): mixed {
         if ( ! $this->has( $key ) ) {
             ++$this->counters['misses'];
@@ -81,25 +78,6 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
         return $this->cache[ $key ]['value'];
     }
 
-    /**
-     * Delete a cache entry by key.
-     *
-     * @param string $key
-     * @return bool
-     */
-    public function delete( string $key ): bool {
-        unset( $this->cache[ $key ] );
-        return true;
-    }
-
-    /**
-     * Check if a cache entry exists and has not expired.
-     *
-     * Expired entries are evicted lazily on access.
-     *
-     * @param string $key Unique cache key.
-     * @return bool True if the key exists and is still valid, false otherwise.
-     */
     public function has( string $key ): bool {
         if ( ! array_key_exists( $key, $this->cache ) ) {
             return false;
@@ -115,21 +93,108 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
         return true;
     }
 
-    /**
-     * Clear all cache entries and reset hit/miss counters.
-     *
-     * @return bool
-     */
-    public function clear(): bool {
-        $this->cache    = [];
-        $this->counters = [ 'hits' => 0, 'misses' => 0 ];
+    /*
+    |--------------------------------------------
+    | CacheAdapterInterface — WRITE & CLEANUP
+    |--------------------------------------------
+    */
+
+    public function set( string $key, mixed $value, int $ttl = 0 ): bool {
+        $this->cache[ $key ] = [
+            'value'   => $value,
+            'expires' => $ttl > 0 ? time() + $ttl : 0,
+        ];
+
+        ++$this->counters['writes'];
         return true;
     }
 
+    public function delete( string $key ): bool {
+        unset( $this->cache[ $key ] );
+        return true;
+    }
+
+    public function clear(): bool {
+        $this->cache    = [];
+        $this->counters = [
+            'hits'   => 0,
+            'misses' => 0,
+            'writes' => 0,
+        ];
+        return true;
+    }
+
+    public function prune_expired(): int {
+        $pruned = 0;
+        $now    = time();
+
+        foreach ( $this->cache as $key => $entry ) {
+            if ( $entry['expires'] !== 0 && $entry['expires'] < $now ) {
+                unset( $this->cache[ $key ] );
+                ++$pruned;
+            }
+        }
+
+        return $pruned;
+    }
+
     /*
-    |----------------------
-    | ADAPTER IDENTITY
-    |----------------------
+    |--------------------------------------------
+    | ATOMIC OPERATIONS
+    |--------------------------------------------
+    */
+
+    public function modify( string $key, callable $callback, int $ttl = 0, mixed $default = null ): mixed {
+        try {
+            $current = $this->get( $key );
+            if ( false === $current ) {
+                $current = $default;
+            }
+
+            $updated = $callback( $current );
+
+            if ( false === $updated ) {
+                return false;
+            }
+
+            if ( $this->set( $key, $updated, $ttl ) ) {
+                return $updated;
+            }
+
+            return false;
+        } catch ( Throwable ) {
+            return false;
+        }
+    }
+
+    public function increment( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        return $this->modify(
+            $key,
+            static function ( mixed $value ) use ( $offset, $initial ): int {
+                $num = is_numeric( $value ) ? (int) $value : $initial;
+                return $num + $offset;
+            },
+            $ttl,
+            $initial
+        );
+    }
+
+    public function decrement( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        return $this->modify(
+            $key,
+            static function ( mixed $value ) use ( $offset, $initial ): int {
+                $num = is_numeric( $value ) ? (int) $value : $initial;
+                return $num - $offset;
+            },
+            $ttl,
+            $initial
+        );
+    }
+
+    /*
+    |--------------------------------------------
+    | ADAPTER IDENTITY & CONFIGURATION
+    |--------------------------------------------
     */
 
     public static function get_id(): string {
@@ -150,10 +215,14 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
         return true; // Pure PHP — always available.
     }
 
+    public function is_active(): bool {
+        return true;
+    }
+
     /*
-    |----------------------
-    | DIAGNOSTICS
-    |----------------------
+    |--------------------------------------------
+    | DIAGNOSTICS & STATS
+    |--------------------------------------------
     */
 
     /**
@@ -202,70 +271,38 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
             ],
         );
     }
-
-    /**
-     * Test whether this adapter is operational with the supplied settings.
-     *
-     * RuntimeCacheAdapter has no configuration and no external connection,
-     * so $settings is intentionally ignored. The test performs a full
-     * write → read → delete round-trip on a temporary isolated instance
-     * so that the live cache is never touched.
-     *
-     * @param array<string, mixed> $settings Ignored — no configuration required.
-     * @return bool True if a round-trip succeeds on a clean instance.
-     * @throws CacheTestException On any operational failure.
-     */
     public function test( array $settings = [] ): bool {
         try {
             $sandbox = new self();
             $probe   = '__smliser_runtime_probe_' . \uniqid( '', true );
 
-            // Write.
             if ( ! $sandbox->set( $probe, 1, 10 ) ) {
-                throw new CacheTestException(
-                    'Runtime cache probe write failed unexpectedly.'
-                );
+                throw new CacheTestException( 'Runtime cache probe write failed unexpectedly.' );
             }
 
-            // Read.
             $value = $sandbox->get( $probe );
 
             if ( $value !== 1 ) {
-                throw new CacheTestException(
-                    'Runtime cache probe read returned unexpected data — the stored value was corrupted.'
-                );
+                throw new CacheTestException( 'Runtime cache probe read returned unexpected data.' );
             }
 
-            // Delete.
             if ( ! $sandbox->delete( $probe ) ) {
-                throw new CacheTestException(
-                    'Runtime cache probe delete failed unexpectedly.'
-                );
+                throw new CacheTestException( 'Runtime cache probe delete failed unexpectedly.' );
             }
 
             if ( $sandbox->has( $probe ) ) {
-                throw new CacheTestException(
-                    'Runtime cache probe key still exists after deletion — eviction is not working correctly.'
-                );
+                throw new CacheTestException( 'Runtime cache probe key still exists after deletion.' );
             }
 
             return true;
-
         } catch ( CacheTestException $e ) {
             throw $e;
-        } catch ( \Throwable $e ) {
+        } catch ( Throwable $e ) {
             throw new CacheTestException(
                 sprintf( 'Unexpected error while testing Runtime cache — %s', $e->getMessage() ),
                 0,
                 $e
             );
         }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function is_active() : bool {
-        return true;
     }
 }

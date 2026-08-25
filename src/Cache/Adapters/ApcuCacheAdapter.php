@@ -28,33 +28,19 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
     /**
      * Constructor.
      *
-     * Checks if APCu is available in this environment.
+     * Checks if APCu is available and enabled for the current runtime (Web or CLI).
      */
     public function __construct() {
-        $this->enabled = \extension_loaded( 'apcu' ) && \ini_get( 'apc.enabled' );
+        $cliEnabled    = \PHP_SAPI === 'cli' && (bool) \ini_get( 'apc.enable_cli' );
+        $webEnabled    = \PHP_SAPI !== 'cli' && (bool) \ini_get( 'apc.enabled' );
+        $this->enabled = \extension_loaded( 'apcu' ) && ( $cliEnabled || $webEnabled );
     }
 
     /**
-     * Store a value in cache.
+     * Retrieve a cached value by key.
      *
-     * @param string $key   Cache key.
-     * @param mixed  $value Value to store.
-     * @param int    $ttl   Time-to-live in seconds. 0 = infinite.
-     * @return bool True on success, false on failure.
-     */
-    public function set( string $key, mixed $value, int $ttl = 0 ): bool {
-        if ( ! $this->enabled ) {
-            return false;
-        }
-
-        return \apcu_store( $key, $value, $ttl );
-    }
-
-    /**
-     * Retrieve a value from cache.
-     *
-     * @param string $key Cache key.
-     * @return mixed The cached value, or false on a cache miss.
+     * @param string $key Unique cache key.
+     * @return mixed Returns the cached value or false if not found.
      */
     public function get( string $key ): mixed {
         if ( ! $this->enabled ) {
@@ -68,9 +54,25 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
     }
 
     /**
-     * Delete a cache entry.
+     * Store a value in the cache.
      *
-     * @param string $key Cache key.
+     * @param string $key   Unique cache key.
+     * @param mixed  $value Value to store.
+     * @param int    $ttl   Time-to-live in seconds. 0 = forever.
+     * @return bool True on success, false on failure.
+     */
+    public function set( string $key, mixed $value, int $ttl = 0 ): bool {
+        if ( ! $this->enabled ) {
+            return false;
+        }
+
+        return \apcu_store( $key, $value, $ttl );
+    }
+
+    /**
+     * Delete a cache entry by key.
+     *
+     * @param string $key Unique cache key.
      * @return bool True on success, false on failure.
      */
     public function delete( string $key ): bool {
@@ -84,8 +86,8 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
     /**
      * Check if a cache entry exists.
      *
-     * @param string $key Cache key.
-     * @return bool True if key exists, false otherwise.
+     * @param string $key Unique cache key.
+     * @return bool True if the key exists, false otherwise.
      */
     public function has( string $key ): bool {
         if ( ! $this->enabled ) {
@@ -96,7 +98,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
     }
 
     /**
-     * Clear all cache entries.
+     * Clear the entire cache.
      *
      * @return bool True on success, false on failure.
      */
@@ -109,18 +111,118 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
     }
 
     /**
-     * Check if APCu is available.
+    |--------------------------------------------------------------------------
+    | ATOMIC OPERATIONS
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Atomically read, modify, and rewrite a cached value via a callback.
      *
-     * @return bool
+     * Utilizes native `apcu_entry()` for memory-level write locks. If the key is
+     * missing, `$default` is passed to the callback. If the callback returns `false`,
+     * the update is aborted.
+     *
+     * @param string                 $key      Unique cache key.
+     * @param callable(mixed): mixed $callback Receives ($currentValue), returns updated value.
+     * @param int                    $ttl      Time-to-live in seconds for updated entry.
+     * @param mixed                  $default  Fallback value passed to callback if key does not exist.
+     * @return mixed Returns the updated value on success, or false on failure.
      */
-    public function is_enabled(): bool {
-        return $this->enabled;
+    public function modify( string $key, callable $callback, int $ttl = 0, mixed $default = null ): mixed {
+        if ( ! $this->enabled ) {
+            return false;
+        }
+
+        // Check key existence beforehand to supply the correct `$current` argument to the callback.
+        $exists = \apcu_exists( $key );
+        $aborted = false;
+
+        $result = \apcu_entry( $key, function ( string $entryKey ) use ( $exists, $callback, $default, &$aborted ) {
+            $current = $exists ? \apcu_fetch( $entryKey ) : $default;
+            $updated = $callback( $current );
+
+            if ( false === $updated ) {
+                $aborted = true;
+                return $current; // Returning original value aborts modification intent.
+            }
+
+            return $updated;
+        }, $ttl );
+
+        return $aborted ? false : $result;
     }
 
     /**
-    |----------------------
-    | ADAPTER IDENTITY
-    |----------------------
+     * Atomically increment a numeric cache value.
+     *
+     * @param string $key     Unique cache key.
+     * @param int    $offset  Amount to increment by.
+     * @param int    $initial Default value if key does not exist.
+     * @param int    $ttl     Time-to-live in seconds if item is created.
+     * @return int|false New integer value on success, false on failure.
+     */
+    public function increment( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        if ( ! $this->enabled ) {
+            return false;
+        }
+
+        $success = false;
+        $value   = \apcu_inc( $key, $offset, $success, $ttl );
+
+        if ( $success ) {
+            return $value;
+        }
+
+        // Key does not exist: atomically initialize via modify.
+        return $this->modify(
+            $key,
+            static function ( mixed $current ) use ( $offset, $initial ): int {
+                $base = \is_numeric( $current ) ? (int) $current : $initial;
+                return $base + $offset;
+            },
+            $ttl,
+            $initial
+        );
+    }
+
+    /**
+     * Atomically decrement a numeric cache value.
+     *
+     * @param string $key     Unique cache key.
+     * @param int    $offset  Amount to decrement by.
+     * @param int    $initial Default value if key does not exist.
+     * @param int    $ttl     Time-to-live in seconds if item is created.
+     * @return int|false New integer value on success, false on failure.
+     */
+    public function decrement( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
+        if ( ! $this->enabled ) {
+            return false;
+        }
+
+        $success = false;
+        $value   = \apcu_dec( $key, $offset, $success, $ttl );
+
+        if ( $success ) {
+            return $value;
+        }
+
+        // Key does not exist: atomically initialize via modify.
+        return $this->modify(
+            $key,
+            static function ( mixed $current ) use ( $offset, $initial ): int {
+                $base = \is_numeric( $current ) ? (int) $current : $initial;
+                return $base - $offset;
+            },
+            $ttl,
+            $initial
+        );
+    }
+
+    /**
+    |--------------------------------------------------------------------------
+    | CONFIGURATION & SUPPORT
+    |--------------------------------------------------------------------------
     */
 
     public static function get_id(): string {
@@ -141,19 +243,18 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
         return $this->is_enabled();
     }
 
+    public function is_active(): bool {
+        return $this->enabled && \function_exists( 'apcu_enabled' ) && \apcu_enabled();
+    }
+
     /**
-    |----------------------
+    |--------------------------------------------------------------------------
     | DIAGNOSTICS
-    |----------------------
+    |--------------------------------------------------------------------------
     */
 
     /**
      * Return runtime statistics for the APCu backend.
-     *
-     * Pulls hit/miss counters from apcu_cache_info() and memory
-     * figures from apcu_sma_info(). When APCu is disabled every
-     * field is left at its zero default so callers always receive
-     * a valid CacheStats instance.
      *
      * @return CacheStats
      */
@@ -162,28 +263,32 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
             return new CacheStats();
         }
 
-        $info = \apcu_cache_info( true );   // true = compact/no entry list
+        $info = \apcu_cache_info( true );
         $sma  = \apcu_sma_info();
 
-        $memory_total = (int) ( $sma['num_seg'] * $sma['seg_size'] );
-        $memory_used  = (int) ( $memory_total   - $sma['avail_mem'] );
-        $uptime       = isset( $info['start_time'] )
+        if ( false === $info || false === $sma ) {
+            return new CacheStats();
+        }
+
+        $memoryTotal = (int) ( ( $sma['num_seg'] ?? 0 ) * ( $sma['seg_size'] ?? 0 ) );
+        $memoryUsed  = (int) ( $memoryTotal - ( $sma['avail_mem'] ?? 0 ) );
+        $uptime      = isset( $info['start_time'] )
             ? max( 0, time() - (int) $info['start_time'] )
             : 0;
 
         return new CacheStats(
-            hits         : (int) ( $info['num_hits']    ?? 0 ),
-            misses       : (int) ( $info['num_misses']  ?? 0 ),
-            entries      : (int) ( $info['num_entries'] ?? 0 ),
-            memory_used  : $memory_used,
-            memory_total : $memory_total,
-            uptime       : $uptime,
-            status       : $this->is_active(),
-            extra        : [
-                'num_slots'             => (int) ( $info['num_slots']     ?? 0 ),
-                'expired_entries'       => (int) ( $info['expunges']      ?? 0 ),
-                'num_inserts'           => (int) ( $info['num_inserts']   ?? 0 ),
-                'file_upload_progress'  => (bool) \ini_get( 'apc.rfc1867' ),
+            hits        : (int) ( $info['num_hits']    ?? 0 ),
+            misses      : (int) ( $info['num_misses']  ?? 0 ),
+            entries     : (int) ( $info['num_entries'] ?? 0 ),
+            memory_used : $memoryUsed,
+            memory_total: $memoryTotal,
+            uptime      : $uptime,
+            status      : $this->is_active(),
+            extra       : [
+                'num_slots'            => (int) ( $info['num_slots']   ?? 0 ),
+                'expired_entries'      => (int) ( $info['expunges']    ?? 0 ),
+                'num_inserts'          => (int) ( $info['num_inserts'] ?? 0 ),
+                'file_upload_progress' => (bool) \ini_get( 'apc.rfc1867' ),
             ],
         );
     }
@@ -191,42 +296,32 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
     /**
      * Test whether APCu is operational.
      *
-     * APCu has no external connection to configure, so $settings is
-     * intentionally ignored — the only meaningful check is whether the
-     * extension is loaded, enabled, and capable of a full round-trip.
-     *
-     * The probe key is namespaced and suffixed with a unique ID so it
-     * cannot collide with real application keys, and it is always
-     * deleted before this method returns.
-     *
-     * @param array<string, mixed> $settings Ignored for APCu (no config required).
+     * @param array<string, mixed> $settings Settings to test.
      * @return bool True if APCu can store, retrieve, and delete a value.
      * @throws CacheTestException On any operational failure.
      */
     public function test( array $settings = [] ): bool {
         if ( ! $this->enabled ) {
             throw new CacheTestException(
-                'APCu is not available. Ensure the APCu extension is installed and apc.enabled is set to 1 in your php.ini.'
+                'APCu is not available. Ensure the APCu extension is installed and apc.enabled (or apc.enable_cli for CLI environments) is set to 1 in your php.ini.'
             );
         }
 
         $probe = '__smliser_apcu_probe_' . \uniqid( '', true );
 
         try {
-            // Write.
             if ( ! \apcu_store( $probe, 1, 10 ) ) {
                 throw new CacheTestException(
-                    'APCu probe write failed. The shared memory cache may be full or misconfigured.'
+                    'APCu probe write failed. Shared memory may be full or misconfigured.'
                 );
             }
 
-            // Read.
             $fetched = false;
             $value   = \apcu_fetch( $probe, $fetched );
 
             if ( ! $fetched ) {
                 throw new CacheTestException(
-                    'APCu probe read failed — the key was not found immediately after writing. Shared memory may be under pressure.'
+                    'APCu probe read failed — the key was not found immediately after writing.'
                 );
             }
 
@@ -236,32 +331,26 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
                 );
             }
 
-            // Delete.
-            if ( ! \apcu_delete( $probe ) ) {
-                throw new CacheTestException(
-                    'APCu probe delete failed — the key could not be removed from shared memory.'
-                );
-            }
-
             return true;
-
         } catch ( CacheTestException $e ) {
-            \apcu_delete( $probe );
             throw $e;
         } catch ( \Throwable $e ) {
-            \apcu_delete( $probe );
             throw new CacheTestException(
                 sprintf( 'Unexpected error while testing APCu — %s', $e->getMessage() ),
                 0,
                 $e
             );
+        } finally {
+            \apcu_delete( $probe );
         }
     }
 
     /**
-     * {@inheritdoc}
+     * Check if APCu is available.
+     *
+     * @return bool
      */
-    public function is_active() : bool {
-        return function_exists( 'apcu_enabled' ) && \apcu_enabled();
+    public function is_enabled(): bool {
+        return $this->enabled;
     }
 }
