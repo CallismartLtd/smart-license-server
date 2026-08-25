@@ -13,7 +13,7 @@
         "league/commonmark": "^2.7",
         "callismart/http": "^1.0",
         "callismart/dto": "^1.0",
-        "callismart/dbprism": "^1.0",
+        "callismart/dbprism": "^2.0",
         "ext-zip": "*"
     },
     "suggest": {

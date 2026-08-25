@@ -8,6 +8,9 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use Callismart\DBPrism\DatabaseInfoDTO;
+use Callismart\DBPrism\DBConfigDTO;
+use Callismart\DBPrism\Inspection\Inspector;
 use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
 use SmartLicenseServer\Exceptions\DatabaseException;
@@ -102,6 +105,7 @@ class Installer extends AbstractCommand {
             'run'           => [$this, 'run_wizard'],
             'help'          => [$this, 'handle_help'],
             'check'         => [$this, 'handle_checks'],
+            'check:db'      => [$this, 'check_database'],
             'make:dir'      => [$this, 'make_directories'],
             'make:dotenv'   => [$this, 'make_dot_env'],
             'make:tables'   => [$this, 'make_db_tables'],
@@ -633,5 +637,214 @@ class Installer extends AbstractCommand {
             $this->output->error( $e->getMessage() );
             return 1;
         }
+    }
+
+    /**
+     * Test the configured database connection.
+     *
+     * @param CommandInput|null $input
+     * @return int
+     */
+    public function check_database( ?CommandInput $input = null ): int {
+        $this->start_timer();
+
+        $driver = $input->get_option( 'db-driver' ) ?? $input->get_option( 'd' );
+
+        if ( empty( $driver ) ) {
+            $this->output->error( 'Option --db-driver (-d) is required.' );
+            return 1;
+        }
+
+        $db_name = $input->get_option( 'dbname' ) ?? $input->get_option( 'n' );
+
+        if ( empty( $db_name ) ) {
+            $this->output->error( 'Option --dbname (-n) is required.' );
+            return 1;
+        }
+
+        $db_config = new DBConfigDTO( [
+            'dbname'         => $db_name,
+            'driver'         => $driver,
+            'host'           => $input->get_option( 'host' )           ?? $input->get_option( 'h' ),
+            'port'           => $input->get_option( 'port' )           ?? $input->get_option( 'P' ),
+            'username'       => $input->get_option( 'username' )       ?? $input->get_option( 'u' ),
+            'password'       => $input->get_option( 'password' )       ?? $input->get_option( 'p' ),
+            'charset'        => $input->get_option( 'charset' )        ?? $input->get_option( 'c' ),
+            'collation'      => $input->get_option( 'collation' )      ?? $input->get_option( 'C' ),
+            'prefix'         => $input->get_option( 'prefix' )         ?? $input->get_option( 'x' ),
+            'socket'         => $input->get_option( 'socket' )         ?? $input->get_option( 's' ),
+            'path'           => $input->get_option( 'path' )           ?? $input->get_option( 'f' ),
+            'dsn'            => $input->get_option( 'dsn' )            ?? $input->get_option( 'D' ),
+            'flags'          => $input->get_option( 'flags' )          ?? $input->get_option( 'F' ),
+            'ssl'            => $input->get_option( 'ssl' )            ?? $input->get_option( 'S' ),
+            'sslmode'        => $input->get_option( 'sslmode' )        ?? $input->get_option( 'M' ),
+            'encryption_key' => $input->get_option( 'encryption-key' ) ?? $input->get_option( 'k' ),
+            'strict'         => $input->get_option( 'strict' )         ?? $input->get_option( 't' ),
+            'persistent'     => $input->get_option( 'persistent' )     ?? $input->get_option( 'e' ),
+            'timeout'        => $input->get_option( 'timeout' )        ?? $input->get_option( 'T' ),
+            'read'           => $input->get_option( 'read' )           ?? $input->get_option( 'r' ),
+            'write'          => $input->get_option( 'write' )          ?? $input->get_option( 'w' ),
+            'sticky'         => $input->get_option( 'sticky' )         ?? $input->get_option( 'K' ),
+        ] );
+
+        $this->output->info( 'Testing database configuration...' );
+        $this->output->writeln( '' );
+
+        try {
+            $dbal = $this->get_installer()->test_db_connection( $db_config );
+
+            $this->output->success( 'Database configuration passed!' );
+            $this->output->writeln( '' );
+
+            $inspector = new Inspector( $dbal );
+            $info      = $inspector->get_database_info();
+
+            $this->render_database_info( $info );
+
+        } catch ( DatabaseException $e ) {
+            $this->output->error( $e->getMessage() );
+            return 1;
+        } catch ( \Throwable $e ) {
+            $this->output->error(
+                sprintf(
+                    'Database configuration test failed: %s',
+                    $e->getMessage()
+                )
+            );
+            return 1;
+        }
+
+        $this->output->writeln( '' );
+        $this->output->success(
+            sprintf( 'Completed in %fs', $this->stop_timer() )
+        );
+
+        return 0;
+    }
+
+    /**
+     * Render DatabaseInfoDTO data cleanly in key-value sections.
+     *
+     * @param DatabaseInfoDTO|array $info
+     * @return void
+     */
+    protected function render_database_info( DatabaseInfoDTO|array $info ): void {
+        $data = $info instanceof DatabaseInfoDTO ? $info->to_array() : $info;
+
+        $groups = array(
+            'System' => array(
+                'Product'          => $data['product'] ?? null,
+                'Version'          => $data['version'] ?? null,
+                'Engine'           => $data['engine'] ?? null,
+                'Protocol Version' => $data['protocol_version'] ?? null,
+                'OS'               => $data['server_os'] ?? null,
+                'Architecture'     => $data['server_architecture'] ?? null,
+            ),
+            'Connection & Transport' => array(
+                'Database'  => $data['database'] ?? null,
+                'Schema'    => $data['schema'] ?? null,
+                'Server'    => $data['server'] ?? null,
+                'Port'      => $data['port'] ?? null,
+                'Transport' => $data['transport'] ?? null,
+                'Socket'    => $data['socket'] ?? null,
+                'Path'      => $data['path'] ?? null,
+                'SSL/TLS'   => isset( $data['ssl'] ) ? ( $data['ssl'] ? 'Enabled' : 'Disabled' ) : null,
+            ),
+            'Localization & Encoding' => array(
+                'Charset'   => $data['charset'] ?? null,
+                'Collation' => $data['collation'] ?? null,
+                'Timezone'  => $data['timezone'] ?? null,
+                'Locale'    => $data['locale'] ?? null,
+            ),
+        );
+
+        // 'features' and 'runtime' vary by engine, so their labels are derived
+        // from the keys themselves instead of being hardcoded like the groups
+        // above.
+        foreach ( array( 'features' => 'Features', 'runtime' => 'Runtime' ) as $data_key => $group_title ) {
+            if ( empty( $data[ $data_key ] ) || ! is_array( $data[ $data_key ] ) ) {
+                continue;
+            }
+
+            $labelled = array();
+
+            foreach ( $data[ $data_key ] as $sub_key => $sub_val ) {
+                $labelled[ $this->humanize_key( (string) $sub_key ) ] = $sub_val;
+            }
+
+            $groups[ $group_title ] = $labelled;
+        }
+
+        foreach ( $groups as $group_title => $items ) {
+            $filtered = array_filter(
+                $items,
+                static function ( mixed $val ): bool {
+                    return null !== $val && '' !== $val;
+                }
+            );
+
+            if ( empty( $filtered ) ) {
+                continue;
+            }
+
+            $this->output->info( sprintf( '[ %s ]', $group_title ) );
+
+            foreach ( $filtered as $label => $val ) {
+                $this->output->writeln(
+                    sprintf( '  %-22s : %s', $label, $this->format_display_value( $val ) )
+                );
+            }
+
+            $this->output->writeln( '' );
+        }
+
+        if ( ! empty( $data['capabilities'] ) && is_array( $data['capabilities'] ) ) {
+            $caps = array();
+
+            foreach ( $data['capabilities'] as $cap => $supported ) {
+                // null means "couldn't be determined" (e.g. unknown storage
+                // engine) — that is not the same claim as "no", so it's
+                // omitted rather than shown as unsupported.
+                if ( null === $supported ) {
+                    continue;
+                }
+
+                $caps[] = sprintf( '%s: %s', $this->humanize_key( (string) $cap ), $supported ? 'yes' : 'no' );
+            }
+
+            if ( ! empty( $caps ) ) {
+                $this->output->info( '[ Capabilities ]' );
+                $this->output->writeln( sprintf( '  %s', implode( '  |  ', $caps ) ) );
+                $this->output->writeln( '' );
+            }
+        }
+    }
+
+    /**
+     * Format a raw value for console display.
+     *
+     * @param mixed $val
+     * @return string
+     */
+    private function format_display_value( mixed $val ): string {
+        if ( is_bool( $val ) ) {
+            return $val ? 'Yes' : 'No';
+        }
+
+        if ( is_array( $val ) ) {
+            return (string) json_encode( $val, JSON_UNESCAPED_SLASHES );
+        }
+
+        return (string) $val;
+    }
+
+    /**
+     * Convert a snake_case data key into a human-readable label.
+     *
+     * @param string $key
+     * @return string
+     */
+    private function humanize_key( string $key ): string {
+        return ucwords( str_replace( '_', ' ', $key ) );
     }
 }

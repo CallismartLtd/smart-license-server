@@ -16,6 +16,7 @@ use Callismart\DBPrism\Utils\Table;
 use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Exceptions\DatabaseException;
+use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
 use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
@@ -462,8 +463,18 @@ class AppInstaller {
      * Test the given credentials against a database engine.
      * 
      * @param DBConfigDTO $config
+     * @return Database
+     * @throws DatabaseException
      */
-    public function test_db_connection( DBConfigDTO $config ) {
-        
+    public function test_db_connection( DBConfigDTO $config ) : Database {
+        $db_adapter = DatabaseAdapterRegistry::instance()->select( $config->driver );
+
+        $adapter    = new $db_adapter( $config );
+
+        if ( ! $adapter->is_connected() ) {
+            throw new DatabaseException( 'database_connect_error', $adapter->get_last_error() );
+        }
+
+        return new Database( $adapter );
     }
 }
