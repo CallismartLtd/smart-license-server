@@ -46,12 +46,12 @@ class AuthController {
      * Authenticates user with username/email and password.
      * Sets authenticated session on success.
      *
-     * @param Request $request Contains: username, password, remember, _wpnonce_login
+     * @param Request $request Request object.
      * @return Response JSON response
      */
     public static function handle_login( Request $request ) : Response {
         $username   = (string) $request->get( 'username', '' );
-        $password   = (string) $_POST['password'] ?? '';
+        $password   = (string) $request->get( parameter: 'password', default: '', sanitize: false );
         $remember   = (bool) $request->get( 'remember', false );
 
         if ( empty( $username ) || empty( $password ) ) {

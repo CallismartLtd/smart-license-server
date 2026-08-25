@@ -69,7 +69,7 @@ class Login implements DashboardHandlerInterface {
                 static::INDEX_TEMPLATE,
                 [
                     'menu'      => $registry->all(),
-                    'rest_base' => \url( \smliser_login_url_prefix() . '/fetch-forms/' )
+                    'rest_base' => \url( \smliser_login_url_prefix() . '/form/' )
                 ]
             )
         );

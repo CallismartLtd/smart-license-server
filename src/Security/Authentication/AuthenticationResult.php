@@ -104,8 +104,8 @@ final readonly class AuthenticationResult {
      */
     public static function authenticated(
         ActorInterface $actor,
-        Owner $owner,
         Role $role,
+        ?Owner $owner,
         ?string $message = null
     ) : static {
         return new static(

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace SmartLicenseServer\Environments\Application\Routing;
 
 use SmartLicenseServer\Admin\Page\Dispatcher;
+use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\ForgotPassword;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\Login;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\Signup;
@@ -127,16 +128,31 @@ final class RouteManager {
                     handler: [Login::class, 'render_login_form'],
                 );
 
+                // Forms GET route.
                 $this->router->get(
-                    pattern: 'fetch-forms/login',
+                    pattern: 'form/login',
                     handler: [Login::class, 'handle']
                 );
                 $this->router->get(
-                    pattern: 'fetch-forms/signup',
+                    pattern: 'form/signup',
                     handler: [Signup::class, 'handle']
                 );
                 $this->router->get(
-                    pattern: 'fetch-forms/forgot-password',
+                    pattern: 'form/forgot-password',
+                    handler: [ForgotPassword::class, 'handle']
+                );
+
+                // Forms POST route.
+                $this->router->post(
+                    pattern: 'form/login',
+                    handler: [AuthController::class, 'handle_login']
+                );
+                $this->router->post(
+                    pattern: 'form/signup',
+                    handler: [Signup::class, 'handle']
+                );
+                $this->router->post(
+                    pattern: 'form/forgot-password',
                     handler: [ForgotPassword::class, 'handle']
                 );
             },

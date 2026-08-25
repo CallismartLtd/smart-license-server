@@ -13,6 +13,12 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 
+/**
+ * Handles authentication flow for service accounts.
+ * 
+ * A service account holder can authenticate and only act on behalf of
+ * a resource owner within the capabilities of the role assigned to them.
+ */
 class ServiceAccountAuthenticator implements AuthenticatorInterface {
     /**
      * Class constructor.

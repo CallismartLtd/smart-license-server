@@ -64,18 +64,32 @@ class Installer extends AbstractCommand {
     }
 
     public static function help() : string {
-        $name       = static::name();
-        $app_name   = SMLISER_APP_NAME;
+        $name     = static::name();
+        $app_name = SMLISER_APP_NAME;
 
-        return \implode( PHP_EOL, [
-            "smliser {$name}  run                   Executes full automated installation wizard.",
-            "smliser {$name}  check                 Performs environment sanity checks.",
-            "smliser {$name}  make:dir              Creates all required directories.",
-            "smliser {$name}  make:dotenv           Create a .env file if missing.",
-            "smliser {$name}  make:tables           Creates all registered database tables.",
-            "smliser {$name}  make:roles            Install default roles.",
-            "smliser {$name}  make:admin            Create a human administrator account.",
-            "smliser {$name}  make:htaccess         Creates or updates the .htaccess file.",
+        $commands = [
+            'run'           => 'Executes full automated installation wizard.',
+            'check'         => 'Performs environment sanity checks.',
+            'check:db'      => 'Tests a database configuration without installing.',
+            'make:dir'      => 'Creates all required directories.',
+            'make:dotenv'   => 'Create a .env file if missing.',
+            'make:tables'   => 'Creates all registered database tables.',
+            'make:roles'    => 'Install default roles.',
+            'make:admin'    => 'Create a human administrator account.',
+            'make:htaccess' => 'Creates or updates the .htaccess file.',
+            'help'          => 'Displays this help message.',
+        ];
+
+        $command_width = max( array_map( 'strlen', array_keys( $commands ) ) );
+        $command_format = 'smliser ' . $name . '  %-' . $command_width . 's   %s';
+
+        $lines = [];
+
+        foreach ( $commands as $command => $description ) {
+            $lines[] = sprintf( $command_format, $command, $description );
+        }
+
+        return \implode( PHP_EOL, array_merge( $lines, [
             '',
             'OPTIONS: ',
             '',
@@ -96,8 +110,27 @@ class Installer extends AbstractCommand {
             '',
             '   Creating .htaccess file: ',
             '--htaccess-example-path    The absolute path to the .htaccess.example file. The file will be searched for in',
-            '                           the parent directory and the runtime directory.'
-        ]);
+            '                           the parent directory and the runtime directory.',
+            '',
+            '   Testing a database connection (check:db): ',
+            '--db-driver, -d        (required) Database driver: mysql, pgsql, or sqlite.',
+            '--dbname, -n           (required) Target database or schema name.',
+            '--host, -h             Server hostname or IP. Used by mysql/pgsql; not applicable to sqlite.',
+            '--port, -P             Server port. Used by mysql/pgsql; not applicable to sqlite.',
+            '--username, -u         Authentication username. Used by mysql/pgsql; not applicable to sqlite.',
+            '--password, -p         Authentication password. Used by mysql/pgsql; not applicable to sqlite.',
+            '--charset, -c          Connection character encoding. Used by mysql; not applicable to sqlite.',
+            '--collation, -C        Connection collation. Used by mysql; not applicable to sqlite.',
+            '--prefix, -x           Table name prefix, applied regardless of driver.',
+            '--socket, -s           Unix socket path, as an alternative to --host/--port. Used by mysql/pgsql.',
+            '--path, -f             Database file path. Required for sqlite; not applicable to mysql/pgsql.',
+            '--dsn, -D              Raw DSN string that overrides the discrete host/port/socket/path options above.',
+            '--sslmode, -M          SSL enforcement tier. Used by mysql/pgsql; not applicable to sqlite.',
+            '--encryption-key, -k   At-rest encryption key. Used by mysql (TDE) and sqlite; not applicable to pgsql.',
+            '--strict, -t           Enable strict SQL mode enforcement.',
+            '--persistent, -e       Reuse a persistent connection instead of opening a new one.',
+            '--timeout, -T          Connection timeout in seconds.',
+        ] ) );
     }
 
     public function get_subcommands() : array {
@@ -490,8 +523,9 @@ class Installer extends AbstractCommand {
 
     /**
      * Create a human administrator account.
-     * 
+     *
      * @param CommandInput $input
+     * @return int
      */
     public function make_admin( CommandInput $input ) : int {
         if ( ! Guard::has_principal() || ! Guard::get_principal()?->is( 'system_admin' ) ) {
@@ -512,14 +546,14 @@ class Installer extends AbstractCommand {
         $confirmed_pwd  = false;
         $error_counter  = 0;
 
-        $filled_all     = ! empty( $name ) && ! empty( $email ) && ! empty( $password );
+        $filled_all = ! empty( $name ) && ! empty( $email ) && ! empty( $password );
         $terminated = false;
 
-        while( true ) {
+        while ( true ) {
             if ( $filled_all && $confirmed_pwd ) {
                 break;
             }
-            
+
             if ( $error_counter >= 5 ) {
                 $terminated = true;
             }
@@ -529,20 +563,23 @@ class Installer extends AbstractCommand {
             }
 
             if ( ! $name ) {
-                $name   = $this->io->prompt( 'Enter Admin Name: ' );
+                $entered_name   = (string) $this->io->prompt( 'Enter Admin Name: ' );
+                $contains_admin = str_contains( strtolower( $entered_name ), 'admin' );
 
-                if ( empty( $name ) || \str_contains( \strtolower( $name ), 'admin' ) ) {
-                    $name   = '';
+                if ( empty( $entered_name ) || $contains_admin ) {
+                    $name = '';
 
                     $error_counter++;
                     $this->output->error( 'Please enter a valid admin name.' );
 
-                    if ( \str_contains( \strtolower( $name ), 'admin' ) ) {
+                    if ( $contains_admin ) {
                         $this->output->error( 'Admin name must not contain the word `admin`' );
                     }
-                    
+
                     continue;
                 }
+
+                $name = $entered_name;
             }
 
             if ( ! $email ) {
@@ -558,29 +595,28 @@ class Installer extends AbstractCommand {
             }
 
             if ( User::email_exists( $email ) ) {
-                $email  = '';
+                $email = '';
 
                 $this->output->error( 'Sorry the provided email is not available.' );
                 continue;
             }
-            
+
             if ( ! $email_is_valid && ! is_email( $email, true ) ) {
                 // DNS record not found for the email?
                 $this->output->warning( 'The system detected that the provided email address cannot be reached!' );
                 if ( ! $this->io->confirm( 'Do you still want to use this email?', false ) ) {
-                    $email  = '';
+                    $email = '';
                     continue;
                 } else {
                     $email_is_valid = true;
                 }
-
             }
 
             if ( empty( $password ) ) {
-                $password   = $this->io->secret( 'Enter Admin Password: ' );
+                $password = $this->io->secret( 'Enter Admin Password: ' );
                 if ( empty( $password ) ) {
                     $password = '';
-                    
+
                     $error_counter++;
                     $this->output->error( 'Please enter a valid password.' );
                     continue;
@@ -590,15 +626,18 @@ class Installer extends AbstractCommand {
             }
 
             if ( ! $confirmed_pwd ) {
-                $pwd    = $this->io->secret( 'Confirm Admin Password: ' );
-                $confirmed_pwd  = trim( $pwd ) === trim( $password );
+                $pwd           = $this->io->secret( 'Confirm Admin Password: ' );
+                // Strip only trailing line-ending artifacts from terminal input,
+                // not arbitrary whitespace — an intentional space in the
+                // password shouldn't be able to falsely "match".
+                $confirmed_pwd = rtrim( $pwd, "\r\n" ) === rtrim( $password, "\r\n" );
 
                 if ( ! $confirmed_pwd ) {
                     $this->output->error( 'Password mismatch.' );
                 }
             }
 
-            $filled_all    = ! empty( $name ) && ! empty( $email ) && ! empty( $password );
+            $filled_all = ! empty( $name ) && ! empty( $email ) && ! empty( $password );
         }
 
         if ( $terminated ) {
@@ -607,10 +646,10 @@ class Installer extends AbstractCommand {
         }
 
         try {
-            $admin  = $this->get_installer()->create_admin( name: $name, email: $email, password: $password );
-            
-            $role   = ContextServiceProvider::get_principal_role( $admin );
-            
+            $admin = $this->get_installer()->create_admin( name: $name, email: $email, password: $password );
+
+            $role = ContextServiceProvider::get_principal_role( $admin );
+
             $this->output->success(
                 sprintf( 'Admin account for %s has been created successfully.', $admin->get_display_name() )
             );
@@ -648,6 +687,11 @@ class Installer extends AbstractCommand {
     public function check_database( ?CommandInput $input = null ): int {
         $this->start_timer();
 
+        if ( ! $input ) {
+            $this->output->error( 'Missing command input.' );
+            return 1;
+        }
+
         $driver = $input->get_option( 'db-driver' ) ?? $input->get_option( 'd' );
 
         if ( empty( $driver ) ) {
@@ -662,35 +706,35 @@ class Installer extends AbstractCommand {
             return 1;
         }
 
-        $db_config = new DBConfigDTO( [
-            'dbname'         => $db_name,
-            'driver'         => $driver,
-            'host'           => $input->get_option( 'host' )           ?? $input->get_option( 'h' ),
-            'port'           => $input->get_option( 'port' )           ?? $input->get_option( 'P' ),
-            'username'       => $input->get_option( 'username' )       ?? $input->get_option( 'u' ),
-            'password'       => $input->get_option( 'password' )       ?? $input->get_option( 'p' ),
-            'charset'        => $input->get_option( 'charset' )        ?? $input->get_option( 'c' ),
-            'collation'      => $input->get_option( 'collation' )      ?? $input->get_option( 'C' ),
-            'prefix'         => $input->get_option( 'prefix' )         ?? $input->get_option( 'x' ),
-            'socket'         => $input->get_option( 'socket' )         ?? $input->get_option( 's' ),
-            'path'           => $input->get_option( 'path' )           ?? $input->get_option( 'f' ),
-            'dsn'            => $input->get_option( 'dsn' )            ?? $input->get_option( 'D' ),
-            'flags'          => $input->get_option( 'flags' )          ?? $input->get_option( 'F' ),
-            'ssl'            => $input->get_option( 'ssl' )            ?? $input->get_option( 'S' ),
-            'sslmode'        => $input->get_option( 'sslmode' )        ?? $input->get_option( 'M' ),
-            'encryption_key' => $input->get_option( 'encryption-key' ) ?? $input->get_option( 'k' ),
-            'strict'         => $input->get_option( 'strict' )         ?? $input->get_option( 't' ),
-            'persistent'     => $input->get_option( 'persistent' )     ?? $input->get_option( 'e' ),
-            'timeout'        => $input->get_option( 'timeout' )        ?? $input->get_option( 'T' ),
-            'read'           => $input->get_option( 'read' )           ?? $input->get_option( 'r' ),
-            'write'          => $input->get_option( 'write' )          ?? $input->get_option( 'w' ),
-            'sticky'         => $input->get_option( 'sticky' )         ?? $input->get_option( 'K' ),
-        ] );
-
         $this->output->info( 'Testing database configuration...' );
         $this->output->writeln( '' );
 
         try {
+            $db_config = new DBConfigDTO( [
+                'dbname'         => $db_name,
+                'driver'         => $driver,
+                'host'           => $input->get_option( 'host' )           ?? $input->get_option( 'h' ),
+                'port'           => $input->get_option( 'port' )           ?? $input->get_option( 'P' ),
+                'username'       => $input->get_option( 'username' )       ?? $input->get_option( 'u' ),
+                'password'       => $input->get_option( 'password' )       ?? $input->get_option( 'p' ),
+                'charset'        => $input->get_option( 'charset' )        ?? $input->get_option( 'c' ),
+                'collation'      => $input->get_option( 'collation' )      ?? $input->get_option( 'C' ),
+                'prefix'         => $input->get_option( 'prefix' )         ?? $input->get_option( 'x' ),
+                'socket'         => $input->get_option( 'socket' )         ?? $input->get_option( 's' ),
+                'path'           => $input->get_option( 'path' )           ?? $input->get_option( 'f' ),
+                'dsn'            => $input->get_option( 'dsn' )            ?? $input->get_option( 'D' ),
+                'flags'          => $input->get_option( 'flags' )          ?? $input->get_option( 'F' ),
+                'ssl'            => $input->get_option( 'ssl' )            ?? $input->get_option( 'S' ),
+                'sslmode'        => $input->get_option( 'sslmode' )        ?? $input->get_option( 'M' ),
+                'encryption_key' => $input->get_option( 'encryption-key' ) ?? $input->get_option( 'k' ),
+                'strict'         => $input->get_option( 'strict' )         ?? $input->get_option( 't' ),
+                'persistent'     => $input->get_option( 'persistent' )     ?? $input->get_option( 'e' ),
+                'timeout'        => $input->get_option( 'timeout' )        ?? $input->get_option( 'T' ),
+                'read'           => $input->get_option( 'read' )           ?? $input->get_option( 'r' ),
+                'write'          => $input->get_option( 'write' )          ?? $input->get_option( 'w' ),
+                'sticky'         => $input->get_option( 'sticky' )         ?? $input->get_option( 'K' ),
+            ] );
+
             $dbal = $this->get_installer()->test_db_connection( $db_config );
 
             $this->output->success( 'Database configuration passed!' );
