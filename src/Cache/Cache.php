@@ -2,6 +2,7 @@
 /**
  * Cache manager class file.
  *
+ * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Cache
  */
 
@@ -14,22 +15,24 @@ use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
  *
  * Provides a unified cache API for Smart License Server.
  *
- *
  * Methods are proxied to the underlying adapter:
  *
- * @method mixed get(string $key) Retrieve a cached value by key.
- * @method bool set(string $key, mixed $value, int $ttl = 0) Store a value in the cache.
- * @method bool delete(string $key) Delete a cache entry by key.
- * @method bool clear() Clear all cache entries.
- * @method CacheStats get_stats() Return runtime statistics for this cache adapter.
- * @method bool is_supported() Tells whether the adapter can run in the host environment.
- * @method bool is_active() Tells whether the adapter is active.
- * @method bool test( array<string, mixed> $settings ) Test whether the adapter can connect and operate with the supplied settings.
- * @method void set_settings( array<string, mixed> $settings )Set adapter configuration.
- * @method array get_settings_schema() Return required configuration fields.
- * @method string get_name() Get the underlining cache adapter name.
- * @method string get_id() Get the underlining cache adapter ID.
+ * @method void register() Register service dependencies.
+ * @method void boot() Boot service components.
+ * @method mixed get( string $key ) Retrieve a cached value by key.
+ * @method bool set( string $key, mixed $value, int $ttl = 0 ) Store a value in the cache.
+ * @method bool delete( string $key ) Delete a cache entry by key.
  * @method bool has( string $key ) Check if a cache entry exists.
+ * @method bool clear() Clear the entire cache.
+ * @method mixed modify( string $key, callable $callback, int $ttl = 0, mixed $default = null ) Atomically read, modify, and rewrite a cached value via a callback.
+ * @method int|bool increment( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ) Atomically increment a numeric cache value.
+ * @method int|bool decrement( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ) Atomically decrement a numeric cache value.
+ * @method array<string, array<string, mixed>> get_settings_schema() Return required configuration fields.
+ * @method void set_settings( array<string, mixed> $settings ) Set adapter configuration.
+ * @method bool is_supported() Tells whether the adapter can run in the host environment.
+ * @method bool is_active() Tells whether the cache is active.
+ * @method CacheStats get_stats() Return runtime statistics for this cache adapter.
+ * @method bool test( array<string, mixed> $settings ) Test whether the adapter can connect and operate with the supplied settings.
  */
 class Cache {
 
@@ -73,7 +76,7 @@ class Cache {
      *
      * @return mixed
      *
-     * @throws \BadMethodCallException If the method does not exist in the adapter.
+     * @throws \ErrorException If the method does not exist in the adapter.
      */
     public function __call( string $method, array $args ) {
         if ( method_exists( $this->adapter, $method ) ) {
