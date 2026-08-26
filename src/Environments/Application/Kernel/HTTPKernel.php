@@ -8,7 +8,9 @@
 declare( strict_types=1 );
 namespace SmartLicenseServer\Environments\Application\Kernel;
 
+use SmartLicenseServer\Admin\Page\Dispatcher;
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\Login;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
@@ -32,6 +34,7 @@ class HTTPKernel extends Kernel {
      */
     public function boot() : static {
         $this->setAuth();
+        $this->identity_service->authenticate();
         $this->setUpRouter();
         
         return $this;
@@ -44,7 +47,8 @@ class HTTPKernel extends Kernel {
         $this->response = $this->routeManager->dispatch(
             $this->environment->request()->method(),
             $this->environment->request()->path(),
-            $this->environment->request()
+            $this->environment->request(),
+            $this->guard
         );
 
         $this->response->send();
@@ -95,7 +99,9 @@ class HTTPKernel extends Kernel {
         $this->routeManager->registerDefaultPages();
         $this->routeManager->registerCoreRoutes( 
             $this->guard,
-            new AuthController( $this->guard, $this->identity_service )
+            new AuthController( $this->guard, $this->identity_service ),
+            new Login( $this->guard ),
+            new Dispatcher( $this->guard ),
         );
     }
 

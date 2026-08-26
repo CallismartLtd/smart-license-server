@@ -26,7 +26,7 @@ interface DashboardHandlerInterface {
      * @param Request $request
      * @return Response
      */
-    public static function handle( Request $request ) : Response;
+    public function handle( Request $request ) : Response;
 
     /**
      * Permission check for this handler.
@@ -37,7 +37,7 @@ interface DashboardHandlerInterface {
      * @param Request $request
      * @return bool|RequestException
      */
-    public static function guard( Request $request ) : bool|RequestException;
+    public function guard( Request $request ) : bool|RequestException;
 
     /**
      * Return the menu slug this handler owns.

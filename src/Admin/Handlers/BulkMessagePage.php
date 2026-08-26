@@ -51,7 +51,7 @@ class BulkMessagePage implements AdminPageInterface{
         $current_url    = smliser_get_current_url();
         $menu_args      = static::get_menu_args( $request );
         
-        $vars           = compact( 'messages', 'current_url', 'menu_args', 'pagination' );
+        $vars           = compact( 'messages', 'current_url', 'menu_args', 'pagination', 'request' );
         smliser_render_template( 'admin.contents.broadcasts.index', $vars );
     }
 
@@ -84,7 +84,7 @@ class BulkMessagePage implements AdminPageInterface{
         $messages       = $msg_data['items'] ?? [];
         $pagination     = $msg_data['pagination'] ?? [];
 
-        $vars           = compact( 'current_url', 'menu_args', 'search', 'messages', 'pagination' );
+        $vars           = compact( 'current_url', 'menu_args', 'search', 'messages', 'pagination', 'request' );
 
         smliser_render_template( 'admin.contents.broadcasts.search', $vars );
        

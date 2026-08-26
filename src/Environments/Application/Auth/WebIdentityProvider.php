@@ -108,11 +108,15 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 			$claims
 		);
 
-		return new Principal(
+		$principal	= new Principal(
 			$auth_result->actor,
 			$auth_result->role,
 			$auth_result->owner
 		);
+
+		$this->authenticate();
+		
+		return $principal;
 	}
 
 	/**

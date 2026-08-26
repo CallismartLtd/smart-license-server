@@ -6,13 +6,9 @@
  *
  * This template renders ONLY the form content (no wrapper/card).
  * The auth index provides the container structure.
- *
- * Form data submitted via AJAX to {rest_base}auth/login
  */
 
-defined( 'SMLISER_ROOT' ) || exit;
-
-?>
+defined( 'SMLISER_ROOT' ) || exit;?>
 <div class="smlag-header">
     <span class="smlag-subtitle">Sign in to your account</span>
 </div>

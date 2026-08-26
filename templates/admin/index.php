@@ -8,15 +8,14 @@
  * @var \SmartLicenseServer\Admin\AdminDashboardRegistry $registry
  * @var SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Templates\TemplateLocator $this
+ * @var \SmartLicenseServer\Security\Context\Guard $guard
  */
 
 use SmartLicenseServer\Admin\Page\Shell;
-use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 
 defined( 'SMLISER_ROOT' ) || exit;
-
-$principal = Guard::get_principal();
+$principal = $guard->get_principal();
 
 if ( ! $principal ) {
     smliser_abort_request(

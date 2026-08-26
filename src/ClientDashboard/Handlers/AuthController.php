@@ -24,6 +24,7 @@ use SmartLicenseServer\Core\Dates\DateDuration;
 use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
@@ -59,9 +60,9 @@ class AuthController {
      * @return Response JSON response
      */
     public function handle_login( Request $request ) : Response {
-        $username   = (string) $request->get( 'username', '' );
+        $username   = (string) $request->post( 'username', '' );
         $password   = (string) $request->get( parameter: 'password', default: '', sanitize: false );
-        $remember   = (bool) $request->get( 'remember', false );
+        $remember   = (bool) $request->post( 'remember', false );
 
         if ( empty( $username ) || empty( $password ) ) {
             return static::error_response(
@@ -81,13 +82,20 @@ class AuthController {
             );
         }
 
+        $redirect_url   = URL::from( $request->post( 'redirect_url', '' ) );
+
+        if ( ! $redirect_url->is_valid() || $redirect_url->get_origin() !== \url()->get_origin() ) {
+            $redirect_url   = $this->guard->get_principal()?->is( 'system_admin' )
+                ? \adminUrl() : \smliser_client_dashboard_url();
+        }
+
         // Return success with redirect
         return static::success_response(
             200,
             [
                 'success'  => true,
                 'message'  => sprintf( 'Welcome back, %s.', $principal->get_display_name() ),
-                'redirect' => \smliser_client_dashboard_url()
+                'redirect' => $redirect_url->url()
             ]
         );
     }
@@ -98,7 +106,7 @@ class AuthController {
      * @return array{success: bool, message: string}
      */
     public function handle_logout() : array {
-        $principal  = Guard::get_principal();
+        $principal  = $this->guard->get_principal();
 
         if ( ! $principal ) {
             return ['success' => false, 'message' => 'Already logged out'];

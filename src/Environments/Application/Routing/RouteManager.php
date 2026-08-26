@@ -116,6 +116,8 @@ final class RouteManager {
     public function registerCoreRoutes(
         Guard $guard,
         AuthController $auth_controller,
+        Login $login_controller,
+        Dispatcher $admin_dispatcher
     ) : void {
         $admin_url_prefix           = \smliser_get_admin_url_prefix();
         $client_dashboard_prefix    = \smliser_get_client_dashboard_url_prefix();
@@ -125,17 +127,17 @@ final class RouteManager {
         $this->router->any( '/', $this->defaultHomeHandler );
 
         $this->router->group( smliser_login_url_prefix(),
-            function() use ( $auth_controller ) {
+            function() use ( $auth_controller, $login_controller ) {
                 $this->router->add(
                     methods: ['GET'],
                     pattern: '/',
-                    handler: [Login::class, 'render_login_form'],
+                    handler: [$login_controller, 'render_login_form'],
                 );
 
                 // Forms GET route.
                 $this->router->get(
                     pattern: 'form/login',
-                    handler: [Login::class, 'handle']
+                    handler: [$login_controller, 'handle']
                 );
                 $this->router->get(
                     pattern: 'form/signup',
@@ -164,10 +166,10 @@ final class RouteManager {
         );
 
         $this->router->group( $admin_url_prefix,
-            function() use ( $guard ) {
-                $this->router->add( '/', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
-                $this->router->add( '/{tab:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
-                $this->router->add( '/{tab:slug}/{submenu:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
+            function() use ( $admin_dispatcher ) {
+                $this->router->add( '/', ['GET'], [$admin_dispatcher, 'render_admin_dashboard'] );
+                $this->router->add( '/{tab:slug}', ['GET'], [$admin_dispatcher, 'render_admin_dashboard'] );
+                $this->router->add( '/{tab:slug}/{submenu:slug}', ['GET'], [$admin_dispatcher, 'render_admin_dashboard'] );
             },
 
             middleware: [
@@ -247,7 +249,7 @@ final class RouteManager {
 	 * no assumption about what that is (a Response object, void, anything),
 	 * since that's the handler's decision, not the router's.
 	 */
-	public function dispatch( string $method, string $path, Request $request ): Response {
+	public function dispatch( string $method, string $path, Request $request, Guard $guard ): Response {
 		$result = $this->router->dispatch( $method, $path );
 
         $request->set_route_param( $result->params );
@@ -257,6 +259,7 @@ final class RouteManager {
 				$result->middleware,
 				$result->handler,
 				$request,
+                $guard
 			),
 			DispatchStatus::NotFound    => null !== $this->notFoundHandler
 				? ( $this->notFoundHandler )( $request )

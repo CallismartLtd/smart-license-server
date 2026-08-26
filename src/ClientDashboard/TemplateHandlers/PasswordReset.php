@@ -36,7 +36,7 @@ class PasswordReset implements DashboardHandlerInterface {
      * @param Request $request
      * @return bool|RequestException
      */
-    public static function guard( Request $request ) : bool|RequestException {
+    public function guard( Request $request ) : bool|RequestException {
         $token = (string) $request->get( 'token', '' );
 
         if ( empty( $token ) ) {
@@ -65,7 +65,7 @@ class PasswordReset implements DashboardHandlerInterface {
      * @param Request $request
      * @return Response JSON response containing form HTML
      */
-    public static function handle( Request $request ) : Response {
+    public function handle( Request $request ) : Response {
         // Get token and email from query string
         $token = (string) $request->get( 'token', '' );
 

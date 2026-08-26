@@ -12,6 +12,7 @@ use SmartLicenseServer\ClientDashboard\DashboardHandlerInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Handles the login form rendering.
@@ -26,6 +27,8 @@ class Login implements DashboardHandlerInterface {
     public const AUTH_2FA_TEMPLATE          = 'frontend.auth.2fa';
     public const FOOTER_TEMPLATE            = 'frontend.footer';
 
+    public function __construct( protected Guard $guard ){}
+
     public static function slug() : string {
         return 'login';
     }
@@ -33,7 +36,7 @@ class Login implements DashboardHandlerInterface {
     /**
      * No guard restrictions — login form is always accessible.
      */
-    public static function guard( Request $request ) : bool|RequestException {
+    public function guard( Request $request ) : bool|RequestException {
         return true;
     }
 
@@ -43,8 +46,13 @@ class Login implements DashboardHandlerInterface {
      * Template renders only the form (no wrapper, no alerts).
      * The SPA container provides the wrapper and alert system.
      */
-    public static function handle( Request $request ) : Response {
-        $html = smliser_render_template_to_string( ClientDashboardRenderer::AUTH_LOGIN_TEMPLATE, [] );
+    public function handle( Request $request ) : Response {
+        $html = smliser_render_template_to_string(
+            ClientDashboardRenderer::AUTH_LOGIN_TEMPLATE, [
+                'guard'     => $this->guard,
+                'request'   => $request
+            ]
+        );
 
         return ( new Response( 200 ) )
             ->set_header( 'Content-Type', 'application/json; charset=utf-8' )
@@ -60,7 +68,7 @@ class Login implements DashboardHandlerInterface {
      * @param Request $request
      * @return Response
      */
-    public static function render_login_form( Request $request ) : Response {
+    public function render_login_form( Request $request ) : Response {
         $registry       = \authTemplateRegistry();
         $locator        = smliser_template_locator();
 
@@ -69,7 +77,9 @@ class Login implements DashboardHandlerInterface {
                 static::INDEX_TEMPLATE,
                 [
                     'menu'      => $registry->all(),
-                    'rest_base' => \url( \smliser_login_url_prefix() . '/form/' )
+                    'rest_base' => \url( \smliser_login_url_prefix() . '/form/' ),
+                    'guard'     => $this->guard,
+                    'request'   => $request
                 ]
             )
         );

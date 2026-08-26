@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Admin\Page;
 use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Templates\TemplateLocator;
 
 /**
@@ -59,9 +60,10 @@ class Shell {
 	 * @param Request					$request
      */
     public function __construct(
-        protected AdminDashboardRegistry	$registry,
-        protected TemplateLocator	$locator,
-		protected Request			$request
+        protected AdminDashboardRegistry $registry,
+        protected TemplateLocator $locator,
+		protected Request $request,
+        protected Guard $guard
     ) {}
 
     /*
@@ -77,8 +79,9 @@ class Shell {
      */
     public function render() : void {
         $this->locator->render( self::SHELL_TEMPLATE, [
-            'registry'	=> $this->registry,
-			'request'		=> $this->request,
+            'registry'  => $this->registry,
+			'request'   => $this->request,
+            'guard'     => $this->guard
         ] );
     }
 
@@ -94,9 +97,10 @@ class Shell {
         $active_slug = $active_slug ?: array_key_first( $menu ) ?? '';
 
         $this->locator->render( self::HEADER_TEMPLATE, [
-            'menu'        => $menu,
-            'rest_base'   => rtrim( $rest_base, '/' ) . '/',
-            'active_slug' => $active_slug,
+            'menu'          => $menu,
+            'rest_base'     => rtrim( $rest_base, '/' ) . '/',
+            'active_slug'   => $active_slug,
+            'guard'         => $this->guard
         ] );
     }
 
@@ -111,8 +115,9 @@ class Shell {
      */
     public function render_menu( string $active_slug = '' ) : void {
         $this->locator->render( self::MENU_TEMPLATE, [
-            'menu'        => $this->registry->all(),
-            'active_slug' => $active_slug,
+            'menu'          => $this->registry->all(),
+            'active_slug'   => $active_slug,
+            'guard'         => $this->guard
         ] );
     }
 
@@ -123,8 +128,9 @@ class Shell {
      */
     public function render_content( string $rest_base, string $active_slug = '' ) : void {
         $this->locator->render( self::CONTENT_TEMPLATE, [
-            'rest_base'   => rtrim( $rest_base, '/' ) . '/',
-            'active_slug' => $active_slug,
+            'rest_base'     => rtrim( $rest_base, '/' ) . '/',
+            'active_slug'   => $active_slug,
+            'guard'         => $this->guard
         ] );
     }
 

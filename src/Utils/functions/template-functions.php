@@ -117,17 +117,3 @@ function clientDashboardRegistry() : \SmartLicenseServer\ClientDashboard\ClientD
 function authTemplateRegistry() : \SmartLicenseServer\ClientDashboard\AuthTemplateRegistry {
     return smliser_envProvider()->authTemplateRegistry();
 }
-
-/**
- * Automatically return a frontend template registry based on the current user auth status.
- */
-function smliserFrontendTemplate() {
-    return Guard::has_principal() ? clientDashboardRegistry() : authTemplateRegistry();
-}
-
-/**
- * Automatically return an admin template registry based on the current user auth status.
- */
-function smliserAdminTemplate() {
-    return Guard::has_principal() ? smliserAdminDashboardRegistry() : authTemplateRegistry();
-}

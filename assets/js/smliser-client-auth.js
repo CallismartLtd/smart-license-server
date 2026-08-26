@@ -277,6 +277,14 @@ class SmliserAuth {
     async submitForm( formType, payload ) {
         const url = this.REST_BASE + formType;
 
+        if ( this.currentURL.searchParams.has( 'redirect_url' ) ) {
+            try {
+                let redirectUrl = new URL( this.currentURL.searchParams.get( 'redirect_url' ) );
+
+                payload.set( 'redirect_url', redirectUrl.href );
+            } catch (error) {}
+        }
+
         const response = await smliserFetchJSON( url, {
             method: 'POST',
             headers: {
@@ -296,12 +304,8 @@ class SmliserAuth {
     handleFormSuccess( response, formType ) {
         if ( formType === 'login' ) {
             this.showFormSuccess( response.message );
-            const redirect  = new URL( response.redirect ?? window.location.href );
+            let redirect  = new URL( response.redirect );
 
-            redirect.hash = '';
-            if ( redirect.searchParams.has( 'key' ) ) {
-                redirect.searchParams.delete( 'key' );
-            }
             setTimeout( () => {
                 window.location.href = redirect.href;
             }, 3000 );

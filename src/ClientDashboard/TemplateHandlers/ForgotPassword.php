@@ -27,12 +27,12 @@ class ForgotPassword implements DashboardHandlerInterface {
         return 'forgot-password';
     }
 
-    public static function guard( Request $request ) : bool|RequestException {
+    public function guard( Request $request ) : bool|RequestException {
         // Forgot password accessible to everyone
         return true;
     }
 
-    public static function handle( Request $request ) : Response {
+    public function handle( Request $request ) : Response {
         $html = smliser_render_template_to_string( ClientDashboardRenderer::AUTH_FORGOT_PWD_TEMPLATE, [] );
 
         return ( new Response( 200 ) )

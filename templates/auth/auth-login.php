@@ -15,8 +15,7 @@
  * @var string[] $sanitized_params
  */
 
-defined( 'SMLISER_ROOT' ) || exit;
-?>
+defined( 'SMLISER_ROOT' ) || exit; ?>
 
 <?php do_action( 'smliser_auth_page_header' );?>
 

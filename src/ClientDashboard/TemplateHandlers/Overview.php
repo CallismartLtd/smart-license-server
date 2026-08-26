@@ -14,7 +14,7 @@ class Overview implements DashboardHandlerInterface {
         return 'overview';
     }
 
-    public static function guard( Request $request ) : bool|RequestException {
+    public function guard( Request $request ) : bool|RequestException {
         $principal = Guard::get_principal();
 
         if ( ! $principal ) {
@@ -24,7 +24,7 @@ class Overview implements DashboardHandlerInterface {
         return true;
     }
 
-    public static function handle( Request $request ) : Response {
+    public function handle( Request $request ) : Response {
         $html = smliser_render_template_to_string( 'frontend.sections.index', [
             'principal' => Guard::get_principal(),
         ] );

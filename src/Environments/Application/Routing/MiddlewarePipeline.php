@@ -9,6 +9,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Environments\Application\Routing;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Environments\Application\Middlewares\MiddlewareInterface;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Executes a middleware stack around a final route handler.
@@ -36,18 +37,21 @@ final class MiddlewarePipeline {
 	 */
 	private $handler;
 
+	protected Guard $guard;
+
 	/**
 	 * Constructor.
 	 *
 	 * @param array<int,mixed> $middleware
 	 * @param callable         $handler
 	 */
-	public function __construct( array $middleware, callable $handler ) {
+	private function __construct( array $middleware, callable $handler, Guard $guard ) {
 		foreach ( $middleware as $item ) {
 			$this->middleware[] = $this->resolveMiddleware( $item );
 		}
 
-		$this->handler = $handler;
+		$this->handler	= $handler;
+		$this->guard	= $guard;
 	}
 
 	/**
@@ -58,8 +62,8 @@ final class MiddlewarePipeline {
 	 * @param Request           $request
 	 * @return mixed
 	 */
-	public static function run( array $middleware, callable $handler, Request $request ): mixed {
-		return ( new self( $middleware, $handler ) )->dispatch( $request );
+	public static function run( array $middleware, callable $handler, Request $request, Guard $guard ): mixed {
+		return ( new self( $middleware, $handler, $guard ) )->dispatch( $request );
 	}
 
 	/**

@@ -23,12 +23,13 @@ use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Permission\Role;
 
 class ConsoleIdentityProvider implements IdentityProviderInterface {
+    public function __construct( protected Guard $guard ) {}
     /**
      * {@inheritdoc}
      */
     public function authenticate(): ?Principal {
-        if ( Guard::has_principal() ) {
-            return Guard::get_principal();
+        if ( $this->guard->has_principal() ) {
+            return $this->guard->get_principal();
         }
 
         $api_key    = $_ENV['SMLISER_CLI_API_KEY'] ?? '';
@@ -37,7 +38,7 @@ class ConsoleIdentityProvider implements IdentityProviderInterface {
             [$actor, $role] = $this->make_system_admin();
             $this->set_principal( $actor, $role );
             
-            return Guard::get_principal();
+            return $this->guard->get_principal();
         }
 
         $auth_result = ( new ServiceAccountAuthenticator( $api_key ) )->authenticate();
@@ -49,7 +50,7 @@ class ConsoleIdentityProvider implements IdentityProviderInterface {
                 $auth_result->owner
             );
 
-            return Guard::get_principal();
+            return $this->guard->get_principal();
         }
 
         return null;
@@ -158,6 +159,6 @@ class ConsoleIdentityProvider implements IdentityProviderInterface {
     }
 
     protected function set_principal( ActorInterface $actor, Role $role, ?Owner $owner = null ) : void {
-        Guard::set_principal( new Principal( $actor, $role, $owner ) );
+        $this->guard->set_principal( new Principal( $actor, $role, $owner ) );
     }
 }
