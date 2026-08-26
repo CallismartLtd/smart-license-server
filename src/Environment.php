@@ -20,9 +20,6 @@ use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Core\Request;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Adapters\Contracts\DatabaseAdapterInterface;
-use Callismart\DBPrism\Adapters\MysqliAdapter;
-use Callismart\DBPrism\Adapters\PdoAdapter;
-use Callismart\DBPrism\Adapters\SqliteAdapter;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Environments\EnvironmentProviderInterface;
@@ -39,13 +36,12 @@ use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
-use Callismart\DBPrism\Adapters\PostgresAdapter;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentBooted;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentBooting;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentReady;
 use SmartLicenseServer\Events\EventServiceProvider;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
-use SmartLicenseServer\Security\Context\IdentityProviderInterface;
+use SmartLicenseServer\Security\Authentication\IdentityProviders\IdentityProviderInterface;
 use SmartLicenseServer\Templates\TemplateDiscovery;
 use SmartLicenseServer\Templates\TemplateLocator;
 
@@ -68,6 +64,10 @@ use SmartLicenseServer\Templates\TemplateLocator;
  * @since 0.2.0
  */
 abstract class Environment implements EnvironmentProviderInterface {
+    /**
+     * Centralized, immutable environment configuration obejct.
+     */
+    protected RuntimeConfig $runtime;
     /**
      * The current environment provider instance.
      * 
@@ -668,19 +668,10 @@ abstract class Environment implements EnvironmentProviderInterface {
     }
 
     /**
-     * Get the identity provider.
+     * {@inheritdoc}
      */
-    public function identityProvider() : IdentityProviderInterface {
-        if ( ! isset( $this->identityProvider ) ) {
-            throw new EnvironmentBootstrapException(
-                'misconfiguration',
-                sprintf(
-                    'The current envronment provider "%s" did not set its auth or identity provider property.',
-                    \get_class( static::$envProvider )
-                )
-            );
-        }
-        return $this->identityProvider;
+    public function get_runtime_config() : RuntimeConfig {
+        return $this->runtime;
     }
 
     /**
