@@ -23,7 +23,7 @@ use Callismart\Http\HttpClient;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\RuntimeConfig;
-use SmartLicenseServer\Security\Context\IdentityProviderInterface;
+use SmartLicenseServer\Security\Authentication\IdentityProviders\IdentityProviderInterface;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Templates\TemplateLocator;
 
@@ -163,7 +163,7 @@ interface EnvironmentProviderInterface {
     public function clientDashboardRegistry() : ClientDashboardRegistry;
 
     /**
-     * Get the identity provider.
+     * Get the runtime configuration object.
      */
-    public function identityProvider() : IdentityProviderInterface;
+    public function get_runtime_config() : RuntimeConfig;
 }

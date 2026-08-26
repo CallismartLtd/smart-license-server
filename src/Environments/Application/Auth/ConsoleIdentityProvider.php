@@ -12,13 +12,10 @@ namespace SmartLicenseServer\Environments\Application\Auth;
 
 use DateTimeImmutable;
 use DateTimeZone;
-use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\ActorInterface;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
-use SmartLicenseServer\Security\Context\IdentityProviderInterface;
 use SmartLicenseServer\Security\Context\Principal;
-use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Security\Authentication\IdentityProviders\IdentityProviderInterface;
 use SmartLicenseServer\Security\Authentication\ServiceAccountAuthenticator;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Owner;
@@ -56,34 +53,6 @@ class ConsoleIdentityProvider implements IdentityProviderInterface {
         }
 
         return null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function logon( string $email, string $pwd, bool $remember = false ): RequestException|Principal {
-        throw new \Exception( 'Not supported in console environment.' );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function signup(Request $request): RequestException|Principal {
-        throw new \Exception( 'Not supported in console environment.' );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function logout(): void {
-        throw new \Exception( 'Not supported in console environment.' );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function reset_password( User $user, string $new_pwd): bool {
-        throw new \Exception( 'Not supported in console environment.' );
     }
 
     protected function user_owns_root_dir() : bool {

@@ -12,7 +12,8 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Exceptions\SecurityException;
 use SmartLicenseServer\Security\Actors\User;
-use SmartLicenseServer\Security\Context\AbstractIdentityProvider;
+use SmartLicenseServer\Security\Authentication\IdentityProviders\AbstractIdentityProvider;
+use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Context\Principal;
@@ -22,7 +23,7 @@ use SmartLicenseServer\Security\Permission\Role;
 use WP_Error;
 use WP_User;
 
-final class IdentityService extends AbstractIdentityProvider {
+final class IdentityService extends AbstractIdentityProvider implements PasswordIdentityProviderInterface {
     
     /*
     |------------------------------------------
@@ -326,14 +327,7 @@ final class IdentityService extends AbstractIdentityProvider {
     }
 
     /**
-     * Logon using credentials.
-     * 
      * {@inheritdoc}
-     *
-     * @param string $email
-     * @param string $pwd
-     * @param bool $remember
-     * @return RequestException|Principal
      */
     public function logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ): RequestException|Principal {
         $login = $this->wp_user_logon( $email, $pwd, $remember );
@@ -467,12 +461,7 @@ final class IdentityService extends AbstractIdentityProvider {
     */
 
     /**
-     * Signup a user.
-     * 
      * {@inheritdoc}
-     *
-     * @param Request $request
-     * @return RequestException|Principal
      */
     public function signup( Request $request ): RequestException|Principal {
         if ( $request->isEmpty( 'email' ) ) {
@@ -610,13 +599,7 @@ final class IdentityService extends AbstractIdentityProvider {
     */
 
     /**
-     * Perform password reset for a user identified by email.
-     * 
      * {@inheritdoc}
-     *
-     * @param User $user
-     * @param string $new_pwd
-     * @return bool
      */
     public function reset_password( User $user, string $new_pwd ): bool {
         if ( '' === $new_pwd ) {
@@ -659,11 +642,7 @@ final class IdentityService extends AbstractIdentityProvider {
     */
 
     /**
-     * Logout the current user.
-     * 
      * {@inheritdoc}
-     *
-     * @return void
      */
     public function logout() : void {
         wp_logout();

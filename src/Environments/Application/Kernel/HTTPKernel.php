@@ -5,11 +5,17 @@
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Environments\Application\Kernel
  */
-
+declare( strict_types=1 );
 namespace SmartLicenseServer\Environments\Application\Kernel;
 
+use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Environments\Application\Auth\IdentityService;
+use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
 use SmartLicenseServer\Environments\Application\Routing\RouteManager;
+use SmartLicenseServer\Routing\Router;
+use SmartLicenseServer\Security\Authentication\Session\SessionManager;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Http kernel class coordinates http request and response lifecycle.
@@ -17,13 +23,16 @@ use SmartLicenseServer\Environments\Application\Routing\RouteManager;
 class HTTPKernel extends Kernel {
     protected RouteManager $routeManager;
     protected ?Response $response = null;
+    protected Guard $guard;
+    protected IdentityService $identity_service;
+    protected SessionManager $sessionManager;
     
     /**
      * {@inheritdoc}
      */
     public function boot() : static {
-        $this->routeManager = new RouteManager();
-        $this->routeManager->registerCoreRoutes();
+        $this->setAuth();
+        $this->setUpRouter();
         
         return $this;
     }
@@ -55,4 +64,39 @@ class HTTPKernel extends Kernel {
 
         exit( 0 );
     }
+
+    /*
+    |-------------------------
+    | BOOT HELPERS
+    |-------------------------
+    */
+
+    /**
+     * Setup the auth provider
+     */
+    protected function setAuth() : void {
+        $this->guard            = new Guard;
+        $this->sessionManager   = new SessionManager( 
+            $this->environment->get_runtime_config()->secret 
+        );
+
+        $this->identity_service = new IdentityService(
+            $this->guard,
+            new WebIdentityProvider( $this->sessionManager, $this->guard )
+        );
+    }
+
+    /**
+     * Set up web routing
+     */
+    protected function setUpRouter() {
+        $this->routeManager = new RouteManager( new Router );
+                
+        $this->routeManager->registerDefaultPages();
+        $this->routeManager->registerCoreRoutes( 
+            $this->guard,
+            new AuthController( $this->guard, $this->identity_service )
+        );
+    }
+
 }

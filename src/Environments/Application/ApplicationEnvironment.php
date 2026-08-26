@@ -19,12 +19,11 @@ use SmartLicenseServer\RuntimeConfig;
  */
 class ApplicationEnvironment extends Environment {
 
-    private function __construct() {
+    private function __construct( protected RuntimeConfig $runtime ) {
         $this->bind_instance();
         $this->prepare_db_config();
 
         $this->setup([
-            'identity_provider' => new IdentityService(),
             'rest_api_provider' => RestAPIProvider::init( new V1() )
         ]);
     }
@@ -60,7 +59,7 @@ class ApplicationEnvironment extends Environment {
      */
     public static function boot( RuntimeConfig $runtime_config ) : static {
         if ( ! isset( static::$envProvider ) ) {
-            new static();
+            new static( $runtime_config );
         }
 
         return static::$envProvider;

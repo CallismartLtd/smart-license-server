@@ -30,6 +30,11 @@ namespace SmartLicenseServer\Security\Authentication;
  * Cache keys intentionally contain hashed identifiers rather than raw
  * usernames, account identifiers, IP addresses, or other authentication
  * subjects.
+ *
+ * Event records are mutated via the cache adapter's atomic `modify()`
+ * primitive rather than a manual get/set pair, so concurrent authentication
+ * attempts against the same account/source/credential cannot clobber one
+ * another's recorded events.
  */
 final class AuthenticationMonitor {
 
@@ -51,14 +56,19 @@ final class AuthenticationMonitor {
 	private const MAX_EVENTS = 100;
 
 	/**
+	 * Window, in seconds, used by the high-velocity check.
+	 */
+	private const VELOCITY_WINDOW_SECONDS = 60;
+
+	/**
 	 * Detection thresholds.
 	 */
-	private const ACCOUNT_FAILURE_THRESHOLD       = 5;
-	private const SOURCE_FAILURE_THRESHOLD        = 15;
-	private const ACCOUNT_SOURCE_THRESHOLD         = 8;
-	private const SOURCE_ACCOUNT_THRESHOLD         = 10;
-	private const SOURCE_CREDENTIAL_THRESHOLD      = 10;
-	private const VELOCITY_THRESHOLD               = 8;
+	private const ACCOUNT_FAILURE_THRESHOLD  = 5;
+	private const SOURCE_FAILURE_THRESHOLD   = 15;
+	private const ACCOUNT_SOURCE_THRESHOLD   = 8;
+	private const SOURCE_ACCOUNT_THRESHOLD   = 10;
+	private const SOURCE_CREDENTIAL_THRESHOLD = 10;
+	private const VELOCITY_THRESHOLD         = 8;
 
 	/**
 	 * Constructor.
@@ -101,11 +111,29 @@ final class AuthenticationMonitor {
 			'credential' => $credential_key,
 		);
 
-		$this->append_event( 'account', $account_key, $event, $timestamp );
-		$this->append_event( 'source', $source_key, $event, $timestamp );
+		/*
+		 * append_event() now returns the post-write, window-filtered event
+		 * list for that key, so detect() can consume it directly instead of
+		 * issuing a second get() right after the write.
+		 */
+		$account_events = $this->append_event(
+			'account',
+			$account_key,
+			$event,
+			$timestamp
+		);
+
+		$source_events = $this->append_event(
+			'source',
+			$source_key,
+			$event,
+			$timestamp
+		);
+
+		$credential_events = null;
 
 		if ( null !== $credential_key ) {
-			$this->append_event(
+			$credential_events = $this->append_event(
 				'credential',
 				$credential_key,
 				$event,
@@ -114,10 +142,9 @@ final class AuthenticationMonitor {
 		}
 
 		$result = $this->detect(
-			$account_key,
-			$source_key,
-			$credential_key,
-			$timestamp
+			$account_events,
+			$source_events,
+			$credential_events
 		);
 
 		return array(
@@ -175,8 +202,8 @@ final class AuthenticationMonitor {
 		);
 
 		return array(
-			'suspicious'       => $recent_failures >= self::ACCOUNT_FAILURE_THRESHOLD,
-			'recent_failures'  => $recent_failures,
+			'suspicious'      => $recent_failures >= self::ACCOUNT_FAILURE_THRESHOLD,
+			'recent_failures' => $recent_failures,
 		);
 	}
 
@@ -235,10 +262,14 @@ final class AuthenticationMonitor {
 	/**
 	 * Detect brute-force and credential-abuse behavior.
 	 *
-	 * @param string      $account_key
-	 * @param string      $source_key
-	 * @param string|null $credential_key
-	 * @param int         $timestamp
+	 * @param array<int,array<string,mixed>>      $account_events    Post-write
+	 *                                                                account event list.
+	 * @param array<int,array<string,mixed>>      $source_events     Post-write
+	 *                                                                source event list.
+	 * @param array<int,array<string,mixed>>|null $credential_events Post-write
+	 *                                                                credential event list, or
+	 *                                                                null when no credential
+	 *                                                                fingerprint was supplied.
 	 *
 	 * @return array{
 	 *     threats: string[],
@@ -247,26 +278,13 @@ final class AuthenticationMonitor {
 	 * }
 	 */
 	private function detect(
-		string $account_key,
-		string $source_key,
-		?string $credential_key,
-		int $timestamp
+		array $account_events,
+		array $source_events,
+		?array $credential_events
 	): array {
 
 		$threats = array();
 		$score   = 0;
-
-		$account_events = $this->get_events(
-			'account',
-			$account_key,
-			$timestamp
-		);
-
-		$source_events = $this->get_events(
-			'source',
-			$source_key,
-			$timestamp
-		);
 
 		/*
 		 * 1. Traditional account brute force.
@@ -327,13 +345,7 @@ final class AuthenticationMonitor {
 		 *
 		 * The same credential/fingerprint being tried against many accounts.
 		 */
-		if ( null !== $credential_key ) {
-
-			$credential_events = $this->get_events(
-				'credential',
-				$credential_key,
-				$timestamp
-			);
+		if ( null !== $credential_events ) {
 
 			$credential_accounts = $this->unique_event_values(
 				$credential_events,
@@ -355,7 +367,7 @@ final class AuthenticationMonitor {
 		 *
 		 * Detect a burst of failures concentrated into a very short period.
 		 */
-		if ( $this->is_high_velocity( $source_events, $timestamp ) ) {
+		if ( $this->is_high_velocity( $source_events ) ) {
 
 			$threats[] = 'high_velocity';
 			$score    += 2;
@@ -369,9 +381,9 @@ final class AuthenticationMonitor {
 		};
 
 		return array(
-			'threats' => array_values( array_unique( $threats ) ),
-			'score'   => $score,
-			'severity'=> $severity,
+			'threats'  => array_values( array_unique( $threats ) ),
+			'score'    => $score,
+			'severity' => $severity,
 		);
 	}
 
@@ -379,22 +391,19 @@ final class AuthenticationMonitor {
 	 * Determine whether authentication failures are arriving at a high rate.
 	 *
 	 * @param array<int,array<string,mixed>> $events
-	 * @param int                            $timestamp
 	 *
 	 * @return bool
 	 */
-	private function is_high_velocity(
-		array $events,
-		int $timestamp
-	): bool {
+	private function is_high_velocity( array $events ): bool {
 
-		$recent = 0;
+		$recent   = 0;
+		$now      = time();
 
 		foreach ( $events as $event ) {
 
 			$event_time = (int) ( $event['timestamp'] ?? 0 );
 
-			if ( $timestamp - $event_time <= 60 ) {
+			if ( $now - $event_time <= self::VELOCITY_WINDOW_SECONDS ) {
 				$recent++;
 			}
 		}
@@ -403,64 +412,91 @@ final class AuthenticationMonitor {
 	}
 
 	/**
-	 * Append an authentication event to a monitoring record.
+	 * Atomically append an authentication event to a monitoring record.
 	 *
-	 * @param string                $type
-	 * @param string                $identifier
-	 * @param array<string,mixed>   $event
-	 * @param int                   $timestamp
+	 * Uses the cache adapter's `modify()` primitive so that concurrent
+	 * failures against the same account/source/credential (the exact
+	 * condition a real attack produces) cannot race each other's read of
+	 * the event list — each append is applied against the value the
+	 * adapter guarantees is current at write time, not a value this class
+	 * read moments earlier.
 	 *
-	 * @return void
+	 * @param string              $type
+	 * @param string              $identifier
+	 * @param array<string,mixed> $event
+	 * @param int                 $timestamp
+	 *
+	 * @return array<int,array<string,mixed>> The window-filtered event list
+	 *                                        immediately after this event
+	 *                                        was appended.
 	 */
 	private function append_event(
 		string $type,
 		string $identifier,
 		array $event,
 		int $timestamp
-	): void {
+	): array {
 
 		$key = $this->cache_key( $type, $identifier );
 
-		$events = smliser_cache()->get( $key );
+		$events = smliser_cache()->modify(
+			$key,
+			static function ( $current ) use ( $event, $timestamp ): array {
+
+				$events = is_array( $current ) ? $current : array();
+
+				$events[] = $event;
+
+				/*
+				 * Remove events outside the monitoring window.
+				 */
+				$events = array_values(
+					array_filter(
+						$events,
+						static function ( $item ) use ( $timestamp ): bool {
+
+							return is_array( $item )
+								&& isset( $item['timestamp'] )
+								&& ( $timestamp - (int) $item['timestamp'] )
+									<= self::DEFAULT_WINDOW;
+						}
+					)
+				);
+
+				/*
+				 * Hard upper bound protects the cache from abuse.
+				 */
+				if ( count( $events ) > self::MAX_EVENTS ) {
+
+					$events = array_slice(
+						$events,
+						-self::MAX_EVENTS
+					);
+				}
+
+				return $events;
+			},
+			self::DEFAULT_WINDOW,
+			array()
+		);
 
 		if ( ! is_array( $events ) ) {
-			$events = array();
+
+			/*
+			 * modify() failed at the adapter level (lock timeout, backend
+			 * unreachable, etc.) rather than the callback aborting — the
+			 * callback above always returns an array, never false.
+			 *
+			 * Falling back to an empty list would silently undercount an
+			 * attack in progress, which is the wrong failure mode for a
+			 * security monitor. Fall back to a single-event list instead,
+			 * so this attempt is still visible to detect() even though
+			 * prior history for this key is temporarily unavailable.
+			 */
+			$events = array( $event );
 		}
 
-		$events[] = $event;
-
-		/*
-		 * Remove events outside the monitoring window.
-		 */
-		$events = array_values(
-			array_filter(
-				$events,
-				static function ( $item ) use ( $timestamp ): bool {
-
-					return is_array( $item )
-						&& isset( $item['timestamp'] )
-						&& ( $timestamp - (int) $item['timestamp'] )
-							<= self::DEFAULT_WINDOW;
-				}
-			)
-		);
-
-		/*
-		 * Hard upper bound protects the cache from abuse.
-		 */
-		if ( count( $events ) > self::MAX_EVENTS ) {
-
-			$events = array_slice(
-				$events,
-				-self::MAX_EVENTS
-			);
-		}
-
-		smliser_cache()->set(
-			$key,
-			$events,
-			self::DEFAULT_WINDOW
-		);
+		return $events;
 	}
 
 	/**

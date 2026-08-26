@@ -19,13 +19,18 @@ use SmartLicenseServer\Security\Context\Guard;
 class AdminAccessMiddleware implements MiddlewareInterface {
 
     /**
+     * Class constructor
+     */
+    public function __construct( protected Guard $guard ) {}
+
+    /**
      * {@inheritdoc}
      * 
      * Perform authentication and authorization checks.
      */
     public function handle( Request $request, callable $next ) : mixed {
         
-        if ( ! Guard::has_principal() ) {
+        if ( ! $this->guard->has_principal() ) {
             $return_url = \smliser_get_current_url();
 
             // Form submission after logged out?
@@ -46,7 +51,7 @@ class AdminAccessMiddleware implements MiddlewareInterface {
         }
 
         // Handle authenticated users without admin privileges
-        if ( ! Guard::get_principal()->is( 'system_admin' ) ) {
+        if ( ! $this->guard->get_principal()->is( 'system_admin' ) ) {
             return Response::make( '', 302 )
                 ->set_header( 'Location', smliser_client_dashboard_url()->url() );
         }

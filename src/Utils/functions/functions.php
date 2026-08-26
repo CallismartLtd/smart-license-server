@@ -435,13 +435,6 @@ function smliser_request() : Request {
 }
 
 /**
- * Get the identity provider.
- */
-function identityProvider() : IdentityProviderInterface {
-    return smliser_envProvider()->identityProvider();
-}
-
-/**
  * Returns the singleton instance of the parser.
  *
  * @return MDParser

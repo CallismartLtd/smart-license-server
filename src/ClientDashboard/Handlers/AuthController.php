@@ -27,12 +27,21 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
 class AuthController {
     use QueueAwareTrait, TokenDeliveryTrait, CacheAwareTrait;
+
+    /**
+     * Class constructor.
+     */
+    public function __construct(
+        protected Guard $guard,
+        protected PasswordIdentityProviderInterface $id_provider
+    ) {}
 
     /*
     |--------------------------------------------------
@@ -49,7 +58,7 @@ class AuthController {
      * @param Request $request Request object.
      * @return Response JSON response
      */
-    public static function handle_login( Request $request ) : Response {
+    public function handle_login( Request $request ) : Response {
         $username   = (string) $request->get( 'username', '' );
         $password   = (string) $request->get( parameter: 'password', default: '', sanitize: false );
         $remember   = (bool) $request->get( 'remember', false );
@@ -62,7 +71,7 @@ class AuthController {
             );
         }
 
-        $principal = \identityProvider()->logon( $username, $password, $remember );
+        $principal = $this->id_provider->logon( $username, $password, $remember );
 
         if ( $principal instanceof RequestException ) {
             return static::error_response(
@@ -88,14 +97,14 @@ class AuthController {
      * 
      * @return array{success: bool, message: string}
      */
-    public static function handle_logout() : array {
+    public function handle_logout() : array {
         $principal  = Guard::get_principal();
 
         if ( ! $principal ) {
             return ['success' => false, 'message' => 'Already logged out'];
         }
 
-        \identityProvider()->logout();
+        $this->id_provider->logout();
 
         $actor_name = $principal->get_display_name();
         return [ 'success' => true, 'message' => sprintf( 'Good bye %s', $actor_name ) ];
@@ -116,7 +125,7 @@ class AuthController {
      * @param Request $request Contains: full_name, email, password, password_confirm, agree_terms, _wpnonce_signup
      * @return Response JSON response
      */
-    public static function handle_signup( Request $request ) : Response {
+    public function handle_signup( Request $request ) : Response {
         if ( ! $request->has( 'agree_terms' ) ) {
             return static::error_response(
                 400,
@@ -125,7 +134,7 @@ class AuthController {
             );
         }
 
-        $principal = \identityProvider()->signup( $request );
+        $principal = $this->id_provider->signup( $request );
         
         if ( $principal instanceof RequestException ) {
             $status_code    = (int) ( $principal->get_error_data()['status'] ?? 400 );
@@ -136,15 +145,13 @@ class AuthController {
             );
         }
 
-        $static = new static;
-
         $account_type   = $request->get( 'account_type', 'viewer' );
 
         if ( 'resource_owner' !== $account_type ) {
             $account_type = 'viewer';
         }
         
-        $static->dispatch_job(
+        $this->dispatch_job(
             SignupEmailJob::class,
             [
                 'user_id'   => $principal->get_id(),
@@ -152,7 +159,7 @@ class AuthController {
             ]
         );
 
-        $static->dispatch_job(
+        $this->dispatch_job(
             SignupEmailJob::class,
             [
                 'user_id'       => $principal->get_id(),
@@ -188,7 +195,7 @@ class AuthController {
      * @param Request $request
      * @return Response JSON response
      */
-    public static function handle_forgot_password( Request $request ) : Response {
+    public function handle_forgot_password( Request $request ) : Response {
         $email = (string) $request->get( 'email', '' );
 
         // Validate email
@@ -211,7 +218,7 @@ class AuthController {
             return static::success_response( 200, $response_data );
         }
 
-        ( new static )->password_recovery( $user );
+        $this->password_recovery( $user );
 
         return static::success_response( 200, $response_data );
     }
@@ -222,7 +229,7 @@ class AuthController {
      * @param Request $request
      * @return Response
      */
-    public static function handle_reset_password( Request $request ) : Response {
+    public function handle_reset_password( Request $request ) : Response {
         $token  = $request->get( 'token' );
 
         $check  = static::verify_password_reset_token( $token );
@@ -267,7 +274,7 @@ class AuthController {
         );
         
         try {
-            \identityProvider()->reset_password( $user, $password_1 );
+            $this->id_provider->reset_password( $user, $password_1 );
         } catch ( Exception $e ) {
             return static::error_response(
                 401,
@@ -330,7 +337,7 @@ class AuthController {
             ->add_query_params( array( 'key' => $token ) )
             ->set_hash( 'reset-password' );
 
-        ( new static )->dispatch_job(
+        $this->dispatch_job(
             PasswordResetJob::class,
             array(
                 'user_id'    => $user->get_id(),
@@ -349,7 +356,7 @@ class AuthController {
      * @param string $token
      * @return array{valid: bool, email?: string, reason?: string}
      */
-    public static function verify_password_reset_token( #[\SensitiveParameter] string $token ) : array {
+    public function verify_password_reset_token( #[\SensitiveParameter] string $token ) : array {
         $decoded    = self::base64url_decode( $token );
 
         if ( ! $decoded || ! str_contains( $decoded, '.' ) ) {
@@ -406,7 +413,7 @@ class AuthController {
      * @param Request $request Contains: verification_code OR backup_code, _wpnonce_2fa
      * @return Response JSON response
      */
-    public static function handle_2fa( Request $request ) : Response {
+    public function handle_2fa( Request $request ) : Response {
 
         // Return success
         return static::success_response(

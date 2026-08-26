@@ -11,31 +11,24 @@ namespace SmartLicenseServer\Environments\Application\Auth;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
-use SmartLicenseServer\Security\Context\AbstractIdentityProvider;
+use SmartLicenseServer\Security\Authentication\IdentityProviders\AbstractIdentityProvider;
+use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Context\Principal;
 
 /**
  * Identity service provider.
  */
-class IdentityService extends AbstractIdentityProvider {
-    /**
-     * The identity provider for either the web or CLI.
-     */
-    protected WebIdentityProvider|ConsoleIdentityProvider $provider;
+class IdentityService extends AbstractIdentityProvider implements PasswordIdentityProviderInterface {    
     /**
      * Class constructor.
      * 
      * @param WebIdentityProvider|ConsoleIdentityProvider|null $provider
      */
     public function __construct(
-        WebIdentityProvider|ConsoleIdentityProvider|null $provider = null
-    ) {
-        if ( null === $provider ) {
-            $provider   = $this->auto_select_provider();
-        }
-
-        $this->provider = $provider;
-    }
+        protected Guard $guard,
+        protected WebIdentityProvider|ConsoleIdentityProvider $provider
+    ) {}
 
     /**
      * {@inheritdoc}
@@ -70,19 +63,5 @@ class IdentityService extends AbstractIdentityProvider {
      */
     public function reset_password(User $user, string $new_pwd): bool {
         return $this->provider->reset_password( $user, $new_pwd );
-    }
-
-    /*
-    |-------------------
-    | INTERNAL HELPERS
-    |-------------------
-    */
-
-    protected function auto_select_provider() : WebIdentityProvider|ConsoleIdentityProvider {
-        if ( in_array( \php_sapi_name(), [ 'cli', 'phpdbg' ], true ) ) {
-            return new ConsoleIdentityProvider();
-        }
-
-        return new WebIdentityProvider();
     }
 }

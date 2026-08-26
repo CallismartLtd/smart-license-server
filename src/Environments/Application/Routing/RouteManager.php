@@ -21,6 +21,7 @@ use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddlewar
 use SmartLicenseServer\Routing\Router as CoreRouter;
 use SmartLicenseServer\Routing\DispatchStatus;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * The application environment's route manager, which wraps the core Router and 
@@ -31,9 +32,6 @@ use SmartLicenseServer\RESTAPI\RESTVersionInterface;
  * request all the way through to calling a handler, middleware included.
  */
 final class RouteManager {
-
-	private CoreRouter $router;
-
 	/** 
      * The 404 page response callback.
      * 
@@ -55,13 +53,7 @@ final class RouteManager {
      */
     private $defaultHomeHandler;
 
-	public function __construct( ?CoreRouter $router = null ) {
-		$this->router = $router ?? new CoreRouter();
-
-        $this->notFound( [DefaultPage::class, 'not_found'] );
-        $this->methodNotAllowed( [DefaultPage::class, 'method_not_allowed'] );
-        $this->homeHandler( [DefaultPage::class, 'home'] );
-	}
+	public function __construct( protected CoreRouter $router ) {}
 
 	/**
 	 * Direct access to the underlying core Router — group()/add()/get()/
@@ -70,6 +62,15 @@ final class RouteManager {
 	public function router(): CoreRouter {
 		return $this->router;
 	}
+
+    /**
+     * Register default page handlers.
+     */
+    public function registerDefaultPages() : void {
+        $this->notFound( [DefaultPage::class, 'not_found'] );
+        $this->methodNotAllowed( [DefaultPage::class, 'method_not_allowed'] );
+        $this->homeHandler( [DefaultPage::class, 'home'] );
+    }
 
 	/**
 	 * Registers a RESTVersionInterface provider's routes onto the underlying core Router.
@@ -112,7 +113,10 @@ final class RouteManager {
      * 
      * @return void
      */
-    public function registerCoreRoutes() : void {
+    public function registerCoreRoutes(
+        Guard $guard,
+        AuthController $auth_controller,
+    ) : void {
         $admin_url_prefix           = \smliser_get_admin_url_prefix();
         $client_dashboard_prefix    = \smliser_get_client_dashboard_url_prefix();
 
@@ -121,7 +125,7 @@ final class RouteManager {
         $this->router->any( '/', $this->defaultHomeHandler );
 
         $this->router->group( smliser_login_url_prefix(),
-            function() {
+            function() use ( $auth_controller ) {
                 $this->router->add(
                     methods: ['GET'],
                     pattern: '/',
@@ -145,29 +149,29 @@ final class RouteManager {
                 // Forms POST route.
                 $this->router->post(
                     pattern: 'form/login',
-                    handler: [AuthController::class, 'handle_login']
+                    handler: [$auth_controller, 'handle_login']
                 );
                 $this->router->post(
                     pattern: 'form/signup',
-                    handler: [Signup::class, 'handle']
+                    handler: [$auth_controller, 'handle_signup']
                 );
                 $this->router->post(
                     pattern: 'form/forgot-password',
-                    handler: [ForgotPassword::class, 'handle']
+                    handler: [$auth_controller, 'handle_forgot_password']
                 );
             },
             middleware: []
         );
 
         $this->router->group( $admin_url_prefix,
-            function() {
+            function() use ( $guard ) {
                 $this->router->add( '/', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
                 $this->router->add( '/{tab:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
                 $this->router->add( '/{tab:slug}/{submenu:slug}', ['GET'], [Dispatcher::class, 'render_admin_dashboard'] );
             },
 
             middleware: [
-                AdminAccessMiddleware::class
+                new AdminAccessMiddleware( $guard )
             ]
         );
         

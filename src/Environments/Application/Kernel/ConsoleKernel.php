@@ -21,6 +21,7 @@ use SmartLicenseServer\Console\Runners\NonInteractiveRunner;
 use SmartLicenseServer\Console\Runners\RunnerInterface;
 use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
+use SmartLicenseServer\Environments\Application\Auth\ConsoleIdentityProvider;
 
 /**
  * Console kernel class coordinates console command lifecycle.
@@ -158,7 +159,7 @@ class ConsoleKernel extends Kernel {
      * {@inheritdoc}
      */
     public function boot() : static {
-        $this->environment->identityProvider()->authenticate();
+        ( new ConsoleIdentityProvider )->authenticate();
         
         $this->init_runner();
 
