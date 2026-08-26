@@ -175,7 +175,7 @@ class RepositoryPage implements AdminPageInterface {
         $app_action = array(
             'title' => 'Repository',
             'label' => 'Repository',
-            'url'   => smliser_get_current_url()->remove_query_param(  'app_id', 'type', 'tab' ),
+            'url'   => \smliser_repository_url( 'admin' ),
             'icon'  => 'ti ti-arrow-back'
         );
 

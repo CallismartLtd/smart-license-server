@@ -16,7 +16,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Repository',
-                    'url'   => adminUrl( 'admin.php?page=smliser-repository' ),
+                    'url'   => smliser_repository_url( 'admin' ),
                     'icon'  => 'ti ti-home-filled'
                 ),
 
