@@ -378,7 +378,7 @@ class GlobalErrorHandler {
         $config = array_merge([
             'environment'     => 'auto',
             'debug'           => false,
-            'error_reporting' => E_ALL,
+            'error_reporting' => 0,
             'display_errors'  => false,
             'log_errors'      => true,
             'log_path'        => null,
