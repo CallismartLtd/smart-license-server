@@ -42,7 +42,7 @@ class WordPressEnvironment extends Environment {
     /**
      * Class constructor
      */
-    private function __construct() {
+    private function __construct( protected RuntimeConfig $runtime ) {
         $this->bind_instance();
 
         Autoloader::add_function_dir( __DIR__ . '/functions' );
@@ -128,10 +128,10 @@ class WordPressEnvironment extends Environment {
     /**
      * {@inheritdoc}
      */
-    public static function boot( RuntimeConfig $runtime_config ) : static {
+    public static function boot( RuntimeConfig $runtime ) : static {
         
         if ( ! isset( static::$envProvider ) ) {
-            new static();
+            new static( $runtime );
         }
 
         return static::$envProvider;

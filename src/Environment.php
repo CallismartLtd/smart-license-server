@@ -36,6 +36,7 @@ use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
+use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentBooted;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentBooting;
 use SmartLicenseServer\Events\Bootstrap\EnvironmentReady;
@@ -64,6 +65,11 @@ use SmartLicenseServer\Templates\TemplateLocator;
  * @since 0.2.0
  */
 abstract class Environment implements EnvironmentProviderInterface {
+    /**
+     * Dependency injection container.
+     */
+    protected Container $container;
+
     /**
      * Centralized, immutable environment configuration obejct.
      */
@@ -256,14 +262,18 @@ abstract class Environment implements EnvironmentProviderInterface {
      * } $config The overridable environment configuration options.
      * @throws EnvironmentBootstrapException If required configuration is missing or invalid.
      */
-    final protected function setup( array $config ) {
-        EventServiceProvider::instance()->boot();
-        smliser_dispatch_event( new EnvironmentBooting() );
+    final protected function setup( array $config ) : void {
+        $this->container = new Container();
+        
+        smliser_dispatch_event( $this->container->get( EnvironmentBooting::class ) );
 
         $this->parse_config( $config );
         $this->setProps();
-        
-        smliser_dispatch_event( new EnvironmentBooted );
+
+        $this->registerEnvironmentDependencies();
+        $this->registerCoreServices();
+
+        smliser_dispatch_event( $this->container->get( EnvironmentBooted::class ) );
     }
 
     /*
@@ -343,7 +353,77 @@ abstract class Environment implements EnvironmentProviderInterface {
             $this->request = Request::createFromGlobals();
         }
 
-        smliser_dispatch_event( new EnvironmentReady );
+        $this->container->set( Request::class, $this->request );
+
+        smliser_dispatch_event( $this->container->get( EnvironmentReady::class ) );
+    }
+
+    protected function registerEnvironmentDependencies() : void {
+        $this->container->set( Environment::class, $this );
+        $this->container->set( EnvironmentProviderInterface::class, $this );
+        $this->container->set( RuntimeConfig::class, $this->runtime );
+    }
+
+    protected function registerCoreServices() : void {
+        $this->container->singleton(
+            Database::class,
+            fn (): Database => $this->database()
+        );
+
+        $this->container->singleton(
+            FileSystem::class,
+            fn (): FileSystem => $this->filesystem()
+        );
+
+        $this->container->singleton(
+            Cache::class,
+            fn (): Cache => $this->cache()
+        );
+
+        $this->container->singleton(
+            Settings::class,
+            fn (): Settings => $this->settings()
+        );
+
+        $this->container->singleton(
+            Mailer::class,
+            fn (): Mailer => $this->mailer()
+        );
+
+        $this->container->singleton(
+            JobQueue::class,
+            fn (): JobQueue => $this->job_queue()
+        );
+
+        $this->container->singleton(
+            QueueWorker::class,
+            fn (): QueueWorker => $this->queue_worker()
+        );
+
+        $this->container->singleton(
+            HttpClient::class,
+            fn (): HttpClient => $this->httpClient()
+        );
+
+        $this->container->singleton(
+            TemplateLocator::class,
+            fn (): TemplateLocator => $this->templateLocator()
+        );
+
+        $this->container->singleton(
+            AdminDashboardRegistry::class,
+            fn (): AdminDashboardRegistry => $this->adminDashboardRegistry()
+        );
+
+        $this->container->singleton(
+            ClientDashboardRegistry::class,
+            fn (): ClientDashboardRegistry => $this->clientDashboardRegistry()
+        );
+
+        $this->container->singleton(
+            AuthTemplateRegistry::class,
+            fn (): AuthTemplateRegistry => $this->authTemplateRegistry()
+        );
     }
 
     /**
@@ -672,6 +752,13 @@ abstract class Environment implements EnvironmentProviderInterface {
      */
     public function get_runtime_config() : RuntimeConfig {
         return $this->runtime;
+    }
+
+    /**
+     * Get the DI container.
+     */
+    public function container() : Container {
+        return $this->container;
     }
 
     /**

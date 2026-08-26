@@ -120,7 +120,6 @@ final class RouteManager {
         AuthForms $auth_forms,
         Dispatcher $admin_dispatcher
     ) : void {
-        $admin_url_prefix           = \smliser_get_admin_url_prefix();
         $client_dashboard_prefix    = \smliser_get_client_dashboard_url_prefix();
 
 
@@ -171,11 +170,26 @@ final class RouteManager {
             handler: [$auth_controller, 'handle_logout']
         );
 
-        $this->router->group( $admin_url_prefix,
+        $this->router->group( smliser_get_admin_url_prefix(),
             function() use ( $admin_dispatcher ) {
-                $this->router->add( '/', ['GET'], [$admin_dispatcher, 'render_admin_dashboard'] );
-                $this->router->add( '/{tab:slug}', ['GET'], [$admin_dispatcher, 'render_admin_dashboard'] );
-                $this->router->add( '/{tab:slug}/{submenu:slug}', ['GET'], [$admin_dispatcher, 'render_admin_dashboard'] );
+                // Main pages and and submenu routes.
+                $this->router->get(
+                    pattern: '/',
+                    handler: [$admin_dispatcher, 'render_admin_dashboard']
+                );
+
+                $this->router->get(
+                    pattern: '/{tab:slug}',
+                    handler: [$admin_dispatcher, 'render_admin_dashboard']
+                );
+
+                $this->router->get(
+                    pattern: '/{tab:slug}/{submenu:slug}',
+                    handler: [$admin_dispatcher, 'render_admin_dashboard']
+                );
+
+                // POST, PUT, PATCH routes.
+                
             },
 
             middleware: [

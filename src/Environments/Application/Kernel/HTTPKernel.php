@@ -11,7 +11,6 @@ namespace SmartLicenseServer\Environments\Application\Kernel;
 use SmartLicenseServer\Admin\Page\Dispatcher;
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\AuthForms;
-use SmartLicenseServer\ClientDashboard\TemplateHandlers\Login;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
@@ -25,9 +24,7 @@ use SmartLicenseServer\Security\Context\Guard;
  */
 class HTTPKernel extends Kernel {
     protected RouteManager $routeManager;
-    protected ?Response $response = null;
-    protected Guard $guard;
-    protected IdentityService $identity_service;
+    protected Response $response;
     protected SessionManager $sessionManager;
     
     /**

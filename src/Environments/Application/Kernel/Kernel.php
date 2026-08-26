@@ -11,7 +11,9 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\Application\Kernel;
 
+use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\Environments\EnvironmentProviderInterface;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Abstract application kernel.
@@ -21,6 +23,9 @@ use SmartLicenseServer\Environments\EnvironmentProviderInterface;
  * and executed for that interface.
  */
 abstract class Kernel {
+    protected Guard $guard;
+    protected IdentityService $identity_service;
+    
     /**
      * Create instance.
      * 
