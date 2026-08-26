@@ -17,7 +17,7 @@ final class Guard {
      * The current principal instance for this request.
      * @var Principal|null
      */
-    private static ?Principal $current_principal = null;
+    private ?Principal $current_principal = null;
 
     /**
      * Set the current principal.
@@ -25,8 +25,8 @@ final class Guard {
      * @param Principal|null $principal
      * @return void
      */
-    public static function set_principal( ?Principal $principal ) : void {
-        self::$current_principal = $principal;
+    public function set_principal( ?Principal $principal ) : void {
+        $this->current_principal = $principal;
     }
 
     /**
@@ -34,8 +34,8 @@ final class Guard {
      *
      * @return Principal|null
      */
-    public static function get_principal() : ?Principal {
-        return self::$current_principal;
+    public function get_principal() : ?Principal {
+        return $this->current_principal;
     }
 
     /**
@@ -43,8 +43,8 @@ final class Guard {
      *
      * @return bool
      */
-    public static function has_principal() : bool {
-        return isset( self::$current_principal );
+    public function has_principal() : bool {
+        return isset( $this->current_principal );
     }
 
     /**
@@ -52,8 +52,8 @@ final class Guard {
      *
      * @return void
      */
-    public static function clear_principal() : void {
-        self::$current_principal = null;
+    public function clear_principal() : void {
+        $this->current_principal = null;
     }
 
 }
