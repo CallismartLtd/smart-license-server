@@ -866,7 +866,7 @@ function render_top_menu_item( array $item ) : string {
 			$icon_html .= sprintf( '<i class="%s"%s></i>', htmlspecialchars( $icon['class'] ), $icon_attr_string );
 		}
 	} elseif ( $item['icon'] ) {
-		$icon_html = sprintf( '<i class="icon icon-%s"></i>', htmlspecialchars( $item['icon'] ) );
+		$icon_html = sprintf( '<i class="%s"></i>', htmlspecialchars( $item['icon'] ) );
 	}
 
 	$title = $item['title'] ? sprintf( '<span class="label">%s</span>', htmlspecialchars( $item['title'] ) ) : '';

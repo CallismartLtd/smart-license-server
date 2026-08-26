@@ -12,12 +12,13 @@
 	var MOBILE_BREAKPOINT     = 782;
 
 	document.addEventListener( 'DOMContentLoaded', function () {
-		var wrapper            = document.getElementById( 'dashboard-wrapper' );
-		var menuToggle          = document.getElementById( 'dashboard-menu-toggle' );
-		var mobileMenuToggle    = document.getElementById( 'dashboard-mobile-menu-toggle' );
-		var overlay             = document.getElementById( 'dashboard-overlay' );
-		var themeToggle         = document.getElementById( 'dashboard-theme-toggle' );
-		var leftMenu            = document.getElementById( 'dashboard-left-menu' );
+		var wrapper				= document.querySelector( '#dashboard-wrapper' );
+		var menuToggle          = document.querySelector( '#dashboard-menu-toggle' );
+		var mobileMenuToggle    = document.querySelector( '#dashboard-mobile-menu-toggle' );
+		var overlay             = document.querySelector( '#dashboard-overlay' );
+		var themeToggle         = document.querySelector( '#dashboard-theme-toggle' );
+		var leftMenu            = document.querySelector( '#dashboard-left-menu' );
+		var logoutLink			= document.querySelector( 'a.smliser-logout-link-btn' );
 
 		if ( ! wrapper ) {
 			return;
@@ -67,6 +68,32 @@
 				event.preventDefault();
 				toggle.closest( '.dashboard-menu-item' ).classList.toggle( 'is-open' );
 			} );
+		}
+
+		if ( logoutLink ) {
+			logoutLink.addEventListener( 'click', async e => {
+				e.preventDefault();
+
+				if ( ! await SmliserModal.confirm( 'Are you sure you want to logout?' ) ) {
+					return;
+				}
+
+				const url 	= logoutLink.href;
+
+				try {
+					let response = await smliserFetchJSON( url );
+					if ( ! response.success ) {
+						throw new Error( response.message ?? response.data.message ?? 'Unknown error occurred.' );	
+					}
+
+					await SmliserModal.success( response.message );
+					window.location.reload();
+					
+				} catch (error) {
+					await SmliserModal.error( error.message );
+				}
+				
+			})
 		}
 
 		window.addEventListener( 'resize', function () {

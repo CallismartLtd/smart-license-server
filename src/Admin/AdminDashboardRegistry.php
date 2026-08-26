@@ -57,6 +57,17 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
             ],
             'visibility' => true,
         ] );
+
+        $this->add_top_menu( 'logout_button', [
+            'title'         => 'Logout',
+            'type'          => 'link',
+            'href'          => \smliser_logout_url(),
+            'visibility'    => true,
+            'icon'          => 'ti ti-logout',
+            'attributes'    => [
+                'class' => 'smliser-logout-link-btn'
+            ]
+        ]);
     }
 
     /**

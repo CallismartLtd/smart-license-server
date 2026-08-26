@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Environments\Application\Routing;
 
 use SmartLicenseServer\Admin\Page\Dispatcher;
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\AuthForms;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\ForgotPassword;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\Login;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\Signup;
@@ -116,7 +117,7 @@ final class RouteManager {
     public function registerCoreRoutes(
         Guard $guard,
         AuthController $auth_controller,
-        Login $login_controller,
+        AuthForms $auth_forms,
         Dispatcher $admin_dispatcher
     ) : void {
         $admin_url_prefix           = \smliser_get_admin_url_prefix();
@@ -127,25 +128,25 @@ final class RouteManager {
         $this->router->any( '/', $this->defaultHomeHandler );
 
         $this->router->group( smliser_login_url_prefix(),
-            function() use ( $auth_controller, $login_controller ) {
+            function() use ( $auth_controller, $auth_forms ) {
                 $this->router->add(
                     methods: ['GET'],
                     pattern: '/',
-                    handler: [$login_controller, 'render_login_form'],
+                    handler: [$auth_forms, 'render_login_form_shell'],
                 );
 
                 // Forms GET route.
                 $this->router->get(
                     pattern: 'form/login',
-                    handler: [$login_controller, 'handle']
+                    handler: [$auth_forms, 'render_json_login_form']
                 );
                 $this->router->get(
                     pattern: 'form/signup',
-                    handler: [Signup::class, 'handle']
+                    handler: [$auth_forms, 'render_json_signup_form']
                 );
                 $this->router->get(
                     pattern: 'form/forgot-password',
-                    handler: [ForgotPassword::class, 'handle']
+                    handler: [$auth_forms, 'render_json_forgot_password_form']
                 );
 
                 // Forms POST route.
@@ -163,6 +164,11 @@ final class RouteManager {
                 );
             },
             middleware: []
+        );
+
+        $this->router->get(
+            pattern: \smliser_logout_url_prefix(),
+            handler: [$auth_controller, 'handle_logout']
         );
 
         $this->router->group( $admin_url_prefix,

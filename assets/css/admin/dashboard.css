@@ -460,8 +460,19 @@ button:hover:not( :disabled ),
 	justify-content: space-between;
 	padding: 0 16px;
 	background: var( --dashboard-surface );
-	/* border-bottom: 1px solid var( --dashboard-border ); */
+	border-bottom: 1px solid var( --dashboard-border );
 	box-shadow: var( --dashboard-shadow );
+}
+
+.smliser-logout-link-btn {
+	cursor: pointer;
+	background: var( --dashboard-danger-bg );
+	color: var( --dashboard-danger-text );
+	border: 1px solid transparent;
+	border-radius: var( --dashboard-radius );
+	padding: 4px 8px;
+	font-weight: 600;
+	transition: background var( --dashboard-transition ), opacity var( --dashboard-transition );
 }
 
 .dashboard-top-menu-left,

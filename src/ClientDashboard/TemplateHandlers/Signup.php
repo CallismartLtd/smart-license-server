@@ -26,12 +26,12 @@ class Signup implements DashboardHandlerInterface {
         return 'signup';
     }
 
-    public static function guard( Request $request ) : bool|RequestException {
+    public function guard( Request $request ) : bool|RequestException {
         // Signup accessible to everyone (no authentication required)
         return true;
     }
 
-    public static function handle( Request $request ) : Response {
+    public function handle( Request $request ) : Response {
         $html = smliser_render_template_to_string( ClientDashboardRenderer::AUTH_SIGNUP_TEMPLATE, [] );
 
         return ( new Response( 200 ) )

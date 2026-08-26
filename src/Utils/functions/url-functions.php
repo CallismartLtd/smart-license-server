@@ -461,7 +461,16 @@ function smliser_download_url( string|URL $url, int $timeout = 30, bool $autocle
  * @return string
  */
 function smliser_login_url_prefix() : string {
-    return (string) smliser_settings()->get( 'login_url_prefix', 'login' );
+    return (string) smliser_settings()->get( 'login_url_prefix', 'auth' );
+}
+
+/**
+ * Get the logout URL prefix.
+ * 
+ * @return string
+ */
+function smliser_logout_url_prefix() : string {
+    return (string) smliser_settings()->get( 'logout_url_prefix', 'logout' );
 }
 
 /**
@@ -472,5 +481,17 @@ function smliser_login_url_prefix() : string {
  */
 function smliser_login_url( string $path = '', array $params = [] ) : URL {
     return url( smliser_login_url_prefix(), $params )
+        ->append_path( $path )
+        ->set_hash( 'login' );
+}
+
+/**
+ * Get the logout url.
+ * 
+ * @param string $path
+ * @param array $params
+ */
+function smliser_logout_url( string $path = '', array $params = [] ) : URL {
+    return url( smliser_logout_url_prefix(), $params )
         ->append_path( $path );
 }

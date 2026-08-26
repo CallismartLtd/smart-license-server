@@ -1,47 +1,97 @@
 <?php
 /**
- * Client Authentication Index Template (SPA Skeleton)
+ * Authentication index file.
+ * 
+ * Pure orchestrator.
  *
- * Renders the main container for the authentication SPA.
- * Auth forms (login, signup, forgot-password, 2fa) are fetched
- * dynamically via REST API based on URL fragment.
- *
- * This template provides:
- * - Outer container structure
- * - Content injection point (#smlag-content)
- * - Loading spinner state
- * - Error handling with retry
- * - Meta tags for JS
- *
- * Expected variables (from shell.php):
- *
- * @var string $rest_base    REST API base URL (used by JS)
- * @var string $principal    Null (not authenticated)
+ * @var array<string, array{title: string, slug: string, handler: callable, icon: string}> $menu
+ * @var string $rest_base
+ * @var string $active_slug
+ * @var \SmartLicenseServer\Templates\TemplateLocator $this
+ * @var \SmartLicenseServer\Security\Context\Guard $guard
+ * @var \SmartLicenseServer\Core\Request $request
  */
 
-defined( 'SMLISER_ROOT' ) || exit; ?>
-<div class="smlag-container">
-    <div class="smlag-card">
-        <!-- Loading state: shown while fetching form -->
-        <div class="smlag-loader" id="smlag-loader" hidden aria-label="Loading">
-            <span class="smlag-loader-spinner" aria-hidden="true"></span>
-            <span class="smlag-loader-text">Loading...</span>
-        </div>
-        
-        <!-- Content area where auth forms are dynamically injected -->
-        <div id="smlag-content" aria-live="polite" aria-busy="false"></div>
+use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\AuthForms;
 
-        <!-- Error state: shown if form fetch fails -->
-        <div class="smlag-error" id="smlag-error" hidden role="alert">
-            <div class="smlag-error-icon" aria-hidden="true">
-                <i class="ti ti-alert-circle"></i>
-            </div>
-            <p class="smlag-error-message" id="smlag-error-message"></p>
-            <button class="smlag-button smlag-button--small" id="smlag-error-retry" type="button">
-                <i class="ti ti-refresh" aria-hidden="true"></i>
-                <span>Retry</span>
-            </button>
-        </div>
+defined( 'SMLISER_ROOT' ) || exit;
 
-    </div>
-</div>
+/*
+|--------------------------------------------------
+| VARIABLES & DEFAULTS
+|--------------------------------------------------
+*/
+$rest_base      = $rest_base   ?? '';
+$active_slug    = $active_slug ?? array_key_first( $menu ) ?? '';
+$repo_name      = (string) smliser_settings()->get( 'smliser_repository_name', SMLISER_APP_NAME );
+
+/*
+|--------------------------------------------------
+| RESOLVE PRINCIPAL & USER PREFERENCES
+|--------------------------------------------------
+*/
+
+$theme    = 'dark';
+$collapsed = false;
+
+/*
+|--------------------------------------------------
+| DYNAMIC ASSET LOADING
+|--------------------------------------------------
+*/
+$styles  = [ 'smliser-client-dashboard' ];
+$scripts = [ 'smliser-client-dashboard' ];
+
+$styles     = ['smliser-client-auth', 'smliser-client-dashboard'];
+$scripts    = ['smliser-client-auth'];
+
+/*
+|--------------------------------------------------
+| 1. HEADER
+|    Auth guard, <head>, <body class="smlcd-body">,
+|    opens <div class="smlcd-layout" id="smlcd-layout">
+|--------------------------------------------------
+*/
+$title  = $repo_name;
+$title  = ! empty( $menu )
+    ? sprintf( '%s — %s', $menu[$active_slug]['title'], $title ) ?? $title
+    : $title;
+
+$template   = authTemplateRegistry();
+
+$this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
+    'menu'          => $menu,
+    'rest_base'     => $rest_base,
+    'active_slug'   => $active_slug,
+    'styles'        => $styles,
+    'title'         => $title,
+    'repo_name'     => $repo_name,
+    'theme'         => $theme,
+    'collapsed'     => $collapsed,
+    'allowed_slugs' => $template->slugs()
+] );
+
+/*
+|--------------------------------------------------
+| 2. CONTENT
+|    <div class="smlag-container">... </div>
+|--------------------------------------------------
+*/
+
+$this->render( AuthForms::INDEX_CONTENT_TEMPLATE, [
+    'rest_base'     => $rest_base,
+    'active_slug'   => $active_slug,
+    'repo_name'     => $repo_name,
+    'request'       => $request
+] );
+
+/*
+|--------------------------------------------------
+| 4. FOOTER
+|    Closes layout, prints scripts, closes HTML
+|--------------------------------------------------
+*/
+$this->render( ClientDashboardRenderer::FOOTER_TEMPLATE, [
+    'scripts' => $scripts,
+] );

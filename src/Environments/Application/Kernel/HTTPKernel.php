@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Environments\Application\Kernel;
 
 use SmartLicenseServer\Admin\Page\Dispatcher;
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
+use SmartLicenseServer\ClientDashboard\TemplateHandlers\AuthForms;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\Login;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
@@ -100,7 +101,7 @@ class HTTPKernel extends Kernel {
         $this->routeManager->registerCoreRoutes( 
             $this->guard,
             new AuthController( $this->guard, $this->identity_service ),
-            new Login( $this->guard ),
+            new AuthForms( $this->guard ),
             new Dispatcher( $this->guard ),
         );
     }
