@@ -8,17 +8,19 @@
 
 namespace SmartLicenseServer\Security;
 
+use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use DateMalformedStringException;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Schema\SchemaRegistry;
 
 use const SMLISER_OWNERS_TABLE;
-use function defined, smliser_db, array_key_exists, is_string, is_null, is_callable,
+use function array_key_exists,
 sprintf;
 
 /**
@@ -41,8 +43,8 @@ sprintf;
  * acting on behalf of an Owner.
  */
 
-class Owner {
-    use SanitizeAwareTrait, CommonQueryTrait;
+class Owner extends DataStore {
+    use SanitizeAwareTrait;
     public const TYPE_INDIVIDUAL    = 'individual';
     public const TYPE_ORGANIZATION  = 'organization';
     public const TYPE_PLATFORM      = 'platform';
@@ -353,45 +355,54 @@ class Owner {
      * @throws DatabaseException Sensitive database error, caller must handle accordingly.
      */
     public function save() : bool {
-        $db     = smliser_db();
-        $table  = SMLISER_OWNERS_TABLE;
-        $now    = new DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
+        return (bool) static::$DB->transactional( function( Database $db ) {
+            $table  = SMLISER_OWNERS_TABLE;
+            $now    = new DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
 
-        $data   = [
-            'subject_id'    => $this->get_subject_id(),
-            'name'          => $this->get_name(),
-            'type'          => $this->get_type(),
-            'status'        => $this->get_status(),
-            'updated_at'    => $now->format( 'Y-m-d H:i:s' )
-        ];
+            $data   = [
+                'subject_id'    => $this->get_subject_id(),
+                'name'          => $this->get_name(),
+                'type'          => $this->get_type(),
+                'status'        => $this->get_status(),
+                'updated_at'    => $now->format( 'Y-m-d H:i:s' )
+            ];
 
-        if ( $this->get_id() ) {
-            unset( $data['subject_id'], $data['type'] );
-            $result = $db->update( $table, $data, ['id' => $this->get_id()] );
+            $lock_sql = static::query()
+                ->select( 'id' )->from( $table )
+                ->where( 'subject_id', '=', $this->get_subject_id() )
+                ->where( 'type', '=', $this->get_type() )
+                ->limit(1)->lock_for_update();
+            $id = (int) static::$DB->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
 
-            $result && $this->set_updated_at( $now );
-        } else {
-            $subject_exists = static::get_by_subject( $data['subject_id'], $data['type'] );
+            if ( $id ) {
+                unset( $data['subject_id'], $data['type'] );
+                $result = $db->update( $table, $data, ['id' => $this->get_id()] );
 
-            if ( $subject_exists ) {
-                throw new DatabaseException( 'duplicate_entry', sprintf( 'This %s is already a resource owner.', $data['type'] ) );
+                $result && $this->set_updated_at( $now );
+            } else {
+                $subject_exists = static::get_by_subject( $data['subject_id'], $data['type'] );
+
+                if ( $subject_exists ) {
+                    throw new DatabaseException( 'duplicate_entry', sprintf( 'This %s is already a resource owner.', $data['type'] ) );
+                }
+
+                $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
+                $result = $db->insert( $table, $data );
+
+                $result && 
+                    $this->set_id( $db->get_insert_id() )
+                    ->set_created_at( $now )
+                    ->set_updated_at( $now );
             }
 
-            $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
-            $result = $db->insert( $table, $data );
+            if ( false === $result ) {
+                $code = $this->id ? 'update_failed' : 'insert_failed';
+                throw new DatabaseException( $code, $db->get_last_error() ) ;
+            }
 
-            $result && 
-                $this->set_id( $db->get_insert_id() )
-                ->set_created_at( $now )
-                ->set_updated_at( $now );
-        }
+            return true;            
+        });
 
-        if ( false === $result ) {
-            $code = $this->id ? 'update_failed' : 'insert_failed';
-            throw new DatabaseException( $code, $db->get_last_error() ) ;
-        }
-
-        return true;
     }
 
     /**
@@ -404,7 +415,8 @@ class Owner {
         static $owners = [];
 
         if ( ! array_key_exists( $id, $owners ) ) {
-            $owners[ $id ] = static::get_self_by_id( $id, SMLISER_OWNERS_TABLE );
+            $data           = static::fetch_by( 'id', $id, SMLISER_OWNERS_TABLE );
+            $owners[ $id ]  = $data ? static::from_array( $data ) : null;
         }
 
         return $owners[ $id ];
@@ -423,7 +435,6 @@ class Owner {
         $key    = "$subject_id:$owner_type";
 
         if ( ! array_key_exists( $key, $owners ) ) {
-            $db     = smliser_db();
             $table  = SMLISER_OWNERS_TABLE;
             $sql    = static::query()
                 ->select( '*' )->from( $table )
@@ -431,7 +442,7 @@ class Owner {
                 ->where( 'type', '=', $owner_type )
                 ->limit(1);
 
-            $result = $db->get_row( $sql->build(), $sql->get_bindings() );
+            $result = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
 
             $owner  = $result ? static::from_array( $result ) : null;
             $owners[ $key ] = $owner;
@@ -445,10 +456,13 @@ class Owner {
      * 
      * @param int $page The current pagination number.
      * @param int $limit The number of results per page.
-     * @return self[]
+     * @return static[]
      */
     public static function get_all( int $page = 1, $limit = 25 ) : array {
-        return self::get_all_self( SMLISER_OWNERS_TABLE, $page, $limit );
+        return array_map(
+            [static::class, 'from_array'],
+            static::fetch( SMLISER_OWNERS_TABLE, $page, $limit )
+        );
     }
 
     /**
@@ -458,18 +472,17 @@ class Owner {
      * @return int
      */
     public static function count_status( $status ) : int {
-        $status             = self::sanitize_text( $status );
+        $status             = static::sanitize_text( $status );
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $db     = smliser_db();
             $table  = SMLISER_OWNERS_TABLE;
 
             $sql    = static::query()
                 ->select( 'COUNT(*)' )->from( $table )
                 ->where( 'status', '=', $status );
 
-            $total  = $db->get_var( $sql->build(), $sql->get_bindings() );
+            $total  = static::$DB->get_var( $sql->build(), $sql->get_bindings() );
 
             $statuses[$status]  = (int) $total;
         }
@@ -512,7 +525,7 @@ class Owner {
      * @return ('individual'|'organization'|'platform')[]
      */
     public static function get_allowed_owner_types() : array {
-        return [self::TYPE_INDIVIDUAL, self::TYPE_ORGANIZATION, self::TYPE_PLATFORM];
+        return [static::TYPE_INDIVIDUAL, static::TYPE_ORGANIZATION, static::TYPE_PLATFORM];
     }
 
     /**
@@ -521,7 +534,7 @@ class Owner {
      * @return array
      */
     public static function get_allowed_statuses() : array {
-        return [ self::STATUS_ACTIVE, self::STATUS_SUSPENDED, self::STATUS_DISABLED ];
+        return [ static::STATUS_ACTIVE, static::STATUS_SUSPENDED, static::STATUS_DISABLED ];
     }
 
     /*

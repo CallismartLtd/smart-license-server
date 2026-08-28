@@ -17,40 +17,44 @@ use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Templates\TemplateLocator;
 
-use function array_unshift, sprintf, smliser_json_encode_attr, smliser_render_template, compact;
+use function array_unshift, sprintf, smliser_json_encode_attr, compact;
 
 /**
  * The admin bulk message page class
  */
 class AccessControlPage implements AdminPageInterface {
+    public function __construct(
+        protected TemplateLocator $locator
+    ) {}
     /**
      * Section router.
      * 
      * @return bool
      */
-    private static function sub_router( Request $request ) : bool {
+    private function sub_router( Request $request ) : bool {
         $submenu     = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         $section = $request->get( 'section' );
 
         $routes = [
             'users' => [
-                'add-new'   => [__CLASS__, 'users_form_page'],
-                'edit'      => [__CLASS__, 'users_form_page'],
+                'add-new'   => [$this, 'users_form_page'],
+                'edit'      => [$this, 'users_form_page'],
             ],
             'organizations' => [
-                'add-new'           => [__CLASS__, 'organizations_form_page'],
-                'edit'              => [__CLASS__, 'organizations_form_page'],
-                'add-new-member'    => [__CLASS__, 'organizations_members_form_page'],
-                'edit-member'       => [__CLASS__, 'organizations_members_form_page'],
+                'add-new'           => [$this, 'organizations_form_page'],
+                'edit'              => [$this, 'organizations_form_page'],
+                'add-new-member'    => [$this, 'organizations_members_form_page'],
+                'edit-member'       => [$this, 'organizations_members_form_page'],
             ],
             'owners'    => [
-                'add-new'   => [__CLASS__, 'owners_form_page'],
-                'edit'      => [__CLASS__, 'owners_form_page'],
+                'add-new'   => [$this, 'owners_form_page'],
+                'edit'      => [$this, 'owners_form_page'],
             ],
             'service-account'  => [
-                'add-new'   => [__CLASS__, 'service_accounts_form_page'],
-                'edit'      => [__CLASS__, 'service_accounts_form_page'],
+                'add-new'   => [$this, 'service_accounts_form_page'],
+                'edit'      => [$this, 'service_accounts_form_page'],
             ],
         ];
 
@@ -69,10 +73,10 @@ class AccessControlPage implements AdminPageInterface {
      * 
      * @param Request $request
      */
-    public static function dashboard( Request $request ) {
+    public function dashboard( Request $request ) {
         $account_summaries  = ContextServiceProvider::get_accounts_summary_report();
         $vars               = compact( 'request', 'account_summaries' );
-        smliser_render_template( 'admin.contents.accounts.index', $vars );
+        $this->locator->render( 'admin.contents.accounts.index', $vars );
     
     }
 
@@ -81,8 +85,8 @@ class AccessControlPage implements AdminPageInterface {
      * 
      * @param Request $request
      */
-    public static function users_page( Request $request ) : void {
-        if ( static::sub_router( $request ) ) {
+    public function users_page( Request $request ) : void {
+        if ( $this->sub_router( $request ) ) {
             return;
         }
 
@@ -96,7 +100,7 @@ class AccessControlPage implements AdminPageInterface {
 
         $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description' );
 
-        smliser_render_template( 'admin.contents.accounts.principals', $vars );
+        $this->locator->render( 'admin.contents.accounts.principals', $vars );
     }
 
     /**
@@ -104,7 +108,7 @@ class AccessControlPage implements AdminPageInterface {
      * 
      * @param Request $request
      */
-    public static function users_form_page( $request ) {
+    public function users_form_page( $request ) {
         $user_id        = $request->get( 'id' );
         $user           = User::get_by_id( (int) $user_id );
 
@@ -250,7 +254,7 @@ class AccessControlPage implements AdminPageInterface {
         $vars           = compact( 'request', 'form_fields', 'avatar_name',
         'avatar_url', 'role', 'title' );
 
-        smliser_render_template( 'admin.contents.accounts.access-control-form', $vars );
+        $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
 
     /**
@@ -258,8 +262,8 @@ class AccessControlPage implements AdminPageInterface {
      * 
      * @param Request $request
      */
-    public static function organizations_page( Request $request ) {
-        if ( static::sub_router( $request ) ) {
+    public function organizations_page( Request $request ) {
+        if ( $this->sub_router( $request ) ) {
             return;
         }
 
@@ -271,7 +275,7 @@ class AccessControlPage implements AdminPageInterface {
         $description    = 'An organization is an account that represents a group, business, or other entity under which users, service accounts, resources, and access policies can be managed collectively.';
         $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description' );
 
-        smliser_render_template( 'admin.contents.accounts.principals', $vars );
+        $this->locator->render( 'admin.contents.accounts.principals', $vars );
     }
 
     /**
@@ -279,7 +283,7 @@ class AccessControlPage implements AdminPageInterface {
      * 
      * @param Request $request
      */
-    private static function organizations_form_page( Request $request ) {
+    private function organizations_form_page( Request $request ) {
 
         $org_id         = (int) $request->get( 'id', 0 );
         $organization   = Organization::get_by_id( $org_id );
@@ -373,7 +377,7 @@ class AccessControlPage implements AdminPageInterface {
         $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
         'title', 'organization',  );
 
-        smliser_render_template( 'admin.contents.accounts.access-control-form', $vars );
+        $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
 
     /**
@@ -381,7 +385,7 @@ class AccessControlPage implements AdminPageInterface {
      * 
      * @param Request $request
      */
-    private static function organizations_members_form_page( Request $request ) {
+    private function organizations_members_form_page( Request $request ) {
 
         $org_id             = $request->get( 'org_id' );
         $organization       = Organization::get_by_id( (int) $org_id );
@@ -503,7 +507,7 @@ class AccessControlPage implements AdminPageInterface {
         $vars = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
         'title', 'organization', 'role' );
 
-        smliser_render_template( 'admin.contents.accounts.access-control-form', $vars );
+        $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
 
     /**
@@ -511,8 +515,8 @@ class AccessControlPage implements AdminPageInterface {
      * 
      * @param Request $request
      */
-    public static function owners_page( Request $request ) {
-        if ( static::sub_router( $request ) ) {
+    public function owners_page( Request $request ) {
+        if ( $this->sub_router( $request ) ) {
             return;
         }
 
@@ -521,7 +525,7 @@ class AccessControlPage implements AdminPageInterface {
         $owners = Owner::get_all( $page, $limit );
 
         $vars   = compact( 'owners', 'request' );
-        smliser_render_template( 'admin.contents.accounts.owners', $vars );
+        $this->locator->render( 'admin.contents.accounts.owners', $vars );
     }
 
     /**
@@ -529,7 +533,7 @@ class AccessControlPage implements AdminPageInterface {
      * 
      * @param Request $request
      */
-    private static function owners_form_page( Request $request ) {
+    private function owners_form_page( Request $request ) {
         $owner_id           = $request->get( 'id' );
         $owner              = Owner::get_by_id( (int) $owner_id );
 
@@ -647,7 +651,7 @@ class AccessControlPage implements AdminPageInterface {
 
         $vars = compact( 'request', 'form_fields', 'title' );
 
-        smliser_render_template( 'admin.contents.accounts.access-control-form', $vars );
+        $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
 
     /**
@@ -655,8 +659,8 @@ class AccessControlPage implements AdminPageInterface {
      * 
      * @param Request $request
      */
-    public static function service_accounts_page( Request $request ) {
-        if ( static::sub_router( $request ) ) {
+    public function service_accounts_page( Request $request ) {
+        if ( $this->sub_router( $request ) ) {
             return;
         }
 
@@ -668,7 +672,7 @@ class AccessControlPage implements AdminPageInterface {
         $description    = 'A service account is a non-human account used by software, an application, server, or automated process to authenticate and access resources.';
         $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description' );
 
-        smliser_render_template( 'admin.contents.accounts.principals', $vars );      
+        $this->locator->render( 'admin.contents.accounts.principals', $vars );      
     }
 
     /**
@@ -676,7 +680,7 @@ class AccessControlPage implements AdminPageInterface {
      * 
      * @param Request $request
      */
-    private static function service_accounts_form_page( Request $request ) {
+    private function service_accounts_form_page( Request $request ) {
         $user_id        = $request->get( 'id' );
         $sa_acc         = ServiceAccount::get_by_id( (int) $user_id );
 
@@ -815,7 +819,7 @@ class AccessControlPage implements AdminPageInterface {
         $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url', 'role',
         'title' );
 
-        smliser_render_template( 'admin.contents.accounts.access-control-form', $vars );
+        $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
 
     /**
@@ -823,7 +827,7 @@ class AccessControlPage implements AdminPageInterface {
      * 
      * @param Request $request
      */
-    public static function print_header( Request $request ) {
+    public function print_header( Request $request ) {
         $tab        = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         $title      = match( $tab ) {
             'users'             => 'Users',
@@ -894,58 +898,58 @@ class AccessControlPage implements AdminPageInterface {
     |---------------------------
     */
 
-    public static function index_page_handler() : callable {
-        return [static::class, 'dashboard'];
+    public function index_page_handler() : callable {
+        return [$this, 'dashboard'];
     }
 
     /**
      * @inheritdoc
      */
-    public static function get_submenu() : array {
+    public function get_submenu() : array {
         return [
             [
                 'title'         => 'Accounts overview',
                 'slug'          => 'index',
-                'callback'      => [static::class, 'dashboard'],
+                'callback'      => [$this, 'dashboard'],
                 'visibility'    => true,
             ],
             [
                 'title'         => 'Users',
                 'slug'          => 'users',
-                'callback'      => [static::class, 'users_page'],
+                'callback'      => [$this, 'users_page'],
                 'visibility'    => true,
             ],
             [
                 'title'         => 'Service Accounts',
                 'slug'          => 'service-account',
-                'callback'      => [static::class, 'service_accounts_page'],
+                'callback'      => [$this, 'service_accounts_page'],
                 'visibility'    => true,
             ],
             [
                 'title'         => 'Resource Owners',
                 'slug'          => 'owners',
-                'callback'      => [static::class, 'owners_page'],
+                'callback'      => [$this, 'owners_page'],
                 'visibility'    => true,
             ],
             [
                 'title'         => 'Organizations',
                 'slug'          => 'organizations',
-                'callback'      => [static::class, 'organizations_page'],
+                'callback'      => [$this, 'organizations_page'],
                 'visibility'    => true,
             ],
             
         ];
     }
     
-    public static function get_menu_key() : string {
+    public function get_menu_key() : string {
         return 'accounts';
     }
 
-    public static function get_menu_data() : array {
+    public function get_menu_data() : array {
         return [
             'title'         => 'Accounts',
             'slug'          => 'accounts',
-            'handler'       => static::class,
+            'handler'       => $this,
             'icon'          => 'ti ti-cloud-lock',
             'visibility'    => true
         ];

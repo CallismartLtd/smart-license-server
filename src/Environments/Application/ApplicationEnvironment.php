@@ -9,8 +9,10 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application;
 
+use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Core\URLManager;
@@ -21,11 +23,11 @@ use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
 use SmartLicenseServer\Environments\Application\Routing\RouteManager;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\RESTAPI\Versions\V1;
-use SmartLicenseServer\Routing\Router;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
 use SmartLicenseServer\Security\Authentication\Session\SessionManager;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\Settings;
+use SmartLicenseServer\SettingsAPI\UserSettings;
 use SmartLicenseServer\Templates\TemplateDiscovery;
 
 /**
@@ -82,26 +84,43 @@ class ApplicationEnvironment extends Environment {
 
         $this->container->alias( RESTProviderInterface::class, RestAPIProvider::class );
         $this->container->singleton( DefaultPage::class, $this->container->get( DefaultPage::class ) );
+        $this->container->singleton( ApplicationEnvironment::class, $this );
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function boot() : void {
+    public function boot() : void {
+        DataStore::set_database(
+            $this->container->get( Database::class )
+        );
+
         $this->container->get( TemplateDiscovery::class )
             ->discover( 'core', SMLISER_RUNTIME_DIR . '/templates/', 0 );
 
+        $this->container->get( IdentityService::class )->authenticate();
+
+        $guard  = $this->container->get( Guard::class );
+
+        if ( $guard->has_principal() ) {
+            $this->container->singleton(
+                UserSettings::class,
+                 UserSettings::for(
+                    $guard->principal()->get_actor(),
+                    $this->container->get( Database::class )
+                )
+            );
+        }
+
         $defaut_page    = $this->container->get( DefaultPage::class );
-        $route_manager = $this->container->get( RouteManager::class )
+        $route_manager  = $this->container->get( RouteManager::class )
             ->homeHandler( [$defaut_page, 'home'] )
             ->notFound( [$defaut_page, 'not_found'] )
             ->methodNotAllowed( [$defaut_page, 'method_not_allowed'] );
-        
+
         $route_manager->registerCoreRoutes();
 
         $this->container->singleton( RouteManager::class, $route_manager );
-        
-
     }
 
     /**
@@ -137,13 +156,5 @@ class ApplicationEnvironment extends Environment {
         $url = (string) ( $_ENV['SMLISER_APP_URL'] ?? '' );
 
         return URL::from( $url );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function restAPIUrl( string $path = '', array $q = [] ) : URL {
-        return $this->url( '/api/', $q )
-            ->append_path( $path );
     }
 }

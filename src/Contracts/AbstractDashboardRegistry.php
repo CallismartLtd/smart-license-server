@@ -22,7 +22,7 @@ abstract class AbstractDashboardRegistry {
      * @var array<string, array{
      *     title: string,
      *     slug: string,
-     *     handler: class-string<AdminPageInterface>,
+     *     handler: AdminPageInterface,
      *     icon: string,
      *     visibility: bool|callable():bool
      * }>
@@ -91,7 +91,7 @@ abstract class AbstractDashboardRegistry {
      * @param array{
      *     title: string,
      *     slug: string,
-     *     handler: class-string<AdminPageInterface>,
+     *     handler: AdminPageInterface,
      *     visibility: bool|callable():bool,
      *     icon?: string
      * } $data
@@ -136,14 +136,14 @@ abstract class AbstractDashboardRegistry {
 
         $this->assert_menu_handler_implements_admin_page( $data['handler'], $key );
 
-        if ( ! is_callable( $data['handler']::index_page_handler() ) ) {
+        if ( ! is_callable( $data['handler']->index_page_handler() ) ) {
             throw new EnvironmentBootstrapException(
                 'submenu_error',
                 sprintf( 'Menu "%s" callback must be callable.', $key )
             );
         }
 
-        $this->assert_request_is_first_arg( $data['handler']::index_page_handler(), 'menu', $data['slug'] );
+        $this->assert_request_is_first_arg( $data['handler']->index_page_handler(), 'menu', $data['slug'] );
 
         $menu = [
             'title'         => (string) $data['title'],
@@ -179,7 +179,7 @@ abstract class AbstractDashboardRegistry {
      * @return array{
      *      title: string,
      *      slug: string,
-     *      handler: class-string<AdminPageInterface>,
+     *      handler: AdminPageInterface,
      *      icon: string,
      *      visibility: bool|callable():bool
      * }|null
@@ -217,7 +217,7 @@ abstract class AbstractDashboardRegistry {
 
         $handler = $this->menu[ $key ]['handler'];
 
-        return $handler::index_page_handler();
+        return $handler->index_page_handler();
     }
 
     /**
@@ -301,14 +301,13 @@ abstract class AbstractDashboardRegistry {
      * Update menu handler.
      *
      * @param string $key
-     * @param class-string<AdminPageInterface> $handler
+     * @param AdminPageInterface $handler
      * @return static
      */
-    public function set_handler( string $key, string $handler ) : static {
+    public function set_handler( string $key, AdminPageInterface $handler ) : static {
         $key = $this->canonical_key( $key );
         $this->assert_menu_exists( $key );
 
-        $this->assert_menu_handler_implements_admin_page( $handler, $key );
         $this->menu[ $key ]['handler'] = $handler;
 
         return $this;
@@ -1190,11 +1189,11 @@ abstract class AbstractDashboardRegistry {
     /**
      * Ensure a handler class implements AdminPageInterface.
      * 
-     * @param string $handler
+     * @param object $handler
      * @param string $key
      * @throws EnvironmentBootstrapException
      */
-    protected function assert_menu_handler_implements_admin_page( string $handler, string $key ) : void {
+    protected function assert_menu_handler_implements_admin_page( object $handler, string $key ) : void {
         if ( is_subclass_of( $handler, AdminPageInterface::class ) ) {
             return;
         }

@@ -16,6 +16,8 @@
  *      callback: callable,
  *      visibility: bool|(callable(): bool)
  *  }|null $current_submenu
+ * 
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 defined( 'SMLISER_ROOT' ) || exit; ?>
 
@@ -26,7 +28,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
             <?php endif; ?>
 
             <?php
-            $url           = adminUrl( $menu['slug'] );
+            $url           = $urlmanager->admin_url( $menu['slug'] );
             $has_submenu   = $registry->has_submenu( $key );
             $is_current_section = $menu['slug'] === $current_menu['slug'];
             $is_current_page    = $is_current_section;
@@ -56,7 +58,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <?php if ( ( is_callable( $submenu['visibility'] ) && ! $submenu['visibility']() ) || ! $submenu['visibility'] ) : continue; ?>
                         <?php endif; ?>
                             <?php
-                            $sub_url        = adminUrl( "{$menu['slug']}/{$submenu['slug']}" );
+                            $sub_url        = $urlmanager->admin_url( "{$menu['slug']}/{$submenu['slug']}" );
                             $is_current_sub = ( null !== $current_submenu && $submenu['slug'] === $current_submenu['slug'] ) || 
                                 ( ! $current_submenu && 'index' === $submenu['slug'] );
                             ?>

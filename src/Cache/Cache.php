@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Cache;
 
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
+use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
  * Cache manager singleton.
@@ -33,6 +34,8 @@ use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
  * @method bool is_active() Tells whether the cache is active.
  * @method CacheStats get_stats() Return runtime statistics for this cache adapter.
  * @method bool test( array<string, mixed> $settings ) Test whether the adapter can connect and operate with the supplied settings.
+ * @method string get_name() Get the cache adapter name.
+ * @method string get_id() Get the cache adapter id.
  */
 class Cache {
 
@@ -44,20 +47,15 @@ class Cache {
     protected static ?Cache $instance = null;
 
     /**
-     * The active cache adapter instance.
-     *
-     * @var CacheAdapterInterface
-     */
-    protected CacheAdapterInterface $adapter;
-
-    /**
      * Private constructor to enforce singleton.
      *
      * @param CacheAdapterInterface $adapter The cache adapter instance.
      */
-    public function __construct( CacheAdapterInterface $adapter ) {
-        $this->adapter = $adapter;
-    }
+    public function __construct(
+        protected CacheAdapterInterface $adapter,
+        protected Settings $settings
+        
+    ) {}
 
     /**
      * Default cache ttl
@@ -65,7 +63,7 @@ class Cache {
      * @return int
      */
     public function default_ttl() : int {
-        return (int) max( 0, smliser_settings()->get( 'default_cache_ttl', 0 ) );
+        return (int) max( 0, $this->settings->get( 'default_cache_ttl', 0 ) );
     }
 
     /**

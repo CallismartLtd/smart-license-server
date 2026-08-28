@@ -11,21 +11,27 @@ namespace SmartLicenseServer\Admin\Handlers;
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\Templates\TemplateLocator;
 
 /**
  * The admin dashboard page handler.
  */
 class DashboardPage implements AdminPageInterface {
 
+    public function __construct(
+        protected RepositoryAnalytics $repo_analytics,
+        protected TemplateLocator $template_locator
+    ) {}
+
     /**
      * Dashboard Callback method
      */
-    public static function dashboard() {
+    public function dashboard() {
         $totals = [
-            'apps'      => RepositoryAnalytics::get_total_apps(),
-            'plugins'   => RepositoryAnalytics::get_total_apps( 'plugin' ),
-            'themes'    => RepositoryAnalytics::get_total_apps( 'theme' ),
-            'software'  => RepositoryAnalytics::get_total_apps( 'software' )
+            'apps'      => $this->repo_analytics->get_total_apps(),
+            'plugins'   => $this->repo_analytics->get_total_apps( 'plugin' ),
+            'themes'    => $this->repo_analytics->get_total_apps( 'theme' ),
+            'software'  => $this->repo_analytics->get_total_apps( 'software' )
         ];
         
         // Default time periods
@@ -37,71 +43,71 @@ class DashboardPage implements AdminPageInterface {
         $metrics = [
             'Repository Overview' => [
                 'summary'   => [
-                    'active_installations'  => RepositoryAnalytics::get_active_installations( $days_30 ),
-                    'total_downloads'       => RepositoryAnalytics::get_total_downloads(),
-                    'total_accesses'        => RepositoryAnalytics::get_total_client_accesses( $days_30 ),
+                    'active_installations'  => $this->repo_analytics->get_active_installations( $days_30 ),
+                    'total_downloads'       => $this->repo_analytics->get_total_downloads(),
+                    'total_accesses'        => $this->repo_analytics->get_total_client_accesses( $days_30 ),
                 ],
                 'chart_data'    => self::prepare_repository_overview_chart( $days_30, $months_6 ),
             ],
 
             'Download Analytics'    => [
                 'summary'   => [
-                    'total_downloads'       => RepositoryAnalytics::get_total_downloads(),
-                    'plugins_downloads'     => RepositoryAnalytics::get_total_downloads( 'plugin' ),
-                    'themes_downloads'      => RepositoryAnalytics::get_total_downloads( 'theme' ),
-                    'software_downloads'    => RepositoryAnalytics::get_total_downloads( 'software' ),
+                    'total_downloads'       => $this->repo_analytics->get_total_downloads(),
+                    'plugins_downloads'     => $this->repo_analytics->get_total_downloads( 'plugin' ),
+                    'themes_downloads'      => $this->repo_analytics->get_total_downloads( 'theme' ),
+                    'software_downloads'    => $this->repo_analytics->get_total_downloads( 'software' ),
                 ],
                 'chart_data'    => self::prepare_downloads_chart( $days_30, $days_7 ),
             ],
 
             'Client Activity' => [
                 'summary'   => [
-                    'total_accesses'            => RepositoryAnalytics::get_total_client_accesses( $days_30 ),
-                    'active_installations'      => RepositoryAnalytics::get_active_installations( $days_30 ),
-                    'plugin_installations'      => RepositoryAnalytics::get_active_installations( $days_30, 'plugin' ),
-                    'theme_installations'       => RepositoryAnalytics::get_active_installations( $days_30, 'theme' ),
-                    'software_installations'    => RepositoryAnalytics::get_active_installations( $days_30, 'software' ),
+                    'total_accesses'            => $this->repo_analytics->get_total_client_accesses( $days_30 ),
+                    'active_installations'      => $this->repo_analytics->get_active_installations( $days_30 ),
+                    'plugin_installations'      => $this->repo_analytics->get_active_installations( $days_30, 'plugin' ),
+                    'theme_installations'       => $this->repo_analytics->get_active_installations( $days_30, 'theme' ),
+                    'software_installations'    => $this->repo_analytics->get_active_installations( $days_30, 'software' ),
                 ],
                 'chart_data'    => self::prepare_client_activity_chart( $days_30, $days_7 ),
             ],
 
             'License Activity'  => [
                 'summary'   => [
-                    'activations'           => RepositoryAnalytics::get_license_event_total( 'activation', $days_30 ),
-                    'activations_growth'    => RepositoryAnalytics::get_license_event_growth_percentage( 'activation', $days_30 ),
-                    'deactivations'         => RepositoryAnalytics::get_license_event_total( 'deactivation', $days_30 ),
-                    'deactivations_growth'  => RepositoryAnalytics::get_license_event_growth_percentage( 'deactivation', $days_30 ),
-                    'verifications'         => RepositoryAnalytics::get_license_event_total( 'verification', $days_30 ),
-                    'verifications_growth'  => RepositoryAnalytics::get_license_event_growth_percentage( 'verification', $days_30 ),
+                    'activations'           => $this->repo_analytics->get_license_event_total( 'activation', $days_30 ),
+                    'activations_growth'    => $this->repo_analytics->get_license_event_growth_percentage( 'activation', $days_30 ),
+                    'deactivations'         => $this->repo_analytics->get_license_event_total( 'deactivation', $days_30 ),
+                    'deactivations_growth'  => $this->repo_analytics->get_license_event_growth_percentage( 'deactivation', $days_30 ),
+                    'verifications'         => $this->repo_analytics->get_license_event_total( 'verification', $days_30 ),
+                    'verifications_growth'  => $this->repo_analytics->get_license_event_growth_percentage( 'verification', $days_30 ),
                 ],
                 'chart_data'    => self::prepare_license_activity_chart( $days_30 ),
-                'recent_logs'   => array_slice( RepositoryAnalytics::get_license_activity_logs(), -10, 10, true ),
+                'recent_logs'   => array_slice( $this->repo_analytics->get_license_activity_logs(), -10, 10, true ),
             ],
 
             'Performance & Ranking' => [
                 'summary'   => [
-                    'top_apps'          => RepositoryAnalytics::get_top_apps( 5, 'downloads' ),
-                    'download_count'    => RepositoryAnalytics::get_total_downloads(),
-                    'maintenance_count' => count( RepositoryAnalytics::get_apps_maintained_by_month( 1 ) ),
+                    'top_apps'          => $this->repo_analytics->get_top_apps( 5, 'downloads' ),
+                    'download_count'    => $this->repo_analytics->get_total_downloads(),
+                    'maintenance_count' => count( $this->repo_analytics->get_apps_maintained_by_month( 1 ) ),
                 ],
                 'chart_data'    => self::prepare_performance_chart( $months_6 ),
                 'rankings'      => [
-                    'top_downloads' => RepositoryAnalytics::get_top_apps( 10, 'downloads' ),
-                    'top_accesses'  => RepositoryAnalytics::get_top_apps( 10, 'client_accesses' ),
+                    'top_downloads' => $this->repo_analytics->get_top_apps( 10, 'downloads' ),
+                    'top_accesses'  => $this->repo_analytics->get_top_apps( 10, 'client_accesses' ),
                 ],
             ],
         ];
 
         $vars   = \compact( 'totals', 'metrics' );
-        \smliser_render_template( 'admin.contents.index', $vars );
+        $this->template_locator->render( 'admin.contents.index', $vars );
     }
 
     /**
      * Prepare Repository Overview Chart Data
      */
-    private static function prepare_repository_overview_chart( int $days, int $months ) : array {
-        $apps_by_status = RepositoryAnalytics::get_apps_by_status();
-        $maintained = RepositoryAnalytics::get_apps_maintained_by_month( $months );
+    private function prepare_repository_overview_chart( int $days, int $months ) : array {
+        $apps_by_status = $this->repo_analytics->get_apps_by_status();
+        $maintained = $this->repo_analytics->get_apps_maintained_by_month( $months );
 
         // Apps by Status Pie Chart
         $status_labels = [];
@@ -209,15 +215,15 @@ class DashboardPage implements AdminPageInterface {
     /**
      * Prepare Downloads Chart Data
      */
-    private static function prepare_downloads_chart( int $days_30, int $days_7 ) : array {
-        $downloads_30 = RepositoryAnalytics::get_downloads_per_day( $days_30 );
-        $downloads_7 = RepositoryAnalytics::get_downloads_per_day( $days_7 );
+    private function prepare_downloads_chart( int $days_30, int $days_7 ) : array {
+        $downloads_30 = $this->repo_analytics->get_downloads_per_day( $days_30 );
+        $downloads_7 = $this->repo_analytics->get_downloads_per_day( $days_7 );
 
         // Downloads by Type (Pie Chart)
         $downloads_by_type = [
-            'plugin' => array_sum( RepositoryAnalytics::get_downloads_per_day( $days_30, 'plugin' ) ),
-            'theme' => array_sum( RepositoryAnalytics::get_downloads_per_day( $days_30, 'theme' ) ),
-            'software' => array_sum( RepositoryAnalytics::get_downloads_per_day( $days_30, 'software' ) ),
+            'plugin' => array_sum( $this->repo_analytics->get_downloads_per_day( $days_30, 'plugin' ) ),
+            'theme' => array_sum( $this->repo_analytics->get_downloads_per_day( $days_30, 'theme' ) ),
+            'software' => array_sum( $this->repo_analytics->get_downloads_per_day( $days_30, 'software' ) ),
         ];
 
         // 30-day trend (Line Chart)
@@ -311,15 +317,15 @@ class DashboardPage implements AdminPageInterface {
     /**
      * Prepare Client Activity Chart Data
      */
-    private static function prepare_client_activity_chart( int $days_30, int $days_7 ) : array {
-        $accesses_30 = RepositoryAnalytics::get_client_accesses_per_day( $days_30 );
-        $accesses_7 = RepositoryAnalytics::get_client_accesses_per_day( $days_7 );
+    private function prepare_client_activity_chart( int $days_30, int $days_7 ) : array {
+        $accesses_30 = $this->repo_analytics->get_client_accesses_per_day( $days_30 );
+        $accesses_7 = $this->repo_analytics->get_client_accesses_per_day( $days_7 );
 
         // Active installations by type (Bar Chart)
         $installations_by_type = [
-            'plugin' => RepositoryAnalytics::get_active_installations( $days_30, 'plugin' ),
-            'theme' => RepositoryAnalytics::get_active_installations( $days_30, 'theme' ),
-            'software' => RepositoryAnalytics::get_active_installations( $days_30, 'software' ),
+            'plugin' => $this->repo_analytics->get_active_installations( $days_30, 'plugin' ),
+            'theme' => $this->repo_analytics->get_active_installations( $days_30, 'theme' ),
+            'software' => $this->repo_analytics->get_active_installations( $days_30, 'software' ),
         ];
 
         // 30-day accesses (Area Chart)
@@ -413,8 +419,8 @@ class DashboardPage implements AdminPageInterface {
     /**
      * Prepare License Activity Chart Data
      */
-    private static function prepare_license_activity_chart( int $days ) : array {
-        $activity_per_day = RepositoryAnalytics::get_license_activity_per_day( $days );
+    private function prepare_license_activity_chart( int $days ) : array {
+        $activity_per_day = $this->repo_analytics->get_license_activity_per_day( $days );
 
         // Prepare stacked data
         $labels = array_keys( $activity_per_day );
@@ -443,7 +449,7 @@ class DashboardPage implements AdminPageInterface {
         // Event totals (Pie Chart)
         $event_totals = [];
         foreach ( $event_types as $event ) {
-            $event_totals[ $event ] = RepositoryAnalytics::get_license_event_total( $event, $days );
+            $event_totals[ $event ] = $this->repo_analytics->get_license_event_total( $event, $days );
         }
 
         return [
@@ -490,9 +496,9 @@ class DashboardPage implements AdminPageInterface {
     /**
      * Prepare Performance & Ranking Chart Data
      */
-    private static function prepare_performance_chart( int $months ) : array {
-        $top_downloads  = RepositoryAnalytics::get_top_apps( 10, 'downloads' );
-        $maintained     = RepositoryAnalytics::get_apps_maintained_by_month( $months );
+    private function prepare_performance_chart( int $months ) : array {
+        $top_downloads  = $this->repo_analytics->get_top_apps( 10, 'downloads' );
+        $maintained     = $this->repo_analytics->get_apps_maintained_by_month( $months );
 
         // Top Apps Bar Chart
         $top_apps_labels = [];
@@ -588,25 +594,25 @@ class DashboardPage implements AdminPageInterface {
     |---------------------------
     */
 
-    public static function index_page_handler() : callable {
-        return [static::class, 'dashboard'];
+    public function index_page_handler() : callable {
+        return [$this, 'dashboard'];
     }
 
-    public static function get_menu_data(): array {
+    public function get_menu_data(): array {
         return [
             'title'         => 'Overview',
-            'handler'       => static::class,
+            'handler'       => $this,
             'slug'          => 'overview',
             'icon'          => 'ti ti-home',
             'visibility'    => true,
         ];
     }
 
-    public static function get_menu_key(): string {
+    public function get_menu_key(): string {
         return 'overview';
     }
 
-    public static function get_submenu() : array {
+    public function get_submenu() : array {
         return [];
     }
 }

@@ -258,17 +258,21 @@ final class MonetizationRegistry extends AbstractRegistry {
 
         $class_string   = $this->get( $provider_id );
 
-        if ( $class_string ) {
-            /** @var MonetizationProviderInterface $provider */
-            $provider   = new $class_string;
-            $settings   = [];
-
-            foreach ( $provider->get_settings_schema() as $key => $_  ) {
-                $settings[$key] = static::get_option( $provider::get_id(), $key );
-            }
-
-            $provider->set_settings( $settings );
+        if ( ! $class_string ) {
+            return null;
         }
+
+        
+        /** @var MonetizationProviderInterface $provider */
+        $provider   = new $class_string;
+        $settings   = [];
+
+        foreach ( $provider->get_settings_schema() as $key => $_  ) {
+            $settings[$key] = static::get_option( $provider::get_id(), $key );
+        }
+
+        $provider->set_settings( $settings );
+        
 
         return $provider;
     }

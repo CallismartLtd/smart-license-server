@@ -12,15 +12,26 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Admin\Handlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
+use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
+use SmartLicenseServer\SettingsAPI\Settings;
+use SmartLicenseServer\Templates\TemplateLocator;
 
-use function smliser_settings, smliser_render_template, compact;
+use function compact;
 
 class OptionsPage implements AdminPageInterface {
+
+    public function __construct(
+        protected TemplateLocator $locator,
+        protected MonetizationRegistry $monetization_registry,
+        protected EmailProvidersRegistry $email_providers_registry,
+        protected Cache $cache,
+        protected Settings $settings
+    ) {}
 
     /*
     |---------
@@ -31,37 +42,37 @@ class OptionsPage implements AdminPageInterface {
     /**
      * General settings page.
      */
-    public static function general_settings( Request $request ): void {
+    public function general_settings( Request $request ): void {
         
-        smliser_render_template( 'admin.contents.options.index', compact( 'request' ) );
+        $this->locator->render( 'admin.contents.options.index', compact( 'request' ) );
     }
 
     /**
      * Permalink/routes settings page.
      */
-    public static function routes_setting( Request $request ): void {
-        smliser_render_template( 'admin.contents.options.routing', compact( 'request' ) );
+    public function routes_setting( Request $request ): void {
+        $this->locator->render( 'admin.contents.options.routing', compact( 'request' ) );
     }
 
     /**
      * Monetization providers settings page.
      */
-    public static function monetization_options( Request $request ): void {
+    public function monetization_options( Request $request ): void {
         if ( $request->has( 'provider' ) ) {
             self::monetization_provider_settings( $request );
             return;
         } 
         
-        $providers = smliser_monetization_registry()->all();
-        smliser_render_template( 'admin.contents.options.monetization.monetization-providers', compact( 'request', 'providers' ) );   
+        $providers = $this->monetization_registry->all();
+        $this->locator->render( 'admin.contents.options.monetization.monetization-providers', compact( 'request', 'providers' ) );   
     }
 
     /**
      * Settings page for an individual monetization provider.
      */
-    private static function monetization_provider_settings( Request $request ): void {
+    private function monetization_provider_settings( Request $request ): void {
         $provider_key   = $request->get( 'provider' );
-        $provider       = smliser_monetization_registry()->get_provider( $provider_key );
+        $provider       = $this->monetization_registry->get_provider( $provider_key );
         $name           = $provider?->get_name() ?? '';
         $id             = $provider?->get_id() ?? '';
         $schema         = $provider?->get_settings_schema();
@@ -80,7 +91,7 @@ class OptionsPage implements AdminPageInterface {
         }
 
         $vars   = compact( 'request', 'provider', 'name', 'settings', 'id' );
-        smliser_render_template( 'admin.contents.options.monetization.monetizations', $vars );
+        $this->locator->render( 'admin.contents.options.monetization.monetizations', $vars );
     }
 
     /**
@@ -91,7 +102,7 @@ class OptionsPage implements AdminPageInterface {
      * individual template when section=templates&template=key,
      * otherwise renders the provider list with global email settings.
      */
-    public static function email_options( Request $request ): void {
+    public function email_options( Request $request ): void {
         if ( $request->has( 'provider' ) ) {
             self::email_provider_settings( $request );
             return;
@@ -102,13 +113,13 @@ class OptionsPage implements AdminPageInterface {
             return;
         }
 
-        $registry           = smliser_emailProvidersRegistry();
+        $registry           = $this->email_providers_registry;
         $providers          = $registry->all( true, true );
         $default_provider   = EmailProvidersRegistry::get_default_provider_id();
         $email_fields       = static::email_settings_fields();
 
         $vars   = compact( 'registry', 'request', 'email_fields', 'providers', 'default_provider' );
-        smliser_render_template( 'admin.contents.options.email.index', $vars );
+        $this->locator->render( 'admin.contents.options.email.index', $vars );
     }
 
     /**
@@ -117,7 +128,7 @@ class OptionsPage implements AdminPageInterface {
      * Dispatches to the single template view when a template key
      * is present, otherwise renders the full template list.
      */
-    private static function email_template_options( Request $request ): void {
+    private function email_template_options( Request $request ): void {
         if ( $request->has( 'template' ) ) {
             self::email_template_editor( $request );
             return;
@@ -126,7 +137,7 @@ class OptionsPage implements AdminPageInterface {
         $templates = EmailTemplateRegistry::all();
 
         $vars       = compact( 'request', 'templates' );
-        smliser_render_template( 'admin.contents.options.email.templates', $vars );
+        $this->locator->render( 'admin.contents.options.email.templates', $vars );
     }
 
     /**
@@ -135,7 +146,7 @@ class OptionsPage implements AdminPageInterface {
      * Provides the preview render and enable/disable/reset controls
      * for a single template type.
      */
-    private static function email_template_editor( Request $request ): void {
+    private function email_template_editor( Request $request ): void {
         $key   = $request->get( 'template' );
         $entry = EmailTemplateRegistry::entry( $key );
 
@@ -150,15 +161,15 @@ class OptionsPage implements AdminPageInterface {
 
         $vars   = compact( 'entry', 'current_url', 'preview', 'preview_html' );
 
-        smliser_render_template( 'admin.contents.options.email.editor', $vars );
+        $this->locator->render( 'admin.contents.options.email.editor', $vars );
     }
 
     /**
      * Settings page for an individual email provider.
      */
-    private static function email_provider_settings( Request $request ): void {
+    private function email_provider_settings( Request $request ): void {
         $provider_key = $request->get( 'provider' );
-        $registry   = smliser_emailProvidersRegistry();
+        $registry   = $this->email_providers_registry;
         $provider   = $registry->get( $provider_key );
 
         $provider_name  = $provider ? $provider::get_name() : '';
@@ -174,7 +185,7 @@ class OptionsPage implements AdminPageInterface {
 
         $vars   = compact( 'request', 'saved_settings', 'provider', 'provider_id', 'provider_key',
         'provider_name', 'schema', 'is_default' );
-        smliser_render_template( 'admin.contents.options.email.form', $vars );
+        $this->locator->render( 'admin.contents.options.email.form', $vars );
     }
 
     /**
@@ -185,7 +196,7 @@ class OptionsPage implements AdminPageInterface {
      *   - adapter=<id>   → individual adapter settings
      *   - (default)      → adapter selection grid
      */
-    public static function cache_options( Request $request ): void {
+    public function cache_options( Request $request ): void {
         if ( $request->get( 'section' ) === 'stats' ) {
             self::cache_stats( $request );
             return;
@@ -201,7 +212,7 @@ class OptionsPage implements AdminPageInterface {
         $default_provider   = CacheAdapterRegistry::get_default_adapter_id();
 
         $vars   = compact( 'request', 'cache_registry', 'providers', 'default_provider' );
-        smliser_render_template( 'admin.contents.options.cache.index', $vars );
+        $this->locator->render( 'admin.contents.options.cache.index', $vars );
     }
 
     /**
@@ -211,21 +222,21 @@ class OptionsPage implements AdminPageInterface {
      * so no second adapter instance is created (which would open a second
      * connection on network-backed adapters such as Memcached or Redis).
      */
-    private static function cache_stats( Request $request ): void {
-        $cache        = smliser_cache();
+    private function cache_stats( Request $request ): void {
+        $cache        = $this->cache;
         $stats        = $cache->get_stats();
         $adapter_id   = $cache->get_id();
         $adapter_name = $cache->get_name();
         $is_supported = $cache->is_supported();
 
         $vars   = compact( 'request', 'cache', 'stats', 'adapter_id', 'adapter_name', 'is_supported' );
-        smliser_render_template( 'admin.contents.options.cache.stats', $vars );
+        $this->locator->render( 'admin.contents.options.cache.stats', $vars );
     }
 
     /**
      * Settings page for an individual cache adapter.
      */
-    private static function cache_adapter_settings( Request $request ): void {
+    private function cache_adapter_settings( Request $request ): void {
         $adapter_key  = $request->get( 'adapter' );
         $collection   = CacheAdapterRegistry::instance();
         $adapter      = $collection->get_adapter( $adapter_key );
@@ -243,7 +254,7 @@ class OptionsPage implements AdminPageInterface {
 
         $vars   = compact( 'request', 'adapter', 'adapter_name', 'adapter_key', 'schema', 
         'is_default', 'adapter_id', 'saved_settings' );
-        smliser_render_template( 'admin.contents.options.cache.form', $vars );
+        $this->locator->render( 'admin.contents.options.cache.form', $vars );
     }
 
     /*
@@ -261,7 +272,7 @@ class OptionsPage implements AdminPageInterface {
      *
      * @return array<int, array<string, mixed>>
      */
-    protected static function email_settings_fields(): array {
+    protected function email_settings_fields(): array {
         return [
             [
                 'label' => 'Default Email Provider',
@@ -273,7 +284,7 @@ class OptionsPage implements AdminPageInterface {
                     'class' => 'smliser-form-label-row smliser-auto-select2',
                     'options' => array_map(
                         static fn( string $p ) => $p::get_name(),
-                        smliser_emailProvidersRegistry()->all()
+                        $this->email_providers_registry->all()
                     ),
                 ],
             ],
@@ -284,7 +295,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'text',
                     'name'  => EmailProvidersRegistry::DEFAULT_SENDER_NAME_KEY,
-                    'value' => smliser_emailProvidersRegistry()->get_default_sender_name(),
+                    'value' => $this->email_providers_registry->get_default_sender_name(),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -298,7 +309,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'text',
                     'name'  => EmailProvidersRegistry::DEFAULT_SENDER_EMAIL_KEY,
-                    'value' => smliser_emailProvidersRegistry()->get_default_sender_email(),
+                    'value' => $this->email_providers_registry->get_default_sender_email(),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -313,8 +324,8 @@ class OptionsPage implements AdminPageInterface {
      *
      * @return array<int, array<string, mixed>>
      */
-    public static function system_settings_fields(): array {
-        $settings = smliser_settings();
+    public function system_settings_fields(): array {
+        $settings = $this->settings;
 
         return [
             [
@@ -480,7 +491,7 @@ class OptionsPage implements AdminPageInterface {
      *
      * @return array<int, array<string, mixed>>
      */
-    public static function get_routing_fields(): array {
+    public function get_routing_fields(): array {
         return [
             [
                 'label' => 'Client Dashboard URL Prefix',
@@ -536,7 +547,7 @@ class OptionsPage implements AdminPageInterface {
      *
      * @return array<string, mixed>
      */
-    public static function get_menu_args( Request $request ): array {
+    public function get_menu_args( Request $request ): array {
         $tab         = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         $section     = $request->get( 'section' );
 
@@ -614,57 +625,57 @@ class OptionsPage implements AdminPageInterface {
     |---------------------------
     */
 
-    public static function index_page_handler() : callable {
-        return [static::class, 'general_settings'];
+    public function index_page_handler() : callable {
+        return [$this, 'general_settings'];
     }
 
     /**
      * @inheritdoc
      */
-    public static function get_submenu() : array {
+    public function get_submenu() : array {
         return [
             [
                 'title'         => 'General',
                 'slug'          => 'index',
-                'callback'      => [static::class, 'general_settings'],
+                'callback'      => [$this, 'general_settings'],
                 'visibility'    => true,
             ],
             [
                 'title'         => 'Monetization',
                 'slug'          => 'monetization',
-                'callback'      => [static::class, 'monetization_options'],
+                'callback'      => [$this, 'monetization_options'],
                 'visibility'    => true,
             ],
             [
                 'title'         => 'Email',
                 'slug'          => 'email',
-                'callback'      => [static::class, 'email_options'],
+                'callback'      => [$this, 'email_options'],
                 'visibility'    => true,
             ],
             [
                 'title'         => 'Cache',
                 'slug'          => 'cache',
-                'callback'      => [static::class, 'cache_options'],
+                'callback'      => [$this, 'cache_options'],
                 'visibility'    => true,
             ],
             [
                 'title'         => 'Routes',
                 'slug'          => 'routes',
-                'callback'      => [static::class, 'routes_setting'],
+                'callback'      => [$this, 'routes_setting'],
                 'visibility'    => true,
             ]
         ];
     }
     
-    public static function get_menu_key() : string {
+    public function get_menu_key() : string {
         return 'settings';
     }
 
-    public static function get_menu_data() : array {
+    public function get_menu_data() : array {
         return [
             'title'         => 'Settings',
             'slug'          => 'settings',
-            'handler'       => static::class,
+            'handler'       => $this,
             'icon'          => 'ti ti-settings',
             'visibility'    => true
         ];

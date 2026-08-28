@@ -15,20 +15,20 @@ use Callismart\DBPrism\Adapters\Contracts\DatabaseAdapterInterface;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
 use Callismart\Http\HttpClient;
-use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Background\Queue\Adapters\DatabaseJobStorageAdapter;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
-use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
-use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
 use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Email\EmailProviderIcons;
+use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
 use SmartLicenseServer\SettingsAPI\Providers\Options;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
@@ -62,7 +62,6 @@ abstract class Environment {
 
         $this->registerDependencies();
         $this->validateEnvironment();
-
         $this->boot();
     }
 
@@ -73,22 +72,22 @@ abstract class Environment {
      * bindings by registering their own implementation.
      */
     protected function registerCoreDependencies() : void {
-        $this->container->set(
+        $this->container->singleton(
             Environment::class,
             $this
         );
 
-        $this->container->set(
+        $this->container->singleton(
             RuntimeConfig::class,
             $this->runtime
         );
 
-        $this->container->set(
+        $this->container->singleton(
             DatabaseAdapterRegistry::class,
             DatabaseAdapterRegistry::instance()
         );
 
-        $this->container->set(
+        $this->container->singleton(
             CacheAdapterRegistry::class,
             fn ( Container $container ) : CacheAdapterRegistry => $container->get( CacheAdapterRegistry::class )
         );
@@ -132,9 +131,8 @@ abstract class Environment {
         $this->container->singleton(
             Database::class,
             function ( Container $container ) : Database {
-                $config  = $container->get( DBConfigDTO::class );
                 $adapter = $container->get( DatabaseAdapterInterface::class );
-
+                
                 return new Database( $adapter );
             }
         );
@@ -162,7 +160,8 @@ abstract class Environment {
             Cache::class,
             fn ( Container $container ) : Cache =>
                 new Cache(
-                    $container->get( CacheAdapterInterface::class )
+                    $container->get( CacheAdapterInterface::class ),
+                    $container->get( Settings::class )
                 )
         );
 
@@ -199,45 +198,56 @@ abstract class Environment {
                 )
         );
 
-        /*
-         * These are deliberately left to autowiring where their constructors
-         * contain only resolvable dependencies.
-         */
         $this->container->singleton(
             HttpClient::class,
-            fn ( Container $container ) : HttpClient =>
-                $container->get( HttpClient::class )
+            fn () : HttpClient => new HttpClient( HttpClient::auto_client() )
         );
 
-        // $this->container->singleton(
-        //     Mailer::class,
-        //     fn ( Container $container ) : Mailer =>
-        //         $this->createMailer( $container )
-        // );
+        // Initialize all core service registries.
+        // Cache adapter registery.
+        $this->container->singleton(
+            CacheAdapterRegistry::class,
+            fn ( Container $c ) : CacheAdapterRegistry =>
+                CacheAdapterRegistry::instance(
+                    $c->get( Settings::class )
+                )      
+        );
+
+        // Email provider registry.
+        $this->container->singleton(
+            EmailProvidersRegistry::class,
+            fn ( Container $c ) : EmailProvidersRegistry =>
+                EmailProvidersRegistry::instance(
+                    $c->get( Settings::class ),
+                    $c->get( HttpClient::class )
+                )
+        );
+
+        // Email Icon registry.
+        $this->container->singleton(
+            EmailProviderIcons::class,
+            fn ( Container $c ) : EmailProviderIcons =>
+                $c->get( EmailProviderIcons::class )
+        );
+
+        // Monetization providers registry.
+        $this->container->singleton(
+            MonetizationRegistry::class,
+            fn ( Container $c ) : MonetizationRegistry =>
+                MonetizationRegistry::instance(
+                    $c->get( Settings::class ),
+                )
+        );
 
         $this->container->singleton(
-            TemplateLocator::class,
-            fn () : TemplateLocator =>
-                new TemplateLocator()
+            Mailer::class,
+            function ( Container $c ) : Mailer {
+                $registry   = $c->get( EmailProvidersRegistry::class );
+                return new Mailer( $registry->get_provider() );
+            }
+                
         );
 
-        $this->container->singleton(
-            AdminDashboardRegistry::class,
-            fn () : AdminDashboardRegistry =>
-                new AdminDashboardRegistry()
-        );
-
-        $this->container->singleton(
-            ClientDashboardRegistry::class,
-            fn () : ClientDashboardRegistry =>
-                new ClientDashboardRegistry()
-        );
-
-        $this->container->singleton(
-            AuthTemplateRegistry::class,
-            fn () : AuthTemplateRegistry =>
-                new AuthTemplateRegistry()
-        );
     }
 
     /**
@@ -254,7 +264,7 @@ abstract class Environment {
      * Called after core services and environment dependencies have been
      * registered with the container.
      */
-    abstract protected function boot() : void;
+    abstract public function boot() : void;
 
     /**
      * Validate that all dependencies required by the environment are available.

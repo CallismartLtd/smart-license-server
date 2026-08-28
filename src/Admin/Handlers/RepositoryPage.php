@@ -17,21 +17,28 @@ use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Monetization\Monetization;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
+use SmartLicenseServer\Templates\TemplateLocator;
 use SmartLicenseServer\Utils\Format;
 
-use function compact, smliser_render_template;
+use function compact;
 
 /**
  * The Admin repository page handler
  */
 class RepositoryPage implements AdminPageInterface {
 
+    public function __construct(
+        protected TemplateLocator $locator,
+        protected MonetizationRegistry $monetization_registry
+    ) {}
+
     /**
      * The repository dashboard page
      * 
      * @param Request $request
      */
-    public static function dashboard( Request $request ) : void {
+    public function dashboard( Request $request ) : void {
         $args = array(
             'page'      => $request->get( 'paged', 1 ),
             'limit'     => $request->get( 'limit', 10 ),
@@ -65,14 +72,14 @@ class RepositoryPage implements AdminPageInterface {
 
         $vars   = compact( 'add_url', 'apps', 'page_title', 'pagination', 'current_url', 'request',
         'type', 'status' );
-        smliser_render_template( 'admin.contents.repository.index', $vars );
+        $this->locator->render( 'admin.contents.repository.index', $vars );
 
     }
 
     /**
      * Page to search the entire repository.
      */
-    public static function search_page( Request $request ) : void {
+    public function search_page( Request $request ) : void {
         $illigal        = ['app_search', 'tab', 'search_status', 's', 'app_types', 'message', 'type', 'status'];
         $current_url    = smliser_get_current_url()->remove_query_param( ...$illigal );
         $add_url        = $current_url
@@ -157,13 +164,13 @@ class RepositoryPage implements AdminPageInterface {
         
         $vars   = compact( 'add_url', 'apps', 'pagination', 'current_url', 'request', 'menu_args',
         'app_types' );
-        smliser_render_template( 'admin.contents.repository.search', $vars );
+        $this->locator->render( 'admin.contents.repository.search', $vars );
     }
 
     /**
      * The upload page
      */
-    public static function upload_page( Request $request ) {
+    public function upload_page( Request $request ) {
         $type = $request->get( 'type', null );
 
         $slug       = $type ? 'uploader' : 'upload';
@@ -180,13 +187,13 @@ class RepositoryPage implements AdminPageInterface {
         );
 
         $vars   = compact( 'type_title', 'app_action', 'title', 'request', 'essential_fields', 'type' );
-        smliser_render_template( "admin.contents.repository.{$slug}", $vars );
+        $this->locator->render( "admin.contents.repository.{$slug}", $vars );
     }
 
     /**
      * The edit page
      */
-    public static function edit_page( Request $request ) {
+    public function edit_page( Request $request ) {
         $registry   = HostedAppsRegistry::instance();
         $id         = $request->get( 'app_id' );
         $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
@@ -219,13 +226,13 @@ class RepositoryPage implements AdminPageInterface {
         $type_title         = ucfirst( $type );
         
         $vars   = compact( 'type_title', 'app_action', 'request', 'essential_fields', 'type', 'app' );
-        smliser_render_template( "admin.contents.repository.edit-{$type}", $vars );
+        $this->locator->render( "admin.contents.repository.edit-{$type}", $vars );
     }
 
     /**
      * The edit page
      */
-    public static function edit_app_artifacts( Request $request ) {
+    public function edit_app_artifacts( Request $request ) {
         $registry   = HostedAppsRegistry::instance();
         $id         = $request->getTyped( 'app_id', 'int', 0 );
         $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
@@ -260,13 +267,13 @@ class RepositoryPage implements AdminPageInterface {
         $app_files  = $repo_class->get_artifacts( $app->get_slug() );
         
         $vars   = compact( 'type_title', 'app_action', 'request', 'type', 'app', 'app_files' );
-        smliser_render_template( "admin.contents.repository.edit-app-files", $vars );
+        $this->locator->render( "admin.contents.repository.edit-app-files", $vars );
     }
 
     /**
      * View hosted application page
      */
-    public static function view_page( Request $request ) {
+    public function view_page( Request $request ) {
         $id     = $request->get( 'app_id' );
         $type   = $request->get( 'type' );
         
@@ -386,20 +393,20 @@ class RepositoryPage implements AdminPageInterface {
         ];
 
         $vars   = compact( 'app', 'request', 'template_content', 'template_header', 'template_sidebar' );
-        smliser_render_template( "admin.contents.repository.view-{$type}", $vars );
+        $this->locator->render( "admin.contents.repository.view-{$type}", $vars );
     }
 
     /**
      * Manage plugin monetization page
      */
-    public static function monetization_page( Request $request ) {
+    public function monetization_page( Request $request ) {
         $url    = \smliser_repository_url( 'admin' )->url();
         $id         = $request->query( 'app_id' );
         $app_type   = $request->query( 'type' );
         $is_new     = false;
 
         $monetization   = Monetization::get_by_app( $app_type, $id );
-        $providers      = smliser_monetization_registry()->all( false, true );
+        $providers      = $this->monetization_registry->all( false, true );
 
         if ( empty( $monetization ) ) {
             $is_new = true;
@@ -410,7 +417,7 @@ class RepositoryPage implements AdminPageInterface {
 
         $app    = $monetization->get_app();
         $vars   = compact( 'request', 'monetization', 'is_new', 'app', 'url', 'providers', );
-        smliser_render_template( 'admin.contents.repository.monetization', $vars );
+        $this->locator->render( 'admin.contents.repository.monetization', $vars );
     }
 
     /**
@@ -419,7 +426,7 @@ class RepositoryPage implements AdminPageInterface {
      * @param Request $request
      * @param AbstractHostedApp|null $app
      */
-    private static function prepare_essential_app_fields( Request $request, ?AbstractHostedApp $app = null, ) {
+    private function prepare_essential_app_fields( Request $request, ?AbstractHostedApp $app = null, ) {
         $type               = $request->getTyped( 'type', 'string', '' );
         $manifest_filename  = match( $type ) {
             'plugin'    => 'readme.txt',
@@ -535,7 +542,7 @@ class RepositoryPage implements AdminPageInterface {
      * @param HostedAppsInterface|null $app
      * @return array
      */
-    public static function get_menu_args( Request $request, ?HostedAppsInterface $app = null ) : array {
+    public function get_menu_args( Request $request, ?HostedAppsInterface $app = null ) : array {
         $tab        = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
         $app_type   = \ucfirst( $app?->get_type() ?? $request->get( 'type', '' ) );
         $app_name   = $app?->get_name() ?? '';
@@ -617,7 +624,7 @@ class RepositoryPage implements AdminPageInterface {
      * @param string            $last_updated_string Time string.
      * @return string
      */
-    private static function build_info_html( $app, $file_size, $last_updated_string ) {
+    private function build_info_html( $app, $file_size, $last_updated_string ) {
 
         $license_uri    = $app->get_license()['license_uri'] ?? '';
         $license        = $app->get_license()['license'] ?? '';
@@ -666,7 +673,7 @@ class RepositoryPage implements AdminPageInterface {
      * 
      * @param array $data
      */
-    private static function build_tech_details( array $data ) : string {
+    private function build_tech_details( array $data ) : string {
 
         unset( $data['name'], $data['slug'], $data['version'] );
         $details = '<ul class="smliser-app-meta">';
@@ -698,7 +705,7 @@ class RepositoryPage implements AdminPageInterface {
      * @param AbstractHostedApp $app
      * @return string
      */
-    private static function build_analytics_html( AbstractHostedApp $app ) {
+    private function build_analytics_html( AbstractHostedApp $app ) {
 
         // Downloads.
         $downloads_daily   = AppsAnalytics::get_downloads_per_day( $app, 30 );
@@ -765,7 +772,7 @@ class RepositoryPage implements AdminPageInterface {
      * @param array $analytics Analytics data array.
      * @return string HTML for stats footer.
      */
-    private static function build_stats_footer( array $analytics ) {
+    private function build_stats_footer( array $analytics ) {
         $stats = array();
 
         // Downloads stats
@@ -913,69 +920,69 @@ class RepositoryPage implements AdminPageInterface {
     |---------------------------
     */
 
-    public static function index_page_handler() : callable {
-        return [static::class, 'dashboard'];
+    public function index_page_handler() : callable {
+        return [$this, 'dashboard'];
     }
 
     /**
      * @inheritdoc
      */
-    public static function get_submenu() : array {
+    public function get_submenu() : array {
         return [
             [
                 'title'         => 'Hosted apps',
                 'slug'          => 'index',
-                'callback'      => [ static::class, 'dashboard'],
+                'callback'      => [ $this, 'dashboard'],
                 'visibility'    => true,
             ],
             [
                 'title'         => 'Add New',
                 'slug'          => 'add-new',
-                'callback'      => [ static::class, 'upload_page'],
+                'callback'      => [ $this, 'upload_page'],
                 'visibility'    => true,
             ],
             [
                 'title'         => 'Search Repository',
                 'slug'          => 'search',
-                'callback'      => [static::class, 'search_page'],
+                'callback'      => [$this, 'search_page'],
                 'visibility'    => true,
             ],
             [
                 'title'         => 'Edit App',
                 'slug'          => 'edit',
-                'callback'      => [static::class, 'edit_page'],
+                'callback'      => [$this, 'edit_page'],
                 'visibility'    => false,
             ],
             [
                 'title'         => 'View App',
                 'slug'          => 'view',
-                'callback'      => [static::class, 'view_page'],
+                'callback'      => [$this, 'view_page'],
                 'visibility'    => false,
             ],
             [
                 'title'         => 'Monetize App',
                 'slug'          => 'monetization',
-                'callback'      => [static::class, 'monetization_page'],
+                'callback'      => [$this, 'monetization_page'],
                 'visibility'    => false,
             ],
             [
                 'title'         => 'Edit App Artifacts',
                 'slug'          => 'edit-artifacts',
-                'callback'      => [static::class, 'edit_app_artifacts'],
+                'callback'      => [$this, 'edit_app_artifacts'],
                 'visibility'    => false,
             ],
         ];
     }
     
-    public static function get_menu_key() : string {
+    public function get_menu_key() : string {
         return 'repository';
     }
 
-    public static function get_menu_data() : array {
+    public function get_menu_data() : array {
         return [
             'title'         => 'Repository',
             'slug'          => 'repository',
-            'handler'       => static::class,
+            'handler'       => $this,
             'icon'          => 'ti ti-folder-open',
             'visibility'    => true
         ];

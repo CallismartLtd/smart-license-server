@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Security\Actors;
 
 use DateTimeImmutable;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
@@ -16,7 +17,7 @@ use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const SMLISER_USERS_TABLE;
-use function is_string, smliser_db, md5, smliser_avatar_url, get_object_vars;
+use function is_string, md5, smliser_avatar_url, get_object_vars;
 
 /**
  * Canonical representation of a human actor in the system.
@@ -28,8 +29,8 @@ use function is_string, smliser_db, md5, smliser_avatar_url, get_object_vars;
  * Users do not own resources directly.
  * Ownership is always mediated through an Owner.
  */
-class User implements ActorInterface, OwnerSubjectInterface {
-    use SanitizeAwareTrait, CommonQueryTrait;
+class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
+    use SanitizeAwareTrait;
 
     /**
      * User active status.
@@ -339,27 +340,51 @@ class User implements ActorInterface, OwnerSubjectInterface {
         static $users = [];
 
         if ( ! array_key_exists( $id, $users ) ) {
-            $users[ $id ] = self::get_self_by_id( $id, SMLISER_USERS_TABLE );
+            $data           = static::fetch_by( 'id', $id, SMLISER_USERS_TABLE );
+            $users[ $id ]   = $data ? static::from_array( $data ) : null;
         }
 
         return $users[ $id ];
     }
 
     /**
-     * Get by email
-     * 
+     * Get by email.
+     *
+     * Caches the retrieved user instance for 5 seconds. After 5 seconds,
+     * the database is queried again for the latest result.
+     *
      * @param string $email
      * @return static|null
      */
     public static function get_by_email( string $email ) : ?static {
         static $users = [];
 
-        if ( ! array_key_exists( $email, $users ) ) {
-            $users[ $email ] = self::get_self_by( 'email', $email, SMLISER_USERS_TABLE );
+        $now = microtime( true );
+
+        if ( isset( $users[ $email ] ) ) {
+            $cached = $users[ $email ];
+
+            if ( ( $now - $cached['timestamp'] ) < 5 ) {
+                return $cached['user'];
+            }
+
+            unset( $users[ $email ] );
         }
 
-        return $users[ $email ];
+        $data = static::fetch_by( 'email', $email, SMLISER_USERS_TABLE );
+
+        if ( $data ) {
+            $users[ $email ] = [
+                'user'      => static::from_array( $data ),
+                'timestamp' => $now,
+            ];
+
+            return $users[ $email ]['user'];
+        }
+
+        return null;
     }
+
 
     /**
      * Get all users
@@ -367,10 +392,13 @@ class User implements ActorInterface, OwnerSubjectInterface {
      * @param int $page The current pagination number.
      * @param int $limit The maximum number of users to return.
      * 
-     * @return self[]
+     * @return static[]
      */
     public static function get_all( int $page, int $limit ) : array {
-        return self::get_all_self( SMLISER_USERS_TABLE, $page, $limit );
+        return array_map(
+            [static::class, 'from_array'],
+            static::fetch( SMLISER_USERS_TABLE, $page, $limit )
+        );
     }
 
     /**
@@ -384,14 +412,13 @@ class User implements ActorInterface, OwnerSubjectInterface {
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $db     = smliser_db();
             $table  = SMLISER_USERS_TABLE;
 
             $sql    = static::query()
                 ->select( 'COUNT(*)' )->from( $table )
                 ->where( 'status', '=', $status );
 
-            $total  = $db->get_var( $sql->build(), $sql->get_bindings() );
+            $total  = static::$DB->get_var( $sql->build(), $sql->get_bindings() );
 
             $statuses[$status]  = (int) $total;
         }
@@ -405,34 +432,42 @@ class User implements ActorInterface, OwnerSubjectInterface {
      * @return bool True on success, false otherwise.
      */
     public function save() : bool {
-        $db     = smliser_db();
-        $table  = SMLISER_USERS_TABLE;
+        return (bool) static::$DB->transactional( function() {
+            $table  = SMLISER_USERS_TABLE;
 
-        $now    = new DateTimeImmutable();
-        $fields = array(
-            'display_name'  => $this->get_display_name(),
-            'email'         => $this->get_email(),
-            'password_hash' => $this->get_password_hash(),
-            'status'        => $this->get_status(),
-            'updated_at'    => $now->format( 'Y-m-d H:i:s' )
-        );
+            $now    = new DateTimeImmutable();
+            $fields = array(
+                'display_name'  => $this->get_display_name(),
+                'email'         => $this->get_email(),
+                'password_hash' => $this->get_password_hash(),
+                'status'        => $this->get_status(),
+                'updated_at'    => $now->format( 'Y-m-d H:i:s' )
+            );
 
-        if ( $this->get_id() ) {
-            $result = $db->update( $table, $fields, [ 'id' => $this->get_id() ] );
+            $lock_sql   = static::query()
+                ->select( 'id' )->from( $table )
+                ->where( 'email', '=', $this->get_email() )
+                ->limit(1)->lock_for_update();
 
-            $result &&
-                $this->set_updated_at( $now );
-        } else {
-            $fields['created_at']   = $now->format( 'Y-m-d H:i:s' );
-            $result = $db->insert( $table, $fields );
-            
-            $result &&
-                $this->set_id( $db->get_insert_id() )
-                ->set_created_at( $now )
-                ->set_updated_at( $now );
-        }
+            $user_id    = (int) static::$DB->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
 
-        return $result !== false;
+            if ( $user_id ) {
+                $result = static::$DB->update( $table, $fields, ['id' => $this->get_id()] );
+
+                $result &&
+                    $this->set_updated_at( $now );
+            } else {
+                $fields['created_at']   = $now->format( 'Y-m-d H:i:s' );
+                $result = static::$DB->insert( $table, $fields );
+                
+                $result &&
+                    $this->set_id( static::$DB->get_insert_id() )
+                    ->set_created_at( $now )
+                    ->set_updated_at( $now );
+            }
+
+            return $result !== false;            
+        });
     }
 
     /*

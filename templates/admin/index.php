@@ -9,6 +9,8 @@
  * @var SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Templates\TemplateLocator $this
  * @var \SmartLicenseServer\Security\Context\Guard $guard
+ * @var \SmartLicenseServer\Assets\AssetsManager $assets_manager
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
 use SmartLicenseServer\Admin\Page\Shell;
@@ -63,10 +65,11 @@ $current_menu   = $registry->get( $current_slug );
 |--------------------------------------------------
 */
 $this->render( Shell::HEADER_TEMPLATE, [
-    'title'     => $current_menu ? $current_menu['title'] : SMLISER_APP_NAME,
-    'theme'     => $theme,
-    'collapsed' => $collapsed,
-    'registry'  => $registry
+    'title'             => $current_menu ? $current_menu['title'] : SMLISER_APP_NAME,
+    'theme'             => $theme,
+    'collapsed'         => $collapsed,
+    'registry'          => $registry,
+    'assets_manager'    => $assets_manager
 ]);
 
 /*
@@ -85,7 +88,8 @@ if ( $submenu_slug ) {
 $this->render( Shell::MENU_TEMPLATE, [
     'registry'          => $registry,
     'current_menu'      => $current_menu,
-    'current_submenu'   => $current_submenu
+    'current_submenu'   => $current_submenu,
+    'urlmanager'        => $urlmanager
 ]);
 
 /*
@@ -98,7 +102,7 @@ $this->render( Shell::MENU_TEMPLATE, [
 if ( $current_submenu ) {
     $callback    = $current_submenu['callback'];
 } else {
-    $callback   = $current_menu['handler']::index_page_handler();
+    $callback   = $current_menu['handler']->index_page_handler();
 }
 
 $this->render( Shell::CONTENT_TEMPLATE, [

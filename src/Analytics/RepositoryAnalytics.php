@@ -11,32 +11,25 @@
 
 namespace SmartLicenseServer\Analytics;
 
-use Override;
 use SmartLicenseServer\Background\Jobs\Analytics\LogLicenseActivityJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
+use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\Dates\TimestampValue;
-use SmartLicenseServer\Utils\CommonQueryTrait;
+use SmartLicenseServer\SettingsAPI\Settings;
 
-class RepositoryAnalytics {
-    use CommonQueryTrait;
-
-    /**
-     * Mapping of app types to their meta tables
-     * 
-     * @var array<string,string>
-     */
-    private static array $meta_tables = [
-        'plugin'   => SMLISER_PLUGINS_META_TABLE,
-        'theme'    => SMLISER_THEMES_META_TABLE,
-        'software' => SMLISER_SOFTWARE_META_TABLE,
-    ];
-
+class RepositoryAnalytics extends DataStore {
     /**
      * The storage key for licence activity log.
      * 
      * @var string
      */
     const LICENSE_ACTIVITY_KEY = 'smliser_task_log';
+
+    public function __construct(
+        protected Settings $settings,
+        protected JobQueue $job_queue
+    ) {}
 
     /**
      * Get total downloads across all apps (optionally filtered by type)
@@ -45,7 +38,6 @@ class RepositoryAnalytics {
      * @return int
      */
     public static function get_total_downloads( ?string $type = null ) : int {
-        $db = smliser_db();
         $sql    = static::query()
             ->select( 'COUNT(*)' )->from( SMLISER_ANALYTICS_LOGS_TABLE )
             ->where( 'event_type', '=', 'download' );
@@ -54,7 +46,7 @@ class RepositoryAnalytics {
             $sql->where( 'app_type', '=', $type );
         }
 
-        return (int) $db->get_var( $sql->build(), $sql->get_bindings() );
+        return (int) static::$DB->get_var( $sql->build(), $sql->get_bindings() );
     }
 
     /**
@@ -65,8 +57,6 @@ class RepositoryAnalytics {
      * @return array<string,int> Array keyed by Y-m-d
      */
     public static function get_downloads_per_day( int $days = 30, ?string $type = null ) : array {
-        $db = smliser_db();
-
         $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
 
         // Standardized explicit 'as' aliases to ensure your custom column normalizer functions flawlessly
@@ -81,7 +71,7 @@ class RepositoryAnalytics {
 
         $sql->group_by( 'created_at' )->order_by( 'created_at', 'ASC' );
         
-        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+        $results = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
 
         if ( empty( $results ) ) {
             return [];
@@ -111,7 +101,6 @@ class RepositoryAnalytics {
      * @return int
      */
     public static function get_total_client_accesses( int $days = 30, ?string $type = null ) : int {
-        $db = smliser_db();
 
         $date   = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
         $sql    = static::query()
@@ -123,7 +112,7 @@ class RepositoryAnalytics {
             $sql->where( 'app_type', '=', $type );
         }
 
-        return (int) $db->get_var( $sql->build(), $sql->get_bindings() );
+        return (int) static::$DB->get_var( $sql->build(), $sql->get_bindings() );
     }
 
     /**
@@ -134,7 +123,6 @@ class RepositoryAnalytics {
      * @return array<string,int>
      */
     public static function get_client_accesses_per_day( int $days = 30, ?string $type = null ) : array {
-        $db   = smliser_db();
         $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
 
         $sql = static::query()
@@ -149,7 +137,7 @@ class RepositoryAnalytics {
 
         $sql->group_by( 'created_at' )->order_by( 'created_at', 'ASC' );
         
-        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+        $results = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
 
         if ( empty( $results ) ) {
             return [];
@@ -180,7 +168,6 @@ class RepositoryAnalytics {
      * @return int
      */
     public static function get_active_installations( int $days = 30, ?string $type = null ) : int {
-        $db   = smliser_db();
         $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
         
         $sql = static::query()
@@ -192,7 +179,7 @@ class RepositoryAnalytics {
             $sql->where( 'app_type', '=', $type );
         }
 
-        $result = $db->get_row( $sql->build(), $sql->get_bindings() );
+        $result = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
 
         return ! empty( $result['active_count'] ) ? (int) $result['active_count'] : 0;
     }
@@ -218,8 +205,8 @@ class RepositoryAnalytics {
      *  }
      * } An array of task logs
      */
-    public static function get_license_activity_logs() : array {
-        $logs   = \smliser_settings()->get( self::LICENSE_ACTIVITY_KEY, [] );
+    public function get_license_activity_logs() : array {
+        $logs   = $this->settings->get( self::LICENSE_ACTIVITY_KEY, [] );
         
         if ( empty( $logs ) ) {
             return [];
@@ -248,14 +235,14 @@ class RepositoryAnalytics {
      * @param array $data Associative array containing executed task info.
      * @return void
      */
-    public static function log_license_activity( array $data ): void {
-        smliser_job_queue()->dispatch(
+    public function log_license_activity( array $data ): void {
+        $this->job_queue->dispatch(
             JobDTO::make(
                 job_class : LogLicenseActivityJob::class,
                 payload   : [
                     'license_id'    => $data['license_id'] ?? 'N/A',
                     'event_type'    => $data['event_type'] ?? 'activation',
-                    'ip_address'    => $data['ip_address'] ?? smliser_get_client_ip(),
+                    'ip_address'    => $data['ip_address'] ?? 'unknown',
                     'user_agent'    => $data['user_agent'] ?? 'unknown',
                     'website'       => $data['website']    ?? 'N/A',
                     'comment'       => $data['comment']    ?? 'N/A',
@@ -351,7 +338,6 @@ class RepositoryAnalytics {
      * @return int
      */
     public static function get_total_apps( ?string $type = null ) : int {
-        $db = smliser_db();
         $total = 0;
 
         if ( $type ) {
@@ -363,7 +349,7 @@ class RepositoryAnalytics {
 
             $sql    = static::query()->select( 'COUNT(*)' )->from( $table );
 
-            return (int) $db->get_var( $sql->build() );
+            return (int) static::$DB->get_var( $sql->build() );
         }
 
         $plugins_sql    = static::query()->select( 'COUNT(*) as total' )->from( SMLISER_PLUGINS_TABLE );
@@ -371,7 +357,7 @@ class RepositoryAnalytics {
         $software_sql   = static::query()->select( 'COUNT(*) as total' )->from( SMLISER_SOFTWARE_TABLE );
 
         $compound_sql = $plugins_sql->union( $themes_sql )->union( $software_sql );
-        $results = $db->get_results( $compound_sql->build() );
+        $results = static::$DB->get_results( $compound_sql->build() );
 
         foreach ( $results as $row ) {
             $total += (int) $row['total'];
@@ -387,7 +373,6 @@ class RepositoryAnalytics {
      * @return array<string,array<string,int>> [type][status] => count
      */
     public static function get_apps_by_status( ?string $type = null ) : array {
-        $db             = smliser_db();
         $status_counts  = [];
 
         if ( $type ) {
@@ -407,7 +392,7 @@ class RepositoryAnalytics {
                 ->from( $table )
                 ->group_by( 'status' );
 
-            $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+            $results = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
             
             foreach ( $results as $row ) {
                 $status_counts[ $type ][ $row['status'] ] = (int) $row['total'];
@@ -430,7 +415,7 @@ class RepositoryAnalytics {
 
         $compound_sql = $base_sql->union_all( $themes_sql )->union_all( $software_sql );
         
-        $results = $db->get_results( $compound_sql->build(), $compound_sql->get_bindings() );
+        $results = static::$DB->get_results( $compound_sql->build(), $compound_sql->get_bindings() );
 
         foreach ( $results as $row ) {
             $status_counts[ $row['app_type'] ][ $row['status'] ] = (int) $row['total'];
@@ -448,7 +433,6 @@ class RepositoryAnalytics {
      * @return array<string,array<int,array<string,mixed>>> [type] => list of apps
      */
     public static function get_top_apps( int $limit = 10, string $metric = 'downloads', ?string $type = null ) : array {
-        $db = smliser_db();
 
         $sql    = static::query()
             ->select( 'app_slug', 'app_type', 'COUNT(*) as metric_total' )
@@ -468,7 +452,7 @@ class RepositoryAnalytics {
         $sql->group_by( 'app_slug', 'app_type' )
             ->order_by( 'metric_total', 'DESC' )->limit( $limit );
 
-        $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+        $results = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
 
         $top_apps = [];
         foreach ( $results as $row ) {
@@ -485,7 +469,6 @@ class RepositoryAnalytics {
      * @return array<string,array<string,array<string,mixed>>> [type][YYYY-MM] => ['count'=>int,'apps'=>array]
      */
     public static function get_apps_maintained_by_month( int $months = 6, ?string $type = null ) : array {
-        $db         = smliser_db();
         $maintained = [];
 
         // Corrected time calculation mapping to your TimestampValue value object framework
@@ -504,7 +487,7 @@ class RepositoryAnalytics {
                 ->where( 'updated_at', '>=', $date )
                 ->order_by( 'updated_at', 'ASC' );
 
-            $results = $db->get_results( $sql->build(), $sql->get_bindings() );
+            $results = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
             
             // Critical Fix: Explicitly initialize the requested type index to guarantee structural consistency
             $maintained[ $type ] = [];
@@ -529,7 +512,7 @@ class RepositoryAnalytics {
             $compound_sql = $plugins_sql->union_all( $themes_sql )->union_all( $software_sql )
                 ->order_by( 'updated_at', 'ASC' );
 
-            $results = $db->get_results( $compound_sql->build(), $compound_sql->get_bindings() );
+            $results = static::$DB->get_results( $compound_sql->build(), $compound_sql->get_bindings() );
         }
 
         // Structural Safety Check: If the DB returns nothing, safely exit with our predictable layout
@@ -552,10 +535,5 @@ class RepositoryAnalytics {
         }
 
         return $maintained;
-    }
-
-    #[Override]
-    public static function from_array( array $data ): static {
-        throw new \Exception('Not implemented');
     }
 }

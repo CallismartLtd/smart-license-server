@@ -25,11 +25,13 @@ use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
 use SmartLicenseServer\Security\Context\Guard;
+use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
@@ -41,7 +43,9 @@ class AuthController {
      */
     public function __construct(
         protected Guard $guard,
-        protected PasswordIdentityProviderInterface $id_provider
+        protected PasswordIdentityProviderInterface $id_provider,
+        protected URLManager $urlmanager,
+        protected Settings $settings
     ) {}
 
     /*
@@ -86,7 +90,7 @@ class AuthController {
 
         if ( ! $redirect_url->is_valid() || $redirect_url->get_origin() !== \url()->get_origin() ) {
             $redirect_url   = $this->guard->get_principal()?->is( 'system_admin' )
-                ? \adminUrl() : \smliser_client_dashboard_url();
+                ? $this->urlmanager->admin_url() : $this->urlmanager->client_dashboard_url();
         }
 
         // Return success with redirect
@@ -171,9 +175,9 @@ class AuthController {
             SignupEmailJob::class,
             [
                 'user_id'       => $principal->get_id(),
-                'recipient'     => \smliser_settings()->get( 'admin_email' ),
+                'recipient'     => $this->settings->get( 'admin_email' ),
                 'for_admin'     => true,
-                'ip_address'    => \smliser_get_client_ip(),
+                'ip_address'    => $request->ip(),
                 'account_type'  => $account_type
             ]
         );
@@ -184,7 +188,7 @@ class AuthController {
             [
                 'success'   => true,
                 'message'   => 'Account created successfully! Check your email to verify your account.',
-                'redirect'  => \smliser_client_dashboard_url()
+                'redirect'  => $this->urlmanager->client_dashboard_url()
             ]
         );
     }
@@ -226,7 +230,7 @@ class AuthController {
             return static::success_response( 200, $response_data );
         }
 
-        $this->password_recovery( $user );
+        $this->password_recovery( $user, $request );
 
         return static::success_response( 200, $response_data );
     }
@@ -306,8 +310,9 @@ class AuthController {
      * Dispatches password reset email in the background.
      *
      * @param User $user
+     * @param Request $request
      */
-    private function password_recovery( User $user ) : void {
+    private function password_recovery( User $user, Request $request ) : void {
 
         $raw_key = static::generate_secure_token();
 
@@ -341,19 +346,18 @@ class AuthController {
             (int) DateDuration::fromHours(1)->toSeconds()
         );
 
-        $reset_link = smliser_client_dashboard_url()
-            ->add_query_params( array( 'key' => $token ) )
+        $reset_link = $this->urlmanager->client_dashboard_url( '', array( 'key' => $token ) )
             ->set_hash( 'reset-password' );
 
         $this->dispatch_job(
             PasswordResetJob::class,
             array(
-                'user_id'    => $user->get_id(),
-                'recipient'  => $user->get_email(),
-                'reset_url'  => $reset_link,
-                'expires_in' => 3600,
-                'ip_address' => \smliser_get_client_ip(),
-                'user_agent' => \smliser_get_user_agent(),
+                'user_id'       => $user->get_id(),
+                'recipient'     => $user->get_email(),
+                'reset_url'     => $reset_link,
+                'expires_in'    => 3600,
+                'ip_address'    => $request->ip(),
+                'user_agent'    => $request->userAgent(),
             )
         );
     }

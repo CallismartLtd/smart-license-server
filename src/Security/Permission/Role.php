@@ -14,9 +14,9 @@ namespace SmartLicenseServer\Security\Permission;
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
@@ -25,8 +25,8 @@ use function is_json;
 /**
  * Classical representation of a role.
  */
-class Role {
-    use SanitizeAwareTrait, CommonQueryTrait;
+class Role extends DataStore {
+    use SanitizeAwareTrait;
 
     /**
      * Role ID.
@@ -81,7 +81,7 @@ class Role {
     /**
      * Role constructor.
      */
-    public function __construct( protected Database $db ) {}
+    public function __construct() {}
 
     /*
     |-----------
@@ -212,8 +212,8 @@ class Role {
      * 
      * @param bool $is_canonical
      */
-    public function set_is_canonical( bool $is_canonical ) : static {
-        $this->is_canonical = $is_canonical;
+    public function set_is_canonical( $is_canonical ) : static {
+        $this->is_canonical = (bool) $is_canonical;
 
         return $this;
     }
@@ -321,7 +321,7 @@ class Role {
             ->select( 'capabilities' )->from( $table )
             ->where( 'role_id', '=', $this->get_id() );
 
-        $caps   = $this->db->get_row( $sql->build(), $sql->get_bindings() );
+        $caps   = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
 
         try {
             $this->set_capabilities( $caps['capabilities'] ?? [] );
@@ -395,7 +395,7 @@ class Role {
             throw new Exception( 'role_save_error', 'Role slug must be set' );
         }
 
-        $result = (bool) $this->db->transactional( function ( Database $db ) {
+        $result = (bool) static::$DB->transactional( function ( Database $db ) {
             $roles_table    = SMLISER_ROLES_TABLE;
             $caps_table     = SMLISER_ROLE_CAPABILITIES_TABLE;
             $lock_sql       = static::query()
@@ -499,7 +499,8 @@ class Role {
         static $roles = [];
 
         if ( ! array_key_exists( $id, $roles ) ) {
-            $roles[ $id ] = static::get_self_by_id( $id, SMLISER_ROLES_TABLE );
+            $data           = static::fetch_by( 'id', $id, SMLISER_ROLES_TABLE );
+            $roles[ $id ]   = $data ? static::from_array( $data ) : null;
         }
 
         return $roles[ $id ];
@@ -512,7 +513,8 @@ class Role {
      * @return static|null
      */
     public static function get_by_slug( string $slug ) : ?static {
-        return static::get_self_by( 'slug', $slug, SMLISER_ROLES_TABLE );
+        $role   = static::fetch_by( 'slug', $slug, SMLISER_ROLES_TABLE );
+        return $role ? static::from_array( $role ) : null;
     }
 
     /**
@@ -530,7 +532,7 @@ class Role {
     public static function all( bool $to_array = false ) : array {
         $table      = SMLISER_ROLES_TABLE;
         $sql        = static::query()->select( '*' )->from( $table );
-        $results    = $this->db->get_results( $sql->build(), $sql->get_bindings() );
+        $results    = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
 
         if ( empty( $results ) ) {
             return [];

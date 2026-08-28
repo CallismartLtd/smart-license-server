@@ -14,6 +14,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Email;
 
+use Callismart\Http\HttpClient;
 use SmartLicenseServer\Email\Providers\EmailProviderInterface;
 use SmartLicenseServer\Email\Providers\PHPMailProvider;
 use SmartLicenseServer\Email\Providers\SMTPProvider;
@@ -50,13 +51,6 @@ class EmailProvidersRegistry  extends AbstractRegistry {
     protected static ?self $instance = null;
 
     /**
-     * The settings API used to set/get settings from storage.
-     * 
-     * @var Settings $settings
-     */
-    protected Settings $settings;
-
-    /**
      * Core email service providers.
      * 
      * @var array<int, class-string<EmailProviderInterface>>
@@ -87,11 +81,13 @@ class EmailProvidersRegistry  extends AbstractRegistry {
     const DEFAULT_SENDER_EMAIL_KEY  = 'email_from_address';
 
     /**
-     * Private constructor — use instance() or create().
+     * @param Settings $settings The settings API used for CRUD.
+     * 
      */
-    private function __construct( Settings $settings ) {
-        $this->settings = $settings;
-    }
+    private function __construct(
+        protected Settings $settings,
+        protected HttpClient $client
+    ) {}
 
     /*
     |------------------
@@ -103,15 +99,28 @@ class EmailProvidersRegistry  extends AbstractRegistry {
      * Return the singleton instance, creating and loading it if needed.
      *
      * @param Settings|null $settings The storage API, required on first initialization.
+     * @param HttpClient|null $client The http client API, required on first initialization.
      * @return static
      */
-    public static function instance( ?Settings $settings = null ): static {
+    public static function instance( ?Settings $settings = null, ?HttpClient $client = null ): static {
         if ( static::$instance === null ) {
             if ( ! $settings ) {
-                throw new EmailTransportException( 'Email provider collection API requires a storage API' );
+                throw new EmailTransportException(
+                    sprintf( '%s requires %s on first bootstrap.', static::class, Settings::class )
+                );
             }
 
-            static::$instance = new static( $settings );
+            if ( ! $client ) {
+                throw new EmailTransportException(
+                    sprintf(
+                        '%s requires %s on first bootstrap.',
+                        static::class,
+                        HttpClient::class
+                    )
+                );
+            }
+
+            static::$instance = new static( $settings, $client );
         }
 
         return static::$instance;
@@ -134,12 +143,14 @@ class EmailProvidersRegistry  extends AbstractRegistry {
      * @throws InvalidArgumentException If settings validation fails.
      */
     public function get_provider( ?string $provider_id = null ): ?EmailProviderInterface {
-        $provider_id    = $provider_id ?? static::get_default_provider_id();
+        $provider_id    = ($provider_id ?? static::get_default_provider_id() );
         $class_string   = $this->get( $provider_id );
         $provider       = null;
         if ( $class_string ) {
-            /** @var EmailProviderInterface $provider */
-            $provider = new $class_string( \smliser_http_client() );
+            $provider = new $class_string(
+                $this->client,
+                $this
+            );
             $settings = [];
 
             foreach ( $provider->get_settings_schema() as $key => $data ) {
@@ -153,14 +164,14 @@ class EmailProvidersRegistry  extends AbstractRegistry {
     }
 
     #[Override]
-    public function all(bool $assoc = true, bool $instantiate = false): array {
+    public function all( bool $assoc = true, bool $instantiate = false ): array {
         $this->ensure_core();
         /** @var array<string, class-string<EmailProviderInterface>> $all */
         $all    = array_merge( $this->custom, $this->core );
 
         if ( $instantiate ) {
             foreach ( $all as $_ => &$value ) {
-                $value = new $value( \smliser_http_client() );
+                $value = new $value( $this->client, $this );
             }
         }
 
@@ -176,10 +187,10 @@ class EmailProvidersRegistry  extends AbstractRegistry {
     /**
      * Return the default provider ID, or null if none is set.
      *
-     * @return string|null
+     * @return string
      */
     public static function get_default_provider_id(): string {
-        $default    = $_ENV['SMLISER_EMAIL_PROVIDER'] ?? 'php_mail';
+        $default    = (string)( $_ENV['SMLISER_EMAIL_PROVIDER'] ?? 'php_mail' );
         $value      = (string) static::instance()->settings->get( static::DEFAULT_PROVIDER_KEY, $default, true );
 
         if ( ! static::instance()->has( $value ) ) {

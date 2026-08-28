@@ -8,8 +8,10 @@
 namespace SmartLicenseServer\Admin\Page;
 
 use SmartLicenseServer\Admin\AdminDashboardRegistry;
+use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Templates\TemplateLocator;
 
@@ -63,7 +65,9 @@ class Shell {
         protected AdminDashboardRegistry $registry,
         protected TemplateLocator $locator,
 		protected Request $request,
-        protected Guard $guard
+        protected Guard $guard,
+        protected AssetsManager $assets_manager,
+        protected URLManager $urlmanager
     ) {}
 
     /*
@@ -79,9 +83,11 @@ class Shell {
      */
     public function render() : void {
         $this->locator->render( self::SHELL_TEMPLATE, [
-            'registry'  => $this->registry,
-			'request'   => $this->request,
-            'guard'     => $this->guard
+            'registry'          => $this->registry,
+			'request'           => $this->request,
+            'guard'             => $this->guard,
+            'assets_manager'    => $this->assets_manager,
+            'urlmanager'        => $this->urlmanager,
         ] );
     }
 

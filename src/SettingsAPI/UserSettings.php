@@ -10,13 +10,14 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\SettingsAPI;
 
 use Callismart\DBPrism\Database;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Utils\Format;
 
 /**
  * User settings API.
  */
-class UserSettings {
+class UserSettings extends DataStore {
 
     const PWD_RESET_NAME                    = 'password_reset_key';
     const DASHBOARD_THEME_NAME              = 'theme';
@@ -37,13 +38,15 @@ class UserSettings {
      */
     protected array $current_data   = [];
 
-    public function __construct(
+    private function __construct(
         private User $user,
-        private Database $database
     ) {}
 
-    public static function for( User $user ) : static {
-        return new static( $user, \smliser_db() );
+    /**
+     * Initialize a settings for a user.
+     */
+    public static function for( User $user ) {
+        return new static( $user );
     }
 
     /**
@@ -54,11 +57,11 @@ class UserSettings {
             return $this->settings_cache;
         }
 
-        $sql    = smliserQueryBuilder()
+        $sql    = smliserQueryBuilder( static::$DB->get_driver() )
             ->select( 'option_key', 'option_value' )->from( SMLISER_USER_OPTIONS_TABLE )
             ->where( 'user_id', '=', $this->user->get_id() );
 
-        $results = $this->database->get_results( $sql->build(), $sql->get_bindings() );
+        $results = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
 
         if ( ! \is_array( $results ) || $results === [] ) {
             return $this->settings_cache = [];
@@ -89,7 +92,7 @@ class UserSettings {
         $this->current_data['name']     = $name;
         $this->current_data['value']    = $value;
 
-        return (bool) $this->database->transactional( [$this, 'insert_or_update'] );
+        return (bool) static::$DB->transactional( [$this, 'insert_or_update'] );
     }
 
     /**
@@ -99,7 +102,7 @@ class UserSettings {
         $table      = SMLISER_USER_OPTIONS_TABLE;
         $user_id    = $this->user->get_id();
 
-        $deleted = $this->database->delete( $table, [
+        $deleted = static::$DB->delete( $table, [
             'user_id'    => $user_id,
             'option_key' => $name,
         ]);
@@ -118,7 +121,7 @@ class UserSettings {
         $table   = SMLISER_USER_OPTIONS_TABLE;
         $user_id = $this->user->get_id();
 
-        $deleted = (int) $this->database->delete( $table, [
+        $deleted = (int) static::$DB->delete( $table, [
             'user_id' => $user_id
         ]);
 
@@ -146,7 +149,7 @@ class UserSettings {
 
         $encoded    = Format::encode( $value );
 
-        $exists_sql = smliserQueryBuilder()
+        $exists_sql = smliserQueryBuilder( static::$DB->get_driver() )
             ->select( 'id' )->from( $table )
             ->where( 'user_id', '=', $user_id )
             ->where( 'option_key', '=', $name )
@@ -170,7 +173,7 @@ class UserSettings {
         }
 
         
-        $updated = $this->database->update(
+        $updated = static::$DB->update(
             $table,
             [ 'option_value' => $encoded ],
             [ 'id'  => $id ]

@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Background\Jobs\Analytics;
 
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
+use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
  * Asynchronously appends a license activity entry to the
@@ -22,6 +23,8 @@ use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
  * every license event from blocking on a settings adapter read and write.
  */
 class LogLicenseActivityJob implements JobHandlerInterface {
+
+    public function __construct( protected Settings $settings ) {}
 
     /*
     |----------------------
@@ -45,14 +48,15 @@ class LogLicenseActivityJob implements JobHandlerInterface {
      * @return bool True on success.
      */
     public function handle( array $payload = [] ): mixed {
-        $activities = smliser_settings()->get( RepositoryAnalytics::LICENSE_ACTIVITY_KEY, [] );
+
+        $activities = $this->settings->get( RepositoryAnalytics::LICENSE_ACTIVITY_KEY, [] );
         if ( ! \is_array( $activities ) ) {
             $activities =   [];
         }
         
         $activities[]   = $payload;
         
-        \smliser_settings()->set( RepositoryAnalytics::LICENSE_ACTIVITY_KEY, $activities );
+        $this->settings->set( RepositoryAnalytics::LICENSE_ACTIVITY_KEY, $activities );
         
         return true;
     }

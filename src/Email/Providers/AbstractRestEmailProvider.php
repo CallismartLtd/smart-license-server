@@ -33,6 +33,7 @@ use SmartLicenseServer\Exceptions\EmailTransportException;
 use Callismart\Http\HttpClient;
 use Callismart\Http\HttpResponse;
 use InvalidArgumentException;
+use SmartLicenseServer\Email\EmailProvidersRegistry;
 
 abstract class AbstractRestEmailProvider implements EmailProviderInterface {
 
@@ -50,13 +51,6 @@ abstract class AbstractRestEmailProvider implements EmailProviderInterface {
      */
     protected bool $configured = false;
 
-    /**
-     * HTTP client used to dispatch API requests.
-     *
-     * @var HttpClient
-     */
-    protected HttpClient $http_client;
-
     /*
     |-------------
     | CONSTRUCTOR
@@ -69,10 +63,13 @@ abstract class AbstractRestEmailProvider implements EmailProviderInterface {
      * Accepts an optional HttpClient for testing or custom adapter use.
      * Defaults to auto-detected adapter when none is provided.
      *
-     * @param HttpClient|null $http_client
+     * @param HttpClient $http_client
      */
-    public function __construct( HttpClient $http_client ) {
-        $this->http_client = $http_client;
+    public function __construct(
+        protected HttpClient $http_client,
+        protected EmailProvidersRegistry $registry
+        
+    ) {
     }
 
     /*
@@ -219,9 +216,9 @@ abstract class AbstractRestEmailProvider implements EmailProviderInterface {
      */
     protected function resolve_sender( EmailMessage $message ): array {
         $from               = $message->get( 'from' ) ?? [];
-        $collection         = smliser_emailProvidersRegistry();
-        $default_from_email = $collection->get_default_sender_email();
-        $default_from_name  = $collection->get_default_sender_name();
+        $registry           = $this->registry;
+        $default_from_email = $registry->get_default_sender_email();
+        $default_from_name  = $registry->get_default_sender_name();
         return [
             'email' => $from['email'] ?? $this->settings['from_email'] ?? $default_from_email,
             'name'  => $from['name']  ?? $this->settings['from_name']  ?? $default_from_name,

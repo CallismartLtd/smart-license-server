@@ -20,14 +20,14 @@ interface AdminPageInterface {
      * @return callable(Request $request) The handler should accept the request object as 
      * its first argument.
      */
-    public static function index_page_handler() : callable;
+    public function index_page_handler() : callable;
 
     /**
      * Get top menu key
      * 
      * @return string
      */
-    public static function get_menu_key() : string;
+    public function get_menu_key() : string;
 
     /**
      * Get top menu data
@@ -35,12 +35,12 @@ interface AdminPageInterface {
      * @return array{
      *     title: string,
      *     slug: string,
-     *     handler: class-string<static>,
+     *     handler: static,
      *     icon: string,
      *     visibility: bool|callable():bool
      * }
      */
-    public static function get_menu_data() : array;
+    public function get_menu_data() : array;
 
     /**
      * Get the submenu.
@@ -52,5 +52,5 @@ interface AdminPageInterface {
      *  visibility: bool|callable():bool
      * }[]
      */
-    public static function get_submenu() : array;
+    public function get_submenu() : array;
 }

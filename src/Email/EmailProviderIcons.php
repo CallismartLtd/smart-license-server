@@ -13,18 +13,32 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Email;
 
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 class EmailProviderIcons {
     use SanitizeAwareTrait;
 
+    public function __construct( protected URLManager $urlmanager ) {}
+    
     /**
      * Custom icons registered at runtime by third-party providers.
      * Keyed by provider ID.
      *
      * @var array<string, string>
      */
-    protected static array $custom = [];
+    protected array $custom = [];
+
+    protected $core = [
+        'php_mail'   => 'images/email-providers/php-mail.svg',
+        'smtp'       => 'images/email-providers/smtp-mail.svg',
+        'amazon_ses' => 'images/email-providers/aws.svg',
+        'brevo'      => 'images/email-providers/brevo.svg',
+        'sendgrid'   => 'images/email-providers/sendgrid.svg',
+        'mailgun'    => 'images/email-providers/mailgun.svg',
+        'postmark'   => 'images/email-providers/postmark.svg',
+        'resend'     => 'images/email-providers/resend.svg',
+    ];
 
     /**
      * Register an icon for a third-party provider.
@@ -36,7 +50,7 @@ class EmailProviderIcons {
      * @param string $icon  Asset URL or CSS class string.
      * @return void
      */
-    public static function register( string $provider_id, string $icon ): void {
+    public function register( string $provider_id, string $icon ): void {
         static::$custom[ $provider_id ] = $icon;
     }
 
@@ -49,15 +63,15 @@ class EmailProviderIcons {
      * @param  string $provider_id
      * @return string
      */
-    public static function get( string $provider_id ): string {
-        $built_in = static::built_in();
+    public function get( string $provider_id ): string {
+        $built_in = $this->built_in();
 
         // Built-ins take precedence.
         if ( isset( $built_in[ $provider_id ] ) ) {
-            return \assetsUrl( $built_in[ $provider_id ] )->url();
+            return $this->urlmanager->assets_url( $built_in[ $provider_id ] )->url();
         }
 
-        return static::$custom[ $provider_id ] ?? 'dashicons dashicons-email-alt';
+        return static::$custom[ $provider_id ] ?? '';
     }
 
     /**
@@ -70,8 +84,8 @@ class EmailProviderIcons {
      * @param  string $alt  Alt text for img tags. Defaults to provider ID.
      * @return string
      */
-    public static function render( string $provider_id, string $alt = '' ): string {
-        $icon = static::get( $provider_id );
+    public function render( string $provider_id, string $alt = '' ): string {
+        $icon = $this->get( $provider_id );
         $alt  = $alt !== '' ? $alt : $provider_id;
 
         if ( filter_var( $icon, FILTER_VALIDATE_URL ) ) {
@@ -94,22 +108,7 @@ class EmailProviderIcons {
      *
      * @return array<string, string>
      */
-    protected static function built_in(): array {
-        static $map = null;
-
-        if ( $map === null ) {
-            $map = [
-                'php_mail'   => 'images/email-providers/php-mail.svg',
-                'smtp'       => 'images/email-providers/smtp-mail.svg',
-                'amazon_ses' => 'images/email-providers/aws.svg',
-                'brevo'      => 'images/email-providers/brevo.svg',
-                'sendgrid'   => 'images/email-providers/sendgrid.svg',
-                'mailgun'    => 'images/email-providers/mailgun.svg',
-                'postmark'   => 'images/email-providers/postmark.svg',
-                'resend'     => 'images/email-providers/resend.svg',
-            ];
-        }
-
-        return $map;
+    protected function built_in(): array {
+        return $this->core;
     }
 }

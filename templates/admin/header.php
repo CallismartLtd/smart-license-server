@@ -13,6 +13,7 @@
  * @var string $theme
  * @var bool $collapsed
  * @var \SmartLicenseServer\Admin\AdminDashboardRegistry $registry
+ * @var \SmartLicenseServer\Assets\AssetsManager $assets_manager
  */
 
 use SmartLicenseServer\Assets\AssetsManager;
@@ -26,8 +27,8 @@ use SmartLicenseServer\Assets\AssetsManager;
 	<meta name="robots" content="noindex, nofollow">
 	<title><?php echo htmlspecialchars( $title ?? 'Dashboard', ENT_QUOTES, 'UTF-8' ); ?></title>
 
-	<?php AssetsManager::instance()->print_js_constants(); ?>
-	<?php AssetsManager::instance()->print_group( AssetsManager::GROUP_ADMIN_DASHBOARD ); ?>
+	<?php $assets_manager->print_js_constants(); ?>
+	<?php $assets_manager->print_group( AssetsManager::GROUP_ADMIN_DASHBOARD ); ?>
 
 </head>
 <body>

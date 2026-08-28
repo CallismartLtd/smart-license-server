@@ -46,7 +46,7 @@ class HTTPKernel extends Kernel {
      * {@inheritdoc}
      */
     public function boot() : static {
-        $this->identityService->authenticate();
+        // $this->identityService->authenticate();
 
         return $this;
     }

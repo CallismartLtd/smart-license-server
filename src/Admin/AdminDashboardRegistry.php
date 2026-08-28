@@ -15,8 +15,15 @@ use SmartLicenseServer\Admin\Handlers\LicensePage;
 use SmartLicenseServer\Admin\Handlers\OptionsPage;
 use SmartLicenseServer\Admin\Handlers\RepositoryPage;
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
+use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Core\URLManager;
 
 final class AdminDashboardRegistry extends AbstractDashboardRegistry {
+
+    public function __construct(
+        protected URLManager $urlmanager,
+        protected Container $container
+    ) {}
 
     protected function boot() : void {
         if ( $this->booted ) {
@@ -33,14 +40,14 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
             AccessControlPage::class,
             OptionsPage::class
         ];
-        
-        /** @var class-string<AdminPageInterface>[] $core_menu */
 
-        foreach( $core_menu as $class ) {
-            $this->register( $class::get_menu_key(), $class::get_menu_data() );
+        foreach( $core_menu as $id ) {
+            /** @var AdminPageInterface */
+            $class   = $this->container->get( $id );
+            $this->register( $class->get_menu_key(), $class->get_menu_data() );
             
-            foreach( $class::get_submenu() as $value ) {
-                $this->add_submenu( $class::get_menu_key(), $value );
+            foreach( $class->get_submenu() as $value ) {
+                $this->add_submenu( $class->get_menu_key(), $value );
             }
         }
 
@@ -61,7 +68,7 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
         $this->add_top_menu( 'logout_button', [
             'title'         => 'Logout',
             'type'          => 'link',
-            'href'          => \smliser_logout_url(),
+            'href'          => $this->urlmanager->logout_url(),
             'visibility'    => true,
             'icon'          => 'ti ti-logout',
             'attributes'    => [

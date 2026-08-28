@@ -17,8 +17,8 @@ use DateTimeZone;
 use InvalidArgumentException;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Core\Collection;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\DatabaseException;
-use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\SecurityException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Security\Actors\ActorInterface;
@@ -34,14 +34,14 @@ use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 
 use const SMLISER_ROLE_ASSIGNMENT_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE, 
 SMLISER_OWNERS_TABLE, SMLISER_ORGANIZATIONS_TABLE, SMLISER_USERS_TABLE, SMLISER_SERVICE_ACCOUNTS_TABLE;
-use function class_exists, parse_args_recursive, smliser_db, strtolower, gmdate, method_exists,
+use function class_exists, parse_args_recursive, strtolower, gmdate, method_exists,
 sprintf, class_implements, in_array;
 
 /**
  * The security context service provider holds the context of authenticated actor/principal
  * and provides unified methods to access security entities.
  */
-class ContextServiceProvider {
+class ContextServiceProvider extends DataStore {
     use CacheAwareTrait, SanitizeAwareTrait;
 
     /**
@@ -56,7 +56,7 @@ class ContextServiceProvider {
      * @return array
      */
     public static function search( array $args = [] ) {
-        $db = smliser_db();
+        $db = static::$DB;
 
         $defaults = array(
             'search_term'   => '',
@@ -223,7 +223,7 @@ class ContextServiceProvider {
      * @return array{items: array, pagination: array{total: int, page: int, limit: int, total_pages: int}}
      */
     public static function search_owners( array $args = [] ) : array {
-        $db = smliser_db();
+        $db = static::$DB;
         $defaults = [
             'search_term' => '',
             'page'        => 1,
@@ -299,7 +299,7 @@ class ContextServiceProvider {
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
         $subject_id     = $subject ? $subject->get_id() : $actor->get_id();
 
-        $result = smliser_db()->transactional( function( Database $db ) use ( $role, $subject, $table, $actor, $subject_type, $subject_id) {
+        $result = static::$DB->transactional( function( Database $db ) use ( $role, $subject, $table, $actor, $subject_type, $subject_id) {
             $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
             $data   = array(
                 'role_id'               => $role->get_id(),
@@ -389,7 +389,7 @@ class ContextServiceProvider {
         }
 
         $table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
-        $db     = smliser_db();
+        $db     = static::$DB;
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
 
         $deleted    = $db->delete( $table,[
@@ -414,7 +414,7 @@ class ContextServiceProvider {
      * @return Role|null
      */
     public static function get_principal_role( ActorInterface $actor, ?OwnerSubjectInterface $subject = null ) : ?Role {
-        $db     = smliser_db();
+        $db     = static::$DB;
         $table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
                 
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
@@ -440,7 +440,7 @@ class ContextServiceProvider {
      * @return Owner|null The owner instance or null when the user is not a resource owner
      */
     public static function get_default_owner( User $user ) : ?Owner {
-        $db     = smliser_db();
+        $db     = static::$DB;
         $table  = SMLISER_OWNERS_TABLE;
         $sql    = static::query()
             ->select( 'id' )->from( $table )
@@ -477,7 +477,7 @@ class ContextServiceProvider {
      * @throws DatabaseException|InvalidArgumentException
      */
     public static function save_organization_member( OrganizationMember $member, Organization $organization, Role $role ) {
-        smliser_db()->transactional( function( Database $db ) use ( $member, $organization, $role ) {
+        static::$DB->transactional( function( Database $db ) use ( $member, $organization, $role ) {
             if ( ! $organization->is_member( $member ) ) {
                 throw new InvalidArgumentException(
                     sprintf(
@@ -536,7 +536,7 @@ class ContextServiceProvider {
      */
     public static function get_organization_members( Organization $organization ): OrganizationMembers {
         $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
-        $db     = smliser_db();
+        $db     = static::$DB;
 
         $sql    = static::query()
             ->select( '*' )->from( $table )
@@ -573,7 +573,7 @@ class ContextServiceProvider {
      */
     public static function get_user_organizations( User $user ) : ?array {
         $table  = SMLISER_ORGANIZATIONS_TABLE;
-        $db     = smliser_db();
+        $db     = static::$DB;
 
         $sql    = static::query()
             ->select( 'organization_id' )->from( $table )
@@ -604,7 +604,7 @@ class ContextServiceProvider {
      * @throws DatabaseException Sensitive database error, caller must handle accordingly.
      */
     public static function delete_organization_member( OrganizationMember $member, Organization $organization ) {
-        smliser_db()->transactional( function( Database $db ) use ( $member, $organization ) {
+        static::$DB->transactional( function( Database $db ) use ( $member, $organization ) {
             if ( ! $organization->is_member( $member ) ) {
                 throw new InvalidArgumentException(
                     sprintf(
@@ -614,7 +614,7 @@ class ContextServiceProvider {
                     )
                 );
             }
-            $db     = smliser_db();
+            $db     = static::$DB;
             $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
 
             $deleted    = $db->delete( $table, [
@@ -712,7 +712,7 @@ class ContextServiceProvider {
             return $report;
         }
 
-        $db                     = smliser_db();
+        $db                     = static::$DB;
         $users_table            = SMLISER_USERS_TABLE;
         $organizations_table    = SMLISER_ORGANIZATIONS_TABLE;
         $org_members_table      = SMLISER_ORGANIZATION_MEMBERS_TABLE;
@@ -833,7 +833,7 @@ class ContextServiceProvider {
      * @return bool
      */
     public static function delete_user( User $user ) : bool {
-        return smliser_db()->transactional( function ( Database $db ) use ( $user ) {
+        return static::$DB->transactional( function ( Database $db ) use ( $user ) {
             $users_table            = SMLISER_USERS_TABLE;
             $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
             $resource_owners_table  = SMLISER_OWNERS_TABLE;
@@ -923,7 +923,7 @@ class ContextServiceProvider {
      * @return bool
      */
     public static function delete_organization( Organization $organization ) : bool {
-        return smliser_db()->transactional( function ( Database $db ) use ( $organization ) {
+        return static::$DB->transactional( function ( Database $db ) use ( $organization ) {
             $org_table              = SMLISER_ORGANIZATIONS_TABLE;
             $org_member_table       = SMLISER_ORGANIZATION_MEMBERS_TABLE;
             $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
@@ -1015,7 +1015,7 @@ class ContextServiceProvider {
      * @return bool
      */
     public static function delete_service_account( ServiceAccount $service_account ) : bool {
-        return smliser_db()->transactional( function ( Database $db ) use ( $service_account ) {
+        return static::$DB->transactional( function ( Database $db ) use ( $service_account ) {
             $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
             $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
 
@@ -1053,7 +1053,7 @@ class ContextServiceProvider {
      */
     public static function delete_resource_owner( Owner $owner ) : bool {
         $owner_id   = $owner->get_id();
-        return smliser_db()->transactional( function ( Database $db ) use ( $owner_id ) {
+        return static::$DB->transactional( function ( Database $db ) use ( $owner_id ) {
             $resource_owners_table  = SMLISER_OWNERS_TABLE;
             $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
             $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
@@ -1128,10 +1128,6 @@ class ContextServiceProvider {
                 'total_pages' => static::cal_total_pages( $total, $limit ),
             ],
         ];
-    }
-
-    protected static function query() : SQLBuilder {
-        return \smliserQueryBuilder();
     }
 
     /**
