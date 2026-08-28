@@ -8,11 +8,14 @@
  * SQL generation is delegated to schema/query renderers.
  *
  * @author Callistus Nwachukwu
- * @package Callismart\DBPrism\Schema
+ * @package SmartLicenseServer
  * @since 0.2.0
  */
 
 namespace SmartLicenseServer\Schema;
+
+use Callismart\DBPrism\Utils\Column;
+use Callismart\DBPrism\Utils\Constraint;
 
 /**
  * Contract for all database schema definitions.
@@ -46,10 +49,6 @@ interface DatabaseSchemaInterface {
 
     /**
      * Fully resolved table name.
-     *
-     * Example:
-     * - wp_smliser_users
-     * - smliser_users
      *
      * @return string
      */

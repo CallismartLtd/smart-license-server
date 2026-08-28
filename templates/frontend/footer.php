@@ -12,16 +12,12 @@
  * Expected variables (extracted by TemplateLocator):
  *
  * @var array $scripts  Scripts array for AssetsManager::print_scripts()
+ * @var \SmartLicenseServer\Assets\AssetsManager $assets_manager
  */
 
-use SmartLicenseServer\Assets\AssetsManager;
-
 defined( 'SMLISER_ROOT' ) || exit;
-
-$scripts = $scripts ?? [ 'smliser-client-dashboard' ];
-
 ?>
-<?php AssetsManager::instance()->print_scripts( ...$scripts ); ?>
+<?php $assets_manager->print_scripts( ...$scripts ); ?>
 </div><!-- /.smlcd-layout -->
 </body>
 </html>

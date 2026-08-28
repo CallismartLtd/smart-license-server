@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Environments\Application\Middlewares;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**
@@ -21,7 +22,7 @@ class AdminAccessMiddleware implements MiddlewareInterface {
     /**
      * Class constructor
      */
-    public function __construct( protected Guard $guard ) {}
+    public function __construct( protected Guard $guard, protected URLManager $urlmanager ) {}
 
     /**
      * {@inheritdoc}
@@ -44,7 +45,7 @@ class AdminAccessMiddleware implements MiddlewareInterface {
                 $return_url = \smliser_get_current_url();
             }
 
-            $location = \smliser_login_url()->add_query_param( 'redirect_url', $return_url->url() );
+            $location = $this->urlmanager->login_url()->add_query_param( 'redirect_url', $return_url->url() );
             
             return Response::make( '', 302 )
                 ->set_header( 'Location', $location->url() );
@@ -53,7 +54,7 @@ class AdminAccessMiddleware implements MiddlewareInterface {
         // Handle authenticated users without admin privileges
         if ( ! $this->guard->get_principal()->is( 'system_admin' ) ) {
             return Response::make( '', 302 )
-                ->set_header( 'Location', smliser_client_dashboard_url()->url() );
+                ->set_header( 'Location', $this->urlmanager->client_dashboard_url()->url() );
         }
 
         return $next( $request );

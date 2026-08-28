@@ -17,8 +17,10 @@
 
 namespace SmartLicenseServer\Assets;
 
-
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Permission\Capability;
 use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\Utils\Format;
@@ -105,7 +107,13 @@ final class AssetsManager {
 	 *
 	 * Private: use instance() to obtain the singleton.
 	 */
-	private function __construct() {
+	public function __construct(
+		protected Guard $guard,
+		protected Request $request,
+		protected URLManager $urlmanager,
+		protected CSS $css,
+		protected JS $js,
+	) {
         $this->register_default_js_constants();
 		$this->register_default_styles();
 		$this->register_default_scripts();
@@ -126,40 +134,6 @@ final class AssetsManager {
 	public function __wakeup() : void {
 		throw new \LogicException( 'Cannot unserialize a singleton ' . self::class . '.' );
 	}
-
-
-	/**
-	 * Get the singleton instance.
-	 *
-	 * On first call this constructs the manager and registers the
-	 * default CSS/JS assets exactly once. Subsequent calls return the
-	 * same instance without re-registering anything.
-	 *
-	 * @return self
-	 */
-	public static function instance() : self {
-
-		if ( null === self::$instance ) {
-			self::$instance = new self();
-		}
-
-		return self::$instance;
-	}
-
-
-	/**
-	 * Reset the singleton.
-	 *
-	 * Intended for tests: the next call to instance() will construct a
-	 * fresh manager (with defaults registered again). Not part of the
-	 * normal runtime flow.
-	 *
-	 * @return void
-	 */
-	public static function reset_instance() : void {
-		self::$instance = null;
-	}
-
 
 	/**
 	 * Get script suffix depending on debug mode.
@@ -916,8 +890,8 @@ final class AssetsManager {
 	 * @return array<string, array<int, array<string, string>>>
 	 */
 	public function get_email_editor_assets() : array {
-		$all_css = CSS::all( self::script_suffix() );
-		$all_js  = JS::all( self::script_suffix() );
+		$all_css = $this->css->all( self::script_suffix() );
+		$all_js  = $this->js->all( self::script_suffix() );
 
 		$styles = [
 			'smliser-tabler-icons',
@@ -1013,7 +987,7 @@ final class AssetsManager {
 	 * @return void
 	 */
 	private function register_default_styles() : void {
-		foreach ( CSS::all( self::script_suffix() ) as $handle => $style ) {
+		foreach ( $this->css->all( self::script_suffix() ) as $handle => $style ) {
 			$this->register_style(
 				$handle,
 				$style['url'],
@@ -1030,21 +1004,26 @@ final class AssetsManager {
 	 * @return void
 	 */
 	private function register_default_js_constants() : void {
-		$this->register_js_constant( 'smliser_var', [
-            'ajaxURL'           => adminUrl()->url(),
+		$consts = [
+            'ajaxURL'           => $this->urlmanager->admin_url()->url(),
             'csrf_token'        => '',
-            'spinner_gif'       => \assetsUrl( 'images/spinner.gif' )->url(),
-            'spinner_gif_2x'    => \assetsUrl( 'images/spinner-2x.gif' )->url(),
-            'app_search_api'    => \restAPIUrl( '/repository/' ),
-            'default_roles'     => [
-                'roles'         => Role::all( true ),
-                'capabilities'  => Capability::get_caps()
-            ],
+            'spinner_gif'       => $this->urlmanager->assets_url( 'images/spinner.gif' )->url(),
+            'spinner_gif_2x'    => $this->urlmanager->assets_url( 'images/spinner-2x.gif' )->url(),
+            // 'app_search_api'    => \restAPIUrl( '/repository/' ),
             'uploads'            => [
                 'max_upload_size'           => smliser_max_upload_size(),
                 'max_upload_size_readable'  => Format::bytes( smliser_max_upload_size() ) 
             ]
-        ]);
+        ];
+
+		if ( $this->guard->has_principal() ) {
+			$consts['default_roles'] = [
+                'roles'         => Role::all( true ),
+                'capabilities'  => Capability::get_caps()
+            ];
+		}
+
+		$this->register_js_constant( 'smliser_var', $consts );
 	}
 
 
@@ -1059,7 +1038,7 @@ final class AssetsManager {
 	 * @return void
 	 */
 	private function register_default_scripts() : void {
-		foreach ( JS::all( self::script_suffix() ) as $handle => $script ) {
+		foreach ( $this->js->all( self::script_suffix() ) as $handle => $script ) {
 			$this->register_script(
 				$handle,
 				$script['url'],

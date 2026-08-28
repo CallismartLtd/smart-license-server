@@ -21,9 +21,7 @@ use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const SMLISER_ROLES_TABLE, SMLISER_ROLE_CAPABILITIES_TABLE;
-use function is_json, json_decode, defined, smliser_db, smliser_safe_json_encode,
-get_object_vars;
-
+use function is_json;
 /**
  * Classical representation of a role.
  */
@@ -68,11 +66,6 @@ class Role {
     protected bool $is_canonical = false;
 
     /**
-     * Tell wether the principal is acting for self.
-     */
-    public readonly bool $is_owner_default;
-
-    /**
      * Fillable props through mass assignment.
      *
      * @var array 
@@ -87,13 +80,8 @@ class Role {
 
     /**
      * Role constructor.
-     *
-     * Intentionally light.
-     * Hydration is done via setters or factory methods.
      */
-    public function __construct( bool $is_owner_default = false ) {
-        $this->is_owner_default = $is_owner_default;
-    }
+    public function __construct( protected Database $db ) {}
 
     /*
     |-----------
@@ -327,14 +315,13 @@ class Role {
      * @return static
      */
     public function load_capabilities() : static {
-        $db     = smliser_db();
         $table  = SMLISER_ROLE_CAPABILITIES_TABLE;
 
         $sql    = static::query()
             ->select( 'capabilities' )->from( $table )
             ->where( 'role_id', '=', $this->get_id() );
 
-        $caps   = $db->get_row( $sql->build(), $sql->get_bindings() );
+        $caps   = $this->db->get_row( $sql->build(), $sql->get_bindings() );
 
         try {
             $this->set_capabilities( $caps['capabilities'] ?? [] );
@@ -408,7 +395,7 @@ class Role {
             throw new Exception( 'role_save_error', 'Role slug must be set' );
         }
 
-        $result = (bool) smliser_db()->transactional( function ( Database $db ) {
+        $result = (bool) $this->db->transactional( function ( Database $db ) {
             $roles_table    = SMLISER_ROLES_TABLE;
             $caps_table     = SMLISER_ROLE_CAPABILITIES_TABLE;
             $lock_sql       = static::query()
@@ -541,10 +528,9 @@ class Role {
      * }|static[] An array of role objects or array of roles if return param is true.
      */
     public static function all( bool $to_array = false ) : array {
-        $db         = smliser_db();
         $table      = SMLISER_ROLES_TABLE;
         $sql        = static::query()->select( '*' )->from( $table );
-        $results    = $db->get_results( $sql->build(), $sql->get_bindings() );
+        $results    = $this->db->get_results( $sql->build(), $sql->get_bindings() );
 
         if ( empty( $results ) ) {
             return [];

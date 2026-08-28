@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\ClientDashboard\TemplateHandlers;
 
+use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
@@ -34,7 +35,8 @@ class AuthForms {
         protected AuthTemplateRegistry $registry,
         protected TemplateLocator $locator,
         protected URLManager $urlmanager,
-        protected Settings $settings
+        protected Settings $settings,
+        protected AssetsManager $assets_manager
         
     ) {}
 
@@ -50,12 +52,13 @@ class AuthForms {
             $this->locator->render_to_string(
                 static::INDEX_TEMPLATE,
                 [
-                    'menu'      => $this->registry->all(),
-                    'rest_base' => $this->urlmanager->login_url()->url(),
-                    'guard'     => $this->guard,
-                    'request'   => $request,
-                    'settings'  => $this->settings,
-                    'slugs'     => $this->registry->slugs()
+                    'menu'              => $this->registry->all(),
+                    'rest_base'         => $this->urlmanager->login_url( 'form' )->url(),
+                    'guard'             => $this->guard,
+                    'request'           => $request,
+                    'settings'          => $this->settings,
+                    'slugs'             => $this->registry->slugs(),
+                    'assets_manager'    => $this->assets_manager
                 ]
             )
         );

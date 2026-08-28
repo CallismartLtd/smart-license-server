@@ -41,7 +41,10 @@ class URLManager {
      * @param array $query  Optional query params
      */
     public function url( string $path = '', array $query = [] ) : URL {
-        return $this->app_url->append_path( $path )->add_query_params( $query );
+        $basename       = \basename( $path );
+        $trail_slash    = ! \str_contains( $basename,  '.' );
+
+        return $this->app_url->append_path( $path, $trail_slash )->add_query_params( $query );
     }
 
     /**
@@ -94,7 +97,7 @@ class URLManager {
      */
     public function login_url( string $path = '', array $query = [] ) : URL {
         return $this->url( $this->login_url_prefix(), $query )
-            ->append_path( $path );
+            ->append_path( $path, true );
     }
 
     /**

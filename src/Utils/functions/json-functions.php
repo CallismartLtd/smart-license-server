@@ -44,7 +44,7 @@ function smliser_safe_json_encode( mixed $data, int $flags = 0, int $depth = 512
 function smliser_send_json( $data, $status_code = 200, $flags = 0 ) : never {
     if ( ! headers_sent() ) {
         http_response_code( $status_code );
-        header( 'Content-Type: application/json; charset=' . smliser_settings()->get( 'charset', 'UTF-8', false ) );
+        header( 'Content-Type: application/json; charset=UTF-8' );
     }
 
     echo smliser_safe_json_encode( $data, $flags ); // phpcs:ignore

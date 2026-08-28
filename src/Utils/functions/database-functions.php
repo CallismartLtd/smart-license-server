@@ -3,17 +3,9 @@
  * Database related utility functions.
  */
 
+use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Inspection\Inspector;
 use Callismart\DBPrism\Query\SQLBuilder;
-
-/**
- * Get the DBAL instance.
- *
- * @return \Callismart\DBPrism\Database Singleton instance of the Database class.
- */
-function smliser_db() : \Callismart\DBPrism\Database {
-    return smliser_envProvider()->database();
-}
 
 /**
  * Get the query builder instance.
@@ -26,17 +18,8 @@ function smliserQueryBuilder( string $driver ) : SQLBuilder{
 }
 
 /**
- * Get the database table prefix.
- * 
- * @return string The database table prefix.
- */
-function smliser_db_prefix() : string {
-    return smliser_envProvider()->db_prefix();
-}
-
-/**
  * Get the database schema inpection instance
  */
-function smliserDBSchemaInspection() : Inspector {
-    return new Inspector( smliser_db() );
+function smliserDBSchemaInspection( Database $db ) : Inspector {
+    return new Inspector( $db );
 }

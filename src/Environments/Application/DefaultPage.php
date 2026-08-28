@@ -666,7 +666,7 @@ final class DefaultPage {
 			$this->urlmanager->login_url()->url(),
 			$this->urlmanager->client_dashboard_url()->url(),
 			\smliser_debug_enabled() ? sprintf(
-				'<a href="%s">Admin Area</a>', \adminUrl()->url() 
+				'<a href="%s">Admin Area</a>', $this->urlmanager->admin_url()->url() 
 			) : '',
 			\url( 'documentation' )->url(),
 		);

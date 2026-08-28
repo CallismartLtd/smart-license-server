@@ -257,11 +257,26 @@ class URL implements JsonSerializable{
      * Return a new instance with the given path segment appended.
      *
      * @param string $pathname Path segment to append.
+     * @param bool $trailingslash  Whether to add trailing slash?
      * @return static
      */
-    public function append_path( string $pathname ): static {
-        $components         = $this->components;
-        $components['path'] = rtrim( ( $components['path'] ?? '' ), '/' ) . '/' . ltrim( $pathname, '/' );
+    public function append_path( string $pathname, bool $trailingslash = false ): static {
+        $segment    = trim( $pathname, '/' );
+        $components = $this->components;
+
+        // If nothing meaningful was passed,
+        // return early.
+        if ( '' === $segment ) {
+            return $this->with_components( $components );
+        }
+
+        $existing_path  = trim( $components['path'] ?? '', '/' );
+        $segment        = $trailingslash ? "$segment/" : $segment;
+
+        $components['path'] = '' !== $existing_path
+            ? "/{$existing_path}/{$segment}"
+            : "/{$segment}";
+
         return $this->with_components( $components );
     }
 

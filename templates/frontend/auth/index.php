@@ -12,6 +12,7 @@
  * @var \SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\SettingsAPI\Settings $settings
  * @var string[] $slugs
+ * @var \SmartLicenseServer\Assets\AssetsManager $assets_manager
  */
 
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
@@ -62,15 +63,16 @@ $title  = ! empty( $menu )
 
 
 $this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
-    'menu'          => $menu,
-    'rest_base'     => $rest_base,
-    'active_slug'   => $active_slug,
-    'styles'        => $styles,
-    'title'         => $title,
-    'repo_name'     => $repo_name,
-    'theme'         => $theme,
-    'collapsed'     => $collapsed,
-    'allowed_slugs' => $slugs
+    'menu'              => $menu,
+    'rest_base'         => $rest_base,
+    'active_slug'       => $active_slug,
+    'styles'            => $styles,
+    'title'             => $title,
+    'repo_name'         => $repo_name,
+    'theme'             => $theme,
+    'collapsed'         => $collapsed,
+    'allowed_slugs'     => $slugs,
+    'assets_manager'    => $assets_manager
 ] );
 
 /*
@@ -94,5 +96,6 @@ $this->render( AuthForms::INDEX_CONTENT_TEMPLATE, [
 |--------------------------------------------------
 */
 $this->render( ClientDashboardRenderer::FOOTER_TEMPLATE, [
-    'scripts' => $scripts,
+    'scripts'           => $scripts,
+    'assets_manager'    => $assets_manager
 ] );

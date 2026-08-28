@@ -24,38 +24,6 @@ function url( string $path = '', array $params = [] ) : URL {
 }
 
 /**
- * Get the admin URL.
- * 
- * @param string $path Path(optional).
- * @param array<string, string> $params Associative array of query params.
- * @return URL
- */
-function adminUrl( string $path = '', array $params = [] ) : URL {
-    return URL::from( '' );
-}
-
-/**
- * Assets url
- * 
- * @param string $path Path(optional).
- * @param array<string, string> $params Associative array of query params.
- */
-function assetsUrl( string $path = '', array $params = [] ) :URL {
-    return URL::from( '' );
-}
-
-/**
- * Get the REST API URL.
- * 
- * @param string $path Path(optional).
- * @param array<string, string> $params Associative array of query params.
- * @return URL
- */
-function restAPIUrl( string $path = '', array $params = [] ) : URL {
-    return URL::from( '' );
-}
-
-/**
  * The admin URL for the licenses page.
  * 
  * @return URL
