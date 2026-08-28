@@ -59,7 +59,7 @@ class Options extends AbstractSettings {
     protected function do_get( string $key, $default = null ) {
         $table          = static::TABLE_NAME;
 
-        $sql    = smliserQueryBuilder()
+        $sql    = smliserQueryBuilder( $this->db->get_driver() )
             ->select( 'option_value' )->from( $table )
             ->where( 'option_name', '=', $key )
             ->limit( 1 );
@@ -138,7 +138,7 @@ class Options extends AbstractSettings {
     protected function do_has( string $key ): bool {
         $table  = static::TABLE_NAME;
 
-        $sql    = smliserQueryBuilder()
+        $sql    = smliserQueryBuilder( $this->db->get_driver() )
             ->select( '1' )->from( $table )
             ->where( 'option_name', '=', $key )
             ->limit(1);
@@ -158,7 +158,7 @@ class Options extends AbstractSettings {
         $table  = static::TABLE_NAME;
         $offset = $this->db->calculate_query_offset( $page, $limit );
 
-        $sql = smliserQueryBuilder()
+        $sql = smliserQueryBuilder( $this->db->get_driver() )
             ->select( 'option_name', 'option_value' )
             ->from( $table )
             ->limit( $limit )
@@ -193,7 +193,7 @@ class Options extends AbstractSettings {
         $table  = static::TABLE_NAME;
         $offset = $this->db->calculate_query_offset( $page, $limit );
 
-        $sql = smliserQueryBuilder()
+        $sql = smliserQueryBuilder( $this->db->get_driver() )
             ->select( 'option_name', 'option_value' )
             ->from( $table )
             ->where_contains( 'option_name', $query )

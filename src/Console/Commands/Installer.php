@@ -17,7 +17,6 @@ use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
-use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Utils\Stopwatch;
 
@@ -25,6 +24,7 @@ use SmartLicenseServer\Utils\Stopwatch;
  * Handles installation processes through the console.
  */
 class Installer extends AbstractCommand {
+
     /**
      * The core installer object.
      * 
@@ -528,7 +528,7 @@ class Installer extends AbstractCommand {
      * @return int
      */
     public function make_admin( CommandInput $input ) : int {
-        if ( ! Guard::has_principal() || ! Guard::get_principal()?->is( 'system_admin' ) ) {
+        if ( ! $this->guard->has_principal() || ! $this->guard->get_principal()?->is( 'system_admin' ) ) {
             $this->output->error(
                 'You must be logged in as a system admin to perform this action'
             );

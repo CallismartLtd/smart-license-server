@@ -1,42 +1,88 @@
 <?php
 /**
  * Core runtime class file.
- * 
+ *
  * @author Callistus Nwachukwu
  */
+
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application;
 
 use Callismart\DBPrism\DBConfigDTO;
+use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Environment;
+use SmartLicenseServer\Environments\Application\Auth\ConsoleIdentityProvider;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
-use SmartLicenseServer\RESTAPI\Versions\V1;
-use SmartLicenseServer\RuntimeConfig;
+use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
+use SmartLicenseServer\Environments\Application\Routing\RouteManager;
+use SmartLicenseServer\Routing\Router;
+use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
+use SmartLicenseServer\Security\Authentication\Session\SessionManager;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Smart License Server running as a standalone PHP application.
  */
 class ApplicationEnvironment extends Environment {
 
-    private function __construct( protected RuntimeConfig $runtime ) {
-        $this->bind_instance();
-        $this->prepare_db_config();
+    /**
+     * {@inheritdoc}
+     */
+    protected function registerDependencies() : void {
+        $this->container->singleton(
+            Request::class,
+            fn () : Request => Request::createFromGlobals()
+        );
 
-        $this->setup([
-            'rest_api_provider' => RestAPIProvider::init( new V1() )
-        ]);
+        $this->container->singleton( Guard::class, new Guard );
+
+        $this->container->set(
+            SessionManager::class, new SessionManager( $this->runtime->secret )
+        );
+        
+        $this->container->singleton(
+            IdentityService::class,
+            function( Container $container ) {
+                $provider   = is_cli()
+                    ? $container->get( ConsoleIdentityProvider::class )
+                    : $container->get( WebIdentityProvider::class );
+                return new IdentityService(
+                    $container->get( Guard::class ),
+                    $provider
+                );
+            }
+        );
+
+        $this->container->alias( PasswordIdentityProviderInterface::class, IdentityService::class );
+
+        $this->container->singleton( DefaultPage::class, DefaultPage::create() );
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function bind_instance() : void {
-        static::$envProvider = $this;
+    protected function boot() : void {
+        $defaut_page    = $this->container->get( DefaultPage::class );
+        $route_manager = $this->container->get( RouteManager::class )
+            ->homeHandler( [$defaut_page, 'home'] )
+            ->notFound( [$defaut_page, 'not_found'] )
+            ->methodNotAllowed( [$defaut_page, 'method_not_allowed'] );
+        
+        $route_manager->registerCoreRoutes();
+
+        $this->container->singleton( RouteManager::class, $route_manager );
+        
+
     }
-    
-    protected function prepare_db_config() {
-        $this->dbConfig = new DBConfigDTO([
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function createDatabaseConfig() : DBConfigDTO {
+        $dbConfig = new DBConfigDTO([
             'driver'    => $_ENV['SMLISER_DB_DRIVER'] ?? '',
             'host'      => $_ENV['SMLISER_DB_HOST'] ?? '',
             'port'      => $_ENV['SMLISER_DB_PORT'] ?? '',
@@ -45,43 +91,36 @@ class ApplicationEnvironment extends Environment {
             'password'  => $_ENV['SMLISER_DB_PASSWORD'] ?? '',
             'charset'   => $_ENV['SMLISER_DB_CHARSET'] ?? '',
             'prefix'    => $_ENV['SMLISER_DB_PREFIX'] ?? '',
-            'path'      => $_ENV['SMLISER_DB_PATH'] ?? '', // Auto use sqlite if set in driver.
-
+            'path'      => $_ENV['SMLISER_DB_PATH'] ?? '',
         ]);
 
-        if ( 'sqlite' === $this->dbConfig->driver && ! empty( $_ENV['SMLISER_SQLITE_ENCRYPTION_KEY'] ) ) {
-            $this->dbConfig->encryption_key = $_ENV['SMLISER_SQLITE_ENCRYPTION_KEY'];
+        if (
+            'sqlite' === $dbConfig->driver
+            && ! empty( $_ENV['SMLISER_SQLITE_ENCRYPTION_KEY'] )
+        ) {
+            $dbConfig->encryption_key = $_ENV['SMLISER_SQLITE_ENCRYPTION_KEY'];
         }
+
+        return $dbConfig;
     }
 
     /**
      * {@inheritdoc}
      */
-    public static function boot( RuntimeConfig $runtime_config ) : static {
-        if ( ! isset( static::$envProvider ) ) {
-            new static( $runtime_config );
-        }
-
-        return static::$envProvider;
-    }
-   
-   /**
-    * {@inheritdoc}
-    */
     public static function url( string $path = '', array $q = [] ) : URL {
-        $url = (string)  $_ENV['SMLISER_APP_URL'] ?? '';
-        
+        $url = (string) ( $_ENV['SMLISER_APP_URL'] ?? '' );
+
         return URL::from( $url )
             ->append_path( $path )
             ->add_query_params( $q );
     }
 
-   /**
-    * {@inheritdoc}
-    */
+    /**
+     * {@inheritdoc}
+     */
     public static function assetsUrl( string $path = '', array $q = [] ) : URL {
         return static::url( '/assets/', $q )
-        ->append_path( $path );
+            ->append_path( $path );
     }
 
     /**
@@ -89,7 +128,7 @@ class ApplicationEnvironment extends Environment {
      */
     public static function adminUrl( string $path = '', array $q = [] ) : URL {
         return static::url( smliser_get_admin_url_prefix(), $q )
-        ->append_path( $path );
+            ->append_path( $path );
     }
 
     /**
@@ -97,6 +136,6 @@ class ApplicationEnvironment extends Environment {
      */
     public static function restAPIUrl( string $path = '', array $q = [] ) : URL {
         return static::url( '/api/', $q )
-        ->append_path( $path );
+            ->append_path( $path );
     }
 }

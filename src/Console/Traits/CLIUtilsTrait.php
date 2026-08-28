@@ -63,7 +63,7 @@ trait CLIUtilsTrait {
      * Check that a principal is set on Guard.
      */
     private function require_auth(): bool {
-        if ( Guard::has_principal() ) {
+        if ( $this->guard->has_principal() ) {
             return true;
         }
 

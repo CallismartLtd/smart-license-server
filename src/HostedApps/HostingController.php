@@ -29,6 +29,8 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 class HostingController {
     use SanitizeAwareTrait, SecurityAwareTrait, QueueAwareTrait;
 
+    public function __construct( protected Guard $guard ) {}
+
     /*
     |---------------------------
     | CREATE OPERATION METHODS
@@ -40,7 +42,7 @@ class HostingController {
      * 
      * @param Request $request
      */
-    public static function save_app( Request $request ) {
+    public function save_app( Request $request ) {
         try {
             static::check_permissions( 'hosted_apps.create', 'hosted_apps.update' );
 
@@ -129,7 +131,7 @@ class HostingController {
                     throw $updated;
                 }
 
-                $is_admin   = Guard::get_principal()?->is( 'system_admin' ) ?? false;
+                $is_admin   = $this->guard->get_principal()?->is( 'system_admin' ) ?? false;
 
                 if ( $is_admin && $request->hasValue( 'app_owner_id' ) ) {
                     $app->set_owner_id( $request->get( 'app_owner_id' ) );
@@ -138,7 +140,7 @@ class HostingController {
             } else if ( $request->hasValue( 'app_owner_id' ) ) {
                 $app->set_owner_id( $request->get( 'app_owner_id' ) );
             } else {
-                $app->set_owner_id( Guard::get_principal()?->get_owner()?->get_id() ?? 0 );
+                $app->set_owner_id( $this->guard->get_principal()?->get_owner()?->get_id() ?? 0 );
             }
 
             $new_owner_id = $app->get_owner_id();
@@ -169,18 +171,18 @@ class HostingController {
 
             if ( $is_new ) {
                 // New app published.
-                ( new static )->dispatch_job( SendAppPublishedEmailJob::class, $job_payload );
+                $this->dispatch_job( SendAppPublishedEmailJob::class, $job_payload );
 
             } else {
                 // Existing app zip updated — notify owner and licensees.
                 if ( $zip_uploaded ) {
-                    ( new static )->dispatch_job( SendAppUpdatedEmailJob::class, $job_payload );
-                    ( new static )->dispatch_job( NotifyAppUpdateJob::class, $job_payload );
+                    $this->dispatch_job( SendAppUpdatedEmailJob::class, $job_payload );
+                    $this->dispatch_job( NotifyAppUpdateJob::class, $job_payload );
                 }
 
                 // Ownership transferred.
                 if ( $owner_changed ) {
-                    ( new static )->dispatch_job( SendAppOwnershipChangedEmailJob::class, array_merge( $job_payload, [
+                    $this->dispatch_job( SendAppOwnershipChangedEmailJob::class, array_merge( $job_payload, [
                         'previous_owner_id' => $old_owner_id,
                         'new_owner_id'      => $new_owner_id,
                     ] ) );
@@ -216,7 +218,7 @@ class HostingController {
      * @param Request $request The request object.
      * @return true|RequestException
      */
-    private static function update_plugin( &$plugin, Request $request ) {
+    private function update_plugin( &$plugin, Request $request ) {
         if ( ! $plugin instanceof Plugin ) {
             return new RequestException( 'message', 'Wrong plugin object passed' );
         }
@@ -247,7 +249,7 @@ class HostingController {
      * @param Request $request
      * @return true|RequestException
      */
-    private static function update_theme( &$theme, Request $request ) {
+    private function update_theme( &$theme, Request $request ) {
         if ( ! $theme instanceof Theme ) {
             return new RequestException( 'message', 'Wrong theme object passed' );
         }
@@ -289,7 +291,7 @@ class HostingController {
      * @param Request  $request
      * @return true|Exception
      */
-    private static function update_software( &$software, $request ) {
+    private function update_software( &$software, $request ) {
 
         if ( ! $software instanceof Software ) {
             return new RequestException(
@@ -324,7 +326,7 @@ class HostingController {
      * @param Request $request The request object.
      * @return RequestException|array
      */
-    private static function extract_app_json_content( Request $request ) : RequestException|array {
+    private function extract_app_json_content( Request $request ) : RequestException|array {
         $uploaded_json = $request->get_file( 'app_json_file' );
 
         if ( ! $uploaded_json || ! $uploaded_json->is_upload_successful() ) {
@@ -369,7 +371,7 @@ class HostingController {
      * @param Request $request The standardized request object.
      * @return Response
      */
-    public static function app_asset_upload( Request $request ) {
+    public function app_asset_upload( Request $request ) {
         try {
             static::check_permissions( 'hosted_apps.upload_assets', 'hosted_apps.edit_assets' );
 
@@ -449,7 +451,7 @@ class HostingController {
      * @param Request $request The standardized request object.
      * @return Response
      */
-    public static function app_asset_delete( Request $request ) {
+    public function app_asset_delete( Request $request ) {
         try {
             static::check_permissions( 'hosted_apps.delete_assets' );
 
@@ -520,7 +522,7 @@ class HostingController {
      * @param Request $request The request object.
      * @return Response
      */
-    public static function app_artifact_upload( Request $request ): Response {
+    public function app_artifact_upload( Request $request ): Response {
         try {
             $is_edit    = $request->isPut() || $request->isPatch();
             
@@ -627,7 +629,7 @@ class HostingController {
      * @param Request $request The request object.
      * @return Response
      */
-    public static function app_artifact_delete( Request $request ): Response {
+    public function app_artifact_delete( Request $request ): Response {
         try {
             static::check_permissions( 'hosted_apps.delete_assets', 'hosted_apps.edit_assets' );
 
@@ -723,7 +725,7 @@ class HostingController {
      * @param AbstractHostedApp|null $app
      * @return Response
      */
-    public static function change_app_status( Request $request, ?AbstractHostedApp $app = null ) : Response {
+    public function change_app_status( Request $request, ?AbstractHostedApp $app = null ) : Response {
         try {
             static::check_permissions( 'hosted_apps.change_status' );
 
@@ -777,7 +779,7 @@ class HostingController {
             // Dispatch status change notification — skip trash transitions
             // since CleanTrashedAppsJob handles permanent deletion silently.
             if ( $status !== AbstractHostedApp::STATUS_TRASH ) {
-                ( new static )->dispatch_job( SendAppStatusChangedEmailJob::class, [
+                $this->dispatch_job( SendAppStatusChangedEmailJob::class, [
                     'app_type'      => $app->get_type(),
                     'app_slug'      => $app->get_slug(),
                     'old_status'    =>  $old_status,
@@ -809,7 +811,7 @@ class HostingController {
      * @param Request $request The request object.
      * @return Response
      */
-    public static function app_bulk_action( Request $request ) : Response {
+    public function app_bulk_action( Request $request ) : Response {
         try {
             static::is_system_admin();
 

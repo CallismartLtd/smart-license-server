@@ -38,12 +38,4 @@ interface RESTProviderInterface {
      * @return RESTVersionInterface[]
      */
     public function version_instances() : array;
-
-    /**
-     * Initialize the provider.
-     * 
-     * @param RESTVersionInterface ...$versions
-     * @return static
-     */
-    public static function init( RESTVersionInterface ...$versions ) : static;
 }

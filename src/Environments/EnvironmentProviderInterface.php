@@ -165,5 +165,5 @@ interface EnvironmentProviderInterface {
     /**
      * Get the runtime configuration object.
      */
-    public function get_runtime_config() : RuntimeConfig;
+    public function runtime_config() : RuntimeConfig;
 }

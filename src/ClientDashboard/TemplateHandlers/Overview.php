@@ -10,12 +10,14 @@ use SmartLicenseServer\Security\Context\Guard;
 
 class Overview implements DashboardHandlerInterface {
 
+    public function __construct( protected Guard $guard ) {}
+
     public static function slug() : string {
         return 'overview';
     }
 
     public function guard( Request $request ) : bool|RequestException {
-        $principal = Guard::get_principal();
+        $principal = $this->guard->get_principal();
 
         if ( ! $principal ) {
             return new RequestException( 'unauthorized', 'Authentication required.' );
@@ -26,7 +28,7 @@ class Overview implements DashboardHandlerInterface {
 
     public function handle( Request $request ) : Response {
         $html = smliser_render_template_to_string( 'frontend.sections.index', [
-            'principal' => Guard::get_principal(),
+            'principal' => $this->guard->get_principal(),
         ] );
 
         return ( new Response( 200 ) )

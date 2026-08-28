@@ -29,6 +29,7 @@ use SmartLicenseServer\Security\Context\Guard;
 trait CommandHelpTrait {
     protected OutputInterface $output;
     protected CommandRegistry $registry;
+    protected Guard $guard;
 
     /**
      * Print the global command listing.
@@ -167,7 +168,7 @@ trait CommandHelpTrait {
             $current_user = get_current_user() ?: 'Unknown';
         }
 
-        $principal = Guard::get_principal();
+        $principal = $this->guard->get_principal();
         $auth_status = null === $principal
             ? 'Not authenticated'
             : sprintf( 'Authenticated (%s)', $principal->get_role()->get_label() );

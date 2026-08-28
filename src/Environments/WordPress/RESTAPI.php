@@ -34,13 +34,6 @@ class RESTAPI implements RESTProviderInterface {
     use SanitizeAwareTrait;
 
     /**
-     * Holds the current WP_REST_Request object.
-     * 
-     * @var WP_REST_Request $wp_request
-     */
-    private WP_REST_Request $wp_request;
-
-    /**
      * Holds a refrence to our request object in the current request.
      * 
      * @var Request $request
@@ -59,7 +52,7 @@ class RESTAPI implements RESTProviderInterface {
      *
      * @param RESTVersionInterface[] $versions Available REST API versions.
      */
-    private function __construct( private array $versions ) {        
+    private function __construct( private array $versions, protected Guard $guard ) {        
         add_filter( 'rest_request_before_callbacks', [$this, 'rest_request_before_callbacks'], -1, 3 );
         add_filter( 'rest_post_dispatch', [$this, 'filter_response'], 10, 3 );
         add_filter( 'rest_pre_dispatch', [$this, 'enforce_https'], 10, 3 );
@@ -326,7 +319,7 @@ class RESTAPI implements RESTProviderInterface {
             return null;
         }
 
-        if ( Guard::has_principal() ) {
+        if ( $this->guard->has_principal() ) {
             return true;
         }
 
@@ -392,7 +385,7 @@ class RESTAPI implements RESTProviderInterface {
 
             $principal = new Principal( $actor, $role, $owner );
 
-            Guard::set_principal( $principal );
+            $this->guard->set_principal( $principal );
 
             return true;
 
@@ -655,9 +648,5 @@ class RESTAPI implements RESTProviderInterface {
         }
 
         return false;
-    }
-
-    public static function init( RESTVersionInterface ...$versions ) : static {
-        return new static( $versions );
     }
 }

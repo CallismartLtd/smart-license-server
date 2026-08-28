@@ -68,24 +68,74 @@ final class DefaultPage {
 	/**
 	 * Constructor.
 	 *
+	 * This no longer accepts page-render data — that was the flaw: it made
+	 * the constructor unusable for anything except the static factories
+	 * building `new static(...)` internally. It now exists purely as a
+	 * dependency-injection slot. `$env_provider` is the one implicit
+	 * dependency the class already had (used by doc_page() via the global
+	 * `smliser_envProvider()` call); it is optional and falls back to the
+	 * global helper so existing call sites are unaffected. Add further
+	 * constructor parameters here as you need to inject more collaborators
+	 * (a URL generator, a debug flag, etc.) instead of reaching for globals.
+	 *
+	 * @param mixed $env_provider Optional environment provider override,
+	 *                            primarily for tests. Falls back to
+	 *                            `\smliser_envProvider()` when null.
+	 */
+	public function __construct( private readonly mixed $env_provider = null ) {}
+
+
+	/**
+	 * Convenience factory for the common case of no injected dependencies.
+	 * Equivalent to `new self()`; kept so call sites can read `DefaultPage::create()`
+	 * without reaching for `new` directly, and as the natural place to grow
+	 * default wiring later without touching every call site.
+	 *
+	 * @return self
+	 */
+	public static function create(): self {
+		return new self();
+	}
+
+
+	/**
+	 * Resolve the environment provider, preferring an injected instance.
+	 *
+	 * @return mixed
+	 */
+	private function env_provider(): mixed {
+		return $this->env_provider ?? \smliser_envProvider();
+	}
+
+
+	/**
+	 * Set the data for the page about to be rendered.
+	 *
+	 * Replaces the old constructor's job now that the constructor is
+	 * reserved for injected dependencies. Returns $this so callers can
+	 * chain straight into render().
+	 *
 	 * @param int    $status      HTTP response status code.
 	 * @param string $title       HTML document title.
 	 * @param string $heading     Main page heading.
 	 * @param string $description Page description.
 	 * @param string $content     Main page content.
+	 * @return self
 	 */
-	private function __construct(
+	private function set_page_data(
 		int $status,
 		string $title,
 		string $heading,
 		string $description,
 		string $content
-	) {
+	): self {
 		$this->status      = $status;
 		$this->title       = $title;
 		$this->heading     = $heading;
 		$this->description = $description;
 		$this->content     = $content;
+
+		return $this;
 	}
 
 
@@ -714,7 +764,7 @@ final class DefaultPage {
 	 *
 	 * @return Response
 	 */
-	public static function home(): Response {
+	public function home(): Response {
 		$php_version = \PHP_VERSION;
 
 
@@ -764,13 +814,13 @@ final class DefaultPage {
 		);
 
 
-		return ( new static(
+		return $this->set_page_data(
 			200,
 			'Smart License Server — Operational',
 			'Smart License Server',
 			'A database-agnostic application for privately hosting, licensing, updating, and distributing custom software, WordPress plugins, and themes.',
 			$content
-		) )->render();
+		)->render();
 	}
 
 
@@ -779,7 +829,7 @@ final class DefaultPage {
 	 *
 	 * @return Response
 	 */
-	public static function not_found( Request $request ): Response {
+	public function not_found( Request $request ): Response {
 		if ( $request->wantsJson() ) {
 			$message	= 'The requested resource could not be found.';
 			smliser_send_json(
@@ -807,13 +857,13 @@ final class DefaultPage {
 			</div>';
 
 
-		return ( new static(
+		return $this->set_page_data(
 			404,
 			'404 — Page Not Found',
 			'Page Not Found',
 			'The resource you requested does not exist.',
 			$content
-		) )->render();
+		)->render();
 	}
 
 
@@ -822,7 +872,7 @@ final class DefaultPage {
 	 *
 	 * @return Response
 	 */
-	public static function method_not_allowed(): Response {
+	public function method_not_allowed(): Response {
 		$content = '
 			<div class="message">
 				<div class="card">
@@ -835,24 +885,23 @@ final class DefaultPage {
 			</div>';
 
 
-		return ( new static(
+		return $this->set_page_data(
 			405,
 			'405 — Method Not Allowed',
 			'Method Not Allowed',
 			'The requested resource does not support this HTTP method.',
 			$content
-		) )->render();
+		)->render();
 	}
 
 
 	/**
 	 * Render the REST API documentation page.
 	 *
-	 * The router calls this with only the current Request — no catalog is
-	 * handed in, so every registered API version is resolved here via the
-	 * environment provider, and one RouteCatalog is built per version on
-	 * the fly. The optional `category` route param (e.g. a route registered
-	 * as `documentation/{category}`, matching URLs like
+	 * Every registered API version is resolved here via the injected (or
+	 * global-fallback) environment provider, and one RouteCatalog is built
+	 * per version on the fly. The optional `category` route param (e.g. a
+	 * route registered as `documentation/{category}`, matching URLs like
 	 * `/documentation/repository/`) narrows the page down to just that
 	 * category, across every version, instead of listing everything.
 	 *
@@ -860,8 +909,8 @@ final class DefaultPage {
 	 *                         `category` route param.
 	 * @return Response
 	 */
-	public static function doc_page( Request $request ): Response {
-		$versions = \smliser_envProvider()->restProvider()->version_instances();
+	public function doc_page( Request $request ): Response {
+		$versions = $this->env_provider()->restProvider()->version_instances();
 
 		$catalogs = [];
 		foreach ( $versions as $version ) {
@@ -871,26 +920,26 @@ final class DefaultPage {
 		$category = $request->route_param( 'category' );
 		$category = is_string( $category ) && '' !== $category ? $category : null;
 
-		$content = self::render_breadcrumb( $category )
-			. self::render_category_nav( $catalogs, $category )
-			. self::render_catalogs( $catalogs, $category );
+		$content = $this->render_breadcrumb( $category )
+			. $this->render_category_nav( $catalogs, $category )
+			. $this->render_catalogs( $catalogs, $category );
 
 		$heading     = 'API Documentation';
 		$description = 'Available REST API routes, grouped by version and category.';
 
 		if ( null !== $category ) {
-			$label       = self::humanize_category( $category );
+			$label       = $this->humanize_category( $category );
 			$heading     = sprintf( 'API Documentation — %s', $label );
 			$description = sprintf( 'Routes in the "%s" category.', $label );
 		}
 
-		return ( new static(
+		return $this->set_page_data(
 			200,
 			'Documentation',
 			$heading,
 			$description,
 			$content
-		) )->render();
+		)->render();
 	}
 
 
@@ -900,14 +949,14 @@ final class DefaultPage {
 	 * @param string|null $category Active category key, or null on the unfiltered index.
 	 * @return string
 	 */
-	private static function render_breadcrumb( ?string $category ): string {
+	private function render_breadcrumb( ?string $category ): string {
 		if ( null === $category ) {
 			return '<nav class="api-breadcrumb"><span>Documentation</span></nav>';
 		}
 
 		return sprintf(
 			'<nav class="api-breadcrumb"><a href="/documentation/">Documentation</a><span class="api-breadcrumb-sep">/</span><span>%s</span></nav>',
-			htmlspecialchars( self::humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
+			htmlspecialchars( $this->humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
 		);
 	}
 
@@ -922,7 +971,7 @@ final class DefaultPage {
 	 * @param string|null                 $active   Currently active category key, if any.
 	 * @return string
 	 */
-	private static function render_category_nav( array $catalogs, ?string $active ): string {
+	private function render_category_nav( array $catalogs, ?string $active ): string {
 		$categories = [];
 
 		foreach ( $catalogs as $catalog ) {
@@ -949,7 +998,7 @@ final class DefaultPage {
 				'<a href="/documentation/%s/"%s>%s</a>',
 				rawurlencode( $category ),
 				$category === $active ? ' class="active"' : '',
-				htmlspecialchars( self::humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
+				htmlspecialchars( $this->humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
 			);
 		}
 
@@ -964,11 +1013,11 @@ final class DefaultPage {
 	 * @param string|null                 $category Category key to filter by, or null for all.
 	 * @return string
 	 */
-	private static function render_catalogs( array $catalogs, ?string $category ): string {
+	private function render_catalogs( array $catalogs, ?string $category ): string {
 		$sections = '';
 
 		foreach ( $catalogs as $namespace => $catalog ) {
-			$sections .= self::render_version_section( (string) $namespace, $catalog, $category );
+			$sections .= $this->render_version_section( (string) $namespace, $catalog, $category );
 		}
 
 		$sections = trim( $sections );
@@ -980,7 +1029,7 @@ final class DefaultPage {
 		return null !== $category
 			? sprintf(
 				'<div class="api-empty-state">No routes found in category "%s".</div>',
-				htmlspecialchars( self::humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
+				htmlspecialchars( $this->humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
 			)
 			: '<div class="api-empty-state">No routes are currently registered.</div>';
 	}
@@ -997,7 +1046,7 @@ final class DefaultPage {
 	 *                                instead of every category the version has.
 	 * @return string
 	 */
-	private static function render_version_section( string $namespace, RouteCatalog $catalog, ?string $category ): string {
+	private function render_version_section( string $namespace, RouteCatalog $catalog, ?string $category ): string {
 		$categories = null !== $category ? [ $category ] : $catalog->categories();
 
 		$category_sections = '';
@@ -1009,7 +1058,7 @@ final class DefaultPage {
 				continue;
 			}
 
-			$category_sections .= self::render_category_section( $cat, $routes );
+			$category_sections .= $this->render_category_section( $cat, $routes );
 		}
 
 		if ( '' === $category_sections ) {
@@ -1034,15 +1083,15 @@ final class DefaultPage {
 	 * @param array  $routes   Route descriptors from RouteCatalog::list_by_category().
 	 * @return string
 	 */
-	private static function render_category_section( string $category, array $routes ): string {
-		$route_cards = implode( '', array_map( [ static::class, 'render_route_card' ], $routes ) );
+	private function render_category_section( string $category, array $routes ): string {
+		$route_cards = implode( '', array_map( [ $this, 'render_route_card' ], $routes ) );
 
 		return sprintf(
 			'<div class="api-category-section">
 				<h3>%s</h3>
 				<div class="grid">%s</div>
 			</div>',
-			htmlspecialchars( self::humanize_category( $category ), ENT_QUOTES, 'UTF-8' ),
+			htmlspecialchars( $this->humanize_category( $category ), ENT_QUOTES, 'UTF-8' ),
 			$route_cards
 		);
 	}
@@ -1055,9 +1104,9 @@ final class DefaultPage {
 	 * @param array $route Route descriptor from RouteCatalog.
 	 * @return string
 	 */
-	private static function render_route_card( array $route ): string {
+	private function render_route_card( array $route ): string {
 		$method_blocks = implode( '', array_map(
-			static fn( string $method ) => self::render_method_block( $method, $route['methods'][ $method ] ),
+			fn( string $method ) => $this->render_method_block( $method, $route['methods'][ $method ] ),
 			array_keys( $route['methods'] )
 		) );
 
@@ -1070,7 +1119,7 @@ final class DefaultPage {
 				%s
 			</div>',
 			htmlspecialchars( $route['humanized_route'], ENT_QUOTES, 'UTF-8' ),
-			self::esc_js( $route['humanized_route'] ),
+			$this->esc_js( $route['humanized_route'] ),
 			$method_blocks
 		);
 	}
@@ -1084,12 +1133,12 @@ final class DefaultPage {
 	 * @param array  $method_data Method descriptor: ['name' => ..., 'args' => ...].
 	 * @return string
 	 */
-	private static function render_method_block( string $method, array $method_data ): string {
+	private function render_method_block( string $method, array $method_data ): string {
 		$args = $method_data['args'];
 
 		$args_html = empty( $args )
 			? '<p class="api-no-args">No parameters required.</p>'
-			: implode( '', array_map( [ static::class, 'render_argument' ], $args ) );
+			: implode( '', array_map( [ $this, 'render_argument' ], $args ) );
 
 		return sprintf(
 			'<div class="api-method-block">
@@ -1113,7 +1162,7 @@ final class DefaultPage {
 	 * @param array{name: string, type: string, required: bool, description: string, default: mixed} $arg
 	 * @return string
 	 */
-	private static function render_argument( array $arg ): string {
+	private function render_argument( array $arg ): string {
 		$required_badge = $arg['required']
 			? '<span class="api-argument-required">Required</span>'
 			: '<span class="api-argument-optional">Optional</span>';
@@ -1153,7 +1202,7 @@ final class DefaultPage {
 	 * @param string $category
 	 * @return string
 	 */
-	private static function humanize_category( string $category ): string {
+	private function humanize_category( string $category ): string {
 		return ucwords( str_replace( [ '-', '_' ], ' ', $category ) );
 	}
 
@@ -1165,7 +1214,7 @@ final class DefaultPage {
 	 * @param string $text
 	 * @return string
 	 */
-	private static function esc_js( string $text ): string {
+	private function esc_js( string $text ): string {
 		return addslashes( $text );
 	}
 }

@@ -39,6 +39,16 @@ use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
  * @since 0.2.0
  */
 class Settings {
+    /**
+     * The login URL prefix.
+     */
+    public const LOGIN_URL_PREFIX               = 'login_url_prefix';
+    public const LOGOUT_URL_PREFIX              = 'logout_url_prefix';
+    public const ADMIN_URL_PREFIX               = 'admin_url_prefix';
+    public const CLIENT_DASHBOARD_URL_PREFIX    = 'client_dashboard_url_prefix';
+    public const REPOSITORY_URL_PREFIX   = '';
+    // public const LOGIN_URL_PREFIX   = '';
+    // public const LOGIN_URL_PREFIX   = '';
 
     /**
      * The active settings adapter (must implement SettingsStorageInterface).

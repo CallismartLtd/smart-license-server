@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\Application\Routing;
 
-use SmartLicenseServer\Admin\Page\Dispatcher;
+use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\AuthForms;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\ForgotPassword;
@@ -23,6 +23,7 @@ use SmartLicenseServer\Routing\Router as CoreRouter;
 use SmartLicenseServer\Routing\DispatchStatus;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
 use SmartLicenseServer\Security\Context\Guard;
+use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
  * The application environment's route manager, which wraps the core Router and 
@@ -54,7 +55,16 @@ final class RouteManager {
      */
     private $defaultHomeHandler;
 
-	public function __construct( protected CoreRouter $router ) {}
+	public function __construct(
+        protected CoreRouter $router,
+        protected Guard $guard,
+        protected AuthController $auth_controller,
+        protected AuthForms $auth_forms,
+        protected AdminDispatcher $admin_dispatcher,
+        protected AdminAccessMiddleware $admin_access_middleware,
+        protected Settings $settings
+
+    ) {}
 
 	/**
 	 * Direct access to the underlying core Router — group()/add()/get()/
@@ -114,78 +124,69 @@ final class RouteManager {
      * 
      * @return void
      */
-    public function registerCoreRoutes(
-        Guard $guard,
-        AuthController $auth_controller,
-        AuthForms $auth_forms,
-        Dispatcher $admin_dispatcher
-    ) : void {
-        $client_dashboard_prefix    = \smliser_get_client_dashboard_url_prefix();
-
-
-        $this->router->any( '/', $this->defaultHomeHandler );
+    public function registerCoreRoutes() : void {
         $this->router->any( '/', $this->defaultHomeHandler );
 
-        $this->router->group( smliser_login_url_prefix(),
-            function() use ( $auth_controller, $auth_forms ) {
+        $this->router->group( $this->settings->get( Settings::LOGIN_URL_PREFIX, 'auth' ),
+            function() {
                 $this->router->add(
                     methods: ['GET'],
                     pattern: '/',
-                    handler: [$auth_forms, 'render_login_form_shell'],
+                    handler: [$this->auth_forms, 'render_login_form_shell'],
                 );
 
                 // Forms GET route.
                 $this->router->get(
                     pattern: 'form/login',
-                    handler: [$auth_forms, 'render_json_login_form']
+                    handler: [$this->auth_forms, 'render_json_login_form']
                 );
                 $this->router->get(
                     pattern: 'form/signup',
-                    handler: [$auth_forms, 'render_json_signup_form']
+                    handler: [$this->auth_forms, 'render_json_signup_form']
                 );
                 $this->router->get(
                     pattern: 'form/forgot-password',
-                    handler: [$auth_forms, 'render_json_forgot_password_form']
+                    handler: [$this->auth_forms, 'render_json_forgot_password_form']
                 );
 
                 // Forms POST route.
                 $this->router->post(
                     pattern: 'form/login',
-                    handler: [$auth_controller, 'handle_login']
+                    handler: [$this->auth_controller, 'handle_login']
                 );
                 $this->router->post(
                     pattern: 'form/signup',
-                    handler: [$auth_controller, 'handle_signup']
+                    handler: [$this->auth_controller, 'handle_signup']
                 );
                 $this->router->post(
                     pattern: 'form/forgot-password',
-                    handler: [$auth_controller, 'handle_forgot_password']
+                    handler: [$this->auth_controller, 'handle_forgot_password']
                 );
             },
             middleware: []
         );
 
         $this->router->get(
-            pattern: \smliser_logout_url_prefix(),
-            handler: [$auth_controller, 'handle_logout']
+            pattern: $this->settings->get( Settings::LOGOUT_URL_PREFIX, 'logout' ),
+            handler: [$this->auth_controller, 'handle_logout']
         );
 
-        $this->router->group( smliser_get_admin_url_prefix(),
-            function() use ( $admin_dispatcher ) {
+        $this->router->group( $this->settings->get( Settings::ADMIN_URL_PREFIX, 'smliser-admin' ),
+            function() {
                 // Main pages and and submenu routes.
                 $this->router->get(
                     pattern: '/',
-                    handler: [$admin_dispatcher, 'render_admin_dashboard']
+                    handler: [$this->admin_dispatcher, 'render_admin_dashboard']
                 );
 
                 $this->router->get(
                     pattern: '/{tab:slug}',
-                    handler: [$admin_dispatcher, 'render_admin_dashboard']
+                    handler: [$this->admin_dispatcher, 'render_admin_dashboard']
                 );
 
                 $this->router->get(
                     pattern: '/{tab:slug}/{submenu:slug}',
-                    handler: [$admin_dispatcher, 'render_admin_dashboard']
+                    handler: [$this->admin_dispatcher, 'render_admin_dashboard']
                 );
 
                 // POST, PUT, PATCH routes.
@@ -193,7 +194,7 @@ final class RouteManager {
             },
 
             middleware: [
-                new AdminAccessMiddleware( $guard )
+                $this->admin_access_middleware
             ]
         );
         
@@ -269,7 +270,7 @@ final class RouteManager {
 	 * no assumption about what that is (a Response object, void, anything),
 	 * since that's the handler's decision, not the router's.
 	 */
-	public function dispatch( string $method, string $path, Request $request, Guard $guard ): Response {
+	public function dispatch( string $method, string $path, Request $request ): Response {
 		$result = $this->router->dispatch( $method, $path );
 
         $request->set_route_param( $result->params );
@@ -279,7 +280,7 @@ final class RouteManager {
 				$result->middleware,
 				$result->handler,
 				$request,
-                $guard
+                $this->guard
 			),
 			DispatchStatus::NotFound    => null !== $this->notFoundHandler
 				? ( $this->notFoundHandler )( $request )

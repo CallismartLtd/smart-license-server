@@ -15,15 +15,13 @@ require_once 'Autoloader.php';
 
 $smliser_runtime   = RuntimeConfig::defaults();
 
-// GlobalErrorHandler::instance()->enableProduction()->registerHandlers();
-
 try {
     $smliser_runtime->merge( $config ?? [] );
 } catch ( \Throwable $e ) {
     GlobalErrorHandler::instance()
         ->abort( $e, 'Configuration Error.' );
 } finally {
-    unset( $config );
+    // unset( $config );
     GlobalErrorHandler::reset();
 }
 

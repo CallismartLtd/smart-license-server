@@ -4,7 +4,6 @@
  */
 
 use Callismart\DBPrism\Inspection\Inspector;
-use Callismart\DBPrism\Query\CompositeSQLBuilder;
 use Callismart\DBPrism\Query\SQLBuilder;
 
 /**
@@ -19,17 +18,11 @@ function smliser_db() : \Callismart\DBPrism\Database {
 /**
  * Get the query builder instance.
  * 
+ * @param string $driver The DB driver.
  * @return SQLBuilder Instance of the SQLBuilder class.
  */
-function smliserQueryBuilder() : SQLBuilder{
-    return new SQLBuilder( smliser_db()->get_driver() );
-}
-
-/**
- * Get the composite query builder instance.
- */
-function smliserCompositeQueryBuilder() : CompositeSQLBuilder {
-    return new CompositeSQLBuilder( smliser_db()->get_driver() );
+function smliserQueryBuilder( string $driver ) : SQLBuilder{
+    return new SQLBuilder( $driver );
 }
 
 /**

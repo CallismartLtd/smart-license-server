@@ -16,14 +16,16 @@ use SmartLicenseServer\Security\Context\Guard;
  * Shared security check trait.
  */
 trait SecurityAwareTrait {
+    protected Guard $guard;
+
     /**
      * Check minimum required permissions.
      * 
      * @param string[] $perms
      * @throws RequestException When actor is unauthenticated.
      */
-    private static function check_permissions( ...$perms ) {
-        $principal      = Guard::get_principal();
+    private function check_permissions( ...$perms ) {
+        $principal      = $this->guard->get_principal();
 
         if ( ! $principal ) {
             throw new RequestException( 'missing_auth' );
@@ -40,12 +42,12 @@ trait SecurityAwareTrait {
      * @param HostedAppsInterface $app.
      * @throws RequestException On failure.
      */
-    private static function check_app_ownership( HostedAppsInterface $app ) : void {
+    private function check_app_ownership( HostedAppsInterface $app ) : void {
         if ( ! $app->exists() || ! $app->get_owner_id() ) {
             return;
         }
 
-        $principal      = Guard::get_principal();
+        $principal      = $this->guard->get_principal();
 
         if ( ! $principal ) {
             throw new RequestException( 'missing_auth' );
@@ -65,8 +67,8 @@ trait SecurityAwareTrait {
      * 
      * @throws RequestException On failure.
      */
-    private static function is_system_admin() : bool {
-        $principal      = Guard::get_principal();
+    private function is_system_admin() : bool {
+        $principal      = $this->guard->get_principal();
 
         if ( ! $principal ) {
             throw new RequestException( 'missing_auth' );

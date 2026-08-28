@@ -71,12 +71,12 @@ class WordPressEnvironment extends Environment {
             'filesystem_adapter'   => new WPFileSystemAdapter(),
             'settings_provider'    => new WPSettingsProvider(),
             'database_adapter'     => new WPDBAdapter( $GLOBALS['wpdb'] ),
-            'rest_api_provider'    => RESTAPI::init( new V1 ),
+            'rest_api_provider'    => $this->container->get( RESTAPI::class ),
         ]);
         
-        $this->identityProvider = new IdentityService();
-        $this->script_manager   = new ScriptManager( $this->request );
-        $this->menu             = new AdminMenu( $this->adminDashboardRegistry(), $this->request );
+        $this->identityProvider = $this->container->get( IdentityService::class );
+        $this->script_manager   = $this->container->get( ScriptManager::class );
+        $this->menu             = new AdminMenu( $this->adminDashboardRegistry(), $this->request() );
 
         CacheAdapterRegistry::instance( $this->settings() )->add( WPCacheAdapter::class );
     }
@@ -363,12 +363,12 @@ class WordPressEnvironment extends Environment {
      * This method runs on `cli_init` action.
      */
     public function setup_cli(): void {
-        ( new WPCLIRunner(
-            CommandRegistry::instance(),
-            new WPCLIInput(),
-            new WPCLIOutput(),
-            new Terminal(),
-            new OptionParser()
-        ) )->init();
+        // ( new WPCLIRunner(
+        //     CommandRegistry::instance(),
+        //     new WPCLIInput(),
+        //     new WPCLIOutput(),
+        //     new Terminal(),
+        //     new OptionParser()
+        // ) )->init();
     }
 }

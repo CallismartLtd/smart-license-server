@@ -362,3 +362,32 @@ if ( ! function_exists( 'is_url' ) ) {
         return filter_var( $url, FILTER_VALIDATE_URL ) !== false;
     }
 }
+
+if ( ! function_exists( 'is_cli' ) ) {
+    /**
+     * Determine whether the current PHP process is running in a Command Line Interface (CLI).
+     *
+     * Evaluates PHP's SAPI name alongside STDIN, HTTP, and environment variables
+     * to safely handle edge cases like Web-cron runners or embedded SAPI environments.
+     *
+     * @return bool True if running in a CLI environment, false otherwise.
+     */
+    function is_cli(): bool {
+        // Direct Server API check (covers standard terminal, cron, and interactive shell)
+        if ( \in_array( \PHP_SAPI, [ 'cli', 'phpdbg' ], true ) ) {
+            return true;
+        }
+
+        // Fallback check for missing HTTP server context while running under standard stream handlers
+        if ( ! isset( $_SERVER['HTTP_HOST'] ) && \defined( 'STDIN' ) ) {
+            return true;
+        }
+
+        // Fallback for environment flags in custom CLI runners or pipeline tools
+        if ( ( \getenv( 'TERM' ) !== false || isset( $_SERVER['TERM'] ) ) && ! isset( $_SERVER['REQUEST_METHOD'] ) ) {
+            return true;
+        }
+
+        return false;
+    }
+}

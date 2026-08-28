@@ -21,9 +21,11 @@ use Throwable;
  * Handles all settings submission by the user.
  */
 class ClientSettingsController {
-    public static function set_user_preference( Request $request ) : array {
+    public function __construct( protected Guard $guard ) {}
+
+    public function set_user_preference( Request $request ) : array {
         try {
-            static::is_authenticated();
+            $this->is_authenticated();
 
             $key            = $request->get( 'key', '' );
 
@@ -37,7 +39,7 @@ class ClientSettingsController {
 
             $value          = $request->get( 'value', '' );
 
-            $principal      = Guard::get_principal();
+            $principal      = $this->guard->get_principal();
             $user_settings  = UserSettings::for( $principal->get_actor() );
 
             $saved  = $user_settings->set( $key, $value );
@@ -57,8 +59,8 @@ class ClientSettingsController {
      * @return void
      * @throws SecurityException
      */
-    private static function is_authenticated() : void {
-        if ( ! Guard::has_principal() ) {
+    private function is_authenticated() : void {
+        if ( ! $this->guard->has_principal() ) {
             throw new SecurityException(
                 'authentication_required',
                 'You must be logged in to perform this action.'

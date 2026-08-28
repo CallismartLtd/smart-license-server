@@ -36,12 +36,12 @@ class WhoAmI extends AbstractCommand {
     }
 
     public function run( CommandInput $input ): int {
-        if ( ! Guard::has_principal() ) {
+        if ( ! $this->guard->has_principal() ) {
             $this->output->error( 'Guest' );
             return 1;
         }
 
-        $this->output->info( Guard::get_principal()->get_display_name() );
+        $this->output->info( $this->guard->get_principal()->get_display_name() );
 
         return 0;
     }

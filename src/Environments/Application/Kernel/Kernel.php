@@ -11,8 +11,8 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\Application\Kernel;
 
+use SmartLicenseServer\Environment;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
-use SmartLicenseServer\Environments\EnvironmentProviderInterface;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**
@@ -22,24 +22,7 @@ use SmartLicenseServer\Security\Context\Guard;
  * Concrete implementations define how the application is bootstrapped
  * and executed for that interface.
  */
-abstract class Kernel {
-    protected Guard $guard;
-    protected IdentityService $identity_service;
-    
-    /**
-     * Create instance.
-     * 
-     * @param EnvironmentProviderInterface $environment
-     */
-    private function __construct( protected EnvironmentProviderInterface $environment ) {}
-
-    /**
-     * Create instance.
-     */
-    public static function create( EnvironmentProviderInterface $environment ) : static {
-        return new static( $environment );
-    }
-    
+abstract class Kernel {    
     /**
      * Bootstrap the application.
      *

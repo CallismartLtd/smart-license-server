@@ -22,6 +22,7 @@ use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Environments\CLI\CLIIdentityProvider;
+use SmartLicenseServer\Security\Context\Guard;
 use WP_CLI;
 
 /**
@@ -122,7 +123,8 @@ class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
         InputInterface $io,
         OutputInterface $output,
         Terminal $terminal,
-        private OptionParser $parser
+        protected OptionParser $parser,
+        protected Guard $guard,
     ) {
         parent::__construct(
             registry: $registry,
@@ -130,7 +132,8 @@ class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
             output: $output,
             terminal: $terminal,
             script_name: $this->get_script_name(),
-            signal: new SignalManager( $terminal )
+            signal: new SignalManager( $terminal ),
+            guard: $guard
         );
     }
 
@@ -153,10 +156,6 @@ class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
         }
 
         $this->load_env();
-
-        // Authenticate once — sets Guard::$principal if successful.
-        // Silent on failure — commands handle missing auth contextually.
-        ( new CLIIdentityProvider() )->authenticate();
 
         // Registered exactly once — not per-command. WP-CLI dispatches
         // every `wp smliser ...` invocation to exec_command(), which

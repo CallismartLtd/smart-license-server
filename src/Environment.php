@@ -1,772 +1,293 @@
 <?php
 /**
  * License Server environment configuration file
- * 
+ *
  * @author Callistus
  * @package SmartLicenseServer
  * @since 0.2.0
  */
 
+declare( strict_types=1 );
+
 namespace SmartLicenseServer;
 
+use Callismart\DBPrism\Adapters\Contracts\DatabaseAdapterInterface;
+use Callismart\DBPrism\Database;
+use Callismart\DBPrism\DBConfigDTO;
+use Callismart\Http\HttpClient;
+use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Background\Queue\Adapters\DatabaseJobStorageAdapter;
 use SmartLicenseServer\Background\Queue\JobQueue;
-use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Background\Workers\QueueWorker;
-use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
+use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
-use Callismart\DBPrism\DBConfigDTO;
-use SmartLicenseServer\Core\Request;
-use Callismart\DBPrism\Database;
-use Callismart\DBPrism\Adapters\Contracts\DatabaseAdapterInterface;
-use SmartLicenseServer\Email\EmailProvidersRegistry;
-use SmartLicenseServer\Email\Mailer;
-use SmartLicenseServer\Environments\EnvironmentProviderInterface;
-use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
-use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
-use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
-use SmartLicenseServer\FileSystem\FileSystem;
-use Callismart\Http\HttpClient;
-use SmartLicenseServer\Monetization\MonetizationRegistry;
-use SmartLicenseServer\RESTAPI\RESTProviderInterface;
-use SmartLicenseServer\SettingsAPI\Providers\Options;
-use SmartLicenseServer\SettingsAPI\Settings;
-use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
-use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
 use SmartLicenseServer\Core\Container\Container;
-use SmartLicenseServer\Events\Bootstrap\EnvironmentBooted;
-use SmartLicenseServer\Events\Bootstrap\EnvironmentBooting;
-use SmartLicenseServer\Events\Bootstrap\EnvironmentReady;
-use SmartLicenseServer\Events\EventServiceProvider;
+use SmartLicenseServer\Email\Mailer;
+use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
+use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
-use SmartLicenseServer\Security\Authentication\IdentityProviders\IdentityProviderInterface;
-use SmartLicenseServer\Templates\TemplateDiscovery;
+use SmartLicenseServer\SettingsAPI\Providers\Options;
+use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
+use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Templates\TemplateLocator;
 
 /**
- * The abstract application environment and service bootstrap layer. 
- * It provides the environment-independent foundation through which host-specific environments
- * integrate their implementations with the Smart License Server core.
- * 
- * This class serves as the foundation for initializing the application environment
- * in a runtime-agnostic way. It is responsible for:
- * 
- * - Parsing and validating configuration provided by the environment provider.
- * - Instantiating and wiring core services and adapters.
- * - Providing accessors for all core components.
- * 
- * Note: This class does not handle request/response lifecycles; that responsibility
- * belongs to the specific environment provider (e.g., CLI, HTTP).
- * 
+ * The abstract application environment and service bootstrap layer.
+ *
+ * The environment owns the dependency injection container and registers
+ * environment-independent application services. Concrete environment providers
+ * may override core bindings by registering their own implementations.
+ *
  * @package SmartLicenseServer
  * @since 0.2.0
  */
-abstract class Environment implements EnvironmentProviderInterface {
+abstract class Environment {
     /**
-     * Dependency injection container.
+     * Class constructor.
+     *
+     * @param Container     $container The dependency injection container.
+     * @param RuntimeConfig $runtime   Runtime configuration.
      */
-    protected Container $container;
-
-    /**
-     * Centralized, immutable environment configuration obejct.
-     */
-    protected RuntimeConfig $runtime;
-    /**
-     * The current environment provider instance.
-     * 
-     * Must be set early by the child class providing execution environment
-     * for Smart License Server.
-     * 
-     * @var EnvironmentProviderInterface
-     */
-    protected static EnvironmentProviderInterface $envProvider;
-
-    /**
-     * The current REST API Service Provider
-     * 
-     * @var RESTProviderInterface $restProvider
-     */
-    protected RESTProviderInterface $restProvider;
-
-    /**
-     * The cache adapter.
-     * 
-     * @var CacheAdapterInterface $cacheAdapter
-     */
-    protected CacheAdapterInterface $cacheAdapter;
-
-    /**
-     * The user settings storage provider interface.
-     * 
-     * @var SettingsStorageInterface $settingsStorage
-     */
-    protected SettingsStorageInterface $settingsStorage;
-
-    /**
-     * Filesystem API
-     * 
-     * @var FileSystemAdapterInterface filesystemAdapter
-     */
-    protected FileSystemAdapterInterface $filesystemAdapter;
-
-    /**
-     * The database API adapter.
-     */
-    protected DatabaseAdapterInterface $dbadapter;
-
-    /**
-     * The cache API.
-     */
-    protected Cache $cache;
-
-    /**
-     * Overridable properties map
-     * 
-     * @var array $prop_map
-     */
-    protected array $prop_map = [
-        'filesystem_adapter'    => null,
-        'settings_provider'     => null,
-        'database_adapter'      => null,
-        'rest_api_provider'     => null,
-        'admin_menu_config'     => null,
-        'identity_provider'     => null
-    ];
-
-    /**
-     * The required configuration keys for the environment.
-     * 
-     * @var string[] $required_config
-     */
-    protected array $required_config = [];
-
-    /**
-     * The current request object.
-     */
-    protected Request $request;
-
-    /**
-     * The database API abstraction.
-     * 
-     * Database $database
-     */
-    protected Database $database;
-
-    /**
-     * The filesystem API abstraction.
-     */
-    protected FileSystem $filesystem;
-
-    /**
-     * The settings API abstraction.
-     */
-    protected Settings $settings;
-
-    /**
-     * The mailing API.
-     * 
-     * @var Mailer $mailer
-     */
-    protected Mailer $mailer;
-
-    /**
-     * All email providers registry.
-     * 
-     * @var EmailProvidersRegistry $emailProviders
-     */
-    protected EmailProvidersRegistry $emailProviders;
-
-    /**
-     * Database configuration class.
-     * 
-     * @var DBConfigDTO
-     */
-    protected DBConfigDTO $dbConfig;
-
-    /**
-     * Background job queue API.
-     * 
-     * @var JobQueue $job_queue
-     */
-    protected JobQueue $job_queue;
-
-    /**
-     * Background job worker API.
-     * 
-     * @var JobQueue $job_queue
-     */
-    protected QueueWorker $queue_worker;
-
-    /**
-     * The http client API.
-     * 
-     * @var HttpClient $httpClient
-     */
-    protected HttpClient $httpClient;
-
-    /**
-     * Monetization provider registry.
-     * 
-     * @var MonetizationRegistry $monetizationRegistry
-     */
-    protected MonetizationRegistry $monetizationRegistry;
-
-    /**
-     * Admin dashboard registry.
-     * 
-     * @var AdminDashboardRegistry $adminDashboardRegistry
-     */
-    protected AdminDashboardRegistry $adminDashboardRegistry;
-
-    /**
-     * Client dashboard registry.
-     * 
-     * @var ClientDashboardRegistry $clientDashboardRegistry
-     */
-    protected ClientDashboardRegistry $clientDashboardRegistry;
-
-    /**
-     * Authentication template registry.
-     * 
-     * @var AuthTemplateRegistry $authTemplateRegistry
-     */
-    protected AuthTemplateRegistry $authTemplateRegistry;
-
-    /**
-     * Template locator.
-     * 
-     * @var TemplateLocator $templateLocator
-     */
-    protected TemplateLocator $templateLocator;
-
-    /**
-     * The identity provider.
-     */
-    protected IdentityProviderInterface $identityProvider;
-
-    /**
-     * Environment constructor.
-     * 
-     * This is the entry point to Smart License Server, all environment providers must call
-     * this method and pass the required keys.
-     * 
-     * @param array{
-     *      filesystem_adapter?: FileSystemAdapterInterface, 
-     *      settings_provider?: SettingsStorageInterface,
-     *      database_adapter?: DatabaseAdapterInterface,
-     *      rest_api_provider: RESTProviderInterface,
-     *      identity_provider: IdentityProviderInterface,
-     * } $config The overridable environment configuration options.
-     * @throws EnvironmentBootstrapException If required configuration is missing or invalid.
-     */
-    final protected function setup( array $config ) : void {
-        $this->container = new Container();
-        
-        smliser_dispatch_event( $this->container->get( EnvironmentBooting::class ) );
-
-        $this->parse_config( $config );
-        $this->setProps();
-
-        $this->registerEnvironmentDependencies();
+    final protected function __construct(
+        protected Container $container,
+        protected RuntimeConfig $runtime
+    ) {
+        $this->registerCoreDependencies();
         $this->registerCoreServices();
 
-        smliser_dispatch_event( $this->container->get( EnvironmentBooted::class ) );
+        $this->registerDependencies();
+        $this->validateEnvironment();
+
+        $this->boot();
     }
 
-    /*
-    |-----------------------
-    | HELPERS
-    |-----------------------
-    */
-
     /**
-     * Parse overridable property values
-     * 
-     * @param array $props
+     * Register dependencies supplied by the core runtime.
+     *
+     * These are defaults. Concrete environments may replace any of these
+     * bindings by registering their own implementation.
      */
-    private function parse_config( $props ) : void {
-        $parsed_props  = array_intersect_key( 
-            array_merge( $this->prop_map, $props ),
-            $this->prop_map
+    protected function registerCoreDependencies() : void {
+        $this->container->set(
+            Environment::class,
+            $this
         );
 
-        $missing_config = [];
+        $this->container->set(
+            RuntimeConfig::class,
+            $this->runtime
+        );
 
-        foreach ( $parsed_props as $key => $value ) {
-            if ( in_array( $key, $this->required_config, true ) && $value === null ) {
-                $missing_config[] = $key;
-            }
-        }
+        $this->container->set(
+            DatabaseAdapterRegistry::class,
+            DatabaseAdapterRegistry::instance()
+        );
 
-        if ( ! empty( $missing_config ) ) {
-            $message    = \sprintf( '%s environment has missing required configuration(s): %s',
-                \SMLISER_APP_NAME,
-                \implode( ', ', $missing_config )
-            );
+        $this->container->set(
+            CacheAdapterRegistry::class,
+            fn ( Container $container ) : CacheAdapterRegistry => $container->get( CacheAdapterRegistry::class )
+        );
 
-            throw new EnvironmentBootstrapException( 'misconfiguration', $message );
-        }
+        $this->container->singleton(
+            DBConfigDTO::class,
+            fn () : DBConfigDTO => $this->createDatabaseConfig()
+        );
 
-        $this->prop_map  = $parsed_props;
+        /*
+         * Core defaults.
+         */
+        $this->container->singleton(
+            FileSystemAdapterInterface::class,
+            fn ( Container $container ) : FileSystemAdapterInterface =>
+                $container->get( DirectFileSystem::class )
+        );
+
+        $this->container->singleton(
+            SettingsStorageInterface::class,
+            fn ( Container $container ) : SettingsStorageInterface =>
+                $container->get( Options::class )
+        );
     }
 
     /**
-     * Sets up the class properties.
+     * Register environment-independent application services.
      */
-    private function setProps() : void {
-        $prop_map   = [
-            'filesystem_adapter'    => 'filesystemAdapter',
-            'settings_provider'     => 'settingsStorage',
-            'database_adapter'      => 'dbadapter',
-            'rest_api_provider'     => 'restProvider',
-            'http_client'           => 'httpClient',
-            'identity_provider'     => 'identityProvider',
-        ];
-
-        foreach ( $prop_map as $env_k => $prop_k ) {
-            if ( isset( $this->{$prop_k} ) ) {
-                // Preserve injected adapter if already set.
-                continue;
-            }
-
-            if ( ! isset( $this->prop_map[$env_k] ) ) {
-                continue;
-            }
-
-            if ( ! property_exists( $this, $prop_k ) ) {
-                throw new EnvironmentBootstrapException(
-                    'unsupported_config',
-                    sprintf( 'The provided configuration "%s" is not supported.', $prop_k )
-                );
-            }
-            
-            $this->{$prop_k}    = $this->prop_map[$env_k];
-        }
-
-        // instanciate the cache registry.
-        CacheAdapterRegistry::instance( $this->settings() );
-
-        if ( ! isset( $this->request ) ) {
-            $this->request = Request::createFromGlobals();
-        }
-
-        $this->container->set( Request::class, $this->request );
-
-        smliser_dispatch_event( $this->container->get( EnvironmentReady::class ) );
-    }
-
-    protected function registerEnvironmentDependencies() : void {
-        $this->container->set( Environment::class, $this );
-        $this->container->set( EnvironmentProviderInterface::class, $this );
-        $this->container->set( RuntimeConfig::class, $this->runtime );
-    }
-
     protected function registerCoreServices() : void {
         $this->container->singleton(
             Database::class,
-            fn (): Database => $this->database()
+            function ( Container $container ) : Database {
+                $config  = $container->get( DBConfigDTO::class );
+                $adapter = $container->get( DatabaseAdapterInterface::class );
+
+                return new Database( $adapter );
+            }
+        );
+
+        $this->container->singleton(
+            DatabaseAdapterInterface::class,
+            function ( Container $container ) : DatabaseAdapterInterface {
+                $config   = $container->get( DBConfigDTO::class );
+                $registry = $container->get( DatabaseAdapterRegistry::class );
+                $adapter  = $registry->select( $config->driver );
+
+                return new $adapter( $config );
+            }
         );
 
         $this->container->singleton(
             FileSystem::class,
-            fn (): FileSystem => $this->filesystem()
+            fn ( Container $container ) : FileSystem =>
+                new FileSystem(
+                    $container->get( FileSystemAdapterInterface::class )
+                )
         );
 
         $this->container->singleton(
             Cache::class,
-            fn (): Cache => $this->cache()
+            fn ( Container $container ) : Cache =>
+                new Cache(
+                    $container->get( CacheAdapterInterface::class )
+                )
+        );
+
+        $this->container->singleton(
+            CacheAdapterInterface::class,
+            fn ( Container $container ) : CacheAdapterInterface =>
+                $container->get( CacheAdapterRegistry::class )->get_adapter()
         );
 
         $this->container->singleton(
             Settings::class,
-            fn (): Settings => $this->settings()
-        );
-
-        $this->container->singleton(
-            Mailer::class,
-            fn (): Mailer => $this->mailer()
+            fn ( Container $container ) : Settings =>
+                new Settings(
+                    $container->get( SettingsStorageInterface::class )
+                )
         );
 
         $this->container->singleton(
             JobQueue::class,
-            fn (): JobQueue => $this->job_queue()
+            fn ( Container $container ) : JobQueue =>
+                new JobQueue(
+                    new DatabaseJobStorageAdapter(
+                        $container->get( Database::class )
+                    )
+                )
         );
 
         $this->container->singleton(
             QueueWorker::class,
-            fn (): QueueWorker => $this->queue_worker()
+            fn ( Container $container ) : QueueWorker =>
+                new QueueWorker(
+                    $container->get( JobQueue::class ),
+                    memory_limit_mb: safe_worker_memory_limit_mb()
+                )
         );
 
+        /*
+         * These are deliberately left to autowiring where their constructors
+         * contain only resolvable dependencies.
+         */
         $this->container->singleton(
             HttpClient::class,
-            fn (): HttpClient => $this->httpClient()
+            fn ( Container $container ) : HttpClient =>
+                $container->get( HttpClient::class )
         );
+
+        // $this->container->singleton(
+        //     Mailer::class,
+        //     fn ( Container $container ) : Mailer =>
+        //         $this->createMailer( $container )
+        // );
 
         $this->container->singleton(
             TemplateLocator::class,
-            fn (): TemplateLocator => $this->templateLocator()
+            fn () : TemplateLocator =>
+                new TemplateLocator()
         );
 
         $this->container->singleton(
             AdminDashboardRegistry::class,
-            fn (): AdminDashboardRegistry => $this->adminDashboardRegistry()
+            fn () : AdminDashboardRegistry =>
+                new AdminDashboardRegistry()
         );
 
         $this->container->singleton(
             ClientDashboardRegistry::class,
-            fn (): ClientDashboardRegistry => $this->clientDashboardRegistry()
+            fn () : ClientDashboardRegistry =>
+                new ClientDashboardRegistry()
         );
 
         $this->container->singleton(
             AuthTemplateRegistry::class,
-            fn (): AuthTemplateRegistry => $this->authTemplateRegistry()
+            fn () : AuthTemplateRegistry =>
+                new AuthTemplateRegistry()
         );
     }
 
     /**
-     * Sets up the database adapter
-     */
-    public function setDBAdapter() : void {
-        if ( ! isset( $this->dbadapter ) ) {
-            if ( ! isset( $this->dbConfig ) ) {
-                throw new EnvironmentBootstrapException( 'missing_db_config' );
-            }
-
-            $db_registry        = DatabaseAdapterRegistry::instance();
-            $adapter            = $db_registry->select( $this->dbConfig->driver );
-
-            $this->dbadapter    = new $adapter( $this->dbConfig );
-        }
-        
-        $this->database = new Database( $this->dbadapter );
-    }
-
-    /**
-     * Sets up the global filesystem adapter
-     */
-    public function setFileSystemAdapter() : void {
-        if ( ! isset( $this->filesystemAdapter ) ) {
-            $this->filesystemAdapter = new DirectFileSystem;
-        }
-
-        $this->filesystem    = new FileSystem( $this->filesystemAdapter );
-    }
-
-    /**
-     * Sets up the global cache adapter.
-     * 
-     * @param bool $force Whether to force reloading the cache provider.
-     */
-    public function setCacheAdapter( bool $force = false ) : void {
-
-        if ( $force ) {
-            $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings() )->get_adapter();
-        }
-
-        if ( ! isset( $this->cacheAdapter ) ) {
-            $this->cacheAdapter = CacheAdapterRegistry::instance( $this->settings() )->get_adapter();
-        }
-
-        $this->cache    = new Cache( $this->cacheAdapter );
-
-    }
-
-    /**
-     * Sets up the global settings adapter
-     */
-    public function initSettingsAdapter() : void {
-        if ( ! isset( $this->settingsStorage ) ) {
-            $this->settingsStorage = new Options( $this->database() );
-        }
-
-        $this->settings = new Settings( $this->settingsStorage );
-    }
-
-    /**
-     * Sets up the global mailing service to use the default provider.
-     */
-    public function setMailingAdapter() : void {
-        // Instantiate the email registry with storage.
-        $registry       = $this->emailProviders();
-        $this->mailer   = new Mailer( $registry->get_provider() );
-    }
-
-    /**
-     * Sets the global background job queue adapter.
+     * Register dependencies supplied by the concrete environment.
      *
-     * Derives a safe memory ceiling from the PHP runtime ini value so
-     * the worker never assumes a fixed limit that may be wrong in production.
-     * Uses 80% of the actual memory_limit as the worker ceiling, leaving
-     * headroom for WordPress core, plugins, and the request itself.
+     * Child environments should override this method and replace bindings
+     * where the host environment has a specialized implementation.
+     */
+    abstract protected function registerDependencies() : void;
+    
+    /**
+     * Complete environment-specific application bootstrap.
      *
-     * Does not override adapter or worker instances already set by the
-     * environment (e.g. a test environment injecting a mock worker).
+     * Called after core services and environment dependencies have been
+     * registered with the container.
      */
-    public function setQueueAdapter(): void {
-        if ( ! isset( $this->job_queue ) ) {
-            $this->job_queue = new JobQueue( new DatabaseJobStorageAdapter( $this->database() ) );
-        }
- 
-        if ( ! isset( $this->queue_worker ) ) {
-            $this->queue_worker = new QueueWorker(
-                $this->job_queue,
-                memory_limit_mb: safe_worker_memory_limit_mb(),
-            );
-        }
-    }
-
-    /*
-    |-------------------------
-    | ACCESSORS
-    |-------------------------
-    */
+    abstract protected function boot() : void;
 
     /**
-     * Get the namespace.
-     * 
-     * @return string[]
+     * Validate that all dependencies required by the environment are available.
+     *
+     * Child environments should override this method when they have mandatory
+     * environment-specific bindings.
      */
-    public function rest_namespaces() : array {
-        return array_map( [$this, 'apply_rest_prefix'], $this->restProvider->namespaces() );
+    protected function validateEnvironment() : void {
     }
 
     /**
-     * Apply REST API prefix.
-     * 
-     * @return string
+     * Create the database configuration.
+     *
+     * Concrete environments must provide this configuration.
      */
-    public function apply_rest_prefix( string $value ) : string {
-        return "smliser/$value";
-    }
+    abstract protected function createDatabaseConfig() : DBConfigDTO;
 
     /**
-     * Get the REST API provider instance.
+     * Create the default mailer.
+     *
+     * Concrete environments may override this when mail delivery differs.
      */
-    public function restProvider() : RESTProviderInterface {
-        return $this->restProvider;
-    }
+    // abstract protected function createMailer( Container $container ) : Mailer;
 
     /**
-     * Get the database instance.
-     */
-    public function database() : Database {
-        if ( ! isset( $this->database ) ) {
-            $this->setDBAdapter();
-
-            if ( ! $this->database->is_connected() ) {
-                $error_message = \smliser_debug_enabled() 
-                ? $this->database->get_last_error()
-                : '';
-                
-                throw new EnvironmentBootstrapException( 'database_connect_error', $error_message );
-            }
-        }
-
-        return $this->database;
-    }
-
-    /**
-     * Get the filesystem abstraction instance.
-     */
-    public function filesystem() : FileSystem {
-        if ( ! isset( $this->filesystem ) ) {
-            $this->setFileSystemAdapter();
-        }
-
-        return $this->filesystem;
-    }
-
-    /**
-     * Get the cache instance
-     */
-    public function cache() : Cache {
-        if ( ! isset( $this->cache ) ) {
-            $this->setCacheAdapter();
-        }
-
-        return $this->cache;
-    }
-
-    /**
-     * Get the settings API instance.
-     */
-    public function settings() : Settings {
-        if ( ! isset( $this->settings ) ) {
-            $this->initSettingsAdapter();
-        }
-
-        return $this->settings;
-    }
-
-    /**
-     * Get the mailer API instance.
-     * 
-     * Lazily loaded by default since not all environments may require mailing capabilities, and
-     * some environments may want to inject their own mailer instance (e.g. for testing or to use a different email provider).
-     */
-    public function mailer() : Mailer {
-        if ( ! isset( $this->mailer ) ) {
-            $this->setMailingAdapter();
-        }
-
-        return $this->mailer;
-    }
-
-    /**
-     * Get the job queue instance.
-     */
-    public function job_queue(): JobQueue {
-        if ( ! isset( $this->job_queue ) ) {
-            $this->setQueueAdapter();
-        }
-
-        return $this->job_queue;
-    }
-
-    /**
-     * Get the background job worker instance.
-     */
-    public function queue_worker(): QueueWorker {
-        if ( ! isset( $this->queue_worker ) ) {
-            $this->setQueueAdapter();
-        }
-
-        return $this->queue_worker;
-    }
-
-    /**
-     * Get the environment provider instance
-     */
-    public static function envProvider() : static {
-        return static::$envProvider;
-    }
-
-    /**
-     * {@inheritDoc}
-     * 
-     * Intentionally lazy loaded.
-     */
-    public function scheduler(): Scheduler {
-        return Scheduler::instance( $this->settings() );
-    }
-
-    /**
-     * Get the current request object.
-     * 
-     * @return Request
-     */
-    public function request() : Request {
-        return $this->request;
-    }
-
-    /**
-     * {@inheritDoc}
-     * 
-     * Intentionally lazy loaded.
-     */
-    public function httpClient() : HttpClient {
-        if ( ! isset( $this->httpClient ) ) {
-            $this->httpClient = new HttpClient;
-        }
-
-        return $this->httpClient;
-    }
-
-    /**
-    * Get the monetization provider registry.
-    * 
-    * Intentionally lazy loaded.
-    */
-    public function monetizationRegistry() : MonetizationRegistry {
-        if ( ! isset( $this->monetizationRegistry ) ) {
-            $this->monetizationRegistry = MonetizationRegistry::instance( $this->settings() );
-        }
-
-        return $this->monetizationRegistry;
-    }
-
-    /**
-     * Get the email provider registry.
-     */
-    public function emailProviders() : EmailProvidersRegistry {
-        if ( ! isset( $this->emailProviders ) ) {
-            $this->emailProviders = EmailProvidersRegistry::instance( $this->settings() );
-        }
-
-        return $this->emailProviders;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function templateLocator() : TemplateLocator {
-        if ( ! isset( $this->templateLocator ) ) {
-            $this->templateLocator  = new TemplateLocator();
-            $discovery              = new TemplateDiscovery( $this->templateLocator );
-
-            // Core templates auto-discovered at priority 0.
-            $discovery->discover( 'core', SMLISER_RUNTIME_DIR . '/templates/', 0 );
-        }
-
-        return $this->templateLocator;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function adminDashboardRegistry() : AdminDashboardRegistry {
-        if ( ! isset( $this->adminDashboardRegistry ) ) {
-            $this->adminDashboardRegistry = new AdminDashboardRegistry();
-        }
-        
-        return $this->adminDashboardRegistry;
-    }
-
-    /**
-     * Get the client dashboard registry
-     */
-    public function clientDashboardRegistry() : ClientDashboardRegistry {
-        if ( ! isset( $this->clientDashboardRegistry ) ) {
-            $this->clientDashboardRegistry  = new ClientDashboardRegistry;
-        }
-
-        return $this->clientDashboardRegistry;
-    }
-
-    /**
-     * Get the authentication template registry
-     */
-    public function authTemplateRegistry() : AuthTemplateRegistry {
-        if ( ! isset( $this->authTemplateRegistry ) ) {
-            $this->authTemplateRegistry  = new AuthTemplateRegistry;
-        }
-
-        return $this->authTemplateRegistry;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function get_runtime_config() : RuntimeConfig {
-        return $this->runtime;
-    }
-
-    /**
-     * Get the DI container.
+     * Get the application container.
      */
     public function container() : Container {
         return $this->container;
     }
 
     /**
-     * Explicitly set the value of static::$envProvider to the current
-     * provider instance. This ensure that both the current instance calling global functions
-     * and the bootstrap instantiating the environment provider references the same object.
-     * 
-     * @example static::$envProvider = $this;
+     * Get the runtime configuration.
      */
-    abstract protected function bind_instance() : void;
+    public function runtime() : RuntimeConfig {
+        return $this->runtime;
+    }
+
+    /**
+     * Create a new application environment.
+     */
+    public static function create( RuntimeConfig $runtime ) : static {
+        return new static(
+            new Container(),
+            $runtime
+        );
+    }
 }

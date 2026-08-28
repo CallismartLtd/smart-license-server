@@ -15,6 +15,7 @@ use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Utils\Stopwatch;
 
 /**
@@ -44,6 +45,7 @@ abstract class AbstractCommand implements CommandInterface {
     public function __construct(
         protected InputInterface $io,
         protected OutputInterface $output,
+        protected Guard $guard,
         protected string $script_name
     ) {}
 
@@ -58,9 +60,10 @@ abstract class AbstractCommand implements CommandInterface {
 	public static function make(
 		InputInterface $io,
 		OutputInterface $output,
+        Guard $guard,
 		string $script_name
 	): static {
-		return new static( $io, $output, $script_name );
+		return new static( $io, $output, $guard, $script_name );
 	}
 
     /**

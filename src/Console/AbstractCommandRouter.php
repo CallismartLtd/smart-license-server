@@ -15,6 +15,7 @@ use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\Traits\CommandHelpTrait;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Routes a resolved command/subcommand pair to the appropriate handler.
@@ -38,7 +39,8 @@ abstract class AbstractCommandRouter {
         protected OutputInterface $output,
         protected Terminal $terminal,
         protected readonly string $script_name,
-        protected SignalManager $signal
+        protected SignalManager $signal,
+        protected Guard $guard
 
     ) {}
 

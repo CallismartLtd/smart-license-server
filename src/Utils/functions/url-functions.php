@@ -16,7 +16,11 @@ use SmartLicenseServer\FileSystem\FileSystemHelper;
  * @return URL
  */
 function url( string $path = '', array $params = [] ) : URL {
-    return smliser_envProvider()::url( $path, $params );
+    $url = (string) ( $_ENV['SMLISER_APP_URL'] ?? '' );
+
+    return URL::from( $url )
+        ->append_path( $path )
+        ->add_query_params( $params );
 }
 
 /**

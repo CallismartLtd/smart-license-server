@@ -26,13 +26,15 @@ use SmartLicenseServer\Security\Context\Guard;
 class HostedApps {
     use CacheAwareTrait;
 
+    public function __construct( protected Guard $guard, protected HostingController $hosting ) {}
+
     /**
      * Guards the repository route against HTTP `Non-Safe Methods`.
      *
      * @param Request $request The current request object.
      * @return bool
      */
-    public static function repository_get_guard( Request $request ) : bool|RequestException {
+    public function repository_get_guard( Request $request ) : bool|RequestException {
         if ( $request->is_method( 'GET' ) ) {
             return true;
         }
@@ -47,13 +49,13 @@ class HostedApps {
      * @param Request $request The request object.
      * @return bool|RequestException
      */
-    public static function repository_unsafe_method_guard( Request $request ) : bool|RequestException {
+    public function repository_unsafe_method_guard( Request $request ) : bool|RequestException {
         if ( $request->is_method( 'GET' ) ) {
             // Edge-case 405 error.
             return new RequestException( 'method_not_allowed' );
         }
 
-        $actor  = Guard::get_principal();
+        $actor  = $this->guard->get_principal();
 
         if ( ! $actor ) {
             // Actor is not authenticated, return 401 response code.
@@ -83,7 +85,7 @@ class HostedApps {
      * @param Request $request The current request object.
      * @return Response
      */
-    public static function repository_response( Request $request ) : Response {
+    public function repository_response( Request $request ) : Response {
         $search = $request->get( 'search' );
         $page   = $request->get( 'page' ) ?? 1;
         $limit  = $request->get( 'limit' ) ?? 25;
@@ -136,7 +138,7 @@ class HostedApps {
      * 
      * @param Request $request The REST API request object.
      */
-    public static function single_app_get( Request $request ) : RequestException|Response {
+    public function single_app_get( Request $request ) : RequestException|Response {
         $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
         $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
 
@@ -172,9 +174,9 @@ class HostedApps {
      * @param Request $request The request object
      * @return Response
      */
-    public static function create_app( Request $request ) : Response {
+    public function create_app( Request $request ) : Response {
         try {
-            $response = HostingController::save_app( $request );
+            $response = $this->hosting->save_app( $request );
 
             if ( $response->ok() ) {
                 $resource_location  = $request->path();
@@ -206,7 +208,7 @@ class HostedApps {
      * @param Request $request The request object.
      * @return Response
      */
-    public static function update_app( Request $request ) : Response {
+    public function update_app( Request $request ) : Response {
         try {
             $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
             $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
@@ -224,7 +226,7 @@ class HostedApps {
             $request->set( 'app_slug', $app_slug )
             ->set( 'app_type', $app_type );
 
-            $response = HostingController::save_app( $request );
+            $response = $this->hosting->save_app( $request );
 
             if ( $response->ok() ) {
                 $response->remove_header( 'Location' );
@@ -248,7 +250,7 @@ class HostedApps {
      * @param Request $request The request object.
      * @return Response
      */
-    public static function delete_app( Request $request ) : Response {
+    public function delete_app( Request $request ) : Response {
         try {
             $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
             $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
@@ -263,7 +265,7 @@ class HostedApps {
                     ->set( 'app_type', $app_type )
                     ->set( 'app_status', AbstractHostedApp::STATUS_TRASH );
 
-            $response   = HostingController::change_app_status( $request );
+            $response   = $this->hosting->change_app_status( $request );
 
             if ( $response->ok() ) {
                 $response->set_status_code( 204 )         
@@ -286,13 +288,13 @@ class HostedApps {
      * @param Request $request The request object.
      * @return RequestException|bool
      */
-    public static function assets_management_guard( Request $request ) : RequestException|bool {
+    public function assets_management_guard( Request $request ) : RequestException|bool {
         if ( $request->is_method( 'GET' ) ) {
             // Edge-case 405 error.
             return new RequestException( 'method_not_allowed' );
         }
 
-        $actor  = Guard::get_principal();
+        $actor  = $this->guard->get_principal();
 
         if ( ! $actor ) {
             // Actor is not authenticated, return 401 response code.
@@ -322,7 +324,7 @@ class HostedApps {
      * @param Request $request The request object.
      * @return Response
      */
-    public static function upload_app_assets( Request $request ) : Response {
+    public function upload_app_assets( Request $request ) : Response {
         try {
             $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
             $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
@@ -333,7 +335,7 @@ class HostedApps {
                 throw new RequestException( 'app_not_found' );
             }
 
-            $response   = HostingController::app_asset_upload( $request );
+            $response   = $this->hosting->app_asset_upload( $request );
 
             return $response;     
         } catch( RequestException $e ) {
@@ -349,7 +351,7 @@ class HostedApps {
      * @param Request $request The request object.
      * @return Response
      */
-    public static function update_app_asset( Request $request ) : Response {
+    public function update_app_asset( Request $request ) : Response {
         try {
             $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
             $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
@@ -364,7 +366,7 @@ class HostedApps {
             static::force_single_file_upload( $request, 'asset_file' )
                 ->set_new_name( $asset_name );
 
-            $response   = HostingController::app_asset_upload( $request );
+            $response   = $this->hosting->app_asset_upload( $request );
 
             return $response;     
         } catch( RequestException $e ) {
@@ -380,7 +382,7 @@ class HostedApps {
      * @param Request $request The request object.
      * @return Response
      */
-    public static function delete_app_asset( Request $request ) : Response {
+    public function delete_app_asset( Request $request ) : Response {
         try {
             $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
             $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
@@ -391,7 +393,7 @@ class HostedApps {
                 throw new RequestException( 'app_not_found' );
             }
 
-            $response   = HostingController::app_asset_delete( $request );
+            $response   = $this->hosting->app_asset_delete( $request );
 
             if ( $response->ok() ) {
                 $response->set_status_code( 204 );
@@ -414,7 +416,7 @@ class HostedApps {
      * @throws RequestException On success to abort request.
      * @return UploadedFile
      */
-    private static function force_single_file_upload( Request $request, string $file_key ) : UploadedFile {
+    private function force_single_file_upload( Request $request, string $file_key ) : UploadedFile {
         $files   = $request->get_files( $file_key );
         
         $total      = $files?->count() ?? 0;

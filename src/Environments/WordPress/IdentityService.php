@@ -24,7 +24,7 @@ use WP_Error;
 use WP_User;
 
 final class IdentityService extends AbstractIdentityProvider implements PasswordIdentityProviderInterface {
-    
+    public function __construct( protected Guard $guard ) {}
     /*
     |------------------------------------------
     | PROVIDER IDENTITY
@@ -102,11 +102,10 @@ final class IdentityService extends AbstractIdentityProvider implements Password
      * @param int $wp_user_id The WordPress user ID.
      * @return void
      */
-    public static function desync_user( int $wp_user_id ) : void {
-        $static = new static;
-        $user = $static->find_actor( $static->issuer(), (string) $wp_user_id );
+    public function desync_user( int $wp_user_id ) : void {
+        $user = $this->find_actor( $this->issuer(), (string) $wp_user_id );
         if ( $user ) {
-            $static->remove( $user->get_id() );
+            $this->remove( $user->get_id() );
 
             /** @disregard */
             $user->set_status( User::STATUS_DELETE_SCHEDULED )->save();
@@ -212,7 +211,7 @@ final class IdentityService extends AbstractIdentityProvider implements Password
     public function auto_provision() : void {
         if ( ! \is_user_logged_in() || ! \is_super_admin() ) return;
 
-        if ( Guard::has_principal() ) return;
+        if ( $this->guard->has_principal() ) return;
 
         $wp_user    = wp_get_current_user();
         $issuer     = $this->issuer();
@@ -290,8 +289,8 @@ final class IdentityService extends AbstractIdentityProvider implements Password
             return null;
         }
 
-        if ( Guard::has_principal() ) {
-            return Guard::get_principal();
+        if ( $this->guard->has_principal() ) {
+            return $this->guard->get_principal();
         }
 
         if ( \wp_installing() ) return null;
@@ -321,7 +320,7 @@ final class IdentityService extends AbstractIdentityProvider implements Password
 
         $principal = new Principal( $actor, $role, $owner );
 
-        Guard::set_principal( $principal );
+        $this->guard->set_principal( $principal );
 
         return $principal;
     }
@@ -345,7 +344,7 @@ final class IdentityService extends AbstractIdentityProvider implements Password
             }
         }
 
-        if ( \is_user_logged_in() && ! Guard::has_principal() ) {
+        if ( \is_user_logged_in() && ! $this->guard->has_principal() ) {
             $current_user   = \wp_get_current_user();
             if ( ! User::email_exists( $current_user->user_email ) ) {
                 return new RequestException( 'authentication_error', 'Signup to access this portal.' );
@@ -354,7 +353,7 @@ final class IdentityService extends AbstractIdentityProvider implements Password
             return new RequestException( 'authentication_error', 'Please use the password reset option to recover your account.' );
         }
 
-        $principal = Guard::get_principal();
+        $principal = $this->guard->get_principal();
 
         if ( ! $principal ) {
             return new RequestException( 'authentication_error', 'Login failed, contact us if you need further assistance.' );
@@ -570,14 +569,14 @@ final class IdentityService extends AbstractIdentityProvider implements Password
             $this->sync_user( $wp_user->ID, $user );
             $this->set_current_user( $wp_user, true );
 
-            if ( ! Guard::has_principal() ) {
+            if ( ! $this->guard->has_principal() ) {
                 throw new RequestException(
                     'authentication_error',
                     'Login failed, contact us if you need further assistance.'
                 );
             }
 
-            return Guard::get_principal();
+            return $this->guard->get_principal();
 
         } catch( RequestException $e ) {
             return $e;
@@ -646,6 +645,6 @@ final class IdentityService extends AbstractIdentityProvider implements Password
      */
     public function logout() : void {
         wp_logout();
-        Guard::clear_principal();
+        $this->guard->clear_principal();
     }
 }

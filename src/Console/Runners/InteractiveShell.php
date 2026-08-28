@@ -111,6 +111,7 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
         OutputInterface $output,
         Terminal $terminal,
         SignalManager $signal,
+        Guard $guard,
         string $script_name,
         ?LogoMode $logo_mode    = null
     ) {
@@ -126,7 +127,8 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
             output: $output, 
             terminal: $terminal, 
             script_name: $script_name, 
-            signal: $signal
+            signal: $signal,
+            guard: $guard
         );
     }
 
@@ -258,7 +260,7 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
      * @return string
      */
     private function prompt_string(): string {
-        $principal      = Guard::get_principal();
+        $principal      = $this->guard->get_principal();
         $prompt_symbol  = $principal?->is( 'system_admin' ) ? '#' : '>';
         $version_string = smliser_debug_enabled() ? '-' . \SMLISER_VER : '';
         $prompt_slug    = str_replace( [ '_', ' ' ], '-', strtolower( \SMLISER_APP_NAME ) );

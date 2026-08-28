@@ -16,16 +16,14 @@
 namespace SmartLicenseServer\ClientDashboard;
 
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
-use SmartLicenseServer\ClientDashboard\Handlers\ClientSettingsController;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Context\Guard;
-use SmartLicenseServer\SettingsAPI\UserSettings;
 
 class ClientDashboardRouter {
     
-    private function __construct() {}
+    private function __construct( protected Guard $guard ) {}
 
     /*
     |-----------
@@ -42,7 +40,7 @@ class ClientDashboardRouter {
      * @param Request $request
      * @return Response
      */
-    public static function dispatch( Request $request ) : Response {
+    public function dispatch( Request $request ) : Response {
         $slug    = (string) $request->get( 'dashboard_slug', '' );
         
         $handler = smliserFrontendTemplate()->get_handler( $slug );
@@ -63,7 +61,7 @@ class ClientDashboardRouter {
      * @param Request $request
      * @return bool|RequestException
      */
-    public static function guard( Request $request ) : bool|RequestException {
+    public function guard( Request $request ) : bool|RequestException {
         $slug    = (string) $request->get( 'dashboard_slug', '' );
         $handler = smliserFrontendTemplate()->get_handler( $slug );
 
@@ -108,7 +106,7 @@ class ClientDashboardRouter {
      * @param Request $request
      * @return Response
      */
-    public static function post_dispatch( Request $request ) : Response {
+    public function post_dispatch( Request $request ) : Response {
         $post_action    = $request->get( 'post_action' );
         $status_code    = 401;
 
@@ -139,12 +137,12 @@ class ClientDashboardRouter {
      * @param Request $request
      * @return RequestException|bool
      */
-    public static function post_guard( Request $request ) : RequestException|bool {
+    public function post_guard( Request $request ) : RequestException|bool {
         if ( ! $request->isPost() ) {
             return new RequestException( 'endpoint_not_found' );
         }
 
-        if ( ! Guard::has_principal() ) {
+        if ( ! $this->guard->has_principal() ) {
             $pattern = implode(
                 '|',
                 array_map(

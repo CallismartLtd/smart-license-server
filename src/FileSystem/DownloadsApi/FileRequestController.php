@@ -27,6 +27,8 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  */
 class FileRequestController {
     use SanitizeAwareTrait, SecurityAwareTrait;
+
+    public function __construct( protected Guard $guard ) {}
     
     /**
      * Process and serve download request for a hosted application zip file.
@@ -34,7 +36,7 @@ class FileRequestController {
      * @param FileRequest $request The file request object.
      * @return FileResponse
      */
-    public static function get_application_zip_file( FileRequest $request ): FileResponse {
+    public function get_application_zip_file( FileRequest $request ): FileResponse {
         try {
 
             $app_type   = $request->get( 'app_type' );
@@ -73,7 +75,7 @@ class FileRequestController {
      * @param FileRequest $request The file request object.
      * @return FileResponse
      */
-    public static function get_application_artifact_file( FileRequest $request ): FileResponse {
+    public function get_application_artifact_file( FileRequest $request ): FileResponse {
         try {
 
             $app_type   = $request->get( 'app_type' );
@@ -132,7 +134,7 @@ class FileRequestController {
      * @param FileRequest $request The file request object.
      * @return FileResponse
      */
-    public static function get_admin_application_zip_file( FileRequest $request ): FileResponse {
+    public function get_admin_application_zip_file( FileRequest $request ): FileResponse {
         try {
             static::is_system_admin();
 
@@ -162,7 +164,7 @@ class FileRequestController {
      * @param FileRequest $request The file request object.
      * @return FileResponse
      */
-    public static function get_admin_license_document( FileRequest $request ): FileResponse {
+    public function get_admin_license_document( FileRequest $request ): FileResponse {
         try {
             static::is_system_admin();
             $license_id = (int) $request->get( 'license_id' );
@@ -205,7 +207,7 @@ class FileRequestController {
      * 
      * @param FileRequest $request The file request object.
      */
-    public static function get_proxy_asset( FileRequest $request ) {
+    public function get_proxy_asset( FileRequest $request ) {
         try {
             $asset_url  = $request->get( 'asset_url' );
 
@@ -241,7 +243,7 @@ class FileRequestController {
      * @param FileRequest $request
      * @return FileResponse
      */
-    public static function get_uploads_dir_asset( FileRequest $request ): FileResponse {
+    public function get_uploads_dir_asset( FileRequest $request ): FileResponse {
         try {
             $file_path = $request->get( 'file_path' );
 
@@ -277,7 +279,7 @@ class FileRequestController {
      * 
      * @param FileRequest $request The file request object.
      */
-    public static function get_app_static_asset( FileRequest $request ){
+    public function get_app_static_asset( FileRequest $request ){
         try {
 
             $app_type   = $request->get( 'app_type' );
@@ -320,7 +322,7 @@ class FileRequestController {
      * @param FileRequest $request The file request object.
      * @return FileResponse
      */
-    public static function get_license_document( FileRequest $request ): FileResponse {
+    public function get_license_document( FileRequest $request ): FileResponse {
         try {
             $license_id = $request->get( 'license_id' );
             $token      = $request->get( 'download_token' );
@@ -381,7 +383,7 @@ class FileRequestController {
      * @param Settings Settings API instance (used for issuer, terms URL, etc.).
      * @return string The formatted license document.
      */
-    protected static function generate_license_document( $license, Settings $settingsAPI ): string {
+    protected function generate_license_document( $license, Settings $settingsAPI ): string {
         $license_key    = $license->get_license_key();
         $service_id     = $license->get_service_id();
         $date_issued    = $license->get_start_date()?->format( \smliser_datetime_format() ) ?? 'N/A';
@@ -446,12 +448,12 @@ class FileRequestController {
     /**
      * Validates monetized app file download request
      */
-    protected static function check_monetization( HostedAppsInterface $app, FileRequest $request ) : void {
+    protected function check_monetization( HostedAppsInterface $app, FileRequest $request ) : void {
         if ( ! $app->is_monetized() ) {
             return;
         }
 
-        if ( Guard::get_principal()?->is( 'system_admin' ) ) {
+        if ( $this->guard->get_principal()?->is( 'system_admin' ) ) {
             return;
         }
 

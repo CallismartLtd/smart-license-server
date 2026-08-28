@@ -12,6 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Contracts;
 
 use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Contract for a single leaf command (e.g. `smliser license revoke`).
@@ -29,6 +30,7 @@ interface CommandInterface {
 	public static function make(
 		InputInterface $io,
 		OutputInterface $output,
+		Guard $guard,
 		string $script_name
 	): static;
 
