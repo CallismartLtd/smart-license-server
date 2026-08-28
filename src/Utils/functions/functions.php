@@ -58,15 +58,6 @@ function smliser_form_message( mixed $messages ) : string {
 }
 
 /**
- * Get the client's IP address.
- *
- * @return string
- */
-function smliser_get_client_ip() : string {
-    return smliser_request()->ip();
-}
-
-/**
  * Parses a user agent string and returns a short description.
  *
  * @param string $user_agent_string The user agent string to parse.
@@ -215,26 +206,6 @@ function smliser_parse_user_agent( $user_agent_string ) {
 }
 
 /**
- * Get user agent agent.
- * 
- * @param bool $raw Whether to get the raw user agent string.
- * @return string
- */
-function smliser_get_user_agent( bool $raw = false ): string {
-    $user_agent_string = smliser_request()->userAgent();
-    
-    if ( ! $user_agent_string ) {
-        return '';
-    }
-
-    if ( $raw ) {
-        return $user_agent_string;
-    }
-
-    return smliser_parse_user_agent( $user_agent_string );
-}
-
-/**
  * Generate a download token for the given licensed item.
  * 
  * @param License $license  The License object associated with the item.
@@ -322,116 +293,6 @@ function parse_args_recursive( $args, $defaults ) {
     }
 
     return $defaults;
-}
-
-/**
- * Get the environment provider instance.
- * 
- * @return \SmartLicenseServer\Environment
- */
-function smliser_envProvider() : Environment {
-    return Environment::envProvider();
-}
-
-/**
- * Return the global job queue manager instance.
- *
- * Usage:
- *   smliser_job_queue()->dispatch( JobDTO::make( ... ) );
- *   smliser_job_queue()->find_job( $id );
- *
- * @return \SmartLicenseServer\Background\Queue\JobQueue
- */
-function smliser_job_queue(): \SmartLicenseServer\Background\Queue\JobQueue {
-    return smliser_envProvider()->job_queue();
-}
- 
-/**
- * Return the global queue worker instance.
- *
- * Usage:
- *   smliser_queue_worker()->process_next_job();
- *   smliser_queue_worker()->start_processing();
- *
- * @return \SmartLicenseServer\Background\Workers\QueueWorker
- */
-function smliser_queue_worker(): \SmartLicenseServer\Background\Workers\QueueWorker {
-    return smliser_envProvider()->queue_worker();
-}
-
-/**
- * Get the settings API singleton class.
- * 
- * @return SmartLicenseServer\SettingsAPI\Settings
- */
-function smliser_settings() : SmartLicenseServer\SettingsAPI\Settings {
-    return smliser_envProvider()->settings();
-}
-
-/**
- * Get the cache singleton instance.
- *
- * @return \SmartLicenseServer\Cache\Cache Singleton instance of the Cache class.
- */
-function smliser_cache() : \SmartLicenseServer\Cache\Cache {
-    return smliser_envProvider()->cache();
-}
-
-/**
- * Get the mailer API
- * 
- * @return \SmartLicenseServer\Email\Mailer
- */
-function smliser_mailer() : Mailer {
-    return smliser_envProvider()->mailer();
-}
-
-/**
- * Return the global Scheduler instance.
- *
- * Lazy-loaded — the scheduler and all its tasks are only instantiated
- * when this function is first called. Has zero cost on requests that
- * never touch the scheduler.
- *
- * Usage:
- *   smliser_scheduler()->run_due_tasks();
- *   smliser_scheduler()->call( $fn )->daily_at( '02:00' );
- *   smliser_scheduler()->get_tasks_with_state();
- *
- * @return \SmartLicenseServer\Background\Schedule\Scheduler
- */
-function smliser_scheduler(): \SmartLicenseServer\Background\Schedule\Scheduler {
-    return smliser_envProvider()->scheduler();
-}
-
-/**
- * Get the http client instance.
- * 
- * @return \Callismart\Http\HttpClient
- */
-function smliser_http_client() : HttpClient {
-    return smliser_envProvider()->httpClient();
-}
-
-/**
- * Get the monetization registry instance.
- */
-function smliser_monetization_registry() : MonetizationRegistry {
-    return smliser_envProvider()->monetizationRegistry();
-}
-
-/**
- * Email providers registry instance.
- */
-function smliser_emailProvidersRegistry() : EmailProvidersRegistry {
-    return smliser_envProvider()->emailProviders();
-}
-
-/**
- * Get the current request object.
- */
-function smliser_request() : Request {
-    return smliser_envProvider()->request();
 }
 
 /**

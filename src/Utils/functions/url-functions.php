@@ -31,7 +31,7 @@ function url( string $path = '', array $params = [] ) : URL {
  * @return URL
  */
 function adminUrl( string $path = '', array $params = [] ) : URL {
-    return smliser_envProvider()->adminUrl( $path, $params );
+    return URL::from( '' );
 }
 
 /**
@@ -41,7 +41,7 @@ function adminUrl( string $path = '', array $params = [] ) : URL {
  * @param array<string, string> $params Associative array of query params.
  */
 function assetsUrl( string $path = '', array $params = [] ) :URL {
-    return smliser_envProvider()->assetsUrl( $path, $params );
+    return URL::from( '' );
 }
 
 /**
@@ -52,7 +52,7 @@ function assetsUrl( string $path = '', array $params = [] ) :URL {
  * @return URL
  */
 function restAPIUrl( string $path = '', array $params = [] ) : URL {
-    return smliser_envProvider()->restAPIUrl( $path, $params );
+    return URL::from( '' );
 }
 
 /**
@@ -212,64 +212,6 @@ function smliser_access_control_page_url( ?string $tab = null ) : URL {
  */
 function smliser_url_origin( string $url ) {
     return URL::from( $url )->get_origin();
-}
-
-/**
- * Get the base downloads url prefix.
- */
-function smliser_get_download_url_prefix() : string {
-    return (string) smliser_settings()->get( 'download_url_prefix', 'downloads' );
-}
-
-/**
- * Get the base admin url prefix.
- */
-function smliser_get_admin_url_prefix() : string {
-    return (string) smliser_settings()->get( 'admin_url_prefix', 'smliser-admin' );
-}
-
-/**
- * Get the the base repository slug.
- * 
- * @return string
- */
-function smliser_get_repository_url_prefix() : string {
-    return (string) smliser_settings()->get( 'repository_url_prefix', 'repository' );
-}
-
-/**
- * Get the client dashboard URL prefix.
- * 
- * @return string
- */
-function smliser_get_client_dashboard_url_prefix() : string {
-    return (string) smliser_settings()->get( 'client_dashboard_url_prefix', 'client-dashboard' );
-}
-
-/**
- * Get the client dashboard URL.
- * 
- * @param string $path Optional path to append to the dashboard URL.
- * @param array<string, string> $params Associative array of query params.
- * @return URL
- */
-function smliser_client_dashboard_url( string $path = '', array $params = [] ) : URL {
-    return url( smliser_get_client_dashboard_url_prefix(), $params )
-    ->append_path( $path );
-}
-
-/**
- * Get document download URL
- * 
- * @param int $id The document ID
- * @return URL
- */
-function smliser_document_download_url( int $id = 0 ) : URL {
-    $downloads_slug = smliser_get_download_url_prefix();
-    $id_string      = sprintf( 'license-document-%d.txt', $id );
-    $path           = implode( '/', [$downloads_slug,'document', $id_string] );
-
-    return url( $path );
 }
 
 /**
@@ -457,45 +399,4 @@ function smliser_download_url( string|URL $url, int $timeout = 30, bool $autocle
     } catch ( FileRequestException $e ) {
         return $e;
     }
-}
-
-/**
- * Get the login URL prefix.
- * 
- * @return string
- */
-function smliser_login_url_prefix() : string {
-    return (string) smliser_settings()->get( 'login_url_prefix', 'auth' );
-}
-
-/**
- * Get the logout URL prefix.
- * 
- * @return string
- */
-function smliser_logout_url_prefix() : string {
-    return (string) smliser_settings()->get( 'logout_url_prefix', 'logout' );
-}
-
-/**
- * Get the login url.
- * 
- * @param string $path
- * @param array $params
- */
-function smliser_login_url( string $path = '', array $params = [] ) : URL {
-    return url( smliser_login_url_prefix(), $params )
-        ->append_path( $path )
-        ->set_hash( 'login' );
-}
-
-/**
- * Get the logout url.
- * 
- * @param string $path
- * @param array $params
- */
-function smliser_logout_url( string $path = '', array $params = [] ) : URL {
-    return url( smliser_logout_url_prefix(), $params )
-        ->append_path( $path );
 }

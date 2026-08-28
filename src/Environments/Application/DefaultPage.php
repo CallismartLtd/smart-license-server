@@ -16,6 +16,7 @@ namespace SmartLicenseServer\Environments\Application;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\RESTAPI\RouteCatalog;
 
 
@@ -66,47 +67,16 @@ final class DefaultPage {
 
 
 	/**
-	 * Constructor.
-	 *
-	 * This no longer accepts page-render data — that was the flaw: it made
-	 * the constructor unusable for anything except the static factories
-	 * building `new static(...)` internally. It now exists purely as a
-	 * dependency-injection slot. `$env_provider` is the one implicit
-	 * dependency the class already had (used by doc_page() via the global
-	 * `smliser_envProvider()` call); it is optional and falls back to the
-	 * global helper so existing call sites are unaffected. Add further
-	 * constructor parameters here as you need to inject more collaborators
-	 * (a URL generator, a debug flag, etc.) instead of reaching for globals.
+	 * Class constructor.
 	 *
 	 * @param mixed $env_provider Optional environment provider override,
 	 *                            primarily for tests. Falls back to
 	 *                            `\smliser_envProvider()` when null.
 	 */
-	public function __construct( private readonly mixed $env_provider = null ) {}
-
-
-	/**
-	 * Convenience factory for the common case of no injected dependencies.
-	 * Equivalent to `new self()`; kept so call sites can read `DefaultPage::create()`
-	 * without reaching for `new` directly, and as the natural place to grow
-	 * default wiring later without touching every call site.
-	 *
-	 * @return self
-	 */
-	public static function create(): self {
-		return new self();
-	}
-
-
-	/**
-	 * Resolve the environment provider, preferring an injected instance.
-	 *
-	 * @return mixed
-	 */
-	private function env_provider(): mixed {
-		return $this->env_provider ?? \smliser_envProvider();
-	}
-
+	public function __construct(
+		private URLManager $urlmanager,
+		private RestAPIProvider $api_provider 
+	) {}
 
 	/**
 	 * Set the data for the page about to be rendered.
@@ -692,9 +662,9 @@ final class DefaultPage {
 					<a href="%s">Documentation</a>
 				</div>
 			</nav>',
-			\url()->url(),
-			\smliser_login_url()->url(),
-			\smliser_client_dashboard_url()->url(),
+			$this->urlmanager->url()->url(),
+			$this->urlmanager->login_url()->url(),
+			$this->urlmanager->client_dashboard_url()->url(),
 			\smliser_debug_enabled() ? sprintf(
 				'<a href="%s">Admin Area</a>', \adminUrl()->url() 
 			) : '',
@@ -910,7 +880,7 @@ final class DefaultPage {
 	 * @return Response
 	 */
 	public function doc_page( Request $request ): Response {
-		$versions = $this->env_provider()->restProvider()->version_instances();
+		$versions = $this->api_provider->version_instances();
 
 		$catalogs = [];
 		foreach ( $versions as $version ) {

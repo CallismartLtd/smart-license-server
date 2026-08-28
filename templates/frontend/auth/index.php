@@ -10,6 +10,8 @@
  * @var \SmartLicenseServer\Templates\TemplateLocator $this
  * @var \SmartLicenseServer\Security\Context\Guard $guard
  * @var \SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\SettingsAPI\Settings $settings
+ * @var string[] $slugs
  */
 
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
@@ -24,7 +26,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 */
 $rest_base      = $rest_base   ?? '';
 $active_slug    = $active_slug ?? array_key_first( $menu ) ?? '';
-$repo_name      = (string) smliser_settings()->get( 'smliser_repository_name', SMLISER_APP_NAME );
+$repo_name      = (string) $settings->get( 'smliser_repository_name', SMLISER_APP_NAME );
 
 /*
 |--------------------------------------------------
@@ -58,7 +60,6 @@ $title  = ! empty( $menu )
     ? sprintf( '%s — %s', $menu[$active_slug]['title'], $title ) ?? $title
     : $title;
 
-$template   = authTemplateRegistry();
 
 $this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
     'menu'          => $menu,
@@ -69,7 +70,7 @@ $this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
     'repo_name'     => $repo_name,
     'theme'         => $theme,
     'collapsed'     => $collapsed,
-    'allowed_slugs' => $template->slugs()
+    'allowed_slugs' => $slugs
 ] );
 
 /*

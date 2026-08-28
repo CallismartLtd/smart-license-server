@@ -256,7 +256,7 @@ class RepositoryAnalytics {
                     'license_id'    => $data['license_id'] ?? 'N/A',
                     'event_type'    => $data['event_type'] ?? 'activation',
                     'ip_address'    => $data['ip_address'] ?? smliser_get_client_ip(),
-                    'user_agent'    => $data['user_agent'] ?? smliser_get_user_agent(),
+                    'user_agent'    => $data['user_agent'] ?? 'unknown',
                     'website'       => $data['website']    ?? 'N/A',
                     'comment'       => $data['comment']    ?? 'N/A',
                     'duration'      => $data['duration']   ?? 'N/A',

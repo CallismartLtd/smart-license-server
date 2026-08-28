@@ -33,6 +33,7 @@ use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
 use SmartLicenseServer\SettingsAPI\Providers\Options;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 use SmartLicenseServer\SettingsAPI\Settings;
+use SmartLicenseServer\Templates\TemplateDiscovery;
 use SmartLicenseServer\Templates\TemplateLocator;
 
 /**
@@ -110,6 +111,17 @@ abstract class Environment {
             SettingsStorageInterface::class,
             fn ( Container $container ) : SettingsStorageInterface =>
                 $container->get( Options::class )
+        );
+
+        $this->container->singleton(
+            TemplateLocator::class,
+            fn () : TemplateLocator => new TemplateLocator
+        );
+
+        $this->container->singleton(
+            TemplateDiscovery::class,
+            fn ( Container $c ) : TemplateDiscovery => 
+                new TemplateDiscovery( $c->get( TemplateLocator::class ) )
         );
     }
 

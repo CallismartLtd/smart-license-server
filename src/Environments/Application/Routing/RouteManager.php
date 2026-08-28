@@ -17,13 +17,13 @@ use SmartLicenseServer\ClientDashboard\TemplateHandlers\Login;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\Signup;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddleware;
 use SmartLicenseServer\Routing\Router as CoreRouter;
 use SmartLicenseServer\Routing\DispatchStatus;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
 use SmartLicenseServer\Security\Context\Guard;
-use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
  * The application environment's route manager, which wraps the core Router and 
@@ -62,7 +62,7 @@ final class RouteManager {
         protected AuthForms $auth_forms,
         protected AdminDispatcher $admin_dispatcher,
         protected AdminAccessMiddleware $admin_access_middleware,
-        protected Settings $settings
+        protected URLManager $urlmanager
 
     ) {}
 
@@ -127,7 +127,7 @@ final class RouteManager {
     public function registerCoreRoutes() : void {
         $this->router->any( '/', $this->defaultHomeHandler );
 
-        $this->router->group( $this->settings->get( Settings::LOGIN_URL_PREFIX, 'auth' ),
+        $this->router->group( $this->urlmanager->login_url_prefix(),
             function() {
                 $this->router->add(
                     methods: ['GET'],
@@ -167,11 +167,11 @@ final class RouteManager {
         );
 
         $this->router->get(
-            pattern: $this->settings->get( Settings::LOGOUT_URL_PREFIX, 'logout' ),
+            pattern: $this->urlmanager->logout_url_prefix(),
             handler: [$this->auth_controller, 'handle_logout']
         );
 
-        $this->router->group( $this->settings->get( Settings::ADMIN_URL_PREFIX, 'smliser-admin' ),
+        $this->router->group( $this->urlmanager->admin_url_prefix(),
             function() {
                 // Main pages and and submenu routes.
                 $this->router->get(
