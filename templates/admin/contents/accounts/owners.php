@@ -6,14 +6,15 @@
  * @see \SmartLicenseServer\Admin\Handlers\AccessControlPage
  * @var \SmartLicenseServer\Security\Owner[] $owners
  * @var \SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Admin\Handlers\AccessControlPage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
-use SmartLicenseServer\Admin\Handlers\AccessControlPage;
 use SmartLicenseServer\Security\Owner;
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
 <div class="smliser-admin-repository-template">
-    <?php AccessControlPage::print_header( $request ); ?>
+    <?php $page_handler->print_header( $request ); ?>
     
     <div class="smliser-admin-table-body">
 

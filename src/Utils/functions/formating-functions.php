@@ -8,7 +8,7 @@
  * @package Smliser\functions
  */
 
-use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Utils\Format;
 
 /**
@@ -55,8 +55,8 @@ function smliser_readable_duration( $duration ): string {
  * @since 0.2.0
  */
 function smliser_locale_date_format() {
-	$date_format = smliser_settings()->get( 'date_format', 'Y-m-d', false );
-	$time_format = smliser_settings()->get( 'time_format', 'g:i a', false );
+	$date_format = Settings::instance()->get( 'date_format', 'Y-m-d', false );
+	$time_format = Settings::instance()->get( 'time_format', 'g:i a', false );
     return [ $date_format, $time_format ];
 }
 

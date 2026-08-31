@@ -58,9 +58,12 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <?php if ( ( is_callable( $submenu['visibility'] ) && ! $submenu['visibility']() ) || ! $submenu['visibility'] ) : continue; ?>
                         <?php endif; ?>
                             <?php
-                            $sub_url        = $urlmanager->admin_url( "{$menu['slug']}/{$submenu['slug']}" );
-                            $is_current_sub = ( null !== $current_submenu && $submenu['slug'] === $current_submenu['slug'] ) || 
-                                ( ! $current_submenu && 'index' === $submenu['slug'] );
+                            $sub_url        = $urlmanager->admin_url( $menu['slug'], $submenu['slug'] );
+                            $current_slug_marker    = "{$menu['slug']}/{$submenu['slug']}";
+                            $sub_index_marker       = "{$menu['slug']}/index";
+                            $current_sub_marker     = $current_submenu ? "{$current_menu['slug']}/{$current_submenu['slug']}" : null;
+                            $is_current_sub         = $current_slug_marker === $current_sub_marker;
+
                             ?>
                             <li class="dashboard-submenu-item<?php echo $is_current_sub ? ' is-current' : ''; ?>" id="submenu-<?php echo escAttr( $submenu['slug'] ); ?>">
                                 <a

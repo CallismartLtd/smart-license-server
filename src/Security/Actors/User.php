@@ -13,11 +13,10 @@ use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
-use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const SMLISER_USERS_TABLE;
-use function is_string, md5, smliser_avatar_url, get_object_vars;
+use function is_string, md5, get_object_vars;
 
 /**
  * Canonical representation of a human actor in the system.
@@ -487,20 +486,6 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
     }
 
     /**
-     * Convert to array
-     * 
-     * @return array
-     */
-    public function to_array() : array {
-        $data   = get_object_vars( $this );
-        $extra  = ['type' => static::TYPE, 'avatar' => $this->get_avatar()->get_href()];
-        $data   = $extra + $data;
-
-        unset( $data['exists_cache'], $data['password_hash'] );
-        return $data;
-    }
-
-    /**
      * Determine whether the user is allowed to authenticate.
      *
      * @return bool True if the user can authenticate.
@@ -536,17 +521,12 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
     public static function get_allowed_statuses() : array {
         return [ self::STATUS_ACTIVE, self::STATUS_SUSPENDED, self::STATUS_DISABLED ];
     }
-
-    /**
-     * Get user avatar URL.
-     * 
-     * @return URL
-     */
-    public function get_avatar() : URL {
-        return smliser_avatar_url( md5( $this->get_email() ), 'user' );
-    }
     
     public function get_type() : string {
         return Owner::TYPE_INDIVIDUAL;
+    }
+
+    public function get_unique_identifier(): string {
+        return $this->get_email();
     }
 }

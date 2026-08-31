@@ -6,6 +6,7 @@
  * @package SmartLicenseServer
  * @var string $title
  * @var array $app_action
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
@@ -16,7 +17,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Repository',
-                    'url'   => smliser_repository_url( 'admin' ),
+                    'url'   => $urlmanager->admin_repo_url(),
                     'icon'  => 'ti ti-home-filled'
                 ),
 
@@ -29,8 +30,8 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 array(
                     'title' => 'Settings',
                     'label' => 'Settings',
-                    'url'   => smliser_options_url(),
-                    'icon'  => 'dashicons dashicons-admin-generic'
+                    'url'   => $urlmanager->admin_options_url(),
+                    'icon'  => 'ti ti-settings'
                 )
             )
         ]
@@ -60,17 +61,17 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
             </p>
 
             <div class="smliser-upload-cards">
-                <a class="smliser-upload-card" href="<?php echo smliser_admin_repo_tab( 'add-new', 'plugin' ); ?>">
+                <a class="smliser-upload-card" href="<?php echo $urlmanager->admin_repo_url( 'add-new', ['type' => 'plugin'] ); ?>">
                     <strong class="smliser-upload-card-title">WordPress Plugin</strong>
                     <span class="smliser-upload-card-description">Upload a plugin for WordPress sites</span>
                 </a>
 
-                <a class="smliser-upload-card" href="<?php echo smliser_admin_repo_tab( 'add-new', 'theme' ); ?>">
+                <a class="smliser-upload-card" href="<?php echo $urlmanager->admin_repo_url( 'add-new', ['type' => 'theme'] ); ?>">
                     <strong class="smliser-upload-card-title">WordPress Theme</strong>
                     <span class="smliser-upload-card-description">Upload a theme for WordPress sites</span>
                 </a>
 
-                <a class="smliser-upload-card" href="<?php echo smliser_admin_repo_tab( 'add-new', 'software' ); ?>">
+                <a class="smliser-upload-card" href="<?php echo $urlmanager->admin_repo_url( 'add-new', ['type' => 'software'] ); ?>">
                     <strong class="smliser-upload-card-title">Other Software</strong>
                     <span class="smliser-upload-card-description">Upload any other type of application</span>
                 </a>

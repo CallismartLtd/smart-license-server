@@ -6,26 +6,6 @@
  * Built via the fluent API on Scheduler::call() or Scheduler::dispatch()
  * and never constructed directly.
  *
- * ## Examples
- *
- *   // Run a closure daily at 02:00
- *   smliser_scheduler()
- *       ->call( function() {
- *           smliser_db()->query( 'DELETE FROM ...' );
- *       })
- *       ->daily_at( '02:00' )
- *       ->label( 'Prune old records' );
- *
- *   // Dispatch a queued job every Sunday at 03:00
- *   smliser_scheduler()
- *       ->dispatch( PruneAnalyticsLogsJob::class, ['retention_days' => 90] )
- *       ->weekly_on( 'sunday', '03:00' );
- *
- *   // Run a static method every 15 minutes
- *   smliser_scheduler()
- *       ->call( [MyClass::class, 'my_method'] )
- *       ->every_minutes( 15 );
- *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Background\Schedule
  * @since   0.2.0

@@ -172,12 +172,15 @@ class OrganizationMember implements ActorInterface {
         return $this->user->get_type();
     }
 
-    public function get_avatar(): URL {
-        return $this->user->get_avatar();
-    }
-
     public static function get_allowed_statuses(): array {
         return User::get_allowed_statuses();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function get_unique_identifier() : string {
+        return $this->user->get_unique_identifier();
     }
 
     /**
@@ -196,20 +199,6 @@ class OrganizationMember implements ActorInterface {
         throw new BadMethodCallException(
             sprintf( 'Method %s::%s is marked private.', __CLASS__, __METHOD__ )
         );
-    }
-
-    /**
-     * @throws BadMethodCallException
-     */
-    public function to_array(): array {
-        return [
-            'id'         => $this->id,
-            'role'       => $this->role?->get_label(),
-            'avatar'    => $this->get_avatar(),
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-            'user'       => $this->user->to_array(),
-        ];
     }
 
     /* -----------------------------

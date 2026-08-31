@@ -13,6 +13,8 @@ namespace SmartLicenseServer\Core;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\SQLBuilder;
 use RuntimeException;
+use SmartLicenseServer\Cache\Cache;
+use SmartLicenseServer\Cache\CacheAwareTrait;
 use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
@@ -20,7 +22,7 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * Provides unified API to manage data retrieved from the database
  */
 abstract class DataStore {
-    use SanitizeAwareTrait;
+    use SanitizeAwareTrait, CacheAwareTrait;
 
     /**
      * The active database abstraction layer.
@@ -28,6 +30,8 @@ abstract class DataStore {
      * @var Database $DB
      */
     protected static Database $DB;
+
+    protected static Cache $cache;
 
     /**
      * Get a single entity by an arbitrary column.
@@ -89,6 +93,16 @@ abstract class DataStore {
         static::$DB = $database;
     }
 
+    final public static function set_cache( Cache $cache ): void {
+        if ( isset( static::$cache ) ) {
+            throw new RuntimeException(
+                'The DataStore cache has already been initialized.'
+            );
+        }
+
+        static::$cache = $cache;
+    }
+
     /**
      * Helper method to hydrate from array.
      * 
@@ -136,4 +150,13 @@ abstract class DataStore {
         );
     }
     
+    protected static function ensure_cache() : void {
+        if ( isset( static::$cache ) ) {
+            return;
+        }
+
+        throw new \RuntimeException(
+            'The cache abstraction layer must be set early.'
+        );
+    }
 }

@@ -12,6 +12,7 @@
 
 namespace SmartLicenseServer\FileSystem;
 
+use RuntimeException;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 
 /**
@@ -43,19 +44,32 @@ use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
  */
 class FileSystem {
     /**
-     * The active filesystem adapter.
-     *
-     * @var FileSystemAdapterInterface
-     */
-    protected FileSystemAdapterInterface $adapter;
-
-    /**
      * Private constructor to enforce singleton.
      *
      * @param FileSystemAdapterInterface $adapter The adapter instance.
      */
-    public function __construct( FileSystemAdapterInterface $adapter ) {
-        $this->adapter = $adapter;
+    private function __construct(
+        protected FileSystemAdapterInterface $adapter
+    ) {}
+
+    /**
+     * Singleton instance.
+     * 
+     * @param FileSystemAdapterInterface|null $adapter
+     * @return static
+     */
+    public static function instance( ?FileSystemAdapterInterface $adapter = null ) : static {
+        static $static;
+
+        if ( ! isset( $static ) ) {
+            if ( ! $adapter ) {
+                throw new RuntimeException( 'Filesystem API must be called with an adapter early.' );
+            }
+
+            $static = new static( $adapter );
+        }
+
+        return $static;
     }
 
     /**
@@ -89,14 +103,10 @@ class FileSystem {
      *
      * Uses the underlying adapter where possible.
      *
-     * @param string|array $dirs A single path or an array of directories to test.
+     * @param string ...$dirs Absolute path(s) to the directories to test.
      * @return array<string, array{readable: bool, writable: bool, error: string|null}>
      */
-    public function test_dirs_read_write( string|array $dirs ): array {
-
-        if ( is_string( $dirs ) ) {
-            $dirs = [ $dirs ];
-        }
+    public function test_dirs_read_write( string ...$dirs ): array {
 
         $results = [];
 
@@ -160,5 +170,4 @@ class FileSystem {
     public function get_adaper() : FileSystemAdapterInterface {
         return $this->adapter;
     }
-
 }

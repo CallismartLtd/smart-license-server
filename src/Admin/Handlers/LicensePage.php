@@ -11,7 +11,9 @@ namespace SmartLicenseServer\Admin\Handlers;
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Templates\TemplateLocator;
 
 use function compact;
@@ -23,7 +25,9 @@ class LicensePage implements AdminPageInterface {
 
     public function __construct(
         protected TemplateLocator $locator,
-        protected RepositoryAnalytics $repository_analytics
+        protected RepositoryAnalytics $repository_analytics,
+        protected URLManager $urlmanager,
+        protected Settings $settings
     ) {}
 
     /**
@@ -48,9 +52,13 @@ class LicensePage implements AdminPageInterface {
         
         $licenses       = $license_data['items'] ?? [];
         $pagination     = $license_data['pagination'] ?? [];
-        $add_url        = \smliser_license_admin_action_page();
+        $add_url        = $this->urlmanager->admin_license_page_url( 'add-new' );
 
-        $vars   = compact( 'request', 'current_url', 'licenses', 'pagination', 'add_url' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars   = compact( 'urlmanager', 'page_handler', 'request', 'current_url',
+            'licenses', 'pagination', 'add_url'
+        );
         $this->locator->render( 'admin.contents.license.index', $vars );    
     }
 
@@ -72,9 +80,12 @@ class LicensePage implements AdminPageInterface {
         ]);
         $licenses       = $license_data['items'] ?? [];
         $pagination     = $license_data['pagination'] ?? [];
-        $add_url        = smliser_license_admin_action_page();
-    
-        $vars   = compact( 'request', 'current_url', 'licenses', 'pagination', 'add_url' );
+        $add_url        = $this->urlmanager->admin_license_page_url( 'add-new' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'urlmanager', 'page_handler', 'request', 'current_url',
+            'licenses', 'pagination', 'add_url'
+        );
         $this->locator->render( 'admin.contents.license.search', $vars );  
     
     }
@@ -84,8 +95,11 @@ class LicensePage implements AdminPageInterface {
      */
     public function add_license_page( Request $request ) : void {
         $form_fields    = static::get_form_fields();
-        $tab            = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
-        $vars   = compact( 'request', 'form_fields', 'tab' );
+        $tab            = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'urlmanager', 'page_handler', 'request', 'form_fields', 'tab' );
+
         $this->locator->render( 'admin.contents.license.form', $vars );
     }
 
@@ -96,12 +110,16 @@ class LicensePage implements AdminPageInterface {
 
         $license_id     = $request->get( 'license_id' );        
         $license        = License::get_by_id( $license_id );
-        $tab            = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
+        $tab            = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
         
         $form_fields    = static::get_form_fields( $license );
-        $vars           = compact( 'request', 'form_fields', 'tab', 'license', 'license_id' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'urlmanager', 'page_handler', 'request', 'form_fields',
+            'tab', 'license', 'license_id'
+        );
+
         $this->locator->render( 'admin.contents.license.form', $vars );
-    
     }
 
     /**
@@ -115,7 +133,7 @@ class LicensePage implements AdminPageInterface {
         $vars   = compact( 'request', 'license', 'licensed_app', 'license_id' );
         if ( $license ) {
             $licensee   = $license->get_licensee_fullname();
-            $delete_url = \adminUrl( '', [
+            $delete_url = url( '', [
                 'action'        => 'smliser_delete_license',
                 'license_id'    => $license_id,
                 'smliser_nonce' => wp_create_nonce( 'smliser_delete_license_nonce' )
@@ -124,7 +142,10 @@ class LicensePage implements AdminPageInterface {
             $vars['licensee']   = $licensee;
             $vars['delete_url'] = $delete_url;
         }
-        
+
+        $var['page_handler']    = $this;
+        $var['urlmanager']      = $this->urlmanager;
+
         $this->locator->render( 'admin.contents.license.view', $vars );
    
     }
@@ -141,8 +162,13 @@ class LicensePage implements AdminPageInterface {
                 fn( $log ) => ( $log['license_id'] ?? 0 ) === $request->get( 'filterBy' ) 
             );
         }
+
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $log_duration   = (int) ( $this->settings->get( 'log_retention_days', 30 ) ?? 30 );
+        $vars   = compact( 'log_duration', 'logs', 'request', 'urlmanager', 'page_handler' );
         
-        $this->locator->render( 'admin.contents.license.logs', compact( 'logs', 'request' ) );
+        $this->locator->render( 'admin.contents.license.logs', $vars );
     }
 
     /**
@@ -151,7 +177,7 @@ class LicensePage implements AdminPageInterface {
      * @return array
      */
     public function get_menu_args( Request $request ) : array {
-        $tab    = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
+        $tab    = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
 
         $title  = match ( $tab ) {
             'logs'      => 'License Activity Logs',
@@ -166,7 +192,7 @@ class LicensePage implements AdminPageInterface {
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Licenses',
-                    'url'   => smliser_license_page(),
+                    'url'   => $this->urlmanager->admin_license_page_url(),
                     'icon'  => 'ti ti-home'
                 ),
                 array(
@@ -177,7 +203,7 @@ class LicensePage implements AdminPageInterface {
                 array(
                     'title' => 'Settings',
                     'label' => 'Settings',
-                    'url'   => \smliser_options_url(),
+                    'url'   => $this->urlmanager->admin_options_url(),
                     'icon'  => 'ti ti-settings'
                 )
             )

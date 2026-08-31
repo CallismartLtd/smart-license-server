@@ -180,12 +180,12 @@ final class RouteManager {
                 );
 
                 $this->router->get(
-                    pattern: '/{tab:slug}',
+                    pattern: '/{page:slug}',
                     handler: [$this->admin_dispatcher, 'render_admin_dashboard']
                 );
 
                 $this->router->get(
-                    pattern: '/{tab:slug}/{submenu:slug}',
+                    pattern: '/{page:slug}/{tab:slug}',
                     handler: [$this->admin_dispatcher, 'render_admin_dashboard']
                 );
 
@@ -270,8 +270,8 @@ final class RouteManager {
 	 * no assumption about what that is (a Response object, void, anything),
 	 * since that's the handler's decision, not the router's.
 	 */
-	public function dispatch( string $method, string $path, Request $request ): Response {
-		$result = $this->router->dispatch( $method, $path );
+	public function dispatch( Request $request ): Response {
+		$result = $this->router->dispatch( $request->method(), $request->path() );
 
         $request->set_route_param( $result->params );
 

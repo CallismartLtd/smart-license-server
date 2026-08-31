@@ -4,6 +4,7 @@
  */
 
 use Callismart\Http\Exceptions\HttpRequestException;
+use Callismart\Http\HttpClient;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
@@ -24,155 +25,6 @@ function url( string $path = '', array $params = [] ) : URL {
 }
 
 /**
- * The admin URL for the licenses page.
- * 
- * @return URL
- */
-function smliser_license_page() : URL {
-    if ( is_wp() ) {
-        return adminUrl( '', ['page' => 'smliser-licenses'] );
-    }
-    
-    return adminUrl( 'licenses' );
-}
-
-/**
- * Get the repository URL.
- * 
- * @param string $context The URL context, use `admin` for the admin url
- */
-function smliser_repository_url( string $context = '' ) : URL {
-
-    if ( 'admin' === $context ) {
-        $url = is_wp()
-        ? adminUrl( 'admin.php' )->add_query_param( 'page', 'smliser-repository' )
-        : adminUrl( 'repository' );
-    } else {
-        $url    = url( smliser_get_repository_url_prefix() );
-    }
-
-    return $url;
-}
-
-/**
- * Bulk messages URL.
- * 
- * @param string|null $tab
- */
-function smliser_bulk_messages_url( ?string $tab = null ) : URL {
-    $url    = adminUrl();
-
-    if ( is_wp() ) {
-        $url = $url
-            ->add_query_params([
-                'page'  => 'smliser-broadcasts'
-            ]);
-    } else {
-        $url    = $url->append_path( 'broadcasts' );
-    }
-
-    if ( $tab ) {
-        $url = is_wp() ? $url->add_query_param( 'tab', $tab ) : $url->append_path( $tab );
-    }
-    
-    return $url;
-}
-
-/**
- * The settings page URL.
- * 
- * @param string|null $tab
- */
-function smliser_options_url( ?string $tab = null ) : URL {
-    $url    = adminUrl();
-
-    if ( is_wp() ) {
-        $url    = $url
-            ->add_query_params([
-                'page'  => 'smliser-settings'
-            ]);
-    } else {
-        $url    = $url->append_path( 'settings' );
-    }
-
-    if ( $tab ) {
-        $url = is_wp() ? $url->add_query_param( 'tab', $tab ) : $url->append_path( $tab );
-    }
-
-    return $url;
-}
-
-/**
- * Action url constructor for admin license page
- * 
- * @param string $tab
- * @param int $license_id   The ID of the license.
- * @return \SmartLicenseServer\Core\URL
- */
-function smliser_license_admin_action_page( $tab = 'add-new', $license_id = '' ) : URL {
-    if ( is_wp() ) {
-        $url = $url = smliser_license_page()->add_query_param( 'tab', $tab );
-    } else {
-        $url = smliser_license_page()->append_path( $tab );
-    }
-
-    $url    =  $license_id ? $url->add_query_param( 'license_id', $license_id ) : $url;
-
-    return $url;
-}
-
-/**
- * Action url constructor for admin repository tabs.
- * 
- * @param string $tab The tab.
- * @param array $args An associative array the will be passed to add_query_args. 
- */
-function smliser_admin_repo_tab( $tab = 'add-new', $args = array() ) : URL {
-
-    if ( ! is_array( $args ) ) {
-        if ( is_int( $args ) ) {
-            $args = array( 'app_id' => $args );
-        } else if ( is_string( $args ) ) {
-            $args = array( 'type' => $args );
-        }
-    }
-
-    $url    = smliser_repository_url( 'admin' );
-    
-    if ( is_wp() ) {
-        $args['tab'] = $tab;
-    } else {
-        $url    = $url->append_path( $tab );
-    }
-
-    return $url->add_query_params( $args );
-}
-
-/**
- * Get access control page url.
- * 
- * @param string|null $tab
- * @return URL
- */
-function smliser_access_control_page_url( ?string $tab = null ) : URL {
-    $url    = adminUrl();
-
-    if ( is_wp() ) {
-        $url = $url->add_query_params([
-            'page'  => 'smliser-accounts',
-        ]);
-    } else{
-        $url    = $url->append_path( 'accounts' );
-    }
-
-    if ( $tab ) {
-        $url = is_wp() ? $url->add_query_param( 'tab', $tab ) : $url->append_path( $tab );
-    }
-
-    return $url;
-}
-
-/**
  * Get the URL origin.
  *
  * @param string $url The URL to parse.
@@ -180,54 +32,6 @@ function smliser_access_control_page_url( ?string $tab = null ) : URL {
  */
 function smliser_url_origin( string $url ) {
     return URL::from( $url )->get_origin();
-}
-
-/**
- * Get the assets url for an app type.
- *
- * @param string $type     App type ('plugin' or 'theme').
- * @param string $slug     The app slug.
- * @param string $filename The asset file name (e.g. screenshot-1.png).
- * @return URL
- */
-function apps_asset_url( string $type, string $slug, string $filename = '' ) : URL {
-    $path   = "$type/$slug/assets";
-    return smliser_repository_url()
-    ->append_path( $path )
-    ->append_path( $filename );
-}
-
-/**
- * Get the uploads url.
- * 
- * @param $path
- * @return URL
- */
-function smliser_uploads_url( string $path  = '' ) : URL {
-    $rel_path   = 'smliser-uploads';
-    $path       = FileSystemHelper::join_path( $rel_path, $path );
-    
-    return url( $path );
-}
-
-/**
- * Get avatar URL.
- * 
- * @param $filename_hash    The MD5 hash name of the avatar.
- * @param $type             The avatar type.
- * @return URL
- */
-function smliser_avatar_url( string $filename_hash, string $type ) : URL {
-    $type       = smliser_pluralize( str_replace( '_', '-', $type ) );
-    $path       = FileSystemHelper::join_path( 'avatars', $type, $filename_hash );
-    $abs_path   = FileSystemHelper::join_path( SMLISER_UPLOADS_DIR, $path );
-
-    if ( ! FileSystemHelper::is_valid_file( $abs_path ) ) {
-        return URL::from( '' );
-    }
-
-    $avatar_url = smliser_uploads_url( $path );
-    return $avatar_url;
 }
 
 /**
@@ -260,53 +64,6 @@ function smliser_sanitize_url( $url ) : string {
     return URL::from( $url )->sanitize()->url();
 }
 
-/**
- * Get the download URL for an app type.
- * 
- * @param string $type The app type.
- * @param string $slug The app slug.
- * 
- * @return URL
- */
-function smliser_get_app_download_url( string $type, string $slug ) : URL {
-    $prefix = smliser_get_download_url_prefix();
-    $parts  = [ $prefix, $type, $slug ];
-    $path   = sprintf( '%s.zip', implode( '/', $parts ) );
-
-    return url( $path )->sanitize();
-}
-
-/**
- * Get the preview/homepage URL of an app.
- * 
- * @param string $type The app type.
- * @param string $slug The app slug.
- * 
- * @return URL
- */
-function smliser_get_app_url( string $type, string $slug ) : URL {
-    $prefix = \smliser_get_repository_url_prefix();
-    $path   = implode( '/', [$prefix, $type, $slug] );
-    
-    return url( $path );
-}
-
-/**
- * Get app artifact URL.
- * 
- * @param string $app_type The app type.
- * @param string $app_slug The app slug.
- * @param string $filename The artifact file name 
- * 
- * @return URL
- */
-function smliser_get_app_artifact_url( string $app_type, string $app_slug, string $filename ) : URL {
-    $prefix = smliser_get_download_url_prefix();
-    $parts  = [ $prefix, $app_type, $app_slug, 'artifacts', $filename ];
-    $path   = implode( '/', $parts );
-
-    return url( $path )->sanitize();
-}
 
 /**
  * Download the given URL to a local temp file.
@@ -330,8 +87,8 @@ function smliser_download_url( string|URL $url, int $timeout = 30, bool $autocle
         ];
 
         $destination    = sprintf( '%s/%s', SMLISER_TMP_DIR, uniqid( SMLISER_UPLOAD_TMP_PREFIX ) );
-
-        $response    = smliser_http_client()->download( $url, $destination, [], $options );
+        $best_client    = HttpClient::auto_client();
+        $response       = ( new HttpClient( $best_client ) )->download( $url, $destination, [], $options );
 
         if ( $response->is_error() ) {
             $code   = match( $response->status_code ) {

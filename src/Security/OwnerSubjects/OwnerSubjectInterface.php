@@ -8,10 +8,6 @@
 
 namespace SmartLicenseServer\Security\OwnerSubjects;
 
-use SmartLicenseServer\Core\URL;
-
-use function defined;
-
 /**
  * An owner subject is an entity that can own resources in the system.
  * The contracts all the classes that can be owners' subjects must implement.
@@ -44,11 +40,4 @@ interface OwnerSubjectInterface {
      * @return array
      */
     public static function get_allowed_statuses() : array;
-
-    /**
-     * Get avatar
-     * 
-     * @return URL
-     */
-    public function get_avatar() : URL;
 }

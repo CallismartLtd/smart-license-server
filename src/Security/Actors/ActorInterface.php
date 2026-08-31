@@ -101,11 +101,13 @@ interface ActorInterface {
     public function get_type() : string;
 
     /**
-     * Get the actor avatar URL.
+     * Get the actor unique identifier string.
      * 
-     * @return \SmartLicenseServer\Core\URL
+     * This may be email for human users or any string that uniquely identifies an actor.
+     * 
+     * @return string
      */
-    public function get_avatar() : \SmartLicenseServer\Core\URL;
+    public function get_unique_identifier() : string;
 
     /**
      * Get allowed statuses.
@@ -129,10 +131,4 @@ interface ActorInterface {
      * @return static
      */
     public static function from_array( array $data ) : static;
-    /**
-     * Convert to array.
-     * 
-     * @return array
-     */
-    public function to_array();
 }

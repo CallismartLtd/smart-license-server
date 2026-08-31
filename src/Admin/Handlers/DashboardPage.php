@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Admin\Handlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Templates\TemplateLocator;
 
@@ -20,7 +21,8 @@ class DashboardPage implements AdminPageInterface {
 
     public function __construct(
         protected RepositoryAnalytics $repo_analytics,
-        protected TemplateLocator $template_locator
+        protected TemplateLocator $template_locator,
+        protected URLManager $urlmanager
     ) {}
 
     /**
@@ -98,7 +100,8 @@ class DashboardPage implements AdminPageInterface {
             ],
         ];
 
-        $vars   = \compact( 'totals', 'metrics' );
+        $urlmanager = $this->urlmanager;
+        $vars   = \compact( 'totals', 'metrics', 'urlmanager' );
         $this->template_locator->render( 'admin.contents.index', $vars );
     }
 

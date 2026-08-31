@@ -5,14 +5,14 @@
  * @var \SmartLicenseServer\Core\Request $request
  * @var int $license_id
  * @var array $form_fields
+ * @var \SmartLicenseServer\Admin\Handlers\LicensePage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
-
-use SmartLicenseServer\Admin\Handlers\LicensePage;
 
 defined( 'SMLISER_ROOT' ) ||  exit; 
 
 /** @var array $args */
-$args   = LicensePage::get_menu_args( $request );
+$args   = $page_handler->get_menu_args( $request );
 
 if ( 'add-new' !== $tab ) {
     \array_unshift(
@@ -20,7 +20,7 @@ if ( 'add-new' !== $tab ) {
         array(
             'title' => 'View License',
             'label' => 'View license',
-            'url'   => \smliser_license_admin_action_page( 'view', $license_id ),
+            'url'   => $urlmanager->admin_license_page_url( 'view', ['id' => $license_id] ),
             'icon'  => 'dashicons dashicons-visibility'
         )
     );

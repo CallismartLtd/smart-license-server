@@ -17,7 +17,7 @@ use SmartLicenseServer\Utils\Format;
  * @return FileSystem
  */
 function smliser_filesystem() : FileSystem {
-    return smliser_envProvider()->filesystem();
+    return FileSystem::instance();
 }
 
 /**

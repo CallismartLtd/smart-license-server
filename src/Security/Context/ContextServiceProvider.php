@@ -11,7 +11,6 @@ namespace SmartLicenseServer\Security\Context;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\QueryIntents\JoinCriteria;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
-use Callismart\DBPrism\Query\SQLBuilder;
 use DateTimeImmutable;
 use DateTimeZone;
 use InvalidArgumentException;

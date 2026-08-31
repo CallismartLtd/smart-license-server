@@ -19,8 +19,10 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Analytics;
 
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Core\Dates\TimestampValue;
+use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
  * Deletes raw analytics log entries from SMLISER_ANALYTICS_LOGS_TABLE
@@ -30,6 +32,11 @@ use SmartLicenseServer\Core\Dates\TimestampValue;
  * installations without affecting the accuracy of recent analytics.
  */
 class PruneAnalyticsLogsJob implements JobHandlerInterface {
+
+    public function __construct(
+        protected Database $db,
+        protected Settings $settings
+    ) {}
 
     /*
     |----------------------
@@ -47,15 +54,15 @@ class PruneAnalyticsLogsJob implements JobHandlerInterface {
      * @return int Number of rows deleted.
      */
     public function handle( array $payload = [] ): mixed {
-        $default_retention  = (int) \smliser_settings()->get( 'log_retention_days', 90, true );
+        $default_retention  = (int) $this->settings->get( 'log_retention_days', 90, true );
         $retention_days = (int) ( $payload['retention_days'] ?? $default_retention );
         $cutoff         = TimestampValue::now()->subtractDays( $retention_days )->format( 'Y-m-d H:i:s' );
 
-        $sql    = \smliserQueryBuilder()
+        $sql    = \smliserQueryBuilder( $this->db->get_driver() )
             ->delete( SMLISER_ANALYTICS_LOGS_TABLE )
             ->where( 'created_at', '<', $cutoff );
 
-        $affected = (int) smliser_db()->execute( $sql->build(), $sql->get_bindings() );
+        $affected = (int) $this->db->execute( $sql->build(), $sql->get_bindings() );
 
         if ( ! $affected ) {
             return 0;

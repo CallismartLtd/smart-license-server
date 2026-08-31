@@ -27,9 +27,9 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const PASSWORD_ARGON2ID;
 
-use function defined, is_smliser_error, sprintf, smliser_safe_json_encode, password_hash,
-password_verify, in_array, is_string, method_exists, str_replace, ucwords, compact, md5,
-strpos, class_implements;
+use function is_smliser_error, sprintf, smliser_safe_json_encode, password_hash,
+password_verify, in_array, is_string, method_exists, str_replace, ucwords, compact,
+class_implements;
 
 /**
  * This controller is used to CRUD requests for security entities.
@@ -93,12 +93,12 @@ class RequestController {
             }
 
             return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', 'UTF-8');
 
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', 'UTF-8');
         }
     }
 
@@ -157,11 +157,11 @@ class RequestController {
             ];
 
             return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', 'UTF-8');
         } catch ( Exception $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', 'UTF-8');
         }
     }
 
@@ -393,8 +393,7 @@ class RequestController {
                 static::check_permissions( 'security.organization.update' );
             }
 
-            $organization->set_display_name( $display_name )
-            ->set_status( $status );
+            $organization->set_display_name( $display_name )->set_status( $status );
             
             if ( ! $organization->save() ) {
                 throw new RequestException( 'database_error', 'Unable to save organization', ['status' => 500] );
@@ -477,11 +476,18 @@ class RequestController {
                 'success'   => true,
                 'data'      => array(
                     'message'   => 'Member saved successfully.',
-                    'member'    => $member->to_array()
+                    'member'    => [
+                        'id'            => $member->get_id(),
+                        'display_name'  => $member->get_display_name(),
+                        'status'        => $member->get_status(),
+                        'type'          => $member->get_type(),
+                        'created_at'    => $member->get_created_at()->format( \smliser_datetime_format() ),
+                        'updated_at'    => $member->get_updated_at()->format( \smliser_datetime_format() ),
+                    ]
                 )
             );
             return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', 'UTF-8');
 
         } catch ( InvalidArgumentException $e ) {
             $error   = new RequestException(
@@ -504,7 +510,7 @@ class RequestController {
 
         $response   = ( new Response() )
             ->set_exception( $error )
-            ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+            ->set_header( 'Content-Type', 'UTF-8');
         return $response;
 
     }
@@ -689,12 +695,12 @@ class RequestController {
                     'items'         => $data->toArray(),
                     'pagination'    => $results['pagination'],
                 ] )
-            ) )->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+            ) )->set_header( 'Content-Type', 'UTF-8');
 
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', 'UTF-8');
         }
         
     }
@@ -730,12 +736,12 @@ class RequestController {
                     'items'         => $data->toArray(),
                     'pagination'    => $results['pagination'],
                 ] )
-            ) )->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+            ) )->set_header( 'Content-Type', 'UTF-8');
 
         } catch ( RequestException $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', 'UTF-8');
         }
     }
 
@@ -772,11 +778,11 @@ class RequestController {
                 )
             );
             return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
-            ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+            ->set_header( 'Content-Type', 'UTF-8');
         } catch ( Exception $e ) {
             return ( new Response() )
                 ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+                ->set_header( 'Content-Type', 'UTF-8');
         }
     }
 }

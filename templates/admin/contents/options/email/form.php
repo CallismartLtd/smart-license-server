@@ -10,16 +10,15 @@
  * @var array $schema
  * @var array $saved_settings
  * @var class-string<\SmartLicenseServer\Email\Providers\EmailProviderInterface>|null $provider
- *
+ * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  * @package SmartLicenseServer\templates
  * @since   0.2.0
  */
 
-use SmartLicenseServer\Admin\Handlers\OptionsPage;
-
 defined( 'SMLISER_ROOT' ) || exit;
 
-$menu_args = OptionsPage::get_menu_args( $request );
+$menu_args = $page_handler->get_menu_args( $request );
 $current_label  = end( $menu_args['breadcrumbs'] )['label'];
 $menu_args['breadcrumbs'][1]  = array(
     'label' => $current_label,

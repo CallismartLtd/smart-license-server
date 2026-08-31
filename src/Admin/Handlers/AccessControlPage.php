@@ -12,6 +12,7 @@ use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
@@ -26,15 +27,17 @@ use function array_unshift, sprintf, smliser_json_encode_attr, compact;
  */
 class AccessControlPage implements AdminPageInterface {
     public function __construct(
-        protected TemplateLocator $locator
+        protected TemplateLocator $locator,
+        protected URLManager $urlmanager
     ) {}
+
     /**
      * Section router.
      * 
      * @return bool
      */
     private function sub_router( Request $request ) : bool {
-        $submenu     = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
+        $submenu     = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
         $section = $request->get( 'section' );
 
         $routes = [
@@ -67,7 +70,6 @@ class AccessControlPage implements AdminPageInterface {
         return false;
     }
 
-
     /**
      * Access control page dashbard callback.
      * 
@@ -75,7 +77,9 @@ class AccessControlPage implements AdminPageInterface {
      */
     public function dashboard( Request $request ) {
         $account_summaries  = ContextServiceProvider::get_accounts_summary_report();
-        $vars               = compact( 'request', 'account_summaries' );
+        $page_handler       = $this;
+        $urlmanager         = $this->urlmanager;
+        $vars               = compact( 'request', 'account_summaries', 'urlmanager', 'page_handler' );
         $this->locator->render( 'admin.contents.accounts.index', $vars );
     
     }
@@ -97,8 +101,11 @@ class AccessControlPage implements AdminPageInterface {
         $type           = 'user';
 
         $description    = 'Manage users';
-
-        $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description',
+            'urlmanager', 'page_handler'
+        );
 
         $this->locator->render( 'admin.contents.accounts.principals', $vars );
     }
@@ -231,10 +238,12 @@ class AccessControlPage implements AdminPageInterface {
      
         );
         
-        $avatar_url     = 
-            $user && $user->get_avatar()->is_valid() 
-            ? $user->get_avatar()->add_query_param( 'ver', time() )
-            : URL::from( smliser_get_placeholder_icon( 'avatar' ) );
+        if ( $user ) {
+            $identifier = md5( $user->get_unique_identifier() );
+            $avatar_url = $this->urlmanager->avatar_url( $identifier, $user->get_type() );            
+        } else {
+            $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
+        }
 
         $avatar_name    = $user ? 'View image' : $avatar_url->basename();
         
@@ -251,8 +260,10 @@ class AccessControlPage implements AdminPageInterface {
             $role = null;
         }
 
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
         $vars           = compact( 'request', 'form_fields', 'avatar_name',
-        'avatar_url', 'role', 'title' );
+        'avatar_url', 'role', 'title', 'page_handler', 'urlmanager' );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -273,7 +284,10 @@ class AccessControlPage implements AdminPageInterface {
         $entity_class   = Organization::class;
         $type           = 'organization';
         $description    = 'An organization is an account that represents a group, business, or other entity under which users, service accounts, resources, and access policies can be managed collectively.';
-        $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description',
+            'page_handler', 'urlmanager' );
 
         $this->locator->render( 'admin.contents.accounts.principals', $vars );
     }
@@ -367,15 +381,18 @@ class AccessControlPage implements AdminPageInterface {
             ),
         );
 
-        $avatar_url     = 
-            $organization && $organization->get_avatar()->is_valid() 
-            ? $organization->get_avatar()->add_query_param( 'ver', time() )
-            : URL::from( smliser_get_placeholder_icon( 'organization' ) );
+        if ( $organization ) {
+            $identifier = md5( $organization->get_slug() );
+            $avatar_url = $this->urlmanager->avatar_url( $identifier, $organization->get_type() );            
+        } else {
+            $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
+        }
 
         $avatar_name    = $organization ? 'View image' : $avatar_url->basename();
-
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
         $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
-        'title', 'organization',  );
+        'title', 'organization', 'urlmanager', 'page_handler' );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -497,15 +514,18 @@ class AccessControlPage implements AdminPageInterface {
             ),
         );
 
-        $avatar_url     = 
-            $member && $member->get_avatar()->is_valid() 
-            ? $member->get_avatar()->add_query_param( 'ver', time() )
-            : URL::from( smliser_get_placeholder_icon( 'avatar' ) );
+        if ( $member ) {
+            $identifier = md5( $member->get_unique_identifier() );
+            $avatar_url = $this->urlmanager->avatar_url( $identifier, $member->get_type() );            
+        } else {
+            $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
+        }
 
         $avatar_name    = $member ? 'View image' : $avatar_url->basename();
-
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
         $vars = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
-        'title', 'organization', 'role' );
+        'title', 'organization', 'role', 'urlmanager', 'page_handler' );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -520,11 +540,12 @@ class AccessControlPage implements AdminPageInterface {
             return;
         }
 
-        $page   = (int) $request->get( 'paged', 1 );
-        $limit  = (int) $request->get( 'limit', 25 );
-        $owners = Owner::get_all( $page, $limit );
-
-        $vars   = compact( 'owners', 'request' );
+        $page           = (int) $request->get( 'paged', 1 );
+        $limit          = (int) $request->get( 'limit', 25 );
+        $owners         = Owner::get_all( $page, $limit );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'owners', 'request', 'urlmanager', 'page_handler' );
         $this->locator->render( 'admin.contents.accounts.owners', $vars );
     }
 
@@ -649,7 +670,9 @@ class AccessControlPage implements AdminPageInterface {
      
         );
 
-        $vars = compact( 'request', 'form_fields', 'title' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars = compact( 'request', 'form_fields', 'title', 'page_handler', 'urlmanager' );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -670,7 +693,11 @@ class AccessControlPage implements AdminPageInterface {
         $entity_class   = ServiceAccount::class;
         $type           = 'Service Account';
         $description    = 'A service account is a non-human account used by software, an application, server, or automated process to authenticate and access resources.';
-        $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description' );
+
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description',
+            'urlmanager', 'page_handler' );
 
         $this->locator->render( 'admin.contents.accounts.principals', $vars );      
     }
@@ -809,15 +836,18 @@ class AccessControlPage implements AdminPageInterface {
      
         );
 
-        $avatar_url     = 
-            $sa_acc && $sa_acc->get_avatar()->is_valid() 
-            ? $sa_acc->get_avatar()->add_query_param( 'ver', time() )
-            : URL::from( smliser_get_placeholder_icon( 'api-key' ) );
+        if ( $sa_acc ) {
+            $identifier = md5( $sa_acc->get_unique_identifier() );
+            $avatar_url = $this->urlmanager->avatar_url( $identifier, $sa_acc->get_type() );            
+        } else {
+            $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
+        }
 
         $avatar_name    = $sa_acc ? 'View image' : $avatar_url->basename();
-
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
         $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url', 'role',
-        'title' );
+        'title', 'urlmanager', 'page_handler' );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -828,7 +858,7 @@ class AccessControlPage implements AdminPageInterface {
      * @param Request $request
      */
     public function print_header( Request $request ) {
-        $tab        = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
+        $tab        = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
         $title      = match( $tab ) {
             'users'             => 'Users',
             'organizations'     => 'Organizations',
@@ -848,7 +878,7 @@ class AccessControlPage implements AdminPageInterface {
                 array(
                     'title'     => 'Users',
                     'label'     => 'Users',
-                    'url'       => smliser_access_control_page_url( 'users' ),
+                    'url'       => $this->urlmanager->admin_accounts_page_url( 'users' ),
                     'icon'      => 'ti ti-user',
                     'active'    => $tab === 'users'
                 ),
@@ -856,7 +886,7 @@ class AccessControlPage implements AdminPageInterface {
                 array(
                     'title'     => 'REST API Service Accounts',
                     'label'     => 'Service Accounts',
-                    'url'       => smliser_access_control_page_url( 'service-account' ),
+                    'url'       => $this->urlmanager->admin_accounts_page_url( 'service-account' ),
                     'icon'      => 'ti ti-robot',
                     'active'    => $tab === 'service-account'
                 ),
@@ -864,7 +894,7 @@ class AccessControlPage implements AdminPageInterface {
                 array(
                     'title'     => 'Resource Owners',
                     'label'     => 'Owners',
-                    'url'       => smliser_access_control_page_url( 'owners' ),
+                    'url'       => $this->urlmanager->admin_accounts_page_url( 'owners' ),
                     'icon'      => 'ti ti-source-code',
                     'active'    => $tab === 'owners'
                 ),
@@ -872,7 +902,7 @@ class AccessControlPage implements AdminPageInterface {
                 array(
                     'title'     => 'Organizations',
                     'label'     => 'Organizations',
-                    'url'       => smliser_access_control_page_url( 'organizations' ),
+                    'url'       => $this->urlmanager->admin_accounts_page_url( 'organizations' ),
                     'icon'      => 'ti ti-users-group',
                     'active'    => $tab === 'organizations'
                 ),
@@ -882,7 +912,7 @@ class AccessControlPage implements AdminPageInterface {
         if ( $tab && 'index' !== $tab ) {
             $home = array(
                 'label' => 'Accounts Overview',
-                'url'   => smliser_access_control_page_url(),
+                'url'   => $this->urlmanager->admin_accounts_page_url(),
                 'icon'  => 'ti ti-home'
             );
             

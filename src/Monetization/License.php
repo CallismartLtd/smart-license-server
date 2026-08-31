@@ -12,13 +12,11 @@ namespace SmartLicenseServer\Monetization;
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
-use SmartLicenseServer\Cache\CacheAwareTrait;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
-use SmartLicenseServer\HostedApps\HostedAppsRegistry;
-use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -28,8 +26,8 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * 
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
  */
-class License {
-    use CacheAwareTrait, CommonQueryTrait, SanitizeAwareTrait, DatePropertyAwareTrait;
+class License extends DataStore {
+    use SanitizeAwareTrait, DatePropertyAwareTrait;
     /**
      * The license ID
      * 
@@ -558,13 +556,12 @@ class License {
         $result = static::cache_get( $key );
 
         if ( false === $result || ! ( $result instanceof static ) ) {
-            $db     = \smliser_db();
             $table  = \SMLISER_LICENSE_TABLE;
             $sql    = static::query()->select( '*' )->from( $table )
                 ->where( 'service_id', '=', $service_id )
                 ->where( 'license_key', '=', $license_key );
 
-            $data = $db->get_row( $sql->build(), $sql->get_bindings() );
+            $data = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
             
             if ( $data ) {
                 $result =  static::from_array( $data );
@@ -591,8 +588,8 @@ class License {
         $license = static::cache_get( $key );
 
         if ( false === $license || ! ( $license instanceof static ) ) {
-            $table      = SMLISER_LICENSE_TABLE;
-            $license    = static::get_self_by_id( $id, $table );
+            $data       = static::fetch_by( 'id', $id, SMLISER_LICENSE_TABLE );
+            $license    = $data ? static::from_array( $data ) : null;
 
             static::cache_set( $key, $license, static::default_ttl() );
         }
@@ -623,34 +620,22 @@ class License {
         $limit = (int) max( 1, $limit );
 
         $key  = static::make_cache_key( __METHOD__, array( $page, $limit ) );
-        $data = static::cache_get( $key );
+        $data = false; //static::cache_get( $key );
 
         if ( false !== $data && is_array( $data ) ) {
             return $data;
         }
 
-        $db     = smliser_db();
-        $table  = \SMLISER_LICENSE_TABLE;
-        $offset = $db->calculate_query_offset( $page, $limit );
-
-        $sql    = static::query()->select( '*' )->from( $table )
-            ->order_by( 'id', 'DESC' )->limit( $limit )->offset( $offset );
-
-        $rows   = $db->get_results( $sql->build(), $sql->get_bindings() );
-
-        $items = array();
-
-        if ( ! empty( $rows ) ) {
-            foreach ( $rows as $row ) {
-                $items[] = static::from_array( $row );
-            }
-        }
+        $items  = \array_map(
+            [static::class, 'from_array'],
+            static::fetch( \SMLISER_LICENSE_TABLE, $page, $limit )
+        );
 
         /**
          * Fetch total count
          */
-        $count_sql = self::query()->select( 'COUNT(*)' )->from( $table );
-        $total     = (int) $db->get_var( $count_sql->build_raw() );
+        $count_sql = self::query()->select( 'COUNT(*)' )->from( SMLISER_LICENSE_TABLE );
+        $total     = (int) static::$DB->get_var( $count_sql->build_raw() );
 
         $result = array(
             'items'      => $items,
@@ -694,7 +679,7 @@ class License {
             return $data;
         }
 
-        $db     = smliser_db();
+        $db     = static::$DB;
         $table  = \SMLISER_LICENSE_TABLE;
         $page   = max( 1, $args['page'] );
         $limit  = max( 1, $args['limit'] );
@@ -751,7 +736,7 @@ class License {
      * @return bool True when license is save, false otherwise
      */
     public function save() : bool {
-        $db         = smliser_db();
+        $db         = static::$DB;
         $table      = \SMLISER_LICENSE_TABLE;
         $meta_table = \SMLISER_LICENSE_META_TABLE;
         $now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
@@ -841,7 +826,7 @@ class License {
      * @return static
      */
     public function load_meta() : static {
-        $db         = smliser_db();
+        $db         = static::$DB;
         $table      = SMLISER_LICENSE_META_TABLE;
         $sql        = 
             $this->query()
@@ -886,7 +871,7 @@ class License {
 
         $deleted = false;
 
-        smliser_db()->transactional( function( Database $db ) use ( $lock_query, $table, $delete_license_sql, $delete_meta_sql, &$deleted ) {
+        static::$DB->transactional( function( Database $db ) use ( $lock_query, $table, $delete_license_sql, $delete_meta_sql, &$deleted ) {
             $lock_sql = $lock_query->lock_for_update()->build();
 
             $exists   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
@@ -1251,7 +1236,7 @@ class License {
      * @throws Exception If a unique key cannot be generated or DB persist fails.
      */
     public function generate_license_key( string $prefix = '', bool $persist = true, int $tries = 10 ) : string {
-        $db         = \smliser_db();
+        $db         = static::$DB;
         $table      = \SMLISER_LICENSE_TABLE;
 
         $attempt    = 0;
@@ -1282,30 +1267,6 @@ class License {
         }
 
         $this->set_license_key( $new_key );
-
-        if ( $persist ) {
-            if ( ! $this->id ) {
-                throw new Exception(
-                    'license_persist_failed',
-                    'Cannot persist license key: license ID is not set.',
-                    [ 'status' => 400 ]
-                );
-            }
-
-            $updated = $db->update(
-                $table,
-                [ 'license_key' => $new_key ],
-                [ 'id' => $this->id ]
-            );
-
-            if ( false === $updated ) {
-                throw new Exception(
-                    'license_persist_failed',
-                    'Failed to persist regenerated license key to the database.',
-                    [ 'status' => 500 ]
-                );
-            }
-        }
 
         return $new_key;
     }

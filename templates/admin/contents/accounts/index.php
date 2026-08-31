@@ -9,9 +9,10 @@
  * @var array $account_summaries Array result of
  * @var SmartLicenseServer\Core\Request $request
  * @see SmartLicenseServer\Security\Context\ContextServiceProvider::get_accounts_summary_report()
+ * @var \SmartLicenseServer\Admin\Handlers\AccessControlPage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
-use SmartLicenseServer\Admin\Handlers\AccessControlPage;
 use SmartLicenseServer\Utils\Format;
 
 defined( 'SMLISER_ROOT' ) || exit;
@@ -68,7 +69,7 @@ function smliser_get_status_class( bool $has_issues ) {
 ?>
 
 <div class="smliser-admin-repository-template">
-	<?php AccessControlPage::print_header( $request ); ?>
+	<?php $page_handler->print_header( $request ); ?>
 
 	<div class="smliser-account-summary-wrapper">
 

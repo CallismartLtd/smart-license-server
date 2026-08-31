@@ -337,7 +337,7 @@ function smliser_get_placeholder_icon( string $type = '' ) : string {
         default                     => 'images/software-placeholder.svg',
     };
 
-    return $cache[ $type ] = assetsUrl( $relative_path )->url();
+    return $cache[ $type ] = $relative_path;
 }
 
 /**

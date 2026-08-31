@@ -13,13 +13,13 @@
  * @var string $name The provider name.
  * @var array $provider The provider details.
  * @var string $provider_key
+ * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
-
-use SmartLicenseServer\Admin\Handlers\OptionsPage;
 
 defined( 'SMLISER_ROOT' ) || exit; 
 
-$args   = OptionsPage::get_menu_args( $request );
+$args   = $page_handler->get_menu_args( $request );
 
 $current_label  = end( $args['breadcrumbs'] )['label'];
 $args['breadcrumbs'][1]  = array(

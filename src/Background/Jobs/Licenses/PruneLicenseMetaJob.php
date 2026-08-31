@@ -20,13 +20,18 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Licenses;
 
+use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
+use SmartLicenseServer\Email\Mailer;
 
 /**
  * Removes orphaned rows from the license meta table.
  */
 class PruneLicenseMetaJob implements JobHandlerInterface {
+    public function __construct(
+        protected Database $db,
+    ) {}
 
     /*
     |--------------------------------------------
@@ -53,11 +58,10 @@ class PruneLicenseMetaJob implements JobHandlerInterface {
      * @return array{deleted: int}
      */
     public function handle( array $payload = [] ): mixed {
-        $db         = smliser_db();
         $meta_table = SMLISER_LICENSE_META_TABLE;
         $table      = SMLISER_LICENSE_TABLE;
 
-        $sql = \smliserQueryBuilder()
+        $sql = \smliserQueryBuilder( $this->db->get_driver() )
             ->delete( $meta_table . ' AS meta' )
             ->where_not_exists( fn( SelectionIntent $select ) => $select
                 ->select_raw( '1' )
@@ -68,7 +72,7 @@ class PruneLicenseMetaJob implements JobHandlerInterface {
             );
 
 
-        $deleted    = $db->execute( $sql->build(), $sql->get_bindings() );
+        $deleted    = $this->db->execute( $sql->build(), $sql->get_bindings() );
 
         return [ 'deleted' => $deleted ];
     }

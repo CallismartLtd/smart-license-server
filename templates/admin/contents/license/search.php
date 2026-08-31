@@ -10,14 +10,14 @@
  * @var SmartLicenseServer\Core\URL $current_url
  * @var SmartLicenseServer\Monetization\License[] $licenses
  * @var array $pagination
+ * @var \SmartLicenseServer\Admin\Handlers\LicensePage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
-
-use SmartLicenseServer\Admin\Handlers\LicensePage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
 /** @var array $args */
-$args   = LicensePage::get_menu_args( $request );
+$args   = $page_handler->get_menu_args( $request );
 
 \array_unshift(
     $args['actions'],
@@ -31,7 +31,7 @@ $args   = LicensePage::get_menu_args( $request );
     array(
         'title'     => 'View Activity Logs',
         'label'     => 'Activity Logs',
-        'url'       => smliser_license_page()->add_query_param( 'tab', 'logs' ),
+        'url'       => $urlmanager->admin_license_page_url( 'logs' ),
         'icon'      => 'ti ti-activity',
     )
 
@@ -71,7 +71,10 @@ $args   = LicensePage::get_menu_args( $request );
                             <td class="smliser-edit-row">
                                 <?php echo escHtml( $license->get_id() ); ?>
                                 <p class="smliser-edit-link">
-                                    <a href="<?php echo escUrl( smliser_license_admin_action_page( 'edit', $license->get_id() ) ); ?>">edit</a> | <a href="<?php echo escUrl( smliser_license_admin_action_page( 'view', $license->get_id() ) ); ?>">view</a>
+                                    <a href="<?php echo escUrl( $urlmanager->admin_license_page_url( 'edit', [ 'id' => $license->get_id()] )->url() ); ?>">
+                                        edit</a> | 
+                                    <a href="<?php echo escUrl( $urlmanager->admin_license_page_url( 'view', ['id' => $license->get_id()] )->url() ); ?>">
+                                        view</a>
                                 </p>
                             </td>
                         

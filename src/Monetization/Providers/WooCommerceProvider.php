@@ -37,17 +37,11 @@ class WooCommerceProvider implements MonetizationProviderInterface {
     protected static $checkout_endpoint = '';
 
     /**
-     * HTTP client client API.
-     */
-    private HttpClient $http_client;
-
-    /**
      * Construct provider with target store URL.
      *
+     * @param HttpClient $http_client HTTP client client API.
      */
-    public function __construct() {
-        $this->http_client = smliser_http_client();
-    }
+    public function __construct( private HttpClient $http_client ) {}
 
     /**
      * {@inheritdoc}

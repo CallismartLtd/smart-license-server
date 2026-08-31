@@ -10,6 +10,8 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Security\Authentication;
 
+use SmartLicenseServer\Cache\Cache;
+
 /**
  * Monitors authentication activity and detects suspicious login behavior.
  *
@@ -76,7 +78,10 @@ final class AuthenticationMonitor {
 	 * @param string $hash_key Secret used to hash identifiers stored in
 	 *                              cache keys and records.
 	 */
-	public function __construct( private string $hash_key = SMLISER_SECRET ) {}
+	public function __construct(
+		protected Cache $cache,
+		private string $hash_key = SMLISER_SECRET
+	) {}
 
 	/**
 	 * Record a failed authentication attempt.
@@ -439,7 +444,7 @@ final class AuthenticationMonitor {
 
 		$key = $this->cache_key( $type, $identifier );
 
-		$events = smliser_cache()->modify(
+		$events = $this->cache->modify(
 			$key,
 			static function ( $current ) use ( $event, $timestamp ): array {
 
@@ -515,7 +520,7 @@ final class AuthenticationMonitor {
 	): array {
 
 		$key    = $this->cache_key( $type, $identifier );
-		$events = smliser_cache()->get( $key );
+		$events = $this->cache->get( $key );
 
 		if ( ! is_array( $events ) ) {
 			return array();

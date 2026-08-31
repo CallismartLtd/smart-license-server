@@ -9,13 +9,15 @@
  * @var \SmartLicenseServer\Core\Request $request
  * @var string $type
  * @var string $description
+ * @var \SmartLicenseServer\Admin\Handlers\AccessControlPage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
-use SmartLicenseServer\Admin\Handlers\AccessControlPage;
+use SmartLicenseServer\Security\Actors\User;
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
 <div class="smliser-admin-repository-template">
-    <?php AccessControlPage::print_header( $request ); ?>
+    <?php $page_handler->print_header( $request ); ?>
     
     <div class="smliser-admin-table-body">
 
@@ -89,8 +91,9 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                             </td>
                             <td>
                                 <img 
-                                    src="<?php 
-                                        echo escUrl( $entity->get_avatar()->is_valid() ? $entity->get_avatar() : smliser_get_placeholder_icon( 'avatar' ) ); 
+                                    src="<?php
+                                        $identifier = md5( $entity->get_unique_identifier() );
+                                        echo escUrl( $urlmanager->avatar_url( $identifier, $entity->get_type() )->url() ); 
                                         
                                     ?>"
                                     alt="<?php printf( '%s avatar', $entity->get_display_name() ) ?>" 

@@ -11,13 +11,13 @@
  * @var array $role
  * @var SmartLicenseServer\Security\OwnerSubjects\Organization $organization
  * @var \SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Admin\Handlers\AccessControlPage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
-
-use SmartLicenseServer\Admin\Handlers\AccessControlPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$current_tab        = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
+$current_tab        = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
 $current_section    = $request->query( 'section', '' );
 $render_roles       = in_array( $current_tab, ['service-account', 'users', ], true )
     || in_array( $current_section, ['add-new-member', 'edit-member'], true );
@@ -33,7 +33,7 @@ if ( $render_image_only ) {
 ?>
 
 <div class="smliser-admin-repository-template" role="main">
-    <?php AccessControlPage::print_header( $request ); ?>
+    <?php $page_handler->print_header( $request ); ?>
 
     <form  class="smliser-access-control-form" aria-labelledby="smliser-form-title">
 
@@ -154,7 +154,10 @@ if ( $render_image_only ) {
 
                             <div class="smliser-org-member_header">
                                 <img 
-                                    src="<?php echo escUrl( $member->get_avatar()->is_valid() ? $member->get_avatar() : smliser_get_placeholder_icon( 'avatar' ) ); ?>" 
+                                    src="<?php 
+                                        $identifier = md5( $member->get_unique_identifier() );
+                                        echo escUrl( $urlmanager->avatar_url( $identifier, $member->get_type() )->url() );
+                                        ?>" 
                                     alt="<?php echo escAttr( 'Member avatar' ); ?>" 
                                     width="38" 
                                     height="38"

@@ -14,7 +14,10 @@ namespace SmartLicenseServer\Admin\Handlers;
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
+use SmartLicenseServer\Contracts\URLManagerInterface;
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\Email\EmailProviderIcons;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
@@ -30,7 +33,9 @@ class OptionsPage implements AdminPageInterface {
         protected MonetizationRegistry $monetization_registry,
         protected EmailProvidersRegistry $email_providers_registry,
         protected Cache $cache,
-        protected Settings $settings
+        protected Settings $settings,
+        protected URLManager $urlmanager,
+        protected EmailProviderIcons $icons_provider
     ) {}
 
     /*
@@ -43,15 +48,20 @@ class OptionsPage implements AdminPageInterface {
      * General settings page.
      */
     public function general_settings( Request $request ): void {
-        
-        $this->locator->render( 'admin.contents.options.index', compact( 'request' ) );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'request', 'urlmanager', 'page_handler' );
+        $this->locator->render( 'admin.contents.options.index', $vars );
     }
 
     /**
      * Permalink/routes settings page.
      */
     public function routes_setting( Request $request ): void {
-        $this->locator->render( 'admin.contents.options.routing', compact( 'request' ) );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'request', 'urlmanager', 'page_handler' );
+        $this->locator->render( 'admin.contents.options.routing', $vars );
     }
 
     /**
@@ -64,7 +74,14 @@ class OptionsPage implements AdminPageInterface {
         } 
         
         $providers = $this->monetization_registry->all();
-        $this->locator->render( 'admin.contents.options.monetization.monetization-providers', compact( 'request', 'providers' ) );   
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $icons_provider = $this->icons_provider;
+        $vars           = compact(
+            'request', 'urlmanager', 'page_handler', 'providers', 'icons_provider'
+        );
+
+        $this->locator->render( 'admin.contents.options.monetization.monetization-providers', $vars );   
     }
 
     /**
@@ -90,7 +107,11 @@ class OptionsPage implements AdminPageInterface {
             );
         }
 
-        $vars   = compact( 'request', 'provider', 'name', 'settings', 'id' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'request', 'provider', 'name', 'settings', 'id','page_handler',
+            'urlmanager'
+        );
         $this->locator->render( 'admin.contents.options.monetization.monetizations', $vars );
     }
 
@@ -118,7 +139,14 @@ class OptionsPage implements AdminPageInterface {
         $default_provider   = EmailProvidersRegistry::get_default_provider_id();
         $email_fields       = static::email_settings_fields();
 
-        $vars   = compact( 'registry', 'request', 'email_fields', 'providers', 'default_provider' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $icons_provider = $this->icons_provider;
+        
+        $vars   = compact( 'registry', 'request', 'email_fields', 'providers', 'default_provider',
+            'urlmanager', 'page_handler', 'icons_provider'
+        );
+
         $this->locator->render( 'admin.contents.options.email.index', $vars );
     }
 
@@ -135,8 +163,9 @@ class OptionsPage implements AdminPageInterface {
         }
 
         $templates = EmailTemplateRegistry::all();
-
-        $vars       = compact( 'request', 'templates' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'request', 'templates', 'urlmanager', 'page_handler' );
         $this->locator->render( 'admin.contents.options.email.templates', $vars );
     }
 
@@ -158,8 +187,11 @@ class OptionsPage implements AdminPageInterface {
         $preview      = EmailTemplateRegistry::preview( $key );
         $preview_html = $preview?->render();
         $current_url  = smliser_get_current_url()->remove_query_param( 'message' );
-
-        $vars   = compact( 'entry', 'current_url', 'preview', 'preview_html' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'entry', 'current_url', 'preview', 'preview_html', 'page_handler',
+            'urlmanager'
+        );
 
         $this->locator->render( 'admin.contents.options.email.editor', $vars );
     }
@@ -183,8 +215,11 @@ class OptionsPage implements AdminPageInterface {
             $saved_settings[ $key ] = EmailProvidersRegistry::get_option( $provider_id, $key );
         }
 
-        $vars   = compact( 'request', 'saved_settings', 'provider', 'provider_id', 'provider_key',
-        'provider_name', 'schema', 'is_default' );
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'request', 'saved_settings', 'provider', 'provider_id', 'provider_key',
+            'provider_name', 'schema', 'is_default', 'urlmanager', 'page_handler'
+        );
         $this->locator->render( 'admin.contents.options.email.form', $vars );
     }
 
@@ -498,8 +533,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'The URL segment that appears before the client dashboard page. For example: https://example.com/dashboard/',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => 'client_dashboard_url_prefix',
-                    'value' => \smliser_get_client_dashboard_url_prefix(),
+                    'name'  => URLManagerInterface::CLIENT_DASHBOARD_URL_PREFIX_KEY,
+                    'value' => $this->urlmanager->client_dasboard_url_prefix(),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -511,8 +546,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'The URL segment that appears before repository pages. For example: https://example.com/repository/',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => 'repository_url_prefix',
-                    'value' => \smliser_get_repository_url_prefix(),
+                    'name'  => URLManagerInterface::REPOSITORY_URL_PREFIX_KEY,
+                    'value' => $this->urlmanager->repository_url_prefix(),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -525,8 +560,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'The URL segment that appears before download pages. For example: https://example.com/downloads/',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => 'download_url_prefix',
-                    'value' => \smliser_get_download_url_prefix(),
+                    'name'  => URLManagerInterface::DOWNLOADS_URL_PREFIX_KEY,
+                    'value' => $this->urlmanager->downloads_url_prefix(),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -565,7 +600,7 @@ class OptionsPage implements AdminPageInterface {
             'breadcrumbs' => [
                 [
                     'label' => 'General Settings',
-                    'url'   => smliser_options_url(),
+                    'url'   => $this->urlmanager->admin_options_url(),
                     'icon'  => 'dashicons dashicons-admin-home',
                 ],
                 [
@@ -576,42 +611,42 @@ class OptionsPage implements AdminPageInterface {
                 [
                     'title'  => 'Monetization Provider Settings',
                     'label'  => 'Monetizations',
-                    'url'    => \smliser_options_url( 'monetization' ),
+                    'url'    => $this->urlmanager->admin_options_url( 'monetization' ),
                     'icon'   => 'ti ti-basket-dollar',
                     'active' => 'monetization' === $tab,
                 ],
                 [
                     'title'  => 'Email Provider Settings',
                     'label'  => 'Email Providers',
-                    'url'    => \smliser_options_url( 'email' ),
+                    'url'    => $this->urlmanager->admin_options_url( 'email' ),
                     'icon'   => 'ti ti-mail',
                     'active' => 'email' === $tab && 'templates' !== $section,
                 ],
                 [
                     'title'  => 'Email Templates',
                     'label'  => 'Email Templates',
-                    'url'    => \smliser_options_url( 'email' )->add_query_param( 'section', 'templates' ),
+                    'url'    => $this->urlmanager->admin_options_url( 'email' )->add_query_param( 'section', 'templates' ),
                     'icon'   => 'ti ti-template',
                     'active' => 'email' === $tab && 'templates' === $section,
                 ],
                 [
                     'title'  => 'Cache Adapters',
                     'label'  => 'Cache',
-                    'url'    => \smliser_options_url( 'cache' ),
+                    'url'    => $this->urlmanager->admin_options_url( 'cache' ),
                     'icon'   => 'ti ti-database-search',
                     'active' => 'cache' === $tab && 'stats' !== $section,
                 ],
                 [
                     'title'  => 'Cache Statistics',
                     'label'  => 'Cache Stats',
-                    'url'    => \smliser_options_url( 'cache' )->add_query_param( 'section', 'stats' ),
+                    'url'    => $this->urlmanager->admin_options_url( 'cache' )->add_query_param( 'section', 'stats' ),
                     'icon'   => 'ti ti-chart-bar',
                     'active' => 'cache' === $tab && 'stats' === $section,
                 ],
                 [
                     'title'  => 'Routes Settings',
                     'label'  => 'Routes',
-                    'url'    => \smliser_options_url( 'routes' ),
+                    'url'    => $this->urlmanager->admin_options_url( 'routes' ),
                     'icon'   => 'ti ti-globe',
                     'active' => 'routes' === $tab,
                 ],

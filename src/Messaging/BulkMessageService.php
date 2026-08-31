@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Messaging;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use Callismart\DBPrism\Query\SQLBuilder;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Messaging\BulkMessage;
 use SmartLicenseServer\Schema\SchemaRegistry;
@@ -22,7 +23,7 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * Service orchestrator handling data persistence, pagination boundaries,
  * and relational associations for bulk system messages.
  */
-class BulkMessageService {
+class BulkMessageService extends DataStore {
     use SanitizeAwareTrait;
 
     /**
@@ -33,9 +34,9 @@ class BulkMessageService {
      * @param string $apps_table The database table name for message-app associations.
      */
     public function __construct( 
-        private string $db_table = SMLISER_BULK_MESSAGES_TABLE,
-        private string $apps_table = SMLISER_BULK_MESSAGES_APPS_TABLE,
-        private ?BulkMessage $message = null,
+        private string $db_table        = SMLISER_BULK_MESSAGES_TABLE,
+        private string $apps_table      = SMLISER_BULK_MESSAGES_APPS_TABLE,
+        private ?BulkMessage $message   = null,
     ) {}
 
     /*
@@ -57,7 +58,7 @@ class BulkMessageService {
         }
 
         
-        $result = (bool) smliser_db()->transactional( function( Database $db ) {
+        $result = (bool) static::$DB->transactional( function( Database $db ) {
             $now = new \DateTimeImmutable();
 
             $data = [
@@ -142,7 +143,7 @@ class BulkMessageService {
             return false;
         }
 
-        $result = (bool) \smliser_db()->transactional( function( Database $db ) {
+        $result = (bool) static::$DB->transactional( function( Database $db ) {
             $msg_table       = SMLISER_BULK_MESSAGES_TABLE;
             $msgs_apps_table = SMLISER_BULK_MESSAGES_APPS_TABLE;
 
@@ -183,7 +184,7 @@ class BulkMessageService {
             })
             ->limit( 1 );
 
-        $result = smliser_db()->get_row( $query->build(), $query->get_bindings() );
+        $result = static::$DB->get_row( $query->build(), $query->get_bindings() );
 
         if ( ! empty( $result ) ) {
             return static::from_array( (array) $result );
@@ -211,7 +212,7 @@ class BulkMessageService {
      * }
      */
     public function get_all( array $args = [] ) : array {
-        $db = \smliser_db();
+        $db = static::$DB;
         $table = SMLISER_BULK_MESSAGES_TABLE;
 
         $page   = (int) max( 1, (int) ( $args['page'] ?? 1 ) );
@@ -267,7 +268,7 @@ class BulkMessageService {
      * 
      */
     public function get_for_app( array $args = [] ) : array {
-        $db = \smliser_db();
+        $db = static::$DB;
 
         $page       = (int) max( 1, (int) ( $args['page'] ?? 1 ) );
         $limit      = (int) max( 1, (int) ( $args['limit'] ?? 20 ) );
@@ -325,7 +326,7 @@ class BulkMessageService {
      * @return array{items: BulkMessage[], pagination: array{page: int, limit: int, total: int, total_pages: int}}
      */
     public function get_for_slugs( array $args = [] ) : array {
-        $db = \smliser_db();
+        $db = static::$DB;
 
         $app_slugs = array_filter( (array) ( $args['app_slugs'] ?? [] ) );
         $app_types = array_filter( (array) ( $args['app_types'] ?? [] ) );
@@ -407,7 +408,7 @@ class BulkMessageService {
      * }
      */
     public function search( array $args = [] ) : array {
-        $db = \smliser_db();
+        $db = static::$DB;
 
         $search = trim( (string) ( $args['search'] ?? '' ) );
         $page   = max( 1, (int) ( $args['page'] ?? 1 ) );
@@ -461,7 +462,7 @@ class BulkMessageService {
      * @return array
      */
     private function load_associated_apps( $message_id ) {
-        $db = \smliser_db();
+        $db = static::$DB;
 
         $table = SMLISER_BULK_MESSAGES_APPS_TABLE;
 
@@ -511,13 +512,6 @@ class BulkMessageService {
         }
         
         return $msg;
-    }
-
-    /**
-     * Get the instance of the query builder.
-     */
-    protected static function query() : SQLBuilder {
-        return \smliserQueryBuilder();
     }
 
     /**

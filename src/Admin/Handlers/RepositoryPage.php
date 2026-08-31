@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Admin\Handlers;
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
@@ -30,7 +31,8 @@ class RepositoryPage implements AdminPageInterface {
 
     public function __construct(
         protected TemplateLocator $locator,
-        protected MonetizationRegistry $monetization_registry
+        protected MonetizationRegistry $monetization_registry,
+        protected URLManager $urlmanager
     ) {}
 
     /**
@@ -61,8 +63,11 @@ class RepositoryPage implements AdminPageInterface {
         $apps           = $result['items'];
         $pagination     = $result['pagination'];
         $current_url    = smliser_get_current_url()->remove_query_param( 'message', 'tab' );
-        $add_url        = \smliser_admin_repo_tab()
-        ->remove_query_param( 'status' )->add_query_params( $current_url->get_query_params() );
+        $add_url        = $this->urlmanager->admin_repo_url( 'add-new' );
+
+        if ( $current_url->has_query_param( 'type' ) ) {
+            $add_url    = $add_url->add_query_param( 'type', $current_url->get_query_param( 'type' ) );
+        }
 
         $page_title = \sprintf( '%s Repository', ucfirst( (string) $type ) );
 
@@ -70,8 +75,11 @@ class RepositoryPage implements AdminPageInterface {
             $page_title = sprintf( 'Status: %s', $status );
         }
 
-        $vars   = compact( 'add_url', 'apps', 'page_title', 'pagination', 'current_url', 'request',
-        'type', 'status' );
+        $urlmanager = $this->urlmanager;
+        $repo_page  = $this;
+        $vars   = compact( 'repo_page', 'urlmanager', 'add_url', 'apps', 'page_title',
+            'pagination', 'current_url', 'request', 'type', 'status'
+        );
         $this->locator->render( 'admin.contents.repository.index', $vars );
 
     }
@@ -123,7 +131,7 @@ class RepositoryPage implements AdminPageInterface {
                 array(
                     'title' => 'Repository',
                     'label' => 'Repository',
-                    'url'   => $current_url ->remove_query_param( 'tab', 'type', 'status' )->get_href()
+                    'url'   => $current_url ->remove_query_param( 'tab', 'type', 'status' )->url()
                 ),
 
                 array(
@@ -135,34 +143,36 @@ class RepositoryPage implements AdminPageInterface {
                 array(
                     'title'     => 'Upload New Application',
                     'label'     => 'Upload New',
-                    'url'       => $add_url->get_href(),
+                    'url'       => $add_url->url(),
                     'icon'      => 'ti ti-upload',
                 ),
 
                 array(
                     'title'     => 'Plugin Repository',
                     'label'     => 'Plugins',
-                    'url'       => $current_url->add_query_param( 'type', 'plugin' )->get_href(),
+                    'url'       => $current_url->add_query_param( 'type', 'plugin' )->url(),
                     'icon'      => 'ti ti-plug',
                 ),
                 
                 array(
                     'title'     => 'Theme Repository',
                     'label'     => 'Themes',
-                    'url'       => $current_url->add_query_param( 'type', 'theme' )->get_href(),
+                    'url'       => $current_url->add_query_param( 'type', 'theme' )->url(),
                     'icon'      => 'ti ti-palette',
                 ),
                 
                 array(
                     'title'     => 'Software Repository',
                     'label'     => 'Software',
-                    'url'       => $current_url->add_query_param( 'type', 'software' )->get_href(),
+                    'url'       => $current_url->add_query_param( 'type', 'software' )->url(),
                     'icon'      => 'ti ti-device-desktop-code',
                 ),
             )
         );
         
-        $vars   = compact( 'add_url', 'apps', 'pagination', 'current_url', 'request', 'menu_args',
+        $urlmanager = $this->urlmanager;
+        $repo_page  = $this;
+        $vars   = compact( 'repo_page', 'urlmanager', 'add_url', 'apps', 'pagination', 'current_url', 'request', 'menu_args',
         'app_types' );
         $this->locator->render( 'admin.contents.repository.search', $vars );
     }
@@ -182,11 +192,13 @@ class RepositoryPage implements AdminPageInterface {
         $app_action = array(
             'title' => 'Repository',
             'label' => 'Repository',
-            'url'   => \smliser_repository_url( 'admin' ),
+            'url'   => $this->urlmanager->admin_repo_url(),
             'icon'  => 'ti ti-arrow-back'
         );
 
-        $vars   = compact( 'type_title', 'app_action', 'title', 'request', 'essential_fields', 'type' );
+        $urlmanager = $this->urlmanager;
+        $repo_page  = $this;
+        $vars   = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'title', 'request', 'essential_fields', 'type' );
         $this->locator->render( "admin.contents.repository.{$slug}", $vars );
     }
 
@@ -199,14 +211,25 @@ class RepositoryPage implements AdminPageInterface {
         $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
     
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' )->url() ) ) );
+            echo smliser_not_found_container(
+                sprintf(
+                    'This application type "%s" is not supportd! <a href="%s">Go Back</a>',
+                    escHtml( $type ), 
+                    escUrl( $this->urlmanager->admin_repo_url()->url() )
+                )
+            );
             return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
         
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', escUrl( smliser_repository_url( 'admin' )->url() ) ) );
+            echo smliser_not_found_container( 
+                sprintf(
+                    'Invalid or deleted application! <a href="%s">Go Back</a>',
+                    escUrl( $this->urlmanager->admin_repo_url()->url() )
+                )
+            );
             return;
         }
 
@@ -225,7 +248,9 @@ class RepositoryPage implements AdminPageInterface {
         $essential_fields   = self::prepare_essential_app_fields( $request, $app );
         $type_title         = ucfirst( $type );
         
-        $vars   = compact( 'type_title', 'app_action', 'request', 'essential_fields', 'type', 'app' );
+        $urlmanager = $this->urlmanager;
+        $repo_page  = $this;
+        $vars   = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'request', 'essential_fields', 'type', 'app' );
         $this->locator->render( "admin.contents.repository.edit-{$type}", $vars );
     }
 
@@ -238,14 +263,25 @@ class RepositoryPage implements AdminPageInterface {
         $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
     
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' )->url() ) ) );
+            echo smliser_not_found_container(
+                sprintf(
+                    'This application type "%s" is not supportd! <a href="%s">Go Back</a>',
+                    escHtml( $type ),
+                    escUrl( $this->urlmanager->admin_repo_url()->url() )
+                )
+            );
             return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
         
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'Invalid or deleted application! <a href="%s">Go Back</a>', escUrl( smliser_repository_url( 'admin' )->url() ) ) );
+            echo smliser_not_found_container(
+                sprintf(
+                    'Invalid or deleted application! <a href="%s">Go Back</a>',
+                    escUrl( $this->urlmanager->admin_repo_url()->url() )
+                )
+            );
             return;
         }
 
@@ -266,7 +302,9 @@ class RepositoryPage implements AdminPageInterface {
         $repo_class = $registry->get_app_type_directory_class( $type );
         $app_files  = $repo_class->get_artifacts( $app->get_slug() );
         
-        $vars   = compact( 'type_title', 'app_action', 'request', 'type', 'app', 'app_files' );
+        $urlmanager = $this->urlmanager;
+        $repo_page  = $this;
+        $vars   = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'request', 'type', 'app', 'app_files' );
         $this->locator->render( "admin.contents.repository.edit-app-files", $vars );
     }
 
@@ -278,20 +316,31 @@ class RepositoryPage implements AdminPageInterface {
         $type   = $request->get( 'type' );
         
         if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container( sprintf( 'This application type "%s" is not supportd! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' )->url() ) ) );
+            echo smliser_not_found_container(
+                sprintf( 
+                    'This application type "%s" is not supportd! <a href="%s">Go Back</a>',
+                    escHtml( $type ), escUrl( $this->urlmanager->admin_repo_url()->url() )
+                )
+            );
             return;
         }
 
         $app = HostedApplicationService::get_app_by_id( $type, $id );
 
         if ( ! $app ) {
-            echo smliser_not_found_container( sprintf( 'This "%s" does not exist! <a href="%s">Go Back</a>', escHtml( $type ), escUrl( smliser_repository_url( 'admin' )->url() ) ) );
+            echo smliser_not_found_container(
+                sprintf(
+                    'This "%s" does not exist! <a href="%s">Go Back</a>',
+                    escHtml( $type ),
+                    escUrl( $this->urlmanager->admin_repo_url()->url() )
+                )
+            );
             return;
         }
 
         $repo_class = HostedApplicationService::get_app_repository_class( $app->get_type() );
 
-        $url                    = smliser_repository_url( 'admin' );
+        $url                    = $this->urlmanager->admin_repo_url();
         $download_actions       = [
             'action' => 'smliser_admin_download',
             'type'   => $app->get_type(),
@@ -310,7 +359,7 @@ class RepositoryPage implements AdminPageInterface {
             'buttons'           => [
                 [
                     'text'  => 'Repository',
-                    'url'   => $url->get_href(),
+                    'url'   => $url->url(),
                     'icon'  => 'ti ti-home',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
@@ -318,7 +367,7 @@ class RepositoryPage implements AdminPageInterface {
                 
                 [
                     'text'  => 'Artifacts',
-                    'url'   => $url->add_query_params( ['tab' => 'edit-artifacts', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->get_href(),
+                    'url'   => $url->add_query_params( ['tab' => 'edit-artifacts', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
                     'icon'  => 'ti ti-files',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
@@ -326,7 +375,7 @@ class RepositoryPage implements AdminPageInterface {
 
                 [
                     'text'  => 'Monetization',
-                    'url'   => $url->add_query_params( [ 'tab' => 'monetization', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->get_href(),
+                    'url'   => $url->add_query_params( [ 'tab' => 'monetization', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
                     'icon'  => 'ti ti-basket-dollar',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
@@ -334,7 +383,7 @@ class RepositoryPage implements AdminPageInterface {
 
                 [
                     'text'  => sprintf( 'Edit %s', ucfirst( $app->get_type() ) ),
-                    'url'   => $url->add_query_params( ['tab' => 'edit', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->get_href(),
+                    'url'   => $url->add_query_params( ['tab' => 'edit', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
                     'icon'  => 'ti ti-edit',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
@@ -392,7 +441,9 @@ class RepositoryPage implements AdminPageInterface {
             ],
         ];
 
-        $vars   = compact( 'app', 'request', 'template_content', 'template_header', 'template_sidebar' );
+        $urlmanager = $this->urlmanager;
+        $repo_page  = $this;
+        $vars   = compact( 'repo_page', 'urlmanager', 'app', 'request', 'template_content', 'template_header', 'template_sidebar' );
         $this->locator->render( "admin.contents.repository.view-{$type}", $vars );
     }
 
@@ -400,7 +451,7 @@ class RepositoryPage implements AdminPageInterface {
      * Manage plugin monetization page
      */
     public function monetization_page( Request $request ) {
-        $url    = \smliser_repository_url( 'admin' )->url();
+        $url        = $this->urlmanager->admin_repo_url()->url();
         $id         = $request->query( 'app_id' );
         $app_type   = $request->query( 'type' );
         $is_new     = false;
@@ -415,8 +466,11 @@ class RepositoryPage implements AdminPageInterface {
                 ->set_app_type( $app_type );
         }
 
-        $app    = $monetization->get_app();
-        $vars   = compact( 'request', 'monetization', 'is_new', 'app', 'url', 'providers', );
+        
+        $urlmanager = $this->urlmanager;
+        $repo_page  = $this;
+        $app        = $monetization->get_app();
+        $vars       = compact( 'repo_page', 'urlmanager', 'request', 'monetization', 'is_new', 'app', 'url', 'providers', );
         $this->locator->render( 'admin.contents.repository.monetization', $vars );
     }
 
@@ -543,7 +597,7 @@ class RepositoryPage implements AdminPageInterface {
      * @return array
      */
     public function get_menu_args( Request $request, ?HostedAppsInterface $app = null ) : array {
-        $tab        = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
+        $tab        = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
         $app_type   = \ucfirst( $app?->get_type() ?? $request->get( 'type', '' ) );
         $app_name   = $app?->get_name() ?? '';
 
@@ -560,13 +614,13 @@ class RepositoryPage implements AdminPageInterface {
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Repository',
-                    'url'   => \smliser_repository_url( 'admin' )->url(),
+                    'url'   => $this->urlmanager->admin_repo_url()->url(),
                     'icon'  => 'ti ti-home-filled'
                 ),
 
                 array(
                     'label' => smliser_pluralize( $app?->get_type() ?? $app_type ),
-                    'url'   => smliser_repository_url( 'admin' )->add_query_param( 'type', ( $app?->get_type() ?? '' ) ),
+                    'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', ( $app?->get_type() ?? '' ) ),
                     'icon'  => 'ti ti-folder-open'
                 ),
                 array(
@@ -577,7 +631,7 @@ class RepositoryPage implements AdminPageInterface {
                 array(
                     'title' => 'Edit App',
                     'label' => 'Edit',
-                    'url'   => smliser_admin_repo_tab( 'edit' )->add_query_params( 
+                    'url'   => $this->urlmanager->admin_repo_url( 'edit',
                         array(
                             'app_id'    => $app?->get_id() ?? 0, 
                             'type'      => $app?->get_type() ?? $app_type,
@@ -590,7 +644,7 @@ class RepositoryPage implements AdminPageInterface {
                 array(
                     'title' => 'View App',
                     'label' => 'View',
-                    'url'   => \smliser_admin_repo_tab( 'view' )->add_query_params( 
+                    'url'   => $this->urlmanager->admin_repo_url( 'view',
                         array(
                             'app_id'    => $app?->get_id() ?? 0, 
                             'type'      => $app?->get_type() ?? '',
@@ -603,7 +657,7 @@ class RepositoryPage implements AdminPageInterface {
                 array(
                     'title' => 'App monetization',
                     'label' => 'Monetization',
-                    'url'   => smliser_admin_repo_tab( 'monetization' )->add_query_params( 
+                    'url'   => $this->urlmanager->admin_repo_url( 'monetization',
                         array(
                             'app_id'    => $app?->get_id() ?? 0, 
                             'type'      => $app?->get_type() ?? '',

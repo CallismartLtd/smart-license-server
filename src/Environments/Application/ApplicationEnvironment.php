@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Environments\Application;
 
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
+use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\Request;
@@ -21,6 +22,8 @@ use SmartLicenseServer\Environments\Application\Auth\ConsoleIdentityProvider;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
 use SmartLicenseServer\Environments\Application\Routing\RouteManager;
+use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
@@ -71,7 +74,8 @@ class ApplicationEnvironment extends Environment {
                 settings: $c->get( Settings::class ),
                 app_url: $this->url(),
                 admin_base_url: $this->url(),
-                assets_url: $this->url()->append_path( '/assets/' )
+                assets_url: $this->url()->append_path( '/assets/' ),
+                request: $c->get( Request::class )
             )
         );
 
@@ -95,6 +99,17 @@ class ApplicationEnvironment extends Environment {
             $this->container->get( Database::class )
         );
 
+        DataStore::set_cache(
+            $this->container->get( Cache::class )
+        );
+
+        // Bootup the filesystem API.
+        $this->container->get( FileSystem::class );
+
+        // Bootstrap the settings API.
+        $this->container->get( Settings::class );
+
+        // Bootup the template locator API.
         $this->container->get( TemplateDiscovery::class )
             ->discover( 'core', SMLISER_RUNTIME_DIR . '/templates/', 0 );
 
@@ -107,7 +122,6 @@ class ApplicationEnvironment extends Environment {
                 UserSettings::class,
                  UserSettings::for(
                     $guard->principal()->get_actor(),
-                    $this->container->get( Database::class )
                 )
             );
         }

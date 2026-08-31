@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Security\Authentication\IdentityProviders;
 
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Security\Actors\ActorInterface;
 use SmartLicenseServer\Security\Actors\User;
 
@@ -18,7 +19,7 @@ use const SMLISER_IDENTITY_FEDERATION_TABLE;
  * 
  * @uses \SMLISER_IDENTITY_FEDERATION_TABLE to store known identities, providers.
  */
-abstract class AbstractIdentityProvider implements IdentityProviderInterface {
+abstract class AbstractIdentityProvider extends DataStore implements IdentityProviderInterface {
 
     /**
      * Lookup an actor via federation mapping.
@@ -29,16 +30,15 @@ abstract class AbstractIdentityProvider implements IdentityProviderInterface {
      */
     protected function find_actor( string $issuer, string $external_id ) : ?ActorInterface {
 
-        $db    = smliser_db();
         $table = SMLISER_IDENTITY_FEDERATION_TABLE;
 
-        $sql    = \smliserQueryBuilder()
+        $sql    = static::query()
             ->select( 'user_id' )
             ->from( $table )
             ->where( 'issuer', '=', $issuer )
             ->where( 'external_id', '=', $external_id );
 
-        $row = $db->get_row( $sql->build(), $sql->get_bindings() );
+        $row = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
 
         if ( ! $row ) {
             return null;
@@ -55,16 +55,14 @@ abstract class AbstractIdentityProvider implements IdentityProviderInterface {
      * @return string|null
      */
     protected function find_external_id( string $issuer, int $user_id ) : ?string {
-        $db    = smliser_db();
-        $table = SMLISER_IDENTITY_FEDERATION_TABLE;
 
-        $sql    = \smliserQueryBuilder()
+        $sql    = static::query()
             ->select( 'external_id' )
-            ->from( $table )
+            ->from( SMLISER_IDENTITY_FEDERATION_TABLE )
             ->where( 'issuer', '=', $issuer )
             ->where( 'user_id', '=', $user_id );
 
-        $row = $db->get_row( $sql->build(), $sql->get_bindings() );
+        $row = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
 
         if ( ! $row ) {
             return null;
@@ -83,12 +81,10 @@ abstract class AbstractIdentityProvider implements IdentityProviderInterface {
      */
     protected function add( int $user_id, string $issuer, string $external_id ) : bool {
         if ( $this->find_actor( $issuer, $external_id ) ) {
-            return true; // already federated — not an error
+            return true; // already federated — not an error.
         }
 
-        $db = smliser_db();
-
-        $inserted   = $db->insert(
+        $inserted   = static::$DB->insert(
             SMLISER_IDENTITY_FEDERATION_TABLE,
             [
                 'user_id'       => $user_id,
@@ -119,16 +115,13 @@ abstract class AbstractIdentityProvider implements IdentityProviderInterface {
      * @return bool True if deletion was successful, false otherwise.
      */
     protected function remove_by( string $column, string $value ) : bool {
-
         $allowed_columns = [ 'issuer', 'external_id', 'user_id' ];
 
         if ( ! in_array( $column, $allowed_columns, true ) ) {
-            return false; // Invalid column name
+            return false; // Invalid column name.
         }
 
-        $db = smliser_db();
-
-        $deleted = $db->delete(
+        $deleted = static::$DB->delete(
             SMLISER_IDENTITY_FEDERATION_TABLE,
             [ $column => $value ]
         );

@@ -6,33 +6,6 @@
  * Environment-agnostic — the runner (WP cron, system cron, CLI)
  * simply calls run_due_tasks() and the scheduler handles the rest.
  *
- * ## Registering tasks (at bootstrap or on demand)
- *
- *   // Closure
- *   smliser_scheduler()
- *       ->call( function() {
- *           smliser_db()->query( 'DELETE FROM ...' );
- *       })
- *       ->daily_at( '02:00' )
- *       ->label( 'Prune old records' )
- *       ->id( 'prune_old_records' );
- *
- *   // Static method
- *   smliser_scheduler()
- *       ->call( [MyClass::class, 'cleanup'] )
- *       ->every_hours( 4 )
- *       ->label( 'Cleanup' );
- *
- *   // Dispatch a queued job on a schedule
- *   smliser_scheduler()
- *       ->dispatch( PruneAnalyticsLogsJob::class, ['retention_days' => 90] )
- *       ->weekly_on( 'sunday', '03:00' )
- *       ->label( 'Weekly analytics prune' );
- *
- * ## Running due tasks (called by cron/CLI)
- *
- *   smliser_scheduler()->run_due_tasks();
- *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Background\Schedule
  * @since   0.2.0
@@ -48,6 +21,7 @@ use DateTimeImmutable;
 use RuntimeException;
 use SmartLicenseServer\Background\Jobs\Analytics\PruneAnalyticsLogsJob;
 use SmartLicenseServer\Background\Jobs\Analytics\PruneLicenseActivityLogsJob;
+use SmartLicenseServer\Background\Queue\JobQueue;
 
 /**
  * Scheduler — manages and runs recurring scheduled tasks.
@@ -77,13 +51,6 @@ class Scheduler {
     |----------------------
     */
 
-    /**
-     * The settings API for persisting task execution state.
-     *
-     * @var Settings
-     */
-    private Settings $settings;
-
     /*
     |----------------------
     | REGISTRY
@@ -111,38 +78,15 @@ class Scheduler {
     */
 
     /**
-     * Private constructor — use instance().
+     * Class constructor.
      *
      * @param Settings $settings The settings API instance.
      */
-    private function __construct( Settings $settings ) {
-        $this->settings = $settings;
+    public function __construct(
+        protected Settings $settings,
+        protected JobQueue $queue
+    ) {
         $this->load_core_tasks();
-    }
-
-    /**
-     * Return the singleton instance, creating it on first access.
-     *
-     * Tasks are lazy-loaded here — the scheduler is never instantiated
-     * unless something actually calls it. This keeps the bootstrap cost
-     * of every non-cron request at zero.
-     *
-     * @param Settings|null $settings Required on first call.
-     * @return static
-     * @throws RuntimeException If called before Settings is available.
-     */
-    public static function instance( ?Settings $settings = null ): static {
-        if ( null === static::$instance ) {
-            if ( null === $settings ) {
-                throw new RuntimeException(
-                    'Scheduler: Settings instance is required on first initialisation.'
-                );
-            }
-
-            static::$instance = new static( $settings );
-        }
-
-        return static::$instance;
     }
 
     /*
@@ -193,7 +137,7 @@ class Scheduler {
         $task = new ScheduledTask(
             $job_class,
             function() use ( $job_class, $payload, $queue ) {
-                smliser_job_queue()->dispatch(
+                $this->queue->dispatch(
                     JobDTO::make(
                         job_class : $job_class,
                         payload   : $payload,

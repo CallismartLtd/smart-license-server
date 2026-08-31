@@ -22,6 +22,7 @@ use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Email\EmailProviderIcons;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
@@ -62,7 +63,6 @@ abstract class Environment {
 
         $this->registerDependencies();
         $this->validateEnvironment();
-        $this->boot();
     }
 
     /**
@@ -151,7 +151,7 @@ abstract class Environment {
         $this->container->singleton(
             FileSystem::class,
             fn ( Container $container ) : FileSystem =>
-                new FileSystem(
+                FileSystem::instance(
                     $container->get( FileSystemAdapterInterface::class )
                 )
         );
@@ -174,7 +174,7 @@ abstract class Environment {
         $this->container->singleton(
             Settings::class,
             fn ( Container $container ) : Settings =>
-                new Settings(
+                Settings::instance(
                     $container->get( SettingsStorageInterface::class )
                 )
         );
@@ -226,17 +226,16 @@ abstract class Environment {
         // Email Icon registry.
         $this->container->singleton(
             EmailProviderIcons::class,
-            fn ( Container $c ) : EmailProviderIcons =>
-                $c->get( EmailProviderIcons::class )
+            fn ( Container $c ) : EmailProviderIcons => new EmailProviderIcons(
+                $c->get( URLManager::class )
+            )
         );
 
         // Monetization providers registry.
         $this->container->singleton(
             MonetizationRegistry::class,
             fn ( Container $c ) : MonetizationRegistry =>
-                MonetizationRegistry::instance(
-                    $c->get( Settings::class ),
-                )
+                new MonetizationRegistry( $c )
         );
 
         $this->container->singleton(
@@ -307,9 +306,6 @@ abstract class Environment {
      * Create a new application environment.
      */
     public static function create( RuntimeConfig $runtime ) : static {
-        return new static(
-            new Container(),
-            $runtime
-        );
+        return new static( new Container(), $runtime );
     }
 }

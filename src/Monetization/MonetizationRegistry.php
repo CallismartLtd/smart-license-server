@@ -10,8 +10,8 @@
 
 namespace SmartLicenseServer\Monetization;
 
-use RuntimeException;
 use SmartLicenseServer\Contracts\AbstractRegistry;
+use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface;
 use SmartLicenseServer\Monetization\Providers\WooCommerceProvider;
@@ -24,17 +24,12 @@ use SmartLicenseServer\SettingsAPI\Settings;
  * monetization providers integrated with the Smart License Server.
  */
 final class MonetizationRegistry extends AbstractRegistry {
-    /**
-     * Singleton instance.
-     * 
-     * @var self $instance
-     */
-    private static $instance = null;
+    protected static Settings $storage;
 
     /**
      * Monetization providers.
      * 
-     * @param array<int, class-string<>>
+     * @var class-string<MonetizationProviderInterface>[]
      */
     private array $core_providers = [
         WooCommerceProvider::class,
@@ -50,37 +45,14 @@ final class MonetizationRegistry extends AbstractRegistry {
     protected static array $settings_store = [];
 
     /**
-     * The settings storage adapter instance.
-     * 
-     * @var Settings $storage
-     */
-    private static Settings $storage;
-
-    /**
      * Private constructor to prevent direct instantiation.
      * 
-     * @param Settings $storage
+     * @param Container $container
      */
-    private function __construct( Settings $storage ) {
-        self::$storage = $storage;
-    }
-
-    /**
-     * Get the singleton instance of the MonetizationRegistry.
-     * 
-     * @param Settings|null $storage The settings storage adapter to use for provider options.
-     * @return self
-     */
-    public static function instance( ?Settings $storage = null ) {
-        if ( self::$instance === null ) {
-            if ( null === $storage ) {
-                throw new RuntimeException(
-                    'MonetizationRegistry instance not initialized. A Settings storage API must be provided on first call.'
-                );
-            }
-            self::$instance = new self( $storage );
-        }
-        return self::$instance;
+    public function __construct(
+        protected Container $container
+    ) {
+        static::$storage = $container->get( Settings::class );
     }
 
     /**
@@ -264,7 +236,7 @@ final class MonetizationRegistry extends AbstractRegistry {
 
         
         /** @var MonetizationProviderInterface $provider */
-        $provider   = new $class_string;
+        $provider   = $this->container->get( $class_string );
         $settings   = [];
 
         foreach ( $provider->get_settings_schema() as $key => $_  ) {

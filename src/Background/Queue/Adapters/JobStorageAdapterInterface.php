@@ -21,17 +21,6 @@ use SmartLicenseServer\Background\Queue\JobDTO;
  *
  * Every method accepts and/or returns JobDTO instances so the rest
  * of the system never needs to know which backend is in use.
- *
- * ## Implementing a storage adapter
- *
- *   class MySQLJobStorageAdapter implements JobStorageAdapterInterface {
- *
- *       public function enqueue( JobDTO $job ): JobDTO {
- *           $id = smliser_db()->insert( SMLISER_BACKGROUND_JOBS_TABLE, $job->to_array() );
- *           return $job->set( 'id', $id );
- *       }
- *       // ...
- *   }
  */
 interface JobStorageAdapterInterface {
 

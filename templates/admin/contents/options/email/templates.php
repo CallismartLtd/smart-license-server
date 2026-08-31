@@ -9,13 +9,13 @@
  * @since   0.2.0
  * @var array<string, array<string, mixed>> $templates
  * @var SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
-
-use SmartLicenseServer\Admin\Handlers\OptionsPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$menu_args   = OptionsPage::get_menu_args( $request );
+$menu_args   = $page_handler->get_menu_args( $request );
 $current_url = smliser_get_current_url()->remove_query_param( 'message', 'provider' );
 
 /**
@@ -185,7 +185,7 @@ $group_colors = [
                                     <?php echo $entry['is_enabled'] ? 'Disable' : 'Enable'; ?>
                                 </button>
 
-                                <a href="<?php echo escUrl( $detail_url->add_query_param( 'noheader', true ) ); ?>"
+                                <a href="<?php echo escUrl( $detail_url->add_query_param( 'noheader', true )->url() ); ?>"
                                 class="button smliser-nav-btn"
                                 title="Preview and configure this template">
                                     <i class="ti ti-settings"></i>

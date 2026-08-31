@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Analytics;
 
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
@@ -23,7 +24,7 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
  * client access count are distinct metrics tracked independently.
  */
 class LogDownloadJob implements JobHandlerInterface {
-
+    public function __construct( protected Database $db ) {}
     /*
     |----------------------
     | JobHandlerInterface
@@ -52,10 +53,8 @@ class LogDownloadJob implements JobHandlerInterface {
             return false;
         }
 
-        $db = smliser_db();
-
         // Insert the raw download log entry.
-        $inserted = $db->insert( SMLISER_ANALYTICS_LOGS_TABLE, [
+        $inserted = $this->db->insert( SMLISER_ANALYTICS_LOGS_TABLE, [
             'app_type'    => $app_type,
             'app_slug'    => $app_slug,
             'event_type'  => 'download',

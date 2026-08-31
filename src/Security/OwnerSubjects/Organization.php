@@ -8,20 +8,18 @@
 
 namespace SmartLicenseServer\Security\OwnerSubjects;
 
+use Callismart\DBPrism\Database;
 use DateMalformedStringException;
 use \DateTimeImmutable;
 use DateTimeZone;
-use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Utils\CommonQueryTrait;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Actors\OrganizationMember;
-use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Owner;
 
 use const SMLISER_ORGANIZATIONS_TABLE;
-use function defined, is_string, smliser_db, gmdate, boolval, smliser_avatar_url, md5;
 
 /**
  * Canonical representation of an organization.
@@ -30,8 +28,8 @@ use function defined, is_string, smliser_db, gmdate, boolval, smliser_avatar_url
  * container, allowing for both individual (single-user) and multi-user 
  * collaborative ownership and permission management.
  */
-class Organization implements OwnerSubjectInterface {
-    use SanitizeAwareTrait, CommonQueryTrait;
+class Organization extends DataStore implements OwnerSubjectInterface {
+    use SanitizeAwareTrait;
     /**
      * Organization active status.
      *
@@ -304,6 +302,7 @@ class Organization implements OwnerSubjectInterface {
     | CRUD METHODS
     |-----------------
     */
+    
     /**
      * Get by id
      * 
@@ -314,7 +313,8 @@ class Organization implements OwnerSubjectInterface {
         static $orgs = [];
 
         if ( ! array_key_exists( $id, $orgs ) ) {
-            $orgs[ $id ] = self::get_self_by_id( $id, SMLISER_ORGANIZATIONS_TABLE );
+            $data           = static::fetch_by( 'id', $id, SMLISER_ORGANIZATIONS_TABLE );
+            $orgs[ $id ]    = $data ? static::from_array( $data ) : null;
         }
 
         return $orgs[ $id ];
@@ -327,36 +327,47 @@ class Organization implements OwnerSubjectInterface {
      * @throws Exception On duplicate slug entry.
      */
     public function save() : bool|Exception {
-        $table          = SMLISER_ORGANIZATIONS_TABLE;
-        $exists_by_slug = self::get_self_by( 'slug', $this->get_slug(), $table );
+        return static::$DB->transactional( function( Database $db ) {
+            $table          = SMLISER_ORGANIZATIONS_TABLE;
+            $exists_by_slug = self::fetch_by( 'slug', $this->get_slug(), $table );
 
-        if ( $exists_by_slug && ! $this->exists() ) {
-            throw new Exception( 'org_slug_exists', 'The provided slug is not available.', ['status' => 409] );
-        }
+            if ( $exists_by_slug && ! $this->exists() ) {
+                throw new Exception( 'org_slug_exists', 'The provided slug is not available.', ['status' => 409] );
+            }
 
-        $db     = smliser_db();
-        $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
-        
+            $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+            
 
-        $fields = array(
-            'display_name'  => $this->get_display_name(),
-            'status'        => $this->get_status(),
-            'updated_at'    => $now->format( 'Y-m-d H:i:s' )
+            $fields = array(
+                'display_name'  => $this->get_display_name(),
+                'status'        => $this->get_status(),
+                'updated_at'    => $now->format( 'Y-m-d H:i:s' )
 
-        );
+            );
 
-        if ( $this->get_id() ) {
-            $result = $db->update( $table, $fields, [ 'id' => $this->get_id() ] );
-            $this->set_updated_at( $now );
-        } else {
-            $fields['slug']         = $this->get_slug();
-            $fields['created_at']   = $now->format( 'Y-m-d H:i:s' );
-            $result = $db->insert( $table, $fields );
-            $this->set_id( $db->get_insert_id() );
-            $this->set_created_at( $now );
-        }
+            $lock_sql   = static::query()
+                ->select( 'id' )->from( $table )
+                ->where( 'id', '=', $this->get_id() )
+                ->limit(1)->lock_for_update();
+            $id = (int) $db->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
 
-        return $result !== false;
+            if ( $id ) {
+                $result = $db->update( $table, $fields, [ 'id' => $id ] );
+                $result && $this->set_updated_at( $now );
+            } else {
+                $fields['slug']         = $this->get_slug();
+                $fields['created_at']   = $now->format( 'Y-m-d H:i:s' );
+                $result = $db->insert( $table, $fields );
+                
+                if ( $result ) {
+                    $this->set_id( $db->get_insert_id() );
+                    $this->set_created_at( $now );
+                    $this->set_updated_at( $now );
+                } 
+            }
+
+            return $result !== false;
+        });
     }
 
     /**
@@ -368,7 +379,10 @@ class Organization implements OwnerSubjectInterface {
      * @return self[]
      */
     public static function get_all( int $page, int $limit ) : array {
-        return self::get_all_self( SMLISER_ORGANIZATIONS_TABLE, $page, $limit );
+        return array_map(
+            [static::class, 'from_array'],
+            self::fetch( SMLISER_ORGANIZATIONS_TABLE, $page, $limit )
+        );
     }
 
     /**
@@ -382,14 +396,13 @@ class Organization implements OwnerSubjectInterface {
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $db     = smliser_db();
             $table  = SMLISER_ORGANIZATIONS_TABLE;
 
             $sql    = static::query()
                 ->select( 'COUNT(*)' )->from( $table )
                 ->where( 'status', '=', $status );
 
-            $total  = $db->get_var( $sql->build(), $sql->get_bindings() );
+            $total  = static::$DB->get_var( $sql->build(), $sql->get_bindings() );
 
             $statuses[$status]  = (int) $total;
         }
@@ -458,13 +471,6 @@ class Organization implements OwnerSubjectInterface {
      */
     public static function get_allowed_statuses() : array {
         return [ self::STATUS_ACTIVE, self::STATUS_SUSPENDED, self::STATUS_DISABLED ];
-    }
-
-    /**
-     * Get the organization avatar
-     */
-    public function get_avatar() : URL {
-        return smliser_avatar_url( md5( $this->get_slug() ), $this->get_type() );
     }
 
     /**

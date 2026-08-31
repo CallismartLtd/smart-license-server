@@ -28,6 +28,10 @@ use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
  */
 class CleanExpiredTokensJob implements JobHandlerInterface {
 
+    public function __construct(
+        protected Database $db,
+    ) {}
+
     /*
     |--------------------------------------------
     | JobHandlerInterface
@@ -54,10 +58,10 @@ class CleanExpiredTokensJob implements JobHandlerInterface {
      * @return array{deleted: int}
      */
     public function handle( array $payload = [] ): array {
-        $sql    = \smliserQueryBuilder()
+        $sql    = \smliserQueryBuilder( $this->db->get_driver() )
             ->delete( SMLISER_APP_DOWNLOAD_TOKEN_TABLE )
             ->where( 'expiry', '<', \time() );
-        $affected   = (int) smliser_db()->transactional( fn( Database $db ) => $db
+        $affected   = (int) $this->db->transactional( fn( Database $db ) => $db
             ->execute( $sql->build(), $sql->get_bindings() )
         );
         

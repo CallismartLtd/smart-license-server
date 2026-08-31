@@ -10,18 +10,17 @@
 
 namespace SmartLicenseServer\Security\Actors;
 
+use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
 use SmartLicenseServer\Core\Collection;
-use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Owner;
-use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
 use const SMLISER_SERVICE_ACCOUNTS_TABLE;
-use function smliser_avatar_url;
 
 /**
  * Represents a service account that can act as a Principal.
@@ -30,9 +29,9 @@ use function smliser_avatar_url;
  * API or system-to-system authentication. They can be owned
  * by an individual Owner or an Organization.
  */
-class ServiceAccount implements ActorInterface {
+class ServiceAccount extends DataStore implements ActorInterface {
 
-    use SanitizeAwareTrait, CommonQueryTrait, TokenDeliveryTrait;
+    use SanitizeAwareTrait, TokenDeliveryTrait;
 
     /**
      * Service account active status.
@@ -177,6 +176,13 @@ class ServiceAccount implements ActorInterface {
      */
     public function get_identifier() : string {
         return $this->identifier;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function get_unique_identifier(): string {
+        return $this->get_identifier();
     }
 
     /**
@@ -422,44 +428,55 @@ class ServiceAccount implements ActorInterface {
      * @return bool
      */
     public function save() : bool {
-        $db     = smliser_db();
-        $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
-        $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+        return (bool) static::$DB->transactional( function( Database $db ) {
+            $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
+            $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
-        $data = [
-            'owner_id'      => $this->get_owner_id(),
-            'display_name'  => $this->get_display_name(),
-            'description'   => $this->get_description(),
-            'status'        => $this->get_status(),
-            'updated_at'    => $now->format( 'Y-m-d H:i:s' )
-        ];
+            $data = [
+                'owner_id'      => $this->get_owner_id(),
+                'display_name'  => $this->get_display_name(),
+                'description'   => $this->get_description(),
+                'status'        => $this->get_status(),
+                'updated_at'    => $now->format( 'Y-m-d H:i:s' )
+            ];
 
-        if ( ! empty( $this->get_last_used_at() ) ) {
-            $data['last_used_at'] = $this->get_last_used_at()->format( 'Y-m-d H:i:s' );
-        }
+            if ( ! empty( $this->get_last_used_at() ) ) {
+                $data['last_used_at'] = $this->get_last_used_at()->format( 'Y-m-d H:i:s' );
+            }
 
-        if ( $this->get_id() ) {
-            $result = $db->update( $table, $data, [ 'id' => $this->get_id() ] );
-        } else {
-            // This is new key generation.
-            $plain_key              = $this->generate_api_key();
+            $lock_sql   = static::query()
+                ->select( 'id' )->from( $table )
+                ->where( 'id', '=', $this->get_id() )
+                ->limit(1)->lock_for_update();
+            $id = (int) $db->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
 
-            $data['identifier']     = $this->get_identifier();
-            $data['api_key_hash']   = $this->get_api_key_hash();
-            $data['created_at']     = $now->format( 'Y-m-d H:i:s' );
-            $result = $db->insert( $table, $data );
-            
-            $this->set_id( $db->get_insert_id() )
-            ->set_created_at( $now )
-            ->set_updated_at( $now );
-            
+            if ( $id ) {
+                $result = $db->update( $table, $data, [ 'id' => $id ] );
+            } else {
+                // This is new key generation.
+                $plain_key              = $this->generate_api_key();
 
-            // Store new API key data for retrieval.
-            $this->new_api_key_data = Collection::make( $this->to_array() )
-            ->merge( [ 'api_key' => $plain_key ] );
-        }
+                $data['identifier']     = $this->get_identifier();
+                $data['api_key_hash']   = $this->get_api_key_hash();
+                $data['created_at']     = $now->format( 'Y-m-d H:i:s' );
+                $result = $db->insert( $table, $data );
+                
+                $this->set_id( $db->get_insert_id() )
+                ->set_created_at( $now )
+                ->set_updated_at( $now );
+                
 
-        return $result !== false;
+                // Store new API key data for retrieval.
+                $this->new_api_key_data = Collection::make([
+                    'api_key'       => $plain_key,
+                    'identifier'    => $this->get_identifier(),
+                    'display_name'  => $this->get_display_name(),
+                    'description'   => $this->get_description()
+                ]);
+            }
+
+            return $result !== false;
+        });
     }
 
     /**
@@ -472,7 +489,8 @@ class ServiceAccount implements ActorInterface {
         static $accounts = [];
 
         if ( ! array_key_exists( $id, $accounts ) ) {
-            $accounts[ $id ] = static::get_self_by_id( $id, SMLISER_SERVICE_ACCOUNTS_TABLE );
+            $data               = static::fetch_by( 'id', $id, SMLISER_SERVICE_ACCOUNTS_TABLE );
+            $accounts[ $id ]    = $data ? static::from_array( $data ) : null;
         }
 
         return $accounts[ $id ];
@@ -486,7 +504,10 @@ class ServiceAccount implements ActorInterface {
      * @return static[]
      */
     public static function get_all( int $page = 1, int $limit = 25 ) : array {
-        return self::get_all_self( SMLISER_SERVICE_ACCOUNTS_TABLE, $page, $limit );
+        return \array_map(
+            [static::class, 'from_array'],
+            static::fetch( SMLISER_SERVICE_ACCOUNTS_TABLE, $page, $limit )
+        );
     }
 
     /**
@@ -500,14 +521,13 @@ class ServiceAccount implements ActorInterface {
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $db     = smliser_db();
             $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
 
             $sql    = static::query()
                 ->select( 'COUNT(*)' )->from( $table )
                 ->where( 'status', '=', $status );
 
-            $total  = $db->get_var( $sql->build(), $sql->get_bindings() );
+            $total  = static::$DB->get_var( $sql->build(), $sql->get_bindings() );
 
             $statuses[$status]  = (int) $total;
         }
@@ -531,31 +551,8 @@ class ServiceAccount implements ActorInterface {
         return static::from_array_helper( SMLISER_SERVICE_ACCOUNTS_TABLE, $data );
     }
 
-    /**
-     * Convert to array
-     * 
-     * @return array
-     */
-    public function to_array() : array {
-        $data   = get_object_vars( $this );
-        $extra  = ['avatar' => $this->get_avatar()->get_href()];
-        $data   = $extra + $data;
-        unset( $data['owner'], $data['new_api_key_data'], $data['api_key_hash'] );
-
-        return $data;
-    }
-
     public function get_type() : string {
         return 'service_account';
-    }
-
-    /**
-     * Get avatar url
-     * 
-     * @return URL
-     */
-    public function get_avatar() : URL {
-        return smliser_avatar_url( md5( $this->get_identifier() ), $this->get_type() );
     }
 
     /**
@@ -666,7 +663,8 @@ class ServiceAccount implements ActorInterface {
         }
 
         // Hydrate ServiceAccount.
-        $sa = static::get_self_by( 'identifier', $payload['sa_id'], SMLISER_SERVICE_ACCOUNTS_TABLE );
+        $data = static::fetch_by( 'identifier', $payload['sa_id'], SMLISER_SERVICE_ACCOUNTS_TABLE );
+        $sa     = $data ? static::from_array( $data ) : null;
         
         if ( ! $sa ) {
             throw new Exception( 

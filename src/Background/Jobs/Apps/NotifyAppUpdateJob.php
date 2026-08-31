@@ -24,8 +24,10 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Apps;
 
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
+use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Email\Templates\Apps\NewAppVersionNotificationEmail;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Monetization\License;
@@ -35,6 +37,11 @@ use SmartLicenseServer\Monetization\License;
  */
 class NotifyAppUpdateJob implements JobHandlerInterface {
     use QueueAwareTrait;
+
+    public function __construct(
+        protected Database $db,
+        protected Mailer $mailer
+    ) {}
 
     public static function get_job_name(): string {
         return 'notify_app_update';
@@ -69,7 +76,6 @@ class NotifyAppUpdateJob implements JobHandlerInterface {
             return compact( 'notified', 'skipped', 'ineligible' );
         }
 
-        $db        = smliser_db();
         $app_prop  = sprintf( '%s/%s', $app_type, $app_slug );
 
         $terminal = [
@@ -78,12 +84,12 @@ class NotifyAppUpdateJob implements JobHandlerInterface {
             License::STATUS_SUSPENDED,
         ];
 
-        $sql    = \smliserQueryBuilder()
+        $sql    = \smliserQueryBuilder( $this->db->get_driver() )
             ->select( '*' )->from( SMLISER_LICENSE_TABLE )
             ->where( 'app_prop', '=', $app_prop )
             ->where_not_in( 'status', $terminal );
 
-        $rows = $db->get_results( $sql->build(), $sql->get_bindings() );
+        $rows = $this->db->get_results( $sql->build(), $sql->get_bindings() );
 
         foreach ( $rows as $row ) {
             $license    = License::from_array( $row );
@@ -102,7 +108,7 @@ class NotifyAppUpdateJob implements JobHandlerInterface {
             }
 
             try {
-                smliser_mailer()->send( $message );
+                $this->mailer->send( $message );
                 $notified++;
             } catch ( \Throwable ) {
                 $skipped++;

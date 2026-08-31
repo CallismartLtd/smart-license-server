@@ -8,16 +8,18 @@
  * @package Smliser\templates
  * @var array{0: int, 1: array{license_id: int, event_type: string, ip_address: string, user_agent: string, website: string, comment: string, duration: string, created_at: int}} $logs
  * @var \SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Admin\Handlers\LicensePage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var int $log_duration
  */
 
-use SmartLicenseServer\Admin\Handlers\LicensePage;
 use SmartLicenseServer\Utils\Format;
 
 defined( 'SMLISER_ROOT' ) || exit;
 ?>
 
 <div class="smliser-admin-page">
-    <?php smliser_print_admin_content_header( LicensePage::get_menu_args( $request ) ); ?>
+    <?php smliser_print_admin_content_header( $page_handler->get_menu_args( $request ) ); ?>
 
     <div class="smliser-admin-body">
         <div class="notice notice-info" style="margin: 15px;">
@@ -25,7 +27,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                 <?php 
                     printf( 
                         'Logs over %s days are automatically deleted.',
-                        smliser_settings()->get( 'log_retention_days', 30, true ) ?? 30
+                        escHtml( $log_duration )
                     )
                 
                 ?>
@@ -58,7 +60,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                     <td><?php echo escHtml( $task_data['comment'] ?? 'N/A' );?></td>
                     <td><?php echo escHtml( smliser_readable_duration( $task_data['duration'] ?? 0 ) );?></td>
                     <td><?php echo escHtml( smliser_url_origin( $task_data['website']?? 'N/A' ) );?></td>
-                    <td><a href="<?php echo escUrl( smliser_license_admin_action_page( 'view', $task_data['license_id'] ?? 0 )->url() ) ?>">View License</a></td>
+                    <td><a href="<?php echo escUrl( $urlmanager->admin_license_page_url( 'view', [ 'id' => $task_data['license_id'] ?? 0] )->url() ) ?>">View License</a></td>
                 </tr>
                 <?php endforeach; endif;?>
             </table>

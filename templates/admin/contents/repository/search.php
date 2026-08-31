@@ -13,6 +13,7 @@
  * @var array $menu_args
  * @var \SmartLicenseServer\Core\Request $request
  * @var array $app_types
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
@@ -25,9 +26,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
         <?php endif; ?>
 
         <div class="smliser-app-search-page smliser-table-wrapper">
-            <form class="smliser-admin-search" method="GET" action="<?php echo escUrl( $current_url->get_href() ) ?>">
-                <input type="hidden" name="page" value="smliser-repository">
-                <input type="hidden" name="tab" value="search">
+            <form class="smliser-admin-search" method="GET" action="<?php echo escUrl( $urlmanager->admin_repo_url( 'search' )->url() ) ?>">
                 <select name="app_types" id="app_types" class="smliser-app-type-select">
                     <option value="<?php echo implode( '|', $app_types ); ?>">All</option>
                     <?php foreach( $app_types as $type ) : ?>
@@ -58,7 +57,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                             $message    = sprintf(
                                 'No app found matching the search term "%s". <a href="%s">Reset Search</a>',
                                 escHtml( $request->get( 'app_search' ) ),
-                                escUrl( $current_url->add_query_param( 'tab', 'search' )->get_href() )
+                                escUrl( $urlmanager->admin_repo_url( 'search' )->url() )
                             );
                         else:
                             $message    = 'Search for hosted applications in the repository.';
@@ -76,9 +75,9 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                             <td class="smliser-edit-row">
                                 <?php echo intval( $app->get_id() ); ?>
                                 <div class="smliser-edit-link">
-                                    <a href="<?php echo escUrl( smliser_admin_repo_tab( 'edit', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">edit</a> 
+                                    <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'edit', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) )->url() ); ?>">edit</a> 
                                     |
-                                    <a href="<?php echo escUrl( smliser_admin_repo_tab( 'view', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) ) ); ?>">view</a>
+                                    <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'view', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) )->url() ); ?>">view</a>
                                 </div>
                             </td>
                             <td><?php echo escHtml( $app->get_name() ); ?></td>

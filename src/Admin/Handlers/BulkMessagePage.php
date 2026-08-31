@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Admin\Handlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Messaging\BulkMessageService;
 use SmartLicenseServer\Templates\TemplateLocator;
 
@@ -21,7 +22,8 @@ use function compact;
 class BulkMessagePage implements AdminPageInterface{
     
     public function __construct(
-        protected TemplateLocator $locator
+        protected TemplateLocator $locator,
+        protected URLManager $urlmanager
     ) {}
     /**
      * Page router
@@ -102,7 +104,7 @@ class BulkMessagePage implements AdminPageInterface{
      * @return array
      */
     protected function get_menu_args( Request $request ) : array {
-        $tab    = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
+        $tab    = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
         $title  = match( $tab ) {
             'edit'          => 'Edit Bulk Message',
             'compose-new'   => 'Compose Bulk Message',
@@ -114,7 +116,7 @@ class BulkMessagePage implements AdminPageInterface{
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Bulk Messages',
-                    'url'   => smliser_bulk_messages_url(),
+                    'url'   => $this->urlmanager->admin_broadcats_page_url(),
                     'icon'  => 'ti ti-home-filled'
                 ),
 
@@ -126,7 +128,7 @@ class BulkMessagePage implements AdminPageInterface{
                 array(
                     'title' => 'Compose new message',
                     'label' => 'Compose New',
-                    'url'   => \smliser_bulk_messages_url( 'compose-new' ),
+                    'url'   => $this->urlmanager->admin_broadcats_page_url( 'compose-new' ),
                     'icon'  => 'ti ti-plus',
                     'active'    => 'compose-new' === $tab
                 ),
@@ -134,7 +136,7 @@ class BulkMessagePage implements AdminPageInterface{
                 array(
                     'title' => 'Settings',
                     'label' => 'Settings',
-                    'url'   => smliser_options_url(),
+                    'url'   => $this->urlmanager->admin_options_url(),
                     'icon'  => 'ti ti-settings'
                 )
             )

@@ -4,6 +4,7 @@
  * 
  * @var array $metrics
  * @var array $totals
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 namespace SmartLicenseServer\Admin;
 
@@ -28,7 +29,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                 array(
                     'title' => 'Settings',
                     'label' => 'Settings',
-                    'url'   => smliser_options_url(),
+                    'url'   => $urlmanager->admin_options_url(),
                     'icon'  => 'ti ti-settings'
                 )
             )
@@ -44,7 +45,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                 <?php foreach( $totals as $app_type => $value ) : ?>
                     <div class="smliser-dashboard-hero_down-item">
                         <div class="smliser-dashboard-hero_down-item-icon">
-                            <img src="<?php echo escUrl( smliser_get_placeholder_icon( $app_type ) ); ?>" alt="">
+                            <img src="<?php echo escUrl( $urlmanager->assets_url( smliser_get_placeholder_icon( $app_type ) )->url() ); ?>" alt="">
                         </div>
                         <div class="smliser-dashboard-hero_down-item-content">
                             <span><?php echo escHtml( $value ); ?></span>

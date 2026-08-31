@@ -30,9 +30,11 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Licenses;
 
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Core\Dates\TimestampValue;
+use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Email\Templates\Licenses\LicenseExpiryReminderEmail;
 use SmartLicenseServer\Monetization\License;
 
@@ -41,6 +43,11 @@ use SmartLicenseServer\Monetization\License;
  */
 class NotifyExpiringLicensesJob implements JobHandlerInterface {
     use QueueAwareTrait;
+
+    public function __construct(
+        protected Database $db,
+        protected Mailer $mailer
+    ) {}
 
     /*
     |--------------------------------------------
@@ -73,7 +80,6 @@ class NotifyExpiringLicensesJob implements JobHandlerInterface {
         $days_before = max( 1, (int) ( $payload['days_before'] ?? 7 ) );
         $batch_size  = max( 1, (int) ( $payload['batch_size']  ?? 100 ) );
 
-        $db    = smliser_db();
         $table = SMLISER_LICENSE_TABLE;
 
         $start_of_day = TimestampValue::now()
@@ -86,7 +92,7 @@ class NotifyExpiringLicensesJob implements JobHandlerInterface {
             ->modify( '+1 day' );
 
         // Query licenses expiring in exactly the target window.
-        $sql    = \smliserQueryBuilder()
+        $sql    = \smliserQueryBuilder( $this->db->get_driver() )
             ->select( '*' )->from( $table )
             ->where( 'status', '=', License::STATUS_ACTIVE )
             ->where_not_null( 'end_date' )
@@ -94,7 +100,7 @@ class NotifyExpiringLicensesJob implements JobHandlerInterface {
             ->where( 'end_date', '<=', $end_of_day->format( 'Y-m-d H:i:s' ) )
             ->limit( $batch_size );
 
-        $rows = $db->get_results( $sql->build(), $sql->get_bindings() );
+        $rows = $this->db->get_results( $sql->build(), $sql->get_bindings() );
 
         $notified   = 0;
         $skipped    = 0;
@@ -132,7 +138,7 @@ class NotifyExpiringLicensesJob implements JobHandlerInterface {
             }
 
             try {
-                smliser_mailer()->send( $message );
+                $this->mailer->send( $message );
                 $notified++;
             } catch ( \Throwable ) {
                 $skipped++;

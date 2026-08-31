@@ -7,15 +7,15 @@
  * @var array<string, SmartLicenseServer\Email\Providers\EmailProviderInterface> $providers
  * @var string|null $default_provider
  * @var array<int, array> $email_fields
- * @var SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var \SmartLicenseServer\Email\EmailProviderIcons $icons_provider
  */
-
-use SmartLicenseServer\Admin\Handlers\OptionsPage;
-use SmartLicenseServer\Email\EmailProviderIcons;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$menu_args = OptionsPage::get_menu_args( $request );
+$menu_args = $page_handler->get_menu_args( $request );
 
 $current_url = smliser_get_current_url()->remove_query_param( 'message', 'section', 'provider' );
 ?>
@@ -52,13 +52,13 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
         <div class="smliser-provider-cards">
             <?php foreach ( $providers as $provider_id => $provider ) :
-                $is_default   = $default_provider === $provider_id;
-                $provider_url = $current_url->add_query_param( 'provider', $provider_id );
+                $is_default     = $default_provider === $provider_id;
+                $provider_url   = $current_url->add_query_param( 'provider', $provider_id );
             ?>
                 <div class="smliser-provider-card <?php echo escAttr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
 
                     <div class="smliser-provider-card__icon-wrap">
-                        <?php echo EmailProviderIcons::render( $provider_id, $provider->get_name() ); ?>
+                        <?php echo $icons_provider->render( $provider_id, $provider->get_name() ); ?>
                     </div>
 
                     <div class="smliser-provider-card__body">

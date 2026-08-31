@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\SettingsAPI;
 
+use RuntimeException;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 
 /**
@@ -40,19 +41,10 @@ use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
  */
 class Settings {
     /**
-     * The active settings adapter (must implement SettingsStorageInterface).
-     *
-     * @var SettingsStorageInterface
-     */
-    protected $adapter;
-
-    /**
      * Private constructor to enforce the Singleton pattern.
      * Initializes the correct adapter based on environment detection.
      */
-    public function __construct( SettingsStorageInterface $storage ) {
-        $this->adapter = $storage;
-    }
+    private function __construct( protected SettingsStorageInterface $adapter ) {}
 
     /**
      * Prevents cloning of the instance.
@@ -104,5 +96,25 @@ class Settings {
      */
     public function get_adapter() : SettingsStorageInterface {
         return $this->adapter;
+    }
+
+    /**
+     * Singleton instance.
+     * 
+     * @param SettingsStorageInterface|null $adapter
+     * @return static
+     */
+    public static function instance( ?SettingsStorageInterface $adapter = null ) : static {
+        static $static;
+
+        if ( ! isset( $static ) ) {
+            if ( ! $adapter ) {
+                throw new RuntimeException( 'Settings API must be called early with a storage adapter.');
+            }
+
+            $static = new static( $adapter );
+        }
+
+        return $static;
     }
 }

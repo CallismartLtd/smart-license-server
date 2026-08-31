@@ -10,7 +10,7 @@ namespace SmartLicenseServer\HostedApps;
 
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use Callismart\DBPrism\Query\SQLBuilder;
-use SmartLicenseServer\Cache\CacheAwareTrait;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -21,8 +21,8 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * This class provides all methods required to manage hosted applications and their data, 
  * it also supports caching, pagination, searching, asset management, and bulk operations via the request API.
  */
-class HostedApplicationService {
-    use CacheAwareTrait, SanitizeAwareTrait;
+class HostedApplicationService extends DataStore {
+    use SanitizeAwareTrait;
 
     private const APP_COLUMNS = [
         'id', 'owner_id', 'name', 'slug', 'status',
@@ -49,7 +49,7 @@ class HostedApplicationService {
      * }
      */
     public static function get_apps( array $args = [] ) : array {
-        $db = smliser_db();
+        $db = static::$DB;
     
         $defaults = [
             'page'   => 1,
@@ -65,8 +65,8 @@ class HostedApplicationService {
         $status = $args['status'];
         $types  = array_filter( (array) $args['types'] );
     
-        $key     = self::make_cache_key( __METHOD__, compact( 'page', 'limit', 'status', 'types' ) );
-        $results = self::cache_get( $key );
+        $key     = static::make_cache_key( __METHOD__, compact( 'page', 'limit', 'status', 'types' ) );
+        $results = static::cache_get( $key );
     
         if ( false === $results ) {
             $sql_parts = static::build_type_queries( $types, $status );
@@ -79,7 +79,7 @@ class HostedApplicationService {
             $rows    = static::hydrate_rows( $rows );
             $results = static::make_paginated_result( $rows, $page, $limit, $total );
     
-            self::cache_set( $key, $results, static::default_ttl() );
+            static::cache_set( $key, $results, static::default_ttl() );
         }
     
         return $results;
@@ -106,7 +106,7 @@ class HostedApplicationService {
      */
     public static function get_plugins( array $args = array() ) {
         $args['types']  = array( 'plugin' );
-        return self::get_apps( $args );
+        return static::get_apps( $args );
     }
 
     /**
@@ -129,7 +129,7 @@ class HostedApplicationService {
      */
     public static function get_themes( array $args = array() ) {
         $args['types']  = array( 'theme' );
-        return self::get_apps( $args );
+        return static::get_apps( $args );
     }
 
     /**
@@ -153,7 +153,7 @@ class HostedApplicationService {
      */
     public static function get_trashed_apps( array $args = array() ) {
         $args['status'] = AbstractHostedApp::STATUS_TRASH;
-        return self::get_apps( $args );
+        return static::get_apps( $args );
     }
 
     /**
@@ -176,7 +176,7 @@ class HostedApplicationService {
      */
     public static function get_software( array $args = array() ) {
         $args['types']  = array( 'software' );
-        return self::get_apps( $args );
+        return static::get_apps( $args );
     }
 
     /**
@@ -201,7 +201,7 @@ class HostedApplicationService {
      * }
      */
     public static function search_apps( array $args = [] ) : array {
-        $db = smliser_db();
+        $db = static::$DB;
     
         $defaults = [
             'term'   => '',
@@ -219,8 +219,8 @@ class HostedApplicationService {
         $status = $args['status'];
         $types  = array_filter( (array) $args['types'] );
     
-        $key     = self::make_cache_key( __METHOD__, compact( 'term', 'page', 'limit', 'status', 'types' ) );
-        $results = self::cache_get( $key );
+        $key     = static::make_cache_key( __METHOD__, compact( 'term', 'page', 'limit', 'status', 'types' ) );
+        $results = static::cache_get( $key );
     
         if ( false === $results ) {
             if ( '' === $term ) {
@@ -237,7 +237,7 @@ class HostedApplicationService {
             $rows    = static::hydrate_rows( $rows );
             $results = static::make_paginated_result( data: $rows, page: $page, limit: $limit, total: $total );
     
-            self::cache_set( $key, $results, static::default_ttl() );
+            static::cache_set( $key, $results, static::default_ttl() );
         }
     
         return $results;
@@ -251,8 +251,8 @@ class HostedApplicationService {
      * @return AbstractHostedApp|null The instance of a hosted application or null on failure.
      */
     public static function get_app_by_slug( string $app_type, string $app_slug ) : AbstractHostedApp|null {
-        $key    = self::make_cache_key( __METHOD__, [$app_type, $app_slug] );
-        $app    = self::cache_get( $key );
+        $key    = static::make_cache_key( __METHOD__, [$app_type, $app_slug] );
+        $app    = static::cache_get( $key );
 
         if ( false === $app || ! ( $app instanceof AbstractHostedApp ) ) {
             $app_class  = HostedAppsRegistry::instance()->get_app_type_class( $app_type );
@@ -260,8 +260,8 @@ class HostedApplicationService {
             $app        = null;
 
             if ( $table && $app_class && class_exists( $app_class ) ) {
-                $db = \smliser_db();
-                $sql = static::query()
+                $db     = static::$DB;
+                $sql    = static::query()
                     ->select( '*' )
                     ->from( $table )
                     ->where( 'slug', '=', $app_slug )
@@ -275,7 +275,7 @@ class HostedApplicationService {
                 }
             }
 
-            self::cache_set( $key, $app, static::default_ttl() );
+            static::cache_set( $key, $app, static::default_ttl() );
         }
 
         return $app;
@@ -289,8 +289,8 @@ class HostedApplicationService {
      * @return AbstractHostedApp|null The instance of a hosted application or null on failure.
      */
     public static function get_app_by_id( $app_type, $id ) : AbstractHostedApp|null {
-        $key    = self::make_cache_key( __METHOD__, [$app_type, $id] );
-        $app    = self::cache_get( $key );
+        $key    = static::make_cache_key( __METHOD__, [$app_type, $id] );
+        $app    = static::cache_get( $key );
 
         if ( false === $app || ! ( $app instanceof AbstractHostedApp ) ) {
 
@@ -301,8 +301,8 @@ class HostedApplicationService {
             $app        = null;
 
             if ( $table && $app_class && class_exists( $app_class ) ) {
-                $db = \smliser_db();
-                $sql = static::query()
+                $db     = static::$DB;
+                $sql    = static::query()
                     ->select( '*' )
                     ->from( $table )
                     ->where( 'id', '=', $id )
@@ -316,7 +316,7 @@ class HostedApplicationService {
                 }
             }
 
-            self::cache_set( $key, $app, static::default_ttl() );
+            static::cache_set( $key, $app, static::default_ttl() );
         }
 
         
@@ -344,7 +344,7 @@ class HostedApplicationService {
      * }
      */
     public static function get_apps_for_owner( int $owner_id, array $args = [] ) : array {
-        $db = smliser_db();
+        $db = static::$DB;
     
         $defaults = [
             'page'   => 1,
@@ -360,8 +360,8 @@ class HostedApplicationService {
         $status   = $args['status'];
         $types    = array_filter( (array) $args['types'] );
     
-        $key     = self::make_cache_key( __METHOD__, compact( 'owner_id', 'page', 'limit', 'status', 'types' ) );
-        $results = self::cache_get( $key );
+        $key     = static::make_cache_key( __METHOD__, compact( 'owner_id', 'page', 'limit', 'status', 'types' ) );
+        $results = static::cache_get( $key );
     
         if ( false === $results ) {
             $sql_parts = static::build_type_queries(
@@ -378,7 +378,7 @@ class HostedApplicationService {
             $rows    = static::hydrate_rows( $rows );
             $results = static::make_paginated_result( $rows, $page, $limit, $total );
     
-            self::cache_set( $key, $results, static::default_ttl() );
+            static::cache_set( $key, $results, static::default_ttl() );
         }
     
         return $results;
@@ -403,9 +403,9 @@ class HostedApplicationService {
         $status = $args['status'];
         $types  = array_filter( (array) $args['types'] );
     
-        $key   = self::make_cache_key( __METHOD__, compact( 'status', 'types' ) );
+        $key   = static::make_cache_key( __METHOD__, compact( 'status', 'types' ) );
         /** @var int|false $count */
-        $count = self::cache_get( $key );
+        $count = static::cache_get( $key );
     
         if ( false === $count ) {
             $sql_parts = static::build_type_queries( $types, $status );
@@ -414,7 +414,7 @@ class HostedApplicationService {
                 return 0;
             }
     
-            $db = smliser_db();
+            $db = static::$DB;
     
             if ( 1 === count( $sql_parts ) ) {
                 $count_sql  = static::query()
@@ -429,7 +429,7 @@ class HostedApplicationService {
                 $count     = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
             }
     
-            self::cache_set( $key, $count, static::default_ttl() );
+            static::cache_set( $key, $count, static::default_ttl() );
         }
     
         return $count;
@@ -515,7 +515,7 @@ class HostedApplicationService {
      * Get the query builder instance.
      */
     protected static function query() : SQLBuilder {
-        return \smliserQueryBuilder();
+        return \smliserQueryBuilder( static::$DB->get_driver() );
     }
 
     /**
@@ -630,7 +630,7 @@ class HostedApplicationService {
     * @return array{ 0: array[], 1: int }        [ $rows, $total ]
     */
     private static function resolve_union_results( array $sql_parts, int $limit, int $offset, bool $use_window_fn ) : array {
-        $db = smliser_db();
+        $db = static::$DB;
     
         if ( 1 === count( $sql_parts ) ) {
             $data_sql = $sql_parts[0];

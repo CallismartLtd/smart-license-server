@@ -37,7 +37,7 @@ class RepositoryAnalytics extends DataStore {
      * @param string|null $type 'plugin'|'theme'|'software' or null for all types
      * @return int
      */
-    public static function get_total_downloads( ?string $type = null ) : int {
+    public function get_total_downloads( ?string $type = null ) : int {
         $sql    = static::query()
             ->select( 'COUNT(*)' )->from( SMLISER_ANALYTICS_LOGS_TABLE )
             ->where( 'event_type', '=', 'download' );
@@ -56,7 +56,7 @@ class RepositoryAnalytics extends DataStore {
      * @param string|null $type Optional app type filter
      * @return array<string,int> Array keyed by Y-m-d
      */
-    public static function get_downloads_per_day( int $days = 30, ?string $type = null ) : array {
+    public function get_downloads_per_day( int $days = 30, ?string $type = null ) : array {
         $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
 
         // Standardized explicit 'as' aliases to ensure your custom column normalizer functions flawlessly
@@ -100,7 +100,7 @@ class RepositoryAnalytics extends DataStore {
      * @param string|null $type Optional app type filter
      * @return int
      */
-    public static function get_total_client_accesses( int $days = 30, ?string $type = null ) : int {
+    public function get_total_client_accesses( int $days = 30, ?string $type = null ) : int {
 
         $date   = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
         $sql    = static::query()
@@ -122,7 +122,7 @@ class RepositoryAnalytics extends DataStore {
      * @param string|null $type Optional app type filter
      * @return array<string,int>
      */
-    public static function get_client_accesses_per_day( int $days = 30, ?string $type = null ) : array {
+    public function get_client_accesses_per_day( int $days = 30, ?string $type = null ) : array {
         $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
 
         $sql = static::query()
@@ -167,7 +167,7 @@ class RepositoryAnalytics extends DataStore {
      * @param string|null $type Optional app type filter
      * @return int
      */
-    public static function get_active_installations( int $days = 30, ?string $type = null ) : int {
+    public function get_active_installations( int $days = 30, ?string $type = null ) : int {
         $date = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
         
         $sql = static::query()
@@ -259,8 +259,8 @@ class RepositoryAnalytics extends DataStore {
      * @param int $days Number of days to include. Default 30.
      * @return array<string,array<string,int>> Format: [ 'Y-m-d' => [ 'activation' => 5, 'deactivation' => 2, ... ] ]
      */
-    public static function get_license_activity_per_day( int $days = 30 ) : array {
-        $logs = self::get_license_activity_logs();
+    public function get_license_activity_per_day( int $days = 30 ) : array {
+        $logs = $this->get_license_activity_logs();
         $aggregated = [];
         $cutoff = strtotime( "-{$days} days" );
 
@@ -289,7 +289,7 @@ class RepositoryAnalytics extends DataStore {
      * @param int $days Number of days for comparison
      * @return float Growth percentage (positive = increase, negative = decline)
      */
-    public static function get_license_event_growth_percentage( string $event_type, int $days = 30 ) : float {
+    public function get_license_event_growth_percentage( string $event_type, int $days = 30 ) : float {
         $per_day = self::get_license_activity_per_day( $days * 2 ); // include previous period
         $all_days = array_keys( $per_day );
 
@@ -320,7 +320,7 @@ class RepositoryAnalytics extends DataStore {
      * @param int $days Number of days to include
      * @return int Total count
      */
-    public static function get_license_event_total( string $event_type, int $days = 30 ) : int {
+    public function get_license_event_total( string $event_type, int $days = 30 ) : int {
         $per_day = self::get_license_activity_per_day( $days );
         $total = 0;
 
@@ -337,7 +337,7 @@ class RepositoryAnalytics extends DataStore {
      * @param string|null $type 'plugin'|'theme'|'software' or null for all types
      * @return int
      */
-    public static function get_total_apps( ?string $type = null ) : int {
+    public function get_total_apps( ?string $type = null ) : int {
         $total = 0;
 
         if ( $type ) {
@@ -372,7 +372,7 @@ class RepositoryAnalytics extends DataStore {
      * @param string|null $type Optional filter by app type
      * @return array<string,array<string,int>> [type][status] => count
      */
-    public static function get_apps_by_status( ?string $type = null ) : array {
+    public function get_apps_by_status( ?string $type = null ) : array {
         $status_counts  = [];
 
         if ( $type ) {
@@ -432,7 +432,7 @@ class RepositoryAnalytics extends DataStore {
      * @param string|null $type Optional app type filter
      * @return array<string,array<int,array<string,mixed>>> [type] => list of apps
      */
-    public static function get_top_apps( int $limit = 10, string $metric = 'downloads', ?string $type = null ) : array {
+    public function get_top_apps( int $limit = 10, string $metric = 'downloads', ?string $type = null ) : array {
 
         $sql    = static::query()
             ->select( 'app_slug', 'app_type', 'COUNT(*) as metric_total' )
@@ -468,7 +468,7 @@ class RepositoryAnalytics extends DataStore {
      * @param string|null $type Optional app type filter
      * @return array<string,array<string,array<string,mixed>>> [type][YYYY-MM] => ['count'=>int,'apps'=>array]
      */
-    public static function get_apps_maintained_by_month( int $months = 6, ?string $type = null ) : array {
+    public function get_apps_maintained_by_month( int $months = 6, ?string $type = null ) : array {
         $maintained = [];
 
         // Corrected time calculation mapping to your TimestampValue value object framework

@@ -53,7 +53,7 @@ $theme      = (string) $settings->get( UserSettings::DASHBOARD_THEME_NAME, 'auto
 $collapsed  = (bool) $settings->get( UserSettings::DASHBOARD_SIDEBAR_COLLAPSED_NAME, false );
 
 
-$current_slug   = $request->route_param( 'tab', 'overview' );
+$current_slug   = $request->route_param( 'page', 'overview' );
 $current_menu   = $registry->get( $current_slug );
 
 /*
@@ -78,7 +78,7 @@ $this->render( Shell::HEADER_TEMPLATE, [
 |    <nav class="dashboard-left-menu" ... </nav>
 |--------------------------------------------------
 */
-$submenu_slug       = $request->route_param( 'submenu' );
+$submenu_slug       = $request->route_param( 'tab' );
 $current_submenu    = null;
 
 if ( $submenu_slug ) {

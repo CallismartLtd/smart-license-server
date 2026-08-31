@@ -8,8 +8,10 @@
 
 namespace SmartLicenseServer\Cache;
 
+/**
+ * @property Cache $cache
+ */
 trait CacheAwareTrait {
-
     /**
      * Build a cache key scoped to the calling class.
      *
@@ -31,7 +33,8 @@ trait CacheAwareTrait {
      * @return mixed|null
      */
     protected static function cache_get( string $key ) {
-        return smliser_cache()->get( $key );
+        static::ensure_cache();
+        return static::$cache->get( $key );
     }
 
     /**
@@ -43,7 +46,8 @@ trait CacheAwareTrait {
      * @return bool
      */
     protected static function cache_set( string $key, $value, int $ttl = 0 ) : bool {
-        return smliser_cache()->set( $key, $value, $ttl );
+        static::ensure_cache();
+        return static::$cache->set( $key, $value, $ttl );
     }
 
     /**
@@ -53,7 +57,8 @@ trait CacheAwareTrait {
      * @return bool
      */
     protected static function cache_delete( string $key ) : bool {
-        return smliser_cache()->delete( $key );
+        static::ensure_cache();
+        return static::$cache->delete( $key );
     }
 
     /**
@@ -62,7 +67,8 @@ trait CacheAwareTrait {
      * @return bool
      */
     protected static function cache_clear() : bool {
-        return smliser_cache()->clear();
+        static::ensure_cache();
+        return static::$cache->clear();
     }
 
     /**
@@ -71,6 +77,17 @@ trait CacheAwareTrait {
      * @return int
      */
     protected static function default_ttl() : int {
-        return smliser_cache()->default_ttl();
+        static::ensure_cache();
+        return static::$cache->default_ttl();
+    }
+
+    protected static function ensure_cache() : void {
+        if ( isset( static::$cache ) ) {
+            return;
+        }
+
+        throw new \RuntimeException(
+            'The cache abstraction layer must be set early.'
+        );
     }
 }

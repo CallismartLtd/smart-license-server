@@ -10,16 +10,17 @@
  * @var string $type
  * @var string $type_title
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|unset $app
+ * @var \SmartLicenseServer\Admin\Handlers\RepositoryPage $repo_page
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
-use SmartLicenseServer\Admin\Handlers\RepositoryPage;
 use SmartLicenseServer\Utils\Format;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
 $max_upload_size    = Format::bytes( smliser_max_upload_size() );
-$args               = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null );
-$is_edit            = 'edit' === $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
+$args               = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
+$is_edit            = 'edit' === $request->get( 'tab' ) ?? $request->route_param( 'tab' );
 
 if ( ! isset( $app ) ) {
     unset(

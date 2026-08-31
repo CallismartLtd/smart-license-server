@@ -21,10 +21,12 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Licenses;
 
+use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
+use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Email\Templates\Licenses\LicenseExpiredEmail;
 use SmartLicenseServer\Monetization\License;
 
@@ -33,6 +35,11 @@ use SmartLicenseServer\Monetization\License;
  */
 class ExpireLicensesJob implements JobHandlerInterface {
     use QueueAwareTrait;
+
+    public function __construct(
+        protected Database $db,
+        protected Mailer $mailer
+    ) {}
 
     /*
     |--------------------------------------------
@@ -63,7 +70,6 @@ class ExpireLicensesJob implements JobHandlerInterface {
      */
     public function handle( array $payload = [] ): mixed {
         $batch_size = max( 1, (int) ( $payload['batch_size'] ?? 100 ) );
-        $db         = smliser_db();
         $table      = SMLISER_LICENSE_TABLE;
 
         $terminal_statuses = [
@@ -74,7 +80,7 @@ class ExpireLicensesJob implements JobHandlerInterface {
         ];
 
         $now    = gmdate( 'Y-m-d H:i:s' );
-        $sql    = \smliserQueryBuilder()
+        $sql    = \smliserQueryBuilder( $this->db->get_driver() )
             ->select( '*' )->from( $table )
             ->where( 'end_date', '<', $now )
             ->where_group( fn( SelectionIntent $q ) => $q
@@ -84,7 +90,7 @@ class ExpireLicensesJob implements JobHandlerInterface {
             )
             ->limit( $batch_size );
 
-        $rows   = $db->get_results( $sql->build(), $sql->get_bindings() );
+        $rows   = $this->db->get_results( $sql->build(), $sql->get_bindings() );
 
         $expired   = 0;
         $notified  = 0;
@@ -98,7 +104,7 @@ class ExpireLicensesJob implements JobHandlerInterface {
             $license = License::from_array( $row );
 
             // Update status in the database.
-            $updated = $db->update(
+            $updated = $this->db->update(
                 $table,
                 [
                     'status'     => License::STATUS_EXPIRED,
@@ -133,7 +139,7 @@ class ExpireLicensesJob implements JobHandlerInterface {
             }
 
             try {
-                smliser_mailer()->send( $message );
+                $this->mailer->send( $message );
                 $notified++;
             } catch ( \Throwable ) {
                 // Email failure must never abort license expiry processing.
