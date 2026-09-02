@@ -259,9 +259,11 @@ class AppUploader {
 
     /**
      * Handle main form AJAX submission.
+     * 
+     * @param {SubmitEvent} e
      */
     async _handleFormSubmit( e ) {
-        e.preventDefault();
+        e.preventDefault();        
 
         if ( ! e.submitter?.classList.contains( 'authoritatively' ) ) return;
 

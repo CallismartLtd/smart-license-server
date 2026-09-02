@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\Application\Routing;
 
+use SmartLicenseServer\Admin\ActionHandlers\AppManagement;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\AuthForms;
@@ -110,45 +111,43 @@ final class RouteManager {
      */
     public function registerCoreRoutes() : void {
         $this->router->any( '/', $this->defaultHomeHandler );
-        $urlmanager         = $this->container->get( URLManager::class );
-        $auth_controller    = $this->container->get( AuthController::class );
+        
+        $urlmanager = $this->container->get( URLManager::class );
 
         $this->router->group( $urlmanager->login_url_prefix(),
-            function() use ( $auth_controller ) {
-                $auth_forms         = $this->container->get( AuthForms::class );
-                
+            function() {                
                 $this->router->add(
                     methods: ['GET'],
                     pattern: '/',
-                    handler: [$auth_forms, 'render_login_form_shell'],
+                    handler: [AuthForms::class, 'render_login_form_shell'],
                 );
 
                 // Forms GET route.
                 $this->router->get(
                     pattern: 'form/login',
-                    handler: [$auth_forms, 'render_json_login_form']
+                    handler: [AuthForms::class, 'render_json_login_form']
                 );
                 $this->router->get(
                     pattern: 'form/signup',
-                    handler: [$auth_forms, 'render_json_signup_form']
+                    handler: [AuthForms::class, 'render_json_signup_form']
                 );
                 $this->router->get(
                     pattern: 'form/forgot-password',
-                    handler: [$auth_forms, 'render_json_forgot_password_form']
+                    handler: [AuthForms::class, 'render_json_forgot_password_form']
                 );
 
                 // Forms POST route.
                 $this->router->post(
                     pattern: 'form/login',
-                    handler: [$auth_controller, 'handle_login']
+                    handler: [AuthController::class, 'handle_login']
                 );
                 $this->router->post(
                     pattern: 'form/signup',
-                    handler: [$auth_controller, 'handle_signup']
+                    handler: [AuthController::class, 'handle_signup']
                 );
                 $this->router->post(
                     pattern: 'form/forgot-password',
-                    handler: [$auth_controller, 'handle_forgot_password']
+                    handler: [AuthController::class, 'handle_forgot_password']
                 );
             },
             middleware: []
@@ -156,7 +155,7 @@ final class RouteManager {
 
         $this->router->get(
             pattern: $urlmanager->logout_url_prefix(),
-            handler: [$auth_controller, 'handle_logout']
+            handler: [AuthController::class, 'handle_logout']
         );
 
         $this->router->group( $urlmanager->admin_url_prefix(),
@@ -178,6 +177,32 @@ final class RouteManager {
                 );
 
                 // POST, PUT, PATCH routes.
+                $this->router->group( 'admin-json', function() {
+                    $this->router->post(
+                        pattern: 'save-app',
+                        handler: [AppManagement::class, 'handle_save_app_request'],
+                        middleware: []
+                    );
+
+                    $this->router->add(
+                        pattern: 'upload-app-assets',
+                        methods: ['POST', 'PUT'],
+                        handler: [AppManagement::class, 'handle_app_asset_delete_request'],
+                        middleware: []
+                    );
+
+                    $this->router->delete(
+                        pattern: 'app-assets',
+                        handler: [AppManagement::class, 'handle_app_asset_delete_request'],
+                        middleware: []
+                    );
+
+                    $this->router->post(
+                        pattern: 'app-artifacts',
+                        handler: [AppManagement::class, 'handle_app_artifact_upload_request'],
+                        middleware: []
+                    );
+                });
                 
             },
 

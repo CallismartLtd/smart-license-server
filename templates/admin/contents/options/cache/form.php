@@ -39,13 +39,13 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
         <?php printf(
             smliser_not_found_container( 'The cache adapter "%s" does not exists. <a href="%s">Go Back</a>' ),
             $adapter_key,
-            $current_url->get_href()
+            $current_url->url()
         ); ?>
 
     <?php else: ?>
         <form action="" class="smliser-options-form">
-            <span> <a href="<?php echo escUrl( $current_url->get_href() ) ?>" class="smliser-btn"> <i class="ti ti-arrow-back"></i></a></span>
-            <input type="hidden" name="action"      value="smliser_save_cache_adapter_settings" />
+            <span> <a href="<?php echo escUrl( $current_url->url() ) ?>" class="smliser-btn"> <i class="ti ti-arrow-back"></i></a></span>
+            <input type="hidden" name="action" value="smliser_save_cache_adapter_settings" />
             <input type="hidden" name="adapter_id" value="<?php echo escAttr( $adapter_id ); ?>" />
 
             <div class="smliser-options-form_body">

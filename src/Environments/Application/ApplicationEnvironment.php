@@ -23,7 +23,6 @@ use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
 use SmartLicenseServer\Environments\Application\Routing\RouteManager;
 use SmartLicenseServer\FileSystem\FileSystem;
-use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
@@ -42,47 +41,23 @@ class ApplicationEnvironment extends Environment {
      * {@inheritdoc}
      */
     protected function registerDependencies() : void {
-        $this->container->singleton(
-            Request::class,
-            fn () : Request => Request::createFromGlobals()
-        );
+        if ( is_cli() ) {
+            $this->registerCLIDependencies();
+        } else {
+            $this->registerWebDependencies();
+        }
 
         $this->container->singleton( Guard::class, new Guard );
-
-        $this->container->set(
-            SessionManager::class, new SessionManager( $this->runtime->secret )
-        );
-        
-        $this->container->singleton(
-            IdentityService::class,
-            function( Container $container ) {
-                $provider   = is_cli()
-                    ? $container->get( ConsoleIdentityProvider::class )
-                    : $container->get( WebIdentityProvider::class );
-                return new IdentityService(
-                    $container->get( Guard::class ),
-                    $provider
-                );
-            }
-        );
-
         $this->container->alias( PasswordIdentityProviderInterface::class, IdentityService::class );
 
         $this->container->singleton(
             URLManager::class,
             fn ( Container $c ) : URLManager => new URLManager(
                 settings: $c->get( Settings::class ),
-                app_url: $this->url(),
-                admin_base_url: $this->url(),
-                assets_url: $this->url()->append_path( '/assets/' ),
+                app_url: url(),
+                admin_base_url: url(),
+                assets_url: url()->append_path( '/assets/' ),
                 request: $c->get( Request::class )
-            )
-        );
-
-        $this->container->singleton(
-            RestAPIProvider::class,
-            RestAPIProvider::init(
-                $this->container->get( V1::class )
             )
         );
 
@@ -168,11 +143,52 @@ class ApplicationEnvironment extends Environment {
     }
 
     /**
-     * {@inheritdoc}
+     * Register CLI Dependencies.
+     * 
+     * @return void
      */
-    protected function url() : URL {
-        $url = (string) ( $_ENV['SMLISER_APP_URL'] ?? '' );
+    protected function registerCLIDependencies() : void {
+        $this->container->singleton(
+            IdentityService::class,
+            function( Container $container ) {
+                return new IdentityService(
+                    $container->get( Guard::class ),
+                    $container->get( ConsoleIdentityProvider::class )
+                );
+            }
+        );
 
-        return URL::from( $url );
+    }
+
+    /**
+     * Register Web Dependencies.
+     * 
+     * @return void
+     */
+    protected function registerWebDependencies() : void {
+        $this->container->singleton(
+            Request::class, Request::createFromGlobals()
+        );
+
+        $this->container->set(
+            SessionManager::class, new SessionManager( $this->runtime->secret )
+        );
+
+        $this->container->singleton(
+            IdentityService::class,
+            function( Container $container ) {
+                return new IdentityService(
+                    $container->get( Guard::class ),
+                    $container->get( WebIdentityProvider::class )
+                );
+            }
+        );
+    
+        $this->container->singleton(
+            RestAPIProvider::class,
+            RestAPIProvider::init(
+                $this->container->get( V1::class )
+            )
+        );
     }
 }

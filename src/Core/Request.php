@@ -7,6 +7,7 @@
 
 namespace SmartLicenseServer\Core;
 
+use SmartLicenseServer\Core\Parsers\HttpRequestParser;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
@@ -214,25 +215,36 @@ class Request {
         
         $this->set_headers( empty( $headers ) ? $this->parse_default_headers() : $headers );
 
-        if ( ! $this->parsed_multipart ) {
-            $this->parsed_multipart = true;
-
-            $parser = new MultipartRequestParser( $this->method, $this->contentType(), $this->debug );
+        if ( in_array( $this->method(), [static::PATCH, static::PUT, static::DELETE], true ) ) {
             try {
-                $parser->populate_globals();
-            } catch ( \Exception ) {}
+                $parser = new HttpRequestParser(
+                    method: $this->method,
+                    content_type: $this->contentType(),
+                    upload_tmp_prefix: SMLISER_UPLOAD_TMP_PREFIX,
+                    debug: $this->debug,
+                );
+
+                $result = $parser->parse();
+                $this->parse_post( $result['post'] );
+                $this->parse_uploaded_files( $result['files'] );
+            } catch ( \Exception ) {
+                $this->parse_post();
+                $this->parse_uploaded_files();
+            }
+        } else {
+            $this->parse_post();
+            $this->parse_uploaded_files();
         }
-
+        
         $this->parse_query();
-        $this->parse_post();
-
+ 
         if ( ! empty( $params ) ) {
             $this->set_params( $params );
         } else {
             $this->build_merged_params();
         }
 
-        $this->parse_uploaded_files();
+        // $this->parse_uploaded_files();
     }
 
     /**
@@ -1085,24 +1097,30 @@ class Request {
     */
 
     /**
-     * Populate query parameters from superglobals.
+     * Populate query parameters, pulls from superglobals when null is passed.
+     * 
+     * @param array|null $query_params
      */
-    protected function parse_query(): void {
-        $this->query = $_GET;
+    protected function parse_query( ?array $query_params = null ): void {
+        $this->query = $query_params ?? $_GET;
     }
 
     /**
-     * Populate post parameters from superglobals.
+     * Populate post parameters, pulls from superglobals when null is passed.
+     * 
+     * @param array|null $post_data
      */
-    protected function parse_post(): void {
-        $this->post = $_POST;
+    protected function parse_post( ?array $post_data = null ): void {
+        $this->post = $post_data ?? $_POST;
     }
 
     /**
-     * Populate cookie parameters from superglobals.
+     * Populate cookie parameters, pulls from superglobals when null is passed.
+     * 
+     * @param ?array $cookies
      */
-    protected function parse_cookies(): void {
-        $this->cookies = $_COOKIE;
+    protected function parse_cookies( ?array $cookies = null ): void {
+        $this->cookies = $cookies ?? $_COOKIE;
     }
 
     /**
@@ -1201,9 +1219,14 @@ class Request {
 
     /**
      * Parse and normalize uploaded files into collections.
+     * 
+     * @param ?array $files
      */
-    public function parse_uploaded_files(): void {
-        foreach ( $_FILES as $key => $_ ) {
+    public function parse_uploaded_files( ?array $files = null ): void {
+        $files  = $files ?? $_FILES;
+
+        \dd( $files );
+        foreach ( $files as $key => $_ ) {
             $this->files[ $key ] = UploadedFileCollection::from_files( $key );
         }
     }

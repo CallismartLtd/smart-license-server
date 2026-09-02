@@ -543,7 +543,7 @@ class HostingController {
             static::check_app_ownership( $app );
 
             $registry   = HostedAppsRegistry::instance();
-            $repo_class  = $registry->get_app_type_directory_class( $app_type );
+            $repo_class = $registry->get_app_type_directory_class( $app_type );
 
             if ( ! $repo_class ) {
                 throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.', array( 'status' => 500 ) );

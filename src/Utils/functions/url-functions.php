@@ -7,7 +7,6 @@ use Callismart\Http\Exceptions\HttpRequestException;
 use Callismart\Http\HttpClient;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\FileRequestException;
-use SmartLicenseServer\FileSystem\FileSystemHelper;
 
 /**
  * Get the web application URL.
