@@ -8,7 +8,7 @@
  * @var string|null $default_provider
  * @var array<int, array> $email_fields
  * @var \SmartLicenseServer\Core\Request $request
- * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\OptionsPage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  * @var \SmartLicenseServer\Email\EmailProviderIcons $icons_provider
  */

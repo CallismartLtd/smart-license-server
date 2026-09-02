@@ -3,14 +3,14 @@
  * Application upload page.
  * 
  * @author Callistus Nwachukwu
- * @see \SmartLicenseServer\Admin\Handlers\RepositoryPage::upload_page()
- * @see \SmartLicenseServer\Admin\Handlers\RepositoryPage::edit_page()
+ * @see \SmartLicenseServer\Admin\ContentHandlers\RepositoryPage::upload_page()
+ * @see \SmartLicenseServer\Admin\ContentHandlers\RepositoryPage::edit_page()
  * @var \SmartLicenseServer\Core\Request $request
  * @var array $essential_fields
  * @var string $type
  * @var string $type_title
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|unset $app
- * @var \SmartLicenseServer\Admin\Handlers\RepositoryPage $repo_page
+ * @var \SmartLicenseServer\Admin\ContentHandlers\RepositoryPage $repo_page
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 

@@ -9,7 +9,7 @@
  * @var SmartLicenseServer\Core\URL $add_url
  * @var SmartLicenseServer\Core\URL $current_url
  * @var array $pagination
- * @var \SmartLicenseServer\Admin\Handlers\LicensePage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\LicensePage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 

@@ -3,10 +3,10 @@
  * Access control dashboard template.
  *
  * @author Callistus Nwachukwu
- * @see \SmartLicenseServer\Admin\Handlers\AccessControlPage
+ * @see \SmartLicenseServer\Admin\ContentHandlers\AccessControlPage
  * @var \SmartLicenseServer\Security\Owner[] $owners
  * @var \SmartLicenseServer\Core\Request $request
- * @var \SmartLicenseServer\Admin\Handlers\AccessControlPage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\AccessControlPage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 

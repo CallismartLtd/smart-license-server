@@ -6,7 +6,7 @@
  * @package Smliser\class
  */
 
-namespace SmartLicenseServer\Admin\Handlers;
+namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\AppsAnalytics;
@@ -32,7 +32,8 @@ class RepositoryPage implements AdminPageInterface {
     public function __construct(
         protected TemplateLocator $locator,
         protected MonetizationRegistry $monetization_registry,
-        protected URLManager $urlmanager
+        protected URLManager $urlmanager,
+        protected AppsAnalytics $apps_analytics
     ) {}
 
     /**
@@ -762,14 +763,14 @@ class RepositoryPage implements AdminPageInterface {
     private function build_analytics_html( AbstractHostedApp $app ) {
 
         // Downloads.
-        $downloads_daily   = AppsAnalytics::get_downloads_per_day( $app, 30 );
+        $downloads_daily   = $this->apps_analytics->get_downloads_per_day( $app, 30 );
         ksort( $downloads_daily );
 
         $download_days     = array_keys( $downloads_daily );
         $download_values   = array_values( $downloads_daily );
 
         // Client access.
-        $access_daily      = AppsAnalytics::get_client_access_per_day( $app, 30 );
+        $access_daily      = $this->apps_analytics->get_client_access_per_day( $app, 30 );
         ksort( $access_daily );
 
         $access_days       = array_keys( $access_daily );
@@ -778,22 +779,22 @@ class RepositoryPage implements AdminPageInterface {
         // Aggregate KPIs.
         $analytics = array(
             'downloads' => array(
-                'total'        => AppsAnalytics::get_total_downloads( $app ),
-                'today'        => AppsAnalytics::get_todays_downloads( $app ),
-                'average'      => AppsAnalytics::get_average_daily_downloads( $app, 30 ),
-                'growth'       => AppsAnalytics::get_download_growth_percentage( $app, 30 ),
-                'peak_day'     => AppsAnalytics::get_peak_download_day( $app, 365 ),
+                'total'        => $this->apps_analytics->get_total_downloads( $app ),
+                'today'        => $this->apps_analytics->get_todays_downloads( $app ),
+                'average'      => $this->apps_analytics->get_average_daily_downloads( $app, 30 ),
+                'growth'       => $this->apps_analytics->get_download_growth_percentage( $app, 30 ),
+                'peak_day'     => $this->apps_analytics->get_peak_download_day( $app, 365 ),
                 'timeline'     => array(
                     'days'   => $download_days,
                     'values' => $download_values,
                 ),
             ),
             'client_access' => array(
-                'total'        => AppsAnalytics::get_total_client_accesses( $app ),
-                'average'      => AppsAnalytics::get_average_daily_client_accesses( $app, 30 ),
-                'growth'       => AppsAnalytics::get_client_access_growth_percentage( $app, 30 ),
-                'peak_day'     => AppsAnalytics::get_peak_client_access_day( $app, 365 ),
-                'active_installs' => AppsAnalytics::get_estimated_active_installations( $app, 30 ),
+                'total'        => $this->apps_analytics->get_total_client_accesses( $app ),
+                'average'      => $this->apps_analytics->get_average_daily_client_accesses( $app, 30 ),
+                'growth'       => $this->apps_analytics->get_client_access_growth_percentage( $app, 30 ),
+                'peak_day'     => $this->apps_analytics->get_peak_client_access_day( $app, 365 ),
+                'active_installs' => $this->apps_analytics->get_estimated_active_installations( $app, 30 ),
                 'timeline'     => array(
                     'days'   => $access_days,
                     'values' => $access_values,

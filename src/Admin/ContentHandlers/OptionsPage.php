@@ -9,7 +9,7 @@
 
 declare( strict_types = 1 );
 
-namespace SmartLicenseServer\Admin\Handlers;
+namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Cache\Cache;
@@ -623,7 +623,7 @@ class OptionsPage implements AdminPageInterface {
      * @return array<string, mixed>
      */
     public function get_menu_args( Request $request ): array {
-        $tab         = $request->get( 'tab' ) ?? $request->route_param( 'submenu' );
+        $tab         = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
         $section     = $request->get( 'section' );
 
         $title = match ( true ) {

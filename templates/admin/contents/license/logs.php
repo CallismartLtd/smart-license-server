@@ -8,7 +8,7 @@
  * @package Smliser\templates
  * @var array{0: int, 1: array{license_id: int, event_type: string, ip_address: string, user_agent: string, website: string, comment: string, duration: string, created_at: int}} $logs
  * @var \SmartLicenseServer\Core\Request $request
- * @var \SmartLicenseServer\Admin\Handlers\LicensePage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\LicensePage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  * @var int $log_duration
  */

@@ -10,7 +10,7 @@
  * @var array $schema
  * @var array $saved_settings
  * @var class-string<\SmartLicenseServer\Email\Providers\EmailProviderInterface>|null $provider
- * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\OptionsPage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  * @package SmartLicenseServer\templates
  * @since   0.2.0

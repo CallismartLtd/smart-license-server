@@ -705,7 +705,7 @@ button:hover:not( :disabled ),
 }
 
 .dashboard-menu-toggle span,
-.dashboard-mobile-menu-toggle i {
+.dashboard-mobile-menu-toggle span {
 	display: block;
 	width: 18px;
 	height: 2px;

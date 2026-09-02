@@ -6,7 +6,7 @@
  * @package Smliser\templates
  * @since 0.2.0
  * @var \SmartLicenseServer\Core\Request $request
- * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\OptionsPage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 

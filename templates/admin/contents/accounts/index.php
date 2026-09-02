@@ -5,11 +5,11 @@
  * Renders a complete summary of accounts & access data.
  *
  * @author Callistus Nwachukwu
- * @see \SmartLicenseServer\Admin\Handlers\AccessControlPage
+ * @see \SmartLicenseServer\Admin\ContentHandlers\AccessControlPage
  * @var array $account_summaries Array result of
  * @var SmartLicenseServer\Core\Request $request
  * @see SmartLicenseServer\Security\Context\ContextServiceProvider::get_accounts_summary_report()
- * @var \SmartLicenseServer\Admin\Handlers\AccessControlPage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\AccessControlPage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 

@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\Admin
  */
 
-namespace SmartLicenseServer\Admin\Handlers;
+namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;

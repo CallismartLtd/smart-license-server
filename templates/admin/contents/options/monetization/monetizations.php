@@ -4,16 +4,16 @@
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicensseServer\templates
- * @see \SmartLicenseServer\Admin\Handlers\OptionsPage::provider_settings()
+ * @see \SmartLicenseServer\Admin\ContentHandlers\OptionsPage::provider_settings()
  * 
- * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $this
+ * @var \SmartLicenseServer\Admin\ContentHandlers\OptionsPage $this
  * @var string $id The provider id.
  * @var SmartLicenseServer\Core\Request $request The current request instance.
  * @var array $settings The provider settings fields.
  * @var string $name The provider name.
  * @var array $provider The provider details.
  * @var string $provider_key
- * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\OptionsPage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 

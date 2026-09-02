@@ -6,7 +6,7 @@
  * @package Smliser\class
  */
 
-namespace SmartLicenseServer\Admin\Handlers;
+namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Core\Request;

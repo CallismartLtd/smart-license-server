@@ -5,7 +5,7 @@
  * @var \SmartLicenseServer\Core\Request $request
  * @var int $license_id
  * @var array $form_fields
- * @var \SmartLicenseServer\Admin\Handlers\LicensePage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\LicensePage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 

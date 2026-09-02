@@ -12,9 +12,7 @@ namespace SmartLicenseServer\Environments\Application\Routing;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\AuthForms;
-use SmartLicenseServer\ClientDashboard\TemplateHandlers\ForgotPassword;
-use SmartLicenseServer\ClientDashboard\TemplateHandlers\Login;
-use SmartLicenseServer\ClientDashboard\TemplateHandlers\Signup;
+use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URLManager;
@@ -57,12 +55,7 @@ final class RouteManager {
 
 	public function __construct(
         protected CoreRouter $router,
-        protected Guard $guard,
-        protected AuthController $auth_controller,
-        protected AuthForms $auth_forms,
-        protected AdminDispatcher $admin_dispatcher,
-        protected AdminAccessMiddleware $admin_access_middleware,
-        protected URLManager $urlmanager
+        protected Container $container
 
     ) {}
 
@@ -73,15 +66,6 @@ final class RouteManager {
 	public function router(): CoreRouter {
 		return $this->router;
 	}
-
-    /**
-     * Register default page handlers.
-     */
-    public function registerDefaultPages() : void {
-        $this->notFound( [DefaultPage::class, 'not_found'] );
-        $this->methodNotAllowed( [DefaultPage::class, 'method_not_allowed'] );
-        $this->homeHandler( [DefaultPage::class, 'home'] );
-    }
 
 	/**
 	 * Registers a RESTVersionInterface provider's routes onto the underlying core Router.
@@ -126,67 +110,71 @@ final class RouteManager {
      */
     public function registerCoreRoutes() : void {
         $this->router->any( '/', $this->defaultHomeHandler );
+        $urlmanager         = $this->container->get( URLManager::class );
+        $auth_controller    = $this->container->get( AuthController::class );
 
-        $this->router->group( $this->urlmanager->login_url_prefix(),
-            function() {
+        $this->router->group( $urlmanager->login_url_prefix(),
+            function() use ( $auth_controller ) {
+                $auth_forms         = $this->container->get( AuthForms::class );
+                
                 $this->router->add(
                     methods: ['GET'],
                     pattern: '/',
-                    handler: [$this->auth_forms, 'render_login_form_shell'],
+                    handler: [$auth_forms, 'render_login_form_shell'],
                 );
 
                 // Forms GET route.
                 $this->router->get(
                     pattern: 'form/login',
-                    handler: [$this->auth_forms, 'render_json_login_form']
+                    handler: [$auth_forms, 'render_json_login_form']
                 );
                 $this->router->get(
                     pattern: 'form/signup',
-                    handler: [$this->auth_forms, 'render_json_signup_form']
+                    handler: [$auth_forms, 'render_json_signup_form']
                 );
                 $this->router->get(
                     pattern: 'form/forgot-password',
-                    handler: [$this->auth_forms, 'render_json_forgot_password_form']
+                    handler: [$auth_forms, 'render_json_forgot_password_form']
                 );
 
                 // Forms POST route.
                 $this->router->post(
                     pattern: 'form/login',
-                    handler: [$this->auth_controller, 'handle_login']
+                    handler: [$auth_controller, 'handle_login']
                 );
                 $this->router->post(
                     pattern: 'form/signup',
-                    handler: [$this->auth_controller, 'handle_signup']
+                    handler: [$auth_controller, 'handle_signup']
                 );
                 $this->router->post(
                     pattern: 'form/forgot-password',
-                    handler: [$this->auth_controller, 'handle_forgot_password']
+                    handler: [$auth_controller, 'handle_forgot_password']
                 );
             },
             middleware: []
         );
 
         $this->router->get(
-            pattern: $this->urlmanager->logout_url_prefix(),
-            handler: [$this->auth_controller, 'handle_logout']
+            pattern: $urlmanager->logout_url_prefix(),
+            handler: [$auth_controller, 'handle_logout']
         );
 
-        $this->router->group( $this->urlmanager->admin_url_prefix(),
+        $this->router->group( $urlmanager->admin_url_prefix(),
             function() {
                 // Main pages and and submenu routes.
                 $this->router->get(
                     pattern: '/',
-                    handler: [$this->admin_dispatcher, 'render_admin_dashboard']
+                    handler: [AdminDispatcher::class, 'render_admin_dashboard']
                 );
 
                 $this->router->get(
                     pattern: '/{page:slug}',
-                    handler: [$this->admin_dispatcher, 'render_admin_dashboard']
+                    handler: [AdminDispatcher::class, 'render_admin_dashboard']
                 );
 
                 $this->router->get(
                     pattern: '/{page:slug}/{tab:slug}',
-                    handler: [$this->admin_dispatcher, 'render_admin_dashboard']
+                    handler: [AdminDispatcher::class, 'render_admin_dashboard']
                 );
 
                 // POST, PUT, PATCH routes.
@@ -194,7 +182,7 @@ final class RouteManager {
             },
 
             middleware: [
-                $this->admin_access_middleware
+                AdminAccessMiddleware::class
             ]
         );
         
@@ -277,10 +265,10 @@ final class RouteManager {
 
 		$response = match ( $result->status ) {
 			DispatchStatus::Found       => MiddlewarePipeline::run(
+                $this->container,
 				$result->middleware,
 				$result->handler,
 				$request,
-                $this->guard
 			),
 			DispatchStatus::NotFound    => null !== $this->notFoundHandler
 				? ( $this->notFoundHandler )( $request )

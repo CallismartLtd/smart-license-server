@@ -7,9 +7,11 @@
 declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Routing;
+
+use InvalidArgumentException;
+use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Environments\Application\Middlewares\MiddlewareInterface;
-use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Executes a middleware stack around a final route handler.
@@ -23,9 +25,15 @@ use SmartLicenseServer\Security\Context\Guard;
  * middleware receives the current request and a callable representing the
  * next step in the pipeline. The final step invokes the route handler.
  *
- * @package SmartLicenseServer\Environments\Application\Routing
+ * @package SmartLicenseServer
  */
 final class MiddlewarePipeline {
+	/**
+	 * The DI container.
+	 * 
+	 * @var Container $container
+	 */
+	private Container $container;
 
 	/**
 	 * @var callable[]
@@ -37,33 +45,39 @@ final class MiddlewarePipeline {
 	 */
 	private $handler;
 
-	protected Guard $guard;
-
 	/**
 	 * Constructor.
 	 *
-	 * @param array<int,mixed> $middleware
-	 * @param callable         $handler
+	 * @param Container         $container
+	 * @param array<int,mixed>  $middleware
+	 * @param mixed             $handler
 	 */
-	private function __construct( array $middleware, callable $handler, Guard $guard ) {
+	private function __construct( Container $container, array $middleware, mixed $handler ) {
+		$this->container	= $container;
+		
 		foreach ( $middleware as $item ) {
 			$this->middleware[] = $this->resolveMiddleware( $item );
 		}
 
-		$this->handler	= $handler;
-		$this->guard	= $guard;
+		$this->handler	= $this->resolveCallable( $handler );
 	}
 
 	/**
 	 * Run a middleware pipeline.
 	 *
+	 * @param Container        $container
 	 * @param array<int,mixed> $middleware
-	 * @param callable         $handler
-	 * @param Request           $request
+	 * @param mixed            $handler
+	 * @param Request          $request
 	 * @return mixed
 	 */
-	public static function run( array $middleware, callable $handler, Request $request, Guard $guard ): mixed {
-		return ( new self( $middleware, $handler, $guard ) )->dispatch( $request );
+	public static function run(
+		Container $container,
+		array $middleware,
+		mixed $handler,
+		Request $request
+	): mixed {
+		return ( new self( $container, $middleware, $handler ) )->dispatch( $request );
 	}
 
 	/**
@@ -72,7 +86,7 @@ final class MiddlewarePipeline {
 	 * @param Request $request
 	 * @return mixed
 	 */
-	public function dispatch( Request $request ): mixed {
+	private function dispatch( Request $request ): mixed {
 		return $this->handleStep( 0, $request );
 	}
 
@@ -100,25 +114,141 @@ final class MiddlewarePipeline {
 	 *
 	 * @param mixed $middleware
 	 * @return callable
+	 * @throws InvalidArgumentException
 	 */
 	private function resolveMiddleware( mixed $middleware ): callable {
+		$resolved = $middleware;
+
 		if ( is_string( $middleware ) && class_exists( $middleware ) ) {
-			$middleware = new $middleware();
+			$resolved = $this->container->get( $middleware );
 		}
 
-		if ( $middleware instanceof MiddlewareInterface ) {
-			return [ $middleware, 'handle' ];
+		if ( $resolved instanceof MiddlewareInterface ) {
+			return [ $resolved, 'handle' ];
 		}
 
-		if ( is_callable( $middleware ) ) {
-			return $middleware;
+		if ( is_callable( $resolved ) ) {
+			return $resolved;
 		}
 
-		throw new \InvalidArgumentException(
-			sprintf(
-				'Middleware must implement MiddlewareInterface, be callable, or be an invokable class name. Given: %s',
-				get_debug_type( $middleware )
-			)
+		// Fall back to the general resolver for "Class@method", "Class::method",
+		// array notation, etc. — operates on the original, unmutated input.
+		return $this->resolveCallable( $middleware );
+	}
+
+	/**
+	 * Resolve a mixed data type to an executable callable.
+	 *
+	 * @param mixed $data
+	 * @return callable
+	 * @throws InvalidArgumentException
+	 */
+	private function resolveCallable( mixed $data ): callable {
+		// Direct callable check (Closures, functions, valid array [$obj, 'method'], etc.).
+		if ( is_callable( $data ) ) {
+			return $data;
+		}
+
+		// String representation of "Class@method" or "Class::method".
+		if ( is_string( $data ) ) {
+			if ( str_contains( $data, '@' ) ) {
+				[ $class, $method ] = explode( '@', $data, 2 );
+				return $this->resolveInstanceMethod( $class, $method );
+			}
+
+			if ( str_contains( $data, '::' ) ) {
+				[ $class, $method ] = explode( '::', $data, 2 );
+				return $this->resolveStaticMethod( $class, $method );
+			}
+
+			// Invokable class name (e.g., 'App\Handlers\MyHandler')
+			if ( class_exists( $data ) ) {
+				return $this->resolveInstanceMethod( $data, '__invoke' );
+			}
+		}
+
+		// Array notation with class string: ['Class', 'method'].
+		if ( is_array( $data ) && count( $data ) === 2 ) {
+			[ $class, $method ] = $data;
+			if ( is_string( $class ) && class_exists( $class ) ) {
+				return $this->resolveInstanceMethod( $class, $method );
+			}
+		}
+
+		// Object implementing __invoke.
+		if ( is_object( $data ) && method_exists( $data, '__invoke' ) ) {
+			return $data;
+		}
+
+		throw new InvalidArgumentException(
+			sprintf( 'Unable to resolve supplied data of type [%s] to a valid callable.', get_debug_type( $data ) )
 		);
+	}
+
+	/**
+	 * Resolve a class/method pair to a callable via the container, verifying
+	 * the method exists and is actually callable on the resolved instance.
+	 *
+	 * @param string $class
+	 * @param string $method
+	 * @return callable
+	 * @throws InvalidArgumentException
+	 */
+	private function resolveInstanceMethod( string $class, string $method ): callable {
+		if ( ! class_exists( $class ) ) {
+			throw new InvalidArgumentException(
+				sprintf( 'Class [%s] does not exist.', $class )
+			);
+		}
+
+		if ( ! method_exists( $class, $method ) ) {
+			throw new InvalidArgumentException(
+				sprintf( 'Method [%s] does not exist on class [%s].', $method, $class )
+			);
+		}
+
+		$instance = $this->container->get( $class );
+		$callable = [ $instance, $method ];
+
+		if ( ! is_callable( $callable ) ) {
+			throw new InvalidArgumentException(
+				sprintf( 'Method [%s] on class [%s] is not callable.', $method, $class )
+			);
+		}
+
+		return $callable;
+	}
+
+	/**
+	 * Resolve a class/method pair to a static callable, verifying the
+	 * method exists and is actually callable.
+	 *
+	 * @param string $class
+	 * @param string $method
+	 * @return callable
+	 * @throws InvalidArgumentException
+	 */
+	private function resolveStaticMethod( string $class, string $method ): callable {
+		if ( ! class_exists( $class ) ) {
+			throw new InvalidArgumentException(
+				sprintf( 'Class [%s] does not exist.', $class )
+			);
+		}
+
+		if ( ! method_exists( $class, $method ) ) {
+			throw new InvalidArgumentException(
+				sprintf( 'Method [%s] does not exist on class [%s].', $method, $class )
+			);
+		}
+
+		$callable = [ $class, $method ];
+
+		if ( ! is_callable( $callable ) ) {
+			throw new InvalidArgumentException(
+				sprintf( 'Method [%s] on class [%s] is not callable (must be static).', $method, $class )
+			);
+		}
+
+		return $callable;
 	}
 }

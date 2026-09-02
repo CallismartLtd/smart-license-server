@@ -13,7 +13,7 @@
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $app
  */
 
-use SmartLicenseServer\Admin\Handlers\RepositoryPage;
+use SmartLicenseServer\Admin\ContentHandlers\RepositoryPage;
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
 

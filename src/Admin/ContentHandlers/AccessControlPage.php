@@ -6,7 +6,7 @@
  * @package Smliser\class
  */
 
-namespace SmartLicenseServer\Admin\Handlers;
+namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Core\Collection;
@@ -37,8 +37,8 @@ class AccessControlPage implements AdminPageInterface {
      * @return bool
      */
     private function sub_router( Request $request ) : bool {
-        $submenu     = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
-        $section = $request->get( 'section' );
+        $submenu    = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
+        $section    = $request->get( 'section' );
 
         $routes = [
             'users' => [

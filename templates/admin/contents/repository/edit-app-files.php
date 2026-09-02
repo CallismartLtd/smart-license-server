@@ -4,8 +4,8 @@
  * 
  * @author Callistus Nwachukwu
  * 
- * @see \SmartLicenseServer\Admin\Handlers\RepositoryPage::upload_page()
- * @see \SmartLicenseServer\Admin\Handlers\RepositoryPage::edit_page()
+ * @see \SmartLicenseServer\Admin\ContentHandlers\RepositoryPage::upload_page()
+ * @see \SmartLicenseServer\Admin\ContentHandlers\RepositoryPage::edit_page()
  * @var \SmartLicenseServer\Core\Request $request
  * @var array $essential_fields
  * @var string $type
@@ -14,7 +14,7 @@
  * @var array{slug: string, path: string, size: int, mtime: int, mime_type: string|null, filename: string}[] $app_files
  */
 
-use SmartLicenseServer\Admin\Handlers\RepositoryPage;
+use SmartLicenseServer\Admin\ContentHandlers\RepositoryPage;
 use SmartLicenseServer\Utils\Format;
 
 $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null );

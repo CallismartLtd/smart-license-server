@@ -8,12 +8,12 @@
 namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
-use SmartLicenseServer\Admin\Handlers\AccessControlPage;
-use SmartLicenseServer\Admin\Handlers\BulkMessagePage;
-use SmartLicenseServer\Admin\Handlers\DashboardPage;
-use SmartLicenseServer\Admin\Handlers\LicensePage;
-use SmartLicenseServer\Admin\Handlers\OptionsPage;
-use SmartLicenseServer\Admin\Handlers\RepositoryPage;
+use SmartLicenseServer\Admin\ContentHandlers\AccessControlPage;
+use SmartLicenseServer\Admin\ContentHandlers\BulkMessagePage;
+use SmartLicenseServer\Admin\ContentHandlers\DashboardPage;
+use SmartLicenseServer\Admin\ContentHandlers\LicensePage;
+use SmartLicenseServer\Admin\ContentHandlers\OptionsPage;
+use SmartLicenseServer\Admin\ContentHandlers\RepositoryPage;
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\URLManager;

@@ -9,7 +9,7 @@
  *   @var bool                                   $is_supported — adapter is_supported()
  *   @var \SmartLicenseServer\Core\Request $request
  *   @var \SmartLicenseServer\Core\URLManager $urlmanager
- *   @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ *   @var \SmartLicenseServer\Admin\ContentHandlers\OptionsPage $page_handler
  *   @var \SmartLicenseServer\Cache\CacheProviderIcons $cache_provider_icons
  * @package SmartLicenseServer\templates
  * @since   0.2.0

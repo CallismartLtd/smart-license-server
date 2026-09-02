@@ -11,7 +11,7 @@
  * @var string $licensee
  * @var \SmartLicenseServer\Core\Request $request
  */
-namespace SmartLicenseServer\Admin\Handlers;
+namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\URL;

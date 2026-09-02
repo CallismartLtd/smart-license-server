@@ -3,7 +3,7 @@
  * Access control form page template.
  *
  * @author Callistus Nwachukwu
- * @see \SmartLicenseServer\Admin\Handlers\AccessControlPage
+ * @see \SmartLicenseServer\Admin\ContentHandlers\AccessControlPage
  * @var string $title
  * @var array $form_fields
  * @var \SmartLicenseServer\Core\URL $avatar_url
@@ -11,7 +11,7 @@
  * @var array $role
  * @var SmartLicenseServer\Security\OwnerSubjects\Organization $organization
  * @var \SmartLicenseServer\Core\Request $request
- * @var \SmartLicenseServer\Admin\Handlers\AccessControlPage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\AccessControlPage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 

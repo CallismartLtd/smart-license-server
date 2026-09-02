@@ -14,7 +14,7 @@
  * @var object $adapter
  * @var string $adapter_key
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
- * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\OptionsPage $page_handler
  * @var \SmartLicenseServer\SettingsAPI\Settings $settings
  */
 

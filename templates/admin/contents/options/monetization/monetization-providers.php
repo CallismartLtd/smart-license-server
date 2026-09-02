@@ -6,7 +6,7 @@
  * @package SmartLicenseServer\templates
  * @var \SmartLicenseServer\Core\Request $request
  * @var array<int|string, \SmartLicenseServer\Contracts\ServiceProviderInterface> $providers
- * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\Admin\ContentHandlers\OptionsPage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
