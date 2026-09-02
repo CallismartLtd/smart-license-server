@@ -14,6 +14,7 @@ namespace SmartLicenseServer\Admin\Handlers;
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
+use SmartLicenseServer\Cache\CacheProviderIcons;
 use SmartLicenseServer\Contracts\URLManagerInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
@@ -35,7 +36,8 @@ class OptionsPage implements AdminPageInterface {
         protected Cache $cache,
         protected Settings $settings,
         protected URLManager $urlmanager,
-        protected EmailProviderIcons $icons_provider
+        protected EmailProviderIcons $email_icons_provider,
+        protected CacheProviderIcons $cache_provider_icons
     ) {}
 
     /*
@@ -76,9 +78,8 @@ class OptionsPage implements AdminPageInterface {
         $providers = $this->monetization_registry->all();
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
-        $icons_provider = $this->icons_provider;
         $vars           = compact(
-            'request', 'urlmanager', 'page_handler', 'providers', 'icons_provider'
+            'request', 'urlmanager', 'page_handler', 'providers',
         );
 
         $this->locator->render( 'admin.contents.options.monetization.monetization-providers', $vars );   
@@ -141,7 +142,7 @@ class OptionsPage implements AdminPageInterface {
 
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
-        $icons_provider = $this->icons_provider;
+        $icons_provider = $this->email_icons_provider;
         
         $vars   = compact( 'registry', 'request', 'email_fields', 'providers', 'default_provider',
             'urlmanager', 'page_handler', 'icons_provider'
@@ -162,7 +163,7 @@ class OptionsPage implements AdminPageInterface {
             return;
         }
 
-        $templates = EmailTemplateRegistry::all();
+        $templates      = EmailTemplateRegistry::all();
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
         $vars           = compact( 'request', 'templates', 'urlmanager', 'page_handler' );
@@ -246,7 +247,13 @@ class OptionsPage implements AdminPageInterface {
         $providers          = $cache_registry->all( true, true );
         $default_provider   = CacheAdapterRegistry::get_default_adapter_id();
 
-        $vars   = compact( 'request', 'cache_registry', 'providers', 'default_provider' );
+        $page_handler           = $this;
+        $urlmanager             = $this->urlmanager;
+        $cache_provider_icons   = $this->cache_provider_icons;
+        $vars   = compact( 'page_handler', 'urlmanager', 'request', 'cache_registry', 'providers',
+            'default_provider', 'cache_provider_icons'
+        );
+
         $this->locator->render( 'admin.contents.options.cache.index', $vars );
     }
 
@@ -258,13 +265,17 @@ class OptionsPage implements AdminPageInterface {
      * connection on network-backed adapters such as Memcached or Redis).
      */
     private function cache_stats( Request $request ): void {
-        $cache        = $this->cache;
-        $stats        = $cache->get_stats();
-        $adapter_id   = $cache->get_id();
-        $adapter_name = $cache->get_name();
-        $is_supported = $cache->is_supported();
-
-        $vars   = compact( 'request', 'cache', 'stats', 'adapter_id', 'adapter_name', 'is_supported' );
+        $cache                  = $this->cache;
+        $stats                  = $cache->get_stats();
+        $adapter_id             = $cache->get_id();
+        $adapter_name           = $cache->get_name();
+        $is_supported           = $cache->is_supported();
+        $page_handler           = $this;
+        $urlmanager             = $this->urlmanager;
+        $cache_provider_icons   = $this->cache_provider_icons;
+        $vars   = compact( 'request', 'cache', 'stats', 'adapter_id', 'adapter_name',
+            'is_supported', 'page_handler', 'urlmanager', 'cache_provider_icons'
+        );
         $this->locator->render( 'admin.contents.options.cache.stats', $vars );
     }
 
@@ -287,8 +298,11 @@ class OptionsPage implements AdminPageInterface {
             $saved_settings[ $key ] = CacheAdapterRegistry::get_option( $adapter_id, $key );
         }
 
+        $page_handler   = $this;
+        $urlmanager     = $this->urlmanager;
+        $settings       = $this->settings;
         $vars   = compact( 'request', 'adapter', 'adapter_name', 'adapter_key', 'schema', 
-        'is_default', 'adapter_id', 'saved_settings' );
+        'is_default', 'adapter_id', 'saved_settings', 'page_handler', 'urlmanager', 'settings' );
         $this->locator->render( 'admin.contents.options.cache.form', $vars );
     }
 
@@ -529,6 +543,19 @@ class OptionsPage implements AdminPageInterface {
     public function get_routing_fields(): array {
         return [
             [
+                'label' => 'Admin URL Prefix',
+                'help'  => 'The URL segment that appears before the admin url. For example: https://example.com/smliser-admin/',
+                'input' => [
+                    'type'  => 'text',
+                    'name'  => URLManagerInterface::ADMIN_URL_PREFIX_KEY,
+                    'value' => $this->urlmanager->admin_url_prefix(),
+                    'attr'  => [
+                        'autocomplete' => 'off',
+                        'spellcheck'   => 'off',
+                    ],
+                ],
+            ],
+            [
                 'label' => 'Client Dashboard URL Prefix',
                 'help'  => 'The URL segment that appears before the client dashboard page. For example: https://example.com/dashboard/',
                 'input' => [
@@ -568,6 +595,19 @@ class OptionsPage implements AdminPageInterface {
                     ],
                 ],
             ],
+            [
+                'label' => 'Authentication URL prefix',
+                'help'  => 'The URL segment the appears before authentication pages. For example https://example.com/auth',
+                'input' => [
+                    'type'  => 'text',
+                    'name'  => URLManagerInterface::LOGIN_URL_PREFIX_KEY,
+                    'value' => $this->urlmanager->login_url_prefix(),
+                    'attr'  => [
+                        'autocomplete'  => 'off',
+                        'spellcheck'    => 'off'
+                    ]
+                ]
+            ]
         ];
     }
 

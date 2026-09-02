@@ -36,6 +36,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Email\Templates;
 
 use SmartLicenseServer\Email\EmailMessage;
+use SmartLicenseServer\SettingsAPI\Settings;
 
 abstract class EmailTemplate {
 
@@ -336,7 +337,7 @@ abstract class EmailTemplate {
      * @return array<string, string> Token => resolved value map.
      */
     protected function variables(): array {
-        $settings = smliser_settings();
+        $settings = Settings::instance();
 
         return [
             '{{app_name}}'      => (string) $settings->get( 'repository_name', SMLISER_APP_NAME, true ),
@@ -945,7 +946,7 @@ abstract class EmailTemplate {
      * @return string|null Stored custom HTML, or null if none exists.
      */
     protected function resolve_custom_template(): ?string {
-        $stored = smliser_settings()->get(
+        $stored = Settings::instance()->get(
             'email_template_' . static::template_key(),
             null,
             true
@@ -970,7 +971,7 @@ abstract class EmailTemplate {
      * @return bool         True on success, false on failure.
      */
     public function save_custom_template( string $html ): bool {
-        return smliser_settings()->set(
+        return Settings::instance()->set(
             'email_template_' . static::template_key(),
             $html,
             true
@@ -987,7 +988,7 @@ abstract class EmailTemplate {
      * @return bool True on success, false on failure.
      */
     public function reset_to_default(): bool {
-        return smliser_settings()->delete(
+        return Settings::instance()->delete(
             'email_template_' . static::template_key(),
             true
         );
@@ -1017,7 +1018,7 @@ abstract class EmailTemplate {
      * @return bool True if enabled (default), false if explicitly disabled.
      */
     public function is_enabled(): bool {
-        $stored = smliser_settings()->get(
+        $stored = Settings::instance()->get(
             'email_enabled_' . static::template_key(),
             null,
             true
@@ -1035,7 +1036,7 @@ abstract class EmailTemplate {
      * @return bool True on success, false on failure.
      */
     public function enable(): bool {
-        return smliser_settings()->set(
+        return Settings::instance()->set(
             'email_enabled_' . static::template_key(),
             1,
             true
@@ -1053,7 +1054,7 @@ abstract class EmailTemplate {
      * @return bool True on success, false on failure.
      */
     public function disable(): bool {
-        return smliser_settings()->set(
+        return Settings::instance()->set(
             'email_enabled_' . static::template_key(),
             0,
             true

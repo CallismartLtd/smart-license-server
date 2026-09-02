@@ -40,6 +40,7 @@ namespace SmartLicenseServer\Background\Queue;
  *   }
  */
 trait QueueAwareTrait {
+    protected JobQueue $job_queue;
 
     /**
      * Dispatch a job onto the default queue.
@@ -49,7 +50,7 @@ trait QueueAwareTrait {
      * @return JobDTO                         The persisted envelope with its ID set.
      */
     protected function dispatch_job( string $job_class, array $payload = [] ): JobDTO {
-        return smliser_job_queue()->dispatch(
+        return $this->job_queue->dispatch(
             JobDTO::make( job_class: $job_class, payload: $payload )
         );
     }
@@ -63,7 +64,7 @@ trait QueueAwareTrait {
      * @return JobDTO                         The persisted envelope with its ID set.
      */
     protected function dispatch_job_on_queue( string $job_class, array $payload = [], string $queue = JobDTO::QUEUE_DEFAULT ): JobDTO {
-        return smliser_job_queue()->dispatch(
+        return $this->job_queue->dispatch(
             JobDTO::make( job_class: $job_class, payload: $payload, queue: $queue )
         );
     }
@@ -77,7 +78,7 @@ trait QueueAwareTrait {
      * @return JobDTO                         The persisted envelope with its ID set.
      */
     protected function dispatch_job_delayed( string $job_class, array $payload = [], int $delay = 60 ): JobDTO {
-        return smliser_job_queue()->dispatch(
+        return $this->job_queue->dispatch(
             JobDTO::make( job_class: $job_class, payload: $payload, delay: $delay )
         );
     }

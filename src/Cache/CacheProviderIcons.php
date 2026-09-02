@@ -13,6 +13,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Cache;
 
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 class CacheProviderIcons {
@@ -24,7 +25,20 @@ class CacheProviderIcons {
      *
      * @var array<string, string>
      */
-    protected static array $custom = [];
+    protected array $custom = [];
+
+    protected array $core_icons = [
+        'apcu'          => 'images/cache-adapters/apcu-cache.svg',
+        'redis'         => 'images/cache-adapters/redis-cache.svg',
+        'memcached'     => 'images/cache-adapters/memcached.svg',
+        'sqlitecache'   => 'images/cache-adapters/sqlite-cache.svg',
+        'runtime'       => 'images/cache-adapters/runtime-cache.svg',
+        'wpcache'       => 'images/cache-adapters/wp-cache.svg',
+    ];
+
+    public function __construct(
+        protected URLManager $urlmanager
+    ) {}
 
     /**
      * Register an icon for a third-party provider.
@@ -36,7 +50,7 @@ class CacheProviderIcons {
      * @param string $icon  Asset URL or CSS class string.
      * @return void
      */
-    public static function register( string $provider_id, string $icon ): void {
+    public function register( string $provider_id, string $icon ): void {
         static::$custom[ $provider_id ] = $icon;
     }
 
@@ -49,15 +63,16 @@ class CacheProviderIcons {
      * @param  string $provider_id
      * @return string
      */
-    public static function get( string $provider_id ): string {
-        $built_in = static::built_in();
-
+    public function get( string $provider_id ): string {
         // Built-ins take precedence.
-        if ( isset( $built_in[ $provider_id ] ) ) {
-            return \assetsUrl( $built_in[ $provider_id ] )->url();
+        if ( isset( $this->core_icons[ $provider_id ] ) ) {
+            return $this->urlmanager
+                ->assets_url( $this->core_icons[ $provider_id ] )
+                ->url();
         }
 
-        return static::$custom[ $provider_id ] ?? '';
+        return $this->urlmanager
+            ->assets_url( $this->custom[ $provider_id ] )->url() ?? '';
     }
 
     /**
@@ -70,7 +85,7 @@ class CacheProviderIcons {
      * @param  string $alt  Alt text for img tags. Defaults to provider ID.
      * @return string
      */
-    public static function render( string $provider_id, string $alt = '' ): string {
+    public function render( string $provider_id, string $alt = '' ): string {
         $icon = static::get( $provider_id );
         $alt  = $alt !== '' ? $alt : $provider_id;
 
@@ -87,27 +102,5 @@ class CacheProviderIcons {
             static::sanitize_text( $icon ),
             static::sanitize_text( $alt )
         );
-    }
-
-    /**
-     * Built-in provider icon map.
-     *
-     * @return array<string, string>
-     */
-    protected static function built_in(): array {
-        static $map = null;
-
-        if ( $map === null ) {
-            $map = [
-                'apcu'          => 'images/cache-adapters/apcu-cache.svg',
-                'redis'         => 'images/cache-adapters/redis-cache.svg',
-                'memcached'     => 'images/cache-adapters/memcached.svg',
-                'sqlitecache'   => 'images/cache-adapters/sqlite-cache.svg',
-                'runtime'       => 'images/cache-adapters/runtime-cache.svg',
-                'wpcache'       => 'images/cache-adapters/wp-cache.svg',
-            ];
-        }
-
-        return $map;
     }
 }

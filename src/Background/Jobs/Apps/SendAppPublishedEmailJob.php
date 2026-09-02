@@ -22,6 +22,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Background\Jobs\Apps;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
+use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Email\Templates\Apps\AppPublishedEmail;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
@@ -30,6 +31,10 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
  */
 class SendAppPublishedEmailJob implements JobHandlerInterface {
     use OwnerEmailResolverTrait;
+
+    public function __construct(
+        protected Mailer $mailer
+    ) {}
 
     public static function get_job_name(): string {
         return 'send_app_published_email';
@@ -50,8 +55,8 @@ class SendAppPublishedEmailJob implements JobHandlerInterface {
         $app_type = (string) $payload['app_type'] ?? '';
         $app_slug = (string) $payload['app_slug'] ?? '';
 
-        $sent    = 0;
-        $skipped = 0;
+        $sent       = 0;
+        $skipped    = 0;
 
         $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
@@ -74,7 +79,7 @@ class SendAppPublishedEmailJob implements JobHandlerInterface {
             }
 
             try {
-                smliser_mailer()->send( $message );
+                $this->mailer->send( $message );
                 $sent++;
             } catch ( \Throwable ) {
                 $skipped++;

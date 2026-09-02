@@ -8,18 +8,20 @@
  *   @var string                                 $adapter_name — active adapter display name
  *   @var bool                                   $is_supported — adapter is_supported()
  *   @var \SmartLicenseServer\Core\Request $request
+ *   @var \SmartLicenseServer\Core\URLManager $urlmanager
+ *   @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ *   @var \SmartLicenseServer\Cache\CacheProviderIcons $cache_provider_icons
  * @package SmartLicenseServer\templates
  * @since   0.2.0
  */
 
-use SmartLicenseServer\Admin\Handlers\OptionsPage;
 use SmartLicenseServer\Cache\CacheProviderIcons;
 use SmartLicenseServer\Cache\CacheStats;
 use SmartLicenseServer\Utils\Format;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$menu_args = OptionsPage::get_menu_args( $request );
+$menu_args = $page_handler->get_menu_args( $request );
 
 $extra          = $stats->get( 'extra', [] );
 $hits           = (int) $stats->get( CacheStats::KEY_HITS, 0 );
@@ -61,7 +63,7 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
         <div class="smlcd-header">
             <div class="smlcd-header__identity">
                 <span class="smlcd-header__icon">
-                    <?php echo CacheProviderIcons::render( $adapter_id, $adapter_name ); ?>
+                    <?php echo $cache_provider_icons->render( $adapter_id, $adapter_name ); ?>
                 </span>
                 <div>
                     <h2 class="smlcd-header__name"><?php echo escHtml( $adapter_name ); ?></h2>

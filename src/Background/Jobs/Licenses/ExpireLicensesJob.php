@@ -24,7 +24,6 @@ namespace SmartLicenseServer\Background\Jobs\Licenses;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
-use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Email\Templates\Licenses\LicenseExpiredEmail;

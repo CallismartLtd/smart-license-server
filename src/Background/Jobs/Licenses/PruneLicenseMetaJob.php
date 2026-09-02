@@ -23,7 +23,6 @@ namespace SmartLicenseServer\Background\Jobs\Licenses;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
-use SmartLicenseServer\Email\Mailer;
 
 /**
  * Removes orphaned rows from the license meta table.

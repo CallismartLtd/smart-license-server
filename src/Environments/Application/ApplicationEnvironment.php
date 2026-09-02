@@ -103,6 +103,10 @@ class ApplicationEnvironment extends Environment {
             $this->container->get( Cache::class )
         );
 
+        DataStore::set_urlmanager(
+            $this->container->get( URLManager::class )
+        );
+
         // Bootup the filesystem API.
         $this->container->get( FileSystem::class );
 

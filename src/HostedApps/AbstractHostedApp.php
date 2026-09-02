@@ -1271,8 +1271,9 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
         if ( $url->is_valid() ) {
             $this->download_link = $url->sanitize();
         } else {
-            $slug   = basename( $this->get_slug(), '.zip' );
-            $this->download_link = \smliser_get_app_download_url( $this->get_type(), $slug );            
+            $this->download_link = static::$urlmanager->app_downloads_url(
+                $this->get_type(), $this->get_slug() 
+            );            
         }
 
         return $this;
@@ -1291,7 +1292,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
      * @param string $filename
      */
     public function get_artifact_url( string $filename ) : URL {
-        return \smliser_get_app_artifact_url( $this->get_type(), $this->get_slug(), $filename );
+        return static::$urlmanager->app_artifact_download_url( $this->get_type(), $this->get_slug(), $filename );
     }
 
     /**
@@ -1310,7 +1311,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
         $slug               = basename( $this->get_slug(), '.zip' );
         $type               = $this->get_type();
         
-        return \smliser_get_app_url( $type, $slug );
+        return static::$urlmanager->app_repository_url( $type, $slug );
     }
 
     /*
@@ -1369,18 +1370,18 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
      * @return static
      */
     public static function from_array_minimal( array $row ): static {
-        $self = new static();
+        $static = new static();
 
-        $self->set_id( $row['id'] ?? 0 );
-        $self->set_name( $row['name'] ?? '' );
-        $self->set_slug( $row['slug'] ?? '' );
-        $self->set_author( $row['author'] ?? '' );
-        $self->set_status( $row['status'] ?? self::STATUS_ACTIVE );
-        $self->set_download_url( (string) ($row['download_link'] ?? '') );
-        $self->set_created_at( $row['created_at'] ?? '' );
-        $self->set_updated_at( $row['updated_at'] ?? '' );
+        $static->set_id( $row['id'] ?? 0 );
+        $static->set_name( $row['name'] ?? '' );
+        $static->set_slug( $row['slug'] ?? '' );
+        $static->set_author( $row['author'] ?? '' );
+        $static->set_status( $row['status'] ?? static::STATUS_ACTIVE );
+        $static->set_download_url( (string) ( $row['download_link'] ?? '' ) );
+        $static->set_created_at( $row['created_at'] ?? '' );
+        $static->set_updated_at( $row['updated_at'] ?? '' );
 
-        return $self;
+        return $static;
     }
     /*
     |------------------------

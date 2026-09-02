@@ -16,6 +16,7 @@ use SmartLicenseServer\Background\Jobs\Licenses\NotifyExpiringLicensesJob;
 use SmartLicenseServer\Background\Jobs\Licenses\PruneLicenseMetaJob;
 use SmartLicenseServer\Background\Jobs\Monetization\CleanExpiredTokensJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
+use SmartLicenseServer\Background\Queue\JobQueue;
 
 /**
  * Core background schedule.
@@ -23,11 +24,15 @@ use SmartLicenseServer\Background\Queue\JobDTO;
  * Registers all core automated tasks.
  */
 final class CoreSchedules {
+    public function __construct(
+        protected JobQueue $job_queue
+    ) {}
+
     /**
      * Callback to prune analytics log entry weekly.
      */
-    public static function pruneAnalyticsJob() : void {
-        smliser_job_queue()->dispatch(
+    public function pruneAnalyticsJob() : void {
+        $this->job_queue->dispatch(
             JobDTO::make(
                 job_class : PruneAnalyticsLogsJob::class,
                 payload   : [],
@@ -39,8 +44,8 @@ final class CoreSchedules {
     /**
      * Callback to prune license activity log entry nightly.
      */
-    public static function pruneLicenseActivityJob() : void {
-        smliser_job_queue()->dispatch(
+    public function pruneLicenseActivityJob() : void {
+        $this->job_queue->dispatch(
             JobDTO::make(
                 job_class : PruneLicenseActivityLogsJob::class,
                 payload   : [],
@@ -52,8 +57,8 @@ final class CoreSchedules {
     /**
      * Callback to mark licenses that has past end date as expired and notify licensees.
      */
-    public static function markExpiredLicenses() : void {
-        smliser_job_queue()->dispatch(
+    public function markExpiredLicenses() : void {
+        $this->job_queue->dispatch(
             JobDTO::make(
                 job_class : ExpireLicensesJob::class,
                 payload   : [ 'batch_size' => 100 ],
@@ -65,8 +70,8 @@ final class CoreSchedules {
     /**
      * Send 7-day expiry reminder to licensees.
      */
-    public static function sendExpiringLicense7Days() : void {
-        smliser_job_queue()->dispatch(
+    public function sendExpiringLicense7Days() : void {
+        $this->job_queue->dispatch(
             JobDTO::make(
                 job_class : NotifyExpiringLicensesJob::class,
                 payload   : [ 'days_before' => 7, 'batch_size' => 100 ],
@@ -78,8 +83,8 @@ final class CoreSchedules {
     /**
      * Send 3-day expiry reminder to licensees.
      */
-    public static function sendExpiringLicense3Days() : void {
-        smliser_job_queue()->dispatch(
+    public function sendExpiringLicense3Days() : void {
+        $this->job_queue->dispatch(
             JobDTO::make(
                 job_class : NotifyExpiringLicensesJob::class,
                 payload   : [ 'days_before' => 3, 'batch_size' => 100 ],
@@ -91,8 +96,8 @@ final class CoreSchedules {
     /**
      * Prune orphaned license meta rows weekly.
      */
-    public static function pruneOphanedLicenseMeta() : void {
-        smliser_job_queue()->dispatch(
+    public function pruneOphanedLicenseMeta() : void {
+        $this->job_queue->dispatch(
             JobDTO::make(
                 job_class : PruneLicenseMetaJob::class,
                 payload   : [],
@@ -104,8 +109,8 @@ final class CoreSchedules {
     /**
      * Clean expired download tokens every 4 hours.
      */
-    public static function pruneExpiredDownloadtoken() : void {
-        smliser_job_queue()->dispatch(
+    public function pruneExpiredDownloadtoken() : void {
+        $this->job_queue->dispatch(
             JobDTO::make(
                 job_class : CleanExpiredTokensJob::class,
                 payload   : [],
@@ -117,8 +122,8 @@ final class CoreSchedules {
     /**
      * Permanently delete trashed apps older than 30 days — weekly.
      */
-    public static function deleteTrashedApps() : void {
-        smliser_job_queue()->dispatch(
+    public function deleteTrashedApps() : void {
+        $this->job_queue->dispatch(
             JobDTO::make(
                 job_class : CleanTrashedAppsJob::class,
                 payload   : [ 'days_in_trash' => 30, 'batch_size' => 50 ],
@@ -130,15 +135,15 @@ final class CoreSchedules {
     /**
      * Release stale running jobs every 15 minutes.
      */
-    public static function releaseStaleJobs() : void {
-        smliser_job_queue()->release_stale_running_jobs();
+    public function releaseStaleJobs() : void {
+        $this->job_queue->release_stale_running_jobs();
     }
 
     /**
      * Purge completed jobs older than 7 days, nightly.
      */
-    public static function purgeCompletedJobs() : void {
-        smliser_job_queue()->purge_completed_jobs( 7 );
+    public function purgeCompletedJobs() : void {
+        $this->job_queue->purge_completed_jobs( 7 );
     }
 
 

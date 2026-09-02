@@ -13,13 +13,14 @@
  * @var bool $is_default
  * @var object $adapter
  * @var string $adapter_key
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\SettingsAPI\Settings $settings
  */
-
-use SmartLicenseServer\Admin\Handlers\OptionsPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$menu_args = OptionsPage::get_menu_args( $request );
+$menu_args = $page_handler->get_menu_args( $request );
 $current_label  = end( $menu_args['breadcrumbs'] )['label'];
 $menu_args['breadcrumbs'][1]  = array(
     'label' => $current_label,
@@ -54,7 +55,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     'input' => array(
                         'type'  => 'number',
                         'name'  => 'default_cache_ttl',
-                        'value' => smliser_settings()->get( 'default_cache_ttl', 0, true ),
+                        'value' => $settings->get( 'default_cache_ttl', 0, true ),
                         'attr'  => array(
                             'min'   => 0
                         )

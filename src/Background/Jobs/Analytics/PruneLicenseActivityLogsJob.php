@@ -18,6 +18,7 @@ namespace SmartLicenseServer\Background\Jobs\Analytics;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Core\Dates\TimestampValue;
+use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
  * Prunes license activity log entries older than the configured
@@ -27,6 +28,11 @@ use SmartLicenseServer\Core\Dates\TimestampValue;
  * get_license_activity_logs() should be removed so reads are clean.
  */
 class PruneLicenseActivityLogsJob implements JobHandlerInterface {
+
+    public function __construct(
+        protected Settings $settings,
+        protected RepositoryAnalytics $repository_analytics
+    ) {}
 
     /*
     |----------------------
@@ -44,13 +50,13 @@ class PruneLicenseActivityLogsJob implements JobHandlerInterface {
      * @return int Number of log entries pruned.
      */
     public function handle( array $payload = [] ): mixed {
-        $logs   = RepositoryAnalytics::get_license_activity_logs();
+        $logs   = $this->repository_analytics->get_license_activity_logs();
 
         if ( empty( $logs ) || ! is_array( $logs ) ) {
             return 0;
         }
 
-        $default_retention  = (int) \smliser_settings()->get( 'log_retention_days', 30, true );
+        $default_retention  = (int) $this->settings->get( 'log_retention_days', 30, true );
         $retention_days     = (int) ( $payload['retention_days'] ?? $default_retention );
         $pruned             = 0;
 
@@ -64,7 +70,7 @@ class PruneLicenseActivityLogsJob implements JobHandlerInterface {
         }
 
         if ( $pruned > 0 ) {
-            smliser_settings()->set(
+            $this->settings->set(
                 RepositoryAnalytics::LICENSE_ACTIVITY_KEY,
                 $logs,
                 true

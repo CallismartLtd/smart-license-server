@@ -22,7 +22,7 @@ use SmartLicenseServer\Core\Response;
 interface RequestDispatcherInterface {
 
     /**
-     * Parse public request to download a hoted app main zip file.
+     * Parse public request to download a hosted app main zip file.
      *
      * @param  Request $request
      * @return Response

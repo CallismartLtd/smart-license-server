@@ -12,6 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Background\Jobs\Accounts;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
+use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Email\Templates\Accounts\AdminNewUserNotificationEmail;
 use SmartLicenseServer\Email\Templates\Accounts\WelcomeEmail;
 use SmartLicenseServer\Security\Actors\User;
@@ -20,6 +21,9 @@ use SmartLicenseServer\Security\Actors\User;
  * Asynchronously sends welcome emails to new users.
  */
 class SignupEmailJob implements JobHandlerInterface {
+    public function __construct(
+        protected Mailer $mailer
+    ) {}
     /*
     |----------------------
     | JobHandlerInterface
@@ -71,7 +75,7 @@ class SignupEmailJob implements JobHandlerInterface {
             );
         }
         
-        $response       = \smliser_mailer()->send( $welcome_email->to_message() );
+        $response       = $this->mailer->send( $welcome_email->to_message() );
 
         return $response->to_array();
     }

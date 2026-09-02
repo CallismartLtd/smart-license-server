@@ -55,15 +55,6 @@ final class AssetsManager {
 	 */
 	const CATEGORY_GLOBAL = 'global';
 
-
-	/**
-	 * The singleton instance.
-	 *
-	 * @var self|null
-	 */
-	private static ?self $instance = null;
-
-
 	/**
 	 * Registered CSS assets.
 	 *

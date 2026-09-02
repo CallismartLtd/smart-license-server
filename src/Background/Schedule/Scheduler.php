@@ -18,7 +18,6 @@ namespace SmartLicenseServer\Background\Schedule;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\SettingsAPI\Settings;
 use DateTimeImmutable;
-use RuntimeException;
 use SmartLicenseServer\Background\Jobs\Analytics\PruneAnalyticsLogsJob;
 use SmartLicenseServer\Background\Jobs\Analytics\PruneLicenseActivityLogsJob;
 use SmartLicenseServer\Background\Queue\JobQueue;
@@ -37,13 +36,6 @@ class Scheduler {
     | SINGLETON
     |----------------------
     */
-
-    /**
-     * Singleton instance.
-     *
-     * @var static|null
-     */
-    protected static ?self $instance = null;
 
     /*
     |----------------------

@@ -33,6 +33,8 @@ abstract class DataStore {
 
     protected static Cache $cache;
 
+    protected static URLManager $urlmanager;
+
     /**
      * Get a single entity by an arbitrary column.
      * 
@@ -101,6 +103,16 @@ abstract class DataStore {
         }
 
         static::$cache = $cache;
+    }
+
+    final public static function set_urlmanager( URLManager $urlmanager ) : void {
+        if ( isset( static::$urlmanager ) ) {
+            throw new RuntimeException(
+                'The url manager has already been initialized.'
+            );
+        }
+
+        static::$urlmanager = $urlmanager;
     }
 
     /**

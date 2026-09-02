@@ -11,14 +11,15 @@
  * @package SmartLicenseServer\templates
  * @since   0.2.0
  * @var \SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var \SmartLicenseServer\Admin\Handlers\OptionsPage $page_handler
+ * @var \SmartLicenseServer\Cache\CacheProviderIcons $cache_provider_icons
  */
 
-use SmartLicenseServer\Admin\Handlers\OptionsPage;
-use SmartLicenseServer\Cache\CacheProviderIcons;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$menu_args = OptionsPage::get_menu_args( $request );
+$menu_args = $page_handler->get_menu_args( $request );
 
 $current_url = smliser_get_current_url()->remove_query_param( 'message', 'section', 'provider' );
 ?>
@@ -42,7 +43,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                 <div class="smliser-provider-card <?php echo escAttr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
 
                     <div class="smliser-provider-card__icon-wrap">
-                        <?php echo CacheProviderIcons::render( $provider_id, $provider::get_name() ); ?>
+                        <?php echo $cache_provider_icons->render( $provider_id, $provider::get_name() ); ?>
                     </div>
 
                     <div class="smliser-provider-card__body">

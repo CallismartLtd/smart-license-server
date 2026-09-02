@@ -12,6 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Background\Jobs\Accounts;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
+use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Email\Templates\Accounts\PasswordResetEmail;
 use SmartLicenseServer\Security\Actors\User;
 
@@ -19,6 +20,9 @@ use SmartLicenseServer\Security\Actors\User;
  * Asynchronously sends password reset emails.
  */
 class PasswordResetJob implements JobHandlerInterface {
+    public function __construct(
+        protected Mailer $mailer
+    ) {}
 
     /*
     |----------------------
@@ -68,7 +72,7 @@ class PasswordResetJob implements JobHandlerInterface {
             $user_agent
         );
 
-        $response   = \smliser_mailer()->send( $reset_email->to_message() );
+        $response   = $this->mailer->send( $reset_email->to_message() );
 
         return $response->to_array();
     }

@@ -22,6 +22,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Background\Jobs\Apps;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
+use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Email\Templates\Apps\AppUpdatedEmail;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
@@ -30,6 +31,10 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
  */
 class SendAppUpdatedEmailJob implements JobHandlerInterface {
     use OwnerEmailResolverTrait;
+
+    public function __construct(
+        protected Mailer $mailer
+    ) {}
 
     public static function get_job_name(): string {
         return 'send_app_updated_email';
@@ -72,7 +77,7 @@ class SendAppUpdatedEmailJob implements JobHandlerInterface {
             }
 
             try {
-                smliser_mailer()->send( $message );
+                $this->mailer->send( $message );
                 $sent++;
             } catch ( \Throwable ) {
                 $skipped++;

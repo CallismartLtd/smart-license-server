@@ -148,8 +148,8 @@ class PasswordResetEmail extends EmailTemplate {
             'preview@example.com', 
             'https://example.com/reset?token=xxxx', 
             30,
-            smliser_get_client_ip(),
-            \smliser_get_user_agent()
+            '192.168.1.50',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
         );
     }
 
