@@ -1225,7 +1225,6 @@ class Request {
     public function parse_uploaded_files( ?array $files = null ): void {
         $files  = $files ?? $_FILES;
 
-        \dd( $files );
         foreach ( $files as $key => $_ ) {
             $this->files[ $key ] = UploadedFileCollection::from_files( $key );
         }
