@@ -154,7 +154,7 @@ class AppUploader {
             this._validateZipSubmit( e, fileInput );
         });
 
-        this.appUploaderForm.addEventListener( 'submit', ( e ) => this._handleFormSubmit( e ) );
+        this.appUploaderForm.addEventListener( 'submit', this._handleFormSubmit.bind(this) );
 
         this._initDragAndDrop( dropZone, fileInput, fileInfo, originalText );
     }
@@ -207,9 +207,14 @@ class AppUploader {
 
     /**
      * Validate ZIP form before submission.
+     * 
+     * @param {MouseEvent} e
+     * @param {HTMLInputElement} fileInput
      */
     _validateZipSubmit( e, fileInput ) {
-        if ( this.queryParam.get( 'tab' ) === 'add-new' && fileInput.files.length === 0 ) {
+        const app_id  = e.target.closest( 'form' )?.querySelector( 'input[name="app_id"]' )?.value;
+
+        if ( !app_id && fileInput.files.length === 0 ) {
             e.preventDefault();
             const appType = StringUtils.ucfirst( this.queryParam.get( 'type' ) );
             SmliserToast.show( `A ${ appType } file is required.`, 5000 );
@@ -279,16 +284,23 @@ class AppUploader {
             payLoad.set( 'app_json_file', jsonFile );
         }
 
-        const spinner = showSpinner( '.smliser-spinner', true );
+        const slug      = e.target.dataset.slug;
+        const spinner   = showSpinner( '.smliser-spinner', true );
 
         try {
-            const response = await fetch( smliser_var.ajaxURL, {
+            let url = new URL( smliser_var.ajaxURL );
+
+            if ( slug ) {
+                url.pathname += `/${slug}/`; 
+            }            
+            
+            const response  = await fetch( url, {
                 method      : 'POST',
                 credentials : 'same-origin',
                 headers: {
                     'Accept': 'application/json'
                 },
-                body        : payLoad,
+                body : payLoad,
             });
 
             const data = await this._parseResponse( response );
@@ -1206,9 +1218,9 @@ class AppUploader {
     openArtifactModal( config = {isNew: true, filename: '' } ) {             
 
         if ( ! this.artifactModal ) {
-            const modalBody = document.createElement( 'form' );
+            const modalBody     = document.createElement( 'form' );
             modalBody.className = 'smliser-artifact-form';
-            modalBody.id = Date.now().toString();
+            modalBody.id        = Date.now().toString();
             modalBody.innerHTML = `
                 <label for="artifact-name" class="smliser-form-label-row">
                     <span class="smliser-form-label">Artifact File Name: <i class="smliser-form-description ti ti-question-mark" title="This artifact file name will be sanitized and the uploaded file extension will be appended to it. e.g. &quot;my artifact.zip&quot; will be sanitized to &quot;my-artifact.zip&quot;"></i></span>

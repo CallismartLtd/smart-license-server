@@ -680,4 +680,22 @@ class Response {
 	public static function make( string $body, int $status_code = 200, array $headers = [] ) : static {
 		return new static( $status_code, $headers, $body );
 	}
+
+	/**
+	 * Create a new Response instance pre-configured for JSON delivery.
+	 *
+	 * @param array|string $data        Data payload to encode or pre-encoded JSON string.
+	 * @param int          $status_code Optional. HTTP status code. Default 200.
+	 * @param array        $headers     Optional. Additional response headers.
+	 * @return static
+	 */
+	public static function json( array|string $data, int $status_code = 200, array $headers = [] ) : static {
+		$instance = new static( $status_code, $headers, $data );
+
+		if ( ! $instance->has_header( 'Content-Type' ) ) {
+			$instance->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+		}
+
+		return $instance;
+	}
 }

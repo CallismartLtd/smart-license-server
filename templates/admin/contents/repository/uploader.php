@@ -20,7 +20,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 
 $max_upload_size    = Format::bytes( smliser_max_upload_size() );
 $args               = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
-$is_edit            = 'edit' === $request->get( 'tab' ) ?? $request->route_param( 'tab' );
+$is_edit            = 'edit' === ( $request->get( 'tab' ) ?? $request->route_param( 'tab' ) );
 
 if ( ! isset( $app ) ) {
     unset(
@@ -35,7 +35,7 @@ if ( ! isset( $app ) ) {
 <div class="application-uploader-page">
     <?php smliser_print_admin_content_header( $args ); ?>
 
-    <form action="" class="app-uploader-form" id="appUploaderForm">
+    <form action="" class="app-uploader-form" id="appUploaderForm" data-slug="save-app">
         <input type="hidden" name="action" value="smliser_save_<?php printf( '%s', escHtml( $type ) ) ?>">
         <input type="hidden" name="app_type" value="<?php printf( '%s', escHtml( $type ) ) ?>">
         <input type="hidden" name="app_id" value="<?php printf( '%s', escHtml( $request->query( 'app_id' ) ) ) ?>">
@@ -125,7 +125,7 @@ if ( ! isset( $app ) ) {
     </form>
 </div>
 <?php if ( $is_edit ) : ?>
-    <div class="smliser-admin-modal app-asset-uploader hidden" role="dialog" aria-modal="true" aria-labelledby="modal-header" aria-describedby="modal-description">
+    <div class="smliser-admin-modal app-asset-uploader smliser-hide" role="dialog" aria-modal="true" aria-labelledby="modal-header" aria-describedby="modal-description">
         <div class="smliser-admin-modal_content">
 
             <span
@@ -195,7 +195,7 @@ if ( ! isset( $app ) ) {
                     type="file"
                     id="app-uploader-asset-file-input"
                     accept="image/*"
-                    class="hidden"
+                    class="smliser-hide"
                     aria-label="Select image file(s)"
                 >
 

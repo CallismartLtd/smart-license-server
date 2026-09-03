@@ -116,8 +116,7 @@ final class RouteManager {
 
         $this->router->group( $urlmanager->login_url_prefix(),
             function() {                
-                $this->router->add(
-                    methods: ['GET'],
+                $this->router->any(
                     pattern: '/',
                     handler: [AuthForms::class, 'render_login_form_shell'],
                 );
@@ -158,26 +157,42 @@ final class RouteManager {
             handler: [AuthController::class, 'handle_logout']
         );
 
+        // The admin dashboard routes.
         $this->router->group( $urlmanager->admin_url_prefix(),
             function() {
-                // Main pages and and submenu routes.
+                // Main page.
                 $this->router->get(
                     pattern: '/',
                     handler: [AdminDispatcher::class, 'render_admin_dashboard']
                 );
 
+                // The main page slug.
                 $this->router->get(
                     pattern: '/{page:slug}',
                     handler: [AdminDispatcher::class, 'render_admin_dashboard']
                 );
 
+                // The submmenu tabs.
                 $this->router->get(
                     pattern: '/{page:slug}/{tab:slug}',
                     handler: [AdminDispatcher::class, 'render_admin_dashboard']
                 );
 
-                // POST, PUT, PATCH routes.
+                // POST, PUT, PATCH routes for form submissions and button clicks.
                 $this->router->group( 'admin-json', function() {
+                    // Base tab without form slug or action.
+                    $this->router->any( '/', fn () : Response => 
+                        Response::json(
+                            [
+                                'success'   => false,
+                                'data'      => [
+                                    'message'   => 'Form slug or action path is required.'
+                                ]
+                            ],
+                            400
+                        )
+                    );
+                    
                     $this->router->post(
                         pattern: 'save-app',
                         handler: [AppManagement::class, 'handle_save_app_request'],

@@ -996,7 +996,7 @@ final class AssetsManager {
 	 */
 	private function register_default_js_constants() : void {
 		$consts = [
-            'ajaxURL'           => $this->urlmanager->admin_url()->url(),
+            'ajaxURL'           => $this->urlmanager->admin_url( 'admin-json' )->url(),
             'csrf_token'        => '',
             'spinner_gif'       => $this->urlmanager->assets_url( 'images/spinner.gif' )->url(),
             'spinner_gif_2x'    => $this->urlmanager->assets_url( 'images/spinner-2x.gif' )->url(),

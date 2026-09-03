@@ -53,7 +53,7 @@ final class JS {
             ],
             'smliser-apps-uploader' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/apps-uploader%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-jquery', 'smliser-script'],
+                'dependencies'  => ['smliser-jquery', 'smliser-script', 'smliser-json-editor'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],

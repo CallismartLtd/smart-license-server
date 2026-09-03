@@ -38,7 +38,10 @@ final class CSS {
             ],
             'smliser-admin-styles'  => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/dashboard%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-variables', 'smliser-styles'],
+                'dependencies'  => [
+                    'smliser-variables', 'smliser-styles', 'smliser-apps-uploader',
+                    'smliser-role-builder'
+                ],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
@@ -49,15 +52,15 @@ final class CSS {
                     'smliser-toast',
                     'smliser-modal',
                     'smliser-datetime-picker',
-                    'smliser-role-builder',
-                    'smliser-apps-uploader'
                 ],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
             'smliser-apps-uploader' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/apps-uploader%s.css', $suffix ) ),
-                'dependencies'  => [],
+                'dependencies'  => [
+                    'smliser-json-editor'
+                ],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],

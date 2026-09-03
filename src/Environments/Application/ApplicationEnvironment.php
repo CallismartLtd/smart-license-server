@@ -82,9 +82,6 @@ class ApplicationEnvironment extends Environment {
             $this->container->get( URLManager::class )
         );
 
-        // Bootup the filesystem API.
-        $this->container->get( FileSystem::class );
-
         // Bootstrap the settings API.
         $this->container->get( Settings::class );
 
@@ -166,8 +163,12 @@ class ApplicationEnvironment extends Environment {
      * @return void
      */
     protected function registerWebDependencies() : void {
+        // Bootup the filesystem API.
+        $this->container->get( FileSystem::class );
+
         $this->container->singleton(
-            Request::class, Request::createFromGlobals()
+            Request::class,
+            fn () : Request => Request::createFromGlobals()
         );
 
         $this->container->set(
