@@ -11,10 +11,10 @@ namespace SmartLicenseServer\Monetization;
 
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
-use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
@@ -24,8 +24,8 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * An app can be monetized with one or more pricing tiers.
  * Each tier specifies its own provider, billing rules, and feature set.
  */
-class Monetization {
-    use SanitizeAwareTrait, DatePropertyAwareTrait, CommonQueryTrait;
+class Monetization extends DataStore {
+    use SanitizeAwareTrait, DatePropertyAwareTrait;
     /**
      * The monetization ID.
      * 
@@ -248,46 +248,52 @@ class Monetization {
      * @return bool True on success, false on failure.
      */
     public function save() : bool {
-        $db = smliser_db();
+        return static::$DB->transactional( function ( Database $db ) {
+            $now    = new DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
+            $data   = [
+                'app_type'  => $this->app_type,
+                'app_id'    => $this->app_id,
+                'enabled'    => $this->enabled ? 1 : 0,
+                'updated_at' => $now->format( 'Y-m-d H:i:s' ),
+            ];
 
-        $now    = new DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
-        $data   = [
-            'app_type'  => $this->app_type,
-            'app_id'    => $this->app_id,
-            'enabled'    => $this->enabled ? 1 : 0,
-            'updated_at' => $now->format( 'Y-m-d H:i:s' ),
-        ];
+            $lock_query = static::query()
+                ->select( 'id' )->from( SMLISER_MONETIZATION_TABLE )
+                ->where( 'id', '=', $this->get_id() )
+                ->limit( 1 )->lock_for_update();
+            $id = (int) $db->get_var( $lock_query->build(), $lock_query->get_bindings() );
 
-        if ( $this->id ) {
-            // Update existing record
-            $updated = $db->update( SMLISER_MONETIZATION_TABLE, $data, [ 'id' => $this->id ] );
+            if ( $id ) {
+                // Update existing record
+                $updated = $db->update( SMLISER_MONETIZATION_TABLE, $data, [ 'id' => $id ] );
 
-            if ( false === $updated ) {
-                return false;
+                if ( false === $updated ) {
+                    return false;
+                }
+
+            } else {
+                $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
+                $inserted           = $db->insert( SMLISER_MONETIZATION_TABLE, $data );
+
+                if ( ! $inserted ) {
+                    return false;
+                }
+
+                $this->set_id( $db->get_insert_id() );
+                $this->set_created_at( $now );
             }
 
-        } else {
-            $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
-            $inserted           = $db->insert( SMLISER_MONETIZATION_TABLE, $data );
+            $this->set_updated_at( $now );
 
-            if ( ! $inserted ) {
-                return false;
+            // Save tiers.
+            foreach ( $this->tiers as $tier ) {
+                if ( $tier instanceof PricingTier ) {
+                    $tier->set_monetization_id( $this->id )->save();
+                }
             }
 
-            $this->set_id( $db->get_insert_id() );
-            $this->set_created_at( $now );
-        }
-
-        $this->set_updated_at( $now );
-
-        // Save tiers
-        foreach ( $this->tiers as $tier ) {
-            if ( $tier instanceof PricingTier ) {
-                $tier->set_monetization_id( $this->id )->save();
-            }
-        }
-
-        return true;
+            return true;            
+        });
     }
 
     /**
@@ -313,7 +319,7 @@ class Monetization {
             ->where( 'id', '=', $this->id )
             ->limit(1);
       
-        smliser_db()->transactional( function( Database $db )
+        static::$DB->transactional( function( Database $db )
         use ( $lock_query, $delete_monetn_sql, $delete_tiers_sql, &$deleted ) {
             $lock_sql = $lock_query->lock_for_update()->build();
             $exists   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
@@ -366,26 +372,25 @@ class Monetization {
      * @param int $id Monetization ID.
      * @return Monetization|null
      */
-    public static function get_by_id( $id ) : ?static {
-        $db     = smliser_db();
-        $id     = static::sanitize_int( $id );
-        $table  = SMLISER_MONETIZATION_TABLE;
-        $sql    = static::query()->select( '*' )->from( $table)
-            ->where( 'id', '=', $id )->limit(1);
+    public static function get_by_id( int $id ) : ?static {
+        static $cache = [];
 
-        $row    = $db->get_row( $sql->build(), $sql->get_bindings() );
-        
-
-        if ( ! $row ) {
-            return null;
+        if ( array_key_exists( $id, $cache ) ) {
+            return $cache[$id];
         }
 
-        $static = static::from_array( $row );
+        $data   = static::fetch_by( 'id', $id, SMLISER_MONETIZATION_TABLE );
 
-        // hydrate tiers
-        $static->set_tiers( PricingTier::get_by_monetization_id( $row['id'] ?? 0 ) );
+        if ( $data ) {
+            $static = static::from_array( $data );
+            $static->set_tiers( PricingTier::get_by_monetization_id( $id ) );
+        } else {
+            $static = null;
+        }
 
-        return $static;
+        $cache[$id] = $static;
+
+        return $cache[$id];
     }
 
     /**
@@ -396,13 +401,12 @@ class Monetization {
      * @return Monetization|null
      */
     public static function get_by_app( $app_type, $app_id ) : ?static {
-        $db     = smliser_db();
         $table  = SMLISER_MONETIZATION_TABLE;
 
         $sql    = static::query()->select( '*' )->from( $table )
             ->where( 'app_type', '=', $app_type )
             ->where( 'app_id', '=', $app_id );
-        $row    = $db->get_row( $sql->build(), $sql->get_bindings() );
+        $row    = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
 
         if ( ! $row ) {
             return null;

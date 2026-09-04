@@ -724,7 +724,7 @@ class AppUploader {
         thumb.innerHTML = `
             <img src="${ objectUrl }" alt="${ file.name }" loading="lazy">
             <span class="smliser-multi-preview_name">${ file.name }</span>
-            <button type="button" class="smliser-multi-preview_remove" title="Remove this file">✕</button>
+            <button type="button" class="smliser-multi-preview_remove" title="Remove this file"><i class="ti ti-x"></i></button>
         `;
 
         // Release the object URL once the thumbnail has loaded.
@@ -822,6 +822,7 @@ class AppUploader {
 
         try {
             const url = new URL( smliser_var.ajaxURL );
+            url.pathname += '/upload-app-assets/';
             url.searchParams.set( 'action',   'smliser_app_asset_upload' );
             url.searchParams.set( 'security', smliser_var.csrf_token );
 

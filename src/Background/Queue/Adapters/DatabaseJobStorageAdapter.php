@@ -33,7 +33,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      */
     public function __construct( 
         private Database $db, 
-        private string $jobs_table = \SMLISER_BACKGROUND_JOBS_TABLE 
+        private string $jobs_table 
     ) {}
 
     /*

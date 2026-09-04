@@ -130,7 +130,7 @@ class HostingController {
 
                 $update_method = "update_{$app_type}";
 
-                if ( ! method_exists( __CLASS__, $update_method ) ) {
+                if ( ! method_exists( static::class, $update_method ) ) {
                     throw new RequestException( 'internal_server_error', sprintf( 'The update method for the application type "%s" was not found!', $app_type ) , array( 'status' => 500 ) );
                 }
 
@@ -214,8 +214,7 @@ class HostingController {
             ->set_response_data( $request )
             ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
@@ -227,11 +226,7 @@ class HostingController {
      * @param Request $request The request object.
      * @return true|RequestException
      */
-    private function update_plugin( &$plugin, Request $request ) {
-        if ( ! $plugin instanceof Plugin ) {
-            return new RequestException( 'message', 'Wrong plugin object passed' );
-        }
-
+    protected function update_plugin( Plugin &$plugin, Request $request ) {
         $manifest   = $request->get_file( 'app_json_file' );
 
         if ( $manifest && $manifest->is_upload_successful() ) {
@@ -258,11 +253,7 @@ class HostingController {
      * @param Request $request
      * @return true|RequestException
      */
-    private function update_theme( &$theme, Request $request ) {
-        if ( ! $theme instanceof Theme ) {
-            return new RequestException( 'message', 'Wrong theme object passed' );
-        }
-
+    protected function update_theme( Theme &$theme, Request $request ) {
         $manifest   = $request->get_file( 'app_json_file' );
 
         if ( $manifest && $manifest->is_upload_successful() ) {
@@ -300,14 +291,7 @@ class HostingController {
      * @param Request  $request
      * @return true|Exception
      */
-    private function update_software( &$software, $request ) {
-
-        if ( ! $software instanceof Software ) {
-            return new RequestException(
-                'invalid_software',
-                'Wrong software object passed.'
-            );
-        }
+    protected function update_software( Software &$software, $request ) {
 
         // Manifest is optional on update — if no app.json is provided the existing
         // manifest is preserved. Allows CLI callers to update without re-uploading.
@@ -442,14 +426,15 @@ class HostingController {
                 }
             }
 
-            \smliser_cache()->clear();
+            $this->cache->clear();
             
-            return ( new Response( 200, array(), [ 'success' => true, 'result' => $result ] ) )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+            return Response::json(
+                [ 'success' => true, 'result' => $result ],
+                200
+            );
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
@@ -513,14 +498,15 @@ class HostingController {
                 );
             }
 
-            \smliser_cache()->clear();
+           $this->cache->clear();
 
-            return ( new Response( 200, array(), [ 'success' => true, 'data' => [ 'message' => 'Asset deleted successfully.' ] ] ) )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+            return Response::json(
+                [ 'success' => true, 'data' => [ 'message' => 'Asset deleted successfully.' ] ],
+                200
+            );
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
@@ -623,11 +609,9 @@ class HostingController {
             $response_data['download_url']  = $app->get_artifact_url( $response_data['filename'] );
             $response                       = ['success' => true, 'data' => $response_data ];
 
-            return ( new Response( 200, [], $response ) )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+            return Response::json( $response, 200 );
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
@@ -709,21 +693,10 @@ class HostingController {
                 ],
             ];
 
-            return ( new Response( 200, [], $response_data ) )
-            ->set_header( 'Content-Type',
-                sprintf(
-                    'application/json; charset=%s',
-                    smliser_settings()->get( 'charset', 'UTF-8' )
-                )
-            );
+            return Response::json( $response_data, 200 );
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', sprintf(
-                    'application/json; charset=%s',
-                    smliser_settings()->get( 'charset', 'UTF-8' )
-                    )
-                );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
 
@@ -797,19 +770,17 @@ class HostingController {
                 ] );
             }
 
-            \smliser_cache()->clear();
+           $this->cache->clear();
 
             $data = array(
                 'message'       => sprintf( '%s status changed from %s to %s', ucfirst( $app_type ), $old_status, $status ),
-                'redirect_url'  => \smliser_admin_repo_tab( 'view', array( 'type' => $app->get_type(), 'app_id' => $app->get_id() ) )
+                'redirect_url'  => $this->urlmanager->admin_repo_url( 'view', array( 'type' => $app->get_type(), 'app_id' => $app->get_id() ) )
             );
 
-            return ( new Response( 200, array(), smliser_safe_json_encode( [ 'success' => true, 'data' => $data ] ) ) )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+            return Response::json( [ 'success' => true, 'data' => $data ], 200 );
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
@@ -855,18 +826,18 @@ class HostingController {
                 $response->ok() && $affected++;
             }
 
-            $url = smliser_repository_url( 'admin' )
+            $url = $this->urlmanager->admin_repo_url( 'admin' )
                 ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
 
             $response = ( new Response( 200, [], '' ) )
                 ->set_response_data( $request )
-                ->set_header( 'Location', $url->get_href() );
+                ->set_header( 'Location', $url->url() );
 
-            \smliser_cache()->clear();
+           $this->cache->clear();
             return $response;
 
         } catch ( Exception $e ) {
-            $url = smliser_repository_url( 'admin' )
+            $url = $this->urlmanager->admin_repo_url( 'admin' )
                 ->add_query_param( 'message', \sprintf( 'Error: %s', $e->get_error_message() ) );
 
             return ( new Response() )

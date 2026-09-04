@@ -127,7 +127,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * @param int $cache_memory     Page cache memory.
      */
     public function __construct(
-        protected string $base_dir      = SMLISER_CACHE_DIR,
+        protected string $base_dir,
         protected string $db_filename   = 'cache.sqlite',
         protected string $stats_table   = 'cache_stats',
         protected string $table         = 'main_cache',
@@ -615,7 +615,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * @return bool True if all three round-trip steps succeed.
      */
     public function test( array $settings ): bool {
-        $sandbox    = new static();
+        $sandbox    = new static( \sys_get_temp_dir() );
         try {
             // Apply candidate settings without persisting them.
             $sandbox->set_settings( $settings );

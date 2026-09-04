@@ -59,7 +59,7 @@ if ( ! isset( $app ) ) {
                 </div>
 
                 <?php if ( $is_edit ) : ?>
-                    <em><?php printf( 'Manage other distributable artifacts for this %s <a href="%s">here</a>', $type, smliser_get_current_url()->add_query_param( 'tab', 'edit-artifacts' ) ); ?></em>
+                    <em><?php printf( 'Manage other distributable artifacts for this %s <a href="%s">here</a>', $type, $urlmanager->admin_repo_url( 'edit-artifacts', smliser_get_current_url()->get_query_params() ) ); ?></em>
                 <?php endif; ?>
             </div>
         </div>

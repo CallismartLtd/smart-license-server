@@ -14,12 +14,13 @@ namespace SmartLicenseServer\FileSystem;
 use SmartLicenseServer\Utils\MDParser;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\HostedApps\Software;
 use ZipArchive;
 
-use function sprintf, defined, in_array, is_smliser_error, smliser_md_parser, explode, implode,
+use function sprintf, in_array, is_smliser_error, explode, implode,
 dirname, basename, json_decode, json_last_error, smliser_safe_json_encode;
 
 /**
@@ -39,9 +40,11 @@ class SoftwareRepository extends Repository {
     /**
      * Class constructor
      */
-    public function __construct() {
+    public function __construct(
+        protected MDParser $mdparser,
+        protected URLManager $urlmanager
+    ) {
         parent::__construct( 'software' );
-        $this->parser = smliser_md_parser();
     }
 
     /**
@@ -223,7 +226,7 @@ class SoftwareRepository extends Repository {
                     $icon_files = glob( $pattern, GLOB_BRACE );
 
                     foreach ( $icon_files as $icon ) {
-                        $icons[] = apps_asset_url( 'software', $slug, basename( $icon ) );
+                        $icons[] = $this->urlmanager->app_asset_url( 'software', $slug, basename( $icon ) );
                     }
                 }
 
@@ -239,7 +242,7 @@ class SoftwareRepository extends Repository {
                 
                 foreach ( $cover_files as $cover ) {
                     if ( $this->is_file( $cover ) ) {
-                        return apps_asset_url( 'software', $slug, basename( $cover ) );
+                        return $this->urlmanager->app_asset_url( 'software', $slug, basename( $cover ) );
                     }
                 }
 
@@ -252,7 +255,7 @@ class SoftwareRepository extends Repository {
                 $screenshots    = [];
                 
                 foreach ( $files as $screenshot ) {
-                    $screenshots[] = apps_asset_url( 'software', $slug, basename( $screenshot ) );
+                    $screenshots[] = $this->urlmanager->app_asset_url( 'software', $slug, basename( $screenshot ) );
                 }
 
                 return $screenshots;

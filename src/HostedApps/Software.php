@@ -200,7 +200,8 @@ class Software extends AbstractHostedApp {
         $self->set_created_at( $result['created_at'] ?? '' );
         $self->set_updated_at( $result['updated_at'] ?? '' );
 
-        $repo_class = new SoftwareRepository();
+        /** @var SoftwareRepository */
+        $repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( 'software' );
 
         $app_json   = $repo_class->get_app_dot_json( $self );
 

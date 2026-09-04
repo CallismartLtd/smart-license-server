@@ -39,14 +39,7 @@ class MDParser {
 	 *
 	 * @param array $config Optional CommonMark environment configuration.
 	 */
-	public function __construct( $config = array() ) {
-		$default = array(
-			'html_input'         => 'allow',
-			'allow_unsafe_links' => false,
-		);
-
-		$config = array_merge( $default, (array) $config );
-
+	public function __construct( array $config = [] ) {
 		// Build environment.
 		$environment = new Environment( $config );
 

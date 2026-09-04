@@ -272,7 +272,8 @@ class Plugin extends AbstractHostedApp {
         
         $self->load_meta();
 
-        $repo_class = new PluginRepository();
+        /** @var PluginRepository */
+        $repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( 'plugin' );
 
         $plugin_meta    = $repo_class->get_metadata( $self->get_slug() );        
         $self->set_version( $plugin_meta['stable_tag'] ?? '' );

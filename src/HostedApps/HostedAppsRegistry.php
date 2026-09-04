@@ -12,6 +12,8 @@ namespace SmartLicenseServer\HostedApps;
 use InvalidArgumentException;
 use Override;
 use SmartLicenseServer\Contracts\AbstractRegistry;
+use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\FileSystem\PluginRepository;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\FileSystem\SoftwareRepository;
@@ -34,16 +36,25 @@ class HostedAppsRegistry extends AbstractRegistry {
     /**
      * Class constructor.
      */
-    private function __construct() {}
+    private function __construct(
+        protected Container $container
+    ) {}
 
     /**
      * Get the singleton instance of this class.
      * 
+     * @param ?Container $container
      * @return static
      */
-    public static function instance() : static {
+    public static function instance( ?Container $container = null ) : static {
         if ( null === static::$instance ) {
-            static::$instance   = new static();
+            if ( null === $container ) {
+                throw new EnvironmentBootstrapException(
+                    'host_app_error',
+                    sprintf( 'The hosted apps registry must be called early with %s', Container::class )
+                );
+            }
+            static::$instance   = new static( $container );
         }
 
         return static::$instance;
@@ -55,7 +66,7 @@ class HostedAppsRegistry extends AbstractRegistry {
      * @param string $type The unique type identifier for the app.
      * @param array{
      *  class: class-string<HostedAppsInterface>,
-     *  directory_class: Repository,
+     *  directory_class: class-string<Repository>,
      *  table: string 
      * }|null $data The app class and its database table name.
      * @return static
@@ -132,7 +143,7 @@ class HostedAppsRegistry extends AbstractRegistry {
      * @param string $type The unique type identifier for the app.
      * @return array{
      *  class: class-string<HostedAppsInterface>,
-     *  directory_class: Repository,
+     *  directory_class: class-string<Repository>,
      *  table: string,
      * }|null $entry 
      *
@@ -146,7 +157,7 @@ class HostedAppsRegistry extends AbstractRegistry {
         /**
          * @var array{
          *  class: class-string<HostedAppsInterface>,
-         *  directory_class: Repository,
+         *  directory_class: class-string<Repository>,
          *  table: string,
          * }|null $entry 
          */
@@ -204,7 +215,7 @@ class HostedAppsRegistry extends AbstractRegistry {
             );
         }
 
-        return new $entry['directory_class']();
+        return $this->container->get( $entry['directory_class'] );
     }
 
     /**

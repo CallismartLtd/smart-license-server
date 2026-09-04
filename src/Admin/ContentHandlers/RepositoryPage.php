@@ -306,7 +306,7 @@ class RepositoryPage implements AdminPageInterface {
         $urlmanager = $this->urlmanager;
         $repo_page  = $this;
         $vars   = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'request', 'type', 'app', 'app_files' );
-        $this->locator->render( "admin.contents.repository.edit-app-files", $vars );
+        $this->locator->render( "admin.contents.repository.edit-artifacts", $vars );
     }
 
     /**
@@ -346,7 +346,7 @@ class RepositoryPage implements AdminPageInterface {
             'action' => 'smliser_admin_download',
             'type'   => $app->get_type(),
             'id'     => $app->get_id(),
-            'download_token' => wp_create_nonce( 'smliser_download_token' )
+            'download_token' => ''
         ];
         $download_url           = url( '/', $download_actions );
         $last_updated_string    = Format::time_ago( $app->get_updated_at()->getTimestamp() );
@@ -368,7 +368,7 @@ class RepositoryPage implements AdminPageInterface {
                 
                 [
                     'text'  => 'Artifacts',
-                    'url'   => $url->add_query_params( ['tab' => 'edit-artifacts', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
+                    'url'   => $this->urlmanager->admin_repo_url( 'edit-artifacts', ['app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
                     'icon'  => 'ti ti-files',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
@@ -376,7 +376,7 @@ class RepositoryPage implements AdminPageInterface {
 
                 [
                     'text'  => 'Monetization',
-                    'url'   => $url->add_query_params( [ 'tab' => 'monetization', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
+                    'url'   => $this->urlmanager->admin_repo_url( 'monetization', ['app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
                     'icon'  => 'ti ti-basket-dollar',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
@@ -384,7 +384,7 @@ class RepositoryPage implements AdminPageInterface {
 
                 [
                     'text'  => sprintf( 'Edit %s', ucfirst( $app->get_type() ) ),
-                    'url'   => $url->add_query_params( ['tab' => 'edit', 'app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
+                    'url'   => $this->urlmanager->admin_repo_url( 'edit', ['app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
                     'icon'  => 'ti ti-edit',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
@@ -392,7 +392,7 @@ class RepositoryPage implements AdminPageInterface {
 
                 [
                     'text'  => sprintf( 'Download %s', ucfirst( $app->get_type() ) ),
-                    'url'   => $download_url->__toString(),
+                    'url'   => $download_url->url(),
                     'icon'  => 'ti ti-download',
                     'class' => ['smliser-btn', 'smliser-btn-glass'],
                     'attr'  => []
@@ -458,11 +458,11 @@ class RepositoryPage implements AdminPageInterface {
         $is_new     = false;
 
         $monetization   = Monetization::get_by_app( $app_type, $id );
-        $providers      = $this->monetization_registry->all( false, true );
+        $providers      = $this->monetization_registry->all();
 
         if ( empty( $monetization ) ) {
-            $is_new = true;
-            $monetization = new Monetization();
+            $is_new         = true;
+            $monetization   = new Monetization();
             $monetization->set_app_id( $id )
                 ->set_app_type( $app_type );
         }

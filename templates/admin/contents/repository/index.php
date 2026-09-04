@@ -156,7 +156,6 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
             
                 <input type="hidden" name="action" value="smliser_bulk_action">
                 <input type="hidden" name="context" value="repository">
-                <?php wp_nonce_field( 'smliser_table_nonce', 'smliser_table_nonce'); ?>
 
                 <table class="smliser-table widefat striped">
                     <thead>

@@ -8,11 +8,19 @@
 namespace SmartLicenseServer\Contracts;
 
 use InvalidArgumentException;
+use SmartLicenseServer\Core\Container\Container;
 
 /**
  * Abstract implemetation of the RegistryInterface.
  */
 abstract class AbstractRegistry implements RegistryInterface {
+    /**
+     * DI container.
+     * 
+     * @var Container $container
+     */
+    protected Container $container;
+
     /**
      * Core registry.
      *
@@ -117,7 +125,7 @@ abstract class AbstractRegistry implements RegistryInterface {
 
         if ( $instantiate ) {
             foreach ( $all as $_ => &$value ) {
-                $value = new $value;
+                $value = $this->container->get( $value );
             }
         }
         return $assoc ? $all : array_values( $all );

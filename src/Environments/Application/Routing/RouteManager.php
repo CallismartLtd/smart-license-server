@@ -114,6 +114,7 @@ final class RouteManager {
         
         $urlmanager = $this->container->get( URLManager::class );
 
+        // Authentication routes.
         $this->router->group( $urlmanager->login_url_prefix(),
             function() {                
                 $this->router->any(
@@ -192,7 +193,7 @@ final class RouteManager {
                             400
                         )
                     );
-                    
+
                     $this->router->post(
                         pattern: 'save-app',
                         handler: [AppManagement::class, 'handle_save_app_request'],
@@ -202,7 +203,7 @@ final class RouteManager {
                     $this->router->add(
                         pattern: 'upload-app-assets',
                         methods: ['POST', 'PUT'],
-                        handler: [AppManagement::class, 'handle_app_asset_delete_request'],
+                        handler: [AppManagement::class, 'handle_app_asset_upload_request'],
                         middleware: []
                     );
 

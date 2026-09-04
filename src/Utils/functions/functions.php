@@ -296,19 +296,6 @@ function parse_args_recursive( $args, $defaults ) {
 }
 
 /**
- * Returns the singleton instance of the parser.
- *
- * @return MDParser
- */
-function smliser_md_parser() {
-	static $instance = null;
-	if ( null === $instance ) {
-		$instance = new MDParser();
-	}
-	return $instance;
-}
-
-/**
  * Get placeholder icon.
  *
  * @param string $type

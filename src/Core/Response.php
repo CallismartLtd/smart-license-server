@@ -698,4 +698,16 @@ class Response {
 
 		return $instance;
 	}
+
+	/**
+	 * Create a new error response.
+	 * 
+	 * @param Exception $error
+	 * @param int $status_code
+	 * @return static
+	 */
+	public static function error( Exception $error, int $status_code = 500, array $headers = [] ) : static {
+		return ( new static( $status_code, $headers ) )
+			->set_exception( $error );
+	}
 }

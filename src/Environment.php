@@ -16,9 +16,11 @@ use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
 use Callismart\Http\HttpClient;
 use SmartLicenseServer\Background\Queue\Adapters\DatabaseJobStorageAdapter;
+use SmartLicenseServer\Background\Queue\Adapters\JobStorageAdapterInterface;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
+use SmartLicenseServer\Cache\Adapters\SQLiteCacheAdapter;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Core\Container\Container;
@@ -29,6 +31,7 @@ use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
 use SmartLicenseServer\SettingsAPI\Providers\Options;
@@ -36,6 +39,7 @@ use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Templates\TemplateDiscovery;
 use SmartLicenseServer\Templates\TemplateLocator;
+use SmartLicenseServer\Utils\MDParser;
 
 /**
  * The abstract application environment and service bootstrap layer.
@@ -83,13 +87,15 @@ abstract class Environment {
         );
 
         $this->container->singleton(
-            DatabaseAdapterRegistry::class,
-            DatabaseAdapterRegistry::instance()
-        );
+            DatabaseAdapterRegistry::class, DatabaseAdapterRegistry::instance() );
 
         $this->container->singleton(
             CacheAdapterRegistry::class,
             fn ( Container $container ) : CacheAdapterRegistry => $container->get( CacheAdapterRegistry::class )
+        );
+
+        $this->container->singleton(
+            HostedAppsRegistry::class, HostedAppsRegistry::instance( $this->container )
         );
 
         $this->container->singleton(
@@ -121,6 +127,19 @@ abstract class Environment {
             TemplateDiscovery::class,
             fn ( Container $c ) : TemplateDiscovery => 
                 new TemplateDiscovery( $c->get( TemplateLocator::class ) )
+        );
+
+        $this->container->set(
+            SQLiteCacheAdapter::class,
+            fn () : SQLiteCacheAdapter => 
+                new SQLiteCacheAdapter(
+                    base_dir: SMLISER_CACHE_DIR,
+                    db_filename: 'smliser-cache.sqlite',
+                    stats_table: 'smliser_stats_table',
+                    table: 'smliser_main_cache',
+                    storage_limit: 512,
+                    cache_memory: 4
+                )
         );
     }
 
@@ -179,14 +198,21 @@ abstract class Environment {
                 )
         );
 
+        $this->container->set(
+            DatabaseJobStorageAdapter::class,
+            fn ( Container $c ) : DatabaseJobStorageAdapter =>
+                new DatabaseJobStorageAdapter(
+                    $c->get( Database::class ),
+                    SMLISER_BACKGROUND_JOBS_TABLE
+                )
+        );
+
+        $this->container->alias( JobStorageAdapterInterface::class, DatabaseJobStorageAdapter::class );
+
         $this->container->singleton(
             JobQueue::class,
-            fn ( Container $container ) : JobQueue =>
-                new JobQueue(
-                    new DatabaseJobStorageAdapter(
-                        $container->get( Database::class )
-                    )
-                )
+            fn ( Container $c ) : JobQueue =>
+                new JobQueue( $c->get( DatabaseJobStorageAdapter::class ) )
         );
 
         $this->container->singleton(
@@ -208,9 +234,7 @@ abstract class Environment {
         $this->container->singleton(
             CacheAdapterRegistry::class,
             fn ( Container $c ) : CacheAdapterRegistry =>
-                CacheAdapterRegistry::instance(
-                    $c->get( Settings::class )
-                )      
+                CacheAdapterRegistry::instance( $c )      
         );
 
         // Email provider registry.
@@ -245,6 +269,14 @@ abstract class Environment {
                 return new Mailer( $registry->get_provider() );
             }
                 
+        );
+
+        $this->container->set(
+            MDParser::class, fn () : MDParser =>
+                new MDParser([
+                    'html_input'         => 'allow',
+                    'allow_unsafe_links' => false,
+                ])
         );
 
     }

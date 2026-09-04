@@ -347,7 +347,7 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
             escHtml( '%1$d of %2$d %3$s' ),
             intval( $displayed ),
             intval( $total ),
-            escHtml( _n( 'item', 'items', $total, 'smliser' ) )
+            escHtml( $total > 1 ? 'items' : 'item' )
         );
         ?>
     </p>

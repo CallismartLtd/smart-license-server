@@ -17,6 +17,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -1190,7 +1191,7 @@ class License extends DataStore {
      */
     public function make_licence_key( string $prefix = '' ) {
         if ( '' === $prefix ) {
-            $prefix = (string) ( \smliser_settings()->get( 'license_key_prefix', 'SMLISER', true ) ?? 'SMLISER' );
+            $prefix = (string) ( Settings::instance()->get( 'license_key_prefix', 'SMLISER', true ) ?? 'SMLISER' );
         }
 
         $uid            = sha1( uniqid( '', true ) );

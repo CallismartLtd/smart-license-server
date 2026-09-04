@@ -271,8 +271,8 @@ class Theme extends AbstractHostedApp {
         $self->set_status( $result['status'] ?? self::STATUS_ACTIVE );
 
         $self->load_meta();
-
-        $repo_class = new ThemeRepository();
+        /** @var ThemeRepository */
+        $repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( 'theme' );
 
         $theme_metadata = $repo_class->get_metadata( $self->get_slug() );
         $self->set_version( $theme_metadata['version'] ?? '' );

@@ -15,6 +15,7 @@ use SmartLicenseServer\Cache\Adapters\MemcachedCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\RedisCacheAdapter;
 use SmartLicenseServer\Cache\Adapters\SQLiteCacheAdapter;
 use SmartLicenseServer\Contracts\AbstractRegistry;
+use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -68,8 +69,8 @@ class CacheAdapterRegistry extends AbstractRegistry {
     /**
      * Private constructor — use instance().
      */
-    private function __construct( Settings $settings ) {
-        $this->settings = $settings;
+    private function __construct( protected Container $container ) {
+        $this->settings = $container->get( Settings::class );
     }
 
     /*
@@ -81,16 +82,18 @@ class CacheAdapterRegistry extends AbstractRegistry {
     /**
      * Return the singleton instance, creating and loading it if needed.
      *
-     * @param Settings|null $settings The storage API, required on first initialization.
+     * @param Container|null $container The DI container used to build or inject adapters.
      * @return static
      */
-    public static function instance( ?Settings $settings = null ): static {
+    public static function instance( ?Container $container = null ): static {
         if ( static::$instance === null ) {
-            if ( ! $settings ) {
-                throw new EnvironmentBootstrapException( 'misconfiguration', 'Cache adapter collection API requires a storage API' );
+            if ( ! $container ) {
+                throw new EnvironmentBootstrapException(
+                    'misconfiguration', 'Cache adapter registry must be called early with a DI container.' 
+                );
             }
 
-            static::$instance = new static( $settings );
+            static::$instance = new static( $container );
         }
 
         return static::$instance;

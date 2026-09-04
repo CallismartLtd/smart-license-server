@@ -10,8 +10,10 @@ namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\UploadedFileCollection;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
+use SmartLicenseServer\Utils\MDParser;
 use ZipArchive;
 
 /**
@@ -22,6 +24,19 @@ use ZipArchive;
  */
 abstract class Repository {
     use FileSystemAwareTrait;
+    /**
+     * The markdown parser class.
+     * 
+     * @var MDParser $parser
+     */
+    protected MDParser $mdparser;
+
+    /**
+     * URL Manager used to cunstruct repository related URLs
+     * 
+     * @var URLManager $urlmanager
+     */
+    protected URLManager $urlmanager;
 
     /**
      * Repository base directory.
@@ -346,7 +361,11 @@ abstract class Repository {
      *      }
      * }
      */
-    public function safe_assets_upload( string $slug, UploadedFileCollection $files, string $asset_type ) : array {
+    public function safe_assets_upload(
+        string $slug,
+        UploadedFileCollection $files,
+        string $asset_type,
+    ) : array {
         $result = [
             'uploaded'  => [],
             'failed'    => []
@@ -404,7 +423,7 @@ abstract class Repository {
                 $app_type   = rtrim( $this->current_dir, 's' ); // "plugins" => "plugin"
                 $app_slug   = $slug;
                 $asset_name = basename( $path );
-                $asset_url  = apps_asset_url( $app_type, $app_slug, $asset_name )
+                $asset_url  = $this->urlmanager->app_asset_url( $app_type, $app_slug, $asset_name )
                     ->add_query_param( 'ver', $this->filemtime( $path ) )->url();
 
                 $result['uploaded'][$file->get_client_name()] = \compact( 'app_slug', 'app_type', 'asset_name', 'asset_url', 'asset_type' );
@@ -424,7 +443,11 @@ abstract class Repository {
      * @param UploadedFile $file The type of asset.
      * @param string $asset_type
      */
-    public function put_app_asset( string $app_slug, UploadedFile $file, string $asset_type ) : array|Exception {
+    public function put_app_asset(
+        string $app_slug,
+        UploadedFile $file,
+        string $asset_type,
+    ) : array|Exception {
         try {
             $app_slug   = $this->real_slug( $app_slug );
             $base_path  = $this->enter_slug( $app_slug );
@@ -463,7 +486,7 @@ abstract class Repository {
             $path       = $file->move( $assets_dir, $asset_name, true );
             $app_type   = $this->current_dir;
             $asset_name = basename( $path );
-            $asset_url  = apps_asset_url( $app_type, $app_slug, $asset_name )
+            $asset_url  = $this->urlmanager->app_asset_url( $app_type, $app_slug, $asset_name )
                 ->add_query_param( 'ver', $this->filemtime( $path ) )->url();
 
             return compact( 'app_slug', 'app_type', 'asset_name', 'asset_url', 'asset_type' );

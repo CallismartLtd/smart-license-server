@@ -6,7 +6,6 @@
  * @package Smliser\templates.
  * @since 0.2.0
  * @var SmartLicenseServer\HostedApps\Plugin $app The plugin object.
- * @var SmartLicenseServer\PluginRepository $repo_class
  */
 
 defined( 'SMLISER_ROOT' ) || exit;

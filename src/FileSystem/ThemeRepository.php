@@ -13,13 +13,14 @@ namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Core\URLManager;
 use \ZipArchive;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\Utils\MDParser;
 
-use function defined, is_smliser_error, in_array, sprintf, basename, is_string, dirname, preg_match,
-trim, str_replace, smliser_md_parser;
+use function is_smliser_error, in_array, sprintf, basename, is_string, dirname, preg_match,
+trim, str_replace;
 
 class ThemeRepository extends Repository {
     use WPRepoUtils, RepoFilesAwareTrait;
@@ -41,9 +42,11 @@ class ThemeRepository extends Repository {
      *
      * Always binds to the `themes` subdirectory.
      */
-    public function __construct() {
+    public function __construct(
+        protected MDParser $mdparser,
+        protected URLManager $urlmanager
+    ) {
         parent::__construct( 'themes' );
-        $this->parser = smliser_md_parser();
     }
 
     /**
@@ -249,7 +252,7 @@ class ThemeRepository extends Repository {
                 
                 foreach( $screenshots as $screenshot ) {
                     if ( $this->is_file( $screenshot ) ) {
-                        return apps_asset_url( 'theme', $slug, basename( $screenshot ) );
+                        return $this->urlmanager->app_asset_url( 'theme', $slug, basename( $screenshot ) );
                     }
                 }
                 
@@ -270,7 +273,7 @@ class ThemeRepository extends Repository {
                 foreach ( $screenshots as $screenshot ) {
                     $name   = basename( $screenshot );
 
-                    $url    = \apps_asset_url( 'theme', $slug, $name );
+                    $url    = $this->urlmanager->app_asset_url( 'theme', $slug, $name );
 
                     if ( preg_match( '/screenshot-(\d+)\./i', $name, $m ) ) {
                        $urls[ (int) $m[1] ] = $url;
@@ -309,7 +312,7 @@ class ThemeRepository extends Repository {
             return '';
         }
 
-        return $this->parser->parse( $metadata['description'] );
+        return $this->mdparser->parse( $metadata['description'] );
     }
 
     /**

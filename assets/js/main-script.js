@@ -244,7 +244,7 @@ async function smliserFetchBlob( url, options = {} ) {
  * Download a file from a URL.
  *
  * @param {string} url - Download URL.
- * @param {Object} [options={}] - Fetch options.
+ * @param {RequestInit} [options={}] - Fetch options.
  * @returns {Promise<{
  *     filename: string,
  *     size: number,
@@ -255,14 +255,20 @@ async function smliserFetchBlob( url, options = {} ) {
  *     statusText: string,
  *     headers: Headers
  * }>} Information about the downloaded file.
+ * @throws {Error} If the response status is not ok.
  */
 async function smliserDownloadUrl( url, options = {} ) {
 
 	const started  = performance.now();
 	const response = await fetch( url, {
 		...options,
-		responseType: 'response'
 	} );
+
+	if ( ! response.ok ) {
+		throw new Error(
+			`Download failed: ${ response.status } ${ response.statusText } (${ response.url || url })`
+		);
+	}
 
 	const blob = await response.blob();
 

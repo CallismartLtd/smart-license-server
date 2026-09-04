@@ -13,6 +13,7 @@ namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\Utils\MDParser;
@@ -31,20 +32,15 @@ class PluginRepository extends Repository {
     const ALLOWED_BANNER_NAMES  = [ 'low'  => 'banner-772x250', 'high' => 'banner-1544x500' ];
 
     /**
-     * Our readme parser class.
-     * 
-     * @var MDParser $parser
-     */
-    protected MDParser $parser;
-
-    /**
      * Constructor.
      *
      * Always bind to the `plugins` subdirectory.
      */
-    public function __construct() {
+    public function __construct(
+        protected MDParser $mdparser,
+        protected URLManager $urlmanager
+    ) {
         parent::__construct( 'plugins' );
-        $this->parser = \smliser_md_parser();
     }
     
     /**
@@ -239,7 +235,7 @@ class PluginRepository extends Repository {
                     $pattern    = sprintf( '%s.*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
                     $matches    = glob( $pattern, GLOB_BRACE );
                     $urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
-                        ? apps_asset_url( 'plugin', $slug, basename( $matches[0] ) )
+                        ? $this->urlmanager->app_asset_url( 'plugin', $slug, basename( $matches[0] ) )
                         : '';
                 }
                 
@@ -253,7 +249,7 @@ class PluginRepository extends Repository {
                     $pattern    = sprintf( '%s.*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
                     $matches    = glob( $pattern, GLOB_BRACE );
                     $urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
-                        ? apps_asset_url( 'plugin', $slug, basename( $matches[0] ) )
+                        ? $this->urlmanager->app_asset_url( 'plugin', $slug, basename( $matches[0] ) )
                         : '';
                 }
 
@@ -265,7 +261,7 @@ class PluginRepository extends Repository {
                 if ( empty( $urls['1x'] ) && ! empty( $icon_matches ) ) {
                     foreach ( $icon_matches as $icon ) {
                         if ( $this->is_file( $icon ) ) {
-                            $urls['1x'] = apps_asset_url( 'plugin', $slug, basename( $icon ) );
+                            $urls['1x'] = $this->urlmanager->app_asset_url( 'plugin', $slug, basename( $icon ) );
                             break;
                         }
 
@@ -286,7 +282,7 @@ class PluginRepository extends Repository {
                 $indexed = [];
                 foreach ( $files as $file_path ) {
                     $basename = basename( $file_path );
-                    $url      = apps_asset_url( 'plugin', $slug, $basename );
+                    $url      = $this->urlmanager->app_asset_url( 'plugin', $slug, $basename );
 
                     if ( preg_match( '/screenshot-(\d+)\./i', $basename, $m ) ) {
                         $indexed[ (int) $m[1] ] = $url;
@@ -353,7 +349,7 @@ class PluginRepository extends Repository {
             }
 
             $final_text = implode( "\n", $cleaned) ;
-            return $this->parser->parse( $final_text );
+            return $this->mdparser->parse( $final_text );
         }
 
     }
@@ -419,7 +415,7 @@ class PluginRepository extends Repository {
 
         // Look for the "== Changelog ==" section in the readme.txt
         if ( preg_match( '/==\s*Changelog\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
-            return $this->parser->parse(  trim( $matches[1] ) );
+            return $this->mdparser->parse(  trim( $matches[1] ) );
         }
 
         return '';
@@ -440,7 +436,7 @@ class PluginRepository extends Repository {
 
         // Look for the "== Installation ==" section in the readme.txt
         if ( preg_match( '/==\s*Installation\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
-            return $this->parser->parse(  trim( $matches[1] ) );
+            return $this->mdparser->parse(  trim( $matches[1] ) );
         }
 
         return '';
@@ -468,7 +464,7 @@ class PluginRepository extends Repository {
 
         foreach ( $patterns as $pattern ) {
             if ( preg_match( $pattern, $readme_contents, $matches ) ) {
-                return $this->parser->parse( trim( $matches[1] ) );
+                return $this->mdparser->parse( trim( $matches[1] ) );
             }
         }
 

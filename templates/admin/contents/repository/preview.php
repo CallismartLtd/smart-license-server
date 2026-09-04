@@ -8,15 +8,15 @@
  * @var array $template_sidebar Array containing: Author, Performance Metrics, App Info, Installation, Changelog
  * @var array $template_content Array containing: Icons, Banners, Screenshots
  * @var \SmartlicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Admin\ContentHandlers\RepositoryPage $repo_page
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
-
-use SmartLicenseServer\Admin\ContentHandlers\RepositoryPage;
 
 defined( 'SMLISER_ROOT' ) || exit;
 ?>
 
 <div class="smliser-admin-repository-template repo-page">
-    <?php smliser_print_admin_content_header( RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null ) ); ?>
+    <?php smliser_print_admin_content_header( $repo_page->get_menu_args( $request, isset( $app ) ? $app : null ) ); ?>
 
     <!-- Hero Section -->
     <section class="smliser-hero-section">
@@ -26,7 +26,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                     <?php if ( ! empty( $template_header['icon'] ) ) : ?>
                         <img src="<?php echo escUrl( $template_header['icon'] ); ?>" alt="<?php echo escAttr( $template_header['name'] ); ?>">
                     <?php else : ?>
-                        <i class="dashicons dashicons-admin-plugins"></i>
+                        <i class="ti ti-app-window"></i>
                     <?php endif; ?>
                 </div>
                 
@@ -80,7 +80,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                 <div class="smliser-card">
                     <div class="smliser-card-header">
                         <div class="smliser-card-icon">
-                            <i class="dashicons dashicons-format-image"></i>
+                            <i class="ti ti-photo"></i>
                         </div>
                         <h2 class="smliser-card-title"><?php echo escHtml( 'Visual Preview' ); ?></h2>
                     </div>
@@ -93,7 +93,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                             ?>
                             <h3 class="smliser-gallery-preview_title"><?php echo escHtml( $first_title ); ?></h3>
                             <div class="smliser-gallery-preview_image">
-                                <img class="smliser-request-fullscreen" src="<?php echo escUrl( current( $first_image )?: assetsUrl( 'images/no-image.svg' ) ); ?>" alt="image" title="Double click for fullscreen">
+                                <img class="smliser-request-fullscreen" src="<?php echo escUrl( current( $first_image )?: $urlmanager->assets_url( 'images/no-image.svg' ) ); ?>" alt="image" title="Double click for fullscreen">
                             </div>
                         </div>
                         
@@ -117,7 +117,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                 <div class="smliser-card">
                     <div class="smliser-card-header">
                         <div class="smliser-card-icon">
-                            <i class="dashicons dashicons-download"></i>
+                            <i class="ti ti-download"></i>
                         </div>
                         <h2 class="smliser-card-title"><?php echo escHtml( 'Installation' ); ?></h2>
                     </div>
@@ -132,7 +132,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                 <div class="smliser-card">
                     <div class="smliser-card-header">
                         <div class="smliser-card-icon">
-                            <i class="dashicons dashicons-list-view"></i>
+                            <i class="ti ti-clock-edit"></i>
                         </div>
                         <h2 class="smliser-card-title"><?php echo escHtml( 'Changelog' ); ?></h2>
                     </div>
@@ -149,7 +149,7 @@ defined( 'SMLISER_ROOT' ) || exit;
             <?php foreach( $template_sidebar as $heading => $data ) : ?>
                 <div class="smliser-sidebar-card">
                     <h3>
-                        <i class="<?php echo escAttr( $data['icon'] ?? 'dashicons dashicons-chart-bar' ) ?>"></i>
+                        <i class="<?php echo escAttr( $data['icon'] ?? 'ti ti-chart-bar' ) ?>"></i>
                         <?php echo escHtml( $heading ); ?>
                     </h3>
                     <div class="smliser-sidebar-content">

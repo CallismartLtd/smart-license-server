@@ -6,7 +6,6 @@
  * @package Smliser\templates.
  * @since 0.2.0
  * @var SmartLicenseServer\HostedApps\Theme $app The theme object.
- * @var SmartLicenseServer\FileSystem\ThemeRepository $repo_class
  */
 
 defined( 'SMLISER_ROOT' ) || exit;

@@ -133,9 +133,9 @@ pre code {
 	background: none;
 }
 
- /* ==========================================================
-    Tables
- ========================================================== */
+/* ==========================================================
+   Tables
+========================================================== */
 
 table {
 	width: 100%;
@@ -148,7 +148,7 @@ table {
 }
 
 caption {
-	padding: 0 0 8px;
+	padding: 0 0 12px;
 	color: var( --dashboard-text-muted );
 	font-size: 13px;
 	text-align: left;
@@ -156,8 +156,7 @@ caption {
 
 th,
 td {
-	padding: 10px 12px;
-	border-bottom: 1px solid var( --dashboard-border );
+	padding: 14px 18px;
 	text-align: left;
 	vertical-align: middle;
 }
@@ -165,11 +164,9 @@ td {
 th {
 	font-weight: 600;
 	color: var( --dashboard-text-muted );
-	background: var( --dashboard-bg );
 }
 
-tbody tr:last-child th,
-tbody tr:last-child td {
+td {
 	border-bottom: 0;
 }
 
@@ -177,7 +174,7 @@ tbody tr:last-child td {
    Table Variants
 ========================================================== */
 
-/* Striped rows */
+/* Striped rows — the primary way to separate rows in a dense table */
 
 table.striped tbody tr:nth-child( even ) {
 	background: var( --dashboard-bg );
@@ -189,7 +186,7 @@ table.hover tbody tr:hover {
 	background: var( --dashboard-hover-bg );
 }
 
-/* Bordered table */
+/* Bordered table — opt-in full grid, for when a table needs a stronger structural read */
 
 table.bordered {
 	border: 1px solid var( --dashboard-border );
@@ -204,15 +201,14 @@ table.bordered td {
 
 table.compact th,
 table.compact td {
-	padding: 6px 8px;
-	font-size: 13px;
+	padding: 8px 10px;
 }
 
 /* Spacious table */
 
 table.spacious th,
 table.spacious td {
-	padding: 14px 16px;
+	padding: 20px 24px;
 }
 
 /* ==========================================================
@@ -222,8 +218,9 @@ table.spacious td {
 /*
  * WordPress-style "widefat" table modifier.
  *
- * Provides the familiar admin-table appearance while remaining
- * independent of WordPress itself.
+ * Deliberately keeps the classic filled-header, bordered-frame look
+ * rather than the quieter global default above — a contained,
+ * structured variant to reach for alongside the plain table.
  */
 
 table.widefat {
@@ -235,13 +232,14 @@ table.widefat {
 
 table.widefat th,
 table.widefat td {
-	padding: 10px 12px;
+	padding: 14px 18px;
 }
 
 table.widefat th {
 	color: var( --dashboard-text );
 	background: var( --dashboard-bg );
 	font-weight: 600;
+	border-bottom: 1px solid var( --dashboard-border );
 }
 
 table.widefat tbody tr:hover {
@@ -309,7 +307,7 @@ table .actions {
 ========================================================== */
 
 table .empty-state {
-	padding: 32px 16px;
+	padding: 48px 16px;
 	color: var( --dashboard-text-muted );
 	text-align: center;
 }

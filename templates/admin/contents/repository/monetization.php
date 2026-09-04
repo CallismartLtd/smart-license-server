@@ -11,16 +11,23 @@
  * @var \SmartLicenseServer\Monetization\Monetization|null $monetization
  * @var array<int|string, class-string<\SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface>|\SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface> $providers
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $app
+ * @var \SmartLicenseServer\Admin\ContentHandlers\RepositoryPage $repo_page
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
-
-use SmartLicenseServer\Admin\ContentHandlers\RepositoryPage;
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
 
 <div class="smliser-admin-repository-template repo-page">
-    <?php smliser_print_admin_content_header( RepositoryPage::get_menu_args( $request, $app ) ); ?>
+    <?php smliser_print_admin_content_header( $repo_page->get_menu_args( $request, $app ) ); ?>
     <?php if ( empty( $app ) ) : ?>
-        <?php echo sanitize_html( smliser_not_found_container( 'This app does not exist in the repository <a href="' . smliser_repository_url( 'admin' ) . '">Back</a>' ) ); ?>
+        <?php echo
+            smliser_not_found_container(
+                sprintf(
+                    'This app does not exist in the repository <a href="%s">Back</a>',
+                    $urlmanager->admin_repo_url()
+                )
+            );
+        ?>
     <?php else : ?>
         <div class="smliser-monetization-ui">
             <div class="smliser-monetization-ui__software-info">
@@ -103,15 +110,15 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 
                                             <div class="smliser-pricing-tier-actions">
                                                 <button type="button" class="button smliser-tier-view smliser-nav-btn" data-action="viewProductData">
-                                                    <span class="dashicons dashicons-visibility"></span> View Product Data
+                                                    <span class="ti ti-visibility"></span> View Product Data
                                                 </button>
 
                                                 <button type="button" class="button smliser-tier-edit smliser-nav-btn" data-action="editTier">
-                                                    <span class="dashicons dashicons-edit"></span> Edit
+                                                    <span class="ti ti-edit"></span> Edit
                                                 </button>
 
                                                 <button type="button" class="button smliser-tier-delete smliser-nav-btn" data-action="deleteTier">
-                                                    <span class="dashicons dashicons-trash"></span> Delete
+                                                    <span class="ti ti-trash"></span> Delete
                                                 </button>
                                             </div>
                                         </div>
@@ -146,9 +153,9 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 
                 </div>
             </div>
-            <div class="smliser-admin-modal pricing-tier hidden">
+            <div class="smliser-admin-modal pricing-tier smliser-hide">
                 <div class="smliser-admin-modal_content">
-                    <span class="dashicons dashicons-dismiss remove-modal" title="remove" data-command="closeModal"></span>
+                    <span class="ti ti-x remove-modal" title="remove" data-command="closeModal"></span>
                     <h2>Set Pricing Tier</h2>
                     <em>A pricing tier represents a specific license option for the application</em>
                     <form id="tier-form" class="smliser-admin-modal_content-form">
@@ -180,7 +187,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <label for="features">Features:
                             <textarea type="number" name="features" id="features" placeholder="example: feature1, feature2, feature3" field-name="Features"></textarea>
                         </label>
-                        <button type="submit" class="button smliser-nav-btn"><span class="dashicons dashicons-cloud"></span> Save</button>
+                        <button type="submit" class="button smliser-nav-btn"><span class="ti ti-cloud"></span> Save</button>
                     </form>
                     <div class="smliser-spinner"></div>
                 </div>

@@ -12,12 +12,13 @@
  * @var string $type_title
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp $app
  * @var array{slug: string, path: string, size: int, mtime: int, mime_type: string|null, filename: string}[] $app_files
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var \SmartLicenseServer\Admin\ContentHandlers\RepositoryPage $repo_page
  */
 
-use SmartLicenseServer\Admin\ContentHandlers\RepositoryPage;
 use SmartLicenseServer\Utils\Format;
 
-$args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null );
+$args   = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
 ?>
 
 <div class="application-uploader-page artifact-editor">
@@ -28,7 +29,7 @@ $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null )
         <div class="notice notice-info">
             <h2>
                 <?php printf( 'Manage all distributable artifacts for <a href="%s">%s</a>', 
-                smliser_admin_repo_tab( 'view', ['app_id' => $app->get_id(), 'type' => $app->get_type()] ), $app->get_name() ); ?>
+                $urlmanager->admin_repo_url( 'view', ['app_id' => $app->get_id(), 'type' => $app->get_type()] ), $app->get_name() ); ?>
             </h2>
             <em>
                 A distributable artifact is packaged version of your <strong><?php echo escHtml( $type ); ?></strong> that is ready for
@@ -87,9 +88,9 @@ $args   = RepositoryPage::get_menu_args( $request, isset( $app ) ? $app : null )
                                     <th>Download URL:</th>
                                     <td>
                                         <span title="<?php echo escAttr( $download_url ) ?>">
-                                            <?php echo escHtml( Format::truncate( $download_url->url(), 40 ) ) ?>    
+                                            <?php echo escHtml( Format::truncate( $download_url->url(), 30 ) ) ?>    
                                         </span>
-                                        <i class="ti ti-copy smliser-click-to-copy" title="Click to copy" data-copy-value="<?php echo escUrl( $download_url ) ?>"></i>
+                                        <i class="ti ti-copy smliser-click-to-copy" title="Click to copy" data-copy-value="<?php echo escUrl( $download_url->url() ) ?>"></i>
                                     </td>
                                 </tr>
                                 <tr>
