@@ -211,7 +211,7 @@ class HostingController {
             $request->set( 'smliser_resource', $app );
 
             return Response::json( $data, 200 )
-            ->set_response_data( $request )
+            ->set_request( $request )
             ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         } catch ( RequestException $e ) {
             return Response::error( $e )
@@ -416,6 +416,13 @@ class HostingController {
                 $result = $repo_class->safe_assets_upload( $app_slug, $asset_file, $asset_type );
             } else {
                 static::check_permissions( 'hosted_apps.edit_assets' );
+
+                $file       = $asset_file->get(0);
+                $new_name   = $request->get( 'asset_name' );
+
+                if ( $new_name ) {
+                    $file->set_new_name( $new_name );
+                }
                 $result = $repo_class->put_app_asset( $app_slug, $asset_file->get(0), $asset_type );
 
                 if ( is_smliser_error( $result ) ) {
@@ -830,7 +837,7 @@ class HostingController {
                 ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
 
             $response = ( new Response( 200, [], '' ) )
-                ->set_response_data( $request )
+                ->set_request( $request )
                 ->set_header( 'Location', $url->url() );
 
            $this->cache->clear();

@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\FileSystem\DownloadsApi;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
@@ -28,15 +29,19 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 class FileRequestController {
     use SanitizeAwareTrait, SecurityAwareTrait;
 
-    public function __construct( protected Guard $guard ) {}
+    public function __construct(
+        protected Guard $guard,
+        protected AppsAnalytics $apps_analytics,
+        protected Settings $settings
+    ) {}
     
     /**
      * Process and serve download request for a hosted application zip file.
      *
-     * @param FileRequest $request The file request object.
+     * @param FileRequest|Request $request The file request object.
      * @return FileResponse
      */
-    public function get_application_zip_file( FileRequest $request ): FileResponse {
+    public function get_application_zip_file( FileRequest|Request $request ): FileResponse {
         try {
 
             $app_type   = $request->get( 'app_type' );
@@ -57,25 +62,41 @@ class FileRequestController {
 
             $request->set( 'file_path', $file_path );
             
-            $response = new FileResponse( $file_path, ['type' => $app->get_type()] );
+            $response = new FileResponse(
+                $file_path,
+                $request,
+                ['type' => $app->get_type()]
+            );
 
-            $response->post_response_action( [AppsAnalytics::class,'log_download'], $app );
-            $response->post_response_action( [AppsAnalytics::class,'log_client_access'], $app, 'download' );
+            $response->post_response_action(
+                [$this->apps_analytics, 'log_download'],
+                $app,
+                $request->ip(),
+                $request->userAgent()
+            );
+
+            $response->post_response_action(
+                [$this->apps_analytics, 'log_client_access'],
+                $app,
+                'download',
+                $request->ip(),
+                $request->userAgent()
+            );
             
             return $response;
 
         } catch ( FileRequestException $e ) {
-            return new FileResponse( $e );
+            return FileResponse::error_response( $e, $request );
         }
     }
 
     /**
      * Process and serve download request for a hosted application zip file.
      *
-     * @param FileRequest $request The file request object.
+     * @param FileRequest|Request $request The file request object.
      * @return FileResponse
      */
-    public function get_application_artifact_file( FileRequest $request ): FileResponse {
+    public function get_application_artifact_file( FileRequest|Request $request ): FileResponse {
         try {
 
             $app_type   = $request->get( 'app_type' );
@@ -117,15 +138,31 @@ class FileRequestController {
 
             $request->set( 'file_path', $file_path );
             
-            $response = new FileResponse( $file_path, ['type' => $app->get_type()] );
+            $response = new FileResponse(
+                $file_path,
+                $request,
+                ['type' => $app->get_type()]
+            );
 
-            $response->post_response_action( [AppsAnalytics::class,'log_download'], $app );
-            $response->post_response_action( [AppsAnalytics::class,'log_client_access'], $app, 'download' );
+            $response->post_response_action(
+                [$this->apps_analytics, 'log_download'],
+                $app,
+                $request->ip(),
+                $request->userAgent()
+            );
+
+            $response->post_response_action(
+                [$this->apps_analytics, 'log_client_access'],
+                $app,
+                'download',
+                $request->ip(),
+                $request->userAgent()
+            );
             
             return $response;
 
         } catch ( FileRequestException $e ) {
-            return new FileResponse( $e );
+            return FileResponse::error_response( $e, $request );
         }
     }
 
@@ -147,24 +184,33 @@ class FileRequestController {
             }
 
             $file_path  = $app->get_zip_file();
-            $response   = new FileResponse( $file_path, ['type' => $app->get_type()] );
+            $response   = new FileResponse( 
+                $file_path,
+                $request,
+                ['type' => $app->get_type()]
+            );
             
-            $response->post_response_action( [AppsAnalytics::class,'log_download'], $app );
-            
+            $response->post_response_action(
+                [$this->apps_analytics, 'log_download'],
+                $app,
+                $request->ip(),
+                $request->userAgent()
+            );
+
             return $response;
             
         } catch ( FileRequestException $e ) {
             // Catch any specialized exception and package it into the FileResponse
-            return new FileResponse( $e );
+            return FileResponse::error_response( $e, $request );
         }
     }
 
     /**
      * Serve license document download to admins.
-     * @param FileRequest $request The file request object.
+     * @param FileRequest|Request $request The file request object.
      * @return FileResponse
      */
-    public function get_admin_license_document( FileRequest $request ): FileResponse {
+    public function get_admin_license_document( FileRequest|Request $request ): FileResponse {
         try {
             static::is_system_admin();
             $license_id = (int) $request->get( 'license_id' );
@@ -178,7 +224,7 @@ class FileRequestController {
                 throw new FileRequestException( 'file_not_found' );
             }
             
-            $document = static::generate_license_document( $license, smliser_settings() );
+            $document = static::generate_license_document( $license );
 
             $file_props = [
                 'type'         => 'document',
@@ -188,26 +234,26 @@ class FileRequestController {
             ];
 
 
-            return new FileResponse( $document, $file_props );
+            return new FileResponse( $document, $request, $file_props );
 
         } catch ( FileRequestException $e ) {
-            return new FileResponse( $e );
+            return FileResponse::error_response( $e, $request );
         } catch ( \Throwable $e ) {
             $exception = new FileRequestException(
                 'unexpected_repo_failure',
                 $e->getMessage(),
                 [ 'trace' => $e->getTraceAsString() ]
             );
-            return new FileResponse( $exception );
+            return FileResponse::error_response( $exception, $request );
         }
     }
 
     /**
      * Serves remote asset as a proxy, bypassing CORs restrictions for clients.
      * 
-     * @param FileRequest $request The file request object.
+     * @param FileRequest|Request $request The file request object.
      */
-    public function get_proxy_asset( FileRequest $request ) {
+    public function get_proxy_asset( FileRequest|Request $request ) {
         try {
             $asset_url  = $request->get( 'asset_url' );
 
@@ -222,9 +268,9 @@ class FileRequestController {
             }
             
             $file       = smliser_download_url( $asset_url );
-            $asset_name = $request->get( 'asset_name' );
+            $asset_name = (string) $request->get( 'asset_name' );
             
-            $response   = new FileResponse( $file );
+            $response   = new FileResponse( $file, $request );
 
             if ( ! $file instanceof FileRequestException ) {
                 $response->set_header( 'Content-Disposition', $response->get_content_disposition( $asset_name, '', true ) );
@@ -233,17 +279,17 @@ class FileRequestController {
             return $response;
             
         } catch ( FileRequestException $e ) {
-            return new FileResponse( $e );
+            return FileResponse::error_response( $e, $request );
         }    
     }
 
     /**
-     * Process and serve static assets from the smliser-uploads directory.
+     * Process and serve static assets from the uploads directory.
      *
-     * @param FileRequest $request
+     * @param FileRequest|Request $request
      * @return FileResponse
      */
-    public function get_uploads_dir_asset( FileRequest $request ): FileResponse {
+    public function get_uploads_dir_asset( FileRequest|Request $request ): FileResponse {
         try {
             $file_path = $request->get( 'file_path' );
 
@@ -258,7 +304,7 @@ class FileRequestController {
                 throw new FileRequestException( 'file_not_found' );
             }
 
-            $response = ( new FileResponse( $file_path ) )
+            $response = ( new FileResponse( $file_path, $request ) )
                 ->set_header( 'Cache-Control', 'max-age=31536000, immutable' )
                 ->set_header( 'Expires', sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', time() + 31536000 ) ) )
                 ->remove_header( 'X-Content-Type-Options');
@@ -270,16 +316,16 @@ class FileRequestController {
             return $response;
 
         } catch ( FileRequestException $e ) {
-            return new FileResponse( $e );
+            return FileResponse::error_response( $e, $request );
         }
     }
 
     /**
      * Process and serve static asset for all hosted applications.
      * 
-     * @param FileRequest $request The file request object.
+     * @param FileRequest|Request $request The file request object.
      */
-    public function get_app_static_asset( FileRequest $request ){
+    public function get_app_static_asset( FileRequest|Request $request ){
         try {
 
             $app_type   = $request->get( 'app_type' );
@@ -302,7 +348,7 @@ class FileRequestController {
                 'name'         => $asset_name,
             ];
 
-            $response = new FileResponse( $file_path, $file_props );
+            $response = new FileResponse( $file_path, $request, $file_props );
             if ( ! $file_path instanceof FileRequestException ) {
                 $response->set_header( 'Content-Disposition', $response->get_content_disposition( $asset_name, '', true ) );
                 $response->set_header( 'Cache-Control', 'max-age=31536000, immutable' );
@@ -312,17 +358,17 @@ class FileRequestController {
             return $response;
 
         } catch ( FileRequestException $e ) {
-            return new FileResponse( $e );
+            return FileResponse::error_response( $e, $request );
         }
     }
 
     /**
      * Computes and generate the document for the given license ID.
      * 
-     * @param FileRequest $request The file request object.
+     * @param FileRequest|Request $request The file request object.
      * @return FileResponse
      */
-    public function get_license_document( FileRequest $request ): FileResponse {
+    public function get_license_document( FileRequest|Request $request ): FileResponse {
         try {
             $license_id = $request->get( 'license_id' );
             $token      = $request->get( 'download_token' );
@@ -352,7 +398,7 @@ class FileRequestController {
                 throw new FileRequestException( 'invalid_token' );
             }
             
-            $document = static::generate_license_document( $license, smliser_settings() );
+            $document = static::generate_license_document( $license );
 
             $file_props = [
                 'type'         => 'document',
@@ -362,17 +408,18 @@ class FileRequestController {
             ];
 
 
-            return new FileResponse( $document, $file_props );
+            return new FileResponse( $document, $request, $file_props );
 
         } catch ( FileRequestException $e ) {
-            return new FileResponse( $e );
+            return new FileResponse( $e, $request );
         } catch ( \Throwable $e ) {
             $exception = new FileRequestException(
                 'unexpected_repo_failure',
                 $e->getMessage(),
                 [ 'trace' => $e->getTraceAsString() ]
             );
-            return new FileResponse( $exception );
+
+            return FileResponse::error_response( $exception, $request );
         }
     }
 
@@ -383,7 +430,7 @@ class FileRequestController {
      * @param Settings Settings API instance (used for issuer, terms URL, etc.).
      * @return string The formatted license document.
      */
-    protected function generate_license_document( $license, Settings $settingsAPI ): string {
+    protected function generate_license_document( $license ): string {
         $license_key    = $license->get_license_key();
         $service_id     = $license->get_service_id();
         $date_issued    = $license->get_start_date()?->format( \smliser_datetime_format() ) ?? 'N/A';
@@ -392,8 +439,8 @@ class FileRequestController {
         $max_domains    = $license->get_max_allowed_domains();
         $licensee       = $license->get_licensee_fullname();
         $today          = gmdate( 'F j, Y g:i:s a' );
-        $issuer         = $settingsAPI->get( 'repository_name', SMLISER_APP_NAME, true );
-        $terms_url      = $settingsAPI->get( 'terms_url', '', true );
+        $issuer         = $this->settings->get( 'repository_name', SMLISER_APP_NAME, true );
+        $terms_url      = $this->settings->get( 'terms_url', '', true );
         $app_id         = $license->is_issued() ? $license->get_app_id() : 'N/A';
 
         $document = <<<LICENSE
@@ -448,7 +495,7 @@ class FileRequestController {
     /**
      * Validates monetized app file download request
      */
-    protected function check_monetization( HostedAppsInterface $app, FileRequest $request ) : void {
+    protected function check_monetization( HostedAppsInterface $app, FileRequest|Request $request ) : void {
         if ( ! $app->is_monetized() ) {
             return;
         }

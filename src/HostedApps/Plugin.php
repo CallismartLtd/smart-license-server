@@ -239,7 +239,7 @@ class Plugin extends AbstractHostedApp {
             return $icons['2x'];
         }
 
-        return smliser_get_placeholder_icon( $this->get_type() );
+        return $this->default_icon()->url();
     }
 
     /*

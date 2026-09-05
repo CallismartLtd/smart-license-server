@@ -842,7 +842,18 @@ final class DefaultPage {
 	 *
 	 * @return Response
 	 */
-	public function method_not_allowed(): Response {
+	public function method_not_allowed( Request $request ): Response {
+		if ( $request->wantsJson() ) {
+			\smliser_send_json(
+				[
+					'error'	=> 'Not Allowed',
+					'data'	=> [
+						'message'	=> 'The request method is not allowed on this server.'
+					]
+				],
+				405
+			);
+		}
 		$content = '
 			<div class="message">
 				<div class="card">

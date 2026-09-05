@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Environments\Application\Routing;
 
 use SmartLicenseServer\Admin\ActionHandlers\AppManagement;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
+use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\AuthForms;
 use SmartLicenseServer\Core\Container\Container;
@@ -19,10 +20,12 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddleware;
+use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddleware;
+use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Routing\Router as CoreRouter;
 use SmartLicenseServer\Routing\DispatchStatus;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
-use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * The application environment's route manager, which wraps the core Router and 
@@ -114,7 +117,11 @@ final class RouteManager {
         
         $urlmanager = $this->container->get( URLManager::class );
 
-        // Authentication routes.
+		/*
+		|-------------------
+		| Authentication routes.
+		|-------------------
+		*/
         $this->router->group( $urlmanager->login_url_prefix(),
             function() {                
                 $this->router->any(
@@ -152,13 +159,22 @@ final class RouteManager {
             },
             middleware: []
         );
-
+ 
+		/*
+		|-------------------
+		| Logout route.
+		|-------------------
+		*/
         $this->router->get(
             pattern: $urlmanager->logout_url_prefix(),
             handler: [AuthController::class, 'handle_logout']
         );
 
-        // The admin dashboard routes.
+		/*
+		|------------------------------
+		| The admin dashboard routes.
+		|------------------------------
+		*/
         $this->router->group( $urlmanager->admin_url_prefix(),
             function() {
                 // Main page.
@@ -202,13 +218,13 @@ final class RouteManager {
 
                     $this->router->add(
                         pattern: 'upload-app-assets',
-                        methods: ['POST', 'PUT'],
+                        methods: [Request::POST, Request::PATCH, Request::PUT],
                         handler: [AppManagement::class, 'handle_app_asset_upload_request'],
                         middleware: []
                     );
 
                     $this->router->delete(
-                        pattern: 'app-assets',
+                        pattern: 'app-asset',
                         handler: [AppManagement::class, 'handle_app_asset_delete_request'],
                         middleware: []
                     );
@@ -216,6 +232,12 @@ final class RouteManager {
                     $this->router->post(
                         pattern: 'app-artifacts',
                         handler: [AppManagement::class, 'handle_app_artifact_upload_request'],
+                        middleware: []
+                    );
+
+                    $this->router->post(
+                        pattern: 'proxy-asset',
+                        handler: [FileRequestController::class, 'get_proxy_asset'],
                         middleware: []
                     );
                 });
@@ -226,11 +248,107 @@ final class RouteManager {
                 AdminAccessMiddleware::class
             ]
         );
+
+		/*
+		|------------------------------
+		| The client dashboard routes.
+		|------------------------------
+		*/
+        $this->router->group( $urlmanager->client_dasboard_url_prefix(),
+            callback: function () {
+                $this->router->get(
+                    pattern: '',
+                    handler: [ClientDashboardRenderer::class, 'render_client_dashboard'],
+                    middleware: []
+                );
+            },
+            middleware: []
         
+        );
+
+		/*
+		|---------------------------
+		| The documentation routes
+		|---------------------------
+		*/
         $this->router->group( 'documentation', function () {
             $this->router->get( '/', [DefaultPage::class, 'doc_page'] );
             $this->router->get( '{category:slug}', [DefaultPage::class, 'doc_page'] );
         });
+
+		/*
+		|---------------------------
+		| Uploads directory serving
+		|---------------------------
+		*/
+        $this->router->get(
+            pattern: $urlmanager->uploads_url_prefix(),
+            handler: [FileRequestController::class, 'get_uploads_dir_asset'],
+            middleware: []
+        );
+
+		/*
+		|-------------------
+		| Repository routes
+		|-------------------
+		*/
+        $this->router->group( $urlmanager->repository_url_prefix(),
+            function() {
+                // Base.
+                $this->router->get( '', [] );
+
+                $this->router->get(
+                    pattern: '{app_type}/{app_slug}',
+                    handler: [],
+                    middleware: []
+                );
+
+                $this->router->get(
+                    pattern: '{app_type}/{app_slug}/assets/{asset_name:.+}',
+                    handler: [FileRequestController::class, 'get_app_static_asset']
+                );
+
+
+            },
+            middleware: []
+        );
+
+		/*
+        |-----------------------
+        | File download routes
+        |-----------------------
+        */
+        $this->router->group(
+            prefix: $urlmanager->downloads_url_prefix(),
+            callback: function () {
+                // License document download.
+                $this->router->get(
+                    pattern: 'document/license-document-{license_id:int}.txt',
+                    handler: [FileRequestController::class, 'get_license_document']
+                );
+
+                $hosted_apps_registry = $this->container->get( HostedAppsRegistry::class );
+                
+                // Escape types safely and implode with pipe.
+                $app_types = implode( '|', array_map( 'preg_quote', $hosted_apps_registry->app_types() ) );
+
+                // App Zip Download.
+                // app_type matches: theme|plugin|addon.
+                // app_slug.ext:zip matches: {app_slug}.zip -> captures 'app_slug' & 'app_slug_ext'.
+                $this->router->get(
+                    pattern: "{app_type:{$app_types}}/{app_slug.ext:zip}",
+                    handler: [FileRequestController::class, 'get_application_zip_file'],
+                    middleware: [AppDownloadMiddleware::class]
+                );
+
+                // App artifact download route.
+                $this->router->get(
+                    pattern: "{app_type:{$app_types}}/{app_slug/artifacts/artifact_filename:.+}",
+                    handler: [FileRequestController::class, 'get_application_artifact_file']
+                );
+            },
+            middleware: []
+        );
     }
 
 	/**
@@ -320,18 +438,6 @@ final class RouteManager {
 		};
 
         return $this->ensure_response( $response );
-	}
-
-	/**
-	 * Small convenience for the common case: derive a route-matchable path
-	 * from $_SERVER, stripping the query string. Not required — pass any
-	 * path string to dispatch() directly if this doesn't fit.
-	 */
-	public static function pathFromServer( array $server ): string {
-		$uri  = $server['REQUEST_URI'] ?? '/';
-		$path = parse_url( $uri, PHP_URL_PATH );
-
-		return trim( (string) ( $path ?? '/' ), '/' );
 	}
 
     /**
@@ -450,5 +556,4 @@ final class RouteManager {
             throw $e;
         }
     }
-
 }

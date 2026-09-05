@@ -1378,6 +1378,7 @@ input.smliser_toggle-switch-input {
 
 .smliser-gallery-list-container_ul {
     display: block;
+    list-style: none;
 
 }
 

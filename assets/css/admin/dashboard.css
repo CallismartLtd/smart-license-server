@@ -3,11 +3,11 @@
 }
 
 ::view-transition-old(root) {
-	animation: fade-out 0.5s ease;
+	animation: fade-out 0.8s ease;
 }
 
 ::view-transition-new(root) {
-	animation: fade-in 0.5s ease;
+	animation: fade-in 0.8s ease;
 }
 
 @keyframes fade-out {
@@ -401,6 +401,7 @@ button:disabled,
 .button:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
+	background: #dcdcde;
 }
 
 button,
@@ -493,6 +494,7 @@ button:hover:not( :disabled ),
 		"sidebar main";
 	height: 100vh;
 	transition: grid-template-columns var( --dashboard-transition );
+	scroll-behavior: auto;
 }
 
 .dashboard-wrapper.is-collapsed {

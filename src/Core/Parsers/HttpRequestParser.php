@@ -464,15 +464,32 @@ class HttpRequestParser {
 	 * @return array<string, string>
 	 */
 	private function headers_from_server(): array {
-		$headers = [];
+		$headers	= [];
 
-		foreach ( $_SERVER as $key => $value ) {
-			if ( 0 === strpos( $key, 'HTTP_' ) ) {
-				$headers[ str_replace( '_', '-', substr( $key, 5 ) ) ] = $value;
-			} elseif ( in_array( $key, [ 'CONTENT_TYPE', 'CONTENT_LENGTH' ], true ) ) {
-				$headers[ str_replace( '_', '-', $key ) ] = $value;
-			}
-		}
+        foreach ( $_SERVER as $key => $value ) {
+            if ( str_starts_with( $key, 'HTTP_' ) ) {
+                $name				= substr( $key, 5 );
+                $name				= str_replace( ' ', '-', ucwords( strtolower( str_replace( '_', ' ', $name ) ) ) );
+                $headers[ $name ]	= $value;
+                continue;
+            }
+
+            if ( in_array( $key, [ 'CONTENT_TYPE', 'CONTENT_LENGTH', 'CONTENT_MD5' ], true ) ) {
+                $name = str_replace( ' ', '-', ucwords( strtolower( str_replace( '_', ' ', $key ) ) ) );
+                $headers[ $name ]	= $value;
+            }
+        }
+
+        if ( ! isset( $headers['Authorization'] ) ) {
+            if ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ) {
+                $headers['Authorization'] = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+            } elseif ( isset( $_SERVER['PHP_AUTH_USER'] ) ) {
+                $basic_pass					= $_SERVER['PHP_AUTH_PW'] ?? '';
+                $headers['Authorization']	= 'Basic ' . base64_encode( $_SERVER['PHP_AUTH_USER'] . ':' . $basic_pass );
+            } elseif ( isset( $_SERVER['PHP_AUTH_DIGEST'] ) ) {
+                $headers['Authorization']	= $_SERVER['PHP_AUTH_DIGEST'];
+            }
+        }
 
 		return $headers;
 	}

@@ -37,7 +37,7 @@ final class JS {
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/dashboard%s.js', $suffix ) ),
                 'dependencies'  => [
                     'smliser-script', 'smliser-apps-uploader', 'smliser-chart',
-                    'smliser-role-builder'
+                    'smliser-role-builder', 'smliser-admin-repository'
                 ],
                 'version'       => SMLISER_VER,
                 'footer'        => true

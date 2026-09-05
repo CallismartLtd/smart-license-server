@@ -227,9 +227,10 @@ class Request {
                 $result = $parser->parse();
                 $this->parse_post( $result['post'] );
                 $this->parse_uploaded_files( $result['files'] );
-            } catch ( \Exception ) {
-                $this->parse_post();
-                $this->parse_uploaded_files();
+            } catch ( \Exception $e ) {
+                throw $e;
+                // $this->parse_post();
+                // $this->parse_uploaded_files();
             }
         } else {
             $this->parse_post();
@@ -335,8 +336,11 @@ class Request {
             foreach ( $key as $k => $v ) {
                 $this->route_params[ $k ] = $v;
             }
+
+            $this->set_params( $key );
         } else {
             $this->route_params[ $key ] = $value;
+            $this->set( $key, $value );
         }
 
         return $this;
@@ -1223,9 +1227,15 @@ class Request {
      * @param ?array $files
      */
     public function parse_uploaded_files( ?array $files = null ): void {
-        $files  = $files ?? $_FILES;
+        if ( null !== $files ) {
+            foreach ( $files as $key => $entry ) {
+                $this->files[$key]  = UploadedFileCollection::from_array( $key, $entry );
+            }
 
-        foreach ( $files as $key => $_ ) {
+            return;
+        }
+
+        foreach ( $_FILES as $key => $_ ) {
             $this->files[ $key ] = UploadedFileCollection::from_files( $key );
         }
     }

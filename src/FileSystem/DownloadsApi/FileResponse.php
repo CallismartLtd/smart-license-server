@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\FileSystem\DownloadsApi;
 
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Core\Response;
@@ -73,7 +74,11 @@ class FileResponse extends Response {
      * @param string|FileRequestException $file Absolute path to the file, the file string or an instance of error.
      * @param string|array $args An associative array of options.
      */
-    public function __construct( string|FileRequestException $file, $args = '' ) {
+    public function __construct(
+        string|FileRequestException $file,
+        protected Request $request,
+        array|string $args = ''
+    ) {
         parent::__construct();
 
         if (  $file instanceof FileRequestException ) {
@@ -95,14 +100,14 @@ class FileResponse extends Response {
         $app_registery  = HostedAppsRegistry::instance();
 
         try {
-            if ( '' !== $download_type && in_array( $download_type, $app_registery->app_types() ) ) {
+            if ( in_array( $download_type, $app_registery->app_types(), true ) ) {
                 $this->repo_class   = $app_registery->get_app_type_directory_class( $download_type );
             }            
-        } finally {
-            if ( ! isset( $this->repo_class ) ) {
-                $this->repo_class = smliser_filesystem();
-            }            
-        }
+        } catch( \Throwable ) {}
+        
+        if ( ! isset( $this->repo_class ) ) {
+            $this->repo_class = smliser_filesystem();
+        } 
 
         if ( $this->has_errors() ) {
             return; 
@@ -282,7 +287,7 @@ class FileResponse extends Response {
      * @return bool True if Range may be honored, false if it must be ignored.
      */
     protected function passes_if_range( string $etag, ?int $mtime ): bool {
-        $if_range = smliser_request()->get_header( 'if-range' );
+        $if_range = $this->request->get_header( 'if-range' );
 
         if ( empty( $if_range ) ) {
             return true;
@@ -325,7 +330,7 @@ class FileResponse extends Response {
     protected function set_range_headers( int $file_size, string $etag = '', ?int $mtime = null ) {
         $this->range_start  = 0;
         $this->range_end    = $file_size - 1;
-        $range              = smliser_request()->get_header( 'range' );
+        $range              = $this->request->get_header( 'range' );
 
         if ( empty( $range ) ) {
             $this->set_header( 'Content-Length', (string) $file_size );
@@ -450,6 +455,17 @@ class FileResponse extends Response {
         
         return parent::set_exception( $this->error );
     }
+
+    /**
+	 * Create a new error response.
+	 * 
+	 * @param FileRequestException $error
+	 * @param Request $request
+	 * @return static
+	 */
+	public static function error_response( FileRequestException $error,  Request $request ) : static {
+		return ( new static( $error, $request ) );
+	}
 
     /**
      * Tells whether the file is a valid zip file.

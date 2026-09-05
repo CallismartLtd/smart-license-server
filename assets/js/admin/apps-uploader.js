@@ -160,48 +160,275 @@ class AppUploader {
     }
 
     /**
-     * Handle ZIP file selection change.
+     * Map a file extension to a Tabler icon class.
+     *
+     * Kept as a small lookup rather than a switch so new extensions are a
+     * one-line addition. Falls back to a generic file icon for anything
+     * not listed.
+     *
+     * @param {string} extension Lowercased, without the leading dot.
+     * @return {string} Tabler icon class, e.g. 'ti-file-zip'.
+     */
+    _getFileTypeIcon( extension ) {
+        const iconMap = {
+            // Archives.
+            zip: 'ti-file-zip',
+            rar: 'ti-file-zip',
+            '7z': 'ti-file-zip',
+            tar: 'ti-file-zip',
+            gz: 'ti-file-zip',
+            bz2: 'ti-file-zip',
+            xz: 'ti-file-zip',
+
+            // PDF and office documents.
+            pdf: 'ti-file-type-pdf',
+            doc: 'ti-file-type-doc',
+            docx: 'ti-file-type-docx',
+            odt: 'ti-file-type-docx',
+            rtf: 'ti-file-text',
+            txt: 'ti-file-text',
+            md: 'ti-markdown',
+
+            // Spreadsheets and tabular data.
+            xls: 'ti-file-type-xls',
+            xlsx: 'ti-file-type-xls',
+            ods: 'ti-file-type-xls',
+            csv: 'ti-file-type-csv',
+            tsv: 'ti-file-spreadsheet',
+
+            // Presentations.
+            ppt: 'ti-file-type-ppt',
+            pptx: 'ti-file-type-ppt',
+            odp: 'ti-presentation',
+
+            // Images.
+            jpg: 'ti-photo',
+            jpeg: 'ti-photo',
+            png: 'ti-photo',
+            gif: 'ti-photo',
+            webp: 'ti-photo',
+            svg: 'ti-photo',
+            bmp: 'ti-photo',
+            ico: 'ti-photo',
+            tif: 'ti-photo',
+            tiff: 'ti-photo',
+            avif: 'ti-photo',
+
+            // Audio.
+            mp3: 'ti-file-music',
+            wav: 'ti-file-music',
+            ogg: 'ti-file-music',
+            oga: 'ti-file-music',
+            flac: 'ti-file-music',
+            m4a: 'ti-file-music',
+            aac: 'ti-file-music',
+            opus: 'ti-file-music',
+
+            // Video.
+            mp4: 'ti-file-video',
+            webm: 'ti-file-video',
+            mov: 'ti-file-video',
+            avi: 'ti-file-video',
+            mkv: 'ti-file-video',
+            m4v: 'ti-file-video',
+            wmv: 'ti-file-video',
+            mpg: 'ti-file-video',
+            mpeg: 'ti-file-video',
+
+            // Web.
+            html: 'ti-brand-html5',
+            htm: 'ti-brand-html5',
+            css: 'ti-brand-css3',
+            scss: 'ti-brand-sass',
+            sass: 'ti-brand-sass',
+            less: 'ti-brand-css3',
+
+            // JavaScript / TypeScript.
+            js: 'ti-brand-javascript',
+            jsx: 'ti-brand-react',
+            ts: 'ti-brand-typescript',
+            tsx: 'ti-brand-react',
+            vue: 'ti-brand-vue',
+            svelte: 'ti-brand-svelte',
+
+            // PHP / server-side code.
+            php: 'ti-brand-php',
+            phtml: 'ti-brand-php',
+
+            // Python.
+            py: 'ti-brand-python',
+            pyw: 'ti-brand-python',
+
+            // Java / JVM.
+            java: 'ti-brand-java',
+            jar: 'ti-file-code',
+            war: 'ti-file-code',
+
+            // C / C++ / C#.
+            c: 'ti-file-code',
+            h: 'ti-file-code',
+            cpp: 'ti-file-code',
+            hpp: 'ti-file-code',
+            cs: 'ti-file-code',
+
+            // Shell / configuration.
+            sh: 'ti-terminal-2',
+            bash: 'ti-terminal-2',
+            zsh: 'ti-terminal-2',
+            fish: 'ti-terminal-2',
+            ps1: 'ti-terminal-2',
+
+            // Data / configuration.
+            json: 'ti-file-code',
+            xml: 'ti-file-code',
+            yaml: 'ti-file-code',
+            yml: 'ti-file-code',
+            toml: 'ti-file-code',
+            ini: 'ti-file-settings',
+            conf: 'ti-file-settings',
+            config: 'ti-file-settings',
+            env: 'ti-file-settings',
+
+            // Database / SQL.
+            sql: 'ti-database',
+            db: 'ti-database',
+            sqlite: 'ti-database',
+            sqlite3: 'ti-database',
+
+            // Fonts.
+            ttf: 'ti-typography',
+            otf: 'ti-typography',
+            woff: 'ti-typography',
+            woff2: 'ti-typography',
+
+            // E-books.
+            epub: 'ti-book',
+            mobi: 'ti-book',
+
+            // Disk / binary images.
+            iso: 'ti-disc',
+            img: 'ti-disc',
+
+            // Certificates / keys.
+            pem: 'ti-certificate',
+            crt: 'ti-certificate',
+            cer: 'ti-certificate',
+            der: 'ti-certificate',
+            key: 'ti-key',
+
+            // Generic code / markup.
+            log: 'ti-file-text',
+            diff: 'ti-file-code',
+            patch: 'ti-file-code',
+        };
+
+        return iconMap[ extension ] || 'ti-file';
+    }
+
+    /**
+     * Truncate a filename's base portion so the full displayed name (base +
+     * extension) fits within maxLength characters, while keeping the
+     * extension fully intact. A single ellipsis character marks the cut, so
+     * this doesn't depend on the surrounding layout actually shrinking the
+     * element the way CSS text-overflow would.
+     *
+     * @param {string} baseName      Filename without its extension.
+     * @param {string} extensionPart Extension including the leading dot (e.g. '.png'), or ''.
+     * @param {number} maxLength     Max combined character length before truncating.
+     * @return {string} baseName unchanged if it already fits, otherwise a
+     *                    shortened version ending in '…'.
+     */
+    _truncateBaseName( baseName, extensionPart, maxLength = 28 ) {
+        if ( baseName.length + extensionPart.length <= maxLength ) {
+            return baseName;
+        }
+    
+        const keep = Math.max( 1, maxLength - extensionPart.length - 1 );
+        return `${ baseName.slice( 0, keep ) }…`;
+    }
+    
+    /**
+     * Handle file selection change.
+     *
+     * NOTE: despite the method name, the accepted file is not always a
+     * ZIP — this plugin also accepts other archive/document types. The
+     * name is kept for backward compatibility with existing callers.
+     *
+     * @param {Event}       e
+     * @param {HTMLElement} fileInfo
+     * @param {HTMLElement} clearBtn
+     * @param {HTMLElement} uploadBtn
      */
     _handleZipFileChange( e, fileInfo, clearBtn, uploadBtn ) {
-        const file = e.target.files[0];
-
+        /** @type {HTMLInputElement} */
+        const input = /** @type {HTMLInputElement} */ ( e.target );
+        const file  = input.files ? input.files[0] : null;
+    
         if ( ! file ) {
-            fileInfo.innerHTML = '<span>No file selected.</span>';
+            fileInfo.innerHTML = '<p class="smliser-uploaded-file-info__empty">No file selected.</p>';
+            clearBtn.classList.add( 'smliser-hide' );
+            uploadBtn.classList.add( 'smliser-hide' );
             return;
         }
-
+    
         const maxUploadSize = smliser_var.uploads.max_upload_size;
         const exceedsLimit  = file.size > maxUploadSize;
-        const fileSizeMB    = StringUtils.formatBytes( file.size, 2 );        
-
+        const fileSizeMB    = StringUtils.formatBytes( file.size, 2 );
+        const maxUploadMB   = StringUtils.formatBytes( maxUploadSize, 2 );
+        const usagePercent  = Math.min( 100, ( file.size / maxUploadSize ) * 100 );
+    
+        // lastDotIndex > 0 (not >= 0) so a dotfile like '.gitignore' is
+        // treated as having no extension, rather than as all-extension.
+        const lastDotIndex  = file.name.lastIndexOf( '.' );
+        const hasExtension  = lastDotIndex > 0 && lastDotIndex < file.name.length - 1;
+        const baseName      = hasExtension ? file.name.slice( 0, lastDotIndex ) : file.name;
+        const extensionPart = hasExtension ? file.name.slice( lastDotIndex ) : '';
+        const extension     = hasExtension ? extensionPart.slice( 1 ).toLowerCase() : '';
+        const displayName   = this._truncateBaseName( baseName, extensionPart );
+    
+        const statusIcon  = exceedsLimit ? 'ti-alert-circle' : 'ti-circle-check';
+        const statusClass = exceedsLimit
+            ? 'smliser-uploaded-file-info__status--danger'
+            : 'smliser-uploaded-file-info__status--success';
+    
+        const statusTitle = exceedsLimit
+            ? `File size exceeds the maximum upload limit of ${ maxUploadMB }`
+            : 'File size is within the acceptable limit';
+    
         fileInfo.innerHTML = `
-            <table class="widefat fixed striped">
-                <tr>
-                    <th>Selected File Name:</th>
-                    <td>${ file.name }</td>
-                </tr>
-                <tr>
-                    <th>File Size:</th>
-                    <td>
-                        ${ fileSizeMB }
+            <div class="smliser-uploaded-file-info__card">
+                <div class="smliser-uploaded-file-info__icon">
+                    <i class="ti ${ this._getFileTypeIcon( extension ) }" aria-hidden="true"></i>
+                </div>
+                <div class="smliser-uploaded-file-info__details">
+                    <p class="smliser-uploaded-file-info__name" title="${ file.name }">
+                        <span class="smliser-uploaded-file-info__name-base">${ displayName }</span><span class="smliser-uploaded-file-info__name-ext">${ extensionPart }</span>
+                    </p>
+                    <p class="smliser-uploaded-file-info__meta">${ fileSizeMB } of ${ maxUploadMB } max</p>
+                    <div
+                        class="smliser-uploaded-file-info__bar"
+                        role="img"
+                        aria-label="${ fileSizeMB } used out of ${ maxUploadMB } allowed"
+                    >
                         <span
-                            class="ti ti-${ exceedsLimit ? 'x' : 'check' }"
-                            style="color: ${ exceedsLimit ? 'red' : 'green' };"
-                            title="${ exceedsLimit
-                                ? `File size exceeds the maximum upload limit of ${ maxUploadSize } MB`
-                                : 'File size is within the acceptable limit'
-                            }"
+                            class="smliser-uploaded-file-info__bar-fill ${ statusClass }"
+                            style="width: ${ usagePercent }%;"
                         ></span>
-                    </td>
-                </tr>
-            </table>
+                    </div>
+                </div>
+                <span class="smliser-uploaded-file-info__status ${ statusClass }" title="${ statusTitle }">
+                    <i class="ti ${ statusIcon }" aria-hidden="true"></i>
+                    <span>${ exceedsLimit ? 'Exceeds limit' : 'Valid' }</span>
+                </span>
+            </div>
         `;
-
+    
         clearBtn.classList.remove( 'smliser-hide' );
         uploadBtn.classList.add( 'smliser-hide' );
-
+    
         if ( exceedsLimit ) {
-            SmliserToast.show( 'The uploaded file exceeds the max_upload_size; this server cannot process this request.', 6000 );
+            uploadBtn.classList.remove( 'smliser-hide' );
+            SmliserToast.show( 'The uploaded file exceeds the max_upload_size; this server cannot process this request.', 10000 );
         }
     }
 
@@ -610,20 +837,29 @@ class AppUploader {
      * @returns {Promise<File|null>}
      */
     async _processFromUrl( imageUrl ) {
-        const endpoint = new URL( smliser_var.ajaxURL );
-        endpoint.searchParams.set( 'action',    'smliser_download_image' );
-        endpoint.searchParams.set( 'image_url', imageUrl );
-        endpoint.searchParams.set( 'security',  smliser_var.csrf_token );
+        const endpoint  = new URL( smliser_var.ajaxURL );
+        endpoint.pathname += '/proxy-asset/';
+        const payLoad   = new FormData();
+
+        payLoad.set( 'asset_url', imageUrl );
+        payLoad.set( 'security',  smliser_var.csrf_token );
+        
 
         const spinner = showSpinner( '.smliser-spinner.modal' );
 
         try {
-            const response      = await fetch( endpoint.href );
+            const response      = await fetch( endpoint.href, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                body: payLoad
+            });
             const contentType   = response.headers.get( 'Content-Type' );
 
             if ( ! response.ok ) {
-                const text          = await response.text();
-                const errorMessage  = text.length < 5000 ? text : response.statusText;
+                const json          = await response.json();
+                const errorMessage  = json?.data?.message ?? json?.error?.message ?? response.statusText;
                 throw new Error( `Image fetch failed: ${ errorMessage }` );
             }
 
@@ -981,14 +1217,16 @@ class AppUploader {
 
         const payLoad = new FormData();
         Object.entries( config ).forEach( ( [key, val] ) => payLoad.set( key, val ) );
-        payLoad.set( 'action',   'smliser_app_asset_delete' );
         payLoad.set( 'security', smliser_var.csrf_token );
 
         btn.setAttribute( 'disabled', true );
 
         try {
-            const response  = await fetch( smliser_var.ajaxURL, {
-                method      : 'POST',
+            const url       = new URL( smliser_var.ajaxURL );
+
+            url.pathname    += '/app-asset/';
+            const response  = await fetch( url, {
+                method      : 'DELETE',
                 headers: {
                     'Accept': 'application/json'
                 },

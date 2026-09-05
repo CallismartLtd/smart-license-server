@@ -264,3 +264,122 @@
     outline: 2px solid #2271b1;
     outline-offset: 2px;
 }
+
+/**
+ * Uploaded file info card.
+ *
+ * Built entirely from the dashboard's own custom properties, so it
+ * follows html[data-theme="dark"] automatically instead of needing a
+ * parallel dark palette maintained by hand. Fallback values (the
+ * second argument to var()) match the light theme, in case this
+ * partial ever renders somewhere the dashboard tokens aren't loaded.
+ */
+
+.smliser-uploaded-file-info__empty {
+    margin: 0;
+    color: var( --dashboard-text-muted, #6b7280 );
+    font-size: var( --dashboard-font-size, 12px );
+}
+
+.smliser-uploaded-file-info__card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var( --dashboard-border, #e2e4e9 );
+    border-radius: var( --dashboard-radius, 6px );
+    background: var( --dashboard-surface, #ffffff );
+    box-shadow: var( --dashboard-shadow, 0 1px 3px rgba( 0, 0, 0, 0.08 ) );
+    transition: border-color var( --dashboard-transition, 0.1s ease );
+}
+
+.smliser-uploaded-file-info__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: calc( var( --dashboard-radius, 6px ) - 2px );
+    background: var( --dashboard-hover-bg, #eef1f6 );
+    color: var( --dashboard-text-muted, #6b7280 );
+    font-size: 18px;
+}
+
+.smliser-uploaded-file-info__details {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.smliser-uploaded-file-info__name {
+    margin: 0 0 2px;
+    overflow: hidden;
+    color: var( --dashboard-text, #1f2430 );
+    font-size: calc( var( --dashboard-font-size, 12px ) + 1px );
+    font-weight: 600;
+    line-height: var( --dashboard-line-height, 1.5 );
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.smliser-uploaded-file-info__meta {
+    margin: 0 0 8px;
+    color: var( --dashboard-text-muted, #6b7280 );
+    font-size: calc( var( --dashboard-font-size, 12px ) - 1px );
+}
+
+.smliser-uploaded-file-info__bar {
+    overflow: hidden;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var( --dashboard-hover-bg, #eef1f6 );
+}
+
+.smliser-uploaded-file-info__bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: var( --dashboard-accent, #3b6ef6 );
+    transition: width var( --dashboard-transition, 0.1s ease );
+}
+
+.smliser-uploaded-file-info__bar-fill.smliser-uploaded-file-info__status--danger {
+    background: var( --dashboard-danger, #d33f3f );
+}
+
+.smliser-uploaded-file-info__status {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: calc( var( --dashboard-font-size, 12px ) - 1px );
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.smliser-uploaded-file-info__status--success {
+    background: var( --dashboard-success-bg, #dcfce7 );
+    color: var( --dashboard-success-text, #166534 );
+}
+
+.smliser-uploaded-file-info__status--danger {
+    background: var( --dashboard-danger-bg, #fdecea );
+    color: var( --dashboard-danger-text, #8a1f1f );
+}
+
+.smliser-uploaded-file-info__card:has( .smliser-uploaded-file-info__status--danger ) {
+    border-color: var( --dashboard-danger, #d33f3f );
+}
+
+@media ( max-width: 480px ) {
+    .smliser-uploaded-file-info__card {
+        flex-wrap: wrap;
+    }
+
+    .smliser-uploaded-file-info__status {
+        margin-left: 48px;
+    }
+}

@@ -102,7 +102,13 @@ $this->render( Shell::MENU_TEMPLATE, [
 if ( $current_submenu ) {
     $callback    = $current_submenu['callback'];
 } else {
-    $callback   = $current_menu['handler']->index_page_handler();
+    $callback   = $current_menu['handler']?->index_page_handler() ?? null;
+}
+
+if ( ! $callback ) {
+    $callback   = function() {
+        echo smliser_not_found_container( 'No registered handler for this page.' );
+    };
 }
 
 $this->render( Shell::CONTENT_TEMPLATE, [

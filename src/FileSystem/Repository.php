@@ -479,8 +479,10 @@ abstract class Repository {
                     $removable  = FileSystemHelper::join_path( $assets_dir, $file_name );
                     $pattern    = sprintf( '%s.*{%s}', $removable, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
                     $identicals = glob( $pattern, \GLOB_BRACE );
+
                     array_map( [$this, 'delete'], (array) $identicals );
                 }
+
             }
 
             $path       = $file->move( $assets_dir, $asset_name, true );

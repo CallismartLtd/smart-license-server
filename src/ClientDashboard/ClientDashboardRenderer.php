@@ -21,6 +21,7 @@
 namespace SmartLicenseServer\ClientDashboard;
 
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Templates\TemplateLocator;
 
@@ -162,5 +163,14 @@ class ClientDashboardRenderer {
         return ( new Response )
             ->set_body( $this->render_to_string( $rest_base, $active_slug ) )
             ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+    }
+
+    /**
+     * Handle request to render client dashboard
+     * 
+     * @param Request $request
+     */
+    public static function render_client_dashboard( Request $request ) : Response {
+        
     }
 }

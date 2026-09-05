@@ -52,11 +52,11 @@ class Response {
 	protected $reason_phrase = 'OK';
 
 	/**
-	 * A likely modified version of the request object used to pass message.
+	 * The current request object.
 	 * 
-	 * @var Request $response_data
+	 * @var Request $request
 	 */
-	protected $response_data;
+	protected Request $request;
 
 	/**
 	 * Response headers.
@@ -505,9 +505,9 @@ class Response {
      * @return static
      */
     public function set_exception( Exception $exception ): static {
-        $this->error = $exception;
+        $this->error	= $exception;
 		$error_data		= $this->error->get_error_data();
-		$this->set_status_code( (int) $error_data['status'] ?? 500 );
+		$this->set_status_code( (int) ( $error_data['status'] ?? 500 ) );
         return $this;
     }
 
@@ -630,29 +630,27 @@ class Response {
     }
 
 	/**
-	 * Set response data using a modified request object.
+	 * Set the request property.
 	 * 
 	 * @param Request $request 
 	 */
-	public function set_response_data( Request $request ) : static {
-		$response_data = clone $request;
-
-		$this->response_data = $response_data;
+	public function set_request( Request $request ) : static {
+		$this->request = $request;
 
 		return $this;
 	}
 
 	/**
-	 * Get the response data
+	 * Get the request object.
 	 * 
 	 * @return Request|null
 	 */
-	public function get_response_data() : ?Request {
-		if ( ! isset( $this->response_data ) ) {
+	public function get_request() : ?Request {
+		if ( ! isset( $this->request ) ) {
 			return null;
 		}
 
-		return $this->response_data;
+		return $this->request;
 	}
 
 	/**

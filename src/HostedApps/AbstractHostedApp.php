@@ -638,10 +638,11 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
      * @return URL
      */
     public function get_homepage() : URL {
-        if ( empty( $this->homepage ) || '#' === $this->homepage ) {
-            return $this->get_url();
+        if ( isset( $this->homepage ) && $this->homepage->is_valid() ) {
+            return $this->homepage;
         }
-        return $this->homepage;
+        
+        return $this->get_url();
     }
     
     /**
@@ -1307,11 +1308,19 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
      * 
      * @return URL
      */
-    public function get_url() : URL {
-        $slug               = basename( $this->get_slug(), '.zip' );
-        $type               = $this->get_type();
-        
-        return static::$urlmanager->app_repository_url( $type, $slug );
+    public function get_url() : URL {        
+        return static::$urlmanager->app_repository_url( $this->get_type(), $this->get_slug() );
+    }
+
+    /**
+     * Default app icon.
+     * 
+     * @return URL
+     */
+    public function default_icon() : URL {
+        return static::$urlmanager->assets_url(
+            smliser_get_placeholder_icon( $this->get_type() )
+        );
     }
 
     /*

@@ -26,6 +26,7 @@
 
 		restoreCollapsedState( wrapper );
 		restoreTheme();
+		restoreScrollPos();
 
 		if ( menuToggle ) {
 			menuToggle.addEventListener( 'click', function () {
@@ -169,5 +170,35 @@
 		if ( 'dark' === stored ) {
 			document.documentElement.setAttribute( 'data-theme', 'dark' );
 		}
+	}
+
+	function restoreScrollPos() {
+		const scrollContainer = document.querySelector('#dashboard-content');
+		if (!scrollContainer) return;
+
+		const storageKey = `admin_scroll_${window.location.pathname}`;
+
+		// 1. Detect if the current page load is a Refresh / Reload
+		const navEntries	= performance.getEntriesByType('navigation');
+		const isReload		= navEntries.length > 0 && navEntries[0].type === 'reload';
+
+		if (isReload) {
+			const savedPosition = sessionStorage.getItem(storageKey);
+			if ( savedPosition !== null ) {
+				// Use scrollTo with smooth behavior instead of assigning scrollTop directly
+				scrollContainer.scrollTo({
+					top: parseInt( savedPosition, 10 ),
+					behavior: 'smooth'
+				});
+			}
+		} else {
+			// Fresh navigation (clicking a link, entering URL): clear old scroll lock
+			sessionStorage.removeItem( storageKey );
+		}
+
+		// 2. Continually store or save before leaving
+		window.addEventListener('beforeunload', () => {
+			sessionStorage.setItem(storageKey, scrollContainer.scrollTop);
+		});
 	}
 } )();
