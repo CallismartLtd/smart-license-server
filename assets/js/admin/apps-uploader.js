@@ -1,10 +1,9 @@
 /**
- * Application Uploader Class
- *
- * Handles plugin/theme ZIP uploads and asset management (banners, icons, screenshots).
- * Supports single and multiple file uploads.
- *
- * @class AppUploader
+ * The app uploader UI class.
+ * 
+ * This is the core class that handles the interactions in the app uploading and editing page
+ * of the admin area. It supports app asset CRUD operations, artifact CRUD operations and other
+ * operations related to managing a hosted application, its assets and artifacts.
  */
 class AppUploader {
 
