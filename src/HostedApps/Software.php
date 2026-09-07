@@ -12,7 +12,6 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\FileSystem\SoftwareRepository;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
-use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
@@ -21,7 +20,7 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * A hosted software is any other application type that is not a plugin or theme.
  */
 class Software extends AbstractHostedApp {
-    use SanitizeAwareTrait, CommonQueryTrait;
+    use SanitizeAwareTrait;
     /**
      * The database table for software.
      * 
@@ -159,22 +158,6 @@ class Software extends AbstractHostedApp {
 
         return parent::set_manifest( $manifest );
 
-    }
-
-    /*
-    |--------------------
-    | CRUD METHODS
-    |--------------------
-    */
-
-    /**
-     * Get the software by ID
-     * 
-     * @param int $id The software ID.
-     * @return self|null
-     */
-    public static function get_software( $id ) : ?self {
-        return self::get_self_by_id( $id, self::TABLE );
     }
 
     /*

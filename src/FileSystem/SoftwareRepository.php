@@ -86,20 +86,18 @@ class SoftwareRepository extends Repository {
     }
 
     /**
-     * Upload a software ZIP file to the repository.
-     * - Post update: validates readme.md presence in the ZIP.
+     * {@inheritdoc}
      * 
-     * @param UploadedFile $file    The uploaded file array from $_FILES.
-     * @param string $new_name      Optional new name for the uploaded file (without .zip).
-     * @param bool   $update        Whether this is an update to an existing software.
-     * @return string|Exception     Relative path to stored ZIP on success, Exception on failure.
+     * - Post update: validates readme.md presence in the ZIP.
      */
-    public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) {
+    public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) : array {
         // -- Core upload.
         $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
 
-        if ( \is_smliser_error( $stored_path ) ) {
-            return $stored_path;
+        if ( $stored_path instanceof Exception ) {
+            return [
+                'error' => $stored_path
+            ];
         }
 
         // -- Post-upload validation for software ZIPs.
@@ -117,8 +115,16 @@ class SoftwareRepository extends Repository {
         // Post-upload validation: Check readme.md and metadata.
         $zip = new ZipArchive();
         if ( true !== $zip->open( $stored_path ) ) {
-            $cleanup_func();
-            return new Exception( 'zip_invalid', 'Uploaded ZIP file could not be opened.', [ 'status' => 400 ] );
+            return [
+                'error' => new Exception(
+                    'zip_invalid',
+                    'Uploaded ZIP could not be opened.',
+                    [ 'status' => 400 ]
+                ),
+                'rollback_function' => $cleanup_func,
+                'base_dir'          => $base_folder,
+                'slug'              => $slug
+            ];
         }
 
         $first_index    = $zip->getNameIndex( 0 );
@@ -127,8 +133,16 @@ class SoftwareRepository extends Repository {
 
         if ( false === $readme_index ) {
             $zip->close();
-            $cleanup_func();
-            return new Exception( 'readme_missing', 'The uploaded software ZIP file is missing the required readme.md file.', [ 'status' => 400 ] );
+            return [
+                'error' => new Exception(
+                    'readme_missing',
+                    'The uploaded software ZIP file is missing the required readme.md file.',
+                    [ 'status' => 400 ]
+                ),
+                'rollback_function' => $cleanup_func,
+                'base_dir'          => $base_folder,
+                'slug'              => $slug
+            ];
         }
 
         $readme_contents    = $zip->getFromIndex( $readme_index );
@@ -138,11 +152,23 @@ class SoftwareRepository extends Repository {
         $readme_path = FileSystemHelper::join_path( $base_folder, 'readme.md' );
 
         if ( ! $this->put_contents( $readme_path, $readme_contents ) ) {
-            $cleanup_func();
-            return new Exception( 'readme_save_error', 'Failed to save readme.md after upload.', [ 'status' => 500 ] );
+            return [
+                'error'     => new Exception(
+                    'readme_save_failed',
+                    'Failed to save readme.md after upload.',
+                    [ 'status' => 500 ]
+                ),
+                'rollback_function' => $cleanup_func,
+                'base_dir'          => $base_folder,
+                'slug'              => $slug
+            ];
         }
-
-        return $slug;
+        
+        return [
+            'slug'              => $slug,
+            'base_dir'          => $base_folder,
+            'rollback_function' => $cleanup_func
+        ];
     }
 
     /**

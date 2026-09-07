@@ -892,12 +892,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
      * @return bool|Exception Does not throw.
      */
     public function save() : bool|Exception {
-        $db         = static::$DB;
-        $table      = static::get_db_table();
-        $file       = $this->file;
-        $repo_class = HostedApplicationService::get_app_repository_class( $this->get_type() );
         $db_fields  = $this->get_fillable();
-        $now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
         $data       = [];
         foreach( $db_fields as $key ) {
@@ -910,51 +905,49 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 
             $data[$key] = is_array( $value ) ? Format::encode( $value, Format::ENCODING_PHP ) : (string) $value;
         }
-
-        $data['updated_at'] = $now->format( 'Y-m-d H:i:s' );
-        
-        // Trackers for structural rollback of files if DB fails
-        $uploaded_slug      = null;
-        $is_new_insert      = ! $this->get_id();
+        /**
+         * @var array{
+         *  slug?: string,
+         *  base_dir?: string,
+         *  rollback_function?: \Closure,
+         *  error?: \SmartLicenseServer\Exceptions\Exception
+         *}|null $repo_result
+         */
+        $repo_result    = null;
 
         try {
-            $db->transactional( function( Database $db_instance ) use (
-                $table, $file, $repo_class, $now, 
-                &$data, &$uploaded_slug, $is_new_insert, &$backup_old_file ) {
-                if ( ! $is_new_insert ) {
-                    $lock_query = static::query()->select( 'id', 'slug' )->from( $table )
-                        ->where( 'id', '=', static::sanitize_int( $this->get_id() ) )
-                        ->limit( 1 );
-                    
-                    $existing_record = $db_instance->get_row( 
-                        $lock_query->lock_for_update()->build(), 
-                        $lock_query->get_bindings() 
-                    );
-                   
-                    if ( ! $existing_record ) {
-                        throw new Exception( 'save_error', 'The application record being updated does not exist or is locked.' );
-                    }
+            return static::$DB->transactional( function( Database $db ) use ( &$data, &$repo_result ) {
+                $file               = $this->file;
+                $repo_class         = HostedAppsRegistry::instance()->get_app_type_directory_class( $this->get_type() );
+                $now                = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+                
+                $data['updated_at'] = $now->format( 'Y-m-d H:i:s' );
+
+                $lock_query = static::query()->select( 'id' )->from( static::get_db_table() )
+                    ->where( 'id', '=', static::sanitize_int( $this->get_id() ) )
+                    ->limit( 1 )->lock_for_update();
+                
+                $id = (int) $db->get_var( $lock_query->build(), $lock_query->get_bindings() );
+
+                // We have an ID, update!
+                if ( $id ) {
 
                     if ( ( $file instanceof UploadedFile ) && $file->is_upload_successful() ) {
-                        $slug = $repo_class->upload_zip( $file, $this->get_slug(), true );
+                        $result         = $repo_class->upload_zip( $file, $this->get_slug(), true );
+                        $repo_result    = $result;
                         
-                        if ( $slug instanceof Exception ) {
-                            throw $slug;
+                        if ( isset( $result['error'] ) ) {
+                            throw $result['error'];
                         }
 
-                        if ( $slug !== $this->get_slug() ) {
-                            $data['slug'] = $slug;
-                            $this->set_slug( $slug );
-                        }
-                        $uploaded_slug = $slug;
                     }
 
                     // Perform safe update query execution via builder context
-                    $update_query = static::query()->update( $table )->set( $data )
-                        ->where( 'id', '=', $this->get_id() );
+                    $update_query = static::query()->update( static::get_db_table() )->set( $data )
+                        ->where( 'id', '=', $id );
                     
-                    if ( false === $db_instance->execute( $update_query->build(), $update_query->get_bindings() ) ) {
-                        throw new Exception( 'db_update_error', $db_instance->get_last_error() );
+                    if ( false === $db->execute( $update_query->build(), $update_query->get_bindings() ) ) {
+                        throw new Exception( 'db_update_error', $db->get_last_error() );
                     }
 
                 } else {
@@ -963,38 +956,55 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
                     }
 
                     $filename = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
-                    $slug     = $repo_class->upload_zip( $file, $filename );
+                    $result         = $repo_class->upload_zip( $file, $filename );
+                    $repo_result    = $result;
 
-                    if ( $slug instanceof Exception ) {
-                        throw $slug;
+                    if ( isset( $repo_result['error'] ) ) {
+                        throw $result['error'];
                     }
 
-                    $this->set_slug( $slug );
-                    $data['slug']       = $slug;
+                    if ( ! isset( $result['slug'] ) ) {
+                        throw new Exception(
+                            'slug_not_set',
+                            \sprintf(
+                                'No slug was acquired after uploading this %s.',
+                                $this->get_type()
+                            )
+                        );
+                    }
+                    $this->set_slug( $result['slug'] );
+
+                    $data['slug']       = $result['slug'];
                     $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
 
-                    $insert_query = static::query()->insert( $table )->values( $data );
-                    if ( false === $db_instance->execute( $insert_query->build(), $insert_query->get_bindings() ) ) {
-                        throw new Exception( 'db_insert_error', $db_instance->get_last_error() );
+                    $insert_query = static::query()->insert( $this->get_db_table() )->values( $data );
+                    
+                    if ( false === $db->execute( $insert_query->build(), $insert_query->get_bindings() ) ) {
+                        throw new Exception( 'db_insert_error', $db->get_last_error() );
                     }
 
-                    $this->set_id( $db_instance->get_insert_id() );
+                    $this->set_id( $db->get_insert_id() );
                     $this->set_created_at( $now );
                 }
-            } );
 
-            $this->set_updated_at( $now );
-            $new_file   = $repo_class->locate( $this->get_slug() );
+                $this->set_updated_at( $now );
+                $new_file   = $repo_class->locate( $this->get_slug() );
 
-            if ( ! $new_file instanceof Exception ) {
-                $this->set_file( $new_file );
-            }
-            
-            $repo_class->regenerate_app_dot_json( $this );
+                if ( ! $new_file instanceof Exception ) {
+                    $this->set_file( $new_file );
+                }
+                
+                $repo_class->regenerate_app_dot_json( $this );
+                
+                return true;
+            });
 
-            return true;
-
-        } catch ( Exception $e ) {          
+        } catch ( Exception $e ) {
+            if ( isset( $repo_result ) ) {
+                if ( isset( $repo_result['rollback_function'] ) ) {
+                    $repo_result['rollback_function']();
+                }
+            }        
             return $e;
         }
     }
@@ -1026,9 +1036,9 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
         $app_slug   = $this->get_slug();
         $app_type   = $this->get_type();
 
-        $db->transactional( function( Database $db_instance ) use ( $lock_query, $delete_meta_sql, $delete_app_sql, &$deleted, &$app_slug, &$app_type ) {
+        $db->transactional( function( Database $db ) use ( $lock_query, $delete_meta_sql, $delete_app_sql, &$deleted, &$app_slug, &$app_type ) {
             $lock_sql = $lock_query->lock_for_update()->build();
-            $record   = $db_instance->get_row( $lock_sql, $lock_query->get_bindings() );
+            $record   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
 
             if ( ! $record ) {
                 throw new Exception( 'delete_error', 'The application record is locked or has already been removed.' );
@@ -1041,11 +1051,11 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
                 $app_type = $record['type'];
             }
 
-            if ( false === $db_instance->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) ) {
+            if ( false === $db->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) ) {
                 throw new Exception( 'delete_error', 'Database execution failure dropping application metadata rows.' );
             }
 
-            if ( false === $db_instance->execute( $delete_app_sql->build(), $delete_app_sql->get_bindings() ) ) {
+            if ( false === $db->execute( $delete_app_sql->build(), $delete_app_sql->get_bindings() ) ) {
                 throw new Exception( 'delete_error', 'Database execution failure dropping primary application entry.' );
             }
 

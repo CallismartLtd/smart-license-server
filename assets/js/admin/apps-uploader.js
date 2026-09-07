@@ -66,7 +66,14 @@ class AppUploader {
      * Bind all DOM elements to instance properties.
      */
     _bindElements() {
-        const qs = ( sel, ctx = document ) => ctx.querySelector( sel );
+        /**
+         * Query a single DOM element from a parent context.
+         * 
+         * @param {string} sel The CSS selector string.
+         * @param {ParentNode} [ctx=document] The parent node context to query within.
+         * @return {Element|null} The matched element or null if not found.
+         */
+        const qs = ( sel, ctx = document ) => ctx?.querySelector( sel ) ?? null;
 
         this.appUploaderForm            = qs( AppUploader.SELECTORS.FORM );
         this.queryParam                 = new URLSearchParams( window.location.search );
@@ -81,6 +88,7 @@ class AppUploader {
         this.imageUrlInput              = qs( AppUploader.SELECTORS.URL_INPUT );
         this.assetImageUploaderContainer= qs( AppUploader.SELECTORS.IMAGE_UPLOADER_BODY );
         this.imagePreview               = qs( AppUploader.SELECTORS.IMAGE_PREVIEW );
+        /** @type {HTMLTextAreaElement|null} */
         this.appJsonTextarea            = this.appUploaderForm?.querySelector( AppUploader.SELECTORS.JSON_TEXTAREA );
 
         // Artifact uploader.

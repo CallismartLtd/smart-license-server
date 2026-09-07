@@ -1079,8 +1079,14 @@ abstract class Repository {
      * @param UploadedFile $file The uploaded file.
      * @param string $new_name The preferred filename (without path).
      * @param bool   $update    Whether this is an update to an existing app.
+     * @return array{
+     *  slug?: string,
+     *  base_dir?: string,
+     *  rollback_function?: \Closure,
+     *  error?: Exception
+     * }
      */
-    abstract public function upload_zip( UploadedFile $file, string $new_name, bool $update = false );
+    abstract public function upload_zip( UploadedFile $file, string $new_name, bool $update = false ) : array;
 
     /**
      * Get the assets for a given hosted application.

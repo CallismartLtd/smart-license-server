@@ -88,20 +88,15 @@ class PluginRepository extends Repository {
     }
 
     /**
-     * Safely upload or update a plugin ZIP in the repository.
+     * {@inheritdoc}
      *
      * - Post-upload: validates ZIP and extracts readme.txt to plugin folder.
-     *
-     * @param UploadedFile $file    The uploaded file ($_FILES format).
-     * @param string $new_name      The preferred filename (without path).
-     * @param bool   $update        Whether this is an update to an existing plugin.
-     * @return string|Exception     Relative path to stored ZIP on success, Exception on failure.
      */
-    public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) {
+    public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) : array {
         // Core upload via `Repository::safe_zip_upload()`.
         $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
-        if ( is_smliser_error( $stored_path ) ) {
-            return $stored_path;
+        if ( $stored_path instanceof Exception ) {
+            return ['error' => $stored_path];
         }
 
         $base_folder    = dirname( $stored_path );
@@ -118,8 +113,16 @@ class PluginRepository extends Repository {
         // Post-upload: Validate ZIP and extract readme.txt.
         $zip = new \ZipArchive();
         if ( $zip->open( $stored_path ) !== true ) {
-            $cleanup_func();        
-            return new Exception( 'zip_invalid', 'Uploaded ZIP could not be opened.', [ 'status' => 400 ] );
+            return [
+                'error'             => new Exception(
+                    'zip_invalid',
+                    'Uploaded ZIP could not be opened.',
+                    [ 'status' => 400 ]
+                ),
+                'rollback_function' => $cleanup_func,
+                'base_dir'          => $base_folder,
+                'slug'              => $slug
+            ];
         }
 
         $firstEntry     = $zip->getNameIndex(0);
@@ -127,8 +130,16 @@ class PluginRepository extends Repository {
         $readme_index   = $zip->locateName( $rootDir . '/readme.txt', \ZipArchive::FL_NOCASE );
         if ( $readme_index === false ) {
             $zip->close();
-            $cleanup_func();
-            return new Exception( 'readme_missing', 'The plugin ZIP file must contain a readme.txt file.', [ 'status' => 400 ] );
+            return [
+                'error' => new Exception(
+                    'readme_missing',
+                    'The plugin ZIP file must contain a readme.txt file.',
+                    [ 'status' => 400 ]
+                ),
+                'rollback_function' => $cleanup_func,
+                'base_dir'          => $base_folder,
+                'slug'              => $slug
+            ];
         }
 
         $readme_contents = $zip->getFromIndex( $readme_index );
@@ -137,11 +148,23 @@ class PluginRepository extends Repository {
         $readme_path = FileSystemHelper::join_path( $base_folder, 'readme.txt' );
 
         if ( ! $this->put_contents( $readme_path, $readme_contents ) ) {
-            $cleanup_func();
-            return new Exception( 'readme_save_failed', 'Failed to save readme.txt.', [ 'status' => 500 ] );
+            return [
+                'error'     => new Exception(
+                    'readme_save_failed',
+                    'Failed to save readme.txt after upload.',
+                    [ 'status' => 500 ]
+                ),
+                'rollback_function' => $cleanup_func,
+                'base_dir'          => $base_folder,
+                'slug'              => $slug
+            ];
         }
 
-        return $slug;
+        return [
+            'slug'              => $slug,
+            'base_dir'          => $base_folder,
+            'rollback_function' => $cleanup_func
+        ];
     }
 
     /**

@@ -91,20 +91,17 @@ class ThemeRepository extends Repository {
     }
 
     /**
-     * Safely upload or update a theme ZIP in the repository.
+     * {@inheritdoc}
      *
      * - Post-upload: validates the theme style.css and metadata.
-     *
-     * @param UploadedFile  $file      The uploaded file instance.
-     * @param string $new_name  The preferred filename (without path).
-     * @param bool   $update    Whether this is an update to an existing theme.
-     * @return string|Exception Relative path to stored ZIP on success, Exception on failure.
      */
-    public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) {
+    public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) : array {
         // Core upload via `Repository::safe_zip_upload()`.
         $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
-        if ( is_smliser_error( $stored_path ) ) {
-            return $stored_path;
+        if ( $stored_path instanceof Exception ) {
+            return [
+                'error' => $stored_path
+            ];
         }
 
         $base_folder    = dirname( $stored_path );
@@ -122,8 +119,16 @@ class ThemeRepository extends Repository {
         $zip = new ZipArchive();
 
         if ( true !== $zip->open( $stored_path ) ) {
-            $cleanup_func();
-            return new Exception( 'zip_invalid', 'Uploaded ZIP could not be opened.', [ 'status' => 400 ] );
+            return [
+                'error' => new Exception(
+                    'zip_invalid',
+                    'Uploaded ZIP could not be opened.',
+                    [ 'status' => 400 ]
+                ),
+                'rollback_function' => $cleanup_func,
+                'base_dir'          => $base_folder,
+                'slug'              => $slug
+            ];
         }
         $firstEntry         = $zip->getNameIndex(0);
         $rootDir            = explode( '/', $firstEntry )[0];
@@ -131,8 +136,16 @@ class ThemeRepository extends Repository {
 
         if ( false === $style_css_index ) {
             $zip->close();
-            $cleanup_func();
-            return new Exception( 'style_missing', 'The theme zip file must contain a style.css file', [ 'status' => 400 ] );
+            return [
+                'error' => new Exception(
+                    'style_missing',
+                    'The theme zip file must contain a style.css file',
+                    [ 'status' => 400 ]
+                ),
+                'rollback_function' => $cleanup_func,
+                'base_dir'          => $base_folder,
+                'slug'              => $slug
+            ];
         }
 
         $style_css_content = $zip->getFromIndex( $style_css_index );
@@ -158,8 +171,16 @@ class ThemeRepository extends Repository {
         $style_css_path = FileSystemHelper::join_path( $base_folder, 'style.css' );
 
         if ( ! $this->put_contents( $style_css_path, $style_css_content ) ) {
-            $cleanup_func();
-            return new Exception( 'style_css_save_faild', 'Could not save the theme style.css file', [ 'status' => 500 ] );
+            return [
+                'error' => new Exception(
+                    'style_css_save_faild',
+                    'Could not save the theme style.css file',
+                    [ 'status' => 500 ]
+                ),
+                'rollback_function' => $cleanup_func,
+                'base_dir'          => $base_folder,
+                'slug'              => $slug
+            ];
         }
 
         if ( $changelog_content ) {
@@ -172,7 +193,11 @@ class ThemeRepository extends Repository {
             $this->put_contents( $install_md_path, $install_md_content );
         }
 
-        return $slug;
+        return [
+            'rollback_function' => $cleanup_func,
+            'base_dir'          => $base_folder,
+            'slug'              => $slug
+        ];
     }
 
     /**

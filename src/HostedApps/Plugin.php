@@ -12,7 +12,6 @@ use Exception;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\PluginRepository;
-use SmartLicenseServer\Utils\CommonQueryTrait;
 
 /**
  * Represents a typical plugin hosted in this repository.
