@@ -37,8 +37,8 @@ function removeSpinner( spinner ) {
 /**
  * Utility: Fetch wrapper (consistent error parsing)
  * 
- * @param {string} url - The URL to fetch
- * @param {Object} options - Fetch options
+ * @param {URL|RequestInfo} url - The URL to fetch
+ * @param {RequestInfo|null} options - Fetch options
  * @param {string} options.responseType - Expected response type: 'json' (default), 'text', 'html', 'blob'
  * @returns {Promise<Object|string|Blob>} Parsed response based on type
  * @throws {Object} Error object with message and optional field
@@ -190,6 +190,9 @@ async function smliserFetch( url, options = { responseType: 'json' } ) {
 
 /**
  * Helper: Fetch and expect JSON
+ * 
+ * @param {URL|RequestInfo} url
+ * @param {RequestInit|null} options
  */
 async function smliserFetchJSON( url, options = {} ) {
     const headers = {

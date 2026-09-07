@@ -36,9 +36,11 @@ class HostingController {
         protected Guard $guard,
         protected URLManager $urlmanager,
         protected Cache $cache,
-        protected JobQueue $job_queue
+        JobQueue $job_queue
         
-    ) {}
+    ) {
+        $this->job_queue = $job_queue;
+    }
 
     /*
     |---------------------------

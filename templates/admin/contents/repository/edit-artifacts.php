@@ -74,7 +74,7 @@ $args   = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
                     </div>
                     
                     <div class="smliser-app-artifacts_item-info">
-                        <table>
+                        <table class="striped">
                             <tbody>
                                 <tr>
                                     <th>Size:</th>

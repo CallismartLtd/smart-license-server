@@ -1625,8 +1625,9 @@ class AppUploader {
     async _uploadArtifactFile( payLoad, isNew ) {
         const spinner = showSpinner( '.smliser-spinner.modal', true );
         
-        try {    
+        try {
             const url = new URL( smliser_var.ajaxURL );
+            url.pathname += '/app-artifacts/';
 
             const response  = await smliserFetchJSON( url, {
                 method: isNew ? 'POST' : 'PATCH',
@@ -1668,10 +1669,9 @@ class AppUploader {
 
             const requestBody   = {...defaultParams, ...config }
             const url           = new URL( smliser_var.ajaxURL );
+            url.pathname += '/app-artifact/';
 
             requestBody.security    = smliser_var.csrf_token;
-
-            url.searchParams.set( 'action', 'smliser_delete_artifact' );
 
             const response  = await smliserFetchJSON( url, {
                 method: 'DELETE',

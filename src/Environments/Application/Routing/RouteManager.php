@@ -229,9 +229,16 @@ final class RouteManager {
                         middleware: []
                     );
 
-                    $this->router->post(
+                    $this->router->add(
+                        methods: [ Request::POST, Request::PUT, Request::PATCH ],
                         pattern: 'app-artifacts',
                         handler: [AppManagement::class, 'handle_app_artifact_upload_request'],
+                        middleware: []
+                    );
+
+                    $this->router->delete(
+                        pattern: 'app-artifact',
+                        handler: [AppManagement::class, 'handle_app_artifact_delete_request'],
                         middleware: []
                     );
 
@@ -343,7 +350,7 @@ final class RouteManager {
 
                 // App artifact download route.
                 $this->router->get(
-                    pattern: "{app_type:{$app_types}}/{app_slug/artifacts/artifact_filename:.+}",
+                    pattern: "{app_type:{$app_types}}/{app_slug}/artifacts/{artifact_filename:.+}",
                     handler: [FileRequestController::class, 'get_application_artifact_file']
                 );
             },
