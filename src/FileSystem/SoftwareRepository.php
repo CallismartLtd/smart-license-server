@@ -30,15 +30,14 @@ dirname, basename, json_decode, json_last_error, smliser_safe_json_encode;
  */
 class SoftwareRepository extends Repository {
     use RepoFilesAwareTrait;
-    /**
-     * Markdown parser instance.
-     * 
-     * @var MDParser $parser
-     */
-    protected MDParser $parser;
 
     /**
      * Class constructor
+     * 
+     * Always binds to the `themes` subdirectory.
+     * 
+     * @param MDParser $mdparser        The markdown parser.
+     * @param URLManager $urlmanager    The URL manager.
      */
     public function __construct(
         protected MDParser $mdparser,

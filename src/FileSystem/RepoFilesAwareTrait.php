@@ -15,6 +15,7 @@ use SmartLicenseServer\Exceptions\FileSystemException;
  * - readme.md
  * - installation.md
  * - changelog.md
+ * @property \SmartLicenseServer\Utils\MDParser $mdparser
  */
 
 trait RepoFilesAwareTrait {
@@ -25,7 +26,7 @@ trait RepoFilesAwareTrait {
      */
     public function get_changelog( string $slug, string $suffix = '.md' ) : string {
         $changelog_md = $this->file_get_contents( $slug, sprintf( 'changelog.%s', $suffix ) );
-        return $this->parser->parse( $changelog_md ?: '' );
+        return $this->mdparser->parse( $changelog_md ?: '' );
     }
 
     /**
@@ -36,7 +37,7 @@ trait RepoFilesAwareTrait {
      */
     public function get_installation( string $slug, string $suffix = 'md' ) {
         $installation = $this->file_get_contents( $slug, sprintf( 'installation.%s', $suffix ) );
-        return $this->parser->parse( $installation ?: '' );
+        return $this->mdparser->parse( $installation ?: '' );
     }
 
     /**
@@ -47,7 +48,7 @@ trait RepoFilesAwareTrait {
      */
     public function get_readme( string $slug, string $suffix = 'md' ) : string {
         $readme = $this->file_get_contents( $slug, sprintf( 'readme.%s', $suffix ) );
-        return $this->parser->parse( $readme ?: '' );
+        return $this->mdparser->parse( $readme ?: '' );
     }
 
     /**

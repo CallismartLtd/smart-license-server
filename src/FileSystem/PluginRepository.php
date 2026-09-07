@@ -19,7 +19,8 @@ use SmartLicenseServer\Exceptions\FileSystemException;
 use SmartLicenseServer\Utils\MDParser;
 
 /**
- * Plugin repository class provides filesystem APIs to interact with hosted plugins in the repository.
+ * Plugin repository class provides filesystem APIs to interact with 
+ * hosted plugins in the repository.
  * 
  * Note: it does not represent a single hosted plugin @see \SmartLicenseServer\HostedApps\Plugin
  */
@@ -35,6 +36,9 @@ class PluginRepository extends Repository {
      * Constructor.
      *
      * Always bind to the `plugins` subdirectory.
+     * 
+     * @param MDParser $mdparser        The markdown parser.
+     * @param URLManager $urlmanager    The URL manager.
      */
     public function __construct(
         protected MDParser $mdparser,

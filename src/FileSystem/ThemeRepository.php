@@ -26,13 +26,6 @@ class ThemeRepository extends Repository {
     use WPRepoUtils, RepoFilesAwareTrait;
 
     /**
-     * The markdown parser
-     * 
-     * @var MDParser $parser
-     */
-    protected MDParser $parser;
-
-    /**
      * Allowed additional screenshots file extensions.
      */
     const ALLOWED_THEME_SCREENSHOT_EXTS = ['png', 'gif', 'avif', 'webp', 'jpg', 'jpeg'];
@@ -41,6 +34,9 @@ class ThemeRepository extends Repository {
      * Constructor.
      *
      * Always binds to the `themes` subdirectory.
+     * 
+     * @param MDParser $mdparser        The markdown parser.
+     * @param URLManager $urlmanager    The URL manager.
      */
     public function __construct(
         protected MDParser $mdparser,

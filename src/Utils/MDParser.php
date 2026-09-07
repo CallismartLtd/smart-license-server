@@ -12,7 +12,6 @@
 namespace SmartLicenseServer\Utils;
 
 use Exception;
-use League\CommonMark\CommonMarkConverter;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
 use League\CommonMark\Extension\Table\TableExtension;
@@ -30,9 +29,9 @@ class MDParser {
 	/**
 	 * CommonMark converter instance or null.
 	 *
-	 * @var MarkdownConverter|CommonMarkConverter|null
+	 * @var MarkdownConverter
 	 */
-	protected $converter;
+	protected MarkdownConverter $converter;
 
 	/**
 	 * Constructor.
@@ -51,8 +50,6 @@ class MDParser {
 		// Create converter.
 		$this->converter = new MarkdownConverter( $environment );
 	}
-
-
 
 	/**
 	 * Main entry point: parse Markdown into HTML.
@@ -98,8 +95,7 @@ class MDParser {
 
 			return $this->fallback_parse( $text );
 		} catch ( Exception $e ) {
-			throw $e;
-			// return $this->fallback_parse( $text ); debugging
+			return $this->fallback_parse( $text );
 		}
 	}
 
