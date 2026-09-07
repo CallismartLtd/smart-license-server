@@ -1155,7 +1155,7 @@ class AppUploader {
             this.closeModal();
         } else if ( uploadCount > 0 && failCount > 0 ) {
             // Partial success — close but leave the user informed via the notices above
-            SmliserToast.show( `${ uploadCount } uploaded, ${ failCount } failed. See details above.`, 8000 );
+            SmliserToast.show( `${ uploadCount } uploaded, ${ failCount } failed. See details above.`, 15000 );
             this.resetModal();
             this.closeModal();
         }
@@ -1402,7 +1402,7 @@ class AppUploader {
 
         this.editor = new SmliserJsonEditor( editorFrame, {
             title: 'APP JSON Editor',
-            description: textarea.dataset.editorDescription ?? "Edit your application's JSON file (app.json). Values in this file will be served in the REST API response.",
+            description: textarea.dataset.editorDescription ?? "Edit your application's JSON file (app.json). File contents will be served in the REST API response.",
             data: jsonData,
             autoFocus: false
         });

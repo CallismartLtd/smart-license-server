@@ -419,6 +419,7 @@ class RepositoryPage implements AdminPageInterface {
         }
 
         $template_content = [
+            'FAQ'           => $app->get_section( 'faq' ),
             'Installation'  => $app->get_installation(),
             'Changelog'     => $app->get_changelog(),
         ];
@@ -444,7 +445,10 @@ class RepositoryPage implements AdminPageInterface {
 
         $urlmanager = $this->urlmanager;
         $repo_page  = $this;
-        $vars   = compact( 'repo_page', 'urlmanager', 'app', 'request', 'template_content', 'template_header', 'template_sidebar' );
+        $vars       = compact( 'repo_page', 'urlmanager', 'app', 'request', 'template_content',
+            'template_header', 'template_sidebar'
+        );
+        
         $this->locator->render( "admin.contents.repository.view-{$type}", $vars );
     }
 
@@ -836,27 +840,27 @@ class RepositoryPage implements AdminPageInterface {
 
             if ( isset( $downloads['total'] ) ) {
                 $stats[] = array(
-                    'icon'  => '📥',
+                    'icon'  => 'ti ti-download',
                     'label' => 'Total Downloads',
-                    'value' => number_format( $downloads['total'] ),
+                    'value' => Format::number( $downloads['total'] ),
                     'color' => '#3b82f6',
                 );
             }
 
             if ( isset( $downloads['today'] ) ) {
                 $stats[] = array(
-                    'icon'  => '📊',
+                    'icon'  => 'ti ti-chart-arrows',
                     'label' => 'Today\'s Downloads',
-                    'value' => number_format( $downloads['today'] ),
+                    'value' => Format::number( $downloads['today'] ),
                     'color' => '#3b82f6',
                 );
             }
 
             if ( isset( $downloads['average'] ) ) {
                 $stats[] = array(
-                    'icon'  => '📈',
+                    'icon'  => 'ti ti-chart-infographic',
                     'label' => 'Avg Downloads/Day',
-                    'value' => number_format( $downloads['average'], 1 ),
+                    'value' => Format::number( $downloads['average'], 1 ),
                     'color' => '#3b82f6',
                 );
             }
@@ -864,9 +868,9 @@ class RepositoryPage implements AdminPageInterface {
             if ( isset( $downloads['growth'] ) ) {
                 $growth = (float) $downloads['growth'];
                 $stats[] = array(
-                    'icon'      => $growth >= 0 ? '🚀' : '📉',
+                    'icon'      => $growth >= 0 ? 'ti ti-chart-dots-2' : 'ti ti-chart-line',
                     'label'     => 'Download Growth',
-                    'value'     => ( $growth >= 0 ? '+' : '' ) . number_format( $growth, 1 ) . '%',
+                    'value'     => ( $growth >= 0 ? '+' : '' ) . Format::number( $growth, 1 ) . '%',
                     'color'     => $growth >= 0 ? '#10b981' : '#ef4444',
                     'highlight' => true,
                 );
@@ -874,9 +878,9 @@ class RepositoryPage implements AdminPageInterface {
 
             if ( ! empty( $downloads['peak_day'] ) && isset( $downloads['peak_day']['count'] ) ) {
                 $stats[] = array(
-                    'icon'     => '🏆',
+                    'icon'     => 'ti ti-trophy',
                     'label'    => 'Peak Day',
-                    'value'    => number_format( $downloads['peak_day']['count'] ),
+                    'value'    => Format::number( $downloads['peak_day']['count'] ),
                     'subtitle' => date( 'M j, Y', strtotime( $downloads['peak_day']['date'] ) ),
                     'color'    => '#8b5cf6',
                 );
@@ -889,18 +893,18 @@ class RepositoryPage implements AdminPageInterface {
 
             if ( isset( $access['total'] ) ) {
                 $stats[] = array(
-                    'icon'  => '🌐',
+                    'icon'  => 'ti ti-world-www',
                     'label' => 'Total Client Access',
-                    'value' => number_format( $access['total'] ),
+                    'value' => Format::number( $access['total'] ),
                     'color' => '#10b981',
                 );
             }
 
             if ( isset( $access['average'] ) ) {
                 $stats[] = array(
-                    'icon'  => '📊',
+                    'icon'  => 'ti ti-percentage-33',
                     'label' => 'Avg Access/Day',
-                    'value' => number_format( $access['average'], 1 ),
+                    'value' => Format::number( $access['average'], 1 ),
                     'color' => '#10b981',
                 );
             }
@@ -908,9 +912,9 @@ class RepositoryPage implements AdminPageInterface {
             if ( isset( $access['growth'] ) ) {
                 $growth = (float) $access['growth'];
                 $stats[] = array(
-                    'icon'      => $growth >= 0 ? '🚀' : '📉',
+                    'icon'      => $growth >= 0 ? 'ti ti-chart-dots-2' : 'ti ti-chart-line',
                     'label'     => 'Access Growth',
-                    'value'     => ( $growth >= 0 ? '+' : '' ) . number_format( $growth, 1 ) . '%',
+                    'value'     => ( $growth >= 0 ? '+' : '' ) . Format::number( $growth, 1 ) . '%',
                     'color'     => $growth >= 0 ? '#10b981' : '#ef4444',
                     'highlight' => true,
                 );
@@ -918,9 +922,9 @@ class RepositoryPage implements AdminPageInterface {
 
             if ( isset( $access['active_installs'] ) ) {
                 $stats[] = array(
-                    'icon'      => '⚡',
+                    'icon'      => 'ti ti-bolt',
                     'label'     => 'Active Installs',
-                    'value'     => '~' . number_format( $access['active_installs'] ),
+                    'value'     => '~' . Format::number( $access['active_installs'] ),
                     'color'     => '#f59e0b',
                     'highlight' => true,
                 );
@@ -928,9 +932,9 @@ class RepositoryPage implements AdminPageInterface {
 
             if ( ! empty( $access['peak_day'] ) && isset( $access['peak_day']['count'] ) ) {
                 $stats[] = array(
-                    'icon'     => '🏆',
+                    'icon'     => 'ti ti-trophy',
                     'label'    => 'Peak Access Day',
-                    'value'    => number_format( $access['peak_day']['count'] ),
+                    'value'    => Format::number( $access['peak_day']['count'] ),
                     'subtitle' => date( 'M j, Y', strtotime( $access['peak_day']['date'] ) ),
                     'color'    => '#8b5cf6',
                 );
@@ -950,7 +954,7 @@ class RepositoryPage implements AdminPageInterface {
             
             $html .= sprintf( '<div class="stat-card%s">', $highlight );
             $html .= '<div class="stat-card_header">';
-            $html .= sprintf( '<span class="icon">%s</span>', $stat['icon'] );
+            $html .= sprintf( '<span class="%s"></span>', $stat['icon'] );
             $html .= sprintf( '<span class="stat-card_header-title">%s</span>', escHtml( $stat['label'] ) );
             $html .= '</div>';
             $html .= '<div class="stat-card_content">';

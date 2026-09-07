@@ -141,6 +141,20 @@ defined( 'SMLISER_ROOT' ) || exit;
                     </div>
                 </div>
             <?php endif; ?>
+
+            <?php if ( array_key_exists( 'FAQ', $template_content ) ) : ?>
+                <div class="smliser-card">
+                    <div class="smliser-card-header">
+                        <div class="smliser-card-icon">
+                            <i class="ti ti-question-mark"></i>
+                        </div>
+                        <h2 class="smliser-card-title"><?php echo escHtml( 'FAQ' ); ?></h2>
+                    </div>
+                    <div class="smliser-card-content smliser-changelog">
+                        <?php echo sanitize_html( $template_content['FAQ'] ); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Sidebar -->

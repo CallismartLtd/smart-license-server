@@ -343,7 +343,7 @@ interface HostedAppsInterface {
      * @param string $name  Section name.
      * @return string The particular section name
      */
-    public function get_section( $name ) : string;
+    public function get_section( string $name ) : string;
 
     /**
      * Get ratings

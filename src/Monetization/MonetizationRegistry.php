@@ -12,6 +12,7 @@ namespace SmartLicenseServer\Monetization;
 
 use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface;
 use SmartLicenseServer\Monetization\Providers\WooCommerceProvider;
@@ -25,6 +26,7 @@ use SmartLicenseServer\SettingsAPI\Settings;
  */
 final class MonetizationRegistry extends AbstractRegistry {
     protected static Settings $storage;
+    protected static ?self $instance =  null;
 
     /**
      * Monetization providers.
@@ -49,11 +51,33 @@ final class MonetizationRegistry extends AbstractRegistry {
      * 
      * @param Container $container
      */
-    public function __construct(
+    private function __construct(
         protected Container $container
     ) {
         static::$storage = $container->get( Settings::class );
     }
+
+    /**
+     * Get or set class instance.
+     * 
+     * @param Container|null $container
+     * @return self
+     */
+    public static function instance( Container|null $container = null ) : self {
+        if ( null === static::$instance ) {
+            if ( null === $container ) {
+                throw new EnvironmentBootstrapException(
+                    'misconfiguration',
+                    'The monetization provider registry must be initialized early with the DIC instance.'
+                );    
+            }
+            
+            static::$instance = new self( $container );
+        }
+
+        return self::$instance;
+    }
+
 
     /**
      * Load core monetization providers into the registry.

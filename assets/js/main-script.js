@@ -104,7 +104,7 @@ async function smliserFetch( url, options = { responseType: 'json' } ) {
                 const errorData = await response.json();
                 errorMessage = errorData.data?.message 
                             || errorData.message 
-                            || errorData.error 
+                            || errorData.error.message
                             || errorMessage;
                 errorField = errorData.data?.field_id || errorData.field || null;
                 errorCode = errorData.code || errorData.data?.code || null;
@@ -1591,7 +1591,15 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
             const spinner = showSpinner( '.smliser-spinner', true );
 
-            smliserFetch( smliser_var.ajaxURL, { method: 'POST', body: payLoad } )
+            const url       = new URL( smliser_var.ajaxURL );
+            url.pathname    += '/save-monetization/';
+
+            smliserFetchJSON( url,
+                {
+                    method: 'POST',
+                    body: payLoad,
+                }
+            )
             .then( responseJson => {
                 if ( responseJson.success ) {
                     SmliserToast.show( responseJson.data?.message || 'Operation successful', 3000 );
@@ -1687,7 +1695,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                             <span class="product-image-slot"></span>
                             <span class="product-title">Product Data for: ${tier.name || ''}</span>
                         </h2>
-                        <table class="widefat striped">
+                        <table class="striped">
                             <tbody>
                                 <tr><th scope="row">Product ID</th><td>${tier.product_id}</td></tr>
                                 <tr><th scope="row">Provider</th><td>${tier.provider_id}</td></tr>
@@ -1701,7 +1709,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                         </div>
                     </div>
                 `;
-                monetizationUI.appendChild( modal );
+                // monetizationUI.appendChild( modal );
 
                 // Close handlers
                 modal.querySelector( '.remove-button' ).addEventListener( 'click', () => modal.remove() );
@@ -1717,7 +1725,11 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                     product_id: tier.product_id,
                 });
 
-                smliserFetch( `${smliser_var.ajaxURL}?${params.toString()}`, { method: 'GET' } )
+                const url       = new URL( smliser_var.ajaxURL );
+                url.pathname    += '/tier-product/';
+                url.search      = `?${params.toString()}`;                
+
+                smliserFetchJSON( url, { method: 'GET' } )
                     .then( responseJson => {
                         modal.querySelector( '.spinner-overlay' )?.remove();
                         if ( ! responseJson.success ) {
@@ -1759,7 +1771,9 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 payLoad.set( 'monetization_id', monetizationId );
                 payLoad.set( 'enabled', enabled );
 
-                smliserFetchJSON( smliser_var.ajaxURL, {
+                const url   = new URL( smliser_var.ajaxURL );
+                url.pathname    += '/toggle-monetization-status/';
+                smliserFetchJSON( url, {
                     method: 'POST',
                     body: payLoad,
                 })

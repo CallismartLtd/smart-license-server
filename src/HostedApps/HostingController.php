@@ -33,13 +33,14 @@ class HostingController {
     use SanitizeAwareTrait, SecurityAwareTrait, QueueAwareTrait;
 
     public function __construct(
-        protected Guard $guard,
         protected URLManager $urlmanager,
+        Guard $guard,
         protected Cache $cache,
         JobQueue $job_queue
         
     ) {
-        $this->job_queue = $job_queue;
+        $this->guard        = $guard;
+        $this->job_queue    = $job_queue;
     }
 
     /*

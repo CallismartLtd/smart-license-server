@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace SmartLicenseServer\Environments\Application\Routing;
 
 use SmartLicenseServer\Admin\ActionHandlers\AppManagement;
+use SmartLicenseServer\Admin\ActionHandlers\AppMonetization;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
@@ -196,7 +197,7 @@ final class RouteManager {
                 );
 
                 // POST, PUT, PATCH routes for form submissions and button clicks.
-                $this->router->group( 'admin-json', function() {
+                $this->router->group( 'admin/json', function() {
                     // Base tab without form slug or action.
                     $this->router->any( '/', fn () : Response => 
                         Response::json(
@@ -245,6 +246,24 @@ final class RouteManager {
                     $this->router->post(
                         pattern: 'proxy-asset',
                         handler: [FileRequestController::class, 'get_proxy_asset'],
+                        middleware: []
+                    );
+
+                    $this->router->post(
+                        pattern: 'toggle-monetization-status',
+                        handler: [AppMonetization::class, 'handle_toggle_monetization_request'],
+                        middleware: []
+                    );
+
+                    $this->router->post(
+                        pattern: 'save-monetization',
+                        handler: [AppMonetization::class, 'handle_monetization_tier_form_request'],
+                        middleware: []
+                    );
+
+                    $this->router->get(
+                        pattern: 'tier-product',
+                        handler: [AppMonetization::class, 'handle_monetization_provider_product_request'],
                         middleware: []
                     );
                 });

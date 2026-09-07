@@ -712,8 +712,10 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
      * @param string $name  Section name.
      * @return string The particular section name
      */
-    public function get_section( $name ) : string {
-        return isset($this->sections[$name] ) ? $this->sections[$name] : '';
+    public function get_section( string $name ) : string {
+        $name   = strtolower( $name );
+
+        return $this->sections[$name] ?? '';
     }
 
 

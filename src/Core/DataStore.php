@@ -96,6 +96,7 @@ abstract class DataStore {
     }
 
     final public static function set_cache( Cache $cache ): void {
+        \smliser_log_error( 'Cache set' );
         if ( isset( static::$cache ) ) {
             throw new RuntimeException(
                 'The DataStore cache has already been initialized.'

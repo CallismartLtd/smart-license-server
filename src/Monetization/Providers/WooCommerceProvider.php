@@ -14,13 +14,14 @@ namespace SmartLicenseServer\Monetization\Providers;
 use SmartLicenseServer\Cache\CacheAwareTrait;
 use Callismart\Http\HttpClient;
 use Callismart\Http\HttpRequest;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
  * WooCommerce Monetization Provider Class
  */
-class WooCommerceProvider implements MonetizationProviderInterface {
-    use SanitizeAwareTrait, CacheAwareTrait;
+class WooCommerceProvider extends DataStore implements MonetizationProviderInterface {
+    use SanitizeAwareTrait;
 
     /**
      * WooCommerce site URL.

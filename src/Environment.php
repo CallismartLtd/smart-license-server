@@ -259,7 +259,7 @@ abstract class Environment {
         $this->container->singleton(
             MonetizationRegistry::class,
             fn ( Container $c ) : MonetizationRegistry =>
-                new MonetizationRegistry( $c )
+                MonetizationRegistry::instance( $c )
         );
 
         $this->container->singleton(

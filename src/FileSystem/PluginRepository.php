@@ -382,117 +382,138 @@ class PluginRepository extends Repository {
     }
 
     /**
-     * Get plugin short description
+     * Get plugin short description.
+     * 
+     * According to WordPress.org standards, the short description is the 
+     * first non-empty text line following the header metadata block 
+     * and preceding any section header (== Section ==).
      * 
      * @param string $slug The plugin slug.
-     * @return string The plugin short description.
+     * @return string The plugin short description or empty string if absent.
      */
-    public function get_short_description( $slug ) {
+    public function get_short_description( string $slug ) : string {
         $readme_contents = $this->get_readme_txt( $slug );
 
         if ( ! $readme_contents ) {
             return '';
         }
-        $lines           = preg_split( '/\r\n|\r|\n/', $readme_contents );
-        $found_meta      = false;
-        $short_description = '';
+
+        $lines = preg_split( '/\r\n|\r|\n/', $readme_contents );
 
         foreach ( $lines as $line ) {
             $line = trim( $line );
 
-            // Stop searching once we reach the `== Description ==` section.
-            if ( '== Description ==' === $line ) {
-                break;
-            }
-
-            // Skip empty lines or plugin name section.
-            if ( empty( $line ) || ( str_starts_with( $line, '===' ) && str_ends_with( $line, '===' ) ) ) {
+            // Skip empty lines or the top Plugin Title (e.g., === My Plugin ===)
+            if ( '' === $line || preg_match( '/^===\s*.+\s*===$/', $line ) ) {
                 continue;
             }
 
-            // Detect plugin meta section (lines with colons).
-            if ( str_contains( $line, ':' ) ) {
-                $found_meta = true;
+            // Skip standard WordPress header metadata lines (Key: Value)
+            if ( $this->is_readme_meta_key( $line ) ) {
                 continue;
             }
 
-            // If we’ve passed the meta and find a valid line, it's the short description.
-            if ( $found_meta ) {
-                $short_description = $line;
+            // Stop if we hit ANY section header (== Description ==, == ChangeLog ==, etc.)
+            // If we reach a section header before finding text, this readme has no short description.
+            if ( preg_match( '/^==\s*[^=]+\s*==$/', $line ) ) {
                 break;
             }
+
+            // First valid text line encountered is our short description
+            return $line;
         }
 
-        return $short_description;
+        return '';
+    }
 
+    /**
+     * Check if a line matches a standard WordPress header metadata key.
+     * 
+     * @param string $line
+     * @return bool
+     */
+    private function is_readme_meta_key( string $line ) : bool {
+        return (bool) preg_match( 
+            '/^([^:]+):\s*(.+)$/', 
+            $line 
+        );
     }
 
     /**
      * Get plugin changelog text
      * 
      * @param string $slug The plugin slug
-     * @return string The changelog text
+     * @return string The parsed changelog HTML
      */
-    public function get_changelog( $slug ) {
+    public function get_changelog( string $slug ) : string {
         $readme_contents = $this->get_readme_txt( $slug );
 
         if ( ! $readme_contents ) {
             return '';
         }
 
-        // Look for the "== Changelog ==" section in the readme.txt
-        if ( preg_match( '/==\s*Changelog\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
-            return $this->mdparser->parse(  trim( $matches[1] ) );
+        // Match "== Changelog ==" up to the next main section "== Header ==" or EOF.
+        // Negative lookahead/lookbehind ensures we only match exactly 2 equals signs (==), 
+        // preserving version subheadings like "= 2.5.4 =" or "=== 2.5.4 ===".
+        $pattern = '/==\s*Changelog\s*==\s*(.*?)(?=\n\s*(?<!=)==(?!=)[^=]+==(?!=)|$)/is';
+
+        if ( preg_match( $pattern, $readme_contents, $matches ) ) {
+            $changelog_md = trim( $matches[1] );
+
+            return $changelog_md !== '' ? $this->mdparser->parse( $changelog_md ) : '';
         }
 
         return '';
     }
 
     /**
-     * Get the installation text
+     * Get the installation text.
      * 
-     * @param string $slug the plugin slug
-     * @return string The plugin installation text section
+     * @param string $slug The plugin slug.
+     * @return string The parsed installation HTML.
      */
-    public function get_installation( $slug ) {
+    public function get_installation( string $slug ) : string {
         $readme_contents = $this->get_readme_txt( $slug );
 
         if ( ! $readme_contents ) {
             return '';
         }
 
-        // Look for the "== Installation ==" section in the readme.txt
-        if ( preg_match( '/==\s*Installation\s*==\s*(.+?)(==|$)/s', $readme_contents, $matches ) ) {
-            return $this->mdparser->parse(  trim( $matches[1] ) );
+        // Match "== Installation ==" up to the next main section "== Header ==" or EOF.
+        // Strictly matches exactly 2 equals signs (==) for section boundaries,
+        // preserving subheadings like "= Step 1 =" or "=== Manual Upload ===".
+        $pattern = '/==\s*Installation\s*==\s*(.*?)(?=\n\s*(?<!=)==(?!=)[^=]+==(?!=)|$)/is';
+
+        if ( preg_match( $pattern, $readme_contents, $matches ) ) {
+            $installation_md = trim( $matches[1] );
+
+            return $installation_md !== '' ? $this->mdparser->parse( $installation_md ) : '';
         }
 
         return '';
     }
 
     /**
-     * Get plugin FAQ (Frequently Asked Questions) section
+     * Get plugin FAQ (Frequently Asked Questions) section.
      * 
-     * @param string $slug The plugin slug
-     * @return string The FAQ text in HTML format
+     * @param string $slug The plugin slug.
+     * @return string The parsed FAQ HTML.
      */
-    public function get_faq( $slug ) {
+    public function get_faq( string $slug ) : string {
         $readme_contents = $this->get_readme_txt( $slug );
 
         if ( ! $readme_contents ) {
             return '';
         }
 
-        // Look for FAQ section with various possible headings.
-        $patterns = [
-            '/==\s*Frequently Asked Questions\s*==\s*(.+?)(==|$)/si',
-            '/==\s*FAQ\s*==\s*(.+?)(==|$)/si',
-            '/==\s*F\.A\.Q\.\s*==\s*(.+?)(==|$)/si',
-        ];
+        // Match "== Frequently Asked Questions ==", "== FAQ ==", or "== F.A.Q. =="
+        // up to the next main section header "== Section ==" or EOF.
+        $pattern = '/==\s*(?:Frequently\s+Asked\s+Questions|FAQ|F\.A\.Q\.)\s*==\s*(.*?)(?=\n\s*(?<!=)==(?!=)[^=]+==(?!=)|$)/is';
 
-        foreach ( $patterns as $pattern ) {
-            if ( preg_match( $pattern, $readme_contents, $matches ) ) {
-                return $this->mdparser->parse( trim( $matches[1] ) );
-            }
+        if ( preg_match( $pattern, $readme_contents, $matches ) ) {
+            $faq_md = trim( $matches[1] );
+
+            return $faq_md !== '' ? $this->mdparser->parse( $faq_md ) : '';
         }
 
         return '';

@@ -12,9 +12,9 @@ namespace SmartLicenseServer\Monetization;
 
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -27,8 +27,8 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * Each pricing tier is tied to a monetization provider, and can define
  * billing cycles, site activation limits, and features available under that tier.
  */
-class PricingTier {
-    use SanitizeAwareTrait, CommonQueryTrait, DatePropertyAwareTrait;
+class PricingTier extends DataStore {
+    use SanitizeAwareTrait, DatePropertyAwareTrait;
     /**
      * Unique identifier for the pricing tier.
      *
@@ -329,43 +329,51 @@ class PricingTier {
      * @throws DatabaseException Sensitive database error, caller must handle accordingly.
      */
     public function save() : bool {
-        $db = smliser_db();
+        return static::$DB->transactional( function( Database $db ) {
+            $now    = new DateTimeImmutable();
+            $data   = [
+                'monetization_id'   => $this->monetization_id,
+                'name'              => $this->name,
+                'product_id'        => $this->product_id,
+                'provider_id'       => $this->provider_id,
+                'billing_cycle'     => $this->billing_cycle,
+                'max_sites'         => $this->max_sites,
+                'features'          => Format::encode( $this->features, Format::ENCODING_PHP ),
+                'updated_at'        => $now->format( 'Y-m-d H:i:s' )
+            ];
 
-        $now    = new DateTimeImmutable();
-        $data   = [
-            'monetization_id'   => $this->monetization_id,
-            'name'              => $this->name,
-            'product_id'        => $this->product_id,
-            'provider_id'       => $this->provider_id,
-            'billing_cycle'     => $this->billing_cycle,
-            'max_sites'         => $this->max_sites,
-            'features'          => Format::encode( $this->features, Format::ENCODING_PHP ),
-            'updated_at'        => $now->format( 'Y-m-d H:i:s' )
-        ];
+            $lock_sql   = static::query()
+                ->select( 'id' )->from( \SMLISER_PRICING_TIER_TABLE )
+                ->where( 'id', '=', $this->get_id() )
+                ->limit( 1 )->lock_for_update();
+            $id = (int) $db->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
 
-        if ( $this->id ) {
-            // Update existing tier.
-            $result = $db->update( SMLISER_PRICING_TIER_TABLE, $data, [ 'id' => $this->id ] );
+            if ( $id ) {
+                // Update existing tier.
+                $result = $db->update( SMLISER_PRICING_TIER_TABLE, $data, [ 'id' => $this->id ] );
 
-            $result && $this->set_updated_at( $now );
+                $result && $this->set_updated_at( $now );
 
-        } else {
-            // Insert new tier.
-            $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
-            $result = $db->insert( SMLISER_PRICING_TIER_TABLE, $data );
+            } else {
+                // Insert new tier.
+                $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
+                $result = $db->insert( SMLISER_PRICING_TIER_TABLE, $data );
 
-            $result && 
-                $this->set_id( $db->get_insert_id() )
-                ->set_created_at( $now )
-                ->set_updated_at( $now );
-        }
+                $result && 
+                    $this->set_id( $db->get_insert_id() )
+                    ->set_created_at( $now )
+                    ->set_updated_at( $now );
+            }
 
-        if ( false === $result ) {
-            $code = $this->id ? 'update_failed' : 'insert_failed';
-            throw new DatabaseException( $code, $db->get_last_error() ) ;
-        }
+            if ( false === $result ) {
+                $code = $this->id ? 'update_failed' : 'insert_failed';
+                throw new DatabaseException( $code, $db->get_last_error() ) ;
+            }
 
-        return true;
+            static::cache_clear();
+
+            return true;
+        });
     }
 
     /**
@@ -379,13 +387,15 @@ class PricingTier {
             return false;
         }
 
-        $deleted    = (bool) smliser_db()->transactional( function( Database $db ) {
+        $deleted    = (bool) static::$DB->transactional( function( Database $db ) {
             $result = $db->delete( SMLISER_PRICING_TIER_TABLE, [ 'id' => $this->id ] );
 
             if ( false === $result ) {
                 throw new DatabaseException( 'delete_failed', $db->get_last_error() );
             }
         });
+
+        static::cache_clear();
         
         return false !== $deleted;
     }
@@ -397,7 +407,19 @@ class PricingTier {
      * @return static|null The Pricing Tier object if found, null otherwise.
      */
     public static function get_by_id( $id ) : ?static {
-        return static::get_self_by_id( $id,  \SMLISER_PRICING_TIER_TABLE );
+        $cache_key = static::make_cache_key(__METHOD__, [$id] );
+        /** @var static|false $static */
+        $static     = static::cache_get( $cache_key );
+
+        if ( false === $static ) {
+            $data   = static::fetch_by( 'id', $id,  \SMLISER_PRICING_TIER_TABLE );
+            $static = $data ? static::from_array( $data ) : null;
+
+            static::cache_set( $cache_key, $static );
+        }
+
+        return $static;
+
     }
 
     /**
@@ -407,48 +429,30 @@ class PricingTier {
      * @return static[] Array of Pricing Tier objects.
      */
     public static function get_by_monetization_id( $monetization_id ) : array {
-        $db     = smliser_db();
-        $table  = \SMLISER_PRICING_TIER_TABLE;
+        $cache_key  = static::make_cache_key( __METHOD__, [$monetization_id] );
+        
+        /** @var static[]|false */
+        $result = static::$cache->get( $cache_key );
 
-        $sql    = static::query()
-            ->select( '*' )->from( $table )
-            ->where( 'monetization_id', '=', $monetization_id );
+        if ( false === $result ) {
+            $table  = \SMLISER_PRICING_TIER_TABLE;
 
-        $rows   = $db->get_results( $sql->build(), $sql->get_bindings() );
+            $sql    = static::query()
+                ->select( '*' )->from( $table )
+                ->where( 'monetization_id', '=', $monetization_id );
 
-        if ( empty( $rows ) ) {
-            return [];
+            $rows   = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
+            $result = [];
+            
+            foreach ( $rows as $row ) {
+                $result[] = static::from_array( $row );
+            }
+
+            static::cache_set( $cache_key, $result );
         }
 
-        $tiers = \array_map( [static::class, 'from_array'], $rows );
+        return $result;
 
-        return $tiers;
-    }
-
-    /**
-     * Get a pricing tier by product ID and provider ID.
-     * 
-     * @param int|string $product_id    The product ID.
-     * @param string $provider_id       The provider ID.
-     * @return static|null The Pricing Tier object if found, null otherwise.
-     */
-    public static function get_by_product_and_provider( int|string $product_id, string $provider_id ) : ?static {
-        $db     = smliser_db();
-        $table  = \SMLISER_PRICING_TIER_TABLE;
-
-        $sql    = static::query()
-            ->select( '*' )->from( $table )
-            ->where( 'product_id', '=', $product_id )
-            ->where( 'provider_id', '=', $provider_id )
-            ->limit(1);
-
-        $row    = $db->get_row( $sql->build(), $sql->get_bindings() );
-
-        if ( null === $row ) {
-            return null;
-        }
-
-        return static::from_array( $row );
     }
 
     /*
@@ -497,7 +501,7 @@ class PricingTier {
 
         );
 
-        $provider       = smliser_monetization_registry()->get_provider( $this->get_provider_id() );
+        $provider       = MonetizationRegistry::instance()->get_provider( $this->get_provider_id() );
         $product_data   = $provider ? $provider->get_product( $this->get_product_id() ) : [];
         $valid_product  = MonetizationRegistry::validate_product_data( $product_data );
 

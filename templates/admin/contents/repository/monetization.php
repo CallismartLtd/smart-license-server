@@ -136,7 +136,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 <div class="smliser-monetization-ui__providiers-list">
                     <div class="monetization-providers_header">
                         <h2>Monetization Providers</h2>
-                        <button type="button" class="button action smliser-nav-btn" id="add-pricing-tier" data-command="addNewTier"><span class="dashicons dashicons-plus"></span> Add Pricing Tier</button>
+                        <button type="button" class="button action smliser-nav-btn" id="add-pricing-tier" data-command="addNewTier"><span class="ti ti-plus"></span> Pricing Tier</button>
                     </div>
                     <?php if ( empty( $providers ) ) : ?>
                         <?php echo smliser_not_found_container( 'No monetization provider found' ); ?>

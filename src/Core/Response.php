@@ -708,4 +708,15 @@ class Response {
 		return ( new static( $status_code, $headers ) )
 			->set_exception( $error );
 	}
+
+	/**
+	 * Create a redirect response.
+	 * 
+	 * @param string|URL $url
+	 * @param int $status_code
+	 */
+	public static function redirect( string|URL $url, int $status_code = 307 ) : static {
+		return new static( $status_code, [], '' )
+			->set_header( 'Location', is_string( $url ) ? $url : $url->url() );
+	}
 }
