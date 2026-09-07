@@ -3,9 +3,17 @@
  * 
  * A comprehensive JSON editor with visual tree view, inline editing,
  * validation, import/export, undo/redo, and full keyboard navigation.
+ *
+ * Self-contained: no external dependency on SmliserModal, SmliserToast,
+ * or anything else. Dialogs and notifications are exposed as part of the
+ * editor's own API (`editor.notification.*`, `editor.dialog.*`), the
+ * same way TinyMCE exposes `editor.notificationManager` / `editor.windowManager`.
+ * Notifications render inside the editor's own content area; dialogs
+ * (prompt/confirm/generic modal) render as page-level overlays since they
+ * need to escape the editor's clipped, fixed-height container.
  * 
  * @author Callistus Nwachukwu
- * @version 1.1.0
+ * @version 1.3.0
  * @license MIT
  */
 class SmliserJsonEditor {
@@ -30,6 +38,10 @@ class SmliserJsonEditor {
      * @param {Function} options.onChange - Change callback
      * @param {Function} options.onError - Error callback
      * @param {Object} options.customButtons - Custom toolbar buttons
+     * @param {boolean} options.verbose - Show automatic success notifications for
+     *                                    routine actions (copy, paste, download, import).
+     *                                    Errors are always shown regardless of this
+     *                                    setting. (default: true)
      */
     constructor( target, options = {} ) {
         this.targetElement = typeof target === 'string'
@@ -60,6 +72,7 @@ class SmliserJsonEditor {
             onError: null,
             customButtons: {},
             autoFocus: true,
+            verbose: true,
             ...options
         };
 
@@ -72,6 +85,8 @@ class SmliserJsonEditor {
         this.searchTerm         = '';
         this.expandedPaths      = new Set();
         this.toolbarCollapsed   = false;
+        this.isFullscreen       = false;
+        this._uidCounter        = 0;
 
         // Drag-to-reorder state
         this._drag = {
@@ -90,10 +105,38 @@ class SmliserJsonEditor {
             change: [],
             error: [],
             validate: [],
-            modeChange: []
+            modeChange: [],
+            fullscreenChange: []
         };
 
         this.id = 'smliser-json-editor-' + Date.now();
+
+        this.notificationArea = null;
+
+        /**
+         * Public notification API - renders inline within the editor's own
+         * content area (never escapes to the page). Mirrors the shape of
+         * editor.notificationManager in TinyMCE.
+         */
+        this.notification = {
+            success: ( message, options = {} ) => this._notify( message, 'success', options ),
+            error:   ( message, options = {} ) => this._notify( message, 'error', options ),
+            warning: ( message, options = {} ) => this._notify( message, 'warning', options ),
+            info:    ( message, options = {} ) => this._notify( message, 'info', options )
+        };
+
+        /**
+         * Public dialog API - page-level overlays (modal, prompt, confirm,
+         * alert). These intentionally escape the editor's own container
+         * since it is fixed-height and clips overflow. Mirrors the shape of
+         * editor.windowManager in TinyMCE.
+         */
+        this.dialog = {
+            open:    ( options ) => this._openDialog( options ),
+            prompt:  ( options ) => this._dialogPrompt( options ),
+            confirm: ( options ) => this._dialogConfirm( options ),
+            alert:   ( options ) => this._dialogAlert( options )
+        };
 
         this._init();
     }
@@ -146,6 +189,7 @@ class SmliserJsonEditor {
 
         this._buildViews();
         this._buildStatusBar();
+        this._buildNotificationArea();
 
         if ( this.targetElement.tagName === 'TEXTAREA' ) {
             this.targetElement.style.display = 'none';
@@ -191,13 +235,13 @@ class SmliserJsonEditor {
         // NOTE: All buttons use type="button" to prevent accidental form submission
         const toolbarHTML = `
             <div class="toolbar-toggle-row">
-                <button type="button" class="toolbar-toggle-btn" aria-label="Toggle toolbar" title="Toggle toolbar">
+                <button type="button" class="toolbar-toggle-btn" aria-label="Toggle toolbar" title="Toggle toolbar" aria-controls="${this.id}-toolbar-collapsible" aria-expanded="true">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M2 4h12M2 8h12M2 12h12"/>
                     </svg>
                     <span class="toolbar-toggle-label">Tools</span>
                 </button>
-                <div class="toolbar-mode-inline">
+                <div class="toolbar-mode-inline" role="radiogroup" aria-label="Editor view">
                     <button type="button" class="toolbar-btn ${this.currentMode === 'tree' ? 'active' : ''}" data-action="mode-tree" title="Tree view" role="radio" aria-checked="${this.currentMode === 'tree'}">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
                             <rect x="2" y="2" width="5" height="3" rx="0.5"/>
@@ -216,7 +260,7 @@ class SmliserJsonEditor {
                 </div>
             </div>
 
-            <div class="toolbar-collapsible">
+            <div class="toolbar-collapsible" id="${this.id}-toolbar-collapsible">
                 <div class="toolbar-inner">
                     <div class="toolbar-group">
                         <button type="button" class="toolbar-btn" data-action="import" title="Import JSON (Ctrl+O)" aria-label="Import JSON">
@@ -270,7 +314,7 @@ class SmliserJsonEditor {
                             </svg>
                             <span>Compact</span>
                         </button>
-                        <button type="button" class="toolbar-btn ${this.options.sortKeys ? 'active' : ''}" data-action="sort" title="Sort keys alphabetically" aria-label="Sort keys">
+                        <button type="button" class="toolbar-btn ${this.options.sortKeys ? 'active' : ''}" data-action="sort" title="Sort keys alphabetically" aria-label="Sort keys" aria-pressed="${this.options.sortKeys}">
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
                                 <path d="M4 3v10m0 0l-2-2m2 2l2-2"/><path d="M12 13V3m0 0L10 5m2-2l2 2"/>
                             </svg>
@@ -291,16 +335,23 @@ class SmliserJsonEditor {
                             </svg>
                             <span>Collapse</span>
                         </button>
-                        <button type="button" class="toolbar-btn" data-action="theme" title="Toggle light/dark theme" aria-label="Toggle theme">
+                        <button type="button" class="toolbar-btn" data-action="theme" title="Toggle light/dark theme" aria-label="Toggle theme" aria-pressed="${this.options.theme === 'dark'}">
                             <svg width="16" height="16" viewBox="0 0 16 16" class="theme-icon" fill="none" stroke="currentColor" stroke-width="1.5">
                                 ${this._getThemeIconSVG()}
                             </svg>
+                        </button>
+                        <button type="button" class="toolbar-btn" data-action="fullscreen" title="Toggle fullscreen" aria-label="Enter fullscreen" aria-pressed="false">
+                            <svg width="16" height="16" viewBox="0 0 16 16" class="fullscreen-icon" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                ${this._getFullscreenIconSVG()}
+                            </svg>
+                            <span>Fullscreen</span>
                         </button>
                     </div>
 
                     ${this.options.enableSearch ? `
                     <div class="toolbar-group toolbar-search">
-                        <input type="search" class="toolbar-search-input" placeholder="Search keys or values…" aria-label="Search JSON">
+                        <label class="sje-visually-hidden" for="${this.id}-search-input">Search keys or values</label>
+                        <input type="search" id="${this.id}-search-input" class="toolbar-search-input" placeholder="Search keys or values…" aria-label="Search JSON">
                     </div>
                     ` : ''}
                 </div>
@@ -326,6 +377,18 @@ class SmliserJsonEditor {
         return `<path d="M13 8c0 2.76-2.24 5-5 5A5 5 0 0 1 3 8a5 5 0 0 1 5-5 3.5 3.5 0 0 0 0 7A3.5 3.5 0 0 0 13 8z" fill="currentColor" stroke="none"/>`;
     }
 
+    /**
+     * @private
+     */
+    _getFullscreenIconSVG() {
+        if ( ! this.isFullscreen ) {
+            // Enter fullscreen - four corner brackets pointing outward
+            return `<path d="M2 6V3a1 1 0 0 1 1-1h3M14 6V3a1 1 0 0 0-1-1h-3M2 10v3a1 1 0 0 0 1 1h3M14 10v3a1 1 0 0 1-1 1h-3"/>`;
+        }
+        // Exit fullscreen - four corner brackets pointing inward
+        return `<path d="M6 2v3a1 1 0 0 1-1 1H2M10 2v3a1 1 0 0 0 1 1h3M6 14v-3a1 1 0 0 0-1-1H2M10 14v-3a1 1 0 0 1 1-1h3"/>`;
+    }
+
     _buildViews() {
         const viewsContainer        = document.createElement( 'div' );
         viewsContainer.className    = 'json-editor-views';
@@ -341,6 +404,7 @@ class SmliserJsonEditor {
 
         const codeTextarea      = document.createElement( 'textarea' );
         codeTextarea.className  = 'json-editor-code-textarea';
+        codeTextarea.id         = `${this.id}-code-textarea`;
         codeTextarea.setAttribute( 'spellcheck', 'false' );
         codeTextarea.setAttribute( 'aria-label', 'JSON code editor' );
         codeTextarea.placeholder = 'Enter or paste JSON here…';
@@ -368,6 +432,21 @@ class SmliserJsonEditor {
 
         this.container.appendChild( this.statusBar );
         this._updateStatusBar();
+    }
+
+    /**
+     * Build the container that in-editor notifications render into.
+     * Lives inside the editor's own box (this.container is position:relative)
+     * so notifications never escape onto the rest of the host page.
+     * @private
+     */
+    _buildNotificationArea() {
+        this.notificationArea = document.createElement( 'div' );
+        this.notificationArea.className = 'sje-notification-area';
+        this.notificationArea.setAttribute( 'role', 'status' );
+        this.notificationArea.setAttribute( 'aria-live', 'polite' );
+
+        this.container.appendChild( this.notificationArea );
     }
 
     /**
@@ -435,9 +514,6 @@ class SmliserJsonEditor {
 
             if ( ! files || files.length === 0 ) return;
 
-            console.log(files);
-                        
-            
             this.container.classList.add( 'drag-over' );
         });
 
@@ -467,6 +543,7 @@ class SmliserJsonEditor {
             case 'expand-all':   this.expandAll();               break;
             case 'collapse-all': this.collapseAll();             break;
             case 'theme':        this.toggleTheme();             break;
+            case 'fullscreen':   this.toggleFullscreen();        break;
         }
     }
 
@@ -484,6 +561,9 @@ class SmliserJsonEditor {
         } else if ( ctrl && e.key === 'f' ) {
             e.preventDefault();
             this.toolbar?.querySelector( '.toolbar-search-input' )?.focus();
+        } else if ( e.key === 'Escape' && this.isFullscreen ) {
+            e.preventDefault();
+            this.toggleFullscreen( false );
         }
     }
 
@@ -790,7 +870,7 @@ class SmliserJsonEditor {
     }
 
     async _editNodeKey( path, currentKey ) {
-        const newKey = await SmliserModal.prompt({
+        const newKey = await this.dialog.prompt({
             title: 'Rename Property',
             message: 'Enter new property name:',
             defaultValue: currentKey,
@@ -834,13 +914,17 @@ class SmliserJsonEditor {
             const bodyContent     = document.createElement( 'div' );
             bodyContent.className = 'json-editor-edit-dialog';
 
+            const fieldUid   = this._uid( 'value-editor' );
+            const typeId     = `${fieldUid}-type`;
+            const valueId    = `${fieldUid}-value`;
+
             // Build the value input depending on type
-            const valueInputHTML = this._buildValueInputHTML( currentValue, currentType );
+            const valueInputHTML = this._buildValueInputHTML( currentValue, currentType, valueId );
 
             bodyContent.innerHTML = `
                 <div class="edit-field">
-                    <label class="edit-label">Type</label>
-                    <select class="edit-type-select">
+                    <label class="edit-label" for="${typeId}">Type</label>
+                    <select class="edit-type-select" id="${typeId}">
                         <option value="string"  ${currentType === 'string'  ? 'selected' : ''}>String</option>
                         <option value="number"  ${currentType === 'number'  ? 'selected' : ''}>Number</option>
                         <option value="boolean" ${currentType === 'boolean' ? 'selected' : ''}>Boolean</option>
@@ -850,31 +934,31 @@ class SmliserJsonEditor {
                     </select>
                 </div>
                 <div class="edit-field edit-value-field">
-                    <label class="edit-label">Value</label>
+                    <label class="edit-label" for="${valueId}">Value</label>
                     <div class="edit-value-container">
                         ${valueInputHTML}
                     </div>
                 </div>
-                <div class="edit-error" style="display:none;"></div>
+                <div class="edit-error" role="alert" style="display:none;"></div>
             `;
 
             const footerContent     = document.createElement( 'div' );
-            footerContent.className = 'smliser-dialog-buttons';
+            footerContent.className = 'sje-dialog-buttons';
 
             const cancelBtn         = document.createElement( 'button' );
             cancelBtn.type          = 'button';
-            cancelBtn.className     = 'smliser-btn smliser-btn-secondary';
+            cancelBtn.className     = 'sje-btn sje-btn-secondary';
             cancelBtn.textContent   = 'Cancel';
 
             const saveBtn           = document.createElement( 'button' );
             saveBtn.type            = 'button';
-            saveBtn.className       = 'smliser-btn smliser-btn-primary';
+            saveBtn.className       = 'sje-btn sje-btn-primary';
             saveBtn.textContent     = 'Save';
 
             footerContent.appendChild( cancelBtn );
             footerContent.appendChild( saveBtn );
 
-            const modal = new SmliserModal({
+            const modal = this.dialog.open({
                 title: `Edit: ${key}`,
                 body: bodyContent,
                 footer: footerContent,
@@ -885,10 +969,11 @@ class SmliserJsonEditor {
             const errorDiv        = bodyContent.querySelector( '.edit-error' );
             const valueContainer  = bodyContent.querySelector( '.edit-value-container' );
 
-            // Swap input widget when type changes
+            // Swap input widget when type changes - the id stays the same
+            // (valueId) so the "Value" label above stays correctly associated
             typeSelect.addEventListener( 'change', () => {
                 const newType       = typeSelect.value;
-                valueContainer.innerHTML = this._buildValueInputHTML( this._getDefaultForType( newType ), newType );
+                valueContainer.innerHTML = this._buildValueInputHTML( this._getDefaultForType( newType ), newType, valueId );
                 errorDiv.style.display  = 'none';
             });
 
@@ -908,7 +993,7 @@ class SmliserJsonEditor {
 
                 try {
                     const newValue = this._parseValueByType( inputValue, selectedType );
-                    await modal.destroy();
+                    await modal.close();
                     resolve( newValue );
                 } catch (e) {
                     errorDiv.textContent   = e.message;
@@ -918,39 +1003,43 @@ class SmliserJsonEditor {
 
             saveBtn.addEventListener(   'click', handleSave );
             cancelBtn.addEventListener( 'click', async () => {
-                await modal.destroy();
+                await modal.close();
                 resolve( null );
             });
-
-            modal.open();
         });
     }
 
     /**
      * Build the appropriate input widget HTML based on type
      * @private
+     * @param {*} value
+     * @param {string} type
+     * @param {string} [id] - id to set on the generated field, so a <label for>
+     *                        pointing at it keeps working across type swaps
      */
-    _buildValueInputHTML( value, type ) {
+    _buildValueInputHTML( value, type, id = '' ) {
+        const idAttr = id ? ` id="${id}"` : '';
+
         switch ( type ) {
             case 'boolean':
-                return `<select class="edit-bool-select edit-input">
+                return `<select class="edit-bool-select edit-input"${idAttr}>
                     <option value="true"  ${value === true  ? 'selected' : ''}>true</option>
                     <option value="false" ${value === false ? 'selected' : ''}>false</option>
                 </select>`;
 
             case 'null':
-                return `<input type="text" class="edit-input edit-null-input" value="null" readonly title="Null has no editable value"/>`;
+                return `<input type="text" class="edit-input edit-null-input"${idAttr} value="null" readonly title="Null has no editable value"/>`;
 
             case 'number':
-                return `<input type="number" class="edit-input" value="${value !== '' ? value : 0}" step="any"/>`;
+                return `<input type="number" class="edit-input"${idAttr} value="${value !== '' ? value : 0}" step="any"/>`;
 
             case 'array':
             case 'object':
-                return `<textarea class="edit-input edit-textarea" rows="6" spellcheck="false">${this._escapeHtml( JSON.stringify( value, null, 2 ) )}</textarea>`;
+                return `<textarea class="edit-input edit-textarea"${idAttr} rows="6" spellcheck="false">${this._escapeHtml( JSON.stringify( value, null, 2 ) )}</textarea>`;
 
             case 'string':
             default:
-                return `<textarea class="edit-input edit-textarea" rows="4" spellcheck="false">${this._escapeHtml( String( value ) )}</textarea>`;
+                return `<textarea class="edit-input edit-textarea"${idAttr} rows="4" spellcheck="false">${this._escapeHtml( String( value ) )}</textarea>`;
         }
     }
 
@@ -992,7 +1081,7 @@ class SmliserJsonEditor {
     }
 
     async _deleteNode( path ) {
-        const confirmed = await SmliserModal.confirm({
+        const confirmed = await this.dialog.confirm({
             message: 'Delete this item?',
             danger: true
         });
@@ -1023,7 +1112,7 @@ class SmliserJsonEditor {
     }
 
     async _promptForKey() {
-        return await SmliserModal.prompt({
+        return await this.dialog.prompt({
             title: 'New Property',
             message: 'Enter property name:',
             placeholder: 'propertyName',
@@ -1186,6 +1275,316 @@ class SmliserJsonEditor {
     }
 
     /*
+    |------------------------------
+    |NOTIFICATION & DIALOG SYSTEM
+    |------------------------------
+    | Backing implementation for the public `this.notification` / `this.dialog`
+    | APIs set up in the constructor. Kept as private methods on the editor
+    | itself rather than a separate class - there is nothing here a consumer
+    | of the editor should instantiate or reach directly.
+    */
+
+    /**
+     * Render an in-editor toast notification. Always scoped inside
+     * this.notificationArea, which lives inside the themed editor
+     * container - no separate theme handling needed here.
+     * @private
+     */
+    _notify( message, type = 'info', options = {} ) {
+        if ( ! this.notificationArea ) {
+            return;
+        }
+
+        const duration = options.duration ?? ( type === 'error' ? 4500 : 3200 );
+
+        const toast     = document.createElement( 'div' );
+        toast.className = `sje-toast sje-toast-${type}`;
+        toast.innerHTML = `
+            <span class="sje-toast-icon" aria-hidden="true">${this._getNotificationIcon( type )}</span>
+            <span class="sje-toast-message">${this._escapeHtml( message )}</span>
+            <button type="button" class="sje-toast-close" aria-label="Dismiss notification">
+                <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l10 10M12 2L2 12"/></svg>
+            </button>
+        `;
+
+        let dismissTimer = null;
+        const remove = () => {
+            clearTimeout( dismissTimer );
+            toast.classList.remove( 'open' );
+            setTimeout( () => {
+                if ( toast.parentNode ) {
+                    toast.parentNode.removeChild( toast );
+                }
+            }, 180 );
+        };
+
+        toast.querySelector( '.sje-toast-close' ).addEventListener( 'click', remove );
+        toast.addEventListener( 'mouseenter', () => clearTimeout( dismissTimer ) );
+        toast.addEventListener( 'mouseleave', () => { dismissTimer = setTimeout( remove, 1200 ); });
+
+        this.notificationArea.appendChild( toast );
+        requestAnimationFrame( () => toast.classList.add( 'open' ) );
+
+        dismissTimer = setTimeout( remove, duration );
+    }
+
+    /**
+     * @private
+     */
+    _getNotificationIcon( type ) {
+        switch ( type ) {
+            case 'success': return '✓';
+            case 'error':   return '✗';
+            case 'warning': return '!';
+            default:        return 'i';
+        }
+    }
+
+    /**
+     * Open a generic, page-level dialog (used directly for the value
+     * editor / import / export screens, and internally by prompt/confirm/alert).
+     * Escapes the editor's own container by mounting on document.body, since
+     * the editor is fixed-height with clipped overflow.
+     * @private
+     * @returns {{ element: HTMLElement, close: () => Promise<void> }}
+     */
+    _openDialog( { title = '', body = null, footer = null, width = '480px', role = 'dialog' } = {} ) {
+        const overlay     = document.createElement( 'div' );
+        overlay.className = `sje-dialog-overlay theme-${this.options.theme}`;
+
+        const modal           = document.createElement( 'div' );
+        modal.className       = 'sje-dialog';
+        modal.style.maxWidth  = width;
+        modal.setAttribute( 'role', role );
+        modal.setAttribute( 'aria-modal', 'true' );
+        if ( title ) {
+            modal.setAttribute( 'aria-label', title );
+        }
+
+        if ( title ) {
+            const header       = document.createElement( 'div' );
+            header.className   = 'sje-dialog-header';
+
+            const titleElement       = document.createElement( 'h3' );
+            titleElement.className   = 'sje-dialog-title';
+            titleElement.textContent = title;
+            header.appendChild( titleElement );
+
+            const closeBtn        = document.createElement( 'button' );
+            closeBtn.type         = 'button';
+            closeBtn.className    = 'sje-dialog-close';
+            closeBtn.setAttribute( 'aria-label', 'Close dialog' );
+            closeBtn.innerHTML    = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 2l10 10M12 2L2 12"/></svg>`;
+            closeBtn.addEventListener( 'click', () => close() );
+            header.appendChild( closeBtn );
+
+            modal.appendChild( header );
+        }
+
+        const bodyWrap     = document.createElement( 'div' );
+        bodyWrap.className = 'sje-dialog-body';
+        if ( body ) {
+            bodyWrap.appendChild( body );
+        }
+        modal.appendChild( bodyWrap );
+
+        if ( footer ) {
+            const footerWrap     = document.createElement( 'div' );
+            footerWrap.className = 'sje-dialog-footer';
+            footerWrap.appendChild( footer );
+            modal.appendChild( footerWrap );
+        }
+
+        overlay.appendChild( modal );
+        document.body.appendChild( overlay );
+
+        const previouslyFocused = document.activeElement;
+
+        overlay.addEventListener( 'mousedown', ( e ) => {
+            if ( e.target === overlay ) {
+                close();
+            }
+        });
+
+        const keydownHandler = ( e ) => {
+            if ( e.key === 'Escape' ) {
+                close();
+            }
+        };
+        document.addEventListener( 'keydown', keydownHandler );
+
+        let closed = false;
+        const close = async () => {
+            if ( closed ) {
+                return;
+            }
+            closed = true;
+
+            document.removeEventListener( 'keydown', keydownHandler );
+            overlay.classList.remove( 'open' );
+
+            await new Promise( resolve => setTimeout( resolve, 140 ) );
+
+            if ( overlay.parentNode ) {
+                overlay.parentNode.removeChild( overlay );
+            }
+            if ( previouslyFocused && typeof previouslyFocused.focus === 'function' ) {
+                previouslyFocused.focus();
+            }
+        };
+
+        requestAnimationFrame( () => {
+            overlay.classList.add( 'open' );
+            const focusable = modal.querySelector( 'input, textarea, select, button' );
+            if ( focusable ) {
+                focusable.focus();
+            }
+        });
+
+        return { element: overlay, close };
+    }
+
+    /**
+     * Single-line text prompt dialog.
+     * @private
+     * @returns {Promise<string|null>} the entered value, or null if cancelled
+     */
+    _dialogPrompt( { title = 'Input', message = '', defaultValue = '', placeholder = '', required = false, validator = null } = {} ) {
+        return new Promise( ( resolve ) => {
+            const inputId  = this._uid( 'prompt' );
+            const body     = document.createElement( 'div' );
+            body.className = 'sje-prompt-dialog';
+            body.innerHTML = `
+                ${message ? `<label class="sje-prompt-message" for="${inputId}">${this._escapeHtml( message )}</label>` : ''}
+                <input type="text" id="${inputId}" class="edit-input sje-prompt-input" value="${this._escapeHtml( defaultValue )}" placeholder="${this._escapeHtml( placeholder )}"${message ? '' : ` aria-label="${this._escapeHtml( title )}"`}>
+                <div class="edit-error sje-dialog-error" role="alert" style="display:none;"></div>
+            `;
+
+            const footer     = document.createElement( 'div' );
+            footer.className = 'sje-dialog-buttons';
+
+            const cancelBtn       = document.createElement( 'button' );
+            cancelBtn.type        = 'button';
+            cancelBtn.className   = 'sje-btn sje-btn-secondary';
+            cancelBtn.textContent = 'Cancel';
+
+            const okBtn       = document.createElement( 'button' );
+            okBtn.type        = 'button';
+            okBtn.className   = 'sje-btn sje-btn-primary';
+            okBtn.textContent = 'OK';
+
+            footer.appendChild( cancelBtn );
+            footer.appendChild( okBtn );
+
+            const modal = this._openDialog( { title, body, footer, width: '420px' } );
+
+            const input    = body.querySelector( '.sje-prompt-input' );
+            const errorDiv = body.querySelector( '.sje-dialog-error' );
+
+            const showError = ( msg ) => {
+                errorDiv.textContent   = msg;
+                errorDiv.style.display = 'block';
+            };
+
+            const submit = async () => {
+                const value = input.value;
+
+                if ( required && ! value.trim() ) {
+                    showError( 'This field is required' );
+                    return;
+                }
+
+                if ( validator ) {
+                    const err = validator( value );
+                    if ( err ) {
+                        showError( err );
+                        return;
+                    }
+                }
+
+                await modal.close();
+                resolve( value );
+            };
+
+            okBtn.addEventListener( 'click', submit );
+            cancelBtn.addEventListener( 'click', async () => {
+                await modal.close();
+                resolve( null );
+            });
+            input.addEventListener( 'keydown', ( e ) => {
+                if ( e.key === 'Enter' ) {
+                    e.preventDefault();
+                    submit();
+                }
+            });
+            input.addEventListener( 'input', () => { errorDiv.style.display = 'none'; });
+        });
+    }
+
+    /**
+     * Yes/no confirmation dialog.
+     * @private
+     * @returns {Promise<boolean>}
+     */
+    _dialogConfirm( { title = 'Confirm', message = '', danger = false, confirmLabel = 'Confirm', cancelLabel = 'Cancel' } = {} ) {
+        return new Promise( ( resolve ) => {
+            const body     = document.createElement( 'div' );
+            body.className = 'sje-confirm-dialog';
+            body.innerHTML = `<p class="sje-confirm-message">${this._escapeHtml( message )}</p>`;
+
+            const footer     = document.createElement( 'div' );
+            footer.className = 'sje-dialog-buttons';
+
+            const cancelBtn       = document.createElement( 'button' );
+            cancelBtn.type        = 'button';
+            cancelBtn.className   = 'sje-btn sje-btn-secondary';
+            cancelBtn.textContent = cancelLabel;
+
+            const confirmBtn       = document.createElement( 'button' );
+            confirmBtn.type        = 'button';
+            confirmBtn.className   = `sje-btn ${danger ? 'sje-btn-danger' : 'sje-btn-primary'}`;
+            confirmBtn.textContent = confirmLabel;
+
+            footer.appendChild( cancelBtn );
+            footer.appendChild( confirmBtn );
+
+            const modal = this._openDialog( { title, body, footer, width: '400px', role: 'alertdialog' } );
+
+            confirmBtn.addEventListener( 'click', async () => { await modal.close(); resolve( true ); });
+            cancelBtn.addEventListener( 'click', async () => { await modal.close(); resolve( false ); });
+        });
+    }
+
+    /**
+     * Single-button informational dialog (a styled window.alert()).
+     * @private
+     * @returns {Promise<void>}
+     */
+    _dialogAlert( { title = 'Notice', message = '', okLabel = 'OK' } = {} ) {
+        return new Promise( ( resolve ) => {
+            const body     = document.createElement( 'div' );
+            body.className = 'sje-alert-dialog';
+            body.innerHTML = `<p class="sje-alert-message">${this._escapeHtml( message )}</p>`;
+
+            const footer     = document.createElement( 'div' );
+            footer.className = 'sje-dialog-buttons';
+
+            const okBtn       = document.createElement( 'button' );
+            okBtn.type        = 'button';
+            okBtn.className   = 'sje-btn sje-btn-primary';
+            okBtn.textContent = okLabel;
+            footer.appendChild( okBtn );
+
+            const modal = this._openDialog( { title, body, footer, width: '380px', role: 'alertdialog' } );
+
+            okBtn.addEventListener( 'click', async () => {
+                await modal.close();
+                resolve();
+            });
+        });
+    }
+
+    /*
     |------------
     |PUBLIC API
     |------------
@@ -1210,24 +1609,29 @@ class SmliserJsonEditor {
      */
     async showImportDialog() {
         return new Promise( resolve => {
+            const dialogUid = this._uid( 'import' );
+            const fileInputId = `${dialogUid}-file`;
+            const urlId        = `${dialogUid}-url`;
+            const pasteId       = `${dialogUid}-paste`;
+
             const body     = document.createElement( 'div' );
             body.className = 'sje-io-dialog';
             body.innerHTML = `
                 <div class="sje-tabs" role="tablist">
-                    <button type="button" class="sje-tab active" data-tab="file"  role="tab" aria-selected="true">
+                    <button type="button" class="sje-tab active" id="${dialogUid}-tab-file" data-tab="file"  role="tab" aria-selected="true" aria-controls="${dialogUid}-panel-file">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
                             <path d="M3 2h6l4 4v8H3z"/><path d="M9 2v4h4"/>
                         </svg>
                         From File
                     </button>
-                    <button type="button" class="sje-tab" data-tab="url" role="tab" aria-selected="false">
+                    <button type="button" class="sje-tab" id="${dialogUid}-tab-url" data-tab="url" role="tab" aria-selected="false" aria-controls="${dialogUid}-panel-url">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
                             <path d="M6 8a3 3 0 0 0 4.5.5l2-2a3 3 0 0 0-4.24-4.24l-1.14 1.13"/>
                             <path d="M10 8a3 3 0 0 0-4.5-.5l-2 2a3 3 0 0 0 4.24 4.24l1.13-1.13"/>
                         </svg>
                         From URL
                     </button>
-                    <button type="button" class="sje-tab" data-tab="paste" role="tab" aria-selected="false">
+                    <button type="button" class="sje-tab" id="${dialogUid}-tab-paste" data-tab="paste" role="tab" aria-selected="false" aria-controls="${dialogUid}-panel-paste">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
                             <path d="M5.5 2h5M5.5 2a1 1 0 0 0-1 1v1h7V3a1 1 0 0 0-1-1m-5 0a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1"/><rect x="3" y="4" width="10" height="11" rx="1"/>
                         </svg>
@@ -1236,8 +1640,8 @@ class SmliserJsonEditor {
                 </div>
 
                 <div class="sje-tab-panels">
-                    <div class="sje-panel active" data-panel="file">
-                        <div class="sje-drop-zone" id="sje-drop-zone">
+                    <div class="sje-panel active" id="${dialogUid}-panel-file" data-panel="file" role="tabpanel" aria-labelledby="${dialogUid}-tab-file">
+                        <div class="sje-drop-zone">
                             <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                                 <path d="M16 6v14m0-14l-5 5m5-5l5 5"/>
                                 <path d="M4 22v2a2 2 0 0 0 2 2h20a2 2 0 0 0 2-2v-2"/>
@@ -1245,22 +1649,22 @@ class SmliserJsonEditor {
                             <p>Drop a <strong>.json</strong> file here</p>
                             <span>or</span>
                             <button type="button" class="sje-browse-btn">Browse files…</button>
-                            <input type="file" class="sje-file-input" accept=".json,application/json" style="display:none">
+                            <input type="file" id="${fileInputId}" class="sje-file-input" accept=".json,application/json" style="display:none" aria-label="Choose a JSON file to import">
                         </div>
                     </div>
 
-                    <div class="sje-panel" data-panel="url">
+                    <div class="sje-panel" id="${dialogUid}-panel-url" data-panel="url" role="tabpanel" aria-labelledby="${dialogUid}-tab-url">
                         <div class="sje-url-field">
-                            <label class="edit-label">JSON endpoint URL</label>
-                            <input type="url" class="edit-input sje-url-input" placeholder="https://api.example.com/data.json">
+                            <label class="edit-label" for="${urlId}">JSON endpoint URL</label>
+                            <input type="url" id="${urlId}" class="edit-input sje-url-input" placeholder="https://api.example.com/data.json">
                             <p class="sje-hint">The URL must return a valid JSON response. CORS must be enabled on the server.</p>
                         </div>
-                        <div class="sje-fetch-status" style="display:none"></div>
+                        <div class="sje-fetch-status" role="status" aria-live="polite" style="display:none"></div>
                     </div>
 
-                    <div class="sje-panel" data-panel="paste">
-                        <label class="edit-label">Paste or type JSON</label>
-                        <textarea class="edit-input edit-textarea sje-paste-input" rows="8" spellcheck="false" placeholder='{ "key": "value" }'></textarea>
+                    <div class="sje-panel" id="${dialogUid}-panel-paste" data-panel="paste" role="tabpanel" aria-labelledby="${dialogUid}-tab-paste">
+                        <label class="edit-label" for="${pasteId}">Paste or type JSON</label>
+                        <textarea id="${pasteId}" class="edit-input edit-textarea sje-paste-input" rows="8" spellcheck="false" placeholder='{ "key": "value" }'></textarea>
                         <button type="button" class="sje-clipboard-btn">
                             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <path d="M5.5 2h5M5.5 2a1 1 0 0 0-1 1v1h7V3a1 1 0 0 0-1-1m-5 0a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1"/><rect x="3" y="4" width="10" height="11" rx="1"/>
@@ -1269,18 +1673,18 @@ class SmliserJsonEditor {
                         </button>
                     </div>
                 </div>
-                <div class="sje-dialog-error" style="display:none"></div>
+                <div class="sje-dialog-error" role="alert" style="display:none"></div>
             `;
 
             const footer     = document.createElement( 'div' );
-            footer.className = 'smliser-dialog-buttons';
+            footer.className = 'sje-dialog-buttons';
             const cancelBtn  = document.createElement( 'button' );
-            cancelBtn.type   = 'button'; cancelBtn.className = 'smliser-btn smliser-btn-secondary'; cancelBtn.textContent = 'Cancel';
+            cancelBtn.type   = 'button'; cancelBtn.className = 'sje-btn sje-btn-secondary'; cancelBtn.textContent = 'Cancel';
             const importBtn  = document.createElement( 'button' );
-            importBtn.type   = 'button'; importBtn.className = 'smliser-btn smliser-btn-primary'; importBtn.textContent = 'Import';
+            importBtn.type   = 'button'; importBtn.className = 'sje-btn sje-btn-primary'; importBtn.textContent = 'Import';
             footer.appendChild( cancelBtn ); footer.appendChild( importBtn );
 
-            const modal = new SmliserModal({ title: 'Import JSON', body, footer, width: '520px' });
+            const modal = this.dialog.open({ title: 'Import JSON', body, footer, width: '520px' });
 
             // Tab switching
             const tabs   = body.querySelectorAll( '.sje-tab' );
@@ -1301,7 +1705,7 @@ class SmliserJsonEditor {
             const clearError   = ()  => { errorDiv.style.display = 'none'; };
 
             // File tab — drop zone + browse
-            const dropZone   = body.querySelector( '#sje-drop-zone' );
+            const dropZone   = body.querySelector( '.sje-drop-zone' );
             const fileInput  = body.querySelector( '.sje-file-input' );
             const browseBtn  = body.querySelector( '.sje-browse-btn' );
 
@@ -1338,9 +1742,9 @@ class SmliserJsonEditor {
                         if ( ! file ) { showError( 'Please select or drop a JSON file.' ); return; }
                         const text   = await file.text();
                         const parsed = JSON.parse( text );
-                        await modal.destroy();
+                        await modal.close();
                         await this.setData( parsed );
-                        await SmliserModal.success( `Imported "${file.name}" successfully` );
+                        if ( this.options.verbose ) this.notification.success( `Imported "${file.name}" successfully` );
 
                     } else if ( activeTab === 'url' ) {
                         const url = body.querySelector( '.sje-url-input' ).value.trim();
@@ -1351,17 +1755,17 @@ class SmliserJsonEditor {
                         const res    = await fetch( url );
                         if ( ! res.ok ) throw new Error( `HTTP ${res.status} ${res.statusText}` );
                         const parsed = await res.json();
-                        await modal.destroy();
+                        await modal.close();
                         await this.setData( parsed );
-                        await SmliserModal.success( 'Imported from URL successfully' );
+                        if ( this.options.verbose ) this.notification.success( 'Imported from URL successfully' );
 
                     } else if ( activeTab === 'paste' ) {
                         const raw = body.querySelector( '.sje-paste-input' ).value.trim();
                         if ( ! raw ) { showError( 'Please paste or type some JSON.' ); return; }
                         const parsed = JSON.parse( raw );
-                        await modal.destroy();
+                        await modal.close();
                         await this.setData( parsed );
-                        await SmliserModal.success( 'JSON imported successfully' );
+                        if ( this.options.verbose ) this.notification.success( 'JSON imported successfully' );
                     }
                     resolve( true );
                 } catch (err) {
@@ -1370,8 +1774,7 @@ class SmliserJsonEditor {
                 }
             });
 
-            cancelBtn.addEventListener( 'click', async () => { await modal.destroy(); resolve( false ); });
-            modal.open();
+            cancelBtn.addEventListener( 'click', async () => { await modal.close(); resolve( false ); });
         });
     }
 
@@ -1396,6 +1799,12 @@ class SmliserJsonEditor {
             const body     = document.createElement( 'div' );
             body.className = 'sje-io-dialog';
 
+            const dialogUid    = this._uid( 'export' );
+            const filenameId   = `${dialogUid}-filename`;
+            const formatId     = `${dialogUid}-format`;
+            const copyFormatId = `${dialogUid}-copy-format`;
+            const previewId    = `${dialogUid}-preview`;
+
             const currentFilename = (() => {
                 const inp = this.toolbar?.querySelector( '.toolbar-filename-input' );
                 return inp?.value?.trim() || 'data.json';
@@ -1403,13 +1812,13 @@ class SmliserJsonEditor {
 
             body.innerHTML = `
                 <div class="sje-tabs" role="tablist">
-                    <button type="button" class="sje-tab active" data-tab="download" role="tab" aria-selected="true">
+                    <button type="button" class="sje-tab active" id="${dialogUid}-tab-download" data-tab="download" role="tab" aria-selected="true" aria-controls="${dialogUid}-panel-download">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
                             <path d="M8 11V3m0 8l-3-3m3 3l3-3"/><path d="M2 14h12"/>
                         </svg>
                         Download
                     </button>
-                    <button type="button" class="sje-tab" data-tab="copy" role="tab" aria-selected="false">
+                    <button type="button" class="sje-tab" id="${dialogUid}-tab-copy" data-tab="copy" role="tab" aria-selected="false" aria-controls="${dialogUid}-panel-copy">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
                             <rect x="5" y="5" width="9" height="10" rx="1"/><path d="M3 11V3a1 1 0 0 1 1-1h6"/>
                         </svg>
@@ -1418,46 +1827,46 @@ class SmliserJsonEditor {
                 </div>
 
                 <div class="sje-tab-panels">
-                    <div class="sje-panel active" data-panel="download">
+                    <div class="sje-panel active" id="${dialogUid}-panel-download" data-panel="download" role="tabpanel" aria-labelledby="${dialogUid}-tab-download">
                         <div class="edit-field">
-                            <label class="edit-label">Filename</label>
-                            <input type="text" class="edit-input sje-filename-input" value="${this._escapeHtml(currentFilename)}" placeholder="data.json">
+                            <label class="edit-label" for="${filenameId}">Filename</label>
+                            <input type="text" id="${filenameId}" class="edit-input sje-filename-input" value="${this._escapeHtml(currentFilename)}" placeholder="data.json">
                         </div>
                         <div class="edit-field">
-                            <label class="edit-label">Format</label>
-                            <select class="edit-input sje-format-select">
+                            <label class="edit-label" for="${formatId}">Format</label>
+                            <select id="${formatId}" class="edit-input sje-format-select">
                                 <option value="pretty">Pretty-printed (indented)</option>
                                 <option value="compact">Compact (minified)</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="sje-panel" data-panel="copy">
+                    <div class="sje-panel" id="${dialogUid}-panel-copy" data-panel="copy" role="tabpanel" aria-labelledby="${dialogUid}-tab-copy">
                         <div class="edit-field">
-                            <label class="edit-label">Format</label>
-                            <select class="edit-input sje-copy-format-select">
+                            <label class="edit-label" for="${copyFormatId}">Format</label>
+                            <select id="${copyFormatId}" class="edit-input sje-copy-format-select">
                                 <option value="pretty">Pretty-printed (indented)</option>
                                 <option value="compact">Compact (minified)</option>
                             </select>
                         </div>
                         <div class="edit-field">
-                            <label class="edit-label">Preview</label>
-                            <textarea class="edit-input edit-textarea sje-copy-preview" rows="6" readonly spellcheck="false"></textarea>
+                            <label class="edit-label" for="${previewId}">Preview</label>
+                            <textarea id="${previewId}" class="edit-input edit-textarea sje-copy-preview" rows="6" readonly spellcheck="false"></textarea>
                         </div>
                     </div>
                 </div>
-                <div class="sje-dialog-error" style="display:none"></div>
+                <div class="sje-dialog-error" role="alert" style="display:none"></div>
             `;
 
             const footer    = document.createElement( 'div' );
-            footer.className = 'smliser-dialog-buttons';
+            footer.className = 'sje-dialog-buttons';
             const cancelBtn = document.createElement( 'button' );
-            cancelBtn.type  = 'button'; cancelBtn.className = 'smliser-btn smliser-btn-secondary'; cancelBtn.textContent = 'Cancel';
+            cancelBtn.type  = 'button'; cancelBtn.className = 'sje-btn sje-btn-secondary'; cancelBtn.textContent = 'Cancel';
             const actionBtn = document.createElement( 'button' );
-            actionBtn.type  = 'button'; actionBtn.className = 'smliser-btn smliser-btn-primary'; actionBtn.textContent = 'Download';
+            actionBtn.type  = 'button'; actionBtn.className = 'sje-btn sje-btn-primary'; actionBtn.textContent = 'Download';
             footer.appendChild( cancelBtn ); footer.appendChild( actionBtn );
 
-            const modal = new SmliserModal({ title: 'Export JSON', body, footer, width: '480px' });
+            const modal = this.dialog.open({ title: 'Export JSON', body, footer, width: '480px' });
 
             const tabs    = body.querySelectorAll( '.sje-tab' );
             const panels  = body.querySelectorAll( '.sje-panel' );
@@ -1496,14 +1905,14 @@ class SmliserJsonEditor {
                         const a          = document.createElement( 'a' );
                         a.href = url; a.download = filename; a.click();
                         URL.revokeObjectURL( url );
-                        await modal.destroy();
-                        await SmliserModal.success( `Downloaded "${filename}"` );
+                        await modal.close();
+                        if ( this.options.verbose ) this.notification.success( `Downloaded "${filename}"` );
 
                     } else {
                         const fmt = body.querySelector( '.sje-copy-format-select' ).value;
                         await navigator.clipboard.writeText( getJSON( fmt ) );
-                        await modal.destroy();
-                        await SmliserModal.success( 'Copied to clipboard' );
+                        await modal.close();
+                        if ( this.options.verbose ) this.notification.success( 'Copied to clipboard' );
                     }
                     resolve( true );
                 } catch (err) {
@@ -1513,8 +1922,7 @@ class SmliserJsonEditor {
                 }
             });
 
-            cancelBtn.addEventListener( 'click', async () => { await modal.destroy(); resolve( false ); });
-            modal.open();
+            cancelBtn.addEventListener( 'click', async () => { await modal.close(); resolve( false ); });
         });
     }
 
@@ -1525,7 +1933,7 @@ class SmliserJsonEditor {
             const text   = await file.text();
             const parsed = JSON.parse( text );
             await this.setData( parsed );
-            await SmliserModal.success( 'File imported successfully' );
+            if ( this.options.verbose ) this.notification.success( 'File imported successfully' );
         } catch (err) {
             this._handleError( 'Failed to parse or load JSON file', err );
             throw err;
@@ -1543,14 +1951,14 @@ class SmliserJsonEditor {
         const a          = document.createElement( 'a' );
         a.href = url; a.download = filename; a.click();
         URL.revokeObjectURL( url );
-        await SmliserModal.success( `Downloaded "${filename}"` );
+        if ( this.options.verbose ) this.notification.success( `Downloaded "${filename}"` );
     }
 
     async copyToClipboard() {
         const jsonString = await this.getJSON( true );
         try {
             await navigator.clipboard.writeText( jsonString );
-            await SmliserModal.success( 'Copied to clipboard' );
+            if ( this.options.verbose ) this.notification.success( 'Copied to clipboard' );
         } catch (e) {
             this._handleError( 'Failed to copy to clipboard', e );
         }
@@ -1560,7 +1968,7 @@ class SmliserJsonEditor {
         try {
             const text    = await navigator.clipboard.readText();
             const success = await this.setJSON( text );
-            if ( success ) await SmliserModal.success( 'Pasted from clipboard' );
+            if ( success && this.options.verbose ) this.notification.success( 'Pasted from clipboard' );
         } catch (e) {
             const msg = e?.name === 'NotAllowedError'
                 ? 'Clipboard permission blocked. Please allow access or paste manually.'
@@ -1647,6 +2055,7 @@ class SmliserJsonEditor {
         if ( themeBtn ) {
             const icon = themeBtn.querySelector( '.theme-icon' );
             if ( icon ) icon.innerHTML = this._getThemeIconSVG();
+            themeBtn.setAttribute( 'aria-pressed', String( newTheme === 'dark' ) );
         }
     }
 
@@ -1662,6 +2071,36 @@ class SmliserJsonEditor {
             toggleBtn.setAttribute( 'aria-expanded', String( ! this.toolbarCollapsed ) );
             toggleBtn.title = this.toolbarCollapsed ? 'Show toolbar' : 'Hide toolbar';
         }
+    }
+
+    /**
+     * Toggle fullscreen mode - the editor takes over the full viewport,
+     * above all other page content, until toggled off again or Escape
+     * is pressed. Locks background scroll while active.
+     * @param {boolean} [force] - pass true/false to set the state explicitly
+     *                            instead of toggling it
+     */
+    toggleFullscreen( force ) {
+        const next = typeof force === 'boolean' ? force : ! this.isFullscreen;
+        if ( next === this.isFullscreen ) {
+            return;
+        }
+
+        this.isFullscreen = next;
+        this.container.classList.toggle( 'is-fullscreen', this.isFullscreen );
+        document.body.classList.toggle( 'sje-fullscreen-lock', this.isFullscreen );
+
+        const btn = this.toolbar?.querySelector( '[data-action="fullscreen"]' );
+        if ( btn ) {
+            btn.setAttribute( 'aria-pressed', String( this.isFullscreen ) );
+            btn.setAttribute( 'aria-label', this.isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen' );
+            btn.title = this.isFullscreen ? 'Exit fullscreen (Esc)' : 'Toggle fullscreen';
+
+            const icon = btn.querySelector( '.fullscreen-icon' );
+            if ( icon ) icon.innerHTML = this._getFullscreenIconSVG();
+        }
+
+        this._triggerEvent( 'fullscreenChange', this.isFullscreen );
     }
 
     async validate() {
@@ -1748,6 +2187,7 @@ class SmliserJsonEditor {
     }
 
     async destroy() {
+        if ( this.isFullscreen ) document.body.classList.remove( 'sje-fullscreen-lock' );
         if ( this.targetElement.tagName === 'TEXTAREA' ) this.targetElement.style.display = '';
         if ( this.container && this.container.parentNode ) this.container.parentNode.removeChild( this.container );
         if ( this._resizeObserver ) this._resizeObserver.disconnect();
@@ -1833,6 +2273,17 @@ class SmliserJsonEditor {
         return div.innerHTML;
     }
 
+    /**
+     * Generate a unique, DOM-safe id for a form field, scoped to this editor
+     * instance (this.id is already unique per instance) plus a running
+     * counter so repeated dialog opens never collide.
+     * @private
+     */
+    _uid( prefix = 'field' ) {
+        this._uidCounter += 1;
+        return `${this.id}-${prefix}-${this._uidCounter}`;
+    }
+
     _matchesSearch( key, value ) {
         if ( ! this.searchTerm ) return true;
         const term       = this.searchTerm.toLowerCase();
@@ -1851,6 +2302,6 @@ class SmliserJsonEditor {
 
     _handleError( message, error = null ) {
         this._triggerEvent( 'error', { message, error } );
-        SmliserModal.error( message );
+        this.notification.error( message );
     }
 }
