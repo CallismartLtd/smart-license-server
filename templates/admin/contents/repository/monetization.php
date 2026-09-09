@@ -76,7 +76,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 
                 <div class="smliser-monetization-ui__software-tiers">
                     <h2>Tiers</h2>
-                    <table class="widefat striped">
+                    <table class="tier-list widefat striped">
                         <?php if ( empty( $monetization->get_tiers() ) ) : ?>
                             <tr>
                                 <td>No pricing tiers has been set</td>
@@ -99,7 +99,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                         'monetization_id'   => $tier->get_monetization_id(),
                                     ] );
                                 ?>
-                                <tr>
+                                <tr class="tier-row-<?php echo escAttr( $tier->get_id() ) ?>">
                                     <th><?php echo escHtml( $tier->get_name() ); ?></th>
                                     <td>
                                         <div class="smliser-pricing-tier-info" data-json='<?php echo escAttr( $tier_json ); ?>'>
@@ -153,45 +153,40 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 
                 </div>
             </div>
-            <div class="smliser-admin-modal pricing-tier smliser-hide">
-                <div class="smliser-admin-modal_content">
-                    <span class="ti ti-x remove-modal" title="remove" data-command="closeModal"></span>
-                    <h2>Set Pricing Tier</h2>
-                    <em>A pricing tier represents a specific license option for the application</em>
-                    <form id="tier-form" class="smliser-admin-modal_content-form">
-                        <input type="hidden" name="action" value="">
-                        <input type="hidden" name="monetization_id" value="<?php echo intval( $monetization->get_id() ); ?>">
-                        <input type="hidden" name="app_id" value="<?php echo intval( $app->get_id() ); ?>">
-                        <input type="hidden" name="app_type" value="<?php echo escAttr( $monetization->get_app_type() ); ?>">
-                        <input type="hidden" name="tier_id">
-                        <label for="tier_name">Tier Name:
-                            <input type="text" name="tier_name" id="tier_name" field-name="Tier Name">
-                        </label>
-                        <label for="product_id">Product ID:
-                            <input type="text" name="product_id" id="product_id" field-name="Product ID">
-                        </label>
-                        <label for="billing_cycle">Billing Cycle:
-                            <input type="text" name="billing_cycle" id="billing_cycle" placeholder="example: monthly, yearly" field-name="Billing Cycle">
-                        </label>
-                        <label for="provider_id">Monetization Provider:
-                            <select name="provider_id" id="provider_id" field-name="Monetization Provider">
-                                <option value="">--Choose Provider--</option>
-                                <?php foreach( $providers as $provider ) : ?>
-                                    <option value="<?php echo escAttr( $provider::get_id() ) ?>"><?php echo escHtml( $provider::get_name() ); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </label>
-                        <label for="max_sites">Maximum Websites:
-                            <input type="number" name="max_sites" id="max_sites" placeholder="Leave empty for unlimited">
-                        </label>
-                        <label for="features">Features:
-                            <textarea type="number" name="features" id="features" placeholder="example: feature1, feature2, feature3" field-name="Features"></textarea>
-                        </label>
-                        <button type="submit" class="button smliser-nav-btn"><span class="ti ti-cloud"></span> Save</button>
-                    </form>
-                    <div class="smliser-spinner"></div>
-                </div>
 
+            <div id="smliser-app-monetization-editor" class="smliser-hide">
+                <em>A pricing tier represents a specific license option for a hosted application.</em>
+                <form id="tier-form" class="smliser-admin-modal_content-form">
+                    <input type="hidden" name="action" value="">
+                    <input type="hidden" name="monetization_id" value="<?php echo intval( $monetization->get_id() ); ?>">
+                    <input type="hidden" name="app_id" value="<?php echo intval( $app->get_id() ); ?>">
+                    <input type="hidden" name="app_type" value="<?php echo escAttr( $monetization->get_app_type() ); ?>">
+                    <input type="hidden" name="tier_id">
+                    <label for="tier_name">Tier Name:
+                        <input type="text" name="tier_name" id="tier_name" field-name="Tier Name">
+                    </label>
+                    <label for="product_id">Product ID:
+                        <input type="text" name="product_id" id="product_id" field-name="Product ID">
+                    </label>
+                    <label for="billing_cycle">Billing Cycle:
+                        <input type="text" name="billing_cycle" id="billing_cycle" placeholder="example: monthly, yearly" field-name="Billing Cycle">
+                    </label>
+                    <label for="provider_id">Monetization Provider:
+                        <select name="provider_id" id="provider_id" field-name="Monetization Provider">
+                            <option value="">--Choose Provider--</option>
+                            <?php foreach( $providers as $provider ) : ?>
+                                <option value="<?php echo escAttr( $provider::get_id() ) ?>"><?php echo escHtml( $provider::get_name() ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <label for="max_sites">Maximum Websites:
+                        <input type="number" name="max_sites" id="max_sites" placeholder="Leave empty for unlimited">
+                    </label>
+                    <label for="features">Features:
+                        <textarea type="number" name="features" id="features" placeholder="example: feature1, feature2, feature3" field-name="Features"></textarea>
+                    </label>
+                </form>
+                <div class="smliser-spinner"></div>
             </div>
         </div>
     <?php endif; ?>

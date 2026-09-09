@@ -148,7 +148,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                                                                     <span class="rank">#<?php echo escHtml( $index + 1 ); ?></span>
                                                                     <?php if ( $app_obj ) : ?>
                                                                         <span class="name">
-                                                                            <a href="<?php echo \escUrl( \smliser_admin_repo_tab( 'view', array( 'app_id' => $app_obj->get_id(), 'type' => $app_obj->get_type() ) )->url() ); ?>" target="_blank" >
+                                                                            <a href="<?php echo \escUrl( $urlmanager->admin_repo_url( 'view', array( 'app_id' => $app_obj->get_id(), 'type' => $app_obj->get_type() ) )->url() ); ?>" target="_blank" >
                                                                                 <?php echo escHtml( $app_obj->get_name() ); ?>
                                                                             </a>
                                                                         </span>

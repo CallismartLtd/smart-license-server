@@ -408,6 +408,7 @@ button,
 button:hover:not( :disabled ),
 .button:hover:not( :disabled ) {
 	opacity: 0.9;
+	text-decoration: none;
 }
 
 /* Selection & scrollbars */

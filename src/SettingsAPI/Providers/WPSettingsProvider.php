@@ -14,6 +14,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\SettingsAPI\Providers;
 
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Utils\Format;
 
 /**
@@ -22,7 +23,7 @@ use SmartLicenseServer\Utils\Format;
  * @since 0.2.0
  */
 class WPSettingsProvider extends AbstractSettings {
-
+	public function __construct( protected Database $db ) {}
 	/**
 	 * Retrieve a single option from WordPress.
 	 *
@@ -65,19 +66,17 @@ class WPSettingsProvider extends AbstractSettings {
 	}
 
 	protected function do_all( int $page, int $limit ): array {
-
-		$db     = smliser_db();
-		$offset = $db->calculate_query_offset( $page, $limit );
+		$offset = $this->db->calculate_query_offset( $page, $limit );
 		$table  = $GLOBALS['wpdb']?->options;
 
-		$sql = smliserQueryBuilder()
+		$sql = smliserQueryBuilder( $this->db->get_driver() )
 			->select( 'option_name', 'option_value' )
 			->from( $table )
 			->limit( $limit )
 			->offset( $offset )
 			->order_by( 'option_id', 'ASC' );
 
-		$rows = $db->get_results(
+		$rows = $this->db->get_results(
 			$sql->build(),
 			$sql->get_bindings()
 		);
@@ -101,12 +100,10 @@ class WPSettingsProvider extends AbstractSettings {
 	 * @since 0.2.0
 	 */
 	protected function do_search( string $query, int $page, int $limit ): array {
-
-		$db     = smliser_db();
-		$offset = $db->calculate_query_offset( $page, $limit );
+		$offset = $this->db->calculate_query_offset( $page, $limit );
 		$table  = $GLOBALS['wpdb']?->options;
 
-		$sql	= smliserQueryBuilder()
+		$sql	= smliserQueryBuilder( $this->db->get_driver() )
 			->select( 'option_name', 'option_value' )
 			->from( $table )
 			->where_contains( 'option_name', $query )
@@ -114,7 +111,7 @@ class WPSettingsProvider extends AbstractSettings {
 			->offset( $offset )
 			->order_by( 'option_id', 'ASC' );
 
-		$rows = $db->get_results(
+		$rows = $this->db->get_results(
 			$sql->build(),
 			$sql->get_bindings()
 		);

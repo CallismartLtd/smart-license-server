@@ -12,6 +12,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\SettingsAPI\Providers;
 
 use Callismart\DBPrism\Database;
+use Callismart\DBPrism\Query\SQLBuilder;
 use SmartLicenseServer\Utils\Format;
 
 /**
@@ -32,20 +33,11 @@ class Options extends AbstractSettings {
     const TABLE_NAME = SMLISER_OPTIONS_TABLE;
 
     /**
-     * Instance of the database adapter used to execute queries.
-     *
-     * @var Database
-     */
-    private $db;
-
-    /**
      * Constructor for the Options class.
      *
      * @param Database $db The instance of the current environment DB adapter @see `\Callismart\DBPrism\Adapters\Database`.
      */
-    public function __construct( Database $db ) {
-        $this->db = $db;
-    }
+    public function __construct( protected Database $db ) {}
 
     /**
      * Concrete implementation for retrieving a setting from the options table.
@@ -57,16 +49,14 @@ class Options extends AbstractSettings {
      * @return mixed The stored setting value.
      */
     protected function do_get( string $key, $default = null ) {
-        $table          = static::TABLE_NAME;
-
         $sql    = smliserQueryBuilder( $this->db->get_driver() )
-            ->select( 'option_value' )->from( $table )
+            ->select( 'option_value' )->from( static::TABLE_NAME )
             ->where( 'option_name', '=', $key )
             ->limit( 1 );
 
         $result = $this->db->get_var( $sql->build(), $sql->get_bindings() );
 
-        if ( null === $result || false === $result ) {
+        if ( null === $result ) {
             return $default;
         }
 
@@ -85,30 +75,29 @@ class Options extends AbstractSettings {
      * @return bool True on successful storage/update, false otherwise.
      */
     protected function do_set( string $key, $value ): bool {
-        $table          = static::TABLE_NAME;
+        return $this->db->transactional( function() use( $key, $value ) {
+            $value_to_store = Format::encode( $value, Format::ENCODING_PHP );
+            $option = array(
+                'option_name'   => $key,
+                'option_value'  => $value_to_store
+            );
 
-        $value_to_store = Format::encode( $value, Format::ENCODING_PHP );
-        
-        $option = array(
-            'option_name'   => $key,
-            'option_value'  => $value_to_store
-        );
-        
-        $old_value      = $this->do_get( $key, null );
+            $lock_sql   = $this->query()
+                ->select( 'option_id' )->from( static::TABLE_NAME )
+                ->where( 'option_name', '=', $key )
+                ->limit(1)->lock_for_update();
 
-        if ( $old_value ) {
-            // Update mode.
-            if ( Format::encode( $old_value, Format::ENCODING_PHP ) === $value_to_store ) {
-                return false; // No changes.
+            $id = (int) $this->db->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
+
+            if ( $id ) {
+                $result = $this->db->update( static::TABLE_NAME, $option, ['option_name' => $key, 'option_id' => $id] );
+            } else {
+                $result = $this->db->insert( static::TABLE_NAME, $option );
             }
-
-            $result = $this->db->update( $table, $option, ['option_name' => $key] );
-        } else {
-            $result = $this->db->insert( $table, $option );
-        }
-
-        // Insert returns ID or false.
-        return false !== $result;
+            
+            // Insert returns ID or false.
+            return false !== $result;
+        });
     }
 
     /**
@@ -120,9 +109,7 @@ class Options extends AbstractSettings {
      * @return bool True on successful deletion, false otherwise.
      */
     protected function do_delete( string $key ): bool {
-        $table        = static::TABLE_NAME;
-
-        $result = $this->db->delete( $table, [ 'option_name' => $key ] );
+        $result = $this->db->delete( static::TABLE_NAME, [ 'option_name' => $key ] );
 
         return false !== $result;
     }
@@ -136,14 +123,12 @@ class Options extends AbstractSettings {
      * @return bool True if the key exists, false otherwise.
      */
     protected function do_has( string $key ): bool {
-        $table  = static::TABLE_NAME;
-
         $sql    = smliserQueryBuilder( $this->db->get_driver() )
-            ->select( '1' )->from( $table )
+            ->select( '1' )->from( static::TABLE_NAME )
             ->where( 'option_name', '=', $key )
             ->limit(1);
 
-        $result         = $this->db->get_var( $sql->build(), $sql->get_bindings() );
+        $result = $this->db->get_var( $sql->build(), $sql->get_bindings() );
 
         return ! empty( $result );
     }
@@ -154,13 +139,11 @@ class Options extends AbstractSettings {
      * @since 0.2.0
      */
     protected function do_all( int $page, int $limit ): array {
-
-        $table  = static::TABLE_NAME;
         $offset = $this->db->calculate_query_offset( $page, $limit );
 
         $sql = smliserQueryBuilder( $this->db->get_driver() )
             ->select( 'option_name', 'option_value' )
-            ->from( $table )
+            ->from( static::TABLE_NAME )
             ->limit( $limit )
             ->offset( $offset )
             ->order_by( 'option_id', 'ASC' );
@@ -189,13 +172,11 @@ class Options extends AbstractSettings {
      * @since 0.2.0
      */
     protected function do_search( string $query, int $page, int $limit ): array {
-
-        $table  = static::TABLE_NAME;
         $offset = $this->db->calculate_query_offset( $page, $limit );
 
         $sql = smliserQueryBuilder( $this->db->get_driver() )
             ->select( 'option_name', 'option_value' )
-            ->from( $table )
+            ->from( static::TABLE_NAME )
             ->where_contains( 'option_name', $query )
             ->limit( $limit )
             ->offset( $offset )
@@ -217,5 +198,9 @@ class Options extends AbstractSettings {
         }
 
         return $results;
+    }
+
+    protected function query() : SQLBuilder {
+        return \smliserQueryBuilder( $this->db->get_driver() );
     }
 }

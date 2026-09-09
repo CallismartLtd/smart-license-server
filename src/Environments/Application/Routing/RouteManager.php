@@ -12,6 +12,7 @@ namespace SmartLicenseServer\Environments\Application\Routing;
 use SmartLicenseServer\Admin\ActionHandlers\AppManagement;
 use SmartLicenseServer\Admin\ActionHandlers\AppMonetization;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
+use SmartLicenseServer\Cache\CacheRequestController;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\AuthForms;
@@ -19,6 +20,7 @@ use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\Email\RequestController as EmailRequestController;
 use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddleware;
@@ -27,6 +29,7 @@ use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Routing\Router as CoreRouter;
 use SmartLicenseServer\Routing\DispatchStatus;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
+use SmartLicenseServer\SettingsAPI\SettingsController;
 
 /**
  * The application environment's route manager, which wraps the core Router and 
@@ -264,6 +267,44 @@ final class RouteManager {
                     $this->router->get(
                         pattern: 'tier-product',
                         handler: [AppMonetization::class, 'handle_monetization_provider_product_request'],
+                        middleware: []
+                    );
+
+                    $this->router->delete(
+                        pattern: 'pricing-tier',
+                        handler: [AppMonetization::class, 'handle_monetization_tier_deletion_request'],
+                        middleware: []
+                    );
+
+                    $this->router->group(
+                        prefix: 'options-form',
+                        callback: function() {
+                            $forms  = [
+                                'general-settings-save'         => [SettingsController::class, 'save_general_settings'],
+                                'monetization'                  => [AppMonetization::class, 'handle_save_provider_options_request'],
+                                'default-email'                 => [EmailRequestController::class, 'save_default_email_options'],
+                                'email-test'                    => [EmailRequestController::class, 'send_test_email'],
+                                'email-provider-settings'       => [EmailRequestController::class, 'save_provider_settings'],
+                                'email-template-status-toggle'  => [SettingsController::class, 'toggle_email_template'],
+                                'email-template-save'           => [SettingsController::class, 'save_email_template'],
+                                'email-template-preview'        => [SettingsController::class, 'preview_email_template'],
+                                'email-template-reset'          => [SettingsController::class, 'reset_email_template'],
+                                'cache-adapter-save'            => [CacheRequestController::class, 'save_adapter_settings'],
+                                'cache-test-adapter'            => [CacheRequestController::class, 'test_cache_adapter_settings'],
+                                'cache-reset-adapter'           => [CacheRequestController::class, 'reset_cache_adapter_settings'],
+                                'cache-stats-fetch'             => [CacheRequestController::class, 'get_cache_stats'],
+                                'cache-flush'                   => [CacheRequestController::class, 'clear_all_cache'],
+                                'cache-flush-stale'             => [CacheRequestController::class, 'flush_expired_cache'],
+                                'route-url-prefixes'            => [SettingsController::class, 'save_routing_settings']
+                            ];
+
+                            foreach( $forms as $pattern => $callback ) {
+                                $this->router->post(
+                                    pattern: $pattern,
+                                    handler: $callback
+                                );
+                            }
+                        },
                         middleware: []
                     );
                 });

@@ -36,6 +36,13 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @var string
 	 */
 	protected $prefix = 'smliser_';
+	
+	/**
+	 * Flag for prefix usage.
+	 * 
+	 * @var bool
+	 */
+	protected bool $use_prefix = false;
 
 	/**
 	 * Prepends the adapter's defined prefix to the setting key.
@@ -61,11 +68,10 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 *
 	 * @param string $key     The unique identifier/name of the setting.
 	 * @param mixed  $default Optional. The value to return if the key is not found.
-	 * @param bool $use_prefix	Optional flag to use the `smliser_` prefix (default true)
 	 * @return mixed The stored setting value, or the $default value if not found.
 	 */
-	public function get( string $key, $default = null, bool $use_prefix = true ) {
-		$key	= $use_prefix ? $this->prefix_key( $key ) : $key;
+	public function get( string $key, $default = null ) {
+		$key	= $this->use_prefix ? $this->prefix_key( $key ) : $key;
 		if ( $this->has_in_cache( $key ) ) {
 			return $this->cache[ $key ];
 		}
@@ -85,11 +91,10 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 *
 	 * @param string $key   The unique identifier/name of the setting.
 	 * @param mixed  $value The data to be stored.
-	 * @param bool $use_prefix	Optional flag to use the `smliser_` prefix (default true)
 	 * @return bool True on successful storage/update, false otherwise.
 	 */
-	public function set( string $key, $value, bool $use_prefix = true ): bool {
-		$key	= $use_prefix ? $this->prefix_key( $key ) : $key;
+	public function set( string $key, $value ): bool {
+		$key	= $this->use_prefix ? $this->prefix_key( $key ) : $key;
 		$result = $this->do_set( $key, $value );
 
 		if ( $result ) {
@@ -106,11 +111,10 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @since 0.2.0
 	 *
 	 * @param string $key The unique identifier/name of the setting to delete.
-	 * @param bool $use_prefix	Optional flag to use the `smliser_` prefix (default true)
 	 * @return bool True on successful deletion, false if the key wasn't found or deletion failed.
 	 */
-	public function delete( string $key, bool $use_prefix = true ): bool {
-		$key	= $use_prefix ? $this->prefix_key( $key ) : $key;
+	public function delete( string $key ): bool {
+		$key	= $this->use_prefix ? $this->prefix_key( $key ) : $key;
 		$result = $this->do_delete( $key );
 
 		if ( $result ) {
@@ -129,11 +133,10 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @since 0.2.0
 	 *
 	 * @param string $key The unique identifier/name of the setting.
-	 * @param bool $use_prefix	Optional flag to use the `smliser_` prefix (default true)
 	 * @return bool True if the key exists, false otherwise.
 	 */
-	public function has( string $key, bool $use_prefix = true ): bool {
-		$key	= $use_prefix ? $this->prefix_key( $key ) : $key;
+	public function has( string $key ): bool {
+		$key	= $this->use_prefix ? $this->prefix_key( $key ) : $key;
 		if ( $this->has_in_cache( $key ) ) {
 			return true;
 		}
@@ -162,17 +165,15 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param string $query      The search term or pattern.
 	 * @param int    $page       The page number to retrieve.
 	 * @param int    $limit      The maximum number of results to return.
-	 * @param bool   $use_prefix Optional flag to apply the storage prefix to the query.
 	 * @return array<string, mixed> Matching settings.
 	 */
 	public function search(
 		string $query,
 		int $page,
 		int $limit = 50,
-		bool $use_prefix = true
 	): array {
 
-		$query = $use_prefix ? $this->prefix_key( $query ) : $query;
+		$query = $this->use_prefix ? $this->prefix_key( $query ) : $query;
 
 		return $this->do_search( $query, $page, $limit );
 	}

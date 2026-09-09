@@ -387,17 +387,16 @@ class PricingTier extends DataStore {
             return false;
         }
 
-        $deleted    = (bool) static::$DB->transactional( function( Database $db ) {
+        return (bool) static::$DB->transactional( function( Database $db ) {
             $result = $db->delete( SMLISER_PRICING_TIER_TABLE, [ 'id' => $this->id ] );
 
             if ( false === $result ) {
                 throw new DatabaseException( 'delete_failed', $db->get_last_error() );
             }
-        });
 
-        static::cache_clear();
-        
-        return false !== $deleted;
+            static::cache_clear();
+            return true;
+        });
     }
 
     /**

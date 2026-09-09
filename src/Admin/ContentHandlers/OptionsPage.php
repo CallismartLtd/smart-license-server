@@ -369,11 +369,11 @@ class OptionsPage implements AdminPageInterface {
     }
 
     /**
-     * System settings form fields.
+     * General settings form fields.
      *
      * @return array<int, array<string, mixed>>
      */
-    public function system_settings_fields(): array {
+    public function general_settings_fields(): array {
         $settings = $this->settings;
 
         return [
@@ -459,7 +459,7 @@ class OptionsPage implements AdminPageInterface {
             ],
 
             [
-                'label' => 'Default Activation Limit',
+                'label' => 'Default License Activation Limit',
                 'help'  => 'Default number of activations allowed per license key.',
                 'input' => [
                     'type'  => 'number',

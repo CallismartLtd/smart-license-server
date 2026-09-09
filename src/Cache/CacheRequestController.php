@@ -14,6 +14,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\SecurityAwareTrait;
+use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
@@ -22,6 +23,11 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  */
 class CacheRequestController {
     use SanitizeAwareTrait, SecurityAwareTrait;
+
+    public function __construct(
+        protected Cache $cache,
+        protected Settings $settings
+    ) {}
 
     /*
     |--------------------------------------------------------------------------
@@ -42,7 +48,7 @@ class CacheRequestController {
      * @param Request $request
      * @return Response
      */
-    public static function save_adapter_settings( Request $request ): Response {
+    public function save_adapter_settings( Request $request ): Response {
         try {
             static::is_system_admin();
 
@@ -53,7 +59,7 @@ class CacheRequestController {
             [$adapter, $saved_settings] = self::validate_settings_fields( $request );
 
             $ttl = (int) max( 0, $request->get( 'default_cache_ttl', 0 ) );
-            \smliser_settings()->set( 'default_cache_ttl', $ttl, true );
+            $this->settings->set( 'default_cache_ttl', $ttl, true );
             CacheAdapterRegistry::update_adapter_settings( $adapter_id, $saved_settings );
 
             $wants_reset = $is_default && $request->isEmpty( 'set_as_default' );
@@ -64,17 +70,16 @@ class CacheRequestController {
                 CacheAdapterRegistry::set_default_adapter( 'runtime' );
             }
 
-            return ( new Response( 200, [], [
+            return Response::json([
                 'success' => true,
                 'data'    => [
                     'message'    => sprintf( '%s settings saved successfully.', $adapter->get_name() ),
                     'is_default' => CacheAdapterRegistry::get_default_adapter_id() === $adapter_id,
                 ],
-            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error($e)
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
     }
@@ -93,7 +98,7 @@ class CacheRequestController {
      * @param Request $request
      * @return Response
      */
-    public static function test_cache_adapter_settings( Request $request ): Response {
+    public function test_cache_adapter_settings( Request $request ): Response {
         try {
             static::is_system_admin();
 
@@ -111,25 +116,24 @@ class CacheRequestController {
                 );
             }
 
-            return ( new Response( 200, [], [
+            return Response::json([
                 'success' => true,
                 'data'    => [
                     'message'    => sprintf( '%s connection test passed successfully.', $cloned->get_name() ),
                     'is_default' => CacheAdapterRegistry::get_default_adapter_id() === $cloned->get_id(),
                 ],
-            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            ]);
 
         } catch ( CacheTestException $e ) {
-            return ( new Response( 200, [], [
+            return Response::json([
                 'success' => false,
                 'data'    => [
                     'message' => $e->getMessage(),
                 ],
-            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
     }
@@ -140,7 +144,7 @@ class CacheRequestController {
      * @param Request $request
      * @return Response
      */
-    public static function reset_cache_adapter_settings( Request $request ): Response {
+    public function reset_cache_adapter_settings( Request $request ): Response {
         try {
             static::is_system_admin();
 
@@ -152,16 +156,15 @@ class CacheRequestController {
 
             CacheAdapterRegistry::reset_adapter_settings( $adapter_id );
 
-            return ( new Response( 200, [], [
+            return Response::json([
                 'success' => true,
                 'data'    => [
                     'message' => sprintf( '%s settings reset successfully.', $adapter_id ),
                 ],
-            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
     }
@@ -183,25 +186,23 @@ class CacheRequestController {
      * @param Request $request
      * @return Response
      */
-    public static function get_cache_stats( Request $request ): Response {
+    public function get_cache_stats( Request $request ): Response {
         try {
             static::is_system_admin();
 
-            $cache = \smliser_cache();
-            $stats = $cache->get_stats();
+            $stats = $this->cache->get_stats();
 
-            return ( new Response( 200, [], [
+            return Response::json([
                 'success' => true,
                 'data'    => [
-                    'adapter_id'   => $cache->get_id(),
-                    'adapter_name' => $cache->get_name(),
+                    'adapter_id'   => $this->cache->get_id(),
+                    'adapter_name' => $this->cache->get_name(),
                     'stats'        => $stats->to_array(),
                 ],
-            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
     }
@@ -218,33 +219,31 @@ class CacheRequestController {
      * @param Request $request
      * @return Response
      */
-    public static function clear_all_cache( Request $request ): Response {
+    public function clear_all_cache( Request $request ): Response {
         try {
             static::is_system_admin();
 
-            $cache   = \smliser_cache();
-            $cleared = $cache->clear();
+            $cleared = $this->cache->clear();
 
             if ( ! $cleared ) {
                 throw new RequestException(
                     'action_failed',
                     sprintf(
                         'Failed to clear %s cache. The adapter may not support a full flush.',
-                        $cache->get_name()
+                        $this->cache->get_name()
                     )
                 );
             }
 
-            return ( new Response( 200, [], [
+            return Response::json([
                 'success' => true,
                 'data'    => [
-                    'message' => sprintf( '%s cache cleared successfully.', $cache->get_name() ),
+                    'message' => sprintf( '%s cache cleared successfully.', $this->cache->get_name() ),
                 ],
-            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
     }
@@ -257,11 +256,11 @@ class CacheRequestController {
      *
      * @return Response
      */
-    public static function flush_expired_cache(): Response {
+    public function flush_expired_cache(): Response {
         try {
             static::is_system_admin();
 
-            $cache  = \smliser_cache();
+            $cache  = $this->cache;
 
             if ( 'sqlitecache' !== $cache->get_id() ) {
                 throw new RequestException(
@@ -310,7 +309,7 @@ class CacheRequestController {
      * @return array{0: CacheAdapterInterface, 1: array<string, mixed>}
      *         Tuple of [cloned adapter with settings applied, validated settings array].
      */
-    private static function validate_settings_fields( Request $request ): array {
+    private function validate_settings_fields( Request $request ): array {
         $collection = CacheAdapterRegistry::instance();
         $adapter_id = static::sanitize_key( $request->get( 'adapter_id' ) );
 

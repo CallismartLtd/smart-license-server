@@ -16,6 +16,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
@@ -25,49 +26,49 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 class SettingsController {
     use SanitizeAwareTrait, SecurityAwareTrait;
 
+    public function __construct(
+        protected Settings $settings,
+        protected OptionsPage $options_page,
+        Guard $guard
+
+    ) {
+        $this->guard    = $guard;
+    }
+
     /**
-     * Save system settings
+     * Save general settings
      * 
      * @param Request $request The object.
      * @return Response
      */
-    public static function save_system_settings( Request $request ) : Response {
+    public function save_general_settings( Request $request ) : Response {
         try {
-            static::is_system_admin();
-            $settings   = \smliser_settings();
-            $collection = Collection::make( OptionsPage::system_settings_fields() );
+            $this->is_system_admin();
+            $collection = Collection::make( $this->options_page->general_settings_fields() );
             $fields     = $collection->map(
                 fn( $v ) => $v['input']['name'] ?? ''
             );
 
-            $affected   = 0;
             foreach ( $fields as $key ) {
                 if ( empty( $key ) ) {
                     continue;
                 }
 
                 if ( $request->has( $key ) ) {
-                    $value  = static::sanitize_auto( $request->get( $key ) );
-                    if ( $settings->set( $key, $value, true ) ) {
-                        $affected++;
+                    $value  = $this->sanitize_auto( $request->get( $key ) );
+                    if ( $this->settings->set( $key, $value, true ) ) {
                     }
                 }
             }
 
-            $response_data  = array(
+            return Response::json([
                 'success'   => true,
-                'data'  => array(
-                    'message' => $affected > 0
-                        ? sprintf( '%d option(s) saved successfully.', $affected )
-                        : 'No changes were made.',
-                )
-            );
-
-            return ( new Response( 200, [], $response_data ) )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+                'data'      => [
+                    'message'   => 'Settings updated successfully.'
+                ]
+            ]);
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
 
@@ -79,16 +80,14 @@ class SettingsController {
      * @param  Request $request
      * @return Response
      */
-    public static function save_routing_settings( Request $request ): Response {
+    public function save_routing_settings( Request $request ): Response {
         try {
-            static::is_system_admin();
+            $this->is_system_admin();
 
-            $collection = Collection::make( OptionsPage::get_routing_fields() );
+            $collection = Collection::make( $this->options_page->get_routing_fields() );
             $fields     = $collection->map(
                 fn( $v ) => $v['input']['name'] ?? ''
             );
-
-            $settings = smliser_settings();
 
             foreach ( $fields as $key ) {
                 if ( empty( $key ) ) {
@@ -96,14 +95,14 @@ class SettingsController {
                 }
 
                 $default    = match( $key ) {
-                    'repository_url_prefix'         => $settings->get( $key, 'repository', true ),
-                    'download_url_prefix'           => $settings->get( $key, 'downloads', true ),
-                    'client_dashboard_url_prefix'   => $settings->get( $key, 'client-dashboard', true ),
+                    'repository_url_prefix'         => $this->settings->get( $key, 'repository', true ),
+                    'download_url_prefix'           => $this->settings->get( $key, 'downloads', true ),
+                    'client_dashboard_url_prefix'   => $this->settings->get( $key, 'client-dashboard', true ),
                     default                         => ''
                 };
 
-                $value  = static::sanitize_slug( $request->get( $key, $default ) ) ?: $default;
-                $settings->set( $key, $value, true );
+                $value  = $this->sanitize_slug( $request->get( $key, $default ) ) ?: $default;
+                $this->settings->set( $key, $value, true );
         
             }
 
@@ -127,9 +126,9 @@ class SettingsController {
      * @param Request $request
      * @return Response
      */
-    public static function toggle_email_template( Request $request ): Response {
+    public function toggle_email_template( Request $request ): Response {
         try {
-            static::is_system_admin();
+            $this->is_system_admin();
 
             $template_key = $request->get( 'template_key' );
 
@@ -199,9 +198,9 @@ class SettingsController {
      * @param  Request  $request
      * @return Response JSON — { success: true, data: { html: string } }
      */
-    public static function preview_email_template( Request $request ): Response {
+    public function preview_email_template( Request $request ): Response {
         try {
-            static::is_system_admin();
+            $this->is_system_admin();
 
             $template_key = $request->get( 'template_key' );
             $blocks_raw   = $request->get_file( 'blocks' )?->get_contents() ?? '';
@@ -255,9 +254,9 @@ class SettingsController {
      * @param  Request  $request
      * @return Response JSON — { success: true, data: { message: string, template_key: string } }
      */
-    public static function save_email_template( Request $request ): Response {
+    public function save_email_template( Request $request ): Response {
         try {
-            static::is_system_admin();
+            $this->is_system_admin();
 
             $template_key = $request->get( 'template_key' );
             $blocks_raw   = $request->get_file( 'blocks' )?->get_contents() ?? '';
@@ -320,9 +319,9 @@ class SettingsController {
      * @param  Request  $request
      * @return Response JSON — { success: true, data: { message: string, template_key: string } }
      */
-    public static function reset_email_template( Request $request ): Response {
+    public function reset_email_template( Request $request ): Response {
         try {
-            static::is_system_admin();
+            $this->is_system_admin();
 
             $template_key = $request->get( 'template_key' );
 

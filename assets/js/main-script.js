@@ -995,9 +995,17 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 e.preventDefault();
                                 
                 const submittedForm = e.target;
-                if ( ! ( submittedForm instanceof HTMLFormElement ) ) return;
+                if ( ! submittedForm instanceof HTMLFormElement ) return;
                 const payLoad   = new FormData( submittedForm );
-                const url       = smliser_var.ajaxURL;
+                const slug      = submittedForm.dataset.slug;
+
+                if ( ! slug ) {
+                    await SmliserModal.error( 'This form does not have a slug dataset.', 'Form Error.' );
+                    return;
+                } 
+                const url       = new URL( smliser_var.ajaxURL );
+
+                url.pathname    += `/options-form/${slug}/`;
                 payLoad.set( 'security', smliser_var.csrf_token );
                 const submitBtn = submittedForm.querySelector( 'button[type="submit"]' );
                 
@@ -1386,7 +1394,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             updateBtn.parentElement.style.display = 'none';
             updateClickedNotice.style.display ='block';
             let dismissBtn = document.createElement( 'span' );
-            dismissBtn.classList.add( 'dashicons', 'dashicons-dismiss' );
+            dismissBtn.classList.add( 'ti', 'ti-x' );
             dismissBtn.style.color = 'red';
             dismissBtn.style.float = 'right';
             dismissBtn.addEventListener( 'click', ()=>{
@@ -1547,8 +1555,10 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     }
 
     if ( monetizationUI ) {
-        let tierModal   = document.querySelector( '.smliser-admin-modal.pricing-tier' );
-        let tierForm    = document.querySelector( '#tier-form' );
+        let monetizationEditor  = document.querySelector( '#smliser-app-monetization-editor' );
+        let tierForm            = document.querySelector( '#tier-form' );
+        /** @type {SmliserModal|null} */
+        let activeModal         = null;
 
         /**
          * Utility: Validate and reset field errors
@@ -1622,8 +1632,30 @@ document.addEventListener( 'DOMContentLoaded', async function() {
          * Modal Actions
          */
         const smliserModalActions = {
+            openModal: ( isEdit ) => {
+                if ( ! activeModal ) {
+                    const submitBtn         = document.createElement( 'button' );
+                    submitBtn.type          = 'submit'
+                    submitBtn.className     = 'button smliser-nav-btn';
+                    submitBtn.innerHTML     = '<span class="ti ti-cloud"></span> Save';
+                    
+                    submitBtn.setAttribute( 'form', tierForm.id );
+
+                    monetizationEditor.classList.remove( 'smliser-hide' );
+                    activeModal = new SmliserModal({
+                        title: 'Add Pricing Tier',
+                        body: monetizationEditor,
+                        footer: submitBtn
+                    });
+                }
+
+                if ( isEdit ) {
+                    activeModal.setTitle( 'Edit Pricing Tier' );
+                }
+
+                activeModal.open();
+            },
             addNewTier: () => {
-                tierModal.classList.remove( 'smliser-hide' );
                 tierForm.querySelectorAll( 'input, select, textarea' ).forEach( input => {
                     if ( 'action' === input.name ) {
                         input.value = 'smliser_save_monetization_tier';
@@ -1632,11 +1664,12 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                         input.value = '';
                     }
                 });
+
+                smliserModalActions.openModal();
             },
 
             editTier: ( json ) => {
                 let tier = StringUtils.JSONparse( json );
-                tierModal.classList.remove( 'smliser-hide' );
 
                 // Switch action to update
                 tierForm.querySelector( 'input[name="action"]' ).value = 'smliser_save_monetization_tier';
@@ -1648,6 +1681,8 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 tierForm.querySelector( '#provider_id' ).value  = tier.provider_id || '';
                 tierForm.querySelector( '#max_sites' ).value    = tier.max_sites || '';
                 tierForm.querySelector( '#features' ).value     = Array.isArray( tier.features ) ? tier.features.join(', ') : ( tier.features || '' );
+
+                smliserModalActions.openModal( true );
             },
 
             deleteTier: async ( json ) => {
@@ -1657,16 +1692,30 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                     return;
                 }
                 const payLoad = new FormData();
-                payLoad.set( 'action', 'smliser_delete_monetization_tier' );
                 payLoad.set( 'security', smliser_var.csrf_token );
                 payLoad.set( 'monetization_id', tier.monetization_id );
                 payLoad.set( 'tier_id', tier.id );
 
-                smliserFetch( smliser_var.ajaxURL, { method: 'POST', body: payLoad } )
+                const url       = new URL( smliser_var.ajaxURL );
+                url.pathname    += '/pricing-tier/';
+
+                smliserFetchJSON( url, { method: 'DELETE', body: payLoad } )
                 .then( responseJson => {
                     if ( responseJson.success ) {
                         SmliserToast.show( responseJson.data?.message || 'Tier deleted', 3000 );
-                        // setTimeout( () => window.location.reload(), 2000 );
+                        
+                        const table = document.querySelector( 'table.tier-list');
+                        const row   = table?.querySelector( `tr.tier-row-${tier.id}`);
+                        jQuery( row ).fadeOut( 'slow', () => {
+                            row?.remove();
+                            if ( ! table.querySelectorAll( 'tr' ).length ) {
+                                table.innerHTML = `
+                                <tr>
+                                    <td>No pricing tiers has been set</td>
+                                </tr>`;
+                            }
+
+                        });
                     } else {
                         SmliserToast.show( responseJson.data?.message || 'Delete failed', 6000 );
                     }
@@ -1683,18 +1732,18 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 let tier = StringUtils.JSONparse( json );
 
                 // Remove any existing product-data modal
-                monetizationUI.querySelector( '.smliser-admin-modal.product-data' )?.remove();
+                activeModal?.close();
 
-                let modal = document.createElement( 'div' );
-                modal.className = 'smliser-admin-modal product-data';
+                let modalBody           = document.createElement( 'div' );
+                let modalHeader         = document.createElement( 'h2' );
 
-                modal.innerHTML = `
-                    <div class="smliser-admin-modal_content">
-                        <span class="dashicons dashicons-dismiss remove-button" title="remove" data-command="closeModal"></span>
-                        <h2 class="product-data-header">
-                            <span class="product-image-slot"></span>
-                            <span class="product-title">Product Data for: ${tier.name || ''}</span>
-                        </h2>
+                modalHeader.className   = 'product-data-header';
+                modalHeader.innerHTML   = `
+                    <span class="product-image-slot"></span>
+                    <span class="product-title">${tier.name || ''}</span>
+                `;
+
+                modalBody.innerHTML = `                        
                         <table class="striped">
                             <tbody>
                                 <tr><th scope="row">Product ID</th><td>${tier.product_id}</td></tr>
@@ -1709,13 +1758,15 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                         </div>
                     </div>
                 `;
-                // monetizationUI.appendChild( modal );
-
-                // Close handlers
-                modal.querySelector( '.remove-button' ).addEventListener( 'click', () => modal.remove() );
-                modal.addEventListener( 'click', e => {
-                    if ( e.target.classList.contains( 'smliser-admin-modal' ) ) modal.remove();
+                modalBody.prepend( modalHeader );
+                activeModal = new SmliserModal({
+                    body: modalBody,
+                    title: 'Product Details',
+                    closeOnEscape: true
                 });
+
+                activeModal.open();
+
 
                 // Fetch provider product
                 const params = new URLSearchParams({
@@ -1731,7 +1782,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
                 smliserFetchJSON( url, { method: 'GET' } )
                     .then( responseJson => {
-                        modal.querySelector( '.spinner-overlay' )?.remove();
+                        modalBody.querySelector( '.spinner-overlay' )?.remove();
                         if ( ! responseJson.success ) {
                             SmliserToast.show( responseJson.data?.message || 'Could not fetch product data', 6000 );
                             return;
@@ -1746,7 +1797,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                             img.src = product.images[0].src;
                             img.alt = product.images[0].alt || 'Product Image';
                             img.className = 'product-thumb';
-                            modal.querySelector( '.product-image-slot' ).appendChild( img );
+                            modalBody.querySelector( '.product-image-slot' ).appendChild( img );
                         }
 
                         // Format price
@@ -1755,11 +1806,11 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                             formattedPrice = StringUtils.formatCurrency( pricing.price, product.currency );
                         }
 
-                        modal.querySelector( '.price-field' ).textContent = formattedPrice;
-                        modal.querySelector( '.desc-field' ).innerHTML   = product.description || '';
+                        modalBody.querySelector( '.price-field' ).textContent = formattedPrice;
+                        modalBody.querySelector( '.desc-field' ).innerHTML   = product.description || '';
                     })
                     .catch( error => {
-                        modal.querySelector( '.spinner-overlay' )?.remove();
+                        modalBody.querySelector( '.spinner-overlay' )?.remove();
                         SmliserToast.show( error.message || 'An unexpected error occurred', 6000 );
                     });
             },
@@ -1797,14 +1848,6 @@ document.addEventListener( 'DOMContentLoaded', async function() {
          * Delegated Click Handler
          */
         monetizationUI.addEventListener( 'click', ( e ) => {
-            // Click outside modal closes it
-            if ( e.target.classList.contains( 'smliser-admin-modal' ) ) {
-                e.preventDefault();
-                smliserModalActions.closeModal();
-                return;
-            }
-
-            // Static modal open/close
             const modal = e.target.closest( '#add-pricing-tier, .remove-modal' );
             if ( modal ) {
                 e.preventDefault();
@@ -1823,7 +1866,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             }
         });
 
-        monetizationUI.addEventListener('change', e => {
+        monetizationUI.addEventListener( 'change', e => {
             const input = e.target.closest('.smliser_toggle-switch-input');
             if ( input && input.dataset.action === 'toggleMonetization' ) {
                 const monetizationId = input.dataset.monetizationId;

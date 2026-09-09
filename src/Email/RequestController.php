@@ -22,17 +22,22 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 class RequestController {
     use SanitizeAwareTrait, SecurityAwareTrait;
 
+    public function __construct(
+        protected EmailProvidersRegistry $provider_registry,
+
+    ) {}
+
     /**
      * Handles request to save default email options.
      * 
      * @param Request $request The request object.
      * @return Response
      */
-    public static function save_default_email_options( Request $request ) : Response {
+    public function save_default_email_options( Request $request ) : Response {
         try {
             static::is_system_admin();
 
-            $registry           = smliser_emailProvidersRegistry();
+            $registry           = $this->provider_registry;
             $default_mailer_key = EmailProvidersRegistry::DEFAULT_PROVIDER_KEY;
             $provider_id        = static::sanitize_text( $request->get( $default_mailer_key ) );
 
@@ -100,11 +105,11 @@ class RequestController {
      * @param Request $request
      * @return Response
      */
-    public static function save_provider_settings( Request $request ): Response {
+    public function save_provider_settings( Request $request ): Response {
         try {
             static::is_system_admin();
 
-            $registry  = smliser_emailProvidersRegistry();
+            $registry  = $this->provider_registry;
             $provider_id = static::sanitize_text( $request->get( 'provider_id' ) );
 
             if ( ! $provider_id ) {
@@ -214,11 +219,11 @@ class RequestController {
      * @param Request $request
      * @return Response
      */
-    public static function send_test_email( Request $request ): Response {
+    public function send_test_email( Request $request ): Response {
         try {
             static::is_system_admin();
 
-            $registry  = smliser_emailProvidersRegistry();
+            $registry  = $this->provider_registry;
             $provider_id = static::sanitize_text( $request->get( 'provider_id' ) );
             $recipient   = static::sanitize_email( $request->get( 'test_email' ) );
 

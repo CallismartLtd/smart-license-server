@@ -1048,7 +1048,7 @@ class Format {
         return static::is_json_encoded( $value ) || static::is_php_serialized( $value );
     }
 
-/**
+    /**
 	 * Format a single "extra" cache-stat value for display.
 	 *
 	 * The extra bag is untyped per-adapter, so this switches on PHP

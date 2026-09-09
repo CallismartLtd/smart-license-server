@@ -10,8 +10,6 @@
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
-use SmartLicenseServer\Admin\ContentHandlers\OptionsPage;
-
 defined( 'SMLISER_ROOT' ) || exit;
 
 $menu_args = $page_handler->get_menu_args( $request );
@@ -21,11 +19,10 @@ unset( $menu_args['breadcrumbs'][0] );
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>
     
-    <form action="" class="smliser-options-form">
-        <input type="hidden" name="action" value="smliser_save_system_options" />
+    <form action="" class="smliser-options-form" data-slug="general-settings-save">
         <div class="smliser-options-form_body">
             <span class="smliser-spinner"></span>
-            <?php foreach( $page_handler->system_settings_fields() as $field ) : ?>
+            <?php foreach( $page_handler->general_settings_fields() as $field ) : ?>
                 <?php smliser_render_input_field( $field ); ?>
             <?php endforeach; ?>
         </div>
