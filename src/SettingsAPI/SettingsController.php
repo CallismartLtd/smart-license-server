@@ -44,20 +44,18 @@ class SettingsController {
     public function save_general_settings( Request $request ) : Response {
         try {
             $this->is_system_admin();
-            $collection = Collection::make( $this->options_page->general_settings_fields() );
-            $fields     = $collection->map(
-                fn( $v ) => $v['input']['name'] ?? ''
-            );
+            $fields = $this->options_page->general_settings_fields();
 
-            foreach ( $fields as $key ) {
+            foreach ( $fields as $field ) {
+                $key    = $field['input']['name'] ?? '';
                 if ( empty( $key ) ) {
                     continue;
                 }
 
                 if ( $request->has( $key ) ) {
                     $value  = $this->sanitize_auto( $request->get( $key ) );
-                    if ( $this->settings->set( $key, $value ) ) {
-                    }
+                    
+                    $this->settings->set( $key, $value );
                 }
             }
 
@@ -84,38 +82,32 @@ class SettingsController {
         try {
             $this->is_system_admin();
 
-            $collection = Collection::make( $this->options_page->get_routing_fields() );
-            $fields     = $collection->map(
-                fn( $v ) => $v['input']['name'] ?? ''
-            );
+            $fields = $this->options_page->get_routing_fields();
 
-            foreach ( $fields as $key ) {
+            foreach ( $fields as $field ) {
+
+                $key    = $field['input']['name'] ?? '';
+                
                 if ( empty( $key ) ) {
                     continue;
                 }
 
-                $default    = match( $key ) {
-                    'repository_url_prefix'         => $this->settings->get( $key, 'repository' ),
-                    'download_url_prefix'           => $this->settings->get( $key, 'downloads' ),
-                    'client_dashboard_url_prefix'   => $this->settings->get( $key, 'client-dashboard' ),
-                    default                         => ''
-                };
+                $default_value  = $field['input']['value'] ?? '';
 
-                $value  = $this->sanitize_slug( $request->get( $key, $default ) ) ?: $default;
+                $value  = $this->sanitize_slug( $request->get( $key, $default_value ) ) ?: $default_value;
                 $this->settings->set( $key, $value );
         
             }
 
-            return ( new Response( 200, [], [
+            return Response::json([
                 'success' => true,
                 'data'    => [
                     'message' => 'Routes has been updated.',
                 ],
-            ] ) )->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
     }
@@ -164,21 +156,18 @@ class SettingsController {
                 ? sprintf( '%s email has been enabled.', $label )
                 : sprintf( '%s email has been disabled.', $label );
 
-            $response_data  = [
+
+            return Response::json([
                 'success' => true,
                 'data'    => [
                     'message'     => $message,
                     'template_key' => $template_key,
                     'is_enabled'  => $new_state,
                 ],
-            ];
-
-            return ( new Response( 200, [], $response_data ) )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
     }
@@ -224,17 +213,14 @@ class SettingsController {
             $html = EmailTemplateRegistry::preview( $template_key )
                 ->render_from_blocks( $blocks, $styles );
 
-            return ( new Response( 200 ) )
-                ->set_body( [
-                    'success' => true,
-                    'data'    => [ 'html' => $html ],
-                ] )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            return Response::json([
+                'success' => true,
+                'data'    => [ 'html' => $html ],
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' )
-                ->set_exception( $e );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
     }
 
@@ -289,20 +275,17 @@ class SettingsController {
 
             $label = EmailTemplateRegistry::entry( $template_key )['label'];
 
-            return ( new Response( 200 ) )
-                ->set_body( [
-                    'success' => true,
-                    'data'    => [
-                        'message'      => "{$label} template saved successfully.",
-                        'template_key' => $template_key,
-                    ],
-                ] )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            return Response::json([
+                'success' => true,
+                'data'    => [
+                    'message'      => "{$label} template saved successfully.",
+                    'template_key' => $template_key,
+                ],
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' )
-                ->set_exception( $e );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
     }
 
@@ -344,20 +327,17 @@ class SettingsController {
 
             $label = EmailTemplateRegistry::entry( $template_key )['label'];
 
-            return ( new Response() )
-                ->set_body( [
-                    'success' => true,
-                    'data'    => [
-                        'message'      => "{$label} template reset to default.",
-                        'template_key' => $template_key,
-                    ],
-                ] )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            return Response::json([
+                'success' => true,
+                'data'    => [
+                    'message'      => "{$label} template reset to default.",
+                    'template_key' => $template_key,
+                ],
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' )
-                ->set_exception( $e );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
     }
 }

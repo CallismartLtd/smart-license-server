@@ -3,12 +3,8 @@
  * General asset manager for CSS/JS.
  *
  * Provides the canonical asset registry, dependency resolution,
- * asset grouping, category-scoped registration, global JS constants,
+ * category-scoped registration, global JS constants,
  * and HTML rendering for registered assets.
- *
- * This class is a singleton: default CSS/JS assets are registered
- * exactly once, at construction time, the first time instance() is
- * called.
  *
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Assets
@@ -27,33 +23,28 @@ use SmartLicenseServer\Utils\Format;
 
 final class AssetsManager {
 
+	/**
+	 * Client dashboard asset category name.
+	 * 
+	 * Used to group assets that are loaded in the client dashboard.
+	 */
+	const CATEGORY_CLIENT_DASHBOARD = 'client_dashboard';
 
 	/**
-	 * Email editor asset group name.
+	 * Admin asset category name.
+	 * 
+	 * Used to register assets that are loaded in the admin dashboard.
 	 */
-	const GROUP_EMAIL_EDITOR = 'email_editor';
-
-
-	/**
-	 * Client dashboard asset group name.
-	 */
-	const GROUP_CLIENT_DASHBOARD = 'client_dashboard';
-
-
-	/**
-	 * Admin dashboard asset group name.
-	 */
-	const GROUP_ADMIN_DASHBOARD = 'admin_dashboard';
+	const CATEGORY_ADMIN_DASHBOARD = 'admin_dashboard';
 
 
 	/**
-	 * Global asset category name.
-	 *
-	 * The default category for any asset registered without an
-	 * explicit category. Global assets are meant to be loaded on
-	 * every screen (admin dashboard, client dashboard, etc.).
+	 * Uncategorized asset name.
+	 * 
+	 * The default registry category for assets not yet categorized or
+	 * meant to be loaded manually.
 	 */
-	const CATEGORY_GLOBAL = 'global';
+	const UNCATEGORIZED = 'uncategorized';
 
 	/**
 	 * Registered CSS assets.
@@ -143,9 +134,9 @@ final class AssetsManager {
 	 */
 	public function valid_categories() : array {
 		return [
-			self::CATEGORY_GLOBAL,
-			self::GROUP_ADMIN_DASHBOARD,
-			self::GROUP_CLIENT_DASHBOARD,
+			self::UNCATEGORIZED,
+			self::CATEGORY_ADMIN_DASHBOARD,
+			self::CATEGORY_CLIENT_DASHBOARD,
 		];
 	}
 
@@ -158,7 +149,7 @@ final class AssetsManager {
 	 * @param string[] $dependencies
 	 * @param string $version
 	 * @param string $media_type
-	 * @param string $category One of the valid_categories() values. Defaults to CATEGORY_GLOBAL.
+	 * @param string $category One of the valid_categories() values. Defaults to UNCATEGORIZED.
 	 * @return void
 	 *
 	 * @throws \InvalidArgumentException If the asset definition is invalid.
@@ -170,7 +161,7 @@ final class AssetsManager {
 		array $dependencies = [],
 		string $version = '',
 		string $media_type = 'all',
-		string $category = self::CATEGORY_GLOBAL
+		string $category = self::UNCATEGORIZED
 	) : void {
 
 		$this->validate_handle( $handle );
@@ -207,7 +198,7 @@ final class AssetsManager {
 	 * @param string[] $dependencies
 	 * @param string $version
 	 * @param bool $footer
-	 * @param string $category One of the valid_categories() values. Defaults to CATEGORY_GLOBAL.
+	 * @param string $category One of the valid_categories() values. Defaults to UNCATEGORIZED.
 	 * @return void
 	 *
 	 * @throws \InvalidArgumentException If the asset definition is invalid.
@@ -219,7 +210,7 @@ final class AssetsManager {
 		array $dependencies = [],
 		string $version = '',
 		bool $footer = true,
-		string $category = self::CATEGORY_GLOBAL
+		string $category = self::UNCATEGORIZED
 	) : void {
 
 		$this->validate_handle( $handle );
@@ -596,16 +587,26 @@ final class AssetsManager {
 
 	/**
 	 * Print every registered JavaScript asset belonging to a category,
-	 * with dependency resolution.
+	 * with dependency resolution and optionally filter by footer or header context.
 	 *
 	 * @param string $category
+	 * @param bool|null $footer
 	 * @return void
 	 *
 	 * @throws \InvalidArgumentException If the category is invalid.
 	 */
-	public function print_category_scripts( string $category ) : void {
+	public function print_category_scripts( string $category, ?bool $footer = null ) : void {
 
-		$handles = array_keys( $this->get_scripts_by_category( $category ) );
+		$scripts = $this->get_scripts_by_category( $category );
+
+		if ( null !== $footer ) {
+			$scripts	= array_filter(
+				$scripts,
+				fn ( $script ) : bool => $script['footer'] === $footer
+			);
+		}
+
+		$handles	= array_keys( $scripts );
 
 		if ( empty( $handles ) ) {
 			return;
@@ -632,35 +633,13 @@ final class AssetsManager {
 
 	/**
 	 * Print every registered global CSS asset (assets registered
-	 * without an explicit category, or explicitly under CATEGORY_GLOBAL).
+	 * without an explicit category, or explicitly under UNCATEGORIZED).
 	 *
 	 * @return void
 	 */
 	public function print_global_styles() : void {
-		$this->print_category_styles( self::CATEGORY_GLOBAL );
+		$this->print_category_styles( self::UNCATEGORIZED );
 	}
-
-
-	/**
-	 * Print every registered global JavaScript asset (assets registered
-	 * without an explicit category, or explicitly under CATEGORY_GLOBAL).
-	 *
-	 * @return void
-	 */
-	public function print_global_scripts() : void {
-		$this->print_category_scripts( self::CATEGORY_GLOBAL );
-	}
-
-
-	/**
-	 * Print every registered global CSS and JavaScript asset.
-	 *
-	 * @return void
-	 */
-	public function print_global() : void {
-		$this->print_category( self::CATEGORY_GLOBAL );
-	}
-
 
 	/**
 	 * Register a global JS constant (translations, server-side data,
@@ -793,86 +772,6 @@ final class AssetsManager {
 		return $html;
 	}
 
-
-	/**
-	 * Get the registered asset groups.
-	 *
-	 * Groups contain asset handles only. Asset definitions are resolved
-	 * from the canonical registries.
-	 *
-	 * @return array<string, array{
-	 *     styles: string[],
-	 *     scripts: string[]
-	 * }>
-	 */
-	public function groups() : array {
-		return [
-			self::GROUP_ADMIN_DASHBOARD => [
-				'styles' => [
-					'smliser-admin-styles',
-					'smliser-tabler-icons',
-					'smliser-styles',
-					'smliser-form-styles',
-					'smliser-modal',
-					'smliser-datetime-picker',
-					'select2',
-                    'smliser-cache-stats'
-				],
-				'scripts' => [
-					'smliser-admin-scripts',
-					'smliser-jquery',
-					'select2',
-					'smliser-datetime-picker',
-					'smliser-script',
-					'smliser-modal',
-					'smliser-tinymce',
-					'smliser-cache-stats'
-					
-
-				],
-			],
-
-			self::GROUP_CLIENT_DASHBOARD => [
-				'styles' => [
-					'smliser-tabler-icons',
-					'smliser-styles',
-					'smliser-form-styles',
-					'smliser-modal',
-					'smliser-client-dashboard',
-					'smliser-datetime-picker',
-					'select2',
-				],
-				'scripts' => [
-					'smliser-jquery',
-					'select2',
-					'smliser-datetime-picker',
-					'smliser-script',
-					'smliser-modal',
-					'smliser-client-dashboard',
-				],
-			],
-
-			self::GROUP_EMAIL_EDITOR => [
-				'styles' => [
-					'smliser-tabler-icons',
-					'smliser-styles',
-					'smliser-form-styles',
-					'smliser-modal',
-					'smliser-datetime-picker',
-					'smliser-email-editor',
-				],
-				'scripts' => [
-					'smliser-jquery',
-					'select2',
-					'smliser-datetime-picker',
-					'smliser-script',
-					'smliser-modal',
-					'smliser-email-editor',
-				],
-			],
-		];
-	}
-
 	/**
 	 * Return the asset definitions required by the standalone email editor page.
 	 *
@@ -922,53 +821,6 @@ final class AssetsManager {
 	}
 
 	/**
-	 * Get an asset group with resolved dependencies.
-	 *
-	 * @param string $group
-	 * @return array{
-	 *     styles: string[],
-	 *     scripts: string[]
-	 * }
-	 */
-	public function get_group( string $group ) : array {
-
-		$groups = $this->groups();
-
-		if ( ! isset( $groups[ $group ] ) ) {
-			return [
-				'styles'  => [],
-				'scripts' => [],
-			];
-		}
-
-		return [
-			'styles'  => $this->resolve_styles( $groups[ $group ]['styles'] ),
-			'scripts' => $this->resolve_scripts( $groups[ $group ]['scripts'] ),
-		];
-	}
-
-
-	/**
-	 * Print an asset group.
-	 *
-	 * @param string $group
-	 * @return void
-	 */
-	public function print_group( string $group ) : void {
-
-		$assets = $this->get_group( $group );
-
-		if ( ! empty( $assets['styles'] ) ) {
-			$this->print_styles( ...$assets['styles'] );
-		}
-
-		if ( ! empty( $assets['scripts'] ) ) {
-			$this->print_scripts( ...$assets['scripts'] );
-		}
-	}
-
-
-	/**
 	 * Register the default CSS assets.
 	 *
 	 * Called once, from the constructor. Not intended to be called
@@ -985,7 +837,8 @@ final class AssetsManager {
 				$style['url'],
 				$style['dependencies'],
 				$style['version'],
-				$style['media-type']
+				$style['media-type'],
+				$style['category'] ?? self::UNCATEGORIZED
 			);
 		}
 	}
@@ -1036,7 +889,8 @@ final class AssetsManager {
 				$script['url'],
 				$script['dependencies'],
 				$script['version'],
-				$script['footer']
+				$script['footer'],
+				$script['category'] ?? self::UNCATEGORIZED
 			);
 		}
 	}

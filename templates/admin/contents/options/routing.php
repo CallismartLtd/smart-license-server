@@ -23,7 +23,7 @@ $menu_args = $page_handler->get_menu_args( $request ); ?>
         </div>
     <?php endif; ?>
 
-    <form class="smliser-options-form" action="">
+    <form class="smliser-options-form" data-slug="route-url-prefixes">
         <div class="notice notice-warning">
             <p>
                 <i class="ti ti-alert-hexagon-filled"></i>

@@ -97,10 +97,10 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                 <?php if ( $supports_flush_expired ) : ?>
                 <button type="button"
                         class="smlcd-btn smlcd-btn--ghost smliser-action-button"
-                        data-args='<?php echo escAttr( smliser_safe_json_encode( [
-                            'slug'      => 'options-form/cache-flush/',
+                        data-args='<?php echo escAttr( smliser_safe_json_encode([
+                            'slug'      => 'options-form/cache-flush-stale/',
                             'method'    => 'POST'
-                        ] ) ); ?>'>
+                        ])); ?>'>
                     <i class="ti ti-clock-off"></i> Flush Stale
                 </button>
                 <?php endif; ?>
@@ -108,9 +108,10 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                 <button type="button"
                         class="smlcd-btn smlcd-btn--danger smliser-action-button smlcd-confirm-btn"
                         data-confirm="This will clear ALL cached data for <?php echo escAttr( $adapter_name ); ?>. Are you sure?"
-                        data-args='<?php echo escAttr( smliser_safe_json_encode( [
-                            'action'  => 'smliser_cache_clear_all',
-                        ] ) ); ?>'>
+                        data-args='<?php echo escAttr( smliser_safe_json_encode([
+                            'slug'      => 'options-form/cache-flush/',
+                            'method'    => 'POST'
+                        ]) ); ?>'>
                     <i class="ti ti-trash"></i> Flush Cache
                 </button>
 

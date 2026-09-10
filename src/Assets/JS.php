@@ -22,7 +22,8 @@ final class JS {
      *     url: \SmartLicenseServer\Core\URL,
      *     dependencies: string[],
      *     version: string,
-     *     footer: bool
+     *     footer: bool,
+     *     category?: string
      * }>
      */
     public function all( string $suffix = '' ) : array {
@@ -37,10 +38,11 @@ final class JS {
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/dashboard%s.js', $suffix ) ),
                 'dependencies'  => [
                     'smliser-script', 'smliser-apps-uploader', 'smliser-chart',
-                    'smliser-role-builder', 'smliser-admin-repository'
+                    'smliser-role-builder', 'smliser-admin-repository', 'smliser-cache-stats'
                 ],
                 'version'       => SMLISER_VER,
-                'footer'        => true
+                'footer'        => true,
+                'category'      => AssetsManager::CATEGORY_ADMIN_DASHBOARD
             ],
             'smliser-script' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/main-script%s.js', $suffix ) ),
@@ -128,7 +130,8 @@ final class JS {
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/client-dashboard%s.js', $suffix ) ),
                 'dependencies'  => ['smliser-script', 'smliser-modal'],
                 'version'       => SMLISER_VER,
-                'footer'        => true
+                'footer'        => true,
+                'category'      => AssetsManager::CATEGORY_CLIENT_DASHBOARD
             ],
 
             'smliser-client-auth' => [

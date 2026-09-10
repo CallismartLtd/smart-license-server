@@ -4,14 +4,14 @@
  *
  * Closes the tags opened in header.php. Include this last.
  *
- * @package Dashboard
+ * @var \SmartLicenseServer\Assets\AssetsManager $assets_manager
  */
+
+use SmartLicenseServer\Assets\AssetsManager;
+
 ?>
 
-	<!-- ==========================================================
-	     SCRIPTS (footer)
-	     Add any <script> tags that should load after body content below.
-	========================================================== -->
+	<?php $assets_manager->print_category_scripts( AssetsManager::CATEGORY_ADMIN_DASHBOARD, true ); ?>
     </div>
 </body>
 </html>

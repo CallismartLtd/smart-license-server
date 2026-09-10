@@ -25,7 +25,8 @@ final class CSS {
      *     url: \SmartLicenseServer\Core\URL,
      *     dependencies: string[],
      *     version: string,
-     *     media-type: string
+     *     media-type: string,
+     *     category?: string
      * }>
      */
     public function all( string $suffix = '' ) : array {
@@ -36,14 +37,21 @@ final class CSS {
                 'version'       => SMLISER_VER,
                 'media-type'    => 'all'
             ],
+            'view-transition' => [
+                'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/view-transition%s.css', $suffix ) ),
+                'dependencies'  => [],
+                'version'       => SMLISER_VER,
+                'media-type'    => 'all'
+            ],
             'smliser-admin-styles'  => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/dashboard%s.css', $suffix ) ),
                 'dependencies'  => [
-                    'smliser-variables', 'smliser-styles', 'smliser-apps-uploader',
-                    'smliser-role-builder'
+                    'smliser-variables', 'smliser-tabler-icons', 'smliser-styles', 'smliser-apps-uploader',
+                    'smliser-role-builder', 'smliser-cache-stats'
                 ],
-                'version'   => SMLISER_VER,
-                'media-type' => 'all'
+                'version'       => SMLISER_VER,
+                'media-type'    => 'all',
+                'category'      => AssetsManager::CATEGORY_ADMIN_DASHBOARD
             ],
             'smliser-styles'    => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/smliser-styles%s.css', $suffix ) ),
@@ -66,9 +74,10 @@ final class CSS {
             ],
             'smliser-form-styles' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/smliser-forms%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-variables'],
-                'version'   => SMLISER_VER,
-                'media-type' => 'all'
+                'dependencies'  => ['smliser-variables', 'select2'],
+                'version'       => SMLISER_VER,
+                'media-type'    => 'all',
+                'category'      => AssetsManager::CATEGORY_ADMIN_DASHBOARD
             ],
             'select2' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/select2%s.css', $suffix ) ),

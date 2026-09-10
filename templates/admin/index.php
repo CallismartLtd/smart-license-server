@@ -14,6 +14,7 @@
  */
 
 use SmartLicenseServer\Admin\Page\Shell;
+use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 
 defined( 'SMLISER_ROOT' ) || exit;
@@ -62,6 +63,7 @@ if ( $submenu_slug ) {
 }
 
 if ( $request->isEmpty( 'noheader' ) ) {
+
     /*
     |--------------------------------------------------
     | 1. HEADER
@@ -75,7 +77,7 @@ if ( $request->isEmpty( 'noheader' ) ) {
         'theme'             => $theme,
         'collapsed'         => $collapsed,
         'registry'          => $registry,
-        'assets_manager'    => $assets_manager
+        'assets_manager'    => $assets_manager,
     ]);
 
     /*
@@ -125,4 +127,6 @@ $this->render( Shell::CONTENT_TEMPLATE, [
 |    Closes layout, prints scripts, closes HTML
 |--------------------------------------------------
 */
-$this->render( Shell::FOOTER_TEMPLATE, [] );
+$this->render( Shell::FOOTER_TEMPLATE, [
+    'assets_manager' => $assets_manager
+] );

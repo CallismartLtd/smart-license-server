@@ -57,9 +57,7 @@
     /* ── 1. Refresh ───────────────────────────────────────────────────────── */
 
     const refreshBtn = wrap.querySelector( '.smlcd-refresh-btn' );
-    
     if ( refreshBtn ) {
-        SmliserModal.alert( 'we have the button' )
         refreshBtn.addEventListener( 'click', async () => {
             refreshBtn.classList.add( 'smlcd-spinning' );
             refreshBtn.disabled = true;
@@ -82,7 +80,6 @@
      */
     async function refreshStats() {
         const cards = document.getElementById( 'smlcd-stat-cards' );
-        await SmliserModal.alert( 'what' )
         if ( ! cards ) return;
 
         cards.classList.add( 'smlcd-cards--loading' );
