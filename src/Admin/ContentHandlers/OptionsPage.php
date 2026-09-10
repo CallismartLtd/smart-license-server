@@ -12,6 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
+use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Cache\CacheProviderIcons;
@@ -37,7 +38,8 @@ class OptionsPage implements AdminPageInterface {
         protected Settings $settings,
         protected URLManager $urlmanager,
         protected EmailProviderIcons $email_icons_provider,
-        protected CacheProviderIcons $cache_provider_icons
+        protected CacheProviderIcons $cache_provider_icons,
+        protected AssetsManager $assets_manager
     ) {}
 
     /*
@@ -130,7 +132,7 @@ class OptionsPage implements AdminPageInterface {
             return;
         }
 
-        if ( $request->get( 'section' ) === 'templates' ) {
+        if ( 'templates' ===  $request->get( 'section' ) ) {
             self::email_template_options( $request );
             return;
         }
@@ -180,18 +182,19 @@ class OptionsPage implements AdminPageInterface {
         $key   = $request->get( 'template' );
         $entry = EmailTemplateRegistry::entry( $key );
 
-        if ( ! $entry ) {
-            wp_safe_redirect( remove_query_arg( 'template' ) );
-            exit;
-        }
+        // if ( ! $entry ) {
+        //     wp_safe_redirect( remove_query_arg( 'template' ) );
+        //     exit;
+        // }
 
         $preview      = EmailTemplateRegistry::preview( $key );
         $preview_html = $preview?->render();
         $current_url  = smliser_get_current_url()->remove_query_param( 'message' );
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
+        $assets_manager = $this->assets_manager;
         $vars           = compact( 'entry', 'current_url', 'preview', 'preview_html', 'page_handler',
-            'urlmanager'
+            'urlmanager', 'assets_manager'
         );
 
         $this->locator->render( 'admin.contents.options.email.editor', $vars );
@@ -383,7 +386,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'text',
                     'name'  => 'repository_name',
-                    'value' => $settings->get( 'repository_name', SMLISER_APP_NAME, true ),
+                    'value' => $settings->get( 'repository_name', SMLISER_APP_NAME ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -397,7 +400,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'text',
                     'name'  => 'admin_email',
-                    'value' => $settings->get( 'admin_email', '', true ),
+                    'value' => $settings->get( 'admin_email', '' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -411,7 +414,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'text',
                     'name'  => 'hosting_email',
-                    'value' => $settings->get( 'hosting_email', '', true ),
+                    'value' => $settings->get( 'hosting_email', '' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -425,7 +428,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'text',
                     'name'  => 'support_email',
-                    'value' => $settings->get( 'support_email', '', true ),
+                    'value' => $settings->get( 'support_email', '' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -439,7 +442,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'text',
                     'name'  => 'license_key_prefix',
-                    'value' => $settings->get( 'license_key_prefix', 'SMLISER', true ),
+                    'value' => $settings->get( 'license_key_prefix', 'SMLISER' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -453,7 +456,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'number',
                     'name'  => 'default_license_duration',
-                    'value' => $settings->get( 'default_license_duration', 365, true ),
+                    'value' => $settings->get( 'default_license_duration', 365 ),
                     'attr'  => [ 'min' => 1 ],
                 ],
             ],
@@ -464,7 +467,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'number',
                     'name'  => 'default_activation_limit',
-                    'value' => $settings->get( 'default_activation_limit', 1, true ),
+                    'value' => $settings->get( 'default_activation_limit', 1 ),
                     'attr'  => [ 'min' => 1 ],
                 ],
             ],
@@ -475,7 +478,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'number',
                     'name'  => 'api_rate_limit',
-                    'value' => $settings->get( 'api_rate_limit', 60, true ),
+                    'value' => $settings->get( 'api_rate_limit', 60 ),
                     'attr'  => [ 'min' => 1 ],
                 ],
             ],
@@ -486,7 +489,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'number',
                     'name'  => 'log_retention_days',
-                    'value' => $settings->get( 'log_retention_days', 30, true ),
+                    'value' => $settings->get( 'log_retention_days', 30 ),
                     'attr'  => [ 'min' => 1 ],
                 ],
             ],
@@ -497,7 +500,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'    => 'select',
                     'name'    => 'environment_mode',
-                    'value'   => $settings->get( 'environment_mode', 'production', true ),
+                    'value'   => $settings->get( 'environment_mode', 'production' ),
                     'options' => [
                         'production'  => 'Production',
                         'staging'     => 'Staging',
@@ -512,7 +515,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'text',
                     'name'  => 'terms_url',
-                    'value' => $settings->get( 'terms_url', '', true ),
+                    'value' => $settings->get( 'terms_url', '' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -525,7 +528,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'text',
                     'name'  => 'privacy_policy_url',
-                    'value' => $settings->get( 'privacy_policy_url', '', true ),
+                    'value' => $settings->get( 'privacy_policy_url', '' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',

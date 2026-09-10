@@ -97,6 +97,17 @@ class SMTPProvider implements EmailProviderInterface {
      */
     protected array $extensions = [];
 
+    /**
+     * Class constructor.
+     * 
+     * @param string $default_sender_name
+     * @param string $default_sender_email
+     */
+    public function __construct(
+        protected string $default_sender_name,
+        protected string $default_sender_email
+    ) {}
+
     /*
     |----------------------
     | INTERFACE — IDENTITY
@@ -156,28 +167,32 @@ class SMTPProvider implements EmailProviderInterface {
                 'description' => 'SMTP password. Leave blank for open relay.',
             ],
             'from_email' => [
-                'type'        => 'text',
-                'label'       => 'From Email',
-                'required'    => true,
-                'description' => 'Default sender email address.',
+                'type'          => 'text',
+                'label'         => 'From Email',
+                'required'      => false,
+                'description'   => 'Sender email address. Leave blank to use the global from email.',
+                'default'       => ''
             ],
             'from_name' => [
-                'type'        => 'text',
-                'label'       => 'From Name',
-                'required'    => false,
-                'description' => 'Default sender display name.',
+                'type'          => 'text',
+                'label'         => 'From Name',
+                'required'      => false,
+                'description'   => 'Sender display name. Leave blank to use the global from name.',
+                'default'       => ''
             ],
             'timeout' => [
-                'type'        => 'number',
-                'label'       => 'Connection Timeout (seconds)',
-                'required'    => false,
-                'description' => 'Socket connection timeout. Default: ' . static::DEFAULT_TIMEOUT . 's.',
+                'type'          => 'number',
+                'label'         => 'Connection Timeout (seconds)',
+                'required'      => false,
+                'description'   => 'Socket connection timeout. Default: ' . static::DEFAULT_TIMEOUT . 's.',
+                'default'       => static::DEFAULT_TIMEOUT
             ],
             'helo_hostname' => [
-                'type'        => 'text',
-                'label'       => 'EHLO Hostname',
-                'required'    => false,
-                'description' => 'Hostname sent in the EHLO command. Must be an FQDN or IP literal like [1.2.3.4]. Leave blank to auto-detect.',
+                'type'          => 'text',
+                'label'         => 'EHLO Hostname',
+                'required'      => false,
+                'description'   => 'Hostname sent in the EHLO command. Must be an FQDN or IP literal like [1.2.3.4]. Leave blank to auto-detect.',
+                'default'       => ''
             ],
         ];
     }
@@ -197,7 +212,7 @@ class SMTPProvider implements EmailProviderInterface {
     public function set_settings( array $settings ): void {
         $host       = trim( $settings['host']       ?? '' );
         $port       = (int) ( $settings['port']     ?? static::DEFAULT_PORT );
-        $from_email = trim( $settings['from_email'] ?? '' );
+        $from_email = trim( $settings['from_email'] ?? '' ) ?: $this->default_sender_email;
         $encryption = $settings['encryption']       ?? static::ENCRYPTION_NONE;
 
         if ( empty( $host ) ) {
@@ -582,9 +597,8 @@ class SMTPProvider implements EmailProviderInterface {
      */
     protected function transmit( EmailMessage $message ): string {
         $from       = $message->get( 'from' ) ?? [];
-        $collection = smliser_emailProvidersRegistry();
-        $from_email = $from['email'] ?? $this->settings['from_email'] ?? $collection->get_default_sender_email();
-        $from_name  = $from['name']  ?? $this->settings['from_name']  ?? $collection->get_default_sender_name();
+        $from_email = (string) ( $from['email'] ?? $this->settings['from_email'] ) ?: $this->default_sender_email;
+        $from_name  = (string) ( $from['name']  ?? $this->settings['from_name'] ) ?: $this->default_sender_name;
 
         $this->validate_envelope_sender( $from_email );
 
@@ -625,7 +639,7 @@ class SMTPProvider implements EmailProviderInterface {
     protected function validate_envelope_sender( string $from_email ): void {
         if ( empty( $from_email ) || ! filter_var( $from_email, FILTER_VALIDATE_EMAIL ) ) {
             throw new InvalidArgumentException(
-                "SMTPProvider: invalid envelope sender address '{$from_email}'."
+                "SMTPProvider: invalid envelope sender address \"{$from_email}\"."
             );
         }
     }

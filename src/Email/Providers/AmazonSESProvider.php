@@ -20,6 +20,7 @@ use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use Callismart\Http\AwsSignatureV4;
+use Callismart\Http\HttpClient;
 use Callismart\Http\HttpRequest;
 use Callismart\Http\HttpResponse;
 use InvalidArgumentException;
@@ -58,6 +59,12 @@ class AmazonSESProvider extends AbstractRestEmailProvider {
         'me-south-1',
         'af-south-1',
     ];
+
+    public function __construct(
+        protected string $default_sender_name,
+        protected string $default_sender_email,
+        protected HttpClient $http_client,
+    ) {}
 
     /*
     |----------------------
@@ -101,7 +108,7 @@ class AmazonSESProvider extends AbstractRestEmailProvider {
                 'options'       => \array_combine(
                     static::SUPPORTED_REGIONS, 
                     array_map( 
-                        static fn ( $v) => ucwords( \str_replace( '-', ' ', $v ) ), 
+                        static fn ( $v ) => ucwords( \str_replace( '-', ' ', $v ) ), 
                         static::SUPPORTED_REGIONS
                     ) 
                 )
@@ -109,14 +116,14 @@ class AmazonSESProvider extends AbstractRestEmailProvider {
             'from_email' => [
                 'type'        => 'text',
                 'label'       => 'From Email',
-                'required'    => true,
-                'description' => 'Default sender email address. Must be verified in Amazon SES.',
+                'required'    => false,
+                'description' => 'Default sender email address(must be verified in Amazon SES). Leave blank to use the global from email.',
             ],
             'from_name' => [
                 'type'        => 'text',
                 'label'       => 'From Name',
                 'required'    => false,
-                'description' => 'Default sender display name.',
+                'description' => 'Sender display name. Leave blank to use the global from name',
             ],
             'configuration_set' => [
                 'type'        => 'text',
@@ -143,7 +150,7 @@ class AmazonSESProvider extends AbstractRestEmailProvider {
         $access_key = trim( $settings['access_key'] ?? '' );
         $secret_key = trim( $settings['secret_key'] ?? '' );
         $region     = trim( $settings['region']     ?? '' );
-        $from_email = trim( $settings['from_email'] ?? '' );
+        $from_email = trim( $settings['from_email'] ?? '' ) ?: $this->default_sender_email;
 
         if ( empty( $access_key ) ) {
             throw new InvalidArgumentException( 'AmazonSESProvider: "access_key" is required.' );

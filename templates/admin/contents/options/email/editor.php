@@ -12,12 +12,11 @@
  *   $preview_html — string  rendered HTML of the system default template
  * @var \SmartLicenseServer\Core\URL $current_url
  * @var string $preview_html
- *
+ * @var \SmartLicenseServer\Assets\AssetsManager $assets_manager
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  * @package SmartLicenseServer\templates
  * @since   0.2.0
  */
-
-use SmartLicenseServer\Assets\AssetsManager;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
@@ -27,7 +26,7 @@ $is_enabled = $entry['is_enabled'];
 $has_custom = $entry['has_custom'];
 $back_url   = $current_url->remove_query_param( 'template', 'noheader' );
 
-$assets = AssetsManager::instance()->get_email_editor_assets();
+$assets = $assets_manager->get_email_editor_assets();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -63,8 +62,7 @@ $assets = AssetsManager::instance()->get_email_editor_assets();
             hasCustom:  <?php echo smliser_safe_json_encode( $has_custom ); ?>,
             backURL:    <?php echo smliser_safe_json_encode( $back_url->url() ); ?>,
             previewHTML:<?php echo smliser_safe_json_encode( $preview_html ); ?>,
-            ajaxURL:    <?php echo smliser_safe_json_encode( adminUrl( 'admin-ajax.php' ) ); ?>,
-            nonce:      <?php echo smliser_safe_json_encode( wp_create_nonce( 'smliser_nonce' ) ); ?>,
+            ajaxURL:    <?php echo smliser_safe_json_encode( $urlmanager->admin_url() ); ?>,
         };
     </script>
 </head>

@@ -826,6 +826,7 @@ final class AssetsManager {
 					'smliser-script',
 					'smliser-modal',
 					'smliser-tinymce',
+					'smliser-cache-stats'
 					
 
 				],

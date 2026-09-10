@@ -691,16 +691,17 @@ async function smliserActionBtns( e ) {
     if ( ! button ) return;
 
     /** * @typedef {Object} SmliserButtonArgs
-     * @property {string} action - The AJAX action name.
-     * @property {string} [url] - Optional custom URL.
+     * @property {string} slug              - The route slug.
+     * @property {string|undefined} method  - Optional request method.
+     * @property {string|undefined} [url]   - Optional custom URL.
      * @property {Object.<string, any>} [payLoad] - Optional data payload.
      */
 
     /** @type {SmliserButtonArgs|null} */
     const args = StringUtils.JSONparse( button.dataset.args );    
 
-    if ( ! args || ! args.action ) {
-        console.warn( 'Action button missing required data-args action.' );
+    if ( ! args || ! args.slug ) {
+        await SmliserModal.error( 'Action button missing required data-args slug.' );
         return;
     }
 
@@ -710,17 +711,23 @@ async function smliserActionBtns( e ) {
     button.innerHTML = originalText + '<span class="ti ti-loader rotate"></span>';
 
     try {
-        const baseUrl = args.url || smliser_var.ajaxURL;
-        const url = new URL( baseUrl, window.location.origin );
+        const baseUrl   = args.url || smliser_var.ajaxURL;
+        const url       = new URL( baseUrl, window.location.origin );
+        url.pathname    += `/${StringUtils.trim( args.slug, '/' )}/`;
         
-        url.searchParams.set( 'action', args.action );
         url.searchParams.set( 'security', smliser_var.csrf_token );
 
-        // Determine method and body based on payLoad presence
+        // Determine method and body based on payLoad presence.
         const hasPayload = args.payLoad && Object.keys(args.payLoad).length > 0;
+
+        let method  = hasPayload ? 'POST' : 'GET';
+
+        if ( args.method ) {
+            method  = args.method;
+        }        
         
         const result = await smliserFetchJSON( url, {
-            method: hasPayload ? 'POST' : 'GET',
+            method: method,
             ...( hasPayload && { body: JSON.stringify( args.payLoad ) } )
         });
 
@@ -842,7 +849,16 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     const testCacheAdapterBtn   = document.querySelector( '.test-cache-btn' );
     const resetCacheAdapterBtn  = document.querySelector( '.reset-cache-btn' );
 
-    jQuery( '.smliser-auto-select2 select' ).select2( { width: '100%' } );
+    const $adminPage = $( '.smliser-admin-page' ).css( 'position', 'relative' );
+
+    $( '.smliser-auto-select2 select' ).each( function() {
+        const $select = $( this );
+
+        $select.select2({
+            width: '100%',
+            dropdownParent: $adminPage.length ? $adminPage : $( document.body )
+        });
+    });
 
     licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
 
@@ -2646,10 +2662,11 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
         const toggleEmailTemplate = ( tempKey, currentState, btn ) => {
             const url      = new URL( smliser_var.ajaxURL );
+
+            url.pathname    += '/options-form/email-template-status-toggle/';
             const payLoad  = new FormData;
             const enabling = currentState === '0'; // if currently disabled, we are enabling
 
-            payLoad.set( 'action',       'smliser_toggle_email_template' );
             payLoad.set( 'security',     smliser_var.csrf_token );
             payLoad.set( 'template_key', tempKey );
 
@@ -2701,7 +2718,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
             /** @type {NodeListOf<HTMLInputElement>} */
             const requiredFields    = form.querySelectorAll( 'input[required]' );
-            let hasError          = false;
+            let hasError            = false;
             requiredFields.forEach( input => {
                 if ( ! input.value.trim().length ) {
                     input.setCustomValidity( `${input.getAttribute( 'field_name' )} is required.` );
@@ -2717,11 +2734,13 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             testCacheAdapterBtn.innerHTML   = '<i class="ti ti-loader rotate">';
             testCacheAdapterBtn.disabled    = true;
             const payLoad   = new FormData( form );
-            payLoad.set( 'action', 'smliser_test_cache_adapter_settings' );
             payLoad.set( 'security', smliser_var.csrf_token );
 
             try {
-                const testResult    = await smliserFetchJSON( smliser_var.ajaxURL, {
+                const url           = new URL( smliser_var.ajaxURL );
+
+                url.pathname        += '/options-form/cache-test-adapter/';
+                const testResult    = await smliserFetchJSON( url, {
                     method: 'POST',
                     credentials: 'same-origin',
                     body: payLoad
@@ -2755,12 +2774,13 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             resetCacheAdapterBtn.disabled    = true;
 
             const payLoad   = new FormData();
-            payLoad.set( 'action', 'smliser_reset_cache_adapter_settings' );
             payLoad.set( 'security', smliser_var.csrf_token );
             payLoad.set( 'adapter_id', queryParam.get( 'adapter' ) );
 
             try {
-                const resetResult    = await smliserFetchJSON( smliser_var.ajaxURL, {
+                const url           = new URL( smliser_var.ajaxURL );
+                url.pathname        += '/options-form/cache-reset-adapter/';
+                const resetResult   = await smliserFetchJSON( url, {
                     method: 'POST',
                     credentials: 'same-origin',
                     body: payLoad

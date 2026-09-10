@@ -13,6 +13,7 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Email\Templates\System\TestEmail;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
@@ -24,8 +25,11 @@ class RequestController {
 
     public function __construct(
         protected EmailProvidersRegistry $provider_registry,
+        Guard $guard
 
-    ) {}
+    ) {
+        $this->guard = $guard;
+    }
 
     /**
      * Handles request to save default email options.
@@ -37,9 +41,8 @@ class RequestController {
         try {
             static::is_system_admin();
 
-            $registry           = $this->provider_registry;
-            $default_mailer_key = EmailProvidersRegistry::DEFAULT_PROVIDER_KEY;
-            $provider_id        = static::sanitize_text( $request->get( $default_mailer_key ) );
+            $registry       = $this->provider_registry;
+            $provider_id    = $request->get( EmailProvidersRegistry::DEFAULT_PROVIDER_KEY );
 
             if ( ! $provider_id ) {
                 throw new RequestException(
@@ -55,8 +58,8 @@ class RequestController {
                 );
             }
 
-            $sender_name    = static::sanitize_text( $request->get( EmailProvidersRegistry::DEFAULT_SENDER_NAME_KEY, '' ) );
-            $sender_email   = static::sanitize_email( $request->get( EmailProvidersRegistry::DEFAULT_SENDER_EMAIL_KEY, '' ) );
+            $sender_name    = $request->get( EmailProvidersRegistry::DEFAULT_SENDER_NAME_KEY, '' );
+            $sender_email   = $request->get( EmailProvidersRegistry::DEFAULT_SENDER_EMAIL_KEY, '' );
 
             if ( empty( $sender_name ) ) {
                 throw new RequestException(
@@ -109,8 +112,8 @@ class RequestController {
         try {
             static::is_system_admin();
 
-            $registry  = $this->provider_registry;
-            $provider_id = static::sanitize_text( $request->get( 'provider_id' ) );
+            $registry       = $this->provider_registry;
+            $provider_id    = $request->get( 'provider_id' );
 
             if ( ! $provider_id ) {
                 throw new RequestException(
@@ -128,12 +131,12 @@ class RequestController {
                 );
             }
 
-            $schema          = $provider::get_settings_schema();
-            $saved_settings  = [];
-            $missing_fields  = [];
+            $schema         = $provider::get_settings_schema();
+            $posted_schema  = [];
+            $missing_fields = [];
 
             foreach ( $schema as $key => $field ) {
-                $raw_value = $request->get( $key, null );
+                $raw_value = $request->get( $key, null, false );
 
                 // Field was not submitted at all.
                 if ( $raw_value === null ) {
@@ -146,12 +149,12 @@ class RequestController {
                 // Password field submitted with the masked placeholder —
                 // preserve the previously saved value rather than overwriting.
                 if ( 'password' === $field['type'] && '' === $raw_value ) {
-                    $saved_settings[ $key ] = EmailProvidersRegistry::get_option( $provider_id, $key );
+                    $posted_schema[ $key ] = EmailProvidersRegistry::get_option( $provider_id, $key );
                     continue;
                 }
 
                 // Sanitize by field type.
-                $saved_settings[ $key ] = match ( $field['type'] ) {
+                $posted_schema[ $key ] = match ( $field['type'] ) {
                     'password' => $raw_value, // Password is untouched.
                     'number'   => static::sanitize_int( $raw_value ),
                     'select'   => static::sanitize_text( $raw_value ),
@@ -159,7 +162,7 @@ class RequestController {
                 };
 
                 // Validate required fields are non-empty after sanitization.
-                if ( ! empty( $field['required'] ) && $saved_settings[ $key ] === '' ) {
+                if ( ! empty( $field['required'] ) && $posted_schema[ $key ] === '' ) {
                     $missing_fields[] = $field['label'] ?? $key;
                 }
             }
@@ -178,8 +181,8 @@ class RequestController {
             // This catches provider-specific rules (e.g. invalid API key format,
             // unsupported region) before anything is written to storage.
             try {
-                $cloned = new $provider;
-                $cloned->set_settings( $saved_settings );
+                $cloned = $registry->get_provider( $provider_id, false );
+                $cloned->set_settings( $posted_schema );
             } catch ( \InvalidArgumentException $e ) {
                 throw new RequestException(
                     'validation_failed',
@@ -187,7 +190,7 @@ class RequestController {
                 );
             }
 
-            EmailProvidersRegistry::update_provider_settings( $provider_id, $saved_settings );
+            EmailProvidersRegistry::update_provider_settings( $provider_id, $posted_schema );
 
             // Optionally promote this provider to the system default.
             if ( (bool) $request->get( 'set_as_default', false ) ) {
@@ -223,9 +226,9 @@ class RequestController {
         try {
             static::is_system_admin();
 
-            $registry  = $this->provider_registry;
-            $provider_id = static::sanitize_text( $request->get( 'provider_id' ) );
-            $recipient   = static::sanitize_email( $request->get( 'test_email' ) );
+            $registry       = $this->provider_registry;
+            $provider_id    = $request->get( 'provider_id' );
+            $recipient      = static::sanitize_email( $request->get( 'test_email' ) );
 
             if ( ! $provider_id ) {
                 throw new RequestException(

@@ -17,7 +17,7 @@
  */
 
 use SmartLicenseServer\Assets\AssetsManager;
-
+dd( $assets_manager->get_scripts_by_category( AssetsManager::GROUP_ADMIN_DASHBOARD ) );
 ?>
 <!DOCTYPE html>
 <html lang="en"<?php echo $theme ? ' data-theme="' . escAttr( $theme ) . '"' : ''; ?>>
@@ -28,7 +28,7 @@ use SmartLicenseServer\Assets\AssetsManager;
 	<title><?php echo htmlspecialchars( $title ?? 'Dashboard', ENT_QUOTES, 'UTF-8' ); ?></title>
 
 	<?php $assets_manager->print_js_constants(); ?>
-	<?php $assets_manager->print_group( AssetsManager::GROUP_ADMIN_DASHBOARD ); ?>
+	<?php $assets_manager->print_styles( ...$assets_manager->get_group( AssetsManager::GROUP_ADMIN_DASHBOARD )['styles'] ); ?>
 
 </head>
 <body>

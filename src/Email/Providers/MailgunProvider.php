@@ -14,6 +14,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Email\Providers;
 
+use Callismart\Http\HttpClient;
 use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
@@ -33,6 +34,12 @@ class MailgunProvider extends AbstractRestEmailProvider {
      */
     protected const API_BASE_US = 'https://api.mailgun.net/v3';
     protected const API_BASE_EU = 'https://api.eu.mailgun.net/v3';
+
+    public function __construct(
+        protected string $default_sender_name,
+        protected string $default_sender_email,
+        protected HttpClient $http_client,
+    ) {}
 
     /*
     |----------------------
@@ -81,14 +88,14 @@ class MailgunProvider extends AbstractRestEmailProvider {
             'from_email' => [
                 'type'        => 'text',
                 'label'       => 'From Email',
-                'required'    => true,
-                'description' => 'Default sender email address.',
+                'required'    => false,
+                'description' => 'Sender email address. Leave blank to use the global from email.',
             ],
             'from_name' => [
                 'type'        => 'text',
                 'label'       => 'From Name',
                 'required'    => false,
-                'description' => 'Default sender display name.',
+                'description' => 'Sender display name. Leave blank to use the global from name.',
             ],
         ];
     }
@@ -108,7 +115,7 @@ class MailgunProvider extends AbstractRestEmailProvider {
     public function set_settings( array $settings ): void {
         $api_key    = trim( $settings['api_key']    ?? '' );
         $domain     = trim( $settings['domain']     ?? '' );
-        $from_email = trim( $settings['from_email'] ?? '' );
+        $from_email = trim( $settings['from_email'] ?? '' ) ?: $this->default_sender_email;
         $region     = trim( $settings['region']     ?? 'us' );
 
         if ( empty( $api_key ) ) {

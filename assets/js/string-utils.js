@@ -1268,6 +1268,75 @@ const StringUtils = {
 		}
 	},
 
+	/**
+	 * Strip whitespace (or other characters) from the beginning and end of a string.
+	 * Mimics PHP's trim() function.
+	 *
+	 * @param {string} str The string that will be trimmed.
+	 * @param {string} [charlist] Optional list of characters to strip.
+	 * @return {string} The trimmed string.
+	 */
+	trim( str, charlist ) {
+		if ( typeof str !== 'string' ) {
+			return '';
+		}
+
+		if ( ! charlist ) {
+			return str.trim();
+		}
+
+		const mask = charlist.replace( /[[\]{}()*+?.\\^$|]/g, '\\$&' );
+		const pattern = new RegExp( '^[' + mask + ']+|[' + mask + ']+$', 'g' );
+
+		return str.replace( pattern, '' );
+	},
+
+	/**
+	 * Strip whitespace (or other characters) from the beginning of a string.
+	 * Mimics PHP's ltrim() function.
+	 *
+	 * @param {string} str The string that will be trimmed.
+	 * @param {string} [charlist] Optional list of characters to strip.
+	 * @return {string} The trimmed string.
+	 */
+	ltrim( str, charlist ) {
+		if ( typeof str !== 'string' ) {
+			return '';
+		}
+
+		if ( ! charlist ) {
+			return str.trimStart();
+		}
+
+		const mask = charlist.replace( /[[\]{}()*+?.\\^$|]/g, '\\$&' );
+		const pattern = new RegExp( '^[' + mask + ']+', 'g' );
+
+		return str.replace( pattern, '' );
+	},
+
+	/**
+	 * Strip whitespace (or other characters) from the end of a string.
+	 * Mimics PHP's rtrim() function.
+	 *
+	 * @param {string} str The string that will be trimmed.
+	 * @param {string} [charlist] Optional list of characters to strip.
+	 * @return {string} The trimmed string.
+	 */
+	rtrim( str, charlist ) {
+		if ( typeof str !== 'string' ) {
+			return '';
+		}
+
+		if ( ! charlist ) {
+			return str.trimEnd();
+		}
+
+		const mask = charlist.replace( /[[\]{}()*+?.\\^$|]/g, '\\$&' );
+		const pattern = new RegExp( '[' + mask + ']+$', 'g' );
+
+		return str.replace( pattern, '' );
+	},
+
 };
 
 return StringUtils;

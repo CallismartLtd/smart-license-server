@@ -56,7 +56,7 @@ class SettingsController {
 
                 if ( $request->has( $key ) ) {
                     $value  = $this->sanitize_auto( $request->get( $key ) );
-                    if ( $this->settings->set( $key, $value, true ) ) {
+                    if ( $this->settings->set( $key, $value ) ) {
                     }
                 }
             }
@@ -95,14 +95,14 @@ class SettingsController {
                 }
 
                 $default    = match( $key ) {
-                    'repository_url_prefix'         => $this->settings->get( $key, 'repository', true ),
-                    'download_url_prefix'           => $this->settings->get( $key, 'downloads', true ),
-                    'client_dashboard_url_prefix'   => $this->settings->get( $key, 'client-dashboard', true ),
+                    'repository_url_prefix'         => $this->settings->get( $key, 'repository' ),
+                    'download_url_prefix'           => $this->settings->get( $key, 'downloads' ),
+                    'client_dashboard_url_prefix'   => $this->settings->get( $key, 'client-dashboard' ),
                     default                         => ''
                 };
 
                 $value  = $this->sanitize_slug( $request->get( $key, $default ) ) ?: $default;
-                $this->settings->set( $key, $value, true );
+                $this->settings->set( $key, $value );
         
             }
 

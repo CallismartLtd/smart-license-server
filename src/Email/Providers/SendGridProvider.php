@@ -14,6 +14,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Email\Providers;
 
+use Callismart\Http\HttpClient;
 use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
@@ -24,6 +25,12 @@ use InvalidArgumentException;
 class SendGridProvider extends AbstractRestEmailProvider {
 
     protected const API_ENDPOINT = 'https://api.sendgrid.com/v3/mail/send';
+
+    public function __construct(
+        protected string $default_sender_name,
+        protected string $default_sender_email,
+        protected HttpClient $http_client,
+    ) {}
 
     /*
     |----------------------

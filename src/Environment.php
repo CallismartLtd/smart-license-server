@@ -28,6 +28,14 @@ use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Email\EmailProviderIcons;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
+use SmartLicenseServer\Email\Providers\AmazonSESProvider;
+use SmartLicenseServer\Email\Providers\BrevoProvider;
+use SmartLicenseServer\Email\Providers\MailgunProvider;
+use SmartLicenseServer\Email\Providers\PHPMailProvider;
+use SmartLicenseServer\Email\Providers\PostmarkProvider;
+use SmartLicenseServer\Email\Providers\ResendProvider;
+use SmartLicenseServer\Email\Providers\SendGridProvider;
+use SmartLicenseServer\Email\Providers\SMTPProvider;
 use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 use SmartLicenseServer\FileSystem\FileSystem;
@@ -241,10 +249,7 @@ abstract class Environment {
         $this->container->singleton(
             EmailProvidersRegistry::class,
             fn ( Container $c ) : EmailProvidersRegistry =>
-                EmailProvidersRegistry::instance(
-                    $c->get( Settings::class ),
-                    $c->get( HttpClient::class )
-                )
+                EmailProvidersRegistry::instance( $c )
         );
 
         // Email Icon registry.
@@ -279,6 +284,75 @@ abstract class Environment {
                 ])
         );
 
+        $this->container->set(
+            SMTPProvider::class,
+            fn ( Container $c ) : SMTPProvider => new SMTPProvider(
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_name(),
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_email(),
+            )
+        );
+
+        $this->container->set(
+            PHPMailProvider::class,
+            fn ( Container $c ) : PHPMailProvider => new PHPMailProvider(
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_name(),
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_email(),
+            )
+        );
+
+        $this->container->set(
+            BrevoProvider::class,
+            fn ( Container $c ) : BrevoProvider => new BrevoProvider(
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_name(),
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_email(),
+                $c->get( HttpClient::class )
+            )
+        );
+
+        $this->container->set(
+            AmazonSESProvider::class,
+            fn ( Container $c ) : AmazonSESProvider => new AmazonSESProvider(
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_name(),
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_email(),
+                $c->get( HttpClient::class )
+            )
+        );
+
+        $this->container->set(
+            MailgunProvider::class,
+            fn ( Container $c ) : MailgunProvider => new MailgunProvider(
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_name(),
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_email(),
+                $c->get( HttpClient::class )
+            )
+        );
+
+        $this->container->set(
+            PostmarkProvider::class,
+            fn ( Container $c ) : PostmarkProvider => new PostmarkProvider(
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_name(),
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_email(),
+                $c->get( HttpClient::class )
+            )
+        );
+
+        $this->container->set(
+            ResendProvider::class,
+            fn ( Container $c ) : ResendProvider => new ResendProvider(
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_name(),
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_email(),
+                $c->get( HttpClient::class )
+            )
+        );
+
+        $this->container->set(
+            SendGridProvider::class,
+            fn ( Container $c ) : SendGridProvider => new SendGridProvider(
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_name(),
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_email(),
+                $c->get( HttpClient::class )
+            )
+        );
     }
 
     /**

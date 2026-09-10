@@ -19,16 +19,16 @@ use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
  *
  * All settings methods are delegated to the underlying storage provider.
  *
- * @method mixed get(string $key, mixed $default = null, bool $use_prefix = true)
+ * @method mixed get(string $key, mixed $default = null)
  *         Retrieves the value of a specific setting key from storage.
  *
- * @method bool set(string $key, mixed $value, bool $use_prefix = true)
+ * @method bool set(string $key, mixed $value)
  *         Stores or updates the value of a specific setting key in storage (persistence).
  *
- * @method bool delete(string $key, bool $use_prefix = true)
+ * @method bool delete(string $key)
  *         Removes a specific setting key and its value from storage.
  *
- * @method bool has(string $key, bool $use_prefix = true)
+ * @method bool has(string $key)
  *         Checks if a specific setting key exists in the storage.
  *
  * @method array all(int $page = 1, int $limit = 20)

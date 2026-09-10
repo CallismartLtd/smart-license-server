@@ -20,11 +20,9 @@
     const wrap = document.querySelector( '.smlcd-wrap' );
     if ( ! wrap ) return;
 
-    /* ── Helpers ──────────────────────────────────────────────────────────── */
-
-    function ajaxUrl( action, nonce ) {
+    function ajaxUrl( slug, nonce ) {
         const url = new URL( smliser_var.ajaxURL, window.location.origin );
-        url.searchParams.set( 'action',   action );
+        url.pathname    += `/options-form/${slug}/`;
         url.searchParams.set( 'security', nonce  );
         return url;
     }
@@ -59,8 +57,9 @@
     /* ── 1. Refresh ───────────────────────────────────────────────────────── */
 
     const refreshBtn = wrap.querySelector( '.smlcd-refresh-btn' );
-
+    
     if ( refreshBtn ) {
+        SmliserModal.alert( 'we have the button' )
         refreshBtn.addEventListener( 'click', async () => {
             refreshBtn.classList.add( 'smlcd-spinning' );
             refreshBtn.disabled = true;
@@ -83,13 +82,14 @@
      */
     async function refreshStats() {
         const cards = document.getElementById( 'smlcd-stat-cards' );
+        await SmliserModal.alert( 'what' )
         if ( ! cards ) return;
 
         cards.classList.add( 'smlcd-cards--loading' );
 
         try {
-            const url    = ajaxUrl( 'smliser_cache_get_stats', smliser_var.csrf_token );
-            const result = await smliserFetchJSON( url, { method: 'GET' } );
+            const url    = ajaxUrl( 'cache-stats-fetch', smliser_var.csrf_token );
+            const result = await smliserFetchJSON( url, { method: 'POST' } );
 
             if ( result.success && result.data?.stats ) {
                 const s          = result.data.stats;
@@ -283,8 +283,6 @@
         }
     }
 
-    /* ── 2. Confirm-action buttons ────────────────────────────────────────── */
-
     // Capture phase — fires before the bubble-phase global smliserActionBtns handler.
     wrap.addEventListener( 'click', async ( e ) => {
         const btn = e.target.closest( '.smlcd-confirm-btn' );
@@ -302,10 +300,8 @@
 
     }, true /* capture */ );
 
-    /* ── 3. Auto-refresh after any successful action ──────────────────────── */
-
     document.addEventListener( 'smliser:action_success', () => {
         refreshStats();
-    } );
+    });
 
 } )();

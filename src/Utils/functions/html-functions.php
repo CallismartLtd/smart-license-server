@@ -25,7 +25,7 @@ use SmartLicenseServer\Utils\Sanitizer;
  *
  * @return void
  */
-function smliser_render_toggle_switch( $attrs = array() ) {
+function smliser_render_toggle_switch( $attrs = [] ) {
     $defaults = array(
         'id'    => uniqid( 'smliser_toggle_' ),
         'name'  => 'toggle_switch',
@@ -108,8 +108,8 @@ function smliser_render_input_field( array $args = [] ): void {
             'name'    => '',
             'value'   => '',
             'class'   => 'smliser-form-label-row',
-            'options' => array(),
-            'attr'    => array(),
+            'options' => [],
+            'attr'    => [],
         ),
     );
 
@@ -568,14 +568,14 @@ function smliser_not_found_container( $text ) {
  *
  * @return string|null
  */
-function smliser_print_admin_content_header( array $args = array(), bool $echo = true ) {
+function smliser_print_admin_content_header( array $args = [], bool $echo = true ) {
 
     $defaults = array(
-        'breadcrumbs'   => array(),
-        'actions'       => array(),
+        'breadcrumbs'   => [],
+        'actions'       => [],
         'nav_class'     => '',
         'content_class' => '',
-        'attributes'    => array(),
+        'attributes'    => [],
     );
 
     $args = parse_args( $args, $defaults );
@@ -635,7 +635,7 @@ function smliser_print_admin_content_header( array $args = array(), bool $echo =
                                 'url'        => '',
                                 'icon'       => '',
                                 'class'      => '',
-                                'attributes' => array(),
+                                'attributes' => [],
                             )
                         );
 
@@ -682,10 +682,10 @@ function smliser_print_admin_content_header( array $args = array(), bool $echo =
                                 'icon'       => '',
                                 'active'     => false,
                                 'class'      => '',
-                                'attributes' => array(),
+                                'attributes' => [],
                                 'target'     => '',
                                 'rel'        => '',
-                                'data'       => array(),
+                                'data'       => [],
                             )
                         );
 

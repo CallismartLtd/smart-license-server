@@ -281,9 +281,9 @@ final class RouteManager {
                         callback: function() {
                             $forms  = [
                                 'general-settings-save'         => [SettingsController::class, 'save_general_settings'],
-                                'monetization'                  => [AppMonetization::class, 'handle_save_provider_options_request'],
-                                'default-email'                 => [EmailRequestController::class, 'save_default_email_options'],
-                                'email-test'                    => [EmailRequestController::class, 'send_test_email'],
+                                'monetization-provider-save'    => [AppMonetization::class, 'handle_save_provider_options_request'],
+                                'default-email-save'            => [EmailRequestController::class, 'save_default_email_options'],
+                                'email-provider-test'           => [EmailRequestController::class, 'send_test_email'],
                                 'email-provider-settings'       => [EmailRequestController::class, 'save_provider_settings'],
                                 'email-template-status-toggle'  => [SettingsController::class, 'toggle_email_template'],
                                 'email-template-save'           => [SettingsController::class, 'save_email_template'],

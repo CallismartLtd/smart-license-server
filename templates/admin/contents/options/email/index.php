@@ -21,10 +21,15 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 ?>
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>
-
-    <form action="" class="smliser-options-form">
-        <input type="hidden" name="action" value="smliser_save_default_email_settings" />
-
+    <div class="smliser-options-heading">
+        <h2 class="smliser-section-title">Global Email Configuration</h2>
+        <p class="smliser-section-description">
+            Configure the global default options for sending emails.
+        </p> 
+    </div>
+    
+    <form action="" class="smliser-options-form" data-slug="default-email-save">
+        
         <div class="smliser-options-form_body">
             <?php foreach ( $email_fields as $field ) : ?>
                 <?php smliser_render_input_field( $field ); ?>
@@ -94,7 +99,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
             working correctly. The provider must have its settings configure and saved before testing.
         </p>
 
-        <form action="" class="smliser-options-form" id="smliser-test-email-form">
+        <form action="" class="smliser-options-form" id="smliser-test-email-form" data-slug="email-provider-test">
             <input type="hidden" name="action" value="smliser_send_test_email" />
 
             <div class="smliser-options-form_body">

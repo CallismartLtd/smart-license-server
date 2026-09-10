@@ -13,6 +13,7 @@ use SmartLicenseServer\Cache\Exceptions\CacheTestException;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -26,8 +27,11 @@ class CacheRequestController {
 
     public function __construct(
         protected Cache $cache,
-        protected Settings $settings
-    ) {}
+        protected Settings $settings,
+        Guard $guard
+    ) {
+        $this->guard = $guard;
+    }
 
     /*
     |--------------------------------------------------------------------------

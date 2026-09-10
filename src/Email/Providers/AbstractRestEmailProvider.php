@@ -51,26 +51,26 @@ abstract class AbstractRestEmailProvider implements EmailProviderInterface {
      */
     protected bool $configured = false;
 
-    /*
-    |-------------
-    | CONSTRUCTOR
-    |-------------
-    */
+    /**
+     * The default global email sender name.
+     * 
+     * @var string
+     */
+    protected string $default_sender_name;
 
     /**
-     * Constructor.
-     *
-     * Accepts an optional HttpClient for testing or custom adapter use.
-     * Defaults to auto-detected adapter when none is provided.
-     *
-     * @param HttpClient $http_client
+     * The default global sender email address.
+     * 
+     * @var string
      */
-    public function __construct(
-        protected HttpClient $http_client,
-        protected EmailProvidersRegistry $registry
-        
-    ) {
-    }
+    protected string $default_sender_email;
+
+    /**
+     * The HTTP client API.
+     * 
+     * @var HttpClient
+     */
+    protected HttpClient $http_client;
 
     /*
     |----------------------
@@ -215,13 +215,10 @@ abstract class AbstractRestEmailProvider implements EmailProviderInterface {
      * @return array{email: string, name: string}
      */
     protected function resolve_sender( EmailMessage $message ): array {
-        $from               = $message->get( 'from' ) ?? [];
-        $registry           = $this->registry;
-        $default_from_email = $registry->get_default_sender_email();
-        $default_from_name  = $registry->get_default_sender_name();
+        $from   = $message->get( 'from' ) ?? [];
         return [
-            'email' => $from['email'] ?? $this->settings['from_email'] ?? $default_from_email,
-            'name'  => $from['name']  ?? $this->settings['from_name']  ?? $default_from_name,
+            'email' => trim( $from['email'] ?? $this->settings['from_email'] ) ?: $this->default_sender_email,
+            'name'  => trim( $from['name']  ?? $this->settings['from_name'] )  ?: $this->default_sender_name,
         ];
     }
 

@@ -14,6 +14,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Email\Providers;
 
+use Callismart\Http\HttpClient;
 use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
@@ -24,6 +25,12 @@ use InvalidArgumentException;
 class ResendProvider extends AbstractRestEmailProvider {
 
     protected const API_ENDPOINT = 'https://api.resend.com/emails';
+
+    public function __construct(
+        protected string $default_sender_name,
+        protected string $default_sender_email,
+        protected HttpClient $http_client,
+    ) {}
 
     /*
     |----------------------
@@ -56,14 +63,14 @@ class ResendProvider extends AbstractRestEmailProvider {
             'from_email' => [
                 'type'        => 'text',
                 'label'       => 'From Email',
-                'required'    => true,
-                'description' => 'Default sender email address. Must be from a verified domain in Resend.',
+                'required'    => false,
+                'description' => 'Default sender email address(Must be from a verified domain in Resend). Leave blank to use the global from email.',
             ],
             'from_name' => [
                 'type'        => 'text',
                 'label'       => 'From Name',
                 'required'    => false,
-                'description' => 'Default sender display name.',
+                'description' => 'Sender display name. Leave blank to use the global from name',
             ],
         ];
     }
@@ -82,7 +89,7 @@ class ResendProvider extends AbstractRestEmailProvider {
      */
     public function set_settings( array $settings ): void {
         $api_key    = trim( $settings['api_key']    ?? '' );
-        $from_email = trim( $settings['from_email'] ?? '' );
+        $from_email = trim( $settings['from_email'] ?? '' ) ?: $this->default_sender_email;
 
         if ( empty( $api_key ) ) {
             throw new InvalidArgumentException( 'ResendProvider: "api_key" is required.' );

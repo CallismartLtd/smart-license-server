@@ -15,7 +15,6 @@
  * @since   0.2.0
  */
 
-use SmartLicenseServer\Cache\CacheProviderIcons;
 use SmartLicenseServer\Cache\CacheStats;
 use SmartLicenseServer\Utils\Format;
 
@@ -99,7 +98,8 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                 <button type="button"
                         class="smlcd-btn smlcd-btn--ghost smliser-action-button"
                         data-args='<?php echo escAttr( smliser_safe_json_encode( [
-                            'action'  => 'smliser_cache_flush_expired',
+                            'slug'      => 'options-form/cache-flush/',
+                            'method'    => 'POST'
                         ] ) ); ?>'>
                     <i class="ti ti-clock-off"></i> Flush Stale
                 </button>

@@ -21,6 +21,11 @@ class PHPMailProvider implements EmailProviderInterface {
 
 	protected array $settings = [];
 
+	public function __construct(
+		protected string $default_sender_name,
+		protected string $default_sender_email,
+	) {}
+
 	public static function get_id(): string {
 		return 'php_mail';
 	}
@@ -47,7 +52,7 @@ class PHPMailProvider implements EmailProviderInterface {
 	}
 
 	public function set_settings( array $settings ): void {
-		$from_email = $settings['from_email'] ?? '';
+		$from_email = ( $settings['from_email'] ?? '' ) ?: $this->default_sender_email;
 
 		if ( empty( $from_email ) || ! filter_var( $from_email, FILTER_VALIDATE_EMAIL ) ) {
 			throw new \InvalidArgumentException(
@@ -73,9 +78,8 @@ class PHPMailProvider implements EmailProviderInterface {
 
 		// Resolve sender — message-level 'from' takes precedence over settings.
 		$from       = $message->get( 'from' ) ?? [];
-		$collection = smliser_emailProvidersRegistry();
-		$from_email = $from['email'] ?? $this->settings['from_email'] ?? $collection->get_default_sender_email();
-		$from_name  = $from['name']  ?? $this->settings['from_name']  ?? $collection->get_default_sender_name();
+		$from_email = ( $from['email'] ?? $this->settings['from_email'] ) ?: $this->default_sender_email;
+		$from_name  = ( $from['name']  ?? $this->settings['from_name'] ) ?: $this->default_sender_name;
 
 		if ( ! filter_var( $from_email, FILTER_VALIDATE_EMAIL ) ) {
 			throw new EmailTransportException( 'Cannot send email. The resolved "from" address is invalid.' );

@@ -103,23 +103,27 @@ class CacheAdapterRegistry extends AbstractRegistry {
      * Return a registered adapter by ID with settings applied.
      *
      * @param string $adapter_id The adapter ID(default to the adapter in settings).
+     * @param bool $with_settings   Whether to instantiate the adapter with its settings.
      * @return CacheAdapterInterface|null
      */
-    public function get_adapter( ?string $adapter_id = null ) : ?CacheAdapterInterface {
+    public function get_adapter( ?string $adapter_id = null, bool $with_settings = true ) : ?CacheAdapterInterface {
         $adapter_id     = $adapter_id ?? $this->get_default_adapter_id();
         $class_string   = $this->get( $adapter_id );
         $adapter        = null;
 
         if ( $class_string ) {
             /** @var CacheAdapterInterface $adapter */
-            $adapter    = new $class_string;
-            $settings   = [];
+            $adapter    = $this->container->get( $class_string );
 
-            foreach ( $adapter->get_settings_schema() as $name => $default ) {
-                $settings[$name] = $this->get_option( $adapter::get_id(), $name, $default['default'] ?? '' );
+            if ( $with_settings ) {
+                $settings   = [];
+
+                foreach ( $adapter->get_settings_schema() as $name => $default ) {
+                    $settings[$name] = $this->get_option( $adapter::get_id(), $name, $default['default'] ?? '' );
+                }
+
+                $adapter->set_settings( $settings );                
             }
-
-            $adapter->set_settings( $settings );
         }
 
         return $adapter;
@@ -137,7 +141,7 @@ class CacheAdapterRegistry extends AbstractRegistry {
      * @return string|null
      */
     public static function get_default_adapter_id(): string {
-        return (string) static::instance()->settings->get( static::DEFAULT_ADAPTER_KEY, 'runtime', true );
+        return (string) static::instance()->settings->get( static::DEFAULT_ADAPTER_KEY, 'runtime' );
     }
 
     /**
@@ -155,7 +159,7 @@ class CacheAdapterRegistry extends AbstractRegistry {
             );
         }
 
-        return (bool) static::instance()->settings->set( static::DEFAULT_ADAPTER_KEY, $adapter_id, true );
+        return (bool) static::instance()->settings->set( static::DEFAULT_ADAPTER_KEY, $adapter_id );
     }
 
     /*
@@ -176,7 +180,7 @@ class CacheAdapterRegistry extends AbstractRegistry {
      */
     public static function get_option( string $adapter_id, string $option_name, mixed $default = '' ): mixed {
         if ( ! isset( static::$settings_store[ $adapter_id ] ) ) {
-            $all_options = static::instance()->settings->get( static::SETTINGS_KEY, [], true );
+            $all_options = static::instance()->settings->get( static::SETTINGS_KEY, [] );
             static::$settings_store[ $adapter_id ] = $all_options[ $adapter_id ] ?? [];
         }
 
@@ -193,7 +197,7 @@ class CacheAdapterRegistry extends AbstractRegistry {
      */
     public static function update_option( string $adapter_id, string $option_name, mixed $value ): bool {
         $settings       = static::instance()->settings;
-        $all_options    = $settings->get( static::SETTINGS_KEY, [], true );
+        $all_options    = $settings->get( static::SETTINGS_KEY, [] );
 
         if ( ! isset( $all_options[ $adapter_id ] ) || ! is_array( $all_options[ $adapter_id ] ) ) {
             $all_options[ $adapter_id ] = [];
@@ -201,7 +205,7 @@ class CacheAdapterRegistry extends AbstractRegistry {
 
         $all_options[ $adapter_id ][ $option_name ] = $value;
 
-        $saved = $settings->set( static::SETTINGS_KEY, $all_options, true );
+        $saved = $settings->set( static::SETTINGS_KEY, $all_options );
 
         if ( $saved ) {
             // Bust the cache for this adapter so the next get_option() reads fresh data.
@@ -219,13 +223,13 @@ class CacheAdapterRegistry extends AbstractRegistry {
      */
     public static function reset_adapter_settings( string $adapter_id ): bool {
         $settings       = static::instance()->settings;
-        $all_options    = $settings->get( static::SETTINGS_KEY, [], true );
+        $all_options    = $settings->get( static::SETTINGS_KEY, [] );
 
         if ( isset( $all_options[ $adapter_id ] ) ) {
             unset( $all_options[ $adapter_id ] );
         }
 
-        $saved = $settings->set( static::SETTINGS_KEY, $all_options, true );
+        $saved = $settings->set( static::SETTINGS_KEY, $all_options );
 
         if ( $saved ) {
             // Bust the cache for this adapter so the next get_option() reads fresh data.
@@ -247,11 +251,11 @@ class CacheAdapterRegistry extends AbstractRegistry {
      */
     public static function update_adapter_settings( string $adapter_id, array $settings ): bool {
         $storage     = static::instance()->settings;
-        $all_options = (array) $storage->get( static::SETTINGS_KEY, [], true );
+        $all_options = (array) $storage->get( static::SETTINGS_KEY, [] );
         
         $all_options[ $adapter_id ] = $settings;
         
-        $saved = $storage->set( static::SETTINGS_KEY, $all_options, true );
+        $saved = $storage->set( static::SETTINGS_KEY, $all_options );
 
         if ( $saved ) {
             unset( static::$settings_store[ $adapter_id ] );

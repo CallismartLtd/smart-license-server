@@ -253,7 +253,7 @@ class EmailMessage extends DTO {
      *
      * @throws InvalidArgumentException On any invalid value.
      */
-    public function validate(): void {
+    public function validate(): static {
         $this->validate_address_list( 'to' );
         $this->validate_scalar( 'subject' );
         $this->validate_scalar( 'body' );
@@ -271,6 +271,8 @@ class EmailMessage extends DTO {
                 $this->validate_address_list( $field );
             }
         }
+
+        return $this;
     }
 
     /**

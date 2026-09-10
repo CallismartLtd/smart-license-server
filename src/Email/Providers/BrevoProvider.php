@@ -15,16 +15,24 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Email\Providers;
 
+use Callismart\Http\HttpClient;
 use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use Callismart\Http\HttpRequest;
 use Callismart\Http\HttpResponse;
 use InvalidArgumentException;
+use SmartLicenseServer\Email\EmailProvidersRegistry;
 
 class BrevoProvider extends AbstractRestEmailProvider {
 
     protected const API_ENDPOINT = 'https://api.brevo.com/v3/smtp/email';
+
+    public function __construct(
+        protected string $default_sender_name,
+        protected string $default_sender_email,
+        protected HttpClient $http_client,
+    ) {}
 
     /*
     |----------------------
@@ -57,14 +65,14 @@ class BrevoProvider extends AbstractRestEmailProvider {
             'from_email' => [
                 'type'        => 'text',
                 'label'       => 'From Email',
-                'required'    => true,
-                'description' => 'Default sender email address. Must be a verified sender in Brevo.',
+                'required'    => false,
+                'description' => 'Sender email address(must be a verified sender in Brevo). Leave blank to use the global from email.',
             ],
             'from_name' => [
                 'type'        => 'text',
                 'label'       => 'From Name',
                 'required'    => false,
-                'description' => 'Default sender display name.',
+                'description' => 'Sender display name. Leave blank to use the global from name.',
             ],
         ];
     }
@@ -82,8 +90,8 @@ class BrevoProvider extends AbstractRestEmailProvider {
      * @throws InvalidArgumentException
      */
     public function set_settings( array $settings ): void {
-        $api_key    = trim( $settings['api_key']    ?? '' );
-        $from_email = trim( $settings['from_email'] ?? '' );
+        $api_key    = trim( $settings['api_key']    ?? '' ) ?: $this->default_sender_name;
+        $from_email = trim( $settings['from_email'] ?? '' ) ?: $this->default_sender_email;
 
         if ( empty( $api_key ) ) {
             throw new InvalidArgumentException( 'BrevoProvider: "api_key" is required.' );

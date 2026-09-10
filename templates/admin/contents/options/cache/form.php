@@ -43,7 +43,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
         ); ?>
 
     <?php else: ?>
-        <form action="" class="smliser-options-form">
+        <form class="smliser-options-form" data-slug="cache-adapter-save">
             <span> <a href="<?php echo escUrl( $current_url->url() ) ?>" class="smliser-btn"> <i class="ti ti-arrow-back"></i></a></span>
             <input type="hidden" name="action" value="smliser_save_cache_adapter_settings" />
             <input type="hidden" name="adapter_id" value="<?php echo escAttr( $adapter_id ); ?>" />
@@ -55,7 +55,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                     'input' => array(
                         'type'  => 'number',
                         'name'  => 'default_cache_ttl',
-                        'value' => $settings->get( 'default_cache_ttl', 0, true ),
+                        'value' => $settings->get( 'default_cache_ttl', 0 ),
                         'attr'  => array(
                             'min'   => 0
                         )

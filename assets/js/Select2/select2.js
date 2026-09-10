@@ -5619,7 +5619,7 @@ S2.define('select2/core',[
 
     // Hide the original select
     $element[0].classList.add('select2-hidden-accessible');
-    $element.attr('aria-hidden', 'true');
+    // $element.attr('aria-hidden', 'true');
 
     // Synchronize any monitored attributes
     this._syncAttributes();

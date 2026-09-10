@@ -14,6 +14,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Email\Providers;
 
+use Callismart\Http\HttpClient;
 use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
@@ -24,6 +25,12 @@ use InvalidArgumentException;
 class PostmarkProvider extends AbstractRestEmailProvider {
 
     protected const API_ENDPOINT = 'https://api.postmarkapp.com/email';
+
+    public function __construct(
+        protected string $default_sender_name,
+        protected string $default_sender_email,
+        protected HttpClient $http_client,
+    ) {}
 
     /*
     |----------------------
@@ -56,14 +63,14 @@ class PostmarkProvider extends AbstractRestEmailProvider {
             'from_email' => [
                 'type'        => 'text',
                 'label'       => 'From Email',
-                'required'    => true,
-                'description' => 'Default sender email address. Must be a verified Sender Signature in Postmark.',
+                'required'    => false,
+                'description' => 'Default sender email address(Must be a verified Sender Signature in Postmark). Leave blank to use the global from email.',
             ],
             'from_name' => [
                 'type'        => 'text',
                 'label'       => 'From Name',
                 'required'    => false,
-                'description' => 'Default sender display name.',
+                'description' => 'Sender display name. Leave blank to use the global from name.',
             ],
             'message_stream' => [
                 'type'        => 'text',
@@ -88,7 +95,7 @@ class PostmarkProvider extends AbstractRestEmailProvider {
      */
     public function set_settings( array $settings ): void {
         $server_token = trim( $settings['server_token'] ?? '' );
-        $from_email   = trim( $settings['from_email']   ?? '' );
+        $from_email   = trim( $settings['from_email']   ?? '' ) ?: $this->default_sender_email;
 
         if ( empty( $server_token ) ) {
             throw new InvalidArgumentException( 'PostmarkProvider: "server_token" is required.' );

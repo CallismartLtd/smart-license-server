@@ -53,44 +53,46 @@ $theme      = (string) $settings->get( UserSettings::DASHBOARD_THEME_NAME, 'auto
 $collapsed  = (bool) $settings->get( UserSettings::DASHBOARD_SIDEBAR_COLLAPSED_NAME, false );
 
 
-$current_slug   = $request->route_param( 'page', 'overview' );
-$current_menu   = $registry->get( $current_slug );
-
-/*
-|--------------------------------------------------
-| 1. HEADER
-|    <head>, <body>, 
-|       <div class="dashboard-wrapper>,
-|           <header class="dashboard-top-menu" ... </header>
-|--------------------------------------------------
-*/
-$this->render( Shell::HEADER_TEMPLATE, [
-    'title'             => $current_menu ? $current_menu['title'] : SMLISER_APP_NAME,
-    'theme'             => $theme,
-    'collapsed'         => $collapsed,
-    'registry'          => $registry,
-    'assets_manager'    => $assets_manager
-]);
-
-/*
-|--------------------------------------------------
-| 2. MENU
-|    <nav class="dashboard-left-menu" ... </nav>
-|--------------------------------------------------
-*/
+$current_slug       = $request->route_param( 'page', 'overview' );
+$current_menu       = $registry->get( $current_slug );
 $submenu_slug       = $request->route_param( 'tab' );
 $current_submenu    = null;
-
 if ( $submenu_slug ) {
     $current_submenu    = $registry->get_submenu_by_slug( $current_slug, $submenu_slug );
 }
 
-$this->render( Shell::MENU_TEMPLATE, [
-    'registry'          => $registry,
-    'current_menu'      => $current_menu,
-    'current_submenu'   => $current_submenu,
-    'urlmanager'        => $urlmanager
-]);
+if ( $request->isEmpty( 'noheader' ) ) {
+    /*
+    |--------------------------------------------------
+    | 1. HEADER
+    |    <head>, <body>, 
+    |       <div class="dashboard-wrapper>,
+    |           <header class="dashboard-top-menu" ... </header>
+    |--------------------------------------------------
+    */
+    $this->render( Shell::HEADER_TEMPLATE, [
+        'title'             => $current_menu ? $current_menu['title'] : SMLISER_APP_NAME,
+        'theme'             => $theme,
+        'collapsed'         => $collapsed,
+        'registry'          => $registry,
+        'assets_manager'    => $assets_manager
+    ]);
+
+    /*
+    |--------------------------------------------------
+    | 2. MENU
+    |    <nav class="dashboard-left-menu" ... </nav>
+    |--------------------------------------------------
+    */
+
+    $this->render( Shell::MENU_TEMPLATE, [
+        'registry'          => $registry,
+        'current_menu'      => $current_menu,
+        'current_submenu'   => $current_submenu,
+        'urlmanager'        => $urlmanager
+    ]);
+
+}
 
 /*
 |--------------------------------------------------

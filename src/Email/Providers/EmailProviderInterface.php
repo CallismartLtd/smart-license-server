@@ -14,6 +14,7 @@ namespace SmartLicenseServer\Email\Providers;
 use SmartLicenseServer\Contracts\ServiceProviderInterface;
 use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
+use SmartLicenseServer\Exceptions\EmailTransportException;
 
 interface EmailProviderInterface extends ServiceProviderInterface{
 
