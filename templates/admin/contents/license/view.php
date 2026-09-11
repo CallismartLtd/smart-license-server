@@ -51,7 +51,7 @@ if ( $license ) {
 
         array(
             'title'     => 'Generate license download token',
-            'label'     => 'Generate Download Token',
+            'label'     => 'Generate Token',
             'url'       => '#',
             'class'     => 'smliser-generate-download-token-btn',
             'icon'      => 'ti ti-cloud',

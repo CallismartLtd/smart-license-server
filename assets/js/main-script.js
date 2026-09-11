@@ -1185,13 +1185,14 @@ document.addEventListener( 'DOMContentLoaded', async function() {
         modal.on( 'onSubmit', async (e) => {            
             if ( ! config.is_issued ) {
                 await SmliserModal.error( 'Download token can only be generated for issued licenses.' );
-                return;
+                // return;
             }
 
             try {
                 let url         = new URL( smliser_var.ajaxURL );
+                url.pathname    += '/generate-app-download-token/';
                 const payLoad   = new FormData( e.getBody( 'form' ) );
-                payLoad.set( 'action', 'smliser_generate_download_token' );
+                
                 payLoad.set( 'security', smliser_var.csrf_token );
 
                 const response  = await smliserFetchJSON( url, {
@@ -1203,7 +1204,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                     const token = response?.data?.token;
 
                     if ( ! token ) {
-                        console.warn( 'Unable to get API key Data' );
+                        await SmliserModal.error( 'Unable to get API key Data' );
                         return;                        
                     }
 

@@ -299,6 +299,12 @@ final class RouteManager {
                         middleware: []
                     );
 
+                    $this->router->post(
+                        pattern: 'generate-app-download-token',
+                        handler: [AppMonetization::class, 'handle_download_token_generation_request'],
+                        middleware: []
+                    );
+
                     $this->router->delete(
                         pattern: 'license-delete',
                         handler: [AppMonetization::class, 'handle_license_delete_request']

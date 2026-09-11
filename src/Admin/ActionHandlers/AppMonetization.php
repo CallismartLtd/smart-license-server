@@ -61,4 +61,8 @@ class AppMonetization implements MonetizationHandlerInterface, LicenseHandlerInt
     public function handle_licensed_domain_removal_request( Request $request ) : Response {
         return $this->controller->uninstall_domain_from_license( $request );
     }
+
+    function handle_download_token_generation_request( Request $request ) : Response {
+        return $this->controller->generate_app_download_token( $request );
+    }
 }

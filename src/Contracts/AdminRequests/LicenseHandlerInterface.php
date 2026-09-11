@@ -44,4 +44,12 @@ interface LicenseHandlerInterface {
 	 * @return Response
 	 */
 	public function handle_licensed_domain_removal_request( Request $request ) : Response;
+
+	/**
+	 * Hnadle request to generate a download token for a hosted app through a license.
+	 *
+	 * @param  Request $request
+	 * @return Response
+	 */
+	public function handle_download_token_generation_request( Request $request ) : Response;
 }

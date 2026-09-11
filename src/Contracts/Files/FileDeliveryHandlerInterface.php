@@ -77,12 +77,4 @@ interface FileDeliveryHandlerInterface {
 	 * @return Response
 	 */
 	public static function handle_proxy_image_request( Request $request ) : Response;
-
-	/**
-	 * Parse download token generation request.
-	 *
-	 * @param  Request $request
-	 * @return Response
-	 */
-	public static function handle_download_token_generation_request( Request $request ) : Response;
 }

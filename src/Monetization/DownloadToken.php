@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\Monetization\License;
@@ -20,7 +21,7 @@ use SmartLicenseServer\Utils\TokenDeliveryTrait;
  * Represents the token given to the client in exchange for download access
  * to hosted applications in the repository.
  */
-class DownloadToken {
+class DownloadToken extends DataStore {
     use CommonQueryTrait, TokenDeliveryTrait, SanitizeAwareTrait;
     /**
      * Token ID.
@@ -196,7 +197,6 @@ class DownloadToken {
      * @return bool True on success, false otherwise
      */
     private function save() : bool {
-        $db = \smliser_db();
         $table = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
 
         $data = [
@@ -207,13 +207,13 @@ class DownloadToken {
         ];
 
         if ( $this->id ) {
-            $updated = $db->update( $table, $data, ['id' => $this->id] );
+            $updated = static::$DB->update( $table, $data, ['id' => $this->id] );
             return false !== $updated;
         }
 
-        $inserted = $db->insert( $table, $data );
+        $inserted = static::$DB->insert( $table, $data );
         if ( $inserted ) {
-            $this->set_id( $db->get_insert_id() );
+            $this->set_id( static::$DB->get_insert_id() );
             return true;
         }
 
@@ -230,10 +230,9 @@ class DownloadToken {
             return false;
         }
 
-        $db = \smliser_db();
         $table = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
 
-        $deleted = $db->delete( $table, ['id' => $this->id] );
+        $deleted = static::$DB->delete( $table, ['id' => $this->id] );
         return false !== $deleted;
     }
 
@@ -254,7 +253,6 @@ class DownloadToken {
      * @return static|null
      */
     public static function get_by_token( string $token ) : ?static {
-        $db = \smliser_db();
         $table = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
 
         $sql    = static::query()
@@ -263,7 +261,7 @@ class DownloadToken {
             ->where( 'token', '=', $token )
             ->limit( 1 );
 
-        $row    = $db->get_row( $sql->build(), $sql->get_bindings() );
+        $row    = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
 
         return $row ? static::from_array( $row ) : null;
     }
@@ -333,7 +331,7 @@ class DownloadToken {
     public static function create_token( License $license, $expiry = 86400 ) : string {
         // We cant issue token for a license that is not issued
         if ( ! $license->is_issued() ) {
-            throw new Exception( 'download_token_error', 'License must be issued to an application first', ['status' => 400] );
+            throw new Exception( 'download_token_error', 'This license must be issued to a hosted application first.', ['status' => 400] );
         }
 
         $static = new static();
