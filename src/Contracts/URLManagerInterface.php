@@ -14,6 +14,7 @@ interface URLManagerInterface {
     public const CLIENT_DASHBOARD_URL_PREFIX_KEY    = 'client_dashboard_url_prefix';
     public const REPOSITORY_URL_PREFIX_KEY          = 'repository_url_prefix';
     public const DOWNLOADS_URL_PREFIX_KEY           = 'downloads_url_prefix';
+    public const ADMIN_DOWNLOADS_URL_PREFIX_KEY     = 'admin_downloads_url_prefix';
     public const UPLOADS_URL_PREFIX_KEY             = 'uploads_url_prefix';
 
     

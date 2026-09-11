@@ -24,6 +24,7 @@
 			return;
 		}
 
+		initDismissibleNotices();
 		restoreCollapsedState( wrapper );
 		restoreTheme();
 		restoreScrollPos();
@@ -201,4 +202,57 @@
 			sessionStorage.setItem(storageKey, scrollContainer.scrollTop);
 		});
 	}
+
+	/**
+     * Inject dismissal buttons into all uninitialized .is-dismissible notices.
+     * Safe to call multiple times or after dynamic AJAX/Fetch content renders.
+     *
+     * @param {HTMLElement|Document} [container=document] Context container to scan.
+     */
+    function initDismissibleNotices( container ) {
+        const root = container || document;
+        const notices = root.querySelectorAll( '.notice.is-dismissible' );
+
+        notices.forEach( function( notice ) {
+            // Guard against duplicate injections
+            if ( notice.querySelector( '.notice-dismiss' ) ) {
+                return;
+            }
+
+            const button = document.createElement( 'button' );
+            button.type = 'button';
+            button.className = 'notice-dismiss';
+            button.setAttribute( 'aria-label', 'Dismiss this notice' );
+            button.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+
+            notice.appendChild( button );
+        });
+    }
+
+    /**
+     * Dismiss a notice cleanly with an opacity and slide animation.
+     *
+     * @param {HTMLElement} notice
+     */
+    function dismissNotice( notice ) {
+        notice.style.opacity = '0';
+        notice.style.transform = 'translateY(-2px)';
+
+        setTimeout( function() {
+            notice.remove();
+        }, 200 );
+    }
+
+    document.addEventListener( 'click', function( event ) {
+        const dismissBtn = event.target.closest( '.notice-dismiss' );
+        if ( ! dismissBtn ) {
+            return;
+        }
+
+        const notice = dismissBtn.closest( '.notice' );
+        if ( notice ) {
+            dismissNotice( notice );
+        }
+    });
+
 } )();

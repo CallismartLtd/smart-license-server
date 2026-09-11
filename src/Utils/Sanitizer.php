@@ -221,7 +221,7 @@ class Sanitizer {
             'strong' => [], 
             'b' => [],
             'em' => [], 
-            'i' => [], 
+            'i' => ['class', 'id', 'style'], 
             'u' => [],
             'ol' => ['style', 'class'], 
             'ul' => ['style', 'class'], 

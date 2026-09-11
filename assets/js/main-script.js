@@ -814,7 +814,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     let licenseKeyContainers    = document.querySelectorAll( '.smliser-license-obfuscation' );
     let searchInput             = document.getElementById('smliser-search');
     let tooltips                = document.querySelectorAll( '.smliser-form-description, .smliser-tooltip' );
-    let deleteLicenseBtn               = document.getElementById( 'smliser-license-delete-button' );
+    let deleteLicenseBtn        = document.getElementById( 'smliser-license-delete-button' );
     let updateBtn               = document.querySelector('#smliser-update-btn');
     let appActionsBtn           = document.querySelectorAll( '.smliser-app-delete-button, .smliser-app-restore-button' );
 
@@ -1079,9 +1079,36 @@ document.addEventListener( 'DOMContentLoaded', async function() {
         deleteLicenseBtn.addEventListener( 'click', async ( event ) => {
             event.preventDefault();
             const userConfirmed = await SmliserModal.confirm( 'You are about to delete this license, be careful action cannot be reversed' );
-            if ( userConfirmed && deleteLicenseBtn.href ) {
-                window.location.href    = deleteLicenseBtn.href;
+            if ( ! userConfirmed  ) {                
+                return;
             }
+
+            try {
+                const url       = new URL( smliser_var.ajaxURL );
+                url.pathname    += '/license-delete/';
+
+                url.searchParams.set( 'license_id', queryParam.get('id') );
+
+                const response  = await smliserFetchJSON( url, {
+                    method: 'DELETE',
+                    credentials: 'same-origin',
+                });
+
+                if ( response.success ) {
+                    await SmliserModal.success( response.data?.message ?? 'Deleted successfully' );
+                } else {
+                    throw new Error( response.data?.message ?? 'Unable to delete license' );
+                }
+
+                if ( response.data.redirect ) {
+                    window.location.href    = new URL( response.data.location ).toString();
+                }
+
+            } catch (error) {
+                await SmliserModal.error( error.message );
+            }
+
+
         });
     }
 
@@ -2597,11 +2624,14 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     if ( licenseForm ) {
         licenseForm.addEventListener( 'submit', e => {
             e.preventDefault();
-          
+
             const spinner   = showSpinner( '.smliser-spinner', true );
             const payLoad   = new FormData( e.target.closest( 'form' ) );
             const url       = new URL( smliser_var.ajaxURL );
-            url.searchParams.set( 'action', 'smliser_save_license' );
+
+            const slug      = licenseForm.dataset.slug;
+
+            url.pathname    += `/${slug}/`;
             url.searchParams.set( 'security', smliser_var.csrf_token );
             smliserFetch( url.href,
                 {
@@ -2624,11 +2654,8 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
             }).finally( () => {
                 removeSpinner( spinner );
-            })
-            
-            
-
-        })
+            });
+        });
     }
 
     if ( emailTemplatesPage ) {

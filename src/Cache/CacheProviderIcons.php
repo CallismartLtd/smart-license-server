@@ -79,7 +79,7 @@ class CacheProviderIcons {
      * Render the icon for a provider as an HTML string.
      *
      * Returns an <img> tag for URL-based icons and a <span> for
-     * CSS class-based icons (dashicons, icon fonts).
+     * CSS class-based icons.
      *
      * @param  string $provider_id
      * @param  string $alt  Alt text for img tags. Defaults to provider ID.

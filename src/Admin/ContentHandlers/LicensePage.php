@@ -94,7 +94,7 @@ class LicensePage implements AdminPageInterface {
      * Add license page
      */
     public function add_license_page( Request $request ) : void {
-        $form_fields    = static::get_form_fields();
+        $form_fields    = $this->get_form_fields();
         $tab            = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
@@ -108,11 +108,23 @@ class LicensePage implements AdminPageInterface {
      */
     public function edit_license_page( Request $request ) : void {
 
-        $license_id     = $request->get( 'license_id' );        
+        $license_id     = $request->get( 'id' );        
         $license        = License::get_by_id( $license_id );
+
+        if ( ! $license ) {
+            echo \smliser_not_found_container(
+                \sprintf(
+                    'Invalid or deleted license is "%s". <a href="%s"> <i class="ti ti-arrow-left"></i> Go Back</a>',
+                    $license_id,
+                    $this->urlmanager->admin_license_page_url()->url(),
+                )
+            );
+
+            return;
+        }
         $tab            = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
         
-        $form_fields    = static::get_form_fields( $license );
+        $form_fields    = $this->get_form_fields( $license );
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
         $vars           = compact( 'urlmanager', 'page_handler', 'request', 'form_fields',
@@ -126,7 +138,7 @@ class LicensePage implements AdminPageInterface {
      * License view page
      */
     public function view_license_page( Request $request ) : void {
-        $license_id     = $request->get( 'license_id' );
+        $license_id     = (int) $request->get( 'id', 0 );
         $license        = License::get_by_id( $license_id );
         $licensed_app   = $license?->get_app();
 
@@ -136,15 +148,19 @@ class LicensePage implements AdminPageInterface {
             $delete_url = url( '', [
                 'action'        => 'smliser_delete_license',
                 'license_id'    => $license_id,
-                'smliser_nonce' => wp_create_nonce( 'smliser_delete_license_nonce' )
+                // 'smliser_nonce' => wp_create_nonce( 'smliser_delete_license_nonce' )
             ]);
 
             $vars['licensee']   = $licensee;
             $vars['delete_url'] = $delete_url;
         }
 
-        $var['page_handler']    = $this;
-        $var['urlmanager']      = $this->urlmanager;
+        $vars['page_handler']   = $this;
+        $vars['urlmanager']     = $this->urlmanager;
+        $vars['total_logs']     = count( array_filter(
+            $this->repository_analytics->get_license_activity_logs(),
+            fn ( $log ) : bool => $log['license_id'] === $license_id
+        ));
 
         $this->locator->render( 'admin.contents.license.view', $vars );
    
@@ -361,6 +377,18 @@ class LicensePage implements AdminPageInterface {
                 'slug'          => 'search',
                 'callback'      => [$this, 'search_page'],
                 'visibility'    => true,
+            ],
+            [
+                'title'         => 'View License',
+                'slug'          => 'view',
+                'callback'      => [$this, 'view_license_page'],
+                'visibility'    => false
+            ],
+            [
+                'title'         => 'Edit License',
+                'slug'          => 'edit',
+                'callback'      => [$this, 'edit_license_page'],
+                'visibility'    => false
             ]
         ];
     }

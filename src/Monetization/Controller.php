@@ -328,8 +328,8 @@ class Controller {
             $request->set( 'license', $license );
 
             $url        = $this->urlmanager->admin_license_page_url( 'edit', [
-                'license_id'    => $license->get_id(),
-                'message'       => 'Saved',
+                'id'        => $license->get_id(),
+                'message'   => 'Saved',
                 
             ]);
 
@@ -561,7 +561,14 @@ class Controller {
                     'message'   => $message
                 ]);
 
-            return Response::redirect( $location, 303 );
+            return Response::json([
+                'success'   => true,
+                'data'      => [
+                    'redirect'  => true,
+                    'location'  => $location->url(),
+                    'message'   => $message
+                ]
+            ]);
 
         } catch ( RequestException $e ) {
             $message    = $e->get_error_message();
@@ -571,7 +578,14 @@ class Controller {
                     'message'   => $message
                 ]);
 
-            return Response::redirect( $location, 304 );
+            return Response::json([
+                'success'   => false,
+                'data'      => [
+                    'redirect'  => true,
+                    'location'  => $location->url(),
+                    'message'   => $message
+                ]
+            ]);
         }
     }
 }

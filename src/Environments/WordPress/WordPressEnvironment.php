@@ -284,7 +284,7 @@ class WordPressEnvironment extends Environment {
                 );?>              
                 
             </p>
-            <p id="smliser-click-notice" style="display: none">Update started in the backgroud <span class="dashicons dashicons-yes-alt" style="color: blue"></span></p>
+            <p id="smliser-click-notice" style="display: none">Update started in the backgroud <span class="ti ti-circle-check" style="color: blue"></span></p>
         </div>
         <?php
     }

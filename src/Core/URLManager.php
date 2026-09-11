@@ -143,6 +143,15 @@ class URLManager implements URLManagerInterface {
     }
 
     /**
+     * Get the prefix for the admin downloads URL.
+     * 
+     * @return string
+     */
+    public function admin_downloads_url_prefix() : string {
+        return (string) $this->settings->get( static::ADMIN_DOWNLOADS_URL_PREFIX_KEY, 'admin-downloads' );
+    }
+
+    /**
      * Get the downloads url.
      * 
      * @param string $path  Optional path to append.
@@ -150,6 +159,17 @@ class URLManager implements URLManagerInterface {
      */
     public function downloads_url( string $path = '', array $query = [] ) : URL {
         return $this->url( $this->downloads_url_prefix(), $query )
+            ->append_path( $path );
+    }
+
+    /**
+     * Get the admin downloads url.
+     * 
+     * @param string $path  Optional path to append.
+     * @param array $query  Optional query params.
+     */
+    public function admin_downloads_url( string $path = '', array $query = [] ) : URL {
+        return $this->url( $this->admin_downloads_url_prefix(), $query )
             ->append_path( $path );
     }
 
@@ -185,6 +205,17 @@ class URLManager implements URLManagerInterface {
     public function document_download_url( int $id, array $query = [] ) : URL {
         return $this->downloads_url( 'document', $query )
             ->append_path( "license-document-{$id}.txt" );
+    }
+
+    /**
+     * Get the admin document download url.
+     * 
+     * @param int $id       The document ID.
+     * @param array $query  Optional query params.
+     * @return URL
+     */
+    public function admin_document_download_url( int $id, array $query = [] ) : URL {
+        return $this->admin_downloads_url( "license-document-{$id}.txt", $query );
     }
 
     /**
@@ -302,6 +333,18 @@ class URLManager implements URLManagerInterface {
      */
     public function app_downloads_url( string $app_type, string $app_slug ) : URL {
         return $this->downloads_url( $app_type )
+            ->append_path( "{$app_slug}.zip" );
+    }
+
+    /**
+     * Get app downloads url for admins.
+     * 
+     * @param string $app_type
+     * @param string $app_slug
+     * @return URL
+     */
+    public function admin_app_downloads_url( string $app_type, string $app_slug ) : URL {
+        return $this->admin_downloads_url( $app_type )
             ->append_path( "{$app_slug}.zip" );
     }
 

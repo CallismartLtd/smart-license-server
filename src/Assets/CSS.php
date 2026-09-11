@@ -129,13 +129,7 @@ final class CSS {
             ],
             'smliser-client-dashboard' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/client-dashboard%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-variables', 'smliser-modal', 'smliser-tabler-icons', 'smliser-utils', 'select2'],
-                'version'   => SMLISER_VER,
-                'media-type' => 'all'
-            ],
-            'smliser-utils' => [
-                'url'   => $this->urlmanager->assets_url( sprintf( 'css/utils%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-modal', 'smliser-tabler-icons'],
+                'dependencies'  => ['smliser-variables', 'smliser-modal', 'smliser-tabler-icons', 'select2'],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],

@@ -1425,7 +1425,7 @@ li.smliser-org-member .smliser-org-member_header img {
     border-left-color: var(--dashboard-warning);
 }
 
-.smliser-account-info-block .dashicons {
+.smliser-account-info-block .ti {
     color: var(--dashboard-warning);
     font-size: 20px;
     flex-shrink: 0;
@@ -1445,7 +1445,7 @@ li.smliser-org-member .smliser-org-member_header img {
     color: var(--dashboard-text-muted);
 }
 
-.smliser-account-empty-state .dashicons {
+.smliser-account-empty-state .ti {
     font-size: 48px;
     color: var(--dashboard-border);
 }

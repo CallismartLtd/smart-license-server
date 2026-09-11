@@ -644,7 +644,7 @@ class OptionsPage implements AdminPageInterface {
                 [
                     'label' => 'General Settings',
                     'url'   => $this->urlmanager->admin_options_url(),
-                    'icon'  => 'dashicons dashicons-admin-home',
+                    'icon'  => 'ti ti-home',
                 ],
                 [
                     'label' => $title,

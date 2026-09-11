@@ -23,6 +23,7 @@ use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Email\RequestController as EmailRequestController;
 use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddleware;
+use SmartLicenseServer\Environments\Application\Middlewares\AdminDownloadMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddleware;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
@@ -199,7 +200,13 @@ final class RouteManager {
                     handler: [AdminDispatcher::class, 'render_admin_dashboard']
                 );
 
-                // POST, PUT, PATCH routes for form submissions and button clicks.
+                /*
+                |---------------------------------------------------------------------
+                | ADMIN FORM SUBMISSIONS AND BUTTON ACTIONS
+                |
+                | POST, PUT, PATCH routes for form submissions and button clicks.
+                |---------------------------------------------------------------------
+                */
                 $this->router->group( 'admin/json', function() {
                     // Base tab without form slug or action.
                     $this->router->any( '/', fn () : Response => 
@@ -214,6 +221,11 @@ final class RouteManager {
                         )
                     );
 
+                    /*
+                    |-------------------------
+                    | HOSTED APPS MANAGEMENT
+                    |-------------------------
+                    */
                     $this->router->post(
                         pattern: 'save-app',
                         handler: [AppManagement::class, 'handle_save_app_request'],
@@ -276,6 +288,27 @@ final class RouteManager {
                         middleware: []
                     );
 
+                    /*
+                    |------------------------------------------------
+                    | LICENSE FORM SUBMISSIONS AND BUTTON ACTIONS
+                    |------------------------------------------------
+                    */
+                    $this->router->post(
+                        pattern: 'license-save',
+                        handler: [AppMonetization::class, 'handle_save_license_request'],
+                        middleware: []
+                    );
+
+                    $this->router->delete(
+                        pattern: 'license-delete',
+                        handler: [AppMonetization::class, 'handle_license_delete_request']
+                    );
+
+                    /*
+                    |----------------------------
+                    | SETTINGS FORMS AND ACTIONS
+                    |----------------------------
+                    */
                     $this->router->group(
                         prefix: 'options-form',
                         callback: function() {
@@ -307,6 +340,7 @@ final class RouteManager {
                         },
                         middleware: []
                     );
+                    
                 });
                 
             },
@@ -385,19 +419,19 @@ final class RouteManager {
         | File download routes
         |-----------------------
         */
+        $hosted_apps_registry = $this->container->get( HostedAppsRegistry::class );
+            
+        // Escape types safely and implode with pipe.
+        $app_types = implode( '|', array_map( 'preg_quote', $hosted_apps_registry->app_types() ) );
+
         $this->router->group(
             prefix: $urlmanager->downloads_url_prefix(),
-            callback: function () {
+            callback: function () use ( $app_types ){
                 // License document download.
                 $this->router->get(
                     pattern: 'document/license-document-{license_id:int}.txt',
                     handler: [FileRequestController::class, 'get_license_document']
                 );
-
-                $hosted_apps_registry = $this->container->get( HostedAppsRegistry::class );
-                
-                // Escape types safely and implode with pipe.
-                $app_types = implode( '|', array_map( 'preg_quote', $hosted_apps_registry->app_types() ) );
 
                 // App Zip Download.
                 // app_type matches: theme|plugin|addon.
@@ -415,6 +449,32 @@ final class RouteManager {
                 );
             },
             middleware: []
+        );
+
+        $this->router->group(
+            prefix: $urlmanager->admin_downloads_url_prefix(),
+            callback: function () use ( $app_types ) {
+                $this->router->get(
+                    pattern: 'license-document-{license_id:int}.txt',
+                    handler: [FileRequestController::class, 'get_admin_license_document']
+                );
+
+                // App Zip Download.
+                // app_type matches: theme|plugin|addon.
+                // app_slug.ext:zip matches: {app_slug}.zip -> captures 'app_slug' & 'app_slug_ext'.
+                $this->router->get(
+                    pattern: "{app_type:{$app_types}}/{app_slug.ext:zip}",
+                    handler: [FileRequestController::class, 'get_admin_application_zip_file'],
+                    middleware: [AppDownloadMiddleware::class]
+                );
+
+                // App artifact download route.
+                $this->router->get(
+                    pattern: "{app_type:{$app_types}}/{app_slug}/artifacts/{artifact_filename:.+}",
+                    handler: [FileRequestController::class, 'get_application_artifact_file']
+                );
+            },
+            middleware: [AdminDownloadMiddleware::class]
         );
     }
 

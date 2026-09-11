@@ -379,6 +379,121 @@ button:hover:not( :disabled ),
 	text-decoration: none;
 }
 
+/* ==========================================================================
+   Admin Notice Component (Theme-Aware WordPress-Style Replica)
+========================================================================== */
+
+.notice {
+    background: var(--dashboard-surface);
+    border: 1px solid var(--dashboard-border);
+    border-left-width: 4px;
+    border-left-color: var(--dashboard-text-muted);
+    box-shadow: var(--dashboard-shadow);
+    border-radius: var(--dashboard-radius);
+    margin: 10px 0 15px;
+    padding: 2px 12px;
+    position: relative;
+    font-family: inherit;
+    font-size: var(--dashboard-font-size);
+    line-height: var(--dashboard-line-height);
+    color: var(--dashboard-text);
+    box-sizing: border-box;
+    transition: opacity var(--dashboard-transition), 
+                transform var(--dashboard-transition), 
+                background-color var(--dashboard-transition), 
+                border-color var(--dashboard-transition);
+}
+
+.notice p {
+    margin: 0.5em 0;
+    padding: 2px 0;
+}
+
+/* --- Inline Placement Variant --- */
+.notice.inline {
+    margin: 5px 0;
+}
+
+/* --- Status Variants --- */
+.notice-success {
+    border-left-color: var(--dashboard-success);
+}
+
+.notice-error {
+    border-left-color: var(--dashboard-danger);
+}
+
+.notice-warning {
+    border-left-color: var(--dashboard-warning);
+}
+
+.notice-info {
+    border-left-color: var(--dashboard-accent-sky);
+}
+
+/* --- Tinted Background Variant (Uses Theme Status Surfaces) --- */
+.notice-alt.notice-success {
+    background-color: var(--dashboard-success-bg);
+}
+
+.notice-alt.notice-error {
+    background-color: var(--dashboard-danger-bg);
+}
+
+.notice-alt.notice-warning {
+    background-color: var(--dashboard-warning-bg);
+}
+
+.notice-alt.notice-info {
+    background-color: var(--dashboard-info-bg);
+}
+
+.notice-alt {
+    background-color: var(--dashboard-hover-bg);
+}
+
+/* --- Auto-Injected Dismissible Support --- */
+.notice.is-dismissible {
+    padding-right: 38px;
+}
+
+.notice-dismiss {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    border: none;
+    margin: 0;
+    padding: 4px;
+    background: transparent;
+    color: var(--dashboard-text-muted);
+    cursor: pointer;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--dashboard-radius);
+    transition: color var(--dashboard-transition), 
+                background-color var(--dashboard-transition);
+}
+
+.notice-dismiss:hover {
+    color: var(--dashboard-danger);
+    background-color: var(--dashboard-hover-bg);
+}
+
+.notice-dismiss:focus {
+    outline: none;
+    box-shadow: var(--dashboard-focus-ring);
+}
+
+.notice-dismiss .ti {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+}
+
 /* Selection & scrollbars */
 
 ::selection {

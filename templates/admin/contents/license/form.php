@@ -7,6 +7,7 @@
  * @var array $form_fields
  * @var \SmartLicenseServer\Admin\ContentHandlers\LicensePage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var \SmartLicenseServer\Monetization\License|null $license
  */
 
 defined( 'SMLISER_ROOT' ) ||  exit; 
@@ -21,7 +22,7 @@ if ( 'add-new' !== $tab ) {
             'title' => 'View License',
             'label' => 'View license',
             'url'   => $urlmanager->admin_license_page_url( 'view', ['id' => $license_id] ),
-            'icon'  => 'dashicons dashicons-visibility'
+            'icon'  => 'ti ti-eye'
         )
     );
 }
@@ -30,7 +31,7 @@ if ( 'add-new' !== $tab ) {
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $args ); ?>
 
-    <form class="smliser-form-container smliser-license-form">
+    <form class="smliser-form-container smliser-license-form" data-slug="license-save">
         <?php foreach( $form_fields as $field ) : ?>
             <?php smliser_render_input_field( $field ); ?>
         <?php endforeach; ?>

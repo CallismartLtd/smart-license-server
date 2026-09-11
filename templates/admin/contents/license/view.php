@@ -5,111 +5,109 @@
  * @author Callistus.
  * @package Smliser\templates.
  * @since 0.2.0
- * @var \SmartLicenseServer\Monetization\License $license
- * @var \SmartLicenseServer\HostedApps\AbstractHostedApp $licensed_app
+ * @var \SmartLicenseServer\Monetization\License|null $license
+ * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $licensed_app
  * @var int $license_id
  * @var string $licensee
  * @var \SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var \SmartLicenseServer\Admin\ContentHandlers\LicensePage $page_handler
+ * @var int $total_logs
  */
 namespace SmartLicenseServer\Admin\ContentHandlers;
 
-use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$download_url   = \adminUrl()
-    ->add_query_params([
-        'action'            => 'smliser_admin_download',
-        'id'                => $license_id,
-        'download_token'    => \wp_create_nonce( 'smliser_download_token' ),
-        'type'              => 'license_document'
-    ]);
-/** @var array $args */
-$args   = LicensePage::get_menu_args( $request );
+$download_url   = $urlmanager->admin_document_download_url( $license_id );
+$args           = $page_handler->get_menu_args( $request );
 
-\array_unshift(
-    $args['actions'],
-    array(
-        'title' => 'View logs for this license',
-        'label' => 'Logs',
-        'url'   => \smliser_license_admin_action_page( 'logs' )->add_query_param( 'filterBy',  $license_id ),
-        'icon'  => 'ti ti-logs'
-    ),
+if ( $license ) {
+    \array_unshift(
+        $args['actions'],
+        array(
+            'title' => 'View logs for this license',
+            'label' => 'Logs',
+            'url'   => $urlmanager->admin_license_page_url( 'logs', ['filterBy' => $license_id] ),
+            'icon'  => 'ti ti-logs'
+        ),
 
-    array(
-        'title' => 'Edit License',
-        'label' => 'Edit license',
-        'url'   => \smliser_license_admin_action_page( 'edit', $license_id ),
-        'icon'  => 'ti ti-edit'
-    ),
-    
-    array(
-        'title' => 'Download License Document',
-        'label' => 'Download Document',
-        'url'   => $download_url,
-        'icon'  => 'ti ti-download'
-    ),
+        array(
+            'title' => 'Edit License',
+            'label' => 'Edit license',
+            'url'   => $urlmanager->admin_license_page_url( 'edit', ['id' => $license_id] ),
+            'icon'  => 'ti ti-edit'
+        ),
+        
+        array(
+            'title' => 'Download License Document',
+            'label' => 'Download Document',
+            'url'   => $download_url,
+            'icon'  => 'ti ti-download'
+        ),
 
-    array(
-        'title'     => 'Generate license download token',
-        'label'     => 'Generate Download Token',
-        'url'       => '#',
-        'class'     => 'smliser-generate-download-token-btn',
-        'icon'      => 'ti ti-cloud',
-        'attributes' => array(
-            'aria-label'    => 'Generate a one-time download token for this license.',
-            'aria-role'     => 'button',
-            'aria-haspopup' => 'dialog',
-            'disabled'      => \sprintf( '%s', ! $license->is_issued() ? 'disabled' : '' ),
-            'data-args'     => \smliser_json_encode_attr([
-                'license_id'    => $license_id,
-                'app_name'      => $licensed_app?->get_name() ?? '',
-                'app_type'      => $licensed_app?->get_type() ?? '',
-                'app_slug'      => $licensed_app?->get_slug() ?? '',
-                'is_issued'     => $license->is_issued(),
-            ]),
+        array(
+            'title'     => 'Generate license download token',
+            'label'     => 'Generate Download Token',
+            'url'       => '#',
+            'class'     => 'smliser-generate-download-token-btn',
+            'icon'      => 'ti ti-cloud',
+            'attributes' => array(
+                'aria-label'    => 'Generate a one-time download token for this license.',
+                'aria-role'     => 'button',
+                'aria-haspopup' => 'dialog',
+                'disabled'      => \sprintf( '%s', ! $license->is_issued() ? 'disabled' : '' ),
+                'data-args'     => \smliser_json_encode_attr([
+                    'license_id'    => $license_id,
+                    'app_name'      => $licensed_app?->get_name() ?? '',
+                    'app_type'      => $licensed_app?->get_type() ?? '',
+                    'app_slug'      => $licensed_app?->get_slug() ?? '',
+                    'is_issued'     => $license->is_issued(),
+                ]),
+            )
+        ),
+
+        array(
+            'title'     => 'Delete License',
+            'label'     => 'Delete license',
+            'url'       =>  '#',
+            'class'     => 'smliser-license-delete-btn',
+            'icon'      => 'ti ti-trash',
+            'attributes' => array(
+                'aria-label'    => 'Delete this license permanently.',
+                'disabled'      => empty( $license ),
+                'id'            => 'smliser-license-delete-button'
+            )
         )
-    ),
+    );
+}
 
-    array(
-        'title'     => 'Delete License',
-        'label'     => 'Delete license',
-        'url'       =>  isset( $delete_url ) ? $delete_url : '#',
-        'class'     => 'smliser-license-delete-btn',
-        'icon'      => 'ti ti-trash',
-        'attributes' => array(
-            'aria-label'    => 'Delete this license permanently.',
-            'disabled'      => empty( $license ),
-            'id'            => 'smliser-license-delete-button'
-        )
-    )
-);
-
-$total_logs = count( array_filter(
-    RepositoryAnalytics::get_license_activity_logs(),
-    fn( $data ) => $data['license_id'] === $license_id 
-));
-
-$document_download_url  = \smliser_document_download_url( $license ? $license->get_id() : 0 );
+$public_download_url  = $urlmanager->document_download_url( $license ? $license->get_id() : 0 );
 ?>
 
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $args ); ?>
     <?php if ( empty( $license ) ) : ?>
         
-        <?php echo smliser_not_found_container( 'Invalid or deleted license' ); ?>
+        <?php echo  \smliser_not_found_container(
+            \sprintf(
+                'Invalid or deleted license is "%s". <a href="%s"> <i class="ti ti-arrow-narrow-left"></i> Go Back</a>',
+                $license_id,
+                $urlmanager->admin_license_page_url()->url(),
+            )
+        );?>
     
     <?php else: ?>
         <div class="smliser-admin-view-page-wrapper">
             <div class="smliser-admin-view-page-header"> 
                 <div class="smliser-admin-view-page-header-child">
                     <h2>Overview</h2>
-                    <p><i class="dashicons dashicons-database-view"></i> License ID: <?php echo escHtml( intval( $license->get_id() ) ) ?></p>
-                    <p><i class="dashicons dashicons-yes-alt"></i> Status: <?php echo escHtml( $license->get_status() ) ?></p>
-                    <p><i class="dashicons dashicons-businessman"></i> Licensee: <?php echo escHtml( $licensee ?: 'N/A' ) ?></p>
+                    <p><i class="ti ti-database"></i> License ID: <?php echo escHtml( intval( $license->get_id() ) ) ?></p>
+                    <p><i class="ti ti-circle-check"></i> Status: <?php echo escHtml( $license->get_status() ) ?></p>
+                    <p><i class="ti ti-license"></i> Licensee: <?php echo escHtml( $licensee ?: 'N/A' ) ?></p>
                 </div>
 
                 <div class="smliser-admin-view-page-header-child">
@@ -137,9 +135,9 @@ $document_download_url  = \smliser_document_download_url( $license ? $license->g
                             <th>Is issued</th>
                             <td>
                                 <?php if ( $license->is_issued() ) : ?>
-                                    <span class="dashicons dashicons-yes-alt"></span>
+                                    <span class="ti ti-circle-check"></span>
                                 <?php else: ?>
-                                    <span class="dashicons dashicons-no"></span>
+                                    <span class="ti ti-ban"></span>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -148,7 +146,7 @@ $document_download_url  = \smliser_document_download_url( $license ? $license->g
                             <th>App Info</th>
                             <td>
                                 <?php if ( $license->is_issued() ) : ?>
-                                    <a href="<?php echo escUrl( smliser_admin_repo_tab( 'view', ['app_id' => $licensed_app->get_id(), 'type' => $licensed_app->get_type()] )->url() ); ?>">
+                                    <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'view', ['app_id' => $licensed_app->get_id(), 'type' => $licensed_app->get_type()] )->url() ); ?>">
                                         <?php echo escHtml( $licensed_app->get_name() ); ?> » <?php printf( '%s/%s', escHtml( $licensed_app->get_type() ), escHtml( $licensed_app->get_slug() ) ) ?>
                                     </a>
                                 <?php else : ?>
@@ -158,10 +156,10 @@ $document_download_url  = \smliser_document_download_url( $license ? $license->g
                         </tr>
 
                         <tr>
-                            <th>Document Download URL</th>
+                            <th>Document Download URL(public)</th>
                             <td>
-                                <span><?php echo escHtml( $document_download_url ); ?></span>
-                                <i class="ti ti-copy smliser-click-to-copy" title="Copy" data-copy-value="<?php echo escAttr( $document_download_url ); ?>"></i>
+                                <span><?php echo escHtml( $public_download_url ); ?></span>
+                                <i class="ti ti-copy smliser-click-to-copy" title="Copy" data-copy-value="<?php echo escAttr( $public_download_url ); ?>"></i>
                             </td>
                         </tr>
 
@@ -180,7 +178,7 @@ $document_download_url  = \smliser_document_download_url( $license ? $license->g
                                                 id="<?php echo escHtml( $license->get_id() ); ?>" 
                                                 value="<?php echo escHtml( $license->get_license_key() ); ?>" 
                                                 readonly 
-                                                class="smliser-license-text" 
+                                                class="smliser-license-text"
                                             />
                                             <span class="ti ti-copy copy-key smliser-tooltip" title="Copy license key"></span>
                                         </span>
