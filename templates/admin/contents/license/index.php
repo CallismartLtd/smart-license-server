@@ -62,7 +62,7 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo escHtml( 'Apply' ); ?></button>
                     </div>
-                    <a href="<?php echo escUrl( $urlmanager->admin_license_page_url( 'search' )->url() ); ?>" class="smliser-btn smliser-btn-white">Search Licenses</a>
+                    <a href="<?php echo escUrl( $urlmanager->admin_license_page_url( 'search' )->url() ); ?>" class="smliser-btn smliser-surface-btn">Search Licenses</a>
                 </div>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">

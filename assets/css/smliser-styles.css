@@ -60,7 +60,7 @@
     align-items: center;
     width: 100%;
     max-width: 100%;
-    border: 1px solid #dcdcde;
+    border: 1px solid var( --dashboard-border);
     border-radius: 8px;
     padding: 5px 10px;
     box-sizing: border-box;
@@ -147,8 +147,9 @@ input[type="checkbox"].smliser-licence-key-visibility-toggle {
     padding: 10px;
     gap: 15px;
     flex-wrap: wrap;
-    box-shadow: 1px 1px 4px 0px rgb(0 0 0 / 32%);
+    box-shadow: var( --dashboard-shadow );
     border-radius: 8px;
+    border: 1px solid var( --dashboard-border);
 }
 
 .smliser-all-license-domains span.not-found {
@@ -1244,12 +1245,12 @@ input.smliser_toggle-switch-input {
     text-decoration: none;
 }
 
-.smliser-btn-white {
-    background: white;
-    color: #0ea5e9;
+.smliser-surface-btn {
+    background: var( --dashboard-surface );
+    color: var( --dashboard-text);
 }
 
-.smliser-btn-white:hover {
+.smliser-surface-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 30px rgba(255, 255, 255, 0.3);
 }

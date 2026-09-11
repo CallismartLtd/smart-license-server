@@ -34,7 +34,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo escHtml( 'Apply' ); ?></button>
                     </div>
-                    <a href="<?php echo escUrl( $current_url->add_query_param( 'tab', 'search' )->url() ); ?>" class="smliser-btn smliser-btn-white">Search Messages</a>
+                    <a href="<?php echo escUrl( $current_url->add_query_param( 'tab', 'search' )->url() ); ?>" class="smliser-btn smliser-surface-btn">Search Messages</a>
                 </div>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">

@@ -151,7 +151,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo escHtml( 'Apply' ); ?></button>
                     </div>
-                    <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'search' )->url() ); ?>" class="smliser-btn smliser-btn-white">Search Repository</a>
+                    <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'search' )->url() ); ?>" class="smliser-btn smliser-surface-btn">Search Repository</a>
                 </div>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">
