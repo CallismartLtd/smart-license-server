@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Environments\Application;
 
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
+use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\DataStore;
@@ -41,12 +42,6 @@ class ApplicationEnvironment extends Environment {
      * {@inheritdoc}
      */
     protected function registerDependencies() : void {
-        if ( is_cli() ) {
-            $this->registerCLIDependencies();
-        } else {
-            $this->registerWebDependencies();
-        }
-
         $this->container->singleton( Guard::class, new Guard );
         $this->container->alias( PasswordIdentityProviderInterface::class, IdentityService::class );
 
@@ -61,8 +56,14 @@ class ApplicationEnvironment extends Environment {
             )
         );
 
+        if ( is_cli() ) {
+            $this->registerCLIDependencies();
+        } else {
+            $this->registerWebDependencies();
+        }
+
         $this->container->alias( RESTProviderInterface::class, RestAPIProvider::class );
-        $this->container->singleton( DefaultPage::class, $this->container->get( DefaultPage::class ) );
+        
         $this->container->singleton( ApplicationEnvironment::class, $this );
     }
 
@@ -191,5 +192,9 @@ class ApplicationEnvironment extends Environment {
                 $this->container->get( V1::class )
             )
         );
+
+        $this->container->singleton( AssetsManager::class, $this->container->get( AssetsManager::class ) );
+
+        $this->container->singleton( DefaultPage::class, $this->container->get( DefaultPage::class ) );
     }
 }

@@ -9,10 +9,12 @@
 
 namespace SmartLicenseServer\Messaging;
 
+use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 
 /**
@@ -20,15 +22,23 @@ use SmartLicenseServer\Security\SecurityAwareTrait;
  */
 class MessageController {
     use SecurityAwareTrait;
+
+    public function __construct(
+        protected URLManager $urlmanager,
+        protected Cache $cache,
+        Guard $guard
+    ) {
+        $this->guard = $guard;
+    }
     /**
      * Savw a bulk message.
      * 
      * @param Request $request The request object.
      * @return Response The response object.
      */
-    public static function save_bulk_message( Request $request ) : Response {
+    public function save_bulk_message( Request $request ) : Response {
         try {
-            static::is_system_admin();
+            $this->is_system_admin();
 
             $subject    = $request->get( 'subject' );
 
@@ -36,7 +46,7 @@ class MessageController {
                 throw new RequestException( 'required_param', 'The message subject is required.', ['status' => 400] );
             }
 
-            $body       = $request->get( 'message_body' );
+            $body   = $request->get( 'message_body' );
             
             if ( empty( $body ) ) {
                 throw new RequestException( 'required_param', 'The message body is required.', ['status' => 400] );
@@ -68,22 +78,23 @@ class MessageController {
                 throw new RequestException( 'save_failed', 'Failed to save the bulk message.', ['status' => 500] );
             }
 
-            $response_data  = [
+            $request->set( 'message_id', $message->get_message_id() );
+
+            return Response::json([
                 'success'   => true,
                 'data'      => [
                     'message'       => $is_new_message ? 'Message has been published.' : 'Message has been updated.',
                     'message_id'    => $message->get_message_id(),
+                    'redirect_url'  => $this->urlmanager->admin_broadcats_page_url( 'edit',
+                        [
+                            'msg_id' => $message->get_message_id()
+                        ]
+                    )
                 ],
-            ];
-
-            $request->set( 'message_id', $message->get_message_id() );
-
-            return ( new Response( 200, [], $response_data ) )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
 
@@ -95,9 +106,9 @@ class MessageController {
      * @param Request $request The request object.
      * @return Response The response object.
      */
-    public static function bulk_message_action( Request $request ) : Response {
+    public function bulk_message_action( Request $request ) : Response {
         try {
-            static::is_system_admin();
+            $this->is_system_admin();
 
             $message_ids    = $request->get( 'ids', [] );
             $action         = $request->get( 'bulk_action', '' );
@@ -122,13 +133,13 @@ class MessageController {
                     }
             }
 
-            $url    = smliser_bulk_messages_url()
-            ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
+            $url    = $this->urlmanager->admin_broadcats_page_url()
+                ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
 
             $response = ( new Response( 200, [], '' ) )
-                ->set_header( 'Location', $url->get_href() );
+                ->set_header( 'Location', $url->url() );
 
-            \smliser_cache()->clear();
+            $this->cache->clear();
             return $response;
 
         } catch ( RequestException $e ) {

@@ -9,6 +9,7 @@
  * @var \SmartLicenseServer\Core\URL $current_url
  * @var \SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Messaging\BulkMessage|null $message
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
 
@@ -16,10 +17,15 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>
-    <?php if ( empty( $message ) && $request->has( 'msg_id' ) ) : ?>
-        <?php echo smliser_not_found_container( __( 'Invalid or deleted message', 'smliser' ) ); // phpcs:ignore ?>
+    <?php if ( ! $message && $request->has( 'msg_id' ) ) : ?>
+        <?php echo smliser_not_found_container(
+            sprintf(
+                'Invalid or deleted message. <a href="%s">Go Back</a>',
+                $urlmanager->admin_broadcats_page_url()->url()
+            )
+        ); // phpcs:ignore ?>
     <?php else : ?>
-        <form class="smliser-compose-message-container">
+        <form class="smliser-compose-message-container" data-slug="broadcast-save">
             <div class="smliser-compose-message-container_left">
                 <div class="smliser-compose-message-form-row">
                     <label for="subject"><?php echo escHtml( 'Subject' ); ?></label>

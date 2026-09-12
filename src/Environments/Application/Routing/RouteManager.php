@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Environments\Application\Routing;
 
 use SmartLicenseServer\Admin\ActionHandlers\AppManagement;
 use SmartLicenseServer\Admin\ActionHandlers\AppMonetization;
+use SmartLicenseServer\Admin\ActionHandlers\OtherFormsActions;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\Cache\CacheRequestController;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
@@ -308,6 +309,11 @@ final class RouteManager {
                     $this->router->delete(
                         pattern: 'license-delete',
                         handler: [AppMonetization::class, 'handle_license_delete_request']
+                    );
+
+                    $this->router->post(
+                        pattern: 'broadcast-save',
+                        handler: [OtherFormsActions::class, 'handle_bulk_message_publish_request'],
                     );
 
                     /*

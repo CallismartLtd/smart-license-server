@@ -1955,8 +1955,8 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
         bulkMessageForm.addEventListener( 'submit', async e => {
             e.preventDefault();
-
-            const editor        = tinymce.get( 'message-body' );
+            /** @type {import('../../stubs/tinymce').Editor|null} */
+            const editor = tinymce.get( 'message-body' );
 
             editor?.save();
 
@@ -1987,55 +1987,36 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
             const payLoad = new FormData( bulkMessageForm );
             payLoad.set( 'security', smliser_var.csrf_token );
-            payLoad.set( 'action', 'smliser_publish_bulk_message' );
             
             const submitBtn = bulkMessageForm.querySelector( 'button[type="submit"]' );
             const spinner    = showSpinner( submitBtn );
             submitBtn && ( submitBtn.disabled = true );
+            const slug  = bulkMessageForm.dataset.slug;
 
             try {
-                const response = await fetch( smliser_var.ajaxURL, {
+                const url       = new URL( smliser_var.ajaxURL );
+                url.pathname    += `/${slug}/`;
+                const response = await smliserFetchJSON( url, {
                     method: 'POST',
                     body: payLoad,
                     credentials: 'same-origin',
                 });
 
-                const contentType   = response.headers.get( 'content-type' );
-                const isJson        = contentType && contentType.includes( 'application/json' );
-                const responseData  = isJson  ? await response.json() : await response.text();
-                if ( ! response.ok ) {
-                    const errorMessage = isJson ? ( responseData.data?.message || 'An error occurred' ) : responseData;
-                    const error = new Error( errorMessage );
-                    error.type  = 'SMLISER_NOT_OK';
-                    throw error;
-                }
+                if ( response.success ) {
+                    SmliserModal.success( response.data?.message || 'Message saved successfully' );
 
-                if ( responseData.success ) {
-                    SmliserToast.show( responseData.data?.message || 'Message sent successfully', 5000 );
-                    bulkMessageForm.reset();
-                    jQuery( appSelect ).val( null ).trigger( 'change' );
-                    editor?.setContent( '' );
+                    const redirect_url  = response.data?.redirect_url ? new URL( response.data?.redirect_url ) : null;
 
-                    responseData.data?.redirect_url && ( window.location.href = responseData.data.redirect_url );
+                    redirect_url && ( window.location.href = redirect_url.href );
                 } else {
-                    const errorMessage = responseData.data?.message || 'An unknown error occurred.';
+                    const errorMessage = response.data?.message || 'An unknown error occurred.';
                     const error = new Error( errorMessage );
-                    error.type  = 'SMLISER_FAILURE';
                     throw error;
                 }
             } catch ( error ) {
 
-                if ( error instanceof TypeError ) {
-                    SmliserToast.show( 'Network error or server is unreachable.', 6000 );
-                } else if ( error.type === 'SMLISER_NOT_OK' || error.type === 'SMLISER_FAILURE' ) {
-                    SmliserToast.show( error.message, 6000 );
-                } else {
-                    SmliserToast.show( 'An unexpected error occurred.', 10000 );
-                }
-
-                console.log(error);
+                SmliserModal.error( error.message );
                 
-
             } finally {
                 submitBtn && ( submitBtn.disabled = false );
                 removeSpinner( spinner );

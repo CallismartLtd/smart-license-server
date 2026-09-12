@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
+use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Messaging\BulkMessageService;
@@ -23,27 +24,28 @@ class BulkMessagePage implements AdminPageInterface{
     
     public function __construct(
         protected TemplateLocator $locator,
-        protected URLManager $urlmanager
-    ) {}
-    /**
-     * Page router
-     * 
-     * @param Request $request
-     */
-    public function router( Request $request ) : void {
-        $tab = $request->get( 'tab' );
-        switch ( $tab ) {
-            case 'edit':
-            case 'compose-new':
-                self::message_editor( $request );
-                break;
-            case 'search':
-                self::search_page( $request );
-                break;
-            default:
-            self::dashboard( $request );
+        protected URLManager $urlmanager,
+        protected AssetsManager $assets_manager
+    ) {
+       $this->register_assets();
+    }
+
+    protected function register_assets() {
+        $tinymce_handle = 'smliser-tinymce' ;
+
+        if ( $this->assets_manager->has_script( $tinymce_handle ) ) {
+            $tinymce_script = $this->assets_manager->get_script( $tinymce_handle);
+            $this->assets_manager->unregister_script( $tinymce_handle);
+
+            $this->assets_manager->register_script(
+                'smliser-tinymce',
+                $tinymce_script['url'],
+                $tinymce_script['dependencies'],
+                $tinymce_script['version'],
+                $tinymce_script['footer'],
+                AssetsManager::CATEGORY_ADMIN_DASHBOARD
+            );          
         }
-    
     }
 
     /**
@@ -71,7 +73,8 @@ class BulkMessagePage implements AdminPageInterface{
         $message_id = $request->get( 'msg_id' );
         $menu_args  = static::get_menu_args( $request );
         $message    = BulkMessageService::raw()->get_message( $message_id );
-        $vars       = compact( 'menu_args', 'request', 'message' );
+        $urlmanager = $this->urlmanager;
+        $vars       = compact( 'menu_args', 'request', 'message', 'urlmanager' );
         
         $this->locator->render( 'admin.contents.broadcasts.compose', $vars );
     }
