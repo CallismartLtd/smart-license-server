@@ -8,6 +8,7 @@
  * @var SmartLicenseServer\Core\URL $current_url
  * @var SmartLicenseServer\Core\Request $request
  * @var array $pagination
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
 unset( $menu_args['breadcrumbs'][0] ); 
@@ -18,7 +19,9 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
     <?php smliser_print_admin_content_header( $menu_args ); ?>
     <div class="smliser-table-wrapper">
         <?php if ( $notice = $request->query( 'message' ) ) : ?>
-            <?php wp_admin_notice( $notice, ['type' => 'success', 'dismissible' => true] ) ?>
+            <div class="notice notice-info is-dimissible">
+                <p><?php echo escHtml( $notice ); ?></p>
+            </div>
         <?php endif; ?>
 
         <?php if ( empty( $messages ) ) : ?>
@@ -34,12 +37,12 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo escHtml( 'Apply' ); ?></button>
                     </div>
-                    <a href="<?php echo escUrl( $current_url->add_query_param( 'tab', 'search' )->url() ); ?>" class="smliser-btn smliser-surface-btn">Search Messages</a>
+                    <a href="<?php echo escUrl( $urlmanager->admin_broadcats_page_url( 'search' )->url() ); ?>" class="smliser-btn smliser-surface-btn">Search Messages</a>
                 </div>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">
                 <input type="hidden" name="context" value="bulk-message">
-                <table class="widefat striped">
+                <table class="smliser-table widefat striped">
                     <thead>
                         <tr>
                             <th><input type="checkbox" id="smliser-select-all"></th>
@@ -58,7 +61,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                 <td class="smliser-edit-row">
                                     <?php echo escHtml( $message->get_id() ); ?>
                                     <p class="smliser-edit-link">
-                                        <a href="<?php echo escUrl( $current_url->add_query_params( array( 'tab' => 'edit', 'msg_id' => $message->get_message_id() ) )->url() ); ?>">Edit</a>
+                                        <a href="<?php echo escUrl( $urlmanager->admin_broadcats_page_url( 'edit', ['msg_id' => $message->get_message_id() ] )->url() ); ?>">Edit</a>
                                     </p>
                                 </td>
                             

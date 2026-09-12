@@ -8,6 +8,7 @@
  * @var array $pagination
  * @var \SmartLicenseServer\Core\URL $current_url
  * @var \SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
@@ -42,7 +43,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 <tbody>
 
                     <?php if ( empty( $messages ) ) : ?>
-                        <tr><td colspan="6" class="align-center bg-white"><?php echo escHtml( 'No messages found.' ); ?></td></tr>
+                        <tr><td colspan="6" class="align-center"><?php echo escHtml( 'No messages found.' ); ?></td></tr>
                     <?php else: ?>
                     
                         <?php foreach ( $messages as $message ) : ?>        
@@ -50,7 +51,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                 <td class="smliser-edit-row">
                                     <?php echo escHtml( $message->get_id() ); ?>
                                     <p class="smliser-edit-link">
-                                        <a href="<?php echo escUrl( $current_url->add_query_params( array( 'tab' => 'edit', 'msg_id' => $message->get_message_id() ) )->url() ); ?>">Edit</a>
+                                        <a href="<?php echo escUrl( $urlmanager->admin_broadcats_page_url( 'edit', ['msg_id' => $message->get_message_id()] )->url() ); ?>">Edit</a>
                                     </p>
                                 </td>
                             

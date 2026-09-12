@@ -6,6 +6,7 @@
  */
 declare( strict_types=1 );
 
+use SmartLicenseServer\Utils\HtmlSanitizer;
 use SmartLicenseServer\Utils\Sanitizer;
 
 /**
@@ -55,6 +56,16 @@ function escUrl( string $url ) : string {
  */
 function sanitize_html( string $html ) : string {
     return Sanitizer::sanitize_html( $html );
+}
+
+/**
+ * Sanitize the content of tinymce editor.
+ * 
+ * @param string $input
+ * @return string
+ */
+function sanitize_editor( string $input ) : string {
+    return new HtmlSanitizer()->sanitize_editor( $input );
 }
 
 /**

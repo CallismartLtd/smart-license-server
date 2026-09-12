@@ -59,8 +59,8 @@ class BulkMessagePage implements AdminPageInterface{
         $pagination     = $msg_data['pagination'] ?? [];
         $current_url    = smliser_get_current_url();
         $menu_args      = static::get_menu_args( $request );
-        
-        $vars           = compact( 'messages', 'current_url', 'menu_args', 'pagination', 'request' );
+        $urlmanager     = $this->urlmanager;
+        $vars           = compact( 'urlmanager', 'messages', 'current_url', 'menu_args', 'pagination', 'request' );
         $this->locator->render( 'admin.contents.broadcasts.index', $vars );
     }
 
@@ -94,7 +94,9 @@ class BulkMessagePage implements AdminPageInterface{
         $messages       = $msg_data['items'] ?? [];
         $pagination     = $msg_data['pagination'] ?? [];
 
-        $vars           = compact( 'current_url', 'menu_args', 'search', 'messages', 'pagination', 'request' );
+        $urlmanager     = $this->urlmanager;
+
+        $vars           = compact( 'urlmanager', 'current_url', 'menu_args', 'search', 'messages', 'pagination', 'request' );
 
         $this->locator->render( 'admin.contents.broadcasts.search', $vars );
        
@@ -134,13 +136,6 @@ class BulkMessagePage implements AdminPageInterface{
                     'url'   => $this->urlmanager->admin_broadcats_page_url( 'compose-new' ),
                     'icon'  => 'ti ti-plus',
                     'active'    => 'compose-new' === $tab
-                ),
-
-                array(
-                    'title' => 'Settings',
-                    'label' => 'Settings',
-                    'url'   => $this->urlmanager->admin_options_url(),
-                    'icon'  => 'ti ti-settings'
                 )
             )
         ];

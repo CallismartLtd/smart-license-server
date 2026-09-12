@@ -2003,7 +2003,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 });
 
                 if ( response.success ) {
-                    SmliserModal.success( response.data?.message || 'Message saved successfully' );
+                    await SmliserModal.success( response.data?.message || 'Message saved successfully' );
 
                     const redirect_url  = response.data?.redirect_url ? new URL( response.data?.redirect_url ) : null;
 
@@ -2015,7 +2015,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 }
             } catch ( error ) {
 
-                SmliserModal.error( error.message );
+                await SmliserModal.error( error.message );
                 
             } finally {
                 submitBtn && ( submitBtn.disabled = false );

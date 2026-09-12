@@ -40,20 +40,20 @@ class MessageController {
         try {
             $this->is_system_admin();
 
-            $subject    = $request->get( 'subject' );
+            $subject    = $request->post( 'subject', '' );
 
             if ( empty( $subject ) ) {
                 throw new RequestException( 'required_param', 'The message subject is required.', ['status' => 400] );
             }
 
-            $body   = $request->get( 'message_body' );
+            $body   = $request->get( 'message_body', '', false );
             
             if ( empty( $body ) ) {
                 throw new RequestException( 'required_param', 'The message body is required.', ['status' => 400] );
             }
 
-            $message_id         = $request->get( 'message_id', 0 );
-            $associated_apps    = $request->get( 'associated_apps', [] );
+            $message_id         = $request->post( 'message_id', 0 );
+            $associated_apps    = $request->post( 'associated_apps', [] );
             $is_new_message     = true;
 
             if ( $message_id ) {
