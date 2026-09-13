@@ -580,7 +580,7 @@ class AccessControlPage implements AdminPageInterface {
         $_owner_types_keys  = Owner::get_allowed_owner_types();
         $_owner_types_titles= array_map( 'ucwords', $_owner_types_keys );
         $_owner_types       = array_combine( $_owner_types_keys, $_owner_types_titles );
-        $subject_option     = array();
+        $subject_option     = [];
 
         if ( $owner ) {
             $_owner_type    = $owner->get_type();

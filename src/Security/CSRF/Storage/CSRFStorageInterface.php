@@ -180,7 +180,7 @@ class CustomStorage implements CSRFStorage {
      *
      * @var array
      */
-    private $tokens = array();
+    private $tokens = [];
 
     /**
      * Optional persistence callback
@@ -256,7 +256,7 @@ class CustomStorage implements CSRFStorage {
      * @return void
      */
     public function clear() {
-        $this->tokens = array();
+        $this->tokens = [];
         $this->persist();
     }
 }

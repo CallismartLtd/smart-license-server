@@ -248,7 +248,7 @@ class RequestController {
             $avatar = $request->get_file( 'avatar' );
 
             if ( $avatar ) {
-                FileSystemHelper::upload_avatar( $avatar, 'user', md5( $user->get_email() ) );
+                FileSystemHelper::upload_avatar( $avatar, 'user', md5( $user->get_unique_identifier() ) );
             }
             return true;
         } catch ( InvalidArgumentException $e ) {

@@ -45,7 +45,7 @@ class SessionStorage implements CSRFStorage {
 
         // Initialize tokens array if not exists
         if ( ! isset( $_SESSION[ $this->prefix ] ) ) {
-            $_SESSION[ $this->prefix ] = array();
+            $_SESSION[ $this->prefix ] = [];
         }
     }
 

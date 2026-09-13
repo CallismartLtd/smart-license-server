@@ -333,7 +333,7 @@ class BulkMessage {
             return $as_html ? '<em>No associated apps</em>' : 'No associated apps';
         }
 
-        $output = array();
+        $output = [];
 
         foreach ( $this->associated_apps as $app_type => $slugs ) {
             $count = count( $slugs );

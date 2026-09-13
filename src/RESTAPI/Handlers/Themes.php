@@ -87,7 +87,7 @@ class Themes {
         /** @var array $theme */
         $theme = $request->get( 'smliser_resource' );
 
-        $response = new Response( 200, array(), $theme );
+        $response = new Response( 200, [], $theme );
         return $response;
     }
 

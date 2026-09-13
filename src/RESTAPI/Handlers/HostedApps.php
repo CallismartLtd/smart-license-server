@@ -128,7 +128,7 @@ class HostedApps {
 
 
 
-        return new Response( 200, array(), $data );
+        return new Response( 200, [], $data );
     }
 
     /**
@@ -165,7 +165,7 @@ class HostedApps {
             return $app;
         }
         
-        return new Response( 200, array(), $app );
+        return new Response( 200, [], $app );
     }
 
     /**

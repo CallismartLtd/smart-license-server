@@ -35,7 +35,7 @@ class Autoloader {
      * 
      * @var array
      */
-    private static array $loaded_function_files = array();
+    private static array $loaded_function_files = [];
     
     /**
      * Register the autoloader

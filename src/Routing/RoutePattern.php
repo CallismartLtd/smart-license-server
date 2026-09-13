@@ -83,13 +83,13 @@ final class RoutePattern {
 	 *                                                 merged over (and able to override) the built-in aliases.
 	 * @throws InvalidRouteException On any malformed pattern or invariant violation.
 	 */
-	public static function compile( string $pattern, array $customConstraints = array() ): CompiledPattern {
+	public static function compile( string $pattern, array $customConstraints = [] ): CompiledPattern {
 		$pattern     = trim( $pattern, '/' );
 		$constraints = $customConstraints + self::DEFAULT_CONSTRAINTS;
 		$rawSegments = self::splitSegments( $pattern );
 
-		$segments    = array();
-		$seenParams  = array();
+		$segments    = [];
+		$seenParams  = [];
 		$sawOptional = false;
 
 		foreach ( $rawSegments as $rawSegment ) {
@@ -110,7 +110,7 @@ final class RoutePattern {
 			$segments[]  = $segment;
 		}
 
-		$paramNames = array();
+		$paramNames = [];
 		foreach ( $segments as $segment ) {
 			array_push( $paramNames, ...$segment->paramNames );
 		}
@@ -130,10 +130,10 @@ final class RoutePattern {
 	 */
 	private static function splitSegments( string $pattern ): array {
 		if ( '' === $pattern ) {
-			return array();
+			return [];
 		}
 
-		$segments = array();
+		$segments = [];
 		$current  = '';
 		$depth    = 0;
 
@@ -179,12 +179,12 @@ final class RoutePattern {
 
 		if ( 0 === $matchCount ) {
 			// Pure literal segment — no placeholders, nothing to capture.
-			return new RouteSegment( preg_quote( $rawSegment, '#' ), false, array() );
+			return new RouteSegment( preg_quote( $rawSegment, '#' ), false, [] );
 		}
 
 		$isSoleToken = 1 === $matchCount && $matches[0][0][0] === $rawSegment;
 		$optional    = false;
-		$paramNames  = array();
+		$paramNames  = [];
 		$regex       = '';
 		$cursor      = 0;
 

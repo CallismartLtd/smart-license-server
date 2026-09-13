@@ -104,7 +104,7 @@ class HostedApplicationService extends DataStore {
      *  }
      * }
      */
-    public static function get_plugins( array $args = array() ) {
+    public static function get_plugins( array $args = [] ) {
         $args['types']  = array( 'plugin' );
         return static::get_apps( $args );
     }
@@ -127,7 +127,7 @@ class HostedApplicationService extends DataStore {
      *  }
      * }
      */
-    public static function get_themes( array $args = array() ) {
+    public static function get_themes( array $args = [] ) {
         $args['types']  = array( 'theme' );
         return static::get_apps( $args );
     }
@@ -151,7 +151,7 @@ class HostedApplicationService extends DataStore {
      *  }
      * }
      */
-    public static function get_trashed_apps( array $args = array() ) {
+    public static function get_trashed_apps( array $args = [] ) {
         $args['status'] = AbstractHostedApp::STATUS_TRASH;
         return static::get_apps( $args );
     }
@@ -174,7 +174,7 @@ class HostedApplicationService extends DataStore {
      *  }
      * }
      */
-    public static function get_software( array $args = array() ) {
+    public static function get_software( array $args = [] ) {
         $args['types']  = array( 'software' );
         return static::get_apps( $args );
     }

@@ -160,12 +160,12 @@ class RouteCatalog {
 	private function build_grouped_routes() : array {
 		$api_config = $this->version::get_routes();
 		$namespace  = $api_config['namespace'];
-		$grouped    = array();
+		$grouped    = [];
 
 		foreach ( $api_config['routes'] as $route_config ) {
 			$route    = $route_config['route'];
 			$methods  = is_array( $route_config['methods'] ) ? $route_config['methods'] : array( $route_config['methods'] );
-			$args     = $this->format_args( $route_config['args'] ?? array() );
+			$args     = $this->format_args( $route_config['args'] ?? [] );
 			$name     = $route_config['name'] ?? 'Unnamed Route';
 			$category = $route_config['category'] ?? null;
 
@@ -174,7 +174,7 @@ class RouteCatalog {
 					'route'           => $route,
 					'humanized_route' => self::humanize_route( $namespace . '/' . $route ),
 					'category'        => $category,
-					'methods'         => array(),
+					'methods'         => [],
 				);
 			}
 
@@ -196,7 +196,7 @@ class RouteCatalog {
 	 * @return array<int, array{name: string, type: string, required: bool, description: string, default: mixed}>
 	 */
 	private function format_args( array $args ) : array {
-		$formatted = array();
+		$formatted = [];
 
 		foreach ( $args as $arg_name => $arg_config ) {
 			$formatted[] = array(

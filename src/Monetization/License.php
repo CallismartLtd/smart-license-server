@@ -123,7 +123,7 @@ class License extends DataStore {
      * @var array $meta_data
      */
     protected array $meta_data = array(
-        'activated_on'  => array()
+        'activated_on'  => []
     );
 
     public const STATUS_ACTIVE      = 'active';
@@ -698,7 +698,7 @@ class License extends DataStore {
         
         $rows   = $db->get_results( $sql->build(), $sql->get_bindings() );
 
-        $items = array();
+        $items = [];
 
         if ( ! empty( $rows ) ) {
             foreach ( $rows as $row ) {
@@ -909,7 +909,7 @@ class License extends DataStore {
      * Get All active licensed Websites.
      */
     public function get_active_domains( $context = 'view' ) {
-        $all_domains = $this->get_meta( 'activated_on', array() );
+        $all_domains = $this->get_meta( 'activated_on', [] );
 
         if ( 'view' === $context && is_array( $all_domains ) ) {
             $all_hosts = array_keys( $all_domains );
@@ -967,7 +967,7 @@ class License extends DataStore {
      * Get total domains using this license.
      */
     public function get_total_active_domains() {
-        return count( (array) $this->get_meta( 'activated_on', array() ) );
+        return count( (array) $this->get_meta( 'activated_on', [] ) );
     }
 
     /**
@@ -1003,9 +1003,9 @@ class License extends DataStore {
      * @param string $site_secret The secret key for the site.
      */
     public function update_active_domains( $url, $site_secret ) {
-        $sites  = $this->get_meta( 'activated_on', array() );
+        $sites  = $this->get_meta( 'activated_on', [] );
         if ( ! is_array( $sites ) ) {
-            $sites = array();
+            $sites = [];
         }
         
         $url    = $this->ensure_domain( $url );

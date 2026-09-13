@@ -383,7 +383,7 @@ class SoftwareRepository extends Repository {
      */
     public function get_faq( Software $software ) : string {
         $app_json = $this->get_app_dot_json( $software );
-        $faq      = $app_json['faq'] ?? array();
+        $faq      = $app_json['faq'] ?? [];
 
         if ( empty( $faq ) || ! is_array( $faq ) ) {
             return '';

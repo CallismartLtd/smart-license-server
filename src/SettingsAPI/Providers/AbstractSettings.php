@@ -28,7 +28,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 *
 	 * @var array
 	 */
-	protected $cache = array();
+	protected $cache = [];
 
 	/**
 	 * Prefix used for all option keys in the underlying storage.

@@ -279,7 +279,7 @@ class Plugin extends AbstractHostedApp {
         $self->set_requires_at_least( $plugin_meta['requires_at_least'] ?? '' );
         $self->set_tested_up_to( $plugin_meta['tested_up_to'] ?? '' );
         $self->set_requires_php( $plugin_meta['requires_php'] ?? '' );
-        $self->set_tags( $plugin_meta['tags'] ?? array() );
+        $self->set_tags( $plugin_meta['tags'] ?? [] );
 
         $license    = array(
             'license'       => $plugin_meta['license'] ?? '',

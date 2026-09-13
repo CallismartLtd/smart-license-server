@@ -22,7 +22,7 @@ namespace SmartLicenseServer\Routing;
 final class RouteCollection {
 
 	/** @var Route[] */
-	private array $routes = array();
+	private array $routes = [];
 
 	public function add( Route $route ): void {
 		$this->routes[] = $route;

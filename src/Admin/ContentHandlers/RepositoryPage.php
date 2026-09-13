@@ -832,7 +832,7 @@ class RepositoryPage implements AdminPageInterface {
      * @return string HTML for stats footer.
      */
     private function build_stats_footer( array $analytics ) {
-        $stats = array();
+        $stats = [];
 
         // Downloads stats
         if ( ! empty( $analytics['downloads'] ) ) {

@@ -472,14 +472,14 @@ class BulkMessageService extends DataStore {
 
         $results = $db->get_results( $sql->build(), $sql->get_bindings() );
 
-        $apps = array();
+        $apps = [];
 
         foreach ( $results as $row ) {
             $type = static::sanitize_key( $row['app_type'] );
             $slug = static::sanitize_text( $row['app_slug'] );
 
             if ( ! isset( $apps[$type] ) ) {
-                $apps[$type] = array();
+                $apps[$type] = [];
             }
 
             $apps[$type][] = $slug;

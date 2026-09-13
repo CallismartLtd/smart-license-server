@@ -63,14 +63,14 @@ class Response {
 	 *
 	 * @var array<string,string>
 	 */
-	protected $headers = array();
+	protected $headers = [];
 
     /**
      * Registered callbacks to be executed after file is served.
      *
      * @var array
      */
-    protected $after_serve_callbacks = array();
+    protected $after_serve_callbacks = [];
 
 	/**
 	 * Response body.
@@ -602,7 +602,7 @@ class Response {
 	 * @return static
 	 */
 	public function clear_headers(): static {
-		$this->headers = array();
+		$this->headers = [];
 		return $this;
 	}
 

@@ -30,9 +30,9 @@ final class DispatchResult {
 		public readonly DispatchStatus $status,
 		public readonly ?Route $route = null,
 		public readonly mixed $handler = null,
-		public readonly array $params = array(),
-		public readonly array $middleware = array(),
-		public readonly array $allowedMethods = array()
+		public readonly array $params = [],
+		public readonly array $middleware = [],
+		public readonly array $allowedMethods = []
 	) {
 	}
 

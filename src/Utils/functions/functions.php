@@ -267,8 +267,8 @@ function parse_args( $args, $defaults ) {
  * @return array
  */
 function parse_args_recursive( $args, $defaults ) {
-    $args     = is_array( $args ) || is_object( $args ) ? (array) $args : array();
-    $defaults = is_array( $defaults ) || is_object( $defaults ) ? (array) $defaults : array();
+    $args     = is_array( $args ) || is_object( $args ) ? (array) $args : [];
+    $defaults = is_array( $defaults ) || is_object( $defaults ) ? (array) $defaults : [];
 
     foreach ( $defaults as $key => $default ) {
 
@@ -303,7 +303,7 @@ function parse_args_recursive( $args, $defaults ) {
  */
 function smliser_get_placeholder_icon( string $type = '' ) : string {
 
-    static $cache = array();
+    static $cache = [];
 
     $type = strtolower( trim( $type ) );
 

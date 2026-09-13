@@ -810,7 +810,7 @@ class Installer extends AbstractCommand {
                 continue;
             }
 
-            $labelled = array();
+            $labelled = [];
 
             foreach ( $data[ $data_key ] as $sub_key => $sub_val ) {
                 $labelled[ $this->humanize_key( (string) $sub_key ) ] = $sub_val;
@@ -843,7 +843,7 @@ class Installer extends AbstractCommand {
         }
 
         if ( ! empty( $data['capabilities'] ) && is_array( $data['capabilities'] ) ) {
-            $caps = array();
+            $caps = [];
 
             foreach ( $data['capabilities'] as $cap => $supported ) {
                 // null means "couldn't be determined" (e.g. unknown storage

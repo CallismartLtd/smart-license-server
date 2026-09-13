@@ -37,7 +37,7 @@ final class Route {
 		public readonly mixed $handler,
 		public readonly bool $optionalTrailingSlash,
 		public readonly CompiledPattern $compiled,
-		public readonly array $middleware = array()
+		public readonly array $middleware = []
 	) {
 	}
 

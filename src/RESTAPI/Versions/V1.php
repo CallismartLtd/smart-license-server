@@ -433,7 +433,7 @@ class V1 implements RESTVersionInterface {
 					'methods'       => ['GET'],
 					'handler'       => array( BulkMessages::class, 'mock_dispatch' ),
 					'guard'         => [__CLASS__, 'return_true'],
-					'args'          => array(),
+					'args'          => [],
 					'category'      => 'testing',
 					'name'          => 'Mock Inbox (Testing)',
 				),
@@ -644,7 +644,7 @@ class V1 implements RESTVersionInterface {
 	 * @return array
 	 */
 	private static function get_repository_app_args() : array {
-		return array();
+		return [];
 	}
 
 	/**

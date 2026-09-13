@@ -30,14 +30,14 @@ class EnvFileWriter {
 	 *
 	 * @var array<int, string>
 	 */
-	private array $lines = array();
+	private array $lines = [];
 
 	/**
 	 * Map of key names to line indices in $this->lines for fast lookup.
 	 *
 	 * @var array<string, int>
 	 */
-	private array $key_index_map = array();
+	private array $key_index_map = [];
 
 	/*
 	|--------------------------
@@ -193,8 +193,8 @@ class EnvFileWriter {
 	 * @return void
 	 */
 	private function parse_lines( array $raw_lines ): void {
-		$this->lines         = array();
-		$this->key_index_map = array();
+		$this->lines         = [];
+		$this->key_index_map = [];
 
 		foreach ( $raw_lines as $line ) {
 			$trimmed_line  = trim( $line );

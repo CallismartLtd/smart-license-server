@@ -108,7 +108,7 @@ trait WPRepoUtils {
 
         $current_manifest = is_array( $current_manifest )
             ? $current_manifest
-            : array();
+            : [];
 
         // Allow overrides
         $manifest = array_merge( $defaults, $current_manifest );

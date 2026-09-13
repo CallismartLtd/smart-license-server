@@ -75,10 +75,10 @@ final class Router {
 	private RouteCollection $routes;
 
 	/** @var array<string,string> */
-	private array $constraints = array();
+	private array $constraints = [];
 
 	/** @var string[] */
-	private array $groupStack = array();
+	private array $groupStack = [];
 
 	public function __construct() {
 		$this->routes = new RouteCollection();
@@ -131,7 +131,7 @@ final class Router {
 	public function add(
 		string $pattern,
 		string $pagename = '',
-		array $extraVars = array(),
+		array $extraVars = [],
 		string $priority = 'top',
 		bool $optionalTrailingSlash = true,
 		mixed $handler = null
@@ -251,7 +251,7 @@ final class Router {
 	 * @return Route The registered route. Note: Route::name() is not supported on raw
 	 *               routes, since there's no pattern template to render a URL from.
 	 */
-	public function raw( string $regex, string $query, string $priority = 'top', array $queryVarNames = array() ): Route {
+	public function raw( string $regex, string $query, string $priority = 'top', array $queryVarNames = [] ): Route {
 		$route = Route::raw( $regex, $query, RoutePriority::fromString( $priority ), $queryVarNames );
 
 		$this->routes->add( $route );
@@ -294,7 +294,7 @@ final class Router {
 	 * @return string Relative URL path (no leading slash, no site URL prepended).
 	 * @throws InvalidRouteException If the route is unknown or a required parameter is missing.
 	 */
-	public function url( string $name, array $params = array() ): string {
+	public function url( string $name, array $params = [] ): string {
 		$route = $this->routes->find( $name );
 
 		if ( null === $route ) {

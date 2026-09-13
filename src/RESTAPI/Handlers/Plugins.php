@@ -86,7 +86,7 @@ class Plugins {
         /** @var array $plugin */
         $plugin = $request->get( 'smliser_resource' );
 
-        $response = new Response( 200, array(), $plugin );
+        $response = new Response( 200, [], $plugin );
         return $response;
 
     }

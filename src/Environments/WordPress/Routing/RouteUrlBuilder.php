@@ -28,8 +28,8 @@ final class RouteUrlBuilder {
 	 */
 	public static function build( Route $route, array $params ): string {
 		$template = $route->compiled->template;
-		$segments = '' === $template ? array() : explode( '/', $template );
-		$built    = array();
+		$segments = '' === $template ? [] : explode( '/', $template );
+		$built    = [];
 
 		foreach ( $segments as $segment ) {
 			if ( ! preg_match( RoutePattern::PLACEHOLDER_REGEX, $segment ) ) {

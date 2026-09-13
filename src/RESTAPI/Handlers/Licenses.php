@@ -113,7 +113,7 @@ class Licenses {
             $license->update_active_domains( $domain, $domain_secret_hash );
         }
 
-        $response = new Response( 200, array(), $response_data );
+        $response = new Response( 200, [], $response_data );
 
         $license_data   = array(
             'license_id'    => $license->get_id(),
@@ -210,7 +210,7 @@ class Licenses {
         
         RepositoryAnalytics::log_license_activity( $log_data );
         
-        $response = new Response( $status_code, array(), $response_data );
+        $response = new Response( $status_code, [], $response_data );
         
         return $response;
     }
@@ -260,7 +260,7 @@ class Licenses {
 
         $log_data['comment']    = $response_data['message'];
 
-        $response = new Response( $status_code, array(), $response_data );
+        $response = new Response( $status_code, [], $response_data );
         RepositoryAnalytics::log_license_activity( $log_data );
 
         return $response;
@@ -346,7 +346,7 @@ class Licenses {
             'duration'      => microtime( true ) - $request->startTime()
         );
 
-        $response = new Response( 200, array(), $response_data );
+        $response = new Response( 200, [], $response_data );
         RepositoryAnalytics::log_license_activity( $log_data );
 
         return $response;
@@ -422,7 +422,7 @@ class Licenses {
             )
         );
 
-        $response = new Response( 200, array(), $response_data );
+        $response = new Response( 200, [], $response_data );
         return $response;
     }
 

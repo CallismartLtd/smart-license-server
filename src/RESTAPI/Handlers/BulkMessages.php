@@ -66,7 +66,7 @@ class BulkMessages {
             $message = $message->to_array();
         }
 
-        $response = new Response( 200, array(), $results );
+        $response = new Response( 200, [], $results );
 
         return $response;
     }
@@ -195,7 +195,7 @@ class BulkMessages {
         $start  = $offset + 1;
         $end    = min( $offset + $limit, $total_messages );
 
-        $items      = array();
+        $items      = [];
         $base_time  = time();
 
         for ( $i = $start; $i <= $end; $i++ ) {
@@ -222,6 +222,6 @@ class BulkMessages {
             ),
         );
 
-        return new Response( 200, array(), $result );
+        return new Response( 200, [], $result );
     }
 }

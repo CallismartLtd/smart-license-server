@@ -27,7 +27,6 @@ use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminDownloadMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddleware;
-use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Routing\Router as CoreRouter;
@@ -87,11 +86,11 @@ final class RouteManager {
 	public function registerProvider( RESTVersionInterface $provider ): void {
 		$config    = $provider->get_routes();
 		$namespace = $config['namespace'] ?? '';
-		$routes    = $config['routes'] ?? array();
+		$routes    = $config['routes'] ?? [];
 
 		$register = static function ( CoreRouter $router ) use ( $routes ): void {
 			foreach ( $routes as $route ) {
-				$middleware = array();
+				$middleware = [];
 
 				if ( isset( $route['guard'] ) ) {
 					$middleware[] = self::guardAsMiddleware( $route['guard'] );
@@ -122,21 +121,6 @@ final class RouteManager {
      */
     public function registerCoreRoutes() : void {
         $this->router->any( '/', $this->defaultHomeHandler );
-
-        $this->router->group(
-            prefix: 'test',
-            callback:  function() {
-                $this->router->any(
-                    pattern: 'json-error',
-                    handler: function() {
-                        return Response::error(
-                            new Exception( 'test', 'This is a test json error', ['status' => 500] )
-                        )
-                        ;
-                    }
-                );
-            }
-        );
         
         $urlmanager = $this->container->get( URLManager::class );
 
@@ -423,7 +407,7 @@ final class RouteManager {
 		|---------------------------
 		*/
         $this->router->get(
-            pattern: $urlmanager->uploads_url_prefix(),
+            pattern: "{$urlmanager->uploads_url_prefix()}/{file_path:path}",
             handler: [FileRequestController::class, 'get_uploads_dir_asset'],
             middleware: []
         );

@@ -178,7 +178,7 @@ class CSRF {
      *
      * @return string HTML hidden input element
      */
-    public function field( $id = '', $attrs = array() ) {
+    public function field( $id = '', $attrs = [] ) {
 
         $token = $this->get();
 

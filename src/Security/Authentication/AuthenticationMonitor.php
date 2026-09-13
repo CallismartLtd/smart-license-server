@@ -288,7 +288,7 @@ final class AuthenticationMonitor {
 		?array $credential_events
 	): array {
 
-		$threats = array();
+		$threats = [];
 		$score   = 0;
 
 		/*
@@ -448,7 +448,7 @@ final class AuthenticationMonitor {
 			$key,
 			static function ( $current ) use ( $event, $timestamp ): array {
 
-				$events = is_array( $current ) ? $current : array();
+				$events = is_array( $current ) ? $current : [];
 
 				$events[] = $event;
 
@@ -482,7 +482,7 @@ final class AuthenticationMonitor {
 				return $events;
 			},
 			self::DEFAULT_WINDOW,
-			array()
+			[]
 		);
 
 		if ( ! is_array( $events ) ) {
@@ -523,7 +523,7 @@ final class AuthenticationMonitor {
 		$events = $this->cache->get( $key );
 
 		if ( ! is_array( $events ) ) {
-			return array();
+			return [];
 		}
 
 		$events = array_values(
@@ -555,7 +555,7 @@ final class AuthenticationMonitor {
 		string $field
 	): array {
 
-		$values = array();
+		$values = [];
 
 		foreach ( $events as $event ) {
 

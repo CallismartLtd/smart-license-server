@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Core;
 
 use SmartLicenseServer\Contracts\URLManagerInterface;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
+use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
@@ -311,13 +312,18 @@ class URLManager implements URLManagerInterface {
      * @return URL
      */
     public function avatar_url( string $filename_hash, string $avatar_type ) : URL {
-        $path       = FileSystemHelper::join_path( SMLISER_UPLOADS_DIR, 'avatars', $avatar_type, $filename_hash );
+
+        $type   = match( $avatar_type ) {
+            Owner::TYPE_INDIVIDUAL, 'user', 'users'     => 'users',
+            Owner::TYPE_ORGANIZATION, 'organizations'   => 'organization',
+            'service_account', 'service_accounts'       => 'service-accounts'
+        };
+
+        $path   = FileSystemHelper::join_path( SMLISER_UPLOADS_DIR, 'avatars', $type, $filename_hash );
 
         if ( ! file_exists( $path ) ) {
             return $this->assets_url( smliser_get_placeholder_icon( 'avatar' ) );
         }
-        
-        $type       = smliser_pluralize( str_replace( '_', '-', $avatar_type ) );
 
         return $this->uploads_url( 'avatars' )
             ->append_path( $type )

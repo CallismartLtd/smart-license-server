@@ -32,7 +32,7 @@ class HtaccessWriter {
      *
      * @var array<int, string>
      */
-    private array $lines = array();
+    private array $lines = [];
 
     /*
     |--------------------------
@@ -114,7 +114,7 @@ class HtaccessWriter {
      */
     public function prepend( string $directive ): static {
         $raw_lines = explode( "\n", $directive );
-        $prepended = array();
+        $prepended = [];
 
         foreach ( $raw_lines as $line ) {
             $prepended[] = rtrim( $line, "\r\n" );
@@ -189,7 +189,7 @@ class HtaccessWriter {
      * @return void
      */
     private function parse_lines( array $raw_lines ): void {
-        $this->lines = array();
+        $this->lines = [];
 
         foreach ( $raw_lines as $line ) {
             $this->lines[] = rtrim( $line, "\r\n" );

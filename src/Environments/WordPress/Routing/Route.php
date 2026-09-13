@@ -48,7 +48,7 @@ final class Route {
 		public readonly mixed $handler = null,
 		private readonly ?string $rawRegex = null,
 		private readonly ?string $rawQuery = null,
-		private readonly array $rawQueryVarNames = array()
+		private readonly array $rawQueryVarNames = []
 	) {
 	}
 
@@ -71,8 +71,8 @@ final class Route {
 	 * @param string[] $queryVarNames Query var names this raw rule populates, so
 	 *                                query_vars() still knows to register them.
 	 */
-	public static function raw( string $regex, string $query, RoutePriority $priority, array $queryVarNames = array(), mixed $handler = null ): self {
-		return new self( null, '', array(), $priority, false, null, $handler, $regex, $query, $queryVarNames );
+	public static function raw( string $regex, string $query, RoutePriority $priority, array $queryVarNames = [], mixed $handler = null ): self {
+		return new self( null, '', [], $priority, false, null, $handler, $regex, $query, $queryVarNames );
 	}
 
 	/**
@@ -119,7 +119,7 @@ final class Route {
 
 		$regex = $this->compiled->regex . ( $this->optionalTrailingSlash ? '/?' : '' );
 
-		$queryParts = array();
+		$queryParts = [];
 
 		if ( '' !== $this->pagename ) {
 			$queryParts[] = 'pagename=' . rawurlencode( $this->pagename );
@@ -177,7 +177,7 @@ final class Route {
 			return null;
 		}
 
-		$params = array();
+		$params = [];
 
 		foreach ( $this->compiled->paramNames as $name ) {
 			if ( isset( $matches[ $name ] ) ) {

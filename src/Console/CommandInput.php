@@ -28,8 +28,8 @@ final class CommandInput {
 	 * @param array<string, mixed>     $options   Named options and flags keyed by option name (without leading `--`).
 	 */
 	public function __construct(
-		private array $arguments = array(),
-		private array $options   = array(),
+		private array $arguments = [],
+		private array $options   = [],
 	) {}
 
 	/*
