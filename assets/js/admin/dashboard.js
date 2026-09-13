@@ -7,8 +7,6 @@
 ( function () {
 	'use strict';
 
-	var STORAGE_KEY_COLLAPSED = 'dashboard-menu-collapsed';
-	var STORAGE_KEY_THEME     = 'dashboard-theme';
 	var MOBILE_BREAKPOINT     = 782;
 
 	document.addEventListener( 'DOMContentLoaded', function () {
@@ -25,8 +23,6 @@
 		}
 
 		initDismissibleNotices();
-		restoreCollapsedState( wrapper );
-		restoreTheme();
 		restoreScrollPos();
 
 		if ( menuToggle ) {
@@ -114,28 +110,9 @@
 		var isCollapsed = wrapper.classList.toggle( 'is-collapsed' );
 
 		try {
-			window.localStorage.setItem( STORAGE_KEY_COLLAPSED, isCollapsed ? '1' : '0' );
+			window.localStorage.setItem( smliser_var.sidebar_state_key, isCollapsed ? '1' : '0' );
 		} catch ( error ) {
 			// Storage unavailable (private mode, disabled, etc). Ignore.
-		}
-	}
-
-	/**
-	 * Apply the collapsed state saved from a previous session, if any.
-	 *
-	 * @param {HTMLElement} wrapper The dashboard wrapper element.
-	 */
-	function restoreCollapsedState( wrapper ) {
-		var stored;
-
-		try {
-			stored = window.localStorage.getItem( STORAGE_KEY_COLLAPSED );
-		} catch ( error ) {
-			stored = null;
-		}
-
-		if ( '1' === stored ) {
-			wrapper.classList.add( 'is-collapsed' );
 		}
 	}
 
@@ -150,26 +127,9 @@
 		root.setAttribute( 'data-theme', nextTheme );
 
 		try {
-			window.localStorage.setItem( STORAGE_KEY_THEME, nextTheme );
+			window.localStorage.setItem( smliser_var.theme_storage_key, nextTheme );
 		} catch ( error ) {
 			// Storage unavailable. Ignore.
-		}
-	}
-
-	/**
-	 * Apply the theme saved from a previous session, if any.
-	 */
-	function restoreTheme() {
-		var stored;
-
-		try {
-			stored = window.localStorage.getItem( STORAGE_KEY_THEME );
-		} catch ( error ) {
-			stored = null;
-		}
-
-		if ( 'dark' === stored ) {
-			document.documentElement.setAttribute( 'data-theme', 'dark' );
 		}
 	}
 

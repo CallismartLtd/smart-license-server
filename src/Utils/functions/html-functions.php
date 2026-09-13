@@ -555,6 +555,24 @@ function smliser_not_found_container( $text ) {
 }
 
 /**
+ * Print notice.
+ * 
+ * @param string $message The message to show to the user.
+ * @param bool $is_dismissible Default false.
+ * @return void
+ */
+function smliser_print_notice( string $message, bool $is_dismissible = false ) : void {
+    $dismissible_class  = $is_dismissible ? ' is-dismissible': '';
+    printf(
+        '<div class="notice notice-info%s">
+            <p>%s</p>
+        </div>',
+        $dismissible_class,
+        escHtml( $message )
+    );
+}
+
+/**
  * Render the Smart License Server admin top navigation header.
  *
  * @param array $args {

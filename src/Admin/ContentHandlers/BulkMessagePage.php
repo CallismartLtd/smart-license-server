@@ -30,7 +30,7 @@ class BulkMessagePage implements AdminPageInterface{
        $this->register_assets();
     }
 
-    protected function register_assets() {
+    protected function register_assets() : void {
         $tinymce_handle = 'smliser-tinymce' ;
 
         if ( $this->assets_manager->has_script( $tinymce_handle ) ) {

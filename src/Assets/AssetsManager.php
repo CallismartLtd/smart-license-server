@@ -13,7 +13,6 @@
 
 namespace SmartLicenseServer\Assets;
 
-use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Security\Context\Guard;
@@ -37,7 +36,6 @@ final class AssetsManager {
 	 */
 	const CATEGORY_ADMIN_DASHBOARD = 'admin_dashboard';
 
-
 	/**
 	 * Uncategorized asset name.
 	 * 
@@ -59,7 +57,6 @@ final class AssetsManager {
 	 */
 	private array $styles = [];
 
-
 	/**
 	 * Registered JavaScript assets.
 	 *
@@ -73,7 +70,6 @@ final class AssetsManager {
 	 */
 	private array $scripts = [];
 
-
 	/**
 	 * Registered global JS constants (translations, server-side data,
 	 * etc.) to be exposed to the front end as `const NAME = ...;`
@@ -83,6 +79,19 @@ final class AssetsManager {
 	 */
 	private array $js_constants = [];
 
+	/**
+	 * Handles of CSS assets already printed on this request.
+	 *
+	 * @var array<string, true>
+	 */
+	private array $printed_styles = [];
+
+	/**
+	 * Handles of JavaScript assets already printed on this request.
+	 *
+	 * @var array<string, true>
+	 */
+	private array $printed_scripts = [];
 
 	/**
 	 * Construct the manager and register the default assets.
@@ -91,7 +100,6 @@ final class AssetsManager {
 	 */
 	public function __construct(
 		protected Guard $guard,
-		protected Request $request,
 		protected URLManager $urlmanager,
 		protected CSS $css,
 		protected JS $js,
@@ -101,12 +109,10 @@ final class AssetsManager {
 		$this->register_default_scripts();
 	}
 
-
 	/**
 	 * Prevent cloning of the singleton.
 	 */
 	private function __clone() {}
-
 
 	/**
 	 * Prevent unserialization from creating a second instance.
@@ -126,7 +132,6 @@ final class AssetsManager {
 		return $_ENV['SCRIPT_SUFFIX'] ?? '';
 	}
 
-
 	/**
 	 * Get the valid asset categories.
 	 *
@@ -139,7 +144,6 @@ final class AssetsManager {
 			self::CATEGORY_CLIENT_DASHBOARD,
 		];
 	}
-
 
 	/**
 	 * Register a CSS asset.
@@ -189,7 +193,6 @@ final class AssetsManager {
 		];
 	}
 
-
 	/**
 	 * Register a JavaScript asset.
 	 *
@@ -232,7 +235,6 @@ final class AssetsManager {
 		];
 	}
 
-
 	/**
 	 * Unregister a CSS asset.
 	 *
@@ -249,7 +251,6 @@ final class AssetsManager {
 		return true;
 	}
 
-
 	/**
 	 * Unregister a JavaScript asset.
 	 *
@@ -265,7 +266,6 @@ final class AssetsManager {
 
 		return true;
 	}
-
 
 	/**
 	 * Determine whether a CSS asset is registered.
@@ -288,7 +288,6 @@ final class AssetsManager {
 		return isset( $this->scripts[ $handle ] );
 	}
 
-
 	/**
 	 * Get all registered CSS assets.
 	 *
@@ -304,7 +303,6 @@ final class AssetsManager {
 		return $this->styles;
 	}
 
-
 	/**
 	 * Get all registered JavaScript assets.
 	 *
@@ -319,7 +317,6 @@ final class AssetsManager {
 	public function scripts() : array {
 		return $this->scripts;
 	}
-
 
 	/**
 	 * Get all registered CSS assets belonging to a category.
@@ -345,7 +342,6 @@ final class AssetsManager {
 		);
 	}
 
-
 	/**
 	 * Get all registered JavaScript assets belonging to a category.
 	 *
@@ -370,7 +366,6 @@ final class AssetsManager {
 		);
 	}
 
-
 	/**
 	 * Get a registered CSS asset.
 	 *
@@ -386,7 +381,6 @@ final class AssetsManager {
 	public function get_style( string $handle ) : ?array {
 		return $this->styles[ $handle ] ?? null;
 	}
-
 
 	/**
 	 * Get a registered JavaScript asset.
@@ -404,7 +398,6 @@ final class AssetsManager {
 		return $this->scripts[ $handle ] ?? null;
 	}
 
-
 	/**
 	 * Get a registered CSS asset URL.
 	 *
@@ -417,7 +410,6 @@ final class AssetsManager {
 		return $style['url'] ?? null;
 	}
 
-
 	/**
 	 * Get a registered JavaScript asset URL.
 	 *
@@ -429,7 +421,6 @@ final class AssetsManager {
 
 		return $script['url'] ?? null;
 	}
-
 
 	/**
 	 * Resolve CSS dependencies.
@@ -446,7 +437,6 @@ final class AssetsManager {
 		return $this->resolve_dependencies( $handles, $this->styles, 'CSS' );
 	}
 
-
 	/**
 	 * Resolve JavaScript dependencies.
 	 *
@@ -462,7 +452,6 @@ final class AssetsManager {
 		return $this->resolve_dependencies( $handles, $this->scripts, 'JavaScript' );
 	}
 
-
 	/**
 	 * Print a single CSS asset.
 	 *
@@ -474,6 +463,10 @@ final class AssetsManager {
 	 * @return string|null
 	 */
 	public function print_style( string $handle, bool $echo = true ) : ?string {
+
+		if ( isset( $this->printed_styles[ $handle ] ) ) {
+			return $echo ? null : '';
+		}
 
 		$style = $this->get_style( $handle );
 
@@ -490,6 +483,8 @@ final class AssetsManager {
 			escAttr( $style['media-type'] )
 		);
 
+		$this->printed_styles[ $handle ] = true;
+
 		if ( $echo ) {
 			echo $link_tag . PHP_EOL; // phpcs:ignore
 
@@ -498,7 +493,6 @@ final class AssetsManager {
 
 		return $link_tag;
 	}
-
 
 	/**
 	 * Print a single JavaScript asset.
@@ -511,6 +505,9 @@ final class AssetsManager {
 	 * @return string|null
 	 */
 	public function print_script( string $handle, bool $echo = true ) : ?string {
+		if ( isset( $this->printed_scripts[ $handle ] ) ) {
+			return $echo ? null : '';
+		}
 
 		$script = $this->get_script( $handle );
 
@@ -535,7 +532,6 @@ final class AssetsManager {
 		return $html;
 	}
 
-
 	/**
 	 * Print multiple CSS assets with dependency resolution.
 	 *
@@ -549,7 +545,6 @@ final class AssetsManager {
 		}
 	}
 
-
 	/**
 	 * Print multiple JavaScript assets with dependency resolution.
 	 *
@@ -562,7 +557,6 @@ final class AssetsManager {
 			$this->print_script( $handle );
 		}
 	}
-
 
 	/**
 	 * Print every registered CSS asset belonging to a category,
@@ -584,7 +578,6 @@ final class AssetsManager {
 		$this->print_styles( ...$handles );
 	}
 
-
 	/**
 	 * Print every registered JavaScript asset belonging to a category,
 	 * with dependency resolution and optionally filter by footer or header context.
@@ -597,48 +590,24 @@ final class AssetsManager {
 	 */
 	public function print_category_scripts( string $category, ?bool $footer = null ) : void {
 
-		$scripts = $this->get_scripts_by_category( $category );
-
-		if ( null !== $footer ) {
-			$scripts	= array_filter(
-				$scripts,
-				fn ( $script ) : bool => $script['footer'] === $footer
-			);
-		}
-
-		$handles	= array_keys( $scripts );
+		$handles = array_keys( $this->get_scripts_by_category( $category ) );
 
 		if ( empty( $handles ) ) {
 			return;
 		}
 
-		$this->print_scripts( ...$handles );
-	}
+		$resolved = $this->resolve_scripts( $handles );
 
+		if ( null !== $footer ) {
+			$resolved = array_values( array_filter(
+				$resolved,
+				fn( string $handle ) : bool => ( $this->scripts[ $handle ]['footer'] ?? null ) === $footer
+			) );
+		}
 
-	/**
-	 * Print every registered CSS and JavaScript asset belonging to a
-	 * category, with dependency resolution.
-	 *
-	 * @param string $category
-	 * @return void
-	 *
-	 * @throws \InvalidArgumentException If the category is invalid.
-	 */
-	public function print_category( string $category ) : void {
-		$this->print_category_styles( $category );
-		$this->print_category_scripts( $category );
-	}
-
-
-	/**
-	 * Print every registered global CSS asset (assets registered
-	 * without an explicit category, or explicitly under UNCATEGORIZED).
-	 *
-	 * @return void
-	 */
-	public function print_global_styles() : void {
-		$this->print_category_styles( self::UNCATEGORIZED );
+		foreach ( $resolved as $handle ) {
+			$this->print_script( $handle );
+		}
 	}
 
 	/**
@@ -665,7 +634,6 @@ final class AssetsManager {
 		$this->js_constants[ $name ] = $data;
 	}
 
-
 	/**
 	 * Determine whether a JS constant is registered.
 	 *
@@ -675,7 +643,6 @@ final class AssetsManager {
 	public function has_js_constant( string $name ) : bool {
 		return isset( $this->js_constants[ $name ] );
 	}
-
 
 	/**
 	 * Get a registered JS constant's data.
@@ -687,7 +654,6 @@ final class AssetsManager {
 		return $this->js_constants[ $name ] ?? null;
 	}
 
-
 	/**
 	 * Get all registered JS constants.
 	 *
@@ -696,7 +662,6 @@ final class AssetsManager {
 	public function get_js_constants() : array {
 		return $this->js_constants;
 	}
-
 
 	/**
 	 * Unregister a JS constant.
@@ -714,10 +679,57 @@ final class AssetsManager {
 		return true;
 	}
 
+	/**
+	 * Move a registered CSS asset into a different category.
+	 *
+	 * Lets an asset registered as UNCATEGORIZED (or any other category)
+	 * at boot time be reassigned later, without unregistering and
+	 * re-registering it.
+	 *
+	 * @param string $handle
+	 * @param string $category One of the valid_categories() values.
+	 * @return bool True if the asset was registered and its category changed.
+	 *
+	 * @throws \InvalidArgumentException If the category is invalid.
+	 */
+	public function set_style_category( string $handle, string $category ) : bool {
+
+		$this->validate_category( $category );
+
+		if ( ! isset( $this->styles[ $handle ] ) ) {
+			return false;
+		}
+
+		$this->styles[ $handle ]['category'] = $category;
+
+		return true;
+	}
 
 	/**
-	 * Print all registered JS constants as a single inline <script> tag
-	 * containing one `const NAME = ...;` statement per constant.
+	 * Move a registered JavaScript asset into a different category.
+	 *
+	 * @param string $handle
+	 * @param string $category One of the valid_categories() values.
+	 * @return bool True if the asset was registered and its category changed.
+	 *
+	 * @throws \InvalidArgumentException If the category is invalid.
+	 */
+	public function set_script_category( string $handle, string $category ) : bool {
+
+		$this->validate_category( $category );
+
+		if ( ! isset( $this->scripts[ $handle ] ) ) {
+			return false;
+		}
+
+		$this->scripts[ $handle ]['category'] = $category;
+
+		return true;
+	}
+
+	/**
+	 * Print registered JS constants as an inline <script> tag containing
+	 * one `const NAME = ...;` statement per constant.
 	 *
 	 * Data is JSON-encoded with JSON_HEX_* flags so it is safe to embed
 	 * directly inside a <script> tag (no closing-tag or quote breakout).
@@ -726,24 +738,27 @@ final class AssetsManager {
 	 * so consuming scripts can rely on the constants already existing.
 	 *
 	 * @param bool $echo
+	 * @param string[]|null $names Restrict output to these constant names.
+	 *                              Defaults to all registered constants.
 	 * @return string|null
 	 *
 	 * @throws \RuntimeException If a constant fails to JSON-encode.
 	 */
-	public function print_js_constants( bool $echo = true ) : ?string {
+	public function print_js_constants( bool $echo = true, ?array $names = null ) : ?string {
 
-		if ( empty( $this->js_constants ) ) {
+		$constants = null === $names
+			? $this->js_constants
+			: array_intersect_key( $this->js_constants, array_flip( $names ) );
+
+		if ( empty( $constants ) ) {
 			return $echo ? null : '';
 		}
 
 		$statements = [];
 
-		foreach ( $this->js_constants as $name => $data ) {
+		foreach ( $constants as $name => $data ) {
 
-			$encoded = json_encode(
-				$data,
-				JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES
-			);
+			$encoded = $this->encode_js_constant( $name, $data );
 
 			if ( false === $encoded ) {
 				throw new \RuntimeException(
@@ -758,8 +773,13 @@ final class AssetsManager {
 			$statements[] = sprintf( 'const %s = %s;', $name, $encoded );
 		}
 
+		$id = ( null !== $names && 1 === count( $names ) )
+			? sprintf( 'smliser-js-constant-%s', escAttr( $names[0] ) )
+			: 'smliser-js-constants';
+
 		$html = sprintf(
-			'<script id="smliser-js-constants">%s</script>',
+			'<script id="%s">%s</script>',
+			$id,
 			implode( "\n\r", $statements )
 		);
 
@@ -770,6 +790,27 @@ final class AssetsManager {
 		}
 
 		return $html;
+	}
+
+	/**
+	 * Print a single registered JS constant as an inline <script> tag
+	 * containing a `const NAME = ...;` statement.
+	 *
+	 * Thin wrapper around print_js_constants() scoped to one constant.
+	 *
+	 * @param string $name
+	 * @param bool $echo
+	 * @return string|null
+	 *
+	 * @throws \RuntimeException If the constant fails to JSON-encode.
+	 */
+	public function print_js_constant( string $name, bool $echo = true ) : ?string {
+
+		if ( ! isset( $this->js_constants[ $name ] ) ) {
+			return null;
+		}
+
+		return $this->print_js_constants( $echo, [ $name ] );
 	}
 
 	/**
@@ -854,6 +895,8 @@ final class AssetsManager {
             'csrf_token'        => '',
             'spinner_gif'       => $this->urlmanager->assets_url( 'images/spinner.gif' )->url(),
             'spinner_gif_2x'    => $this->urlmanager->assets_url( 'images/spinner-2x.gif' )->url(),
+			'theme_storage_key'	=> 'dashboard-theme',
+			'sidebar_state_key'	=> 'dashboard-menu-collapsed',
             // 'app_search_api'    => \restAPIUrl( '/repository/' ),
             'uploads'            => [
                 'max_upload_size'           => smliser_max_upload_size(),
@@ -870,7 +913,6 @@ final class AssetsManager {
 
 		$this->register_js_constant( 'smliser_var', $consts );
 	}
-
 
 	/**
 	 * Register the default JavaScript assets.
@@ -895,7 +937,6 @@ final class AssetsManager {
 		}
 	}
 
-
 	/**
 	 * Validate an asset handle.
 	 *
@@ -919,7 +960,6 @@ final class AssetsManager {
 		}
 	}
 
-
 	/**
 	 * Validate an asset category.
 	 *
@@ -940,7 +980,6 @@ final class AssetsManager {
 			);
 		}
 	}
-
 
 	/**
 	 * Validate a JS constant name.
@@ -968,7 +1007,6 @@ final class AssetsManager {
 		}
 	}
 
-
 	/**
 	 * Validate asset dependencies.
 	 *
@@ -981,10 +1019,7 @@ final class AssetsManager {
 	 *
 	 * @throws \InvalidArgumentException
 	 */
-	private function validate_dependencies(
-		string $handle,
-		array $dependencies
-	) : void {
+	private function validate_dependencies( string $handle, array $dependencies ) : void {
 
 		foreach ( $dependencies as $dependency ) {
 
@@ -1009,7 +1044,6 @@ final class AssetsManager {
 			}
 		}
 	}
-
 
 	/**
 	 * Resolve asset dependencies.
@@ -1078,5 +1112,30 @@ final class AssetsManager {
 		}
 
 		return array_keys( $resolved );
+	}
+
+	/**
+	 * JSON-encode a JS constant's data for safe inline `<script>` embedding.
+	 *
+	 * @param string $name
+	 * @param array $data
+	 * @return string
+	 *
+	 * @throws \RuntimeException If the data fails to JSON-encode.
+	 */
+	private function encode_js_constant( string $name, array $data ) : string {
+
+		$encoded = smliser_safe_json_encode(
+			$data,
+			JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES
+		);
+
+		if ( false === $encoded ) {
+			throw new \RuntimeException(
+				sprintf( 'Failed to encode JS constant "%s": %s', $name, json_last_error_msg() )
+			);
+		}
+
+		return $encoded;
 	}
 }

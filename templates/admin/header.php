@@ -20,7 +20,7 @@ use SmartLicenseServer\Assets\AssetsManager;
 
 ?>
 <!DOCTYPE html>
-<html lang="en"<?php echo $theme ? ' data-theme="' . escAttr( $theme ) . '"' : ''; ?>>
+<html lang="en" data-theme="<?php echo $theme ? escAttr( $theme ) : ''; ?>" data-menu-state="<?php echo $collapsed ? ' is-collapsed' : '' ?>">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,7 +35,7 @@ use SmartLicenseServer\Assets\AssetsManager;
 </head>
 <body>
 
-    <div class="dashboard-wrapper<?php echo $collapsed ? ' is-collapsed' : '' ?>" id="dashboard-wrapper">
+    <div class="dashboard-wrapper" id="dashboard-wrapper">
 		<header class="dashboard-top-menu">
 			<div class="dashboard-top-menu-left">
 				<button type="button" class="dashboard-menu-toggle" id="dashboard-menu-toggle" aria-label="Collapse menu" aria-controls="dashboard-wrapper">

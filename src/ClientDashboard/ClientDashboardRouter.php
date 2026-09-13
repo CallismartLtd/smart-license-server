@@ -23,7 +23,11 @@ use SmartLicenseServer\Security\Context\Guard;
 
 class ClientDashboardRouter {
     
-    private function __construct( protected Guard $guard ) {}
+    private function __construct(
+        protected Guard $guard,
+        protected ClientDashboardRegistry $client_dashboard_registry,
+        protected AuthTemplateRegistry $auth_template_registry
+    ) {}
 
     /*
     |-----------

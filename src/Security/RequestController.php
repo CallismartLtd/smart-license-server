@@ -20,6 +20,7 @@ use SmartLicenseServer\Security\Actors\OrganizationMember;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
@@ -36,13 +37,17 @@ class_implements;
  */
 class RequestController {
     use SanitizeAwareTrait, SecurityAwareTrait;
+    public function __construct(
+        protected Guard $guard
+    ) {}
+
     /**
      * Process request to create or update a security entity.
      * 
      * @param Request $request The request object.
      * @return Response The response object.
      */
-    public static function save_entity( Request $request ) : Response {
+    public function save_entity( Request $request ) : Response {
         try {
 
             $entity = $request->get( 'entity' );
@@ -80,7 +85,8 @@ class RequestController {
                 'success'   => true,
                 'data'      => array(
                     'message'   => sprintf( '%s saved successfully.', ucwords( str_replace( '_', ' ', $entity ) ) ),
-                    'entity_id' => $ent_object->get_id()
+                    'entity_id' => $ent_object->get_id(),
+                    'entity'    => $entity
                 )
             ];
 
@@ -92,13 +98,11 @@ class RequestController {
                 }
             }
 
-            return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
-                ->set_header( 'Content-Type', 'UTF-8' );
+            return Response::json( $data );
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', 'UTF-8' );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
 
@@ -108,7 +112,7 @@ class RequestController {
      * @param Request $request
      * @return Response
      */
-    public static function delete_entity( Request $request ) : Response {
+    public function delete_entity( Request $request ) : Response {
         try {
             $entity = $request->get( 'entity' );
 
@@ -136,7 +140,7 @@ class RequestController {
 
             $cap    = sprintf( 'security.%s.delete', $permission_domain );
 
-            static::check_permissions( $cap );
+            $this->check_permissions( $cap );
 
             $id     = $request->get( 'id' );
 
@@ -148,20 +152,17 @@ class RequestController {
 
             ContextServiceProvider::delete_entity( $ent_object );
 
-            $data   = [
+            return Response::json([
                 'success'   => true,
                 'data'      => array(
                     'message'   => sprintf( '%s deleted successfully.', ucwords( str_replace( '_', ' ', $entity ) ) ),
-                    'entity_id' => $ent_object->get_id()
+                    'entity_id' => $ent_object->get_id(),
+                    'entity'    => $entity
                 )
-            ];
-
-            return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
-                ->set_header( 'Content-Type', 'UTF-8' );
+            ]);
         } catch ( Exception $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', 'UTF-8' );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8'  );
         }
     }
 
@@ -172,7 +173,7 @@ class RequestController {
      * @param Request $request The request object.
      * @return bool|RequestException
      */
-    protected static function save_user( User $user, Request $request ) : bool|RequestException {
+    protected function save_user( User $user, Request $request ) : bool|RequestException {
         try {
             $email  = $request->get( 'email' );
 
@@ -195,9 +196,9 @@ class RequestController {
             }
 
             if ( ! $user->exists() ) {
-                static::check_permissions( 'security.user.create' );
+                $this->check_permissions( 'security.user.create' );
             } else {
-                static::check_permissions( 'security.user.update' );
+                $this->check_permissions( 'security.user.update' );
             }
 
             $display_name   = $request->get( 'display_name' );
@@ -246,7 +247,7 @@ class RequestController {
 
             $avatar = $request->get_file( 'avatar' );
 
-            if ( ! empty( $avatar ) ) {
+            if ( $avatar ) {
                 FileSystemHelper::upload_avatar( $avatar, 'user', md5( $user->get_email() ) );
             }
             return true;
@@ -279,7 +280,7 @@ class RequestController {
      * @param Request $request The request object.
      * @return bool|RequestException
      */
-    protected static function save_service_account( ServiceAccount $sa_acc, Request $request ) : bool|RequestException {
+    protected function save_service_account( ServiceAccount $sa_acc, Request $request ) : bool|RequestException {
         try {
             $display_name   = $request->get( 'display_name' );
 
@@ -293,7 +294,7 @@ class RequestController {
                 throw new RequestException( 'invalid_service_account_status', 'The status provided is not allowed.', ['status' => 400] );
             }
 
-            $owner_id   = static::sanitize_int( $request->get( 'owner_id', 0 ) );
+            $owner_id   = $this->sanitize_int( $request->get( 'owner_id', 0 ) );
             $owner      = Owner::get_by_id( $owner_id );
             
             if ( ! $owner || ! $owner->exists() ) {
@@ -315,9 +316,9 @@ class RequestController {
             $account_exists = $sa_acc->exists();
 
             if ( $account_exists ) {
-                static::check_permissions( 'security.service_account.update' );
+                $this->check_permissions( 'security.service_account.update' );
             } else {
-                static::check_permissions( 'security.service_account.create' );
+                $this->check_permissions( 'security.service_account.create' );
             }
 
             if ( ! $sa_acc->save() ) {
@@ -368,7 +369,7 @@ class RequestController {
      * @param Request $request The request object.
      * @return bool|RequestException
      */
-    protected static function save_organization( Organization $organization, Request $request ) : bool|RequestException{
+    protected function save_organization( Organization $organization, Request $request ) : bool|RequestException{
         try {
             $display_name   = $request->get( 'display_name' );
 
@@ -383,14 +384,14 @@ class RequestController {
             }
 
             if ( ! $organization->exists() ) {
-                static::check_permissions( 'security.organization.create' );
+                $this->check_permissions( 'security.organization.create' );
                 if ( $request->isEmpty( 'slug' ) ) {
                     $request->set( 'slug', strtolower( str_replace( [' ', '-'], ['_', '_'], $display_name ) ) );
                 }
 
                 $organization->set_slug( $request->get( 'slug' ) );
             } else {
-                static::check_permissions( 'security.organization.update' );
+                $this->check_permissions( 'security.organization.update' );
             }
 
             $organization->set_display_name( $display_name )->set_status( $status );
@@ -433,7 +434,7 @@ class RequestController {
      * 
      * @param Request $request
      */
-    public static function save_organization_member( Request $request ) : Response {
+    public function save_organization_member( Request $request ) : Response {
         try {
             $role_slug  = (string) $request->get( 'role_slug' );
             $role       = Role::get_by_slug( $role_slug );
@@ -442,37 +443,37 @@ class RequestController {
                 throw new RequestException( 'bad_request', 'Member must have a valid role.', ['status' => 400] );
             }
 
-            $org_id         = static::sanitize_int( $request->get( 'organization_id' ) );
+            $org_id         = $this->sanitize_int( $request->get( 'organization_id' ) );
             $organization   = Organization::get_by_id( $org_id );
 
             if ( ! $organization ) {
                 throw new RequestException( 'bad_request', 'The member must belong to an existing organization.', ['status' => 400] );
             }
 
-            $user_id    = static::sanitize_int( $request->get( 'user_id' ) );
+            $user_id    = $this->sanitize_int( $request->get( 'user_id' ) );
             $subject    = User::get_by_id( $user_id );
 
             if ( ! $subject ) {
                 throw new RequestException( 'bad_request', 'The member subject must be an existing user.', ['status' => 400] );
             }
            
-            $member_id  = static::sanitize_int( $request->get( 'member_id' ) );                    
+            $member_id  = $this->sanitize_int( $request->get( 'member_id' ) );                    
             
             $member     = $organization->get_members()->get( $member_id );
 
             if ( ! $member ) {
-                static::check_permissions( 'security.organization.add_members' );
+                $this->check_permissions( 'security.organization.add_members' );
                 $collection = Collection::make( ['role' => $role ] );
                 $member = new OrganizationMember( $subject, $collection );
 
                 $organization->get_members()->add( $member );
             } else {
-                static::check_permissions( 'security.organization.update_members' );
+                $this->check_permissions( 'security.organization.update_members' );
             }
 
             ContextServiceProvider::save_organization_member( $member, $organization, $role );
 
-            $data = array(
+            return Response::json([
                 'success'   => true,
                 'data'      => array(
                     'message'   => 'Member saved successfully.',
@@ -485,9 +486,7 @@ class RequestController {
                         'updated_at'    => $member->get_updated_at()->format( \smliser_datetime_format() ),
                     ]
                 )
-            );
-            return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
-                ->set_header( 'Content-Type', 'UTF-8' );
+            ]);
 
         } catch ( InvalidArgumentException $e ) {
             $error   = new RequestException(
@@ -508,11 +507,8 @@ class RequestController {
 
         }
 
-        $response   = ( new Response() )
-            ->set_exception( $error )
-            ->set_header( 'Content-Type', 'UTF-8' );
-        return $response;
-
+        return Response::error( $error )
+            ->set_header( 'Content-Type', 'application/json; charset=UTF-8'  );
     }
 
     /**
@@ -522,9 +518,9 @@ class RequestController {
      * @param Request $request The request object.
      * @return bool|RequestException
      */
-    protected static function save_owner( Owner $owner, Request $request ): bool|RequestException {
+    protected function save_owner( Owner $owner, Request $request ): bool|RequestException {
 
-        $subject_id = static::sanitize_int( $request->get( 'subject_id' ) );
+        $subject_id = $this->sanitize_int( $request->get( 'subject_id' ) );
 
         // Subject ID must exist.
         if ( empty( $subject_id ) ) {
@@ -585,9 +581,9 @@ class RequestController {
             ->set_type( $owner_type );
 
             if ( $owner->exists() ) {
-                static::check_permissions( 'security.owner.update' );
+                $this->check_permissions( 'security.owner.update' );
             } else {
-                static::check_permissions( 'security.owner.create' );
+                $this->check_permissions( 'security.owner.create' );
             }
 
             if ( ! $owner->save() ) {
@@ -629,7 +625,7 @@ class RequestController {
      * @param ActorInterface $actor The either User or ServiceAccount instance.
      * @throws Exception
      */
-    protected static function save_role( ActorInterface $actor, Request $request ) {
+    protected function save_role( ActorInterface $actor, Request $request ) {
         $caps       = (array) $request->get( 'capabilities', [] );
         $role_slug  = $request->get( 'role_slug' );
         $role_label = $request->get( 'role_label' );
@@ -639,12 +635,12 @@ class RequestController {
         $subject    = $request->get( 'subject', null );
 
         if ( ! $role ) {
-            static::check_permissions( 'security.role.create' );
+            $this->check_permissions( 'security.role.create' );
             $role = ( new Role() )
             ->set_slug( $role_slug );
 
         } else {
-            static::check_permissions( 'security.role.update' );
+            $this->check_permissions( 'security.role.update' );
         }
 
         $role->set_label( $role_label )
@@ -660,7 +656,6 @@ class RequestController {
         
         // Context binding.
         ContextServiceProvider::save_actor_role( $actor, $role, $subject );
-        
     }
 
     /**
@@ -669,9 +664,9 @@ class RequestController {
      * @param Request $request The request object.
      * @return Response The response object.
      */
-    public static function search_users_orgs( Request $request ) : Response {
+    public function search_users_orgs( Request $request ) : Response {
         try {
-            static::is_system_admin();
+            $this->is_system_admin();
 
             $search_term   = $request->get( 'search_term' ) ?? $request->get( 'search' );
 
@@ -687,20 +682,15 @@ class RequestController {
             $results    = ContextServiceProvider::search( $args );
             $data       = Collection::make( $results['items'] )->map( 'smliser_value_to_array' );
 
-            return ( new Response(
-                200,
-                [],
-                smliser_safe_json_encode( [
+            return Response::json([
                     'success'       => true,
                     'items'         => $data->toArray(),
                     'pagination'    => $results['pagination'],
-                ] )
-            ) )->set_header( 'Content-Type', 'UTF-8' );
+                ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', 'UTF-8' );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8'  );
         }
         
     }
@@ -711,9 +701,9 @@ class RequestController {
      * @param Request $request The request object.
      * @return Response The response object.
      */
-    public static function search_resource_owners( Request $request ) : Response {
+    public function search_resource_owners( Request $request ) : Response {
         try {
-            static::is_system_admin();
+            $this->is_system_admin();
 
             $search_term   = $request->get( 'search_term' );
 
@@ -728,20 +718,15 @@ class RequestController {
             $results    = ContextServiceProvider::search_owners( $args );
             $data       = Collection::make( $results['items'] )->map( 'smliser_value_to_array' );
 
-            return ( new Response(
-                200,
-                [],
-                smliser_safe_json_encode( [
-                    'success'       => true,
-                    'items'         => $data->toArray(),
-                    'pagination'    => $results['pagination'],
-                ] )
-            ) )->set_header( 'Content-Type', 'UTF-8' );
+            return Response::json([
+                'success'       => true,
+                'items'         => $data->toArray(),
+                'pagination'    => $results['pagination'],
+            ]);
 
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', 'UTF-8' );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8'  );
         }
     }
 
@@ -751,12 +736,12 @@ class RequestController {
      * @param Request $request The request object.
      * @return Response
      */
-    public static function delete_org_member( Request $request ): Response {
+    public function delete_org_member( Request $request ): Response {
         try {
-            static::check_permissions( 'security.organization.remove_members' );
+            $this->check_permissions( 'security.organization.remove_members' );
 
-            $org_id     = static::sanitize_int( $request->get( 'organization_id' ) );
-            $member_id  = static::sanitize_int( $request->get( 'member_id' ) );
+            $org_id     = $this->sanitize_int( $request->get( 'organization_id' ) );
+            $member_id  = $this->sanitize_int( $request->get( 'member_id' ) );
 
             $organization   = Organization::get_by_id( $org_id );
 
@@ -771,18 +756,15 @@ class RequestController {
             $member = $organization->get_members()->get( $member_id );
             ContextServiceProvider::delete_organization_member( $member, $organization );
 
-            $data   = array(
+            return Response::json([
                 'success'   => true,
-                'data'      => array(
+                'data'      => [
                     'message'   => sprintf( '%s has been successfully removed from %s.', $member->get_display_name(), $organization->get_display_name() )
-                )
-            );
-            return ( new Response( 200, [], smliser_safe_json_encode( $data ) ) )
-            ->set_header( 'Content-Type', 'UTF-8' );
+                ]
+            ]);
         } catch ( Exception $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', 'UTF-8' );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8'  );
         }
     }
 }

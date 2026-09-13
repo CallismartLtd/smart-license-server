@@ -14,7 +14,6 @@
  */
 
 use SmartLicenseServer\Admin\Page\Shell;
-use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 
 defined( 'SMLISER_ROOT' ) || exit;

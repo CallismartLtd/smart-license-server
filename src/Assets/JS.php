@@ -28,7 +28,14 @@ final class JS {
      */
     public function all( string $suffix = '' ) : array {
         return [
-            'string-utils' => [
+            'smliser-theme' => [
+                'url'           => $this->urlmanager->assets_url( sprintf( 'js/theme%s.js', $suffix ) ),
+                'dependencies'  => [],
+                'version'       => SMLISER_VER,
+                'footer'        => false,
+                'category'      => AssetsManager::CATEGORY_ADMIN_DASHBOARD
+            ],
+            'string-utils'  => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/string-utils%s.js', $suffix ) ),
                 'dependencies'  => [],
                 'version'       => SMLISER_VER,
@@ -38,7 +45,7 @@ final class JS {
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/dashboard%s.js', $suffix ) ),
                 'dependencies'  => [
                     'smliser-script', 'smliser-apps-uploader', 'smliser-chart',
-                    'smliser-role-builder', 'smliser-admin-repository', 'smliser-cache-stats'
+                    'smliser-admin-repository', 'smliser-cache-stats'
                 ],
                 'version'       => SMLISER_VER,
                 'footer'        => true,

@@ -189,7 +189,7 @@ class RoleBuilder {
                                 aria-label="Select all ${this.humanize(domain)} capabilities"
                                 autocomplete="off"
                             />
-                            <span>All</span>
+                            <span>select all</span>
                         </label>
                     </legend>
 

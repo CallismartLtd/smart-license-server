@@ -420,13 +420,13 @@ class FileResponse extends Response {
      * Sends the file or error to the client
      */
     public function send_body() : void {
-        $this->download();
+        $this->send_file_content();
     }
 
     /**
      * Reads and sends the content of the file to the client.
      */
-    public function download() {
+    protected function send_file_content() {
         if ( ! empty( $this->get_body() ) ) {
             echo $this->get_body(); // phpcs:ignore
             $this->trigger_after_serve_callbacks();

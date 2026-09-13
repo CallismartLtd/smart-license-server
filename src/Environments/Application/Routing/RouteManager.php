@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SmartLicenseServer\Environments\Application\Routing;
 
+use SmartLicenseServer\Admin\ActionHandlers\AccountManagements;
 use SmartLicenseServer\Admin\ActionHandlers\AppManagement;
 use SmartLicenseServer\Admin\ActionHandlers\AppMonetization;
 use SmartLicenseServer\Admin\ActionHandlers\OtherFormsActions;
@@ -26,6 +27,7 @@ use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminDownloadMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddleware;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Routing\Router as CoreRouter;
@@ -120,6 +122,21 @@ final class RouteManager {
      */
     public function registerCoreRoutes() : void {
         $this->router->any( '/', $this->defaultHomeHandler );
+
+        $this->router->group(
+            prefix: 'test',
+            callback:  function() {
+                $this->router->any(
+                    pattern: 'json-error',
+                    handler: function() {
+                        return Response::error(
+                            new Exception( 'test', 'This is a test json error', ['status' => 500] )
+                        )
+                        ;
+                    }
+                );
+            }
+        );
         
         $urlmanager = $this->container->get( URLManager::class );
 
@@ -314,6 +331,17 @@ final class RouteManager {
                     $this->router->post(
                         pattern: 'broadcast-save',
                         handler: [OtherFormsActions::class, 'handle_bulk_message_publish_request'],
+                    );
+
+                    /*
+                    |------------------------------
+                    | ACCESS CONTROL/ACCOUNTS FORM.
+                    |------------------------------
+                    */
+                    $this->router->post(
+                        pattern: 'accounts-form-save',
+                        handler: [AccountManagements::class, 'handle_access_control_save_request'],
+                        middleware: []
                     );
 
                     /*

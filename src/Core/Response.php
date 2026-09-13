@@ -311,9 +311,11 @@ class Response {
 		return $this;
 	}
 
-	/*--------------------------------------------------------------
-	# Response Sending
-	--------------------------------------------------------------*/
+	/*
+	|------------------
+	| RESPONSE SENDING
+	|------------------
+	*/
 
 	/**
 	 * Send HTTP response headers to the client.
@@ -373,7 +375,7 @@ class Response {
 		
 		$method	= $_SERVER['REQUEST_METHOD'] ?? '';
 
-		if ( 'OPTIONS' === $method || static::is_redirect() ) {
+		if ( 'OPTIONS' === $method || $this->is_redirect() ) {
 			$this->stop();
 		}
 	}
@@ -384,14 +386,6 @@ class Response {
 	 * @return void
 	 */
 	public function send_body() : void {
-		if ( is_array( $this->body ) ) {
-			$this->body = smliser_safe_json_encode( $this->body );
-		}
-
-		if ( ! $this->has_header( 'Content-Length' ) ) {
-			$this->set_header( 'Content-Length', (string) strlen( $this->body ) );
-		}
-
 		echo $this->body;
 	}
 
@@ -401,15 +395,11 @@ class Response {
 	 * @return void
 	 */
 	public function send() : void {
+		if ( $this->has_errors() ) {
+			$this->prepare_error_response();
+		}
 		
-        if ( $this->has_errors() ) {
-			if ( $this->is_json_response() ) {
-				smliser_send_json_error( $this->error );
-			}
-			
-            smliser_abort_request( $this->error );
-        }
-		
+		$this->ensure_content_length();
 		$this->send_headers();
 		$this->send_body();
 
@@ -420,9 +410,21 @@ class Response {
 		}
 	}
 
-	/*--------------------------------------------------------------
-	# Error Methods
-	--------------------------------------------------------------*/
+	protected function ensure_content_length() : void {
+		if ( is_array( $this->body ) ) {
+			$this->body = smliser_safe_json_encode( $this->body );
+		}
+
+		if ( ! $this->has_header( 'Content-Length' ) ) {
+			$this->set_header( 'Content-Length', (string) strlen( $this->body ) );
+		}
+	}
+
+	/*
+	|---------------
+	| ERROR METHODS
+	|---------------
+	*/
 	/**
      * Add an error or append an additional message to an existing error.
      *
@@ -499,7 +501,7 @@ class Response {
     /**
      * Overwrites the internal Exception object with a new one.
      *
-     * Useful when converting external errors (e.g., WP_Error) into the response's error state.
+     * Useful when converting external errors into the response's error state.
      *
      * @param Exception $exception The new exception object.
      * @return static
@@ -507,13 +509,51 @@ class Response {
     public function set_exception( Exception $exception ): static {
         $this->error	= $exception;
 		$error_data		= $this->error->get_error_data();
-		$this->set_status_code( (int) ( $error_data['status'] ?? 500 ) );
+		$this->set_status_code( (int) ( $error_data['status'] ?? $error_data['response'] ?? 500 ) );
         return $this;
     }
 
-	/*--------------------------------------------------------------
-	# Utility Methods
-	--------------------------------------------------------------*/
+	/**
+	 * Prepare error response.
+	 * 
+	 * @return void
+	 */
+	protected function prepare_error_response() : void {
+		$this->set_header( 'X-Content-Type-Options', 'nosniff' );
+
+		if ( $this->is_json_response() ) {
+			$this->set_body([
+				'success'	=> false,
+				'error'		=> [
+					'message'	=> $this->get_error_message(),
+					'data'		=> $this->get_error_data(),
+					'code'		=> $this->get_error_code()
+				]
+			]);
+		} else {
+			$nonce = base64_encode( random_bytes( 16 ) );
+
+			$this->set_header( 'X-Frame-Options', 'DENY' )
+				->set_header( 'X-XSS-Protection', '1; mode=block' )
+				->set_header(
+					'Content-Security-Policy',
+					sprintf(
+						"default-src %1\$s; style-src %1\$s %2\$s; script-src %1\$s 'nonce-%3\$s'; img-src %1\$s data:; font-src %1\$s;",
+						"'self'",
+						"'unsafe-inline'",
+						$nonce
+					)
+				)
+
+			->set_body( $this->http_error_document( $this->get_error_message(), $nonce ) );
+		}
+	}
+
+	/*
+	|-----------------
+	| UTILITY METHODS
+	|-----------------
+	*/
 
 	/**
 	 * Check whether the current request is a json response
@@ -546,7 +586,6 @@ class Response {
 		&& ! empty( $redirect_header );
 
 	}
-
 
 	/**
 	 * Determines whether a response is okay.
@@ -718,5 +757,279 @@ class Response {
 	public static function redirect( string|URL $url, int $status_code = 307 ) : static {
 		return new static( $status_code, [], '' )
 			->set_header( 'Location', is_string( $url ) ? $url : $url->url() );
+	}
+
+	/**
+	 * Render a complete HTML document for an HTTP error response.
+	 *
+	 * @param string $message User-friendly error message or description.
+	 * @param string $nonce CSP nonce for the inline script handling the
+	 *                       page's action buttons. Must match the nonce
+	 *                       issued in the response's Content-Security-Policy
+	 *                       header, or the buttons will not be interactive.
+	 * @return string Complete HTML document.
+	 */
+	protected function http_error_document( string $message, string $nonce ): string {
+		$code         = $this->get_status_code();
+		$reason       = $this->get_reason_phrase();
+		$safe_reason  = htmlspecialchars( $reason, ENT_QUOTES, 'UTF-8' );
+		$safe_message = htmlspecialchars( $message, ENT_QUOTES, 'UTF-8' );
+		$safe_nonce   = htmlspecialchars( $nonce, ENT_QUOTES, 'UTF-8' );
+
+		$is_server_error = $code >= 500;
+
+		$accent         = $is_server_error ? '#c2410c' : '#0f766e';
+		$accent_bg      = $is_server_error ? '#fff7ed' : '#ecfeff';
+		$accent_dark    = $is_server_error ? '#fb923c' : '#2dd4bf';
+		$accent_bg_dark = $is_server_error ? '#2a1509' : '#0b2b2b';
+
+		if ( $is_server_error ) {
+			$diagram = <<<SVG
+				<svg viewBox="0 0 260 140" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+					<rect x="20" y="54" width="56" height="32" rx="8" stroke="var(--ink)" stroke-width="1.5" />
+					<circle cx="34" cy="70" r="3" fill="var(--ink)" />
+					<line x1="46" y1="63" x2="66" y2="63" stroke="var(--ink)" stroke-width="1.5" opacity="0.5" />
+					<line x1="46" y1="77" x2="66" y2="77" stroke="var(--ink)" stroke-width="1.5" opacity="0.5" />
+
+					<path class="signal-line" d="M76 70 H164" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 5" />
+
+					<rect x="164" y="54" width="56" height="32" rx="8" stroke="var(--accent)" stroke-width="1.5" fill="var(--accent-bg)" />
+					<path d="M178 54 L188 86 L198 60 L206 86" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+				</svg>
+				SVG;
+		} else {
+			$diagram = <<<SVG
+				<svg viewBox="0 0 260 140" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+					<rect x="20" y="54" width="56" height="32" rx="8" stroke="var(--ink)" stroke-width="1.5" />
+					<circle cx="34" cy="70" r="3" fill="var(--ink)" />
+					<line x1="46" y1="63" x2="66" y2="63" stroke="var(--ink)" stroke-width="1.5" opacity="0.5" />
+					<line x1="46" y1="77" x2="66" y2="77" stroke="var(--ink)" stroke-width="1.5" opacity="0.5" />
+
+					<path class="signal-line" d="M76 70 H166" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 5" />
+					<circle cx="178" cy="70" r="11" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="3 4" />
+
+					<rect x="204" y="54" width="56" height="32" rx="8" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="3 4" opacity="0.35" />
+				</svg>
+				SVG;
+		}
+
+		$actions = '<button type="button" class="btn" data-action="back">Go back</button>';
+
+		if ( $is_server_error ) {
+			$actions = '<button type="button" class="btn btn-accent" data-action="retry">Try again</button>' . $actions;
+		}
+
+		return <<<HTML
+			<!DOCTYPE html>
+			<html lang="en">
+			<head>
+				<meta charset="UTF-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<meta name="color-scheme" content="light dark">
+				<title>HTTP {$code} — {$safe_reason}</title>
+
+				<style>
+					:root {
+						color-scheme: light dark;
+
+						--bg: #f5f6f8;
+						--dot: #dde1e6;
+						--ink: #12151a;
+						--muted: #5b6270;
+						--border: #d8dce2;
+
+						--accent: {$accent};
+						--accent-bg: {$accent_bg};
+					}
+
+					@media (prefers-color-scheme: dark) {
+						:root {
+							--bg: #0b0e14;
+							--dot: #1c212b;
+							--ink: #eef1f5;
+							--muted: #8b93a1;
+							--border: #232935;
+
+							--accent: {$accent_dark};
+							--accent-bg: {$accent_bg_dark};
+						}
+					}
+
+					* {
+						box-sizing: border-box;
+					}
+
+					html, body {
+						height: 100%;
+						margin: 0;
+					}
+
+					body {
+						display: flex;
+						flex-direction: column;
+						min-height: 100dvh;
+						background:
+							radial-gradient(var(--dot) 1px, transparent 1px) 0 0 / 24px 24px,
+							var(--bg);
+						color: var(--ink);
+						font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+						font-size: 15px;
+						line-height: 1.6;
+						-webkit-font-smoothing: antialiased;
+						text-rendering: optimizeLegibility;
+					}
+
+					main {
+						flex: 1;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						padding: 48px 24px;
+					}
+
+					.error-shell {
+						display: grid;
+						grid-template-columns: 260px 1fr;
+						align-items: center;
+						gap: 48px;
+						max-width: 760px;
+						width: 100%;
+					}
+
+					.error-visual svg {
+						width: 100%;
+						height: auto;
+					}
+
+					.error-copy {
+						text-align: left;
+					}
+
+					.error-heading {
+						margin: 0 0 14px;
+						font-size: 2rem;
+						font-weight: 600;
+						letter-spacing: -0.02em;
+						line-height: 1.25;
+					}
+
+					.error-message {
+						margin: 0 0 28px;
+						max-width: 46ch;
+						color: var(--muted);
+					}
+
+					.error-actions {
+						display: flex;
+						gap: 10px;
+					}
+
+					.btn {
+						padding: 9px 18px;
+						border: 1px solid var(--border);
+						border-radius: 8px;
+						background: transparent;
+						color: var(--ink);
+						font: inherit;
+						font-weight: 600;
+						font-size: 13.5px;
+						cursor: pointer;
+					}
+
+					.btn:hover {
+						border-color: var(--accent);
+						color: var(--accent);
+					}
+
+					.btn-accent {
+						border-color: var(--accent);
+						background: var(--accent-bg);
+						color: var(--accent);
+					}
+
+					footer {
+						padding: 18px 24px;
+						border-top: 1px solid var(--border);
+						color: var(--muted);
+						font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+						font-size: 12.5px;
+						text-align: center;
+					}
+
+					.signal-line {
+						stroke-dashoffset: 0;
+					}
+
+					@media (prefers-reduced-motion: no-preference) {
+						.signal-line {
+							animation: signal-travel 1.1s infinite;
+						}
+					}
+
+					@keyframes signal-travel {
+						from { stroke-dashoffset: 90; }
+						to { stroke-dashoffset: 0; }
+					}
+
+					@media (max-width: 640px) {
+						.error-shell {
+							grid-template-columns: 1fr;
+							gap: 28px;
+							text-align: center;
+						}
+
+						.error-copy {
+							text-align: center;
+						}
+
+						.error-message {
+							max-width: none;
+						}
+
+						.error-actions {
+							justify-content: center;
+						}
+
+						.error-visual svg {
+							max-width: 220px;
+							margin: 0 auto;
+						}
+					}
+				</style>
+			</head>
+
+			<body>
+				<main>
+					<div class="error-shell" role="alert" aria-labelledby="error-reason">
+						<div class="error-visual">
+							{$diagram}
+						</div>
+
+						<div class="error-copy">
+							<h1 id="error-reason" class="error-heading">{$safe_reason}</h1>
+							<p class="error-message">{$safe_message}</p>
+							<div class="error-actions">
+								{$actions}
+							</div>
+						</div>
+					</div>
+				</main>
+
+				<footer>HTTP/1.1 {$code} {$safe_reason}</footer>
+
+				<script nonce="{$safe_nonce}">
+					document.querySelectorAll( '[data-action]' ).forEach( function ( button ) {
+						button.addEventListener( 'click', function () {
+							if ( 'retry' === button.dataset.action ) {
+								location.reload();
+							} else {
+								history.back();
+							}
+						} );
+					} );
+				</script>
+			</body>
+			</html>
+			HTML;
 	}
 }

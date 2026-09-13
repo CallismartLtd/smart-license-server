@@ -12,8 +12,8 @@
     flex-wrap: wrap;
     gap: 20px;
     padding: 16px;
-    background: #ffffff;
-    border: 1px solid #dcdcde;
+    background: var( --dashboard-surface);
+    border: 1px solid var( --dashboard-border);
     border-radius: 6px;
 }
 
@@ -26,7 +26,7 @@
 .rb-field label {
     font-weight: 600;
     margin-bottom: 6px;
-    color: #1d2327;
+    color: var( --dashboard-text);
 }
 
 .rb-field select,
@@ -35,14 +35,16 @@
     height: auto;
     line-height: 1.4;
     padding: 6px 8px;
-    border: 1px solid #dcdcde;
+    border: 1px solid var( --dashboard-border);
 }
 
 /* Disabled role name (preset role selected) */
 .rb-role-name:disabled,
 .rb-role-slug:disabled {
-    background-color: #f6f7f7;
-    color: #50575e;
+    background-color: var(  --dashboard-disabled-bg );
+    color: var(  --dashboard-disabled-text);
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 /* ---------- Capabilities ---------- */
@@ -74,6 +76,7 @@
     color: #1d2327;
     cursor: pointer;
     user-select: none;
+    margin: initial;
 }
 
 .rb-select-all-global input[type="checkbox"] {
@@ -81,20 +84,21 @@
 }
 
 .rb-select-all-global:hover span {
-    color: #000000;
+    color: var( --dashboard-text );
+    opacity: 0.9;
 }
 
 /* Capability panel */
 .rb-capabilities {
     padding: 18px;
-    background: #f1f1f1;
-    border: 1px solid #dcdcde;
+    background: var( --dashboard-surface );
+    border: 1px solid var( --dashboard-border );
     border-radius: 6px;
 }
 
 /* Capability domain */
 .rb-domain {
-    border: 1px solid #dcdcde;
+    border: 1px solid var( --dashboard-border );
     border-radius: 4px;
     padding: 12px 14px 10px;
     margin-bottom: 16px;
@@ -108,7 +112,7 @@
 .rb-domain legend {
     padding: 0 6px;
     font-weight: 600;
-    color: #1d2327;
+    color: var(--dashboard-text);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -121,11 +125,12 @@
     gap: 4px;
     font-size: 12px;
     font-weight: 400;
-    color: #646970;
+    color: var( --dashboard-text );
     cursor: pointer;
     user-select: none;
-    border-left: 1px solid #dcdcde;
+    border-left: 1px solid var( --dashboard-border );
     padding-left: 10px;
+    margin: initial;
 }
 
 .rb-select-all-domain input[type="checkbox"] {
@@ -133,7 +138,8 @@
 }
 
 .rb-select-all-domain:hover span {
-    color: #2271b1;
+    color: var( --dashboard-text );
+    opacity: 0.9;
 }
 
 /* Capability item */
@@ -146,7 +152,7 @@
 }
 
 .rb-cap span {
-    color: #2c3338;
+    color: var( --dashboard-text );
 }
 
 /* Checkbox spacing */
@@ -167,7 +173,7 @@
     top: -26px;
     right: 0;
     font-size: 12px;
-    color: #646970;
+    color: var( --dashboard-disabled-text );
 }
 
 /* Hide select-all controls when role is locked */
@@ -187,17 +193,18 @@
 /* ---------- Hover & Focus (Subtle) ---------- */
 
 .rb-cap:hover span {
-    color: #000000;
+    color: var( --dashboard-text );
+    opacity: 0.7;
 }
 
 .rb-field select:focus,
 .rb-field input[type="text"]:focus {
-    border-color: #2271b1;
-    box-shadow: 0 0 0 1px #2271b1;
+    border-color: var( --dashboard-border );
+    box-shadow: var( --dashboard-surface-highlight );
 }
 
 .rb-field input[type="text"]:read-only {
-    background-color: #fafafa;
+    background-color: var( --dashboard-bg );
     opacity: .9;
 }
 

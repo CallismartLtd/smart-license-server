@@ -10,7 +10,6 @@ namespace SmartLicenseServer\Admin\ActionHandlers;
 use SmartLicenseServer\Contracts\AdminRequests\AccessControlHandlerInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
-use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\RequestController;
 
 class AccountManagements implements AccessControlHandlerInterface {
@@ -19,7 +18,7 @@ class AccountManagements implements AccessControlHandlerInterface {
     ) {}
     
     public function handle_access_control_save_request( Request $request ) : Response {
-        $entity = $request->get( 'entity' );
+        $entity = $request->post( 'entity' );
 
         if ( 'organization_member' === $entity ) {
             $response   = $this->request_controller->save_organization_member( $request );

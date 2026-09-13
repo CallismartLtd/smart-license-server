@@ -729,10 +729,10 @@ class FileSystemHelper {
      * @return bool                 True on success, false otherwise.
      * @throws Exception
      */
-    public static function upload_avatar( UploadedFile $avatar, string $type, string $filename ) : bool {
+    public static function upload_avatar( UploadedFile $avatar, string $type, string $filename )  {
         $type           = smliser_pluralize( str_replace( '_', '-', $type ) );
-        $avatar_path    = static::join_path( SMLISER_UPLOADS_DIR, 'avatars', $type, $filename );
-        $tmp_file       = $avatar->get_tmp_path();
+        return $avatar_path    = static::join_path( SMLISER_UPLOADS_DIR, 'avatars', $type, $filename );
+        return $tmp_file       = $avatar->get_tmp_path();
 
         $uploaded       = (bool) smliser_filesystem()->move( $tmp_file, $avatar_path, true );
 

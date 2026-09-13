@@ -627,3 +627,68 @@ function smliser_get_server_protocol( string $default = 'HTTP/1.0' ): string {
 
     return $default;
 }
+
+/**
+ * Generate a cryptographically secure random password.
+ *
+ * The generated password always contains at least one lowercase letter.
+ * When enabled, uppercase letters, numeric digits, and symbols are also
+ * guaranteed to occur at least once.
+ *
+ * @param int  $length        Length of the generated password (minimum 8).
+ * @param bool $use_symbols   Whether to include special characters.
+ * @param bool $use_numbers   Whether to include numeric digits.
+ * @param bool $use_uppercase Whether to include uppercase letters.
+ * @return string
+ */
+function smliser_generate_password(
+	int $length = 16,
+	bool $use_symbols = true,
+	bool $use_numbers = true,
+	bool $use_uppercase = true
+): string {
+	$length = max( 8, $length );
+
+	$lowercase = 'abcdefghijklmnopqrstuvwxyz';
+	$uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	$numbers   = '0123456789';
+	$symbols   = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+	$pool     = $lowercase;
+	$password = [];
+
+	// Lowercase characters are always part of the password.
+	$password[] = $lowercase[ random_int( 0, strlen( $lowercase ) - 1 ) ];
+
+	if ( $use_uppercase ) {
+		$pool       .= $uppercase;
+		$password[] = $uppercase[ random_int( 0, strlen( $uppercase ) - 1 ) ];
+	}
+
+	if ( $use_numbers ) {
+		$pool       .= $numbers;
+		$password[] = $numbers[ random_int( 0, strlen( $numbers ) - 1 ) ];
+	}
+
+	if ( $use_symbols ) {
+		$pool       .= $symbols;
+		$password[] = $symbols[ random_int( 0, strlen( $symbols ) - 1 ) ];
+	}
+
+	$pool_length = strlen( $pool );
+
+	while ( count( $password ) < $length ) {
+		$password[] = $pool[ random_int( 0, $pool_length - 1 ) ];
+	}
+
+	// Fisher-Yates shuffle using a cryptographically secure random source.
+	for ( $i = count( $password ) - 1; $i > 0; $i-- ) {
+		$j = random_int( 0, $i );
+
+		$temp           = $password[ $i ];
+		$password[ $i ] = $password[ $j ];
+		$password[ $j ] = $temp;
+	}
+
+	return implode( '', $password );
+}

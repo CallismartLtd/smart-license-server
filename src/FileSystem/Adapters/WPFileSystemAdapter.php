@@ -24,16 +24,25 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
     /**
      * The WordPress filesystem handler.
      *
-     * @var WP_Filesystem_Base|null
+     * @var WP_Filesystem_Base
      */
-    protected ?WP_Filesystem_Base $fs = null;
+    protected WP_Filesystem_Base $fs;
 
     /**
      * Constructor.
      *
      * Initializes the WordPress filesystem API.
+     *
+     * @param int $file_permission Default permission mode applied to files
+     *                              when no explicit mode is given.
+     * @param int $dir_permission Default permission mode applied to
+     *                             directories when no explicit mode is given.
+     * @throws FileSystemException If WP_Filesystem fails to initialize.
      */
-    public function __construct() {
+    public function __construct(
+        private readonly int $file_permission = 0644,
+        private readonly int $dir_permission = 0755,
+    ) {
         $this->init_fs();
     }
 
@@ -41,16 +50,27 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * Initialize WP_Filesystem.
      *
      * @return void
+     * @throws FileSystemException If filesystem initialization fails.
      */
     protected function init_fs(): void {
         global $wp_filesystem;
 
-        \ob_start();
         if ( ! $wp_filesystem ) {
-            require_once SMLISER_ROOT . 'wp-admin/includes/file.php';
-            WP_Filesystem();
+            if ( ! function_exists( 'WP_Filesystem' ) ) {
+                $file_path = SMLISER_ROOT . 'wp-admin/includes/file.php';
+                if ( file_exists( $file_path ) ) {
+                    require_once $file_path;
+                }
+            }
+
+            \ob_start();
+            $initialized = function_exists( 'WP_Filesystem' ) && \WP_Filesystem();
+            \ob_end_clean();
+
+            if ( ! $initialized || ! $wp_filesystem instanceof WP_Filesystem_Base ) {
+                throw new FileSystemException( 'Failed to initialize WP_Filesystem credentials or method.' );
+            }
         }
-        \ob_end_clean();
 
         $this->fs = $wp_filesystem;
     }
@@ -116,7 +136,6 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return bool True if stream wrapper, false otherwise.
      */
     public function is_stream( mixed $thing ): bool {
-
         if ( ! is_string( $thing ) ) {
             return false;
         }
@@ -132,7 +151,6 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
         return in_array( $scheme, stream_get_wrappers(), true );
     }
 
-
     /**
      * Get file contents.
      *
@@ -140,7 +158,7 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @return string|false File contents or false on failure.
      */
     public function get_contents( string $file ): string|false {
-        if ( empty( $file ) ) {
+        if ( empty( $file ) || ! $this->is_readable( $file ) ) {
             return false;
         }
         
@@ -150,51 +168,73 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
     /**
      * Write contents to a file.
      *
-     * @param string $path    Absolute path.
+     * @param string $path Absolute path.
      * @param string $contents Contents to write.
-     * @param int    $mode     Optional. File permissions.
+     * @param int|null $mode Optional. File permissions. Null (default)
+     *                        applies the adapter's configured file permission.
      * @return bool True on success, false on failure.
      */
-    public function put_contents( string $path, string $contents, int $mode = SMLISER_FILE_PERMISSION ): bool {
+    public function put_contents( string $path, string $contents, ?int $mode = null ): bool {
         if ( empty( $path ) ) {
             return false;
         }
-        
-        return $this->fs->put_contents( $path, $contents, $mode );
+
+        $dir = dirname( $path );
+        if ( ! $this->mkdir( $dir ) ) {
+            return false;
+        }
+
+        return $this->fs->put_contents( $path, $contents, $mode ?? $this->file_permission );
     }
 
     /**
      * Delete a file or directory.
      *
-     * @param string       $file      Path to the file/directory.
-     * @param bool         $recursive Optional. Delete recursively.
-     * @param string|false $type      Optional. 'f' for file, 'd' for directory.
+     * @param string $file Path to the file/directory.
+     * @param bool $recursive Optional. Delete recursively.
+     * @param string|false $type Optional. 'f' for file, 'd' for directory.
      * @return bool True on success, false on failure.
      */
     public function delete( string $file, bool $recursive = false, string|false $type = false ): bool {
+        if ( false === $type ) {
+            if ( $this->is_file( $file ) ) {
+                $type = 'f';
+            } elseif ( $this->is_dir( $file ) ) {
+                $type = 'd';
+            } else {
+                return false;
+            }
+        }
+
         return $this->fs->delete( $file, $recursive, $type );
     }
 
     /**
      * Create a directory.
      *
-     * @param string     $path      Absolute path.
-     * @param int|false  $chmod     Optional. Permissions.
-     * @param bool       $recursive Optional. Create recursively.
+     * @param string $path Absolute path.
+     * @param int|false $chmod Optional. Permissions. False uses the
+     *                          adapter's configured directory permission.
+     * @param bool $recursive Optional. Create recursively.
      * @return bool True on success, false on failure.
      */
     public function mkdir( string $path, int|false $chmod = false, bool $recursive = true ): bool {
+        if ( $this->exists( $path ) ) {
+            return true;
+        }
+
         if ( $recursive ) {
             return $this->mkdir_recursive( $path, $chmod );
         }
-        return $this->fs->mkdir( $path, $chmod );
+
+        return $this->fs->mkdir( $path, $chmod ?: $this->dir_permission );
     }
 
     /**
      * Create directories recursively.
      *
-     * @param string     $path  Absolute path.
-     * @param int|false  $chmod Optional permissions.
+     * @param string $path Absolute path.
+     * @param int|false $chmod Optional permissions.
      * @return bool True on success, false on failure.
      */
     public function mkdir_recursive( string $path, int|false $chmod = false ): bool {
@@ -206,14 +246,14 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
             $path = $parts[1];
         }
 
-        $sep    = \DIRECTORY_SEPARATOR;
-        $path   = str_replace( [ '/', '\\' ], $sep, $path );
+        $sep  = \DIRECTORY_SEPARATOR;
+        $path = str_replace( [ '/', '\\' ], $sep, $path );
 
-        if ( $stream_wrapper !== null ) {
+        if ( null !== $stream_wrapper ) {
             $path = $stream_wrapper . '://' . $path;
         }
 
-        $path = rtrim( $path, '/' );
+        $path = rtrim( $path, $sep );
         if ( empty( $path ) ) {
             $path = $sep;
         }
@@ -225,7 +265,7 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
 
         if ( false === $chmod ) {
             $stats = @stat( $dest_parent );
-            $chmod = $stats ? ( ( $stats['mode'] & 0777 ) | 0755 ) : 0755;           
+            $chmod = $stats ? ( ( $stats['mode'] & 0777 ) | $this->dir_permission ) : $this->dir_permission;
         }
 
         $relative_parts = explode( $sep, ltrim( substr( $path, strlen( $dest_parent ) ), $sep ) );
@@ -246,31 +286,29 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
     /**
      * Remove a directory.
      *
-     * @param string $path      Absolute path.
-     * @param bool   $recursive Optional. Remove recursively.
+     * @param string $path Absolute path.
+     * @param bool $recursive Optional. Remove recursively.
      * @return bool True on success, false on failure.
      */
     public function rmdir( string $path, bool $recursive = false ): bool {
-        return $this->fs->delete( $path, $recursive, 'd' );
+        return $this->delete( $path, $recursive, 'd' );
     }
 
     /**
      * Copy a file or directory.
      *
-     * @param string $source    Source path.
-     * @param string $dest      Destination path.
-     * @param bool   $overwrite Optional. Overwrite if exists.
-     * @param int|false $mode   Optional. Permissions.
+     * @param string $source Source path.
+     * @param string $dest Destination path.
+     * @param bool $overwrite Optional. Overwrite if exists.
+     * @param int|false $mode Optional. Permissions.
      * @return bool True on success, false on failure.
      */
     public function copy( string $source, string $dest, bool $overwrite = false, int|false $mode = false ): bool {
-
         if ( ! $this->exists( $source ) ) {
             return false;
         }
 
         if ( $this->exists( $dest ) ) {
-
             if ( ! $overwrite ) {
                 return false;
             }
@@ -280,24 +318,23 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
             }
         }
 
-        if ( ! $mode ) {
-            $mode   = $this->is_file( $source ) ? SMLISER_FILE_PERMISSION : SMLISER_DIR_PERMISSION;
+        $dest_dir = dirname( $dest );
+        if ( ! $this->mkdir( $dest_dir ) ) {
+            return false;
         }
 
         if ( $this->is_file( $source ) ) {
-            return $this->fs->copy(
-                $source,
-                $dest,
-                false,
-                $mode
-            );
+            $file_mode = $mode ?: $this->file_permission;
+            return $this->fs->copy( $source, $dest, false, $file_mode );
         }
 
         if ( ! $this->is_dir( $source ) ) {
             return false;
         }
 
-        if ( ! $this->mkdir( $dest, $mode, true ) ) {
+        $dir_mode = $mode ?: $this->dir_permission;
+
+        if ( ! $this->mkdir( $dest, $dir_mode, true ) ) {
             return false;
         }
 
@@ -308,13 +345,12 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
         }
 
         foreach ( $entries as $name => $_ ) {
-
             if ( '.' === $name || '..' === $name ) {
                 continue;
             }
 
-            $from = $source . DIRECTORY_SEPARATOR . $name;
-            $to   = $dest . DIRECTORY_SEPARATOR . $name;
+            $from = $source . \DIRECTORY_SEPARATOR . $name;
+            $to   = $dest . \DIRECTORY_SEPARATOR . $name;
 
             if ( ! $this->copy( $from, $to, false, $mode ) ) {
                 return false;
@@ -327,9 +363,9 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
     /**
      * Move a file or directory.
      *
-     * @param string $source    Source path.
-     * @param string $dest      Destination path.
-     * @param bool   $overwrite Optional. Overwrite if exists.
+     * @param string $source Source path.
+     * @param string $dest Destination path.
+     * @param bool $overwrite Optional. Overwrite if exists.
      * @return bool True on success, false on failure.
      */
     public function move( string $source, string $dest, bool $overwrite = false ): bool {
@@ -342,7 +378,6 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
         }
 
         if ( $this->exists( $dest ) ) {
-
             if ( ! $overwrite ) {
                 return false;
             }
@@ -359,17 +394,21 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * Rename a file or directory.
      *
      * @param string $source Source path.
-     * @param string $dest   Destination path.
+     * @param string $dest Destination path.
      * @return bool True on success, false on failure.
      */
     public function rename( string $source, string $dest ): bool {
-        // WP Filesystem API does not support ::rename().
         if ( ! $this->exists( $source ) ) {
             return false;
         }
 
         if ( $source === $dest ) {
             return true;
+        }
+
+        $dest_dir = dirname( $dest );
+        if ( ! $this->mkdir( $dest_dir ) ) {
+            return false;
         }
 
         if ( ! $this->copy( $source, $dest, true ) ) {
@@ -380,7 +419,7 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
             return false;
         }
 
-        if ( ! $this->delete( $source ) ) {
+        if ( ! $this->delete( $source, true ) ) {
             return false;
         }
 
@@ -390,21 +429,33 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
     /**
      * Change file/directory permissions.
      *
-     * @param string $file      Path.
-     * @param int|false $mode   Optional. Permissions.
-     * @param bool $recursive   Optional. Apply recursively.
+     * @param string $file Path.
+     * @param int|false $mode Optional. Permissions. False uses the
+     *                         adapter's configured file/directory
+     *                         permission depending on the target's type.
+     * @param bool $recursive Optional. Apply recursively.
      * @return bool True on success, false on failure.
      */
     public function chmod( string $file, int|false $mode = false, bool $recursive = false ): bool {
+        if ( ! $mode ) {
+            if ( $this->is_file( $file ) ) {
+                $mode = $this->file_permission;
+            } elseif ( $this->is_dir( $file ) ) {
+                $mode = $this->dir_permission;
+            } else {
+                return false;
+            }
+        }
+
         return @$this->fs->chmod( $file, $mode, $recursive );
     }
 
     /**
      * Change file/directory owner.
      *
-     * @param string     $file      Path.
-     * @param string|int $owner     Owner name or ID.
-     * @param bool       $recursive Optional. Apply recursively.
+     * @param string $file Path.
+     * @param string|int $owner Owner name or ID.
+     * @param bool $recursive Optional. Apply recursively.
      * @return bool True on success, false on failure.
      */
     public function chown( string $file, string|int $owner, bool $recursive = false ): bool {
@@ -435,15 +486,19 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * Get file/directory information (stat).
      *
      * @param string $path Path.
-     * @return array Information array or false on failure.
+     * @return array|false Information array or false on failure.
      */
-    public function stat( string $path ): array {
+    public function stat( string $path ): array|false {
+        if ( ! $this->exists( $path ) ) {
+            return false;
+        }
+
         return [
             'path'    => $path,
-            'exists'  => $this->exists( $path ),
+            'exists'  => true,
             'is_dir'  => $this->is_dir( $path ),
             'is_file' => $this->is_file( $path ),
-            'size'    => $this->fs->size( $path ),
+            'size'    => $this->is_file( $path ) ? $this->fs->size( $path ) : 0,
             'mtime'   => $this->fs->mtime( $path ),
             'perms'   => $this->fs->getchmod( $path ),
         ];
@@ -452,10 +507,10 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
     /**
      * Output a file in chunks.
      *
-     * @param string $path       File path.
-     * @param int    $start      Start position.
-     * @param int    $length     Length to read.
-     * @param int    $chunk_size Read chunk size.
+     * @param string $path File path.
+     * @param int $start Start position.
+     * @param int $length Length to read.
+     * @param int $chunk_size Read chunk size.
      * @return bool True on success, false on failure.
      */
     public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ): bool {

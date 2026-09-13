@@ -42,6 +42,7 @@ use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\Providers\Options;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 use SmartLicenseServer\SettingsAPI\Settings;
@@ -175,6 +176,14 @@ abstract class Environment {
             }
         );
 
+        $this->container->set(
+            DirectFileSystem::class,
+            fn () : DirectFileSystem => new DirectFileSystem(
+                \SMLISER_FILE_PERMISSION,
+                \SMLISER_DIR_PERMISSION
+            )
+        );
+
         $this->container->singleton(
             FileSystem::class,
             fn ( Container $container ) : FileSystem =>
@@ -205,6 +214,8 @@ abstract class Environment {
                     $container->get( SettingsStorageInterface::class )
                 )
         );
+
+        $this->container->singleton( Guard::class, fn () : Guard => new Guard );
 
         $this->container->set(
             DatabaseJobStorageAdapter::class,

@@ -12,6 +12,8 @@ namespace SmartLicenseServer\Environments\Application;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Assets\AssetsManager;
+use SmartLicenseServer\Assets\CSS;
+use SmartLicenseServer\Assets\JS;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\DataStore;
@@ -42,9 +44,6 @@ class ApplicationEnvironment extends Environment {
      * {@inheritdoc}
      */
     protected function registerDependencies() : void {
-        $this->container->singleton( Guard::class, new Guard );
-        $this->container->alias( PasswordIdentityProviderInterface::class, IdentityService::class );
-
         $this->container->singleton(
             URLManager::class,
             fn ( Container $c ) : URLManager => new URLManager(
@@ -61,6 +60,8 @@ class ApplicationEnvironment extends Environment {
         } else {
             $this->registerWebDependencies();
         }
+
+        $this->container->alias( PasswordIdentityProviderInterface::class, IdentityService::class );
 
         $this->container->alias( RESTProviderInterface::class, RestAPIProvider::class );
         
@@ -193,7 +194,15 @@ class ApplicationEnvironment extends Environment {
             )
         );
 
-        $this->container->singleton( AssetsManager::class, $this->container->get( AssetsManager::class ) );
+        $this->container->singleton(
+            AssetsManager::class,
+            fn ( Container $c ) : AssetsManager => new AssetsManager(
+                $c->get( Guard::class ),
+                $c->get( URLManager::class ),
+                $c->get( CSS::class ),
+                $c->get( JS::class )
+            )
+        );
 
         $this->container->singleton( DefaultPage::class, $this->container->get( DefaultPage::class ) );
     }

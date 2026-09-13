@@ -9,9 +9,20 @@
 
 namespace SmartLicenseServer\FileSystem\Adapters;
 
-use SmartLicenseServer\Exceptions\FileSystemException;
-
 class DirectFileSystem implements FileSystemAdapterInterface {
+
+    /**
+     * Construct the adapter.
+     *
+     * @param int $file_permission Default permission mode applied to files
+     *                              when no explicit mode is given.
+     * @param int $dir_permission Default permission mode applied to
+     *                             directories when no explicit mode is given.
+     */
+    public function __construct(
+        protected readonly int $file_permission = 0644,
+        protected readonly int $dir_permission = 0755,
+    ) {}
 
     /**
      * Determine if a given path is a directory.
@@ -70,7 +81,6 @@ class DirectFileSystem implements FileSystemAdapterInterface {
      * @return bool True if a stream wrapper, false otherwise.
      */
     public function is_stream( mixed $thing ): bool {
-
         if ( ! is_string( $thing ) ) {
             return false;
         }
@@ -85,7 +95,6 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 
         return in_array( $scheme, stream_get_wrappers(), true );
     }
-
 
     /**
      * Retrieve the contents of a file.
@@ -106,36 +115,46 @@ class DirectFileSystem implements FileSystemAdapterInterface {
      *
      * @param string $path Absolute path to the file.
      * @param string $contents Data to write.
-     * @param int $mode File permissions (optional, default SMLISER_FILE_PERMISSION).
+     * @param int|false|null $mode Optional permissions. Null (default) applies
+     *                              the adapter's configured file permission;
+     *                              false skips chmod entirely; an explicit
+     *                              int applies that mode.
      * @return bool True on success, false on failure.
      */
-    public function put_contents( string $path, string $contents, int $mode = SMLISER_FILE_PERMISSION ): bool {
-
+    public function put_contents( string $path, string $contents, int|false|null $mode = null ): bool {
         if ( '' === $path ) {
+            return false;
+        }
+
+        $dir = dirname( $path );
+        if ( ! $this->mkdir( $dir ) ) {
             return false;
         }
 
         $tmp = $path . '.tmp.' . uniqid( '', true );
 
-        $bytes = file_put_contents( $tmp, $contents, LOCK_EX );
+        $bytes = @file_put_contents( $tmp, $contents, LOCK_EX );
 
         if ( false === $bytes || $bytes !== strlen( $contents ) ) {
             @unlink( $tmp );
             return false;
         }
 
-        if ( ! rename( $tmp, $path ) ) {
+        if ( ! $this->rename( $tmp, $path ) ) {
             @unlink( $tmp );
             return false;
         }
 
+        if ( null === $mode ) {
+            $mode = $this->file_permission;
+        }
+
         if ( false !== $mode ) {
-            @chmod( $path, $mode );
+            $this->chmod( $path, $mode );
         }
 
         return true;
     }
-
 
     /**
      * Delete a file or directory.
@@ -146,7 +165,6 @@ class DirectFileSystem implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function delete( string $file, bool $recursive = false, string|false $type = false ): bool {
-
         if ( false === $type ) {
             if ( $this->is_file( $file ) ) {
                 $type = 'f';
@@ -172,20 +190,20 @@ class DirectFileSystem implements FileSystemAdapterInterface {
      * Create a directory.
      *
      * @param string $path Absolute path.
-     * @param int|false $chmod Optional permissions.
+     * @param int|false $chmod Optional permissions. False uses the
+     *                          adapter's configured directory permission.
      * @param bool $recursive Optional. Create intermediate directories if true.
      * @return bool True on success, false on failure.
      */
     public function mkdir( string $path, int|false $chmod = false, bool $recursive = true ): bool {
-
         if ( $this->exists( $path ) ) {
             return true;
         }
 
-        $result = @mkdir( $path, $chmod ?: 0755, $recursive );
+        $result = @mkdir( $path, $chmod ?: $this->dir_permission, $recursive );
 
         if ( $result && false !== $chmod ) {
-            @chmod( $path, $chmod );
+            $this->chmod( $path, $chmod );
         }
 
         return $result;
@@ -210,7 +228,6 @@ class DirectFileSystem implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function rmdir( string $path, bool $recursive = false ): bool {
-
         if ( ! $this->is_dir( $path ) ) {
             return false;
         }
@@ -230,13 +247,7 @@ class DirectFileSystem implements FileSystemAdapterInterface {
                 continue;
             }
 
-            $full = $path . DIRECTORY_SEPARATOR . $item;
-
-            if ( $this->is_dir( $full ) ) {
-                $this->rmdir( $full, true );
-            } else {
-                @unlink( $full );
-            }
+            $this->delete( $path . DIRECTORY_SEPARATOR . $item, true );
         }
 
         return @rmdir( $path );
@@ -248,11 +259,10 @@ class DirectFileSystem implements FileSystemAdapterInterface {
      * @param string $source Source path.
      * @param string $dest Destination path.
      * @param bool $overwrite Optional. Overwrite if true.
-     * @param int|false $mode   Optional. Permissions.
+     * @param int|false $mode Optional. Permissions.
      * @return bool True on success, false on failure.
      */
     public function copy( string $source, string $dest, bool $overwrite = false, int|false $mode = false ): bool {
-
         if ( ! $this->exists( $source ) ) {
             return false;
         }
@@ -262,20 +272,31 @@ class DirectFileSystem implements FileSystemAdapterInterface {
         }
 
         if ( ! $mode ) {
-            $mode   = $this->is_file( $source ) ? \SMLISER_FILE_PERMISSION : \SMLISER_DIR_PERMISSION;
+            $mode = $this->is_file( $source ) ? $this->file_permission : $this->dir_permission;
+        }
+
+        $dest_dir = dirname( $dest );
+        if ( ! $this->mkdir( $dest_dir ) ) {
+            return false;
         }
 
         if ( $this->is_file( $source ) ) {
-            return 
-                @copy( $source, $dest )
+            return @copy( $source, $dest )
                 && $this->exists( $dest )
                 && $this->chmod( $dest, $mode );
         }
 
         if ( $this->is_dir( $source ) ) {
-            $this->mkdir( $dest );
+            if ( ! $this->mkdir( $dest, $mode ) ) {
+                return false;
+            }
 
-            foreach ( scandir( $source ) as $item ) {
+            $items = scandir( $source );
+            if ( false === $items ) {
+                return false;
+            }
+
+            foreach ( $items as $item ) {
                 if ( '.' === $item || '..' === $item ) {
                     continue;
                 }
@@ -312,7 +333,6 @@ class DirectFileSystem implements FileSystemAdapterInterface {
         }
 
         if ( $this->exists( $dest ) ) {
-
             if ( ! $overwrite ) {
                 return false;
             }
@@ -326,35 +346,53 @@ class DirectFileSystem implements FileSystemAdapterInterface {
     }
 
     /**
-     * Rename a file or directory.
+     * Rename a file or directory (handles recursive destination directory creation).
      *
      * @param string $source Source path.
      * @param string $dest Destination path.
      * @return bool True on success, false on failure.
      */
     public function rename( string $source, string $dest ): bool {
-        return @rename( $source, $dest );
+        $dest_dir = dirname( $dest );
+
+        if ( ! $this->mkdir( $dest_dir ) ) {
+            return false;
+        }
+
+        if ( @rename( $source, $dest ) ) {
+            return true;
+        }
+
+        // Cross-filesystem / mount point fallback
+        if ( $this->is_file( $source ) ) {
+            if ( $this->copy( $source, $dest, true ) ) {
+                return $this->delete( $source );
+            }
+        }
+
+        return false;
     }
 
     /**
      * Change file permissions.
      *
      * @param string $file Path to file or directory.
-     * @param int|false $mode Optional. Permissions as octal number.
+     * @param int|false $mode Optional. Permissions as octal number. False
+     *                         uses the adapter's configured file/directory
+     *                         permission depending on the target's type.
      * @param bool $recursive Optional. Change permissions recursively.
      * @return bool True on success, false on failure.
      */
     public function chmod( string $file, int|false $mode = false, bool $recursive = false ): bool {
-
         if ( ! $mode ) {
-			if ( $this->is_file( $file ) ) {
-				$mode = SMLISER_FILE_PERMISSION;
-			} elseif ( $this->is_dir( $file ) ) {
-				$mode = SMLISER_DIR_PERMISSION;
-			} else {
-				return false;
-			}
-		}
+            if ( $this->is_file( $file ) ) {
+                $mode = $this->file_permission;
+            } elseif ( $this->is_dir( $file ) ) {
+                $mode = $this->dir_permission;
+            } else {
+                return false;
+            }
+        }
 
         if ( ! $recursive ) {
             return @chmod( $file, $mode );
@@ -363,16 +401,19 @@ class DirectFileSystem implements FileSystemAdapterInterface {
         $success = true;
 
         if ( $this->is_dir( $file ) ) {
-            foreach ( scandir( $file ) as $item ) {
-                if ( '.' === $item || '..' === $item ) {
-                    continue;
-                }
+            $items = scandir( $file );
+            if ( false !== $items ) {
+                foreach ( $items as $item ) {
+                    if ( '.' === $item || '..' === $item ) {
+                        continue;
+                    }
 
-                $success = $this->chmod(
-                    $file . DIRECTORY_SEPARATOR . $item,
-                    $mode,
-                    true
-                ) && $success;
+                    $success = $this->chmod(
+                        $file . DIRECTORY_SEPARATOR . $item,
+                        $mode,
+                        true
+                    ) && $success;
+                }
             }
         }
 
@@ -388,7 +429,6 @@ class DirectFileSystem implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function chown( string $file, string|int $owner, bool $recursive = false ): bool {
-
         if ( ! $recursive ) {
             return @chown( $file, $owner );
         }
@@ -396,16 +436,19 @@ class DirectFileSystem implements FileSystemAdapterInterface {
         $success = true;
 
         if ( $this->is_dir( $file ) ) {
-            foreach ( scandir( $file ) as $item ) {
-                if ( '.' === $item || '..' === $item ) {
-                    continue;
-                }
+            $items = scandir( $file );
+            if ( false !== $items ) {
+                foreach ( $items as $item ) {
+                    if ( '.' === $item || '..' === $item ) {
+                        continue;
+                    }
 
-                $success = $this->chown(
-                    $file . DIRECTORY_SEPARATOR . $item,
-                    $owner,
-                    true
-                ) && $success;
+                    $success = $this->chown(
+                        $file . DIRECTORY_SEPARATOR . $item,
+                        $owner,
+                        true
+                    ) && $success;
+                }
             }
         }
 
@@ -421,14 +464,20 @@ class DirectFileSystem implements FileSystemAdapterInterface {
     }
 
     public function stat( string $path ): array|false {
+        if ( ! $this->exists( $path ) ) {
+            return false;
+        }
+
+        $perms = @fileperms( $path );
+
         return [
             'path'    => $path,
-            'exists'  => $this->exists( $path ),
+            'exists'  => true,
             'is_dir'  => $this->is_dir( $path ),
             'is_file' => $this->is_file( $path ),
             'size'    => $this->is_file( $path ) ? $this->filesize( $path ) : 0,
             'mtime'   => $this->filemtime( $path ),
-            'perms'   => substr( sprintf( '%o', fileperms( $path ) ), -4 ),
+            'perms'   => false !== $perms ? substr( sprintf( '%o', $perms ), -4 ) : false,
         ];
     }
 
@@ -442,12 +491,11 @@ class DirectFileSystem implements FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ): bool {
-
         if ( ! $this->is_file( $path ) ) {
             return false;
         }
 
-        $stream = fopen( $path, 'rb' );
+        $stream = @fopen( $path, 'rb' );
 
         if ( false === $stream ) {
             return false;
@@ -460,7 +508,6 @@ class DirectFileSystem implements FileSystemAdapterInterface {
         $remaining = $length > 0 ? $length : null;
 
         while ( ! feof( $stream ) ) {
-
             if ( null !== $remaining && $remaining <= 0 ) {
                 break;
             }

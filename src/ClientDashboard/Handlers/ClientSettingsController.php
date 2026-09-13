@@ -30,7 +30,7 @@ class ClientSettingsController {
             $key            = $request->get( 'key', '' );
 
             if ( empty( $key ) ) {
-                throw new RequestException( 'required_param', 'Dashboard preference key must is required.' );
+                throw new RequestException( 'required_param', 'Dashboard preference key is required.' );
             }
 
             if ( ! in_array( $key, [ 'theme', 'sidebar_collapsed'], true ) ) {

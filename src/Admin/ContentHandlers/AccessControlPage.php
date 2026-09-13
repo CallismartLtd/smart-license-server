@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
+use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
@@ -28,8 +29,18 @@ use function array_unshift, sprintf, smliser_json_encode_attr, compact;
 class AccessControlPage implements AdminPageInterface {
     public function __construct(
         protected TemplateLocator $locator,
-        protected URLManager $urlmanager
-    ) {}
+        protected URLManager $urlmanager,
+        protected AssetsManager $assets_manager
+    ) {
+        $this->register_assets();
+    }
+
+    protected function register_assets() : void {
+        $rb_asset   = 'smliser-role-builder';
+
+        $this->assets_manager->set_script_category( $rb_asset, AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+        $this->assets_manager->set_style_category( $rb_asset, AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+    }
 
     /**
      * Section router.
@@ -124,6 +135,7 @@ class AccessControlPage implements AdminPageInterface {
         $_status_titles = array_map( 'ucwords', array_values( $_user_statuses ) );
         $_status_keys   = array_values( $_user_statuses );
         $_statuses      = array_combine( $_status_keys, $_status_titles );
+        $new_pwd        = \smliser_generate_password();
 
         $form_fields    = array(
             array(
@@ -166,7 +178,7 @@ class AccessControlPage implements AdminPageInterface {
                     'name'  => 'email',
                     'value' => $user ? $user->get_email() : '',
                     'attr'  => array(
-                        'autocomplete'  => 'off',
+                        'autocomplete'  => \microtime( true ),
                         'spellcheck'    => 'off',
                         'required'      => true,
                         'placeholder'   => 'Enter email address'
@@ -179,9 +191,9 @@ class AccessControlPage implements AdminPageInterface {
                 'input' => array(
                     'type'  => 'password',
                     'name'  => 'password_1',
-                    'value' => '',
+                    'value' => $user ? '' : $new_pwd,
                     'attr'  => array(
-                        'autocomplete'  => \time(),
+                        'autocomplete'  => 'new-password',
                         'spellcheck'    => 'off',
                         'required'      => true,
                         'placeholder'   => 'Enter password',
@@ -195,9 +207,9 @@ class AccessControlPage implements AdminPageInterface {
                 'input' => array(
                     'type'  => 'password',
                     'name'  => 'password_2',
-                    'value' => '',
+                    'value' => $user ? '' : $new_pwd,
                     'attr'  => array(
-                        'autocomplete'  => \time(),
+                        'autocomplete'  => 'confirm-password',
                         'spellcheck'    => 'off',
                         'required'      => true,
                         'placeholder'   => 'Confirm passowrd',
@@ -242,7 +254,7 @@ class AccessControlPage implements AdminPageInterface {
             $identifier = md5( $user->get_unique_identifier() );
             $avatar_url = $this->urlmanager->avatar_url( $identifier, $user->get_type() );            
         } else {
-            $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
+            $avatar_url = $this->urlmanager->assets_url( \smliser_get_placeholder_icon( 'avatar' ) );
         }
 
         $avatar_name    = $user ? 'View image' : $avatar_url->basename();
@@ -263,7 +275,8 @@ class AccessControlPage implements AdminPageInterface {
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
         $vars           = compact( 'request', 'form_fields', 'avatar_name',
-        'avatar_url', 'role', 'title', 'page_handler', 'urlmanager' );
+            'avatar_url', 'role', 'title', 'page_handler', 'urlmanager'
+        );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }

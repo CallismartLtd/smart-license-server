@@ -328,6 +328,7 @@ textarea {
 	background: var( --dashboard-surface );
 	border: 1px solid var( --dashboard-border );
 	border-radius: var( --dashboard-radius );
+	color: var( --dashboard-text );
 	transition: border-color var( --dashboard-transition ), box-shadow var( --dashboard-transition );
 }
 
@@ -362,7 +363,8 @@ button:disabled,
 }
 
 button,
-.button {
+.button,
+input[type="button"] {
 	cursor: pointer;
 	background: var( --dashboard-accent );
 	color: var( --dashboard-accent-contrast );
@@ -390,7 +392,7 @@ button:hover:not( :disabled ),
     border-left-color: var(--dashboard-text-muted);
     box-shadow: var(--dashboard-shadow);
     border-radius: var(--dashboard-radius);
-    margin: 10px 0 15px;
+    margin: 15px;
     padding: 2px 12px;
     position: relative;
     font-family: inherit;

@@ -47,7 +47,7 @@ final class CSS {
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/dashboard%s.css', $suffix ) ),
                 'dependencies'  => [
                     'smliser-variables', 'smliser-tabler-icons', 'smliser-styles', 'smliser-apps-uploader',
-                    'smliser-role-builder', 'smliser-cache-stats'
+                    'smliser-cache-stats'
                 ],
                 'version'       => SMLISER_VER,
                 'media-type'    => 'all',

@@ -13,6 +13,7 @@
  * @var \SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Admin\ContentHandlers\AccessControlPage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var string $form_slug
  */
 
 defined( 'SMLISER_ROOT' ) || exit;
@@ -22,20 +23,19 @@ $current_section    = $request->query( 'section', '' );
 $render_roles       = in_array( $current_tab, ['service-account', 'users', ], true )
     || in_array( $current_section, ['add-new-member', 'edit-member'], true );
 
-$render_avatar      = ! in_array( $current_tab, ['owners'] );
+$render_avatar      = 'owners' !== $current_tab;
 
 $render_image_only  = in_array( $current_section, ['add-new-member', 'edit-member'], true );
 
 if ( $render_image_only ) {
     $render_avatar = false;
 }
-
 ?>
 
 <div class="smliser-admin-repository-template" role="main">
     <?php $page_handler->print_header( $request ); ?>
 
-    <form  class="smliser-access-control-form" aria-labelledby="smliser-form-title">
+    <form method="post" class="smliser-access-control-form" aria-labelledby="smliser-form-title" data-slug="accounts-form-save">
 
         <h2 id="smliser-form-title"><?php echo escHtml( $title ); ?></h2>
 

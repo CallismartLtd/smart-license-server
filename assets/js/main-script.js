@@ -981,7 +981,8 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                     }                    
                 }
             }
-            setTimeout( openField, 1500 );
+
+            setTimeout( openField, 500 );
         })
     }
 
@@ -2115,8 +2116,8 @@ document.addEventListener( 'DOMContentLoaded', async function() {
         accessControlForm.addEventListener( 'submit', async e => {
             e.preventDefault();
             const payLoad   = new FormData( accessControlForm );
-            const url       = new URL( smliser_var.ajaxURL );
-
+            const slug      = accessControlForm.dataset.slug;
+            
             if ( typeof window.SmliserRoleBuilder !== 'undefined' ) {
                 const roleValues = SmliserRoleBuilder.getValue();
 
@@ -2132,7 +2133,9 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             let spinner = showSpinner( '.smliser-spinner', true );
 
             try {
-                const response    = await smliserFetchJSON( url.href, {
+                const url       = new URL( smliser_var.ajaxURL );
+                url.pathname    += `/${slug}/`;
+                const response  = await smliserFetchJSON( url.href, {
                     method: "POST",
                     body: payLoad,
                     credentials: "same-origin"
@@ -2147,10 +2150,10 @@ document.addEventListener( 'DOMContentLoaded', async function() {
 
                 message   = message ?? 'Request was successfull, but no response message.';
 
-                SmliserToast.show( message, 3000 );
-                setTimeout( processAfterEntitySave, 3000, response );
+                await SmliserModal.success( message );
+                processAfterEntitySave(response)
             } catch ( error ) {
-                SmliserToast.show( error.message, 10000 );
+                await SmliserModal.error( error.message );
                 
             } finally {
                 removeSpinner( spinner );
@@ -2245,14 +2248,15 @@ document.addEventListener( 'DOMContentLoaded', async function() {
          * @param {Object} responseBody - The HTTP response body.
          */
         const processAfterEntitySave    = ( responseBody ) => {
-            const isUsersTab                = qv.has( 'tab', 'users' );
-            const isAPITab                  = qv.has( 'tab', 'service-account' );
-            const isOwnersTab               = qv.has( 'tab', 'owners' );
-            const isOrgTab                  = qv.has( 'tab', 'organizations' );
             const currentUrl                = window.location.href;
+            const redirectUrl               = new URL( currentUrl );
+            
+            const isUsersTab                = responseBody.data.entity === 'user';
+            const isAPITab                  = responseBody.data.entity === 'service_account';
+            const isOwnersTab               = responseBody.data.entity === 'owner';
+            const isOrgTab                  = responseBody.data.entity === 'organization';
             const doRedirectOnAddNewPage    = isUsersTab || isOrgTab || isOwnersTab;
             const responseData              = responseBody.data;
-            const redirectUrl               = new URL( currentUrl );
             const entityID                  = responseData?.entity_id ?? 0;
 
             redirectUrl.searchParams.set( 'section', 'edit' );

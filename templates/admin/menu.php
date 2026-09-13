@@ -81,3 +81,8 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
         <?php endforeach; ?>
     </ul>
 </nav>
+
+<script>
+    var wrapper = document.querySelector( '#dashboard-wrapper' );
+    restoreCollapsedState( wrapper );
+</script>
