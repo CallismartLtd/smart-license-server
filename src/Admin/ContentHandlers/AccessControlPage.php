@@ -251,8 +251,7 @@ class AccessControlPage implements AdminPageInterface {
         );
         
         if ( $user ) {
-            $identifier = md5( $user->get_unique_identifier() );
-            $avatar_url = $this->urlmanager->avatar_url( $identifier, $user->get_type() );            
+            $avatar_url = $this->urlmanager->avatar_url( $user->get_unique_identifier(), $user->get_type() );            
         } else {
             $avatar_url = $this->urlmanager->assets_url( \smliser_get_placeholder_icon( 'avatar' ) );
         }
@@ -395,8 +394,7 @@ class AccessControlPage implements AdminPageInterface {
         );
 
         if ( $organization ) {
-            $identifier = md5( $organization->get_slug() );
-            $avatar_url = $this->urlmanager->avatar_url( $identifier, $organization->get_type() );            
+            $avatar_url = $this->urlmanager->avatar_url( $organization->get_unique_identifier(), $organization->get_type() );            
         } else {
             $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
         }
@@ -528,8 +526,7 @@ class AccessControlPage implements AdminPageInterface {
         );
 
         if ( $member ) {
-            $identifier = md5( $member->get_unique_identifier() );
-            $avatar_url = $this->urlmanager->avatar_url( $identifier, $member->get_type() );            
+            $avatar_url = $this->urlmanager->avatar_url( $member->get_unique_identifier(), $member->get_type() );            
         } else {
             $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
         }
@@ -850,8 +847,7 @@ class AccessControlPage implements AdminPageInterface {
         );
 
         if ( $sa_acc ) {
-            $identifier = md5( $sa_acc->get_unique_identifier() );
-            $avatar_url = $this->urlmanager->avatar_url( $identifier, $sa_acc->get_type() );            
+            $avatar_url = $this->urlmanager->avatar_url( $sa_acc->get_unique_identifier(), $sa_acc->get_type() );            
         } else {
             $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
         }

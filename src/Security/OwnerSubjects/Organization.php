@@ -483,4 +483,12 @@ class Organization extends DataStore implements OwnerSubjectInterface {
         return $this->get_members()->has( $member );
     }
 
+    /**
+     * The the organization unique identifier.
+     * 
+     * @return string
+     */
+    public function get_unique_identifier() : string {
+        return md5( $this->get_slug() );
+    }
 }

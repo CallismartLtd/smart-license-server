@@ -182,7 +182,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
      * {@inheritdoc}
      */
     public function get_unique_identifier(): string {
-        return $this->get_identifier();
+        return md5( $this->get_identifier() );
     }
 
     /**

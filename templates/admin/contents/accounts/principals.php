@@ -90,9 +90,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                             <td>
                                 <img 
                                     src="<?php
-                                        $identifier = md5( $entity->get_unique_identifier() );
-                                        echo escUrl( $urlmanager->avatar_url( $identifier, $entity->get_type() )->url() ); 
-                                        
+                                        echo escUrl( $urlmanager->avatar_url( $entity->get_unique_identifier(), $entity->get_type() )->url() );
                                     ?>"
                                     alt="<?php printf( '%s avatar', $entity->get_display_name() ) ?>" 
                                     width="32" height="32"

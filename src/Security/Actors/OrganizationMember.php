@@ -9,7 +9,6 @@
 namespace SmartLicenseServer\Security\Actors;
 
 use BadMethodCallException;
-use SmartLicenseServer\Core\URL;
 use DateTimeImmutable;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Security\Permission\Role;

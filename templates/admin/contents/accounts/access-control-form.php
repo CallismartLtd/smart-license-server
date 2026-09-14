@@ -155,8 +155,7 @@ if ( $render_image_only ) {
                             <div class="smliser-org-member_header">
                                 <img 
                                     src="<?php 
-                                        $identifier = md5( $member->get_unique_identifier() );
-                                        echo escUrl( $urlmanager->avatar_url( $identifier, $member->get_type() )->url() );
+                                        echo escUrl( $urlmanager->avatar_url( $member->get_unique_identifier(), $member->get_type() )->url() );
                                         ?>" 
                                     alt="<?php echo escAttr( 'Member avatar' ); ?>" 
                                     width="38" 

@@ -246,19 +246,18 @@ class RequestController {
             if ( ! $user->save() ) {
                 throw new RequestException( 'database_error', 'Unable to save user', ['status' => 500] );
             }
+            
+            // User email change affects their hashed avatar.
+            if ( $uid && $uid !== $user->get_unique_identifier() ) {
 
-            $avatar = $request->get_file( 'avatar' );
+                $this->avatar->rename( $user->get_type(), $uid, $user->get_unique_identifier() );
+            }
 
-            if ( $avatar && $avatar->is_upload_successful() ) {
-                $current_uid    = $user->get_unique_identifier();
+            $avatar_file = $request->get_file( 'avatar' );
 
-                if ( $uid && $uid !== $current_uid ) {
-                    $this->avatar->rename( $user->get_type(), $uid, $current_uid );
-                    
-                } else {
-                    $avatar->set_new_name( $user->get_unique_identifier() );
-                    $this->avatar->upload( $avatar, $user->get_type() );
-                }
+            if ( $avatar_file && $avatar_file->is_upload_successful() ) {
+                $avatar_file->set_new_name( $user->get_unique_identifier() );
+                $this->avatar->upload( $avatar_file, $user->get_type() );
             }
 
             self::save_role( $user, $request );
