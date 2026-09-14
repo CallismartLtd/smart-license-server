@@ -63,7 +63,6 @@ function smliser_sanitize_url( $url ) : string {
     return URL::from( $url )->sanitize()->url();
 }
 
-
 /**
  * Download the given URL to a local temp file.
  *

@@ -334,6 +334,11 @@ final class RouteManager {
                         middleware: []
                     );
 
+                    $this->router->get(
+                        pattern: 'search/{entity_type:slug}',
+                        handler: [AccountManagements::class, 'handle_admin_security_entity_search_request']
+                    );
+
                     /*
                     |----------------------------
                     | SETTINGS FORMS AND ACTIONS

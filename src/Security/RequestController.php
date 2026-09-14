@@ -319,6 +319,8 @@ class RequestController {
                 throw new RequestException( 'required_param', 'Please select a role for this service account', [ 'status' => 400 ] );
             }
 
+            $uid            = $sa_acc->exists() ? $sa_acc->get_unique_identifier() : null;
+
             $description    = $request->get( 'description', '' );
             $sa_acc->set_display_name( $display_name )
             ->set_status( $status )
@@ -336,7 +338,20 @@ class RequestController {
             if ( ! $sa_acc->save() ) {
                 throw new RequestException( 'database_error', 'Unable to save service account', ['status' => 500] );
             }
-            
+
+            // Unique ID change affects their hashed avatar.
+            if ( $uid && $uid !== $sa_acc->get_unique_identifier() ) {
+
+                $this->avatar->rename( $sa_acc->get_type(), $uid, $sa_acc->get_unique_identifier() );
+            }
+
+            $avatar_file = $request->get_file( 'avatar' );
+
+            if ( $avatar_file && $avatar_file->is_upload_successful() ) {
+                $avatar_file->set_new_name( $sa_acc->get_unique_identifier() );
+                $this->avatar->upload( $avatar_file, $sa_acc->get_type() );
+            }
+
             $request->set( 'subject', $subject );
 
             if ( ! $account_exists ) {
@@ -344,12 +359,6 @@ class RequestController {
             }
 
             self::save_role( $sa_acc, $request );
-
-            $avatar = $request->get_file( 'avatar' );
-
-            if ( ! empty( $avatar ) ) {
-                FileSystemHelper::upload_avatar( $avatar, 'service_account', md5( $sa_acc->get_identifier() ) );
-            }
             
             return true;
         } catch ( InvalidArgumentException $e ) {
@@ -395,6 +404,8 @@ class RequestController {
                 throw new RequestException( 'invalid_organization_status', 'The status provided is not allowed.', ['status' => 400] );
             }
 
+            $uid    = $organization ? $organization->get_unique_identifier() : null;
+
             if ( ! $organization->exists() ) {
                 $this->check_permissions( 'security.organization.create' );
                 if ( $request->isEmpty( 'slug' ) ) {
@@ -412,10 +423,17 @@ class RequestController {
                 throw new RequestException( 'database_error', 'Unable to save organization', ['status' => 500] );
             }
 
-            $avatar = $request->get_file( 'avatar' );
+            // Slug change affects their hashed avatar.
+            if ( $uid && $uid !== $organization->get_unique_identifier() ) {
 
-            if ( ! empty( $avatar ) ) {
-                FileSystemHelper::upload_avatar( $avatar, 'organization', md5( $organization->get_slug() ) );
+                $this->avatar->rename( $organization->get_type(), $uid, $organization->get_unique_identifier() );
+            }
+
+            $avatar_file = $request->get_file( 'avatar' );
+
+            if ( $avatar_file && $avatar_file->is_upload_successful() ) {
+                $avatar_file->set_new_name( $organization->get_unique_identifier() );
+                $this->avatar->upload( $avatar_file, $organization->get_type() );
             }
 
             return true;
@@ -680,7 +698,7 @@ class RequestController {
         try {
             $this->is_system_admin();
 
-            $search_term   = $request->get( 'search_term' ) ?? $request->get( 'search' );
+            $search_term   = $request->get( 'search' );
 
             if ( empty( $search_term ) ) {
                 throw new RequestException( 'required_param', 'Missing parameter "search".' );
@@ -717,7 +735,7 @@ class RequestController {
         try {
             $this->is_system_admin();
 
-            $search_term   = $request->get( 'search_term' );
+            $search_term   = $request->get( 'search' );
 
             if ( empty( $search_term ) ) {
                 throw new RequestException( 'required_param', 'Missing parameter "search".' );

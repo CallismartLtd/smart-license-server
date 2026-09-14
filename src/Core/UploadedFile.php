@@ -194,7 +194,7 @@ final class UploadedFile {
 	 * suitable for surfacing to a caller or logging.
 	 *
 	 * @return string Always non-empty; describes "no file" when exists() is false,
-	 *                 and delegates to FileSystemHelper::interpret_upload_error()
+	 *                 and delegates to ::interpret_upload_error()
 	 *                 for the standard PHP error codes otherwise.
 	 */
 	public function get_error_message() : string {
@@ -203,7 +203,7 @@ final class UploadedFile {
 			return sprintf( 'No %s was uploaded.', $this->key );
 		}
 
-		return FileSystemHelper::interpret_upload_error(
+		return $this->interpret_upload_error(
 			$this->get_error_code(),
 			$this->key
 		);
@@ -518,4 +518,66 @@ final class UploadedFile {
 			'rejected'       => $this->rejected,
 		];
 	}
+
+    /**
+     * Interpret PHP file upload error codes.
+     *
+     * @param int    $error Upload error code (UPLOAD_ERR_*).
+     * @param string $name  Logical file name for messaging.
+     *
+     * @return string
+     */
+    protected function interpret_upload_error( int $error, string $name = 'file' ): string {
+
+        switch ( $error ) {
+
+            case UPLOAD_ERR_OK:
+                return sprintf( '%s uploaded successfully.', $name );
+
+            case UPLOAD_ERR_INI_SIZE:
+                return sprintf(
+                    '%s exceeds the upload_max_filesize directive.',
+                    $name
+                );
+
+            case UPLOAD_ERR_FORM_SIZE:
+                return sprintf(
+                    '%s exceeds the MAX_FILE_SIZE directive specified in the form.',
+                    $name
+                );
+
+            case UPLOAD_ERR_PARTIAL:
+                return sprintf(
+                    '%s was only partially uploaded.',
+                    $name
+                );
+
+            case UPLOAD_ERR_NO_FILE:
+                return sprintf(
+                    'No %s was uploaded.',
+                    $name
+                );
+
+            case UPLOAD_ERR_NO_TMP_DIR:
+                return 'Missing a temporary folder on the server.';
+
+            case UPLOAD_ERR_CANT_WRITE:
+                return sprintf(
+                    'Failed to write %s to disk.',
+                    $name
+                );
+
+            case UPLOAD_ERR_EXTENSION:
+                return sprintf(
+                    '%s upload was stopped by a PHP extension.',
+                    $name
+                );
+
+            default:
+                return sprintf(
+                    'Unknown upload error occurred for %s.',
+                    $name
+                );
+        }
+    }
 }

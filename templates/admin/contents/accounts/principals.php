@@ -10,7 +10,7 @@
  * @var string $type
  * @var string $description
  * @var \SmartLicenseServer\Admin\ContentHandlers\AccessControlPage $page_handler
- * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var \SmartLicenseServer\Core\AvatarManager $avatar_manager
  */
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
@@ -45,7 +45,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 
         <br class="clear" />
         <table class="widefat striped">
-            <thead class="<?php echo ( empty( $all ) ) ? 'hidden': '' ?>">
+            <thead class="<?php echo ( empty( $all ) ) ? 'smliser-hide': '' ?>">
                 <tr>
                     <th>ID</th>
                     <th></th>
@@ -90,7 +90,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                             <td>
                                 <img 
                                     src="<?php
-                                        echo escUrl( $urlmanager->avatar_url( $entity->get_unique_identifier(), $entity->get_type() )->url() );
+                                        echo escUrl( $avatar_manager->url( $entity->get_unique_identifier(), $entity->get_type() )->url() );
                                     ?>"
                                     alt="<?php printf( '%s avatar', $entity->get_display_name() ) ?>" 
                                     width="32" height="32"

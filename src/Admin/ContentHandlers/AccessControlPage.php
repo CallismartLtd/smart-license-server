@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Assets\AssetsManager;
+use SmartLicenseServer\Core\AvatarManager;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
@@ -30,7 +31,8 @@ class AccessControlPage implements AdminPageInterface {
     public function __construct(
         protected TemplateLocator $locator,
         protected URLManager $urlmanager,
-        protected AssetsManager $assets_manager
+        protected AssetsManager $assets_manager,
+        protected AvatarManager $avatar
     ) {
         $this->register_assets();
     }
@@ -251,9 +253,9 @@ class AccessControlPage implements AdminPageInterface {
         );
         
         if ( $user ) {
-            $avatar_url = $this->urlmanager->avatar_url( $user->get_unique_identifier(), $user->get_type() );            
+            $avatar_url = $this->avatar->url( $user->get_unique_identifier(), $user->get_type() );            
         } else {
-            $avatar_url = $this->urlmanager->assets_url( \smliser_get_placeholder_icon( 'avatar' ) );
+            $avatar_url = $this->default_avatar_url();
         }
 
         $avatar_name    = $user ? 'View image' : $avatar_url->basename();
@@ -394,7 +396,7 @@ class AccessControlPage implements AdminPageInterface {
         );
 
         if ( $organization ) {
-            $avatar_url = $this->urlmanager->avatar_url( $organization->get_unique_identifier(), $organization->get_type() );            
+            $avatar_url = $this->avatar->url( $organization->get_unique_identifier(), $organization->get_type() );            
         } else {
             $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
         }
@@ -526,7 +528,7 @@ class AccessControlPage implements AdminPageInterface {
         );
 
         if ( $member ) {
-            $avatar_url = $this->urlmanager->avatar_url( $member->get_unique_identifier(), $member->get_type() );            
+            $avatar_url = $this->avatar->url( $member->get_unique_identifier(), $member->get_type() );            
         } else {
             $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
         }
@@ -847,9 +849,9 @@ class AccessControlPage implements AdminPageInterface {
         );
 
         if ( $sa_acc ) {
-            $avatar_url = $this->urlmanager->avatar_url( $sa_acc->get_unique_identifier(), $sa_acc->get_type() );            
+            $avatar_url = $this->avatar->url( $sa_acc->get_unique_identifier(), $sa_acc->get_type() );            
         } else {
-            $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
+            $avatar_url = $this->default_avatar_url();
         }
 
         $avatar_name    = $sa_acc ? 'View image' : $avatar_url->basename();
@@ -929,6 +931,15 @@ class AccessControlPage implements AdminPageInterface {
         }
 
         smliser_print_admin_content_header( $args );
+    }
+
+    /**
+     * Get default avatar url.
+     * 
+     * @return URL
+     */
+    protected function default_avatar_url() : URL {
+        return $this->urlmanager->assets_url( \smliser_get_placeholder_icon( 'avatar' ) );
     }
 
     /*

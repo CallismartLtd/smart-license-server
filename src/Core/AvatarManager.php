@@ -112,6 +112,23 @@ class AvatarManager {
     }
 
     /**
+     * Get the avatar URL
+     * 
+    */
+    public function url( string $filename, string $type ) : URL {
+        $type   = $this->normalize( $type );
+        $path   = $this->full_path( $type, $filename );
+
+        if ( ! $this->file_system->exists( $path ) ) {
+            return $this->urlmanager->assets_url( smliser_get_placeholder_icon( 'avatar' ) );
+        }
+
+        return $this->urlmanager->uploads_url( 'avatars' )
+            ->append_path( $type )
+            ->append_path( $filename );
+    }
+
+    /**
      * Normalizes an avatar type.
      * 
      * @param string $type
@@ -120,9 +137,10 @@ class AvatarManager {
     public function normalize( string $type ) : string {
         $type   = strtolower( str_replace( [' ', '_'], '-', $type ) );
         return match( $type ) {
-            Owner::TYPE_INDIVIDUAL, 'user'  => 'users',
-            Owner::TYPE_ORGANIZATION        => 'organizations',
-            default                         => $type
+            Owner::TYPE_INDIVIDUAL, 'user'      => 'users',
+            Owner::TYPE_ORGANIZATION            => 'organizations',
+            'service-account', 'serviceaccount' => 'service-accounts',
+            default                             => $type
         };
     }
 }

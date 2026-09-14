@@ -305,32 +305,6 @@ class URLManager implements URLManagerInterface {
     }
 
     /**
-     * Get the avatar
-     * 
-     * @param string $filename_hash
-     * @param string $avatar_type
-     * @return URL
-     */
-    public function avatar_url( string $filename_hash, string $avatar_type ) : URL {
-
-        $type   = match( $avatar_type ) {
-            Owner::TYPE_INDIVIDUAL, 'user', 'users'     => 'users',
-            Owner::TYPE_ORGANIZATION, 'organizations'   => 'organization',
-            'service_account', 'service_accounts'       => 'service-accounts'
-        };
-
-        $path   = FileSystemHelper::join_path( SMLISER_UPLOADS_DIR, 'avatars', $type, $filename_hash );
-
-        if ( ! file_exists( $path ) ) {
-            return $this->assets_url( smliser_get_placeholder_icon( 'avatar' ) );
-        }
-
-        return $this->uploads_url( 'avatars' )
-            ->append_path( $type )
-            ->append_path( $filename_hash );
-    }
-
-    /**
      * Get app downloads url.
      * 
      * @param string $app_type

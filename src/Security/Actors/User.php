@@ -485,6 +485,24 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
     }
 
     /**
+     * Convert to array.
+     * 
+     * @return string[]
+     */
+    public function to_array() : array {
+        return [
+            'id'            => $this->get_id(),
+            'type'          => $this->get_type(),
+            'display_name'  => $this->get_display_name(),
+            'email'         => $this->get_email(),
+            'status'        => $this->get_status(),
+            'created_at'    => $this->get_created_at()->format( \smliser_datetime_format() ),
+            'updated_at'    => $this->get_updated_at()->format( \smliser_datetime_format() ),
+
+        ];
+    }
+
+    /**
      * Determine whether the user is allowed to authenticate.
      *
      * @return bool True if the user can authenticate.

@@ -686,15 +686,6 @@ class ContextServiceProvider extends DataStore {
                 ['status' => 500, 'error' => $e->getMessage()]
             );
         }
-
-        if ( method_exists( $entity, 'get_avatar' ) ) {
-            $avatar     = $entity->get_avatar();
-            $filename   = $avatar->basename();
-            $avatar_type    = $entity instanceof User ? 'user' : $entity->get_type();
-            
-            FileSystemHelper::delete_avatar( $filename, $avatar_type );
-
-        }
     }
 
     /**

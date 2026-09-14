@@ -439,7 +439,9 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
     const processResults = ( data, params ) => {
         params.page = params.page || 1;
 
-        if ( ! Array.isArray(data.items) ) data.items = [];
+        if ( ! Array.isArray(data.items ) ){
+            data.items = []; 
+        } 
 
         // Group entities by type (individuals, organizations)
         const grouped = {};
@@ -470,9 +472,9 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
     const $select2 = jQuery( selectEl );
     const url      = new URL( smliser_var.ajaxURL );
 
-    url.searchParams.set( 'action', 'smliser_admin_security_entity_search' );
+    url.pathname    += `/search/${options.entityType}/`;
+
     url.searchParams.set( 'security', smliser_var.csrf_token );
-    url.searchParams.set( 'entity_type', options.entityType );
 
     $select2.select2({
         placeholder: options.placeholder,
@@ -1216,7 +1218,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                     warning.className   = 'smliser-api-key-warning';
                     const strong        = document.createElement( 'strong' );
                     strong.textContent  = 'Important: ';
-                    warning.append( strong, document.createTextNode( 'Copy this token now. For security, we cannot show it to you again.' ) );
+                    warning.append( strong, document.createTextNode( 'Copy this token now. For security, it will not be shown to you again.' ) );
 
                     const label         = document.createElement( 'span' );
                     label.className     = 'smliser-api-key-label';
@@ -2284,7 +2286,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                     warning.className   = 'smliser-api-key-warning';
                     const strong        = document.createElement( 'strong' );
                     strong.textContent  = 'Important: ';
-                    warning.append( strong, document.createTextNode( 'Save this key now. For security, we cannot show it to you again.' ) );
+                    warning.append( strong, document.createTextNode( 'Save this key now. For security, it will not be shown to you again.' ) );
 
                     const label         = document.createElement( 'span' );
                     label.className     = 'smliser-api-key-label';

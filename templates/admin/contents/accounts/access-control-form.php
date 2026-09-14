@@ -12,7 +12,7 @@
  * @var SmartLicenseServer\Security\OwnerSubjects\Organization $organization
  * @var \SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Admin\ContentHandlers\AccessControlPage $page_handler
- * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var \SmartLicenseServer\Core\AvatarManager $avatar_manager
  * @var string $form_slug
  */
 
@@ -155,7 +155,7 @@ if ( $render_image_only ) {
                             <div class="smliser-org-member_header">
                                 <img 
                                     src="<?php 
-                                        echo escUrl( $urlmanager->avatar_url( $member->get_unique_identifier(), $member->get_type() )->url() );
+                                        echo escUrl( $avatar_manager->url( $member->get_unique_identifier(), $member->get_type() )->url() );
                                         ?>" 
                                     alt="<?php echo escAttr( 'Member avatar' ); ?>" 
                                     width="38" 
