@@ -30,10 +30,12 @@ class FileRequestController {
     use SanitizeAwareTrait, SecurityAwareTrait;
 
     public function __construct(
-        protected Guard $guard,
         protected AppsAnalytics $apps_analytics,
-        protected Settings $settings
-    ) {}
+        protected Settings $settings,
+        Guard $guard
+    ) {
+        $this->guard = $guard;
+    }
     
     /**
      * Process and serve download request for a hosted application zip file.

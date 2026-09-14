@@ -237,7 +237,7 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
      * @param int|false $chmod Optional permissions.
      * @return bool True on success, false on failure.
      */
-    public function mkdir_recursive( string $path, int|false $chmod = false ): bool {
+    protected function mkdir_recursive( string $path, int|false $chmod = false ): bool {
         $stream_wrapper = null;
 
         if ( $this->is_stream( $path ) ) {

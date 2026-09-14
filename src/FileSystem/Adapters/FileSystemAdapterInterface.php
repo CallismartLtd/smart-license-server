@@ -11,8 +11,6 @@
 
 namespace SmartLicenseServer\FileSystem\Adapters;
 
-use SmartLicenseServer\Exceptions\FileSystemException;
-
 interface FileSystemAdapterInterface {
 
     /**
@@ -100,15 +98,6 @@ interface FileSystemAdapterInterface {
      * @return bool True on success, false on failure.
      */
     public function mkdir( string $path, int|false $chmod = false, bool $recursive = true ): bool;
-
-    /**
-     * Create directories recursively.
-     *
-     * @param string $path Absolute path.
-     * @param int|false $chmod Optional permissions.
-     * @return bool True on success, false on failure.
-     */
-    public function mkdir_recursive( string $path, int|false $chmod = false ): bool;
 
     /**
      * Remove a directory.

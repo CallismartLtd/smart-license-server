@@ -2544,6 +2544,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             table.querySelector( 'thead' )?.classList.add( 'smliser-hide' );
             table.tBodies[0].innerHTML = emptyRow;
         }
+
         deleteEntities.forEach( deleteBtn => {
             deleteBtn.addEventListener( 'click', async e => {
                 e.preventDefault();
@@ -2558,11 +2559,12 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 if ( ! confirmed ) {
                     deleteBtn.style.pointerEvents = 'auto';
                     deleteBtn.style.opacity = '1';
+                    deleteBtn.focus();
                     return;
                 };
 
-                const url   = new URL( smliser_var.ajaxURL );
-                url.searchParams.set( 'action', 'smliser_access_control_delete' );
+                const url       = new URL( smliser_var.ajaxURL );
+                url.pathname    += '/delete-account/';
                 url.searchParams.set( 'security', smliser_var.csrf_token );
 
                 Object.entries( args ).forEach( ( [key, value] ) => {

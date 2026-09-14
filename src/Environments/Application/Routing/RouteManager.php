@@ -328,6 +328,12 @@ final class RouteManager {
                         middleware: []
                     );
 
+                    $this->router->delete(
+                        pattern: 'delete-account',
+                        handler: [AccountManagements::class, 'handle_access_control_delete_request'],
+                        middleware: []
+                    );
+
                     /*
                     |----------------------------
                     | SETTINGS FORMS AND ACTIONS

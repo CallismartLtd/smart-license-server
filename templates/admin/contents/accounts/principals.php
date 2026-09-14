@@ -13,8 +13,6 @@
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
-use SmartLicenseServer\Security\Actors\User;
-
 defined( 'SMLISER_ROOT' ) || exit; ?>
 <div class="smliser-admin-repository-template">
     <?php $page_handler->print_header( $request ); ?>

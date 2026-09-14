@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Security;
 
 use InvalidArgumentException;
+use SmartLicenseServer\Core\AvatarManager;
 use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
@@ -28,7 +29,7 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const PASSWORD_ARGON2ID;
 
-use function is_smliser_error, sprintf, smliser_safe_json_encode, password_hash,
+use function is_smliser_error, sprintf, password_hash,
 password_verify, in_array, is_string, method_exists, str_replace, ucwords, compact,
 class_implements;
 
@@ -38,6 +39,7 @@ class_implements;
 class RequestController {
     use SanitizeAwareTrait, SecurityAwareTrait;
     public function __construct(
+        protected AvatarManager $avatar,
         protected Guard $guard
     ) {}
 
@@ -114,7 +116,7 @@ class RequestController {
      */
     public function delete_entity( Request $request ) : Response {
         try {
-            $entity = $request->get( 'entity' );
+            $entity = $request->get( 'entity_type' );
 
             if ( ! $entity ) {
                 throw new RequestException( 'required_param', 'Please provide the security entity.' );
@@ -155,7 +157,7 @@ class RequestController {
             return Response::json([
                 'success'   => true,
                 'data'      => array(
-                    'message'   => sprintf( '%s deleted successfully.', ucwords( str_replace( '_', ' ', $entity ) ) ),
+                    'message'   => sprintf( '%s deleted successfully.', ucwords( str_replace( '_', ' ', $permission_domain ) ) ),
                     'entity_id' => $ent_object->get_id(),
                     'entity'    => $entity
                 )
@@ -235,6 +237,8 @@ class RequestController {
                 $user->set_password_hash( $password_hash );
             }
 
+            $uid    = $user->exists() ? $user->get_unique_identifier() :  null;
+
             $user->set_email( $email )
             ->set_display_name( $display_name )
             ->set_status( $status );
@@ -243,13 +247,22 @@ class RequestController {
                 throw new RequestException( 'database_error', 'Unable to save user', ['status' => 500] );
             }
 
-            self::save_role( $user, $request );
-
             $avatar = $request->get_file( 'avatar' );
 
-            if ( $avatar ) {
-                FileSystemHelper::upload_avatar( $avatar, 'user', md5( $user->get_unique_identifier() ) );
+            if ( $avatar && $avatar->is_upload_successful() ) {
+                $current_uid    = $user->get_unique_identifier();
+
+                if ( $uid && $uid !== $current_uid ) {
+                    $this->avatar->rename( $user->get_type(), $uid, $current_uid );
+                    
+                } else {
+                    $avatar->set_new_name( $user->get_unique_identifier() );
+                    $this->avatar->upload( $avatar, $user->get_type() );
+                }
             }
+
+            self::save_role( $user, $request );
+
             return true;
         } catch ( InvalidArgumentException $e ) {
 

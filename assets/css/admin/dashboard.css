@@ -794,7 +794,7 @@ button:hover:not( :disabled ),
 
 .dashboard-theme-icon-dark {
 	display: none;
-	color: #fff;
+	color: var( --dashboard-accent );
 	font-size: 16px;
 }
 

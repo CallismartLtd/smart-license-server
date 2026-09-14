@@ -445,7 +445,6 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
 
             $lock_sql   = static::query()
                 ->select( 'id' )->from( $table )
-                ->where( 'email', '=', $this->get_email() )
                 ->limit(1)->lock_for_update();
 
             $user_id    = (int) static::$DB->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
@@ -527,6 +526,6 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
     }
 
     public function get_unique_identifier(): string {
-        return $this->get_email();
+        return md5( $this->get_email() );
     }
 }

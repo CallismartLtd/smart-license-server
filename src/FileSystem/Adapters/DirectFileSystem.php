@@ -210,17 +210,6 @@ class DirectFileSystem implements FileSystemAdapterInterface {
     }
 
     /**
-     * Create directories recursively.
-     *
-     * @param string $path Absolute path.
-     * @param int|false $chmod Optional permissions.
-     * @return bool True on success, false on failure.
-     */
-    public function mkdir_recursive( string $path, int|false $chmod = false ): bool {
-        return $this->mkdir( $path, $chmod, true );
-    }
-
-    /**
      * Remove a directory.
      *
      * @param string $path Absolute path.
