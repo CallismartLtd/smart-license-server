@@ -44,7 +44,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
         </ul>
 
         <br class="clear" />
-        <table class="widefat striped">
+        <table class="smliser-table widefat striped">
             <thead class="<?php echo ( empty( $all ) ) ? 'smliser-hide': '' ?>">
                 <tr>
                     <th>ID</th>

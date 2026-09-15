@@ -15,6 +15,7 @@ use Callismart\DBPrism\Inspection\Inspector;
 use Callismart\DBPrism\Utils\Table;
 use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
+use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
 use SmartLicenseServer\Schema\SchemaRegistry;
@@ -56,6 +57,11 @@ class AppInstaller {
 		'Uploads Directory'   => \SMLISER_UPLOADS_DIR,
 		'Logs Directory'      => \SMLISER_LOGS_DIR,
 	);
+
+    public function __construct(
+        protected Database $db,
+        protected JobQueue $job_queue
+    ) {}
 
     /**
      * Performs environment sanity checks and evaluates database, cache, and package management requirements.
@@ -321,10 +327,8 @@ class AppInstaller {
         ?callable $success_callback = null,
         ?callable $failure_callback = null
         ) : void{
-        
-        $db         = smliser_db();
         $schema     = SchemaRegistry::instance();
-        $inspector  = new Inspector( $db );
+        $inspector  = new Inspector( $this->db );
 
         foreach ( $schema->get_all_tables() as $table ) {
             if ( $inspector->table_exists( $table->get_name() ) ) {
@@ -332,8 +336,8 @@ class AppInstaller {
                 continue;
             }
 
-            if ( ! $this->create_table( $table, $db ) ) {
-                $failure_callback && $failure_callback( $table->get_name(), $db->get_last_error() );
+            if ( ! $this->create_table( $table ) ) {
+                $failure_callback && $failure_callback( $table->get_name(), $this->db->get_last_error() );
                 continue;
             }
 
@@ -345,13 +349,12 @@ class AppInstaller {
      * Create a single database table from a column definition array.
      *
      * @param Table $table
-     * @param Database $db
      * @return bool
      */
-    protected function create_table( Table $table, Database $db ): bool {
-        $charset_collate = $db->get_charset_collate();
+    protected function create_table( Table $table ): bool {
+        $charset_collate = $this->db->get_charset_collate();
 
-        $query  = \smliserQueryBuilder()
+        $query  = \smliserQueryBuilder( $this->db->get_driver() )
             ->create_table( $table->get_name() )
             ->add_columns( $table->get_columns() )
             ->add_constraints( $table->get_constraints() );
@@ -359,7 +362,7 @@ class AppInstaller {
         
         usleep( 10000 );
 
-        return $db->exec( $sql );        
+        return $this->db->exec( $sql );        
     }
 
     /**
@@ -389,7 +392,7 @@ class AppInstaller {
                     $success_callback && $success_callback( $role->get_label(), 'Installed' );
                 } else {
                     $rows[] = [ $slug, '⚠ Skipped — unable to save' ];
-                    $failure_callback && $failure_callback( $role->get_label(), smliser_db()->get_last_error() );
+                    $failure_callback && $failure_callback( $role->get_label(), $this->db->get_last_error() );
                 }
             } catch ( \Throwable $e ) {
                 $failure_callback && $failure_callback( $role->get_label(), $e->getMessage() );
@@ -417,17 +420,21 @@ class AppInstaller {
             ->set_slug( $default_role['slug'] )
             ->set_capabilities( $default_role['capabilities'] )
             ->set_is_canonical( $default_role['is_canonical'] );
+        
+        $admin  = User::get_by_email( $email );
 
-        $admin  = ( new User() )
-            ->set_display_name( $name )
-            ->set_email( $email )
-            ->set_password_hash( password_hash( $password, PASSWORD_ARGON2ID ) )
-            ->set_created_at( new \DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) ) )
-            ->set_id(0)
-            ->set_status( User::STATUS_ACTIVE );
-
-        if ( ! $admin->save() ) {
-            throw new DatabaseException( 'insert_error', smliser_db()->get_last_error() );
+        if ( ! $admin ) {
+            $admin  = ( new User() )
+                ->set_display_name( $name )
+                ->set_email( $email )
+                ->set_password_hash( password_hash( $password, PASSWORD_ARGON2ID ) )
+                ->set_created_at( new \DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) ) )
+                ->set_id(0)
+                ->set_status( User::STATUS_ACTIVE );
+            
+            if ( ! $admin->save() ) {
+                throw new DatabaseException( 'insert_error', $this->db->get_last_error() );
+            }
         }
 
         $owner = ContextServiceProvider::get_default_owner( $admin );
@@ -447,7 +454,7 @@ class AppInstaller {
 
         ContextServiceProvider::save_actor_role( $admin, $role, $owner_subject );
 
-        \smliser_job_queue()->dispatch( JobDTO::make(
+        $this->job_queue->dispatch( JobDTO::make(
             job_class: SignupEmailJob::class,
             payload: [
                 'user_id'   => $admin->get_id(),

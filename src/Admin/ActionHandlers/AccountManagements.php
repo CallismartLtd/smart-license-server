@@ -8,11 +8,12 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Admin\ActionHandlers;
 
 use SmartLicenseServer\Contracts\AdminRequests\AccessControlHandlerInterface;
+use SmartLicenseServer\Contracts\AdminRequests\OrganizationHandlerInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Security\RequestController;
 
-class AccountManagements implements AccessControlHandlerInterface {
+class AccountManagements implements AccessControlHandlerInterface, OrganizationHandlerInterface {
     public function __construct(
         protected RequestController $request_controller
     ) {}
@@ -43,5 +44,9 @@ class AccountManagements implements AccessControlHandlerInterface {
         }
 
         return $response;
+    }
+
+    public function handle_delete_org_memeber_request( Request $request ) : Response {
+        return $this->request_controller->delete_org_member( $request );
     }
 }

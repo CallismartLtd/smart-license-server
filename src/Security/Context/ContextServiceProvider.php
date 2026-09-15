@@ -52,7 +52,7 @@ class ContextServiceProvider extends DataStore {
      *  limit: int,
      *  types: array
      * } $args
-     * @return array
+     * @return array{items: mixed, pagination: array{total: int, page: int, limit: int, total_pages: int}}
      */
     public static function search( array $args = [] ) {
         $db = static::$DB;
@@ -398,7 +398,7 @@ class ContextServiceProvider extends DataStore {
             'owner_subject_id'      => $subject ? $subject->get_id() : $actor->get_id(),
         ]);
 
-        if ( ! $deleted ) {
+        if ( false === $deleted ) {
             throw new DatabaseException( 'delete_failed', $db->get_last_error() );
         }
 
@@ -497,10 +497,10 @@ class ContextServiceProvider extends DataStore {
             $exists_sql = static::query()
                 ->select( 'id' )->from( $table )
                 ->where( 'organization_id', '=', $organization->get_id() )
-                ->where( 'member_id', '=', $member->get_id() )
+                ->where( 'member_id', '=', $member->get_member_id() )
                 ->limit( 1 )->lock_for_update();
 
-            $id = $db->get_var( $exists_sql->build(), $exists_sql->get_bindings() );
+            $id = (int) $db->get_var( $exists_sql->build(), $exists_sql->get_bindings() );
 
             if ( $id ) {
                 $data   = ['updated_at' => $now->format( 'Y-m-d H:i:s' ) ];
@@ -512,7 +512,7 @@ class ContextServiceProvider extends DataStore {
             } else {
                 $data   = [
                     'organization_id'   => $organization->get_id(),
-                    'member_id'         => $member->get_user()->get_id(),
+                    'member_id'         => $member->get_member_id(),
                     'created_at'        => $now->format( 'Y-m-d H:i:s' ),
                     'updated_at'        => $now->format( 'Y-m-d H:i:s' )
                 ];
@@ -553,10 +553,11 @@ class ContextServiceProvider extends DataStore {
             }
 
             $role           = static::get_principal_role( $user, $organization );
-            $result['role'] = $role;
+            $member         = OrganizationMember::from_array( $result );
 
-            $collection     = new Collection( $result );
-            $member         = new OrganizationMember( $user, $collection );
+            if ( $role ) {
+                $member->set_role( $role );
+            }
 
             $members->add( $member );
         }
@@ -618,11 +619,11 @@ class ContextServiceProvider extends DataStore {
 
             $deleted    = $db->delete( $table, [
                 'id'                => $member->get_id(),
-                'member_id'         => $member->get_user()->get_id(),
+                'member_id'         => $member->get_member_id(),
                 'organization_id'   => $organization->get_id()
             ]);
 
-            if ( ! $deleted ) {
+            if ( false === $deleted ) {
                 throw new DatabaseException( 'delete_failed', $db->get_last_error() );
             }
 

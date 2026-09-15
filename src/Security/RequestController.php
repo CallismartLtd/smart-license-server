@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\Security;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use InvalidArgumentException;
 use SmartLicenseServer\Core\AvatarManager;
 use SmartLicenseServer\Core\Collection;
@@ -40,7 +42,8 @@ class RequestController {
     use SanitizeAwareTrait, SecurityAwareTrait;
     public function __construct(
         protected AvatarManager $avatar,
-        protected Guard $guard
+        protected Guard $guard,
+        protected AvatarManager $avatar_manager
     ) {}
 
     /**
@@ -473,6 +476,16 @@ class RequestController {
                 throw new RequestException( 'bad_request', 'Member must have a valid role.', ['status' => 400] );
             }
 
+            $status = (string) $request->get( 'status' );
+
+            if ( ! $status || ! in_array( $status, OrganizationMember::get_allowed_statuses(), true  ) ) {
+                throw new RequestException(
+                    'bad_request',
+                    sprintf( 'The member status must be one of %s', \implode( ',', OrganizationMember::get_allowed_statuses() ) ),
+                    ['status'   => 400]
+                );
+            }
+
             $org_id         = $this->sanitize_int( $request->get( 'organization_id' ) );
             $organization   = Organization::get_by_id( $org_id );
 
@@ -480,21 +493,30 @@ class RequestController {
                 throw new RequestException( 'bad_request', 'The member must belong to an existing organization.', ['status' => 400] );
             }
 
-            $user_id    = $this->sanitize_int( $request->get( 'user_id' ) );
-            $subject    = User::get_by_id( $user_id );
+            $user_id    = $this->sanitize_int( $request->get( 'id' ) );
+            
+            $user    = User::get_by_id( $user_id );
 
-            if ( ! $subject ) {
+            if ( ! $user ) {
                 throw new RequestException( 'bad_request', 'The member subject must be an existing user.', ['status' => 400] );
             }
            
-            $member_id  = $this->sanitize_int( $request->get( 'member_id' ) );                    
+            $member_id  = $this->sanitize_int( $request->get( 'member_id' ) );
             
             $member     = $organization->get_members()->get( $member_id );
 
             if ( ! $member ) {
                 $this->check_permissions( 'security.organization.add_members' );
-                $collection = Collection::make( ['role' => $role ] );
-                $member = new OrganizationMember( $subject, $collection );
+                
+                $member = OrganizationMember::from_array(
+                    [
+                        'id'    => 0,
+                        'member_id' => $user->get_id(),
+                        'status'    => $status
+                    ]
+                );
+
+                $member->set_role( $role );
 
                 $organization->get_members()->add( $member );
             } else {
@@ -512,9 +534,10 @@ class RequestController {
                         'display_name'  => $member->get_display_name(),
                         'status'        => $member->get_status(),
                         'type'          => $member->get_type(),
-                        'created_at'    => $member->get_created_at()->format( \smliser_datetime_format() ),
-                        'updated_at'    => $member->get_updated_at()->format( \smliser_datetime_format() ),
-                    ]
+                        'created_at'    => $member->get_created_at()?->format( \smliser_datetime_format() ) ?? new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) )->format( \smliser_datetime_format() ),
+                        'updated_at'    => $member->get_updated_at()?->format( \smliser_datetime_format() ) ?? new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) )->format( \smliser_datetime_format() ),
+                    ],
+                    'entity'    => Owner::TYPE_ORGANIZATION
                 )
             ]);
 
@@ -710,13 +733,19 @@ class RequestController {
             $args   = compact( 'search_term', 'types', 'status' );
 
             $results    = ContextServiceProvider::search( $args );
-            $data       = Collection::make( $results['items'] )->map( 'smliser_value_to_array' );
+
+            foreach( $results['items'] as $i => $item ) {
+                $ent                    = $item->to_array();
+                $ent['avatar']          = $this->avatar_manager->url( $item->get_unique_identifier(), $item->get_type() );
+                $results['items'][$i]   = $ent;
+
+            }
 
             return Response::json([
-                    'success'       => true,
-                    'items'         => $data->toArray(),
-                    'pagination'    => $results['pagination'],
-                ]);
+                'success'       => true,
+                'items'         => $results['items'],
+                'pagination'    => $results['pagination'],
+            ]);
 
         } catch ( RequestException $e ) {
             return Response::error( $e )

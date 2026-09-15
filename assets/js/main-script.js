@@ -491,9 +491,9 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
         width: '100%',
     });
 
-    const ownerTypeInput = $select2.closest('form').find('#owner_type');
-    const nameInput      = $select2.closest('form').find('#name');
-    const avatarOnly     = $select2.closest('form').find('.smliser-avatar-upload_image-preview.avatar-only');
+    const ownerTypeInput = $select2.closest( 'form' ).find('#owner_type');
+    const nameInput      = $select2.closest( 'form' ).find('#name');
+    const avatarOnly     = $select2.closest( 'form' ).find('.smliser-avatar-upload_image-preview.avatar-only');
     const defaultValue   = ownerTypeInput.val();
 
     $select2.on('select2:select select2:unselect', e => {
@@ -502,8 +502,8 @@ function smliserSearchSecurityEntities( selectEl, options = {} ) {
         if ( ownerTypeInput.length ) {
             ownerTypeInput.val(e.params.data.selected ? data.type : defaultValue);
 
-            if ( e.params.data.selected && nameInput.length && !nameInput.val() ) {
-                nameInput.val(data.text);
+            if ( e.params.data.selected && nameInput.length && ! nameInput.val() ) {
+                nameInput.val( data.text );
             }
         }
 
@@ -2172,10 +2172,10 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 const clickedBtn        = addnewMemberBtn ?? editMemberBtn ?? deleteMemberBtn;
                 
                 qv.set( 'org_id', qv.get( 'id' ) );
-
+                
                 if ( editMemberBtn ) {
                     qv.set( 'section', 'edit-member' );
-                    qv.set( 'member_id', editMemberBtn.dataset.memberId );
+                    qv.set( 'id', editMemberBtn.dataset.memberId );
                 }
 
                 if ( addnewMemberBtn ) {
@@ -2202,15 +2202,17 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                         
                         const url   = new URL( smliser_var.ajaxURL );
 
-                        url.searchParams.set( 'action', 'smliser_delete_org_member' );
+                        url.pathname    += '/delete-organization-member/';
+
                         url.searchParams.set( 'security', smliser_var.csrf_token );
                         url.searchParams.set( 'organization_id', qv.get( 'org_id' ) );
                         url.searchParams.set( 'member_id', deleteMemberBtn.dataset.memberId );
-                        url.searchParams.set( 'action', 'smliser_delete_org_member' );
                         let spinner = showSpinner( '.smliser-spinner', true );
 
                         try {
-                            const response  = await smliserFetchJSON( url.href );
+                            const response  = await smliserFetchJSON( url.href, {
+                                method: 'DELETE'
+                            } );
                             let message     = response?.data.message;
 
                             if ( response?.success ) {
@@ -2233,11 +2235,16 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                         return;
                     }
 
-                    showSpinner( '.smliser-spinner', true );
-                    qv.delete( 'id' );
+                    const spinner = showSpinner( '.smliser-spinner', true );
+                    
                     const url   = new URL( window.location );
                     url.search  = qv.toString();
                     window.location.href = url.href;
+
+                    setTimeout( () => {
+                        removeSpinner( spinner );
+                        clickedBtn.disabled = false;
+                    }, 3000 );
                 }
                 
             });
@@ -2386,7 +2393,6 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             if ( isOrgTab && 'add-new-member' === qv.get( 'section' ) ) {
                 const orgID = qv.get( 'org_id' );
 
-                redirectUrl.searchParams.set( 'section', 'edit' );
                 redirectUrl.searchParams.set( 'id', orgID );
 
                 redirectUrl.searchParams.delete( 'org_id', orgID );

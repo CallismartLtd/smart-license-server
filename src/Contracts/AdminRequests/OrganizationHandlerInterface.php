@@ -27,5 +27,5 @@ interface OrganizationHandlerInterface {
 	 * @param  Request $request
 	 * @return Response
 	 */
-	public function handle_smliser_delete_org_member_request( Request $request ) : Response;
+	public function handle_delete_org_memeber_request( Request $request ) : Response;
 }

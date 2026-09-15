@@ -1156,13 +1156,14 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     flex-direction: column;
     gap: 10px;
     padding: 8px;
-    background-color: var(--dashboard-surface);
+    background-color: var(--dashboard-surface );
+    color: var( --dashboard-text );
     border-radius: 6px;
     transition: box-shadow .5s ease-in-out;
 }
 
 .smliser-organization-members-list li:hover {
-    box-shadow: 0px 2px 3px 0px rgba(3, 1, 2, 0.2);
+    box-shadow: var( --dashboard-shadow );
 
 }
 
@@ -1183,6 +1184,7 @@ li.smliser-org-member .smliser-org-member_header img {
     width: 100%;
     min-height: 100%;
     background-color: var(--dashboard-surface);
+    color: var( --dashboard-text );
     border: none;
     cursor: pointer;
     transition: transform 0.2s ease-in-out;

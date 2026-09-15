@@ -334,6 +334,12 @@ final class RouteManager {
                         middleware: []
                     );
 
+                    $this->router->delete(
+                        pattern: 'delete-organization-member',
+                        handler: [AccountManagements::class, 'handle_delete_org_memeber_request'],
+                        middleware: []
+                    );
+
                     $this->router->get(
                         pattern: 'search/{entity_type:slug}',
                         handler: [AccountManagements::class, 'handle_admin_security_entity_search_request']

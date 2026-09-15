@@ -115,9 +115,9 @@ class AccessControlPage implements AdminPageInterface {
 
         $description    = 'Manage users';
         $page_handler   = $this;
-        $urlmanager     = $this->urlmanager;
+        $avatar_manager = $this->avatar;
         $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description',
-            'urlmanager', 'page_handler'
+            'avatar_manager', 'page_handler'
         );
 
         $this->locator->render( 'admin.contents.accounts.principals', $vars );
@@ -299,9 +299,9 @@ class AccessControlPage implements AdminPageInterface {
         $type           = 'organization';
         $description    = 'An organization is an account that represents a group, business, or other entity under which users, service accounts, resources, and access policies can be managed collectively.';
         $page_handler   = $this;
-        $urlmanager     = $this->urlmanager;
+        $avatar_manager     = $this->avatar;
         $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description',
-            'page_handler', 'urlmanager' );
+            'page_handler', 'avatar_manager' );
 
         $this->locator->render( 'admin.contents.accounts.principals', $vars );
     }
@@ -398,14 +398,16 @@ class AccessControlPage implements AdminPageInterface {
         if ( $organization ) {
             $avatar_url = $this->avatar->url( $organization->get_unique_identifier(), $organization->get_type() );            
         } else {
-            $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
+            $avatar_url = $this->default_avatar_url();
         }
 
         $avatar_name    = $organization ? 'View image' : $avatar_url->basename();
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
+        $avatar_manager = $this->avatar;
         $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
-        'title', 'organization', 'urlmanager', 'page_handler' );
+            'title', 'organization', 'urlmanager', 'page_handler', 'avatar_manager'
+        );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -419,8 +421,8 @@ class AccessControlPage implements AdminPageInterface {
 
         $org_id             = $request->get( 'org_id' );
         $organization       = Organization::get_by_id( (int) $org_id );
-        $member_id          = (int) $request->get( 'member_id' );
-        $member             = $organization?->get_members()->get( $member_id );
+        $id                 = (int) $request->get( 'id' );
+        $member             = $organization?->get_members()->get( $id );
         $org_name           = $organization?->get_display_name();
 
         $title              = sprintf( '%s %s Member', $member ? 'Edit' : 'Add New', $org_name );
@@ -430,7 +432,7 @@ class AccessControlPage implements AdminPageInterface {
         $_status_keys       = array_values( $_org_statuses );
         $_statuses          = array_combine( $_status_keys, $_status_titles );
         $selected_member    = $member ? [
-            sprintf( '%s:%s', $member->get_type(), $member->get_id() ) => $member->get_display_name()
+            sprintf( '%s:%s', $member->get_type(), $member->get_member_id() ) => $member->get_display_name()
         ] : [];
 
         $role   = $member ? $member->get_role()?->to_array() : null;
@@ -448,8 +450,8 @@ class AccessControlPage implements AdminPageInterface {
                 'label' => '',
                 'input' => array(
                     'type'  => 'hidden',
-                    'name'  => 'member_id',
-                    'value' => $member_id,
+                    'name'  => 'id',
+                    'value' => $id,
                 )
             ),
 
@@ -496,8 +498,8 @@ class AccessControlPage implements AdminPageInterface {
                 'label' => __( 'Member', 'smliser' ),
                 'input' => array(
                     'type'  => 'select',
-                    'name'  => 'user_id',
-                    'value' => $member?->get_user()->get_id(),
+                    'name'  => 'member_id',
+                    'value' => $member?->get_member_id(),
                     'attr'  => array(
                         'readonly'  => true,
                         // Accessibility
@@ -530,7 +532,7 @@ class AccessControlPage implements AdminPageInterface {
         if ( $member ) {
             $avatar_url = $this->avatar->url( $member->get_unique_identifier(), $member->get_type() );            
         } else {
-            $avatar_url = URL::from( \smliser_get_placeholder_icon( 'avatar' ) );
+            $avatar_url = $this->default_avatar_url();
         }
 
         $avatar_name    = $member ? 'View image' : $avatar_url->basename();
@@ -707,9 +709,9 @@ class AccessControlPage implements AdminPageInterface {
         $description    = 'A service account is a non-human account used by software, an application, server, or automated process to authenticate and access resources.';
 
         $page_handler   = $this;
-        $urlmanager     = $this->urlmanager;
+        $avatar_manager = $this->avatar;
         $vars           = compact( 'request', 'all', 'entity_class', 'type', 'description',
-            'urlmanager', 'page_handler' );
+            'avatar_manager', 'page_handler' );
 
         $this->locator->render( 'admin.contents.accounts.principals', $vars );      
     }
