@@ -480,6 +480,10 @@ class Organization extends DataStore implements OwnerSubjectInterface {
      * @return bool True when the member is a member, false otherwise.
      */
     public function is_member( OrganizationMember|string|int $member ) : bool {
+        if ( is_string( $member ) ) {
+            $member = (int) $member;
+        }
+        
         return $this->get_members()->has( $member );
     }
 

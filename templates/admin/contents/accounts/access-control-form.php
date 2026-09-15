@@ -13,14 +13,16 @@
  * @var \SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Admin\ContentHandlers\AccessControlPage $page_handler
  * @var \SmartLicenseServer\Core\AvatarManager $avatar_manager
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
  * @var string $form_slug
+ * @var \SmartLicenseServer\Core\URL $back_url
  */
 
 defined( 'SMLISER_ROOT' ) || exit;
 
 $current_tab        = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
 $current_section    = $request->query( 'section', '' );
-$render_roles       = in_array( $current_tab, ['service-account', 'users', ], true )
+$render_roles       = in_array( $current_tab, ['service-accounts', 'users', ], true )
     || in_array( $current_section, ['add-new-member', 'edit-member'], true );
 
 $render_avatar      = 'owners' !== $current_tab;
@@ -30,14 +32,18 @@ $render_image_only  = in_array( $current_section, ['add-new-member', 'edit-membe
 if ( $render_image_only ) {
     $render_avatar = false;
 }
+
 ?>
 
 <div class="smliser-admin-repository-template" role="main">
     <?php $page_handler->print_header( $request ); ?>
 
     <form method="post" class="smliser-access-control-form" aria-labelledby="smliser-form-title" data-slug="accounts-form-save">
-
-        <h2 id="smliser-form-title"><?php echo escHtml( $title ); ?></h2>
+        <div style="display: flex; gap: 20px; align-items: flex-start">
+            <h2 id="smliser-form-title"><?php echo escHtml( $title ); ?></h2>
+            <a href="<?php echo escUrl( $back_url->url() ) ?>" class="smliser-btn"> <i class="ti ti-arrow-back"></i></a>
+        </div>
+        
 
         <div class="smliser-two-rows">
             <div class="smliser-two-rows_left" role="group" aria-label="Form fields">

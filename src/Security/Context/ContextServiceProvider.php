@@ -310,9 +310,7 @@ class ContextServiceProvider extends DataStore {
             );
             
             $missing_keys = Collection::make( $data )
-                ->filter( fn( $value ) => empty( $value ) )
-                ->keys()
-                ->all();
+                ->filter( fn( $value ) => empty( $value ) )->keys()->all();
 
             if ( ! empty( $missing_keys ) ) {
                 throw new InvalidArgumentException(

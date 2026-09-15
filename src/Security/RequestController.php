@@ -493,17 +493,17 @@ class RequestController {
                 throw new RequestException( 'bad_request', 'The member must belong to an existing organization.', ['status' => 400] );
             }
 
-            $user_id    = $this->sanitize_int( $request->get( 'id' ) );
+            $member_id    = $this->sanitize_int( $request->get( 'member_id' ) );
             
-            $user    = User::get_by_id( $user_id );
+            $user    = User::get_by_id( $member_id );
 
             if ( ! $user ) {
                 throw new RequestException( 'bad_request', 'The member subject must be an existing user.', ['status' => 400] );
             }
            
-            $member_id  = $this->sanitize_int( $request->get( 'member_id' ) );
+            $id  = $this->sanitize_int( $request->get( 'id' ) );
             
-            $member     = $organization->get_members()->get( $member_id );
+            $member     = $organization->get_members()->get( $id );
 
             if ( ! $member ) {
                 $this->check_permissions( 'security.organization.add_members' );
@@ -521,6 +521,7 @@ class RequestController {
                 $organization->get_members()->add( $member );
             } else {
                 $this->check_permissions( 'security.organization.update_members' );
+                $member->set_status( $status );
             }
 
             ContextServiceProvider::save_organization_member( $member, $organization, $role );

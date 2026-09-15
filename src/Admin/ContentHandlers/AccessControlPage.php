@@ -68,7 +68,7 @@ class AccessControlPage implements AdminPageInterface {
                 'add-new'   => [$this, 'owners_form_page'],
                 'edit'      => [$this, 'owners_form_page'],
             ],
-            'service-account'  => [
+            'service-accounts'  => [
                 'add-new'   => [$this, 'service_accounts_form_page'],
                 'edit'      => [$this, 'service_accounts_form_page'],
             ],
@@ -275,8 +275,9 @@ class AccessControlPage implements AdminPageInterface {
 
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
+        $back_url       = $urlmanager->admin_accounts_page_url( 'service-accounts' );
         $vars           = compact( 'request', 'form_fields', 'avatar_name',
-            'avatar_url', 'role', 'title', 'page_handler', 'urlmanager'
+            'avatar_url', 'role', 'title', 'page_handler', 'urlmanager', 'back_url'
         );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
@@ -405,8 +406,9 @@ class AccessControlPage implements AdminPageInterface {
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
         $avatar_manager = $this->avatar;
+        $back_url   = $urlmanager->admin_accounts_page_url( 'organizations' );
         $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
-            'title', 'organization', 'urlmanager', 'page_handler', 'avatar_manager'
+            'title', 'organization', 'urlmanager', 'page_handler', 'avatar_manager', 'back_url'
         );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
@@ -425,7 +427,7 @@ class AccessControlPage implements AdminPageInterface {
         $member             = $organization?->get_members()->get( $id );
         $org_name           = $organization?->get_display_name();
 
-        $title              = sprintf( '%s %s Member', $member ? 'Edit' : 'Add New', $org_name );
+        $title              = sprintf( '%s Member in %s ', $member ? 'Edit' : 'Add New', $org_name );
 
         $_org_statuses      = Organization::get_allowed_statuses();
         $_status_titles     = array_map( 'ucwords', array_values( $_org_statuses ) );
@@ -538,8 +540,14 @@ class AccessControlPage implements AdminPageInterface {
         $avatar_name    = $member ? 'View image' : $avatar_url->basename();
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
+        $back_url   = $urlmanager->admin_accounts_page_url( 'organizations', [
+            'section'   => 'edit',
+            'id'        => smliser_get_current_url()->get_query_param( 'org_id', 0 )
+        ]);
+
         $vars = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
-        'title', 'organization', 'role', 'urlmanager', 'page_handler' );
+            'title', 'organization', 'role', 'urlmanager', 'page_handler', 'back_url'
+        );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -686,7 +694,8 @@ class AccessControlPage implements AdminPageInterface {
 
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
-        $vars = compact( 'request', 'form_fields', 'title', 'page_handler', 'urlmanager' );
+        $back_url   = $urlmanager->admin_accounts_page_url( 'owners' );
+        $vars = compact( 'request', 'form_fields', 'title', 'page_handler', 'urlmanager', 'back_url' );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -736,7 +745,7 @@ class AccessControlPage implements AdminPageInterface {
 
         if ( $sa_acc ) {
             $owner      = $sa_acc->get_owner();
-            $subject    = ContextServiceProvider::get_owner_subject( $owner );
+            $subject    = $owner ? ContextServiceProvider::get_owner_subject( $owner ) : null;
             $role_obj   = ContextServiceProvider::get_principal_role( $sa_acc, $subject );
 
             if ( $role_obj ) {
@@ -859,8 +868,10 @@ class AccessControlPage implements AdminPageInterface {
         $avatar_name    = $sa_acc ? 'View image' : $avatar_url->basename();
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
+        $back_url   = $urlmanager->admin_accounts_page_url( 'service-accounts' );
         $vars           = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url', 'role',
-        'title', 'urlmanager', 'page_handler' );
+            'title', 'urlmanager', 'page_handler', 'back_url'
+        );
 
         $this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
     }
@@ -876,7 +887,7 @@ class AccessControlPage implements AdminPageInterface {
             'users'             => 'Users',
             'organizations'     => 'Organizations',
             'owners'            => 'Resource Owners',
-            'service-account'   => 'Service Accounts',
+            'service-accounts'  => 'Service Accounts',
             default             => 'Accounts Overview'
 
         };
@@ -899,9 +910,9 @@ class AccessControlPage implements AdminPageInterface {
                 array(
                     'title'     => 'REST API Service Accounts',
                     'label'     => 'Service Accounts',
-                    'url'       => $this->urlmanager->admin_accounts_page_url( 'service-account' ),
+                    'url'       => $this->urlmanager->admin_accounts_page_url( 'service-accounts' ),
                     'icon'      => 'ti ti-robot',
-                    'active'    => $tab === 'service-account'
+                    'active'    => $tab === 'service-accounts'
                 ),
 
                 array(
@@ -973,7 +984,7 @@ class AccessControlPage implements AdminPageInterface {
             ],
             [
                 'title'         => 'Service Accounts',
-                'slug'          => 'service-account',
+                'slug'          => 'service-accounts',
                 'callback'      => [$this, 'service_accounts_page'],
                 'visibility'    => true,
             ],
