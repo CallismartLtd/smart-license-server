@@ -8,23 +8,6 @@
  * Read operations work without authentication — consistent with the REST API
  * which allows anonymous GET requests on the repository route.
  *
- * Write operations require an authenticated principal on Guard. If no
- * principal is set the command prints a clear error and returns without
- * calling any controller.
- *
- * Usage:
- *   smliser app list [--type=plugin|theme|software] [--status=active] [--page=1] [--limit=20]
- *   smliser app search <term> [--type=...] [--limit=20]
- *   smliser app get <type> <slug>
- *   smliser app count [--type=...] [--status=active]
- *   smliser app save <slug> <type> [--name=...] [--path=... | --url=...]
- *   smliser app upload-asset <slug> <type> --asset-type=<type> [--path=... | --url=...]
- *   smliser app status <slug> <type> <status>
- *   smliser app trash <slug> <type>
- *   smliser app delete <slug> <type>
- *   smliser app purge <slug> <type>
- *   smliser app help
- *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Console\Commands
  * @since   0.2.0
@@ -58,15 +41,16 @@ class AppCommand extends AbstractCommand {
         return 'app';
     }
 
-    public static function description(): string {
+    public function description(): string {
         return 'Inspect and manage hosted applications.';
     }
 
-    public static function synopsis(): string {
-        return 'smliser app <subcommand> [arguments] [--options]';
+    public function synopsis(): string {
+        return "{$this->script_name} app <subcommand> [arguments] [--options]";
     }
 
-    public static function help(): string {
+    public function help(): string {
+        $script_name    = $this->script_name;
         return implode( PHP_EOL, [
             'Subcommands:',
             '  list                                    List hosted applications.',
@@ -82,11 +66,11 @@ class AppCommand extends AbstractCommand {
             '  --limit=<n>                             Items per page. Default: 20.',
             '',
             'Examples:',
-            '  smliser app list',
-            '  smliser app list --type=plugin --status=active',
-            '  smliser app search "my plugin"',
-            '  smliser app get plugin my-plugin',
-            '  smliser app count --type=theme',
+            "  {$script_name} app list",
+            "  {$script_name} app list --type=plugin --status=active",
+            "  {$script_name} app search \"my plugin\"",
+            "  {$script_name} app get plugin my-plugin",
+            "  {$script_name} app count --type=theme",
         ] );
     }
 

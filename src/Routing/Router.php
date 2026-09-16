@@ -12,36 +12,6 @@ namespace SmartLicenseServer\Routing;
 /**
  * Environment-agnostic router: registers (method, pattern) -> handler routes
  * and dispatches a live (method, path) request against them.
- *
- * This is the standalone-environment counterpart to
- * SmartLicenseServer\Environments\WordPress\Routing\Router. Both compile
- * patterns with the exact same RoutePattern — one DSL, two consumers. The
- * WordPress adapter translates patterns into add_rewrite_rule() calls
- * because WordPress' own hook system does the actual request dispatch; this
- * one does the dispatch itself, because a standalone environment has nothing
- * else that will.
- *
- * ## Example
- *
- *     $router = new Router();
- *
- *     $router->group( 'downloads', function ( Router $router ): void {
- *         $router->get( '{download_type}/license-document-{license_id:int}.txt', $licenseHandler );
- *         $router->get( '{download_type}/{app_slug_filename.ext:zip}', $zipHandler );
- *     } );
- *
- *     $router->post( 'license-activation/{app_type:slug}/{app_slug:slug}', $activateHandler )
- *         ->name( 'license.activate' );
- *
- *     $result = $router->dispatch( $_SERVER['REQUEST_METHOD'], $path );
- *
- *     match ( $result->status ) {
- *         DispatchStatus::Found            => call_user_func( $result->handler, $result->params ),
- *         DispatchStatus::MethodNotAllowed => http_response_code( 405 ),
- *         DispatchStatus::NotFound         => http_response_code( 404 ),
- *     };
- *
- *     $router->url( 'license.activate', array( 'app_type' => 'plugin', 'app_slug' => 'woocommerce' ) );
  */
 final class Router {
 

@@ -53,28 +53,17 @@ use SmartLicenseServer\Console\Commands\WorkCommand;
 use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Contracts\AbstractRegistry;
+use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 
 /**
  * Central console command registry.
  * 
- * @method array<string, class-string<CommandInterface>> all() Get all registered coomands.
+ * @method array<string, class-string<CommandInterface>|CommandInterface> all( bool $assoc = true, bool $instantiate = false ) Get all registered coomands.
  * @method class-string<CommandInterface>|null get( string $command ) Get a command from registry.
  * @method bool has( string $coomand ) Tells whether a command exists in the registry.
  */
 class CommandRegistry extends AbstractRegistry {
-
-    /*
-    |----------------------
-    | SINGLETON
-    |----------------------
-    */
-
-    /**
-     * Singleton instance.
-     *
-     * @var static|null
-     */
-    private static ?self $instance = null;
 
     /**
      * Core commands.
@@ -120,20 +109,35 @@ class CommandRegistry extends AbstractRegistry {
     /**
      * Return the singleton instance.
      *
+     * @param Container $container The DI container required on first call.
      * @return static
      */
-    public static function instance(): static {
-        if ( static::$instance === null ) {
-            static::$instance = new static();
+    public static function instance( ?Container $container = null ): static {
+        static $static = null;
+
+        if ( null === $static ) {
+
+            if ( null === $container ) {
+                throw new EnvironmentBootstrapException(
+                    'misconfiguration',
+                    sprintf(
+                        'The Command registry must be called early with a %s instance',
+                        Container::class
+                    )
+                );
+            }
+
+            $static = new static();
+            $static->container = $container;
         }
 
-        return static::$instance;
+        return $static;
     }
 
     /*
-    |--------------------------------------------
+    |---------------------
     | CORE REGISTRATION
-    |--------------------------------------------
+    |---------------------
     */
 
     /**
@@ -183,8 +187,6 @@ class CommandRegistry extends AbstractRegistry {
         foreach ( $this->core_commands as $class ) {
             $this->register_core( $class );
         }
-
-        unset( $this->core_commands );
 
         $this->core_loaded = true;
 
@@ -240,6 +242,31 @@ class CommandRegistry extends AbstractRegistry {
      */
     public function is_custom( string $name ): bool {
         return isset( $this->custom[ $name ] );
+    }
+
+    /**
+     * Get the instance of a registered command.
+     * 
+     * @param string    $name   The command name.
+     * @return CommandInterface|null
+     */
+    public function get_command( string $name ) : ?CommandInterface {
+        $command_classname  = $this->get( $name );
+
+        if ( ! $command_classname ) {
+            return null;
+        }
+
+        return $this->container->get( $command_classname );
+    }
+
+    /**
+     * Get the instances of all commands registered.
+     * 
+     * @return array<string, CommandInterface>
+     */
+    public function get_commands() : array {
+        return $this->all( true, true );
     }
 
     /*

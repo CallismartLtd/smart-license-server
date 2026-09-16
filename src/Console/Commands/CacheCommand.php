@@ -33,15 +33,17 @@ class CacheCommand extends AbstractCommand {
         return 'cache';
     }
 
-    public static function description(): string {
+    public function description(): string {
         return 'Inspect and manage the system cache.';
     }
 
-    public static function synopsis(): string {
+    public function synopsis(): string {
         return 'smliser cache <subcommand> [key]';
     }
 
-    public static function help(): string {
+    public function help(): string {
+        $script_name    = $this->script_name;
+
         return implode( PHP_EOL, [
             'Subcommands:',
             '  stats                        Show cache engine metrics.',
@@ -52,11 +54,11 @@ class CacheCommand extends AbstractCommand {
             '  help                         Show this help message.',
             '',
             'Examples:',
-            '  smliser cache stats',
-            '  smliser cache clear',
-            '  smliser cache get smliser_some_key',
-            '  smliser cache delete smliser_some_key',
-            '  smliser cache use-adapter redis',
+            "  $script_name cache stats",
+            "  $script_name cache clear",
+            "  $script_name cache get smliser_some_key",
+            "  $script_name cache delete smliser_some_key",
+            "  $script_name cache use-adapter redis",
         ] );
     }
 

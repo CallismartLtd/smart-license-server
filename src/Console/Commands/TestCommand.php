@@ -30,30 +30,31 @@ class TestCommand extends AbstractCommand {
     /**
      * {@inheritDoc}
      */
-    public static function description() : string {
+    public function description() : string {
         return 'Run PHPUnit test suites.';
     }
 
     /**
      * {@inheritDoc}
      */
-    public static function synopsis() : string {
+    public function synopsis() : string {
         return 'smliser test [phpunit options]';
     }
 
     /**
      * {@inheritDoc}
      */
-    public static function help() : string {
-        $app_name   = \SMLISER_APP_NAME;
+    public function help() : string {
+        $app_name       = \SMLISER_APP_NAME;
+        $script_name    = $this->script_name;
         return <<<HELP
         Run PHPUnit directly through the $app_name CLI.
 
         Examples:
-        smliser test
-        smliser test --filter SelectionIntentTest
-        smliser test tests/Query
-        smliser test --testdox
+        $script_name test
+        $script_name test --filter SelectionIntentTest
+        $script_name test tests/Query
+        $script_name test --testdox
         HELP;
     }
 

@@ -10,6 +10,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Kernel;
 
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
@@ -35,8 +36,6 @@ class HTTPKernel extends Kernel {
      * The route management object.
      */
     protected RouteManager $routeManager;
-
-    protected Container $container;
 
 
     /**
@@ -77,6 +76,8 @@ class HTTPKernel extends Kernel {
      * @return never
      */
     public function terminate() : never {
+        $this->container->get( Database::class )->close();
+
         if ( isset( $this->response ) ) {
             $this->response->stop();
         }

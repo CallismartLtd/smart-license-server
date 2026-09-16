@@ -54,18 +54,18 @@ class Installer extends AbstractCommand {
     /**
      * {@inheritdoc}
      */
-    public static function description() : string {
+    public function description() : string {
         return 'Handle installation.';
     }
 
-    public static function synopsis() : string {
+    public function synopsis() : string {
         $name   = static::name();
         return "smliser {$name} <subcommands> [options]";
     }
 
-    public static function help() : string {
-        $name     = static::name();
-        $app_name = SMLISER_APP_NAME;
+    public function help() : string {
+        $command_name   = static::name();
+        $app_name       = SMLISER_APP_NAME;
 
         $commands = [
             'run'           => 'Executes full automated installation wizard.',
@@ -81,7 +81,8 @@ class Installer extends AbstractCommand {
         ];
 
         $command_width = max( array_map( 'strlen', array_keys( $commands ) ) );
-        $command_format = 'smliser ' . $name . '  %-' . $command_width . 's   %s';
+        $command_format = 'smliser ' . $command_name . '  %-' . $command_width . 's   %s';
+        // $command_format = "{$this->script_name} {$command_name} %-{$command_width}s %s";
 
         $lines = [];
 

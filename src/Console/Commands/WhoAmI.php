@@ -23,15 +23,15 @@ class WhoAmI extends AbstractCommand {
         return 'whoami';
     }
 
-    public static function description(): string {
+    public function description(): string {
         return 'Print the user name associated with the current principal.';
     }
 
-    public static function synopsis(): string {
+    public function synopsis(): string {
         return 'smliser whoami';
     }
 
-    public static function help(): string {
+    public function help(): string {
         return '';
     }
 

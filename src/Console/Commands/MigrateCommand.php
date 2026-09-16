@@ -27,14 +27,14 @@ class MigrateCommand extends AbstractCommand {
         return 'migrate';
     }
 
-    public static function description(): string {
+    public function description(): string {
         return 'Create any missing database tables.';
     }
-    public static function synopsis(): string {
+    public function synopsis(): string {
         return 'smliser migrate';
     }
 
-    public static function help(): string {
+    public function help(): string {
         return '';
     }
 

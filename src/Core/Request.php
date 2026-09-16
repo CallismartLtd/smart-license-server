@@ -11,9 +11,7 @@ use SmartLicenseServer\Core\Parsers\HttpRequestParser;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
- * The classical representation of a request object that is understood by all core models.
- * 
- * An object of this class should be prepared by the environment adapter and passed to the core controller.
+ * The http request object
  */
 class Request {
     use SanitizeAwareTrait;

@@ -41,12 +41,15 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
         return static::get_type();
     }
 
-    public static function description(): string {
+    public function description(): string {
         return sprintf( 'Inspect and manage a hosted %s.', static::get_type() );
     }
 
-    public static function synopsis(): string {
-        return sprintf( 'smliser %s <subcommand> [arguments] [--options]', static::get_type() );
+    public function synopsis(): string {
+        return sprintf(
+            '%s %s <subcommand> [arguments] [--options]',
+            $this->script_name, static::get_type()
+        );
     }
 
     public function run( CommandInput $input ): int {
@@ -54,7 +57,8 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
         $this->output->newline();
         $this->output->writeln( 
             sprintf(
-                'Run `smliser %s help` to see available subcommands.', 
+                'Run %s %s help to see available subcommands.', 
+                $this->script_name,
                 static::name()
             )
         );
@@ -76,9 +80,10 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
         ];
     }
 
-    public static function help(): string {
+    public function help(): string {
         $type           = static::get_type();
         $name           = \ucfirst( $type );
+        $script_name    = $this->script_name;
         $statuses       = array_keys( AbstractHostedApp::get_statuses() );
         $valid_statuses = implode( ', ', $statuses );
 
@@ -126,12 +131,12 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
             "  (Note: 'trash' is managed via the trash/delete subcommands)",
             "",
             "Examples:",
-            "  smliser {$type} create --name=\"My {$name}\" --author=\"Dev\" --app-zip-file=/tmp/my-{$type}.zip",
-            "  smliser {$type} update --slug=my-{$type} --app-zip-url=https://example.com/{$type}.zip --version=2.0.0",
-            "  smliser {$type} upload-asset --slug=my-{$type} --asset-type=icons --path=/tmp/icon.png",
-            "  smliser {$type} change-status --slug=my-{$type} --status={$current_status}",
-            "  smliser {$type} trash --slug=my-{$type}",
-            "  smliser {$type} purge --slug=my-{$type}",
+            "  {$script_name} {$type} create --name=\"My {$name}\" --author=\"Dev\" --app-zip-file=/tmp/my-{$type}.zip",
+            "  {$script_name} {$type} update --slug=my-{$type} --app-zip-url=https://example.com/{$type}.zip --version=2.0.0",
+            "  {$script_name} {$type} upload-asset --slug=my-{$type} --asset-type=icons --path=/tmp/icon.png",
+            "  {$script_name} {$type} change-status --slug=my-{$type} --status={$current_status}",
+            "  {$script_name} {$type} trash --slug=my-{$type}",
+            "  {$script_name} {$type} purge --slug=my-{$type}",
         ] );
     }
 
@@ -188,13 +193,12 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
         $response = HostingController::save_app( $request );
 
         if ( $response->ok() ) {
-            $slug = $response->get_response_data()->get( 'smliser_resource' )?->get_slug() ?? static::get_type();
 
             $this->output->success( 
                 sprintf( 
                     '%s "%s" saved successfully. Completed in %ss', 
                     ucfirst( $type ),
-                    $slug,
+                    static::get_type(),
                     $stopwatch->elapsed()
                 )
             );

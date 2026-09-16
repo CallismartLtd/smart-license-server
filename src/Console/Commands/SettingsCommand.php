@@ -29,14 +29,14 @@ class SettingsCommand extends AbstractCommand {
         return 'settings';
     }
 
-    public static function description(): string {
+    public function description(): string {
         return 'Manage the system settings.';
     }
-    public static function synopsis(): string {
+    public function synopsis(): string {
         return 'smliser settings <subcommand> [arguments]';
     }
 
-    public static function help(): string {
+    public function help(): string {
         return implode( PHP_EOL, [
             'Subcommands:',
             '   set                 Insert or update the value of an option name.',

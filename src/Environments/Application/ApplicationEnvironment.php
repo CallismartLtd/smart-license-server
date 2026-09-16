@@ -15,6 +15,10 @@ use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Assets\CSS;
 use SmartLicenseServer\Assets\JS;
 use SmartLicenseServer\Cache\Cache;
+use SmartLicenseServer\Console\CommandRegistry;
+use SmartLicenseServer\Console\ConsoleInput;
+use SmartLicenseServer\Console\ConsoleOutput;
+use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\Request;
@@ -51,7 +55,6 @@ class ApplicationEnvironment extends Environment {
                 app_url: url(),
                 admin_base_url: url(),
                 assets_url: url()->append_path( '/assets/' ),
-                request: $c->get( Request::class )
             )
         );
 
@@ -84,35 +87,11 @@ class ApplicationEnvironment extends Environment {
             $this->container->get( URLManager::class )
         );
 
-        // Bootstrap the settings API.
-        $this->container->get( Settings::class );
-
         // Bootup the template locator API.
         $this->container->get( TemplateDiscovery::class )
             ->discover( 'core', SMLISER_RUNTIME_DIR . '/templates/', 0 );
 
         $this->container->get( IdentityService::class )->authenticate();
-
-        $guard  = $this->container->get( Guard::class );
-
-        if ( $guard->has_principal() ) {
-            $this->container->singleton(
-                UserSettings::class,
-                 UserSettings::for(
-                    $guard->principal()->get_actor(),
-                )
-            );
-        }
-
-        $defaut_page    = $this->container->get( DefaultPage::class );
-        $route_manager  = $this->container->get( RouteManager::class )
-            ->homeHandler( [$defaut_page, 'home'] )
-            ->notFound( [$defaut_page, 'not_found'] )
-            ->methodNotAllowed( [$defaut_page, 'method_not_allowed'] );
-
-        $route_manager->registerCoreRoutes();
-
-        $this->container->singleton( RouteManager::class, $route_manager );
     }
 
     /**
@@ -155,6 +134,25 @@ class ApplicationEnvironment extends Environment {
                     $container->get( ConsoleIdentityProvider::class )
                 );
             }
+        );
+
+        $this->container->singleton(
+            CommandRegistry::class,
+            fn () : CommandRegistry => CommandRegistry::instance( $this->container )
+        );
+
+        $this->container->set(
+            ConsoleInput::class,
+            fn ( Container $c ) : ConsoleInput => new ConsoleInput(
+                $c->get( Terminal::class )
+            )
+        );
+
+        $this->container->set(
+            ConsoleOutput::class,
+            fn ( Container $c ) : ConsoleOutput => new ConsoleOutput(
+                $c->get( Terminal::class )
+            )
         );
 
     }
@@ -203,6 +201,27 @@ class ApplicationEnvironment extends Environment {
                 $c->get( JS::class )
             )
         );
+
+        $guard  = $this->container->get( Guard::class );
+
+        if ( $guard->has_principal() ) {
+            $this->container->singleton(
+                UserSettings::class,
+                UserSettings::for(
+                    $guard->principal()->get_actor(),
+                )
+            );
+        }
+
+        $defaut_page    = $this->container->get( DefaultPage::class );
+        $route_manager  = $this->container->get( RouteManager::class )
+            ->homeHandler( [$defaut_page, 'home'] )
+            ->notFound( [$defaut_page, 'not_found'] )
+            ->methodNotAllowed( [$defaut_page, 'method_not_allowed'] );
+
+        $route_manager->registerCoreRoutes();
+
+        $this->container->singleton( RouteManager::class, $route_manager );
 
         $this->container->singleton( DefaultPage::class, $this->container->get( DefaultPage::class ) );
     }

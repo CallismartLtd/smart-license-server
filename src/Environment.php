@@ -96,7 +96,7 @@ abstract class Environment {
         );
 
         $this->container->singleton(
-            DatabaseAdapterRegistry::class, DatabaseAdapterRegistry::instance() );
+            DatabaseAdapterRegistry::class, DatabaseAdapterRegistry::instance( $this->container ) );
 
         $this->container->singleton(
             CacheAdapterRegistry::class,

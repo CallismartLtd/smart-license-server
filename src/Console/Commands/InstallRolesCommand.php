@@ -25,15 +25,15 @@ class InstallRolesCommand extends AbstractCommand {
         return 'install:roles';
     }
 
-    public static function description(): string {
+    public function description(): string {
         return 'Install default permission roles.';
     }
 
-    public static function synopsis(): string {
+    public function synopsis(): string {
         return 'smliser install:roles';
     }
 
-    public static function help(): string {
+    public function help(): string {
         return '';
     }
 

@@ -35,6 +35,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Runners;
 
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Console\AbstractCommandRouter;
 use SmartLicenseServer\Console\AsciiLogo;
 use SmartLicenseServer\Console\CommandInput;
@@ -74,21 +75,6 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
     private int $started_at;
 
     /**
-     * How the welcome-banner logo is chosen. Defaults to AUTO, which
-     * preserves the previous verbosity-only behavior; every other
-     * value is an explicit override. See {@see LogoMode}.
-     *
-     * @var LogoMode
-     */
-    private LogoMode $logo_mode;
-
-    /*
-    |--------------------------------------------
-    | CONSTRUCTOR
-    |--------------------------------------------
-    */
-
-    /**
      * @param CommandRegistry $registry
      * @param InputInterface  $io
      * @param OutputInterface $output
@@ -96,14 +82,14 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
      *                                   whether to colorize the
      *                                   prompt/banner — everything
      *                                   else goes through $output.
-     * @param LogoMode|null   $logo_mode Explicit logo policy. Pass
-     *                                   null (the default) to fall
-     *                                   back to {@see LogoMode::from_env()},
-     *                                   so an operator can still
-     *                                   control it via the
-     *                                   `SMLISER_CLI_LOGO` env var
-     *                                   without every caller having
-     *                                   to wire a flag through.
+     * @param SignalManager   $signal
+     * @param LogoMode        $logo_mode Explicit logo policy. control it via the
+     *                                   `SMLISER_CLI_LOGO` env.
+     * @param Database $db               The database abstraction layer used to free
+     *                                   the database connection at the end of each command
+     *                                   execution.
+     * @param Guard $guard               The security orchestrator used to manage the current
+     *                                   actor.
      */
     public function __construct(
         CommandRegistry $registry,
@@ -112,23 +98,21 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
         Terminal $terminal,
         SignalManager $signal,
         Guard $guard,
-        string $script_name,
-        ?LogoMode $logo_mode    = null
+        protected LogoMode $logo_mode,
+        protected Database $db
     ) {
         if ( ! defined( 'SMLISER_INTERACTIVE_SHELL' ) ) {
             define( 'SMLISER_INTERACTIVE_SHELL', true );
         }
 
-        $this->logo_mode = $logo_mode ?? LogoMode::from_env();
+        $this->guard    = $guard;
 
         parent::__construct(
             registry: $registry,
             io: $io,
             output: $output, 
             terminal: $terminal, 
-            script_name: $script_name, 
             signal: $signal,
-            guard: $guard
         );
     }
 
@@ -303,14 +287,14 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
             (array) ( $parsed['options'] ?? [] )
         );
 
+        $exit_code  = 0;
+
         // Execute — catch every Throwable so one bad command cannot
         // kill the session. The exit code isn't surfaced anywhere —
         // an interactive session doesn't have a process exit code to
-        // report it to — but a failed command has already reported
-        // its own error via print_error()/$this->output->error()
-        // before returning it.
+        // report it.
         try {
-            $this->route_command( $command_input, $command, $subcommand );
+            $exit_code = $this->route_command( $command_input, $command, $subcommand );
         } catch ( \Throwable $e ) {
             $this->print_error( sprintf(
                 '%s thrown in %s (%s)',
@@ -319,10 +303,18 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
                 $e->getLine()
             ) );
         } finally {
-            $db = smliser_db();
-
-            if ( $db->is_connected() ) {
-                $db->close();
+            if ( 0 !== $exit_code && ( $command || $subcommand ) ) {
+                $this->print_error(
+                    sprintf(
+                        'The command %s executed with exit code: %d',
+                        "{$command} {$subcommand}",
+                        $exit_code
+                    )
+                );
+            }
+            // Free resource.
+            if ( $this->db->is_connected() ) {
+                $this->db->close();
             }
         }
     }
@@ -345,10 +337,10 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
      * @return string[]
      */
     private function tokenize( string $line ): array {
-        $tokens   = [];
-        $current  = '';
-        $in_quote = null;
-        $length   = strlen( $line );
+        $tokens     = [];
+        $current    = '';
+        $in_quote   = null;
+        $length     = strlen( $line );
 
         for ( $i = 0; $i < $length; $i++ ) {
             $char = $line[ $i ];

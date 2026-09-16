@@ -15,7 +15,9 @@ use Callismart\DBPrism\Adapters\PdoAdapter;
 use Callismart\DBPrism\Adapters\PostgresAdapter;
 use Callismart\DBPrism\Adapters\SqliteAdapter;
 use SmartLicenseServer\Contracts\AbstractRegistry;
+use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Exceptions\DatabaseException;
+use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 
 /**
  * Database adapter registry.
@@ -33,7 +35,7 @@ class DatabaseAdapterRegistry extends AbstractRegistry {
     /**
      * Singleton instance.
      *
-     * @var self|null
+     * @var static|null
      */
     private static $instance;
 
@@ -54,14 +56,24 @@ class DatabaseAdapterRegistry extends AbstractRegistry {
     /**
      * Get the singleton instance.
      *
-     * @return self
+     * @param Container|null $container
+     * @return static
      */
-    public static function instance() : self {
-        if ( ! isset( self::$instance ) ) {
-            self::$instance = new self();
+    public static function instance( ?Container $container = null ) : static {
+        if ( ! isset( static::$instance ) ) {
+            if ( null === $container ) {
+                throw new EnvironmentBootstrapException(
+                    'misconfiguration',
+                    sprintf(
+                        'The Database registry class must be called early with %s instance',
+                        Container::class
+                    )
+                );
+            }
+            static::$instance = new static( $container );
         }
 
-        return self::$instance;
+        return static::$instance;
     }
 
     /**
@@ -340,7 +352,7 @@ class DatabaseAdapterRegistry extends AbstractRegistry {
             );
         }
 
-        return $instantiate ? new $class_string : $class_string;
+        return $instantiate ? $this->container->get( $class_string ) : $class_string;
     }
 
     /**
@@ -482,7 +494,7 @@ class DatabaseAdapterRegistry extends AbstractRegistry {
      */
     protected function instantiate_adapters( array $adapters ) : array {
         foreach ( $adapters as $id => $class_string ) {
-            $adapters[ $id ] = new $class_string;
+            $adapters[ $id ] = $this->container->get( $class_string );
         }
 
         return $adapters;

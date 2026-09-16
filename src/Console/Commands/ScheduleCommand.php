@@ -22,17 +22,16 @@ class ScheduleCommand extends AbstractCommand {
         return 'schedule';
     }
 
-    public static function description(): string {
+    public function description(): string {
         return 'Run all due scheduled tasks.';
     }
-    public static function synopsis(): string {
+    public function synopsis(): string {
         return 'smliser schedule';
     }
 
-    public static function help(): string {
+    public function help(): string {
         return '';
     }
-
 
     public function run( CommandInput $input ): int {
         $stopwatch = new Stopwatch();

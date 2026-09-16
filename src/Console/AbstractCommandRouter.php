@@ -11,7 +11,6 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console;
 
-use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\Traits\CommandHelpTrait;
@@ -33,15 +32,12 @@ abstract class AbstractCommandRouter {
      *                                       prompt/banner — everything
      *                                       else goes through $output.
      */
-    public function __construct(
+    protected function __construct(
         protected CommandRegistry $registry,
         protected InputInterface $io,
         protected OutputInterface $output,
         protected Terminal $terminal,
-        protected readonly string $script_name,
         protected SignalManager $signal,
-        protected Guard $guard
-
     ) {}
 
     /*
@@ -136,8 +132,7 @@ abstract class AbstractCommandRouter {
             return 0;
         }
 
-        /** @var CommandInterface $command_instance */
-        $command_instance = $class::make( $this->io, $this->output, $this->script_name );
+        $command_instance = $this->registry->get_command( $command );
 
         if ( null !== $subcommand ) {
             $subcommands = $command_instance->get_subcommands();

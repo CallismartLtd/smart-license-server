@@ -12,27 +12,11 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Contracts;
 
 use SmartLicenseServer\Console\CommandInput;
-use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Contract for a single leaf command (e.g. `smliser license revoke`).
  */
 interface CommandInterface {
-
-	/**
-	 * Factory method to instantiate the command with default collaborators.
-	 *
-	 * @param InputInterface  $io          The input stream.
-	 * @param OutputInterface $output      The output stream.
-	 * @param string          $script_name The script name that invoked this command.
-	 * @return static
-	 */
-	public static function make(
-		InputInterface $io,
-		OutputInterface $output,
-		Guard $guard,
-		string $script_name
-	): static;
 
 	/**
 	 * The command's registered name (the token typed after `smliser`,
@@ -44,18 +28,11 @@ interface CommandInterface {
 	public static function name(): string;
 
 	/**
-	 * One-line usage synopsis shown in per-command help.
-	 *
-	 * @return string
-	 */
-	public static function synopsis(): string;
-
-	/**
 	 * One-line description shown in the global command listing.
 	 *
 	 * @return string
 	 */
-	public static function description(): string;
+	public function description(): string;
 
 	/**
 	 * Extended help body shown in per-command help. Return an empty
@@ -64,7 +41,7 @@ interface CommandInterface {
 	 *
 	 * @return string
 	 */
-	public static function help(): string;
+	public function help(): string;
 
 	/**
 	 * The command's option/argument definition, consumed by an
@@ -74,7 +51,14 @@ interface CommandInterface {
 	 *
 	 * @return array<string, mixed>
 	 */
-	public static function definition(): array;
+	public function definition(): array;
+
+	/**
+	 * One-line usage synopsis shown in per-command help.
+	 *
+	 * @return string
+	 */
+	public function synopsis(): string;
 
 	/**
 	 * Get subcommands and their handlers.

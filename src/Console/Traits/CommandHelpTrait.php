@@ -45,7 +45,7 @@ trait CommandHelpTrait {
         $this->output->newline();
         $this->output->writeln( 'Commands:' );
 
-        $commands = $this->registry->all();
+        $commands = $this->registry->get_commands();
         $max      = max( array_map( 'strlen', array_keys( $commands ) ) );
 
         ksort( $commands, \SORT_ASC );
@@ -55,7 +55,7 @@ trait CommandHelpTrait {
             $this->output->writeln( sprintf(
                 '  %s  %s%s',
                 str_pad( $cmd_name, $max ),
-                $class::description(),
+                $class->description(),
                 $custom_marker
             ) );
         }

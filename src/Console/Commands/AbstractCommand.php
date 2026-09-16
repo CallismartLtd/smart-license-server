@@ -45,26 +45,8 @@ abstract class AbstractCommand implements CommandInterface {
     public function __construct(
         protected InputInterface $io,
         protected OutputInterface $output,
-        protected Guard $guard,
         protected string $script_name
     ) {}
-
-    /**
-	 * Default factory implementation.
-	 *
-	 * @param InputInterface  $io
-	 * @param OutputInterface $output
-	 * @param string          $script_name
-	 * @return static
-	 */
-	public static function make(
-		InputInterface $io,
-		OutputInterface $output,
-        Guard $guard,
-		string $script_name
-	): static {
-		return new static( $io, $output, $guard, $script_name );
-	}
 
     /**
      * {@inheritdoc}
@@ -72,7 +54,7 @@ abstract class AbstractCommand implements CommandInterface {
      * Default: no options/arguments beyond what the command's own
      * run()/subcommand handlers read positionally.
      */
-    public static function definition(): array {
+    public function definition(): array {
         return [];
     }
 
@@ -88,10 +70,9 @@ abstract class AbstractCommand implements CommandInterface {
     /**
      * Handle help subcommand.
      * 
-     * @param CommandInput $input
      * @return int
      */
-    public function handle_help( CommandInput $input ) : int {
+    public function handle_help() : int {
         $this->output->info( $this->description() );
         $this->output->newline();
         $this->output->info( 'Usage:' );

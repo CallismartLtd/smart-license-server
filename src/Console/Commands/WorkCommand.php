@@ -24,14 +24,14 @@ class WorkCommand extends AbstractCommand {
         return 'work';
     }
 
-    public static function description(): string {
+    public function description(): string {
         return 'Process background jobs until the queue is empty.';
     }
-    public static function synopsis(): string {
+    public function synopsis(): string {
         return 'smliser work';
     }
 
-    public static function help(): string {
+    public function help(): string {
         return '';
     }
 

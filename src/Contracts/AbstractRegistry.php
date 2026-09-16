@@ -114,20 +114,24 @@ abstract class AbstractRegistry implements RegistryInterface {
     /**
      * Get all registered entries.
      *
-     * @param bool $assoc Whether to preserve keys by id(default: true).
-     * @param bool $instantiate Whether to instanciate the entries(default: false).
-     * @return array<int|string, class-string<ServiceProviderInterface>|ServiceProviderInterface>
+     * @param bool $assoc Whether to preserve keys by ID (default: true).
+     * @param bool $instantiate Whether to resolve instances via DI Container (default: false).
+     * @return array<int|string, class-string|object>
      */
     public function all( bool $assoc = true, bool $instantiate = false ) : array {
         $this->ensure_core();
+        
         /** @var array<string, class-string> $all */
         $all = $this->core + $this->custom;
 
         if ( $instantiate ) {
-            foreach ( $all as $_ => &$value ) {
-                $value = $this->container->get( $value );
+            $resolved = [];
+            foreach ( $all as $id => $class_string ) {
+                $resolved[ $id ] = $this->container->get( $class_string );
             }
+            $all = $resolved;
         }
+
         return $assoc ? $all : array_values( $all );
     }
 
@@ -198,6 +202,7 @@ abstract class AbstractRegistry implements RegistryInterface {
      * @return array<string, class-string>
      */
     public function core(): array {
+        $this->ensure_core();
         return $this->core;
     }
 
@@ -207,6 +212,7 @@ abstract class AbstractRegistry implements RegistryInterface {
      * @return array<string, class-string>
      */
     public function custom(): array {
+        $this->ensure_core();
         return $this->custom;
     }
-} 
+}

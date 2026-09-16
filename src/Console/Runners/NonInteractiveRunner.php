@@ -48,14 +48,12 @@ class NonInteractiveRunner extends AbstractCommandRouter implements RunnerInterf
         OutputInterface $output,
         Terminal $terminal,
         SignalManager $signal,
-        string $script_name,
     ) {
         parent::__construct(
             registry: $registry,
             io: $io,
             output: $output, 
             terminal: $terminal, 
-            script_name: $script_name, 
             signal: $signal
         );
     }

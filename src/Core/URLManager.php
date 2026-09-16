@@ -10,7 +10,6 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Core;
 
 use SmartLicenseServer\Contracts\URLManagerInterface;
-use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -21,7 +20,6 @@ class URLManager implements URLManagerInterface {
 
     public function __construct(
         protected Settings $settings,
-        protected Request $request,
         protected URL $app_url,
         protected URL $admin_base_url,
         protected URL $assets_url

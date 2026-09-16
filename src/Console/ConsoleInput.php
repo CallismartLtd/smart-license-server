@@ -38,8 +38,8 @@ class ConsoleInput implements InputInterface {
      */
     public function __construct(
         private Terminal $terminal,
-        private $stdin  = STDIN,
-        private $stdout = STDOUT
+        private mixed $stdin  = STDIN,
+        private mixed $stdout = STDOUT
     ) {}
 
     /*

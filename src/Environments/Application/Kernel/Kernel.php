@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\Application\Kernel;
 
+use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\Security\Context\Guard;
@@ -22,7 +23,12 @@ use SmartLicenseServer\Security\Context\Guard;
  * Concrete implementations define how the application is bootstrapped
  * and executed for that interface.
  */
-abstract class Kernel {    
+abstract class Kernel {
+    /**
+     * The DIC.
+     */
+    protected Container $container;
+
     /**
      * Bootstrap the application.
      *
