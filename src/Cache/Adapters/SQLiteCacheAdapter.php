@@ -377,7 +377,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
 
         $this->db->exec(
             "DELETE FROM {$this->table}
-             WHERE expires_at IS NOT NULL AND expires_at < " . time()
+            WHERE expires_at IS NOT NULL AND expires_at < " . time()
         );
 
         return $this->db->changes();
