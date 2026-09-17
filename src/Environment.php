@@ -63,11 +63,14 @@ use SmartLicenseServer\Utils\MDParser;
 abstract class Environment {
     /**
      * Class constructor.
+     * 
+     * Creation of a new smart license application must be done using the child class
+     * `static::create()` method passing the runtime configuration DTO to it.
      *
      * @param Container     $container The dependency injection container.
      * @param RuntimeConfig $runtime   Runtime configuration.
      */
-    final protected function __construct(
+    final private function __construct(
         protected Container $container,
         protected RuntimeConfig $runtime
     ) {
@@ -96,15 +99,21 @@ abstract class Environment {
         );
 
         $this->container->singleton(
-            DatabaseAdapterRegistry::class, DatabaseAdapterRegistry::instance( $this->container ) );
-
-        $this->container->singleton(
-            CacheAdapterRegistry::class,
-            fn ( Container $container ) : CacheAdapterRegistry => $container->get( CacheAdapterRegistry::class )
+            DatabaseAdapterRegistry::class,
+            fn ( Container $c ) : DatabaseAdapterRegistry =>
+                DatabaseAdapterRegistry::instance( $c )
         );
 
         $this->container->singleton(
-            HostedAppsRegistry::class, HostedAppsRegistry::instance( $this->container )
+            CacheAdapterRegistry::class,
+            fn ( Container $c ) : CacheAdapterRegistry =>
+                CacheAdapterRegistry::instance( $c )
+        );
+
+        $this->container->singleton(
+            HostedAppsRegistry::class,
+            fn ( Container $c ) : HostedAppsRegistry =>
+                HostedAppsRegistry::instance( $c )
         );
 
         $this->container->singleton(
@@ -129,7 +138,7 @@ abstract class Environment {
 
         $this->container->singleton(
             TemplateLocator::class,
-            fn () : TemplateLocator => new TemplateLocator
+            fn () : TemplateLocator => new TemplateLocator()
         );
 
         $this->container->singleton(
@@ -142,7 +151,7 @@ abstract class Environment {
             SQLiteCacheAdapter::class,
             fn () : SQLiteCacheAdapter => 
                 new SQLiteCacheAdapter(
-                    base_dir: SMLISER_CACHE_DIR,
+                    base_dir: \SMLISER_CACHE_DIR,
                     db_filename: 'smliser-cache.sqlite',
                     stats_table: 'smliser_stats_table',
                     table: 'smliser_main_cache',
@@ -215,23 +224,27 @@ abstract class Environment {
                 )
         );
 
-        $this->container->singleton( Guard::class, fn () : Guard => new Guard );
+        $this->container->singleton( Guard::class, fn () : Guard => new Guard() );
 
         $this->container->set(
             DatabaseJobStorageAdapter::class,
             fn ( Container $c ) : DatabaseJobStorageAdapter =>
                 new DatabaseJobStorageAdapter(
                     $c->get( Database::class ),
-                    SMLISER_BACKGROUND_JOBS_TABLE
+                    \SMLISER_BACKGROUND_JOBS_TABLE
                 )
         );
 
-        $this->container->alias( JobStorageAdapterInterface::class, DatabaseJobStorageAdapter::class );
+        $this->container->singleton(
+            JobStorageAdapterInterface::class,
+            fn ( Container $c ) : JobStorageAdapterInterface =>
+                $c->get( DatabaseJobStorageAdapter::class )
+        );
 
         $this->container->singleton(
             JobQueue::class,
             fn ( Container $c ) : JobQueue =>
-                new JobQueue( $c->get( DatabaseJobStorageAdapter::class ) )
+                new JobQueue( $c->get( JobStorageAdapterInterface::class ) )
         );
 
         $this->container->singleton(
@@ -246,14 +259,6 @@ abstract class Environment {
         $this->container->singleton(
             HttpClient::class,
             fn () : HttpClient => new HttpClient( HttpClient::auto_client() )
-        );
-
-        // Initialize all core service registries.
-        // Cache adapter registery.
-        $this->container->singleton(
-            CacheAdapterRegistry::class,
-            fn ( Container $c ) : CacheAdapterRegistry =>
-                CacheAdapterRegistry::instance( $c )      
         );
 
         // Email provider registry.
@@ -281,25 +286,25 @@ abstract class Environment {
         $this->container->singleton(
             Mailer::class,
             function ( Container $c ) : Mailer {
-                $registry   = $c->get( EmailProvidersRegistry::class );
+                $registry = $c->get( EmailProvidersRegistry::class );
                 return new Mailer( $registry->get_provider() );
             }
-                
         );
 
         $this->container->set(
-            MDParser::class, fn () : MDParser =>
-                new MDParser([
+            MDParser::class,
+            fn () : MDParser =>
+                new MDParser( [
                     'html_input'         => 'allow',
                     'allow_unsafe_links' => false,
-                ])
+                ] )
         );
 
         $this->container->set(
             SMTPProvider::class,
             fn ( Container $c ) : SMTPProvider => new SMTPProvider(
                 $c->get( EmailProvidersRegistry::class )->get_default_sender_name(),
-                $c->get( EmailProvidersRegistry::class )->get_default_sender_email(),
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_email()
             )
         );
 
@@ -307,7 +312,7 @@ abstract class Environment {
             PHPMailProvider::class,
             fn ( Container $c ) : PHPMailProvider => new PHPMailProvider(
                 $c->get( EmailProvidersRegistry::class )->get_default_sender_name(),
-                $c->get( EmailProvidersRegistry::class )->get_default_sender_email(),
+                $c->get( EmailProvidersRegistry::class )->get_default_sender_email()
             )
         );
 
@@ -399,14 +404,9 @@ abstract class Environment {
     abstract protected function createDatabaseConfig() : DBConfigDTO;
 
     /**
-     * Create the default mailer.
-     *
-     * Concrete environments may override this when mail delivery differs.
-     */
-    // abstract protected function createMailer( Container $container ) : Mailer;
-
-    /**
      * Get the application container.
+     *
+     * @return Container
      */
     public function container() : Container {
         return $this->container;
@@ -414,13 +414,21 @@ abstract class Environment {
 
     /**
      * Get the runtime configuration.
+     *
+     * @return RuntimeConfig
      */
     public function runtime() : RuntimeConfig {
         return $this->runtime;
     }
 
     /**
-     * Create a new application environment.
+     * Create a new application environment instance.
+     * 
+     * Recommended way to instantiate the application environment.
+     * NOTE: This method must be called on a concrete class extending Environment.
+     * 
+     * @param RuntimeConfig $runtime The immutable runtime configuration DTO.
+     * @return static
      */
     public static function create( RuntimeConfig $runtime ) : static {
         return new static( new Container(), $runtime );

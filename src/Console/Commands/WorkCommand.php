@@ -11,7 +11,11 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Utils\Stopwatch;
 
 /**
@@ -19,6 +23,18 @@ use SmartLicenseServer\Utils\Stopwatch;
  * budget is exhausted.
  */
 class WorkCommand extends AbstractCommand {
+    public function __construct(
+        protected QueueWorker $queue_worker,
+        InputInterface $io,
+        OutputInterface $output,
+        ScriptName $script_name
+    ) {
+        parent::__construct(
+            io: $io,
+            output: $output,
+            script_name: $script_name
+        );
+    }
 
     public static function name(): string {
         return 'work';
@@ -42,7 +58,7 @@ class WorkCommand extends AbstractCommand {
 
         $this->output->info( 'Processing queue...' );
 
-        $processed = smliser_queue_worker()->process_within_time_budget();
+        $processed = $this->queue_worker->process_within_time_budget();
 
         if ( $processed === 0 ) {
             $this->output->writeln( 'No jobs were waiting in the queue.' );

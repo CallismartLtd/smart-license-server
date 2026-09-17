@@ -6,7 +6,7 @@
  */
 declare( strict_types=1 );
 
-namespace SmartLicenseServer\Environments\Application\Routing;
+namespace SmartLicenseServer\Environments\Application\Web;
 
 use InvalidArgumentException;
 use SmartLicenseServer\Core\Container\Container;

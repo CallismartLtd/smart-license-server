@@ -15,6 +15,9 @@ use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Inspection\Inspector;
 use Callismart\DBPrism\Utils\Table;
 use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Utils\Stopwatch;
 
@@ -22,6 +25,14 @@ use SmartLicenseServer\Utils\Stopwatch;
  * Creates any missing database tables.
  */
 class MigrateCommand extends AbstractCommand {
+    public function __construct(
+        protected Database $db,
+        InputInterface $io,
+        OutputInterface $output,
+        ScriptName $script_name
+    ) {
+        return parent::__construct($io, $output, $script_name);
+    }
 
     public static function name(): string {
         return 'migrate';
@@ -45,7 +56,7 @@ class MigrateCommand extends AbstractCommand {
 
         if ( $info ) {
             $this->output->info( $this->description() );
-            $this->output->writeln( 'Database Adapter: '. smliser_db()->get_driver() );
+            $this->output->writeln( 'Database Adapter: '. $this->db->get_driver() );
             return 0;
         }
 
@@ -64,10 +75,9 @@ class MigrateCommand extends AbstractCommand {
         $stopwatch->start();
         $this->output->info( 'Running database migrations...' );
 
-        $db         = smliser_db();
         $schema     = SchemaRegistry::instance();
         $tables     = $schema->get_all_tables();
-        $inspector  = new Inspector( $db );
+        $inspector  = new Inspector( $this->db );
         
         $headers    = [ 'Table', 'Status' ];
         $rows       = [];
@@ -83,12 +93,12 @@ class MigrateCommand extends AbstractCommand {
 
             if ( ! $table_exists ) {
                 $this->output->progress_update_label( "Creating {$table_name}" );
-                $created    = $this->create_table( $table, $db );
+                $created    = $this->create_table( $table, $this->db );
 
                 if ( $created ) {
                     $message    = '✔ Created';
                 } else {
-                    $message    = '✖ ' . $db->get_last_error() ?? 'Unknown error occured';
+                    $message    = '✖ ' . $this->db->get_last_error() ?? 'Unknown error occured';
                 }
                 
                 
@@ -119,7 +129,7 @@ class MigrateCommand extends AbstractCommand {
     private function create_table( Table $table, Database $db ): bool {
         $charset_collate = $db->get_charset_collate();
 
-        $query  = \smliserQueryBuilder()
+        $query  = \smliserQueryBuilder( $this->db->get_driver() )
             ->create_table( $table->get_name() )
             ->add_columns( $table->get_columns() )
             ->add_constraints( $table->get_constraints() );

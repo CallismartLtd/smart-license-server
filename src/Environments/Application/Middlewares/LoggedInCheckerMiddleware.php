@@ -26,7 +26,6 @@ class LoggedInCheckerMiddleware implements MiddlewareInterface {
     public function handle( Request $request, callable $next ): mixed {
         if ( $this->guard->has_principal() ) {
 
-            \dd( $request );
             $principal  = $this->guard->principal();
             
             return Response::make( '', 302 )

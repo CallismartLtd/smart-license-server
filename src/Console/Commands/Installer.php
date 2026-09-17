@@ -12,11 +12,15 @@ use Callismart\DBPrism\DatabaseInfoDTO;
 use Callismart\DBPrism\DBConfigDTO;
 use Callismart\DBPrism\Inspection\Inspector;
 use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Utils\Stopwatch;
 
@@ -25,25 +29,16 @@ use SmartLicenseServer\Utils\Stopwatch;
  */
 class Installer extends AbstractCommand {
 
-    /**
-     * The core installer object.
-     * 
-     * @var AppInstaller
-     */
-    protected AppInstaller $installer;
-
-    /**
-     * Get the installer object.
-     * 
-     * @return AppInstaller
-     */
-    protected function get_installer() : AppInstaller {
-        if ( ! isset( $this->installer ) ) {
-            $this->installer = new AppInstaller();
-        }
-
-        return $this->installer;
+    public function __construct(
+        protected AppInstaller $installer,
+        protected Guard $guard,
+        InputInterface $io,
+        OutputInterface $output,
+        ScriptName $script_name
+    ) {
+        return parent::__construct( $io, $output, $script_name );
     }
+
     /**
      * {@inheritdoc}
      */
@@ -81,8 +76,7 @@ class Installer extends AbstractCommand {
         ];
 
         $command_width = max( array_map( 'strlen', array_keys( $commands ) ) );
-        $command_format = 'smliser ' . $command_name . '  %-' . $command_width . 's   %s';
-        // $command_format = "{$this->script_name} {$command_name} %-{$command_width}s %s";
+        $command_format = "{$this->script_name} {$command_name} %-{$command_width}s %s";
 
         $lines = [];
 
@@ -291,7 +285,7 @@ class Installer extends AbstractCommand {
         $this->output->writeln( '' );
 
         $results   = [];
-        $installer = $this->get_installer();
+        $installer = $this->installer;
 
         $success_callback = function( string $check, string $status, string $message ) use ( &$results ) {
             $results[] = [ $check, "<info>{$status}</info>", $message ];
@@ -346,7 +340,7 @@ class Installer extends AbstractCommand {
     public function make_directories( ?CommandInput $input = null ) : int {
         $this->start_timer();
         $results    = [];
-        $installer  = $this->get_installer();
+        $installer  = $this->installer;
 
         $callback   = function( $name, $dir, $message ) use ( &$results ) {
             $this->output->progress_update_label( sprintf( 'Creating %s', $name ) );
@@ -393,7 +387,7 @@ class Installer extends AbstractCommand {
         $force      = $input->get_option( 'force', false );
 
         try {
-            $env_file   = $this->get_installer()->make_dot_env_file( $path_to_eg, $force );
+            $env_file   = $this->installer->make_dot_env_file( $path_to_eg, $force );
 
             $this->output->success( 'The env file has been created successfully.' );
             $this->output->writeln(
@@ -428,7 +422,7 @@ class Installer extends AbstractCommand {
         $force      = $input ? (bool) $input->get_option( 'force', false ) : false;
 
         try {
-            $htaccess_file = $this->get_installer()->make_htaccess_file( $path_to_eg, $force );
+            $htaccess_file = $this->installer->make_htaccess_file( $path_to_eg, $force );
 
             $this->output->success( 'The .htaccess file has been created or updated successfully.' );
             $this->output->writeln(
@@ -470,7 +464,7 @@ class Installer extends AbstractCommand {
             'Creating database tables...'
         );
 
-        $this->get_installer()->create_tables( $callback, $callback );
+        $this->installer->create_tables( $callback, $callback );
 
         $this->output->writeln( '' );
         $this->output->table(
@@ -495,6 +489,7 @@ class Installer extends AbstractCommand {
      */
     public function make_roles( ?CommandInput $input = null ): int {
         $this->start_timer();
+        $force  = (bool) $input->get_option( 'force', false );
         $rows   = [];
 
         $callback   = function( $role_name, $message ) use ( &$rows ) {
@@ -511,7 +506,7 @@ class Installer extends AbstractCommand {
 
         usleep(80000);
 
-        $this->get_installer()->install_default_roles( $callback, $callback );
+        $this->installer->install_default_roles( $callback, $callback, $force );
 
         $this->output->table( [ 'Roles', 'Result' ], $rows );
         $this->output->writeln( '' );
@@ -647,7 +642,7 @@ class Installer extends AbstractCommand {
         }
 
         try {
-            $admin = $this->get_installer()->create_admin( name: $name, email: $email, password: $password );
+            $admin = $this->installer->create_admin( name: $name, email: $email, password: $password );
 
             $role = ContextServiceProvider::get_principal_role( $admin );
 
@@ -736,7 +731,7 @@ class Installer extends AbstractCommand {
                 'sticky'         => $input->get_option( 'sticky' )         ?? $input->get_option( 'K' ),
             ] );
 
-            $dbal = $this->get_installer()->test_db_connection( $db_config );
+            $dbal = $this->installer->test_db_connection( $db_config );
 
             $this->output->success( 'Database configuration passed!' );
             $this->output->writeln( '' );

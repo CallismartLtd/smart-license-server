@@ -76,7 +76,6 @@ class CommandRegistry extends AbstractRegistry {
         ScheduleCommand::class,
         WorkScheduleCommand::class,
         MigrateCommand::class,
-        InstallRolesCommand::class,
         Installer::class,
         CacheCommand::class,
         AppCommand::class,

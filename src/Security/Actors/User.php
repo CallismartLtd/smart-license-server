@@ -445,6 +445,7 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
 
             $lock_sql   = static::query()
                 ->select( 'id' )->from( $table )
+                ->where( 'id', '=', $this->id )
                 ->limit(1)->lock_for_update();
 
             $user_id    = (int) static::$DB->get_var( $lock_sql->build(), $lock_sql->get_bindings() );

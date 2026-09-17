@@ -17,7 +17,6 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionNamedType;
 use ReflectionParameter;
-use ReflectionType;
 use ReflectionUnionType;
 use RuntimeException;
 use Throwable;
@@ -72,38 +71,38 @@ final class Container
      * Register a shared service.
      *
      * The definition is resolved once and the resulting instance is reused
-     * for subsequent calls to get().
+     * for subsequent calls to get(). Omit $definition to let the container
+     * autowire the concrete class on first resolution.
      *
      * @param class-string $id
-     * @param Closure|object $definition
+     * @param Closure|object|null $definition
      *
      * @return void
      */
-    public function singleton( string $id, object $definition ): void {
+    public function singleton( string $id, ?object $definition = null ): void {
         $id = $this->normalize_id( $id );
 
-        $this->shared[$id] = $definition;
+        $this->shared[$id] = $definition ?? fn() => $this->autowire( $id );
 
-        /*
-         * Re-registering a service invalidates an existing resolved instance.
-         */
         unset( $this->instances[$id] );
     }
 
     /**
      * Register a transient service factory.
      *
-     * The factory is invoked every time the service is requested.
+     * The factory is invoked every time the service is requested. Omit
+     * $factory to let the container autowire the concrete class on each
+     * resolution.
      *
      * @param class-string $id
-     * @param Closure $factory
+     * @param Closure|null $factory
      *
      * @return void
      */
-    public function factory( string $id, Closure $factory ): void {
+    public function factory( string $id, ?Closure $factory = null ): void {
         $id = $this->normalize_id( $id );
 
-        $this->definitions[$id] = $factory;
+        $this->definitions[$id] = $factory ?? fn() => $this->autowire( $id );
 
         unset( $this->shared[$id], $this->instances[$id] );
     }
@@ -285,23 +284,17 @@ final class Container
         string $id,
         object $definition
     ): object {
-        $this->begin_resolution( $id );
-
-        try {
-            if ( $definition instanceof Closure ) {
-                $service = $definition( $this );
-            } else {
-                $service = $definition;
+        $service = $this->guarded( $id, function () use ( $id, $definition ) {
+            try {
+                return $definition instanceof Closure ? $definition( $this ) : $definition;
+            } catch ( Throwable $exception ) {
+                throw new RuntimeException(
+                    "Failed to resolve service '{$id}': {$exception->getMessage()}",
+                    0,
+                    $exception
+                );
             }
-        } catch ( Throwable $exception ) {
-            throw new RuntimeException(
-                "Failed to resolve service '{$id}': {$exception->getMessage()}",
-                0,
-                $exception
-            );
-        } finally {
-            $this->end_resolution( $id );
-        }
+        } );
 
         if ( ! is_object( $service ) ) {
             throw new RuntimeException(
@@ -346,40 +339,33 @@ final class Container
             );
         }
 
-        $this->begin_resolution( $id );
+        /** @var T */
+        return $this->guarded( $id, function () use ( $id, $reflection ) {
+            try {
+                $constructor = $reflection->getConstructor();
 
-        try {
-            $constructor = $reflection->getConstructor();
+                if ( $constructor === null ) {
+                    return $reflection->newInstance();
+                }
 
-            /*
-             * No constructor means there are no dependencies to resolve.
-             */
-            if ( $constructor === null ) {
-                /** @var T */
-                return $reflection->newInstance();
+                $arguments = array_map(
+                    fn( ReflectionParameter $parameter ) => $this->resolve_parameter( $parameter ),
+                    $constructor->getParameters()
+                );
+
+                return $reflection->newInstanceArgs( $arguments );
+            } catch ( Throwable $exception ) {
+                if ( $exception instanceof RuntimeException ) {
+                    throw $exception;
+                }
+
+                throw new RuntimeException(
+                    "Unable to autowire '{$id}': {$exception->getMessage()}",
+                    0,
+                    $exception
+                );
             }
-
-            $arguments = [];
-
-            foreach ( $constructor->getParameters() as $parameter ) {
-                $arguments[] = $this->resolve_parameter( $parameter );
-            }
-
-            /** @var T */
-            return $reflection->newInstanceArgs( $arguments );
-        } catch ( Throwable $exception ) {
-            if ( $exception instanceof RuntimeException ) {
-                throw $exception;
-            }
-
-            throw new RuntimeException(
-                "Unable to autowire '{$id}': {$exception->getMessage()}",
-                0,
-                $exception
-            );
-        } finally {
-            $this->end_resolution( $id );
-        }
+        } );
     }
 
     /**
@@ -500,6 +486,31 @@ final class Container
         }
 
         return $id;
+    }
+
+    /**
+     * Run a resolution callback guarded against circular dependencies.
+     *
+     * Marks $id as "resolving" for the duration of $work, always clearing
+     * that mark afterward — this is the shared bookkeeping that both
+     * resolve_definition() and autowire() need around otherwise-different
+     * failure handling.
+     *
+     * @template T
+     *
+     * @param string $id
+     * @param Closure(): T $work
+     *
+     * @return T
+     */
+    private function guarded( string $id, Closure $work ): mixed {
+        $this->begin_resolution( $id );
+
+        try {
+            return $work();
+        } finally {
+            $this->end_resolution( $id );
+        }
     }
 
     /**

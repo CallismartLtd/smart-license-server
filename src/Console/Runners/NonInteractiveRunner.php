@@ -19,6 +19,7 @@ use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\OptionParser;
 use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Plain PHP CLI runner — one-shot dispatch for `smliser <command>
@@ -40,6 +41,10 @@ class NonInteractiveRunner extends AbstractCommandRouter implements RunnerInterf
      * @param InputInterface  $io
      * @param OutputInterface $output
      * @param Terminal $terminal
+     * @param SignalManager $signal
+     * @param Guard $guard The security orchestrator used to manage the current
+     *                     actor — needed for pseudo-commands such as
+     *                     `--info` that print session/auth state.
      */
     public function __construct(
         CommandRegistry $registry,
@@ -48,7 +53,10 @@ class NonInteractiveRunner extends AbstractCommandRouter implements RunnerInterf
         OutputInterface $output,
         Terminal $terminal,
         SignalManager $signal,
+        Guard $guard,
     ) {
+        $this->guard = $guard;
+
         parent::__construct(
             registry: $registry,
             io: $io,

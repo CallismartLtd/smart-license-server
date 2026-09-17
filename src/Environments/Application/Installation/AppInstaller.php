@@ -17,6 +17,7 @@ use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Exceptions\DatabaseException;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
 use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Security\Actors\User;
@@ -60,6 +61,7 @@ class AppInstaller {
 
     public function __construct(
         protected Database $db,
+        protected FileSystem $fs,
         protected JobQueue $job_queue
     ) {}
 
@@ -199,15 +201,14 @@ class AppInstaller {
         ?callable $failure_callback = null
         ) : void {
 
-        $fs = \smliser_filesystem();
         foreach ( $this->required_directories as $type => $dir ) {
 
-            if ( $fs->is_dir( $dir ) ) {
+            if ( $this->fs->is_dir( $dir ) ) {
                 $failure_callback && $failure_callback( $type, $dir, 'Exists' );
                 continue;
             }
 
-            if ( ! $fs->mkdir( $dir, SMLISER_DIR_PERMISSION, true ) ) {
+            if ( ! $this->fs->mkdir( $dir, true ) ) {
                 $failure_callback && $failure_callback( $type, $dir, 'mkdir failed' );
                 continue;
             }
@@ -369,17 +370,26 @@ class AppInstaller {
      * Install default roles.
      * 
      * @param callable(string $role_name, string $message)|null $success_callback
-     * @param callable(string $role_name, string $message)|null $failure_callback
+     * @param callable(string $role_name, string $message)|null $failure_callback,
+     * @param bool $force
      * @return void
      */
     public function install_default_roles(
         callable|null $success_callback = null,
-        callable|null $failure_callback = null 
+        callable|null $failure_callback = null,
+        bool $force = false
         ) : void {
         
         $default_roles = DefaultRoles::all();
 
         foreach ( $default_roles as $slug => $roledata ) {
+            $role   = Role::get_by_slug( $slug );
+
+            if ( $role && ! $force ) {
+                $failure_callback && $failure_callback( $role->get_label(), 'Role Exists' );
+                continue;
+            }
+            
             $role = new Role();
             $role->set_capabilities( $roledata['capabilities'] );
             $role->set_label( $roledata['label'] );
@@ -388,11 +398,9 @@ class AppInstaller {
 
             try {
                 if ( $role->save() ) {
-                    $rows[] = [ $slug, '✔ Installed' ];
-                    $success_callback && $success_callback( $role->get_label(), 'Installed' );
+                    $success_callback && $success_callback( $role->get_label(), '✔ Installed' );
                 } else {
-                    $rows[] = [ $slug, '⚠ Skipped — unable to save' ];
-                    $failure_callback && $failure_callback( $role->get_label(), $this->db->get_last_error() );
+                    $failure_callback && $failure_callback( $role->get_label(), "⚠ {$this->db->get_last_error()}" );
                 }
             } catch ( \Throwable $e ) {
                 $failure_callback && $failure_callback( $role->get_label(), $e->getMessage() );

@@ -12,19 +12,25 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\ScriptName;
+use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\Stopwatch;
 
 /**
  * Manage and inspect the system settings.
- *
- * Usage:
- *   smliser settings set --name="email_provider" --value="smtp"
- *   smliser settings get <name>
- *   smliser settings delete <name>
- *   smliser settings help
  */
 class SettingsCommand extends AbstractCommand {
+    public function __construct(
+        protected Settings $settings,
+        InputInterface $io,
+        OutputInterface $output,
+        ScriptName $script_name
+    ) {
+        return parent::__construct($io, $output, $script_name);
+    }
     public static function name(): string {
         return 'settings';
     }
@@ -33,10 +39,12 @@ class SettingsCommand extends AbstractCommand {
         return 'Manage the system settings.';
     }
     public function synopsis(): string {
-        return 'smliser settings <subcommand> [arguments]';
+        return "{$this->script_name} settings <subcommand> [arguments]";
     }
 
     public function help(): string {
+        $script_name    = $this->script_name;
+
         return implode( PHP_EOL, [
             'Subcommands:',
             '   set                 Insert or update the value of an option name.',
@@ -54,16 +62,17 @@ class SettingsCommand extends AbstractCommand {
             '',
             '',
             'Examples:',
-            '  smliser settings set --name="option_name" --value="option_value"',
-            '  smliser settings get smliser_some_key',
-            '  smliser settings delete smliser_some_key',
+            "  {$script_name} settings set --name=\"option_name\" --value=\"option_value\"",
+            "  {$script_name} settings get smliser_some_key",
+            "  {$script_name} settings delete smliser_some_key",
         ]);
     }
 
 
     public function run( CommandInput $input ): int {
-        $this->output->info( 'Active Settings Adapter: ' . get_class( smliser_settings()->get_adapter() ) );
-        $this->output->writeln( 'Run `smliser settings help` to see available subcommands.' );
+        $this->output->info( 'Active Settings Adapter: ' . get_class( $this->settings->get_adapter() ) );
+        
+        $this->output->writeln( "Run {$this->script_name} settings help to see available subcommands." );
 
         return 0;
     }
@@ -95,14 +104,14 @@ class SettingsCommand extends AbstractCommand {
         $value  = $input->get_option( 'value', null );
 
         if ( empty( $name ) ) {
-            $this->output->error( 'Usage: smliser settings set --name=option_name --value=option_value' );
+            $this->output->error( "Usage: {$this->script_name} settings set --name=option_name --value=option_value" );
             return 1;
         }
 
         $stopwatch = new Stopwatch();
         $stopwatch->start();
 
-        $result = smliser_settings()->set( $name, $value );
+        $result = $this->settings->set( $name, $value );
 
         if ( $result ) {
             $this->output->success( sprintf( 'Saved successfully. Completed in %ss', $stopwatch->elapsed() ) );
@@ -123,12 +132,12 @@ class SettingsCommand extends AbstractCommand {
         $name = $input->get_argument( 0, $input->get_option( 'name', null ) );
 
         if ( empty( $name ) || is_array( $name ) || str_starts_with( $name, '--' ) ) {
-            $this->output->error( 'Usage: smliser settings get <name>' );
+            $this->output->error( "Usage: {$this->script_name} settings get <name>" );
             return 1;
         }
 
         $name       = (string) $name;
-        $value      = smliser_settings()->get( $name, null, true );
+        $value      = $this->settings->get( $name, null );
         $formatted  = $this->format_option_value( $value );
 
         $this->output->info( "Settings value for [{$name}]:" );
@@ -152,7 +161,7 @@ class SettingsCommand extends AbstractCommand {
         $key = $input->get_argument( 0, $input->get_option( 'name', null ) );
 
         if ( empty( $key ) || is_array( $key ) || str_starts_with( $key, '--' ) ) {
-            $this->output->error( 'Usage: smliser settings delete <key>' );
+            $this->output->error( "Usage: {$this->script_name} settings delete <key>" );
             return 1;
         }
 
@@ -161,7 +170,7 @@ class SettingsCommand extends AbstractCommand {
             return 0;
         }
 
-        if ( smliser_settings()->delete( $key ) ) {
+        if ( $this->settings->delete( $key ) ) {
             $this->output->success( "Key [{$key}] deleted from settings." );
             return 0;
         }
@@ -173,9 +182,6 @@ class SettingsCommand extends AbstractCommand {
 
     /**
      * List settings (paginated).
-     *
-     * Usage:
-     *   smliser settings list --page=1 --limit=20
      */
     public function handle_list( CommandInput $input ): int {
 
@@ -185,7 +191,7 @@ class SettingsCommand extends AbstractCommand {
         $stopwatch = new Stopwatch();
         $stopwatch->start();
 
-        $results = smliser_settings()->all( $page, $limit );
+        $results = $this->settings->all( $page, $limit );
 
         if ( empty( $results ) ) {
             $this->output->error( 'No settings found.' );
@@ -210,9 +216,6 @@ class SettingsCommand extends AbstractCommand {
 
     /**
      * Search settings by key name.
-     *
-     * Usage:
-     *   smliser settings search --query="license" --page=1 --limit=20
      */
     public function handle_search( CommandInput $input ): int {
         $query  = $input->get_option( 'query', null );
@@ -221,14 +224,14 @@ class SettingsCommand extends AbstractCommand {
         $limit = (int) $input->get_option( 'limit', 30 );
 
         if ( empty( $query ) ) {
-            $this->output->error( 'Usage: smliser settings search --query="keyword" [--page=1 --limit=20]' );
+            $this->output->error( "Usage: {$this->script_name} settings search --query=\"keyword\" [--page=1 --limit=20]" );
             return 1;
         }
 
         $stopwatch = new Stopwatch();
         $stopwatch->start();
 
-        $results = smliser_settings()->search( $query, $page, $limit );
+        $results = $this->settings->search( $query, $page, $limit );
 
         if ( empty( $results ) ) {
             $this->output->error( "No settings found matching [{$query}]." );

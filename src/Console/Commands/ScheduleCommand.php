@@ -11,13 +11,28 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Utils\Stopwatch;
 
 /**
  * Evaluates all registered scheduled tasks and runs any that are due.
  */
 class ScheduleCommand extends AbstractCommand {
+
+
+    public function __construct(
+        protected Scheduler $scheduler,
+        InputInterface $io,
+        OutputInterface $output,
+        ScriptName $script_name
+    ) {
+        return parent::__construct($io, $output, $script_name);
+    }
+
     public static function name(): string {
         return 'schedule';
     }
@@ -26,7 +41,7 @@ class ScheduleCommand extends AbstractCommand {
         return 'Run all due scheduled tasks.';
     }
     public function synopsis(): string {
-        return 'smliser schedule';
+        return "{$this->script_name} schedule";
     }
 
     public function help(): string {
@@ -39,7 +54,7 @@ class ScheduleCommand extends AbstractCommand {
 
         $this->output->info( 'Running due scheduled tasks...' );
 
-        $results = smliser_scheduler()->run_due_tasks();
+        $results = $this->scheduler->run_due_tasks();
         $total   = count( $results );
         $failed  = count( array_filter( $results, fn( $r ) => $r === false ) );
 

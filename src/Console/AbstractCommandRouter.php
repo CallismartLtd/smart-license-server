@@ -14,7 +14,6 @@ namespace SmartLicenseServer\Console;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\Traits\CommandHelpTrait;
-use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Routes a resolved command/subcommand pair to the appropriate handler.
@@ -99,6 +98,11 @@ abstract class AbstractCommandRouter {
 
         if ( in_array( $command, [ 'version', '-v', '--version' ], true ) ) {
             $this->print_version();
+            return 0;
+        }
+
+        if ( in_array( $command, [ 'info', '--info' ], true ) ) {
+            $this->print_info();
             return 0;
         }
 

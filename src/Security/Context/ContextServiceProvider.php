@@ -30,6 +30,7 @@ use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
 use SmartLicenseServer\Security\OwnerSubjects\OrganizationMembers;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
+use SmartLicenseServer\Security\Permission\DefaultRoles;
 
 use const SMLISER_ROLE_ASSIGNMENT_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE, 
 SMLISER_OWNERS_TABLE, SMLISER_ORGANIZATIONS_TABLE, SMLISER_USERS_TABLE, SMLISER_SERVICE_ACCOUNTS_TABLE;
@@ -1133,4 +1134,50 @@ class ContextServiceProvider extends DataStore {
         };
     }
 
+    /**
+     * Get all human platform system administrators.
+     *
+     * A user is a platform admin when they hold a self-scoped role assignment
+     * (owner_subject_type = individual, owner_subject_id = principal_id) whose
+     * role slug is 'system_admin'.
+     *
+     * @return User[]
+     */
+    public static function get_platform_admins() : array {
+        $db  = static::$DB;
+        $sql = static::query()
+            ->select( 'u.*' )->from( SMLISER_USERS_TABLE . ' u' )
+            ->left_join( SMLISER_ROLE_ASSIGNMENT_TABLE . ' ra', 'ra.principal_id', '=', 'u.id' )
+            ->left_join( SMLISER_ROLES_TABLE . ' r', 'ra.role_id', '=', 'r.id' )
+            ->where( 'ra.principal_type', '=', Owner::TYPE_INDIVIDUAL )
+            ->where( 'ra.owner_subject_type', '=', Owner::TYPE_INDIVIDUAL )
+            ->where_column( 'ra.owner_subject_id', '=', 'ra.principal_id' )
+            ->where( 'r.slug', '=', DefaultRoles::get( 'system_admin' )['slug'] );
+
+        $rows = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+        return array_map( [User::class, 'from_array'], $rows );
+    }
+
+    /**
+     * Get all human administrators of a specific organization.
+     *
+     * @param Organization $organization
+     * @return User[]
+     */
+    public static function get_organization_admins( Organization $organization ) : array {
+        $db  = static::$DB;
+        $sql = static::query()
+            ->select( 'u.*' )->from( SMLISER_USERS_TABLE . ' u' )
+            ->left_join( SMLISER_ROLE_ASSIGNMENT_TABLE . ' ra', 'ra.principal_id', '=', 'u.id' )
+            ->left_join( SMLISER_ROLES_TABLE . ' r', 'ra.role_id', '=', 'r.id' )
+            ->where( 'ra.principal_type', '=', Owner::TYPE_INDIVIDUAL )
+            ->where( 'ra.owner_subject_type', '=', Owner::TYPE_ORGANIZATION )
+            ->where( 'ra.owner_subject_id', '=', $organization->get_id() )
+            ->where( 'r.slug', '=', DefaultRoles::get( 'system_admin' )['slug'] );
+
+        $rows = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+        return array_map( [User::class, 'from_array'], $rows );
+    }
 }

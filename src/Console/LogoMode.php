@@ -21,17 +21,19 @@ namespace SmartLicenseServer\Console;
  */
 enum LogoMode: string {
 
-    /** Derive the logo from the current output verbosity (default, previous behavior). */
-    case AUTO        = 'auto';
+    /** Derive the logo from the current output verbosity. */
+    case AUTO       = 'auto';
 
-    /** Always print the large logo, regardless of verbosity. */
-    case LARGE       = 'large';
+    /** Print the large logo. */
+    case LARGE      = 'large';
 
-    /** Always print the compact monospaced logo, regardless of verbosity. */
-    case MONOSPACED  = 'monospaced';
+    /** Print the compact monospaced logo. */
+    case MONOSPACED = 'monospaced';
+    /** Print the short logo */
+    case SHORT      = 'short';
 
     /** Never print a logo. */
-    case NONE        = 'none';
+    case NONE   = 'none';
 
     /**
      * Resolve a mode from a loose string, e.g. a CLI flag value or an

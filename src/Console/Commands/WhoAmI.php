@@ -12,12 +12,28 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Print the user name associated with the current principal.
  */
 class WhoAmI extends AbstractCommand {
+    public function __construct(
+        protected Guard $guard,
+        InputInterface $io,
+        OutputInterface $output,
+        ScriptName $script_name
+    ) {
+        
+        parent::__construct(
+            io: $io,
+            output: $output,
+            script_name: $script_name
+        );
+    }
 
     public static function name(): string {
         return 'whoami';

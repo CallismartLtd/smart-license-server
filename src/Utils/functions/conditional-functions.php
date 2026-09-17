@@ -74,7 +74,7 @@ if ( ! function_exists( 'is_base64_encoded' ) ) {
 function is_smliser_error( $value ): bool {
     if ( function_exists( 'is_wp_error' ) && is_wp_error( $value ) ) {
         return true;
-    } elseif ( $value instanceof \WP_Error ) {
+    } elseif ( class_exists( \WP_Error::class ) && $value instanceof \WP_Error ) {
         return true;
     }
 

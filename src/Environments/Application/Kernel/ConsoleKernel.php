@@ -1,45 +1,48 @@
 <?php
 /**
  * Console kernel class file.
- * 
- * @author Callistus Nwachukwu.
- * @package SmartLicenseServer
+ *
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Environments\Application\Kernel
+ * @since 0.2.0
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Kernel;
 
-use SmartLicenseServer\Console\Runners\RunnerInterface;
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Environments\Application\ApplicationEnvironment;
-use SmartLicenseServer\Environments\Application\CLI\ConsoleManager;
 
 /**
- * Console kernel class coordinates console command lifecycle.
+ * Console kernel coordinates console command lifecycle.
+ *
+ * @package SmartLicenseServer\Environments\Application\Kernel
+ * @since 0.2.0
  */
 class ConsoleKernel extends Kernel {
 
     /**
-     * The current CLI runner.
-     * 
-     * @var RunnerInterface
-     */
-    protected RunnerInterface $runner;
-
-    /**
-     * The console manager.
-     */
-    protected ConsoleManager $console_manager;
-
-    /**
      * Exit code.
-     * 
+     *
      * @var int
      */
     protected int $exit_code = 0;
 
+    /**
+     * Constructor.
+     *
+     * All execution dependencies are explicitly declared and resolved
+     * by the container when this class is retrieved.
+     *
+     * @param ApplicationEnvironment    $app     The application environment adapter.
+     * @param ExecutionHandlerInterface $handler The CLI command handler strategy.
+     * @param Database                  $db      Database instance.
+     */
     public function __construct(
-        protected ApplicationEnvironment $app
+        protected ApplicationEnvironment $app,
+        protected ExecutionHandlerInterface $handler,
+        protected Database $db
     ) {}
 
     /**
@@ -48,9 +51,6 @@ class ConsoleKernel extends Kernel {
     public function boot() : static {
         $this->app->boot();
 
-        $this->container    = $this->app->container();
-        $this->runner       = $this->container->get( ConsoleManager::class )->dispatch();
-
         return $this;
     }
 
@@ -58,8 +58,7 @@ class ConsoleKernel extends Kernel {
      * {@inheritdoc}
      */
     public function run() : static {
-
-        $this->exit_code = $this->runner->init();
+        $this->exit_code = $this->handler->handle();
 
         return $this;
     }
@@ -68,7 +67,8 @@ class ConsoleKernel extends Kernel {
      * {@inheritdoc}
      */
     public function terminate() : never {
+        $this->db->close();
+
         exit( $this->exit_code );
     }
-
 }

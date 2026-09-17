@@ -1,8 +1,10 @@
 <?php
 /**
- * Core runtime class file.
+ * Application environment class file.
  *
  * @author Callistus Nwachukwu
+ * @package SmartLicenseServer
+ * @since 0.2.0
  */
 
 declare( strict_types=1 );
@@ -11,64 +13,73 @@ namespace SmartLicenseServer\Environments\Application;
 
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
-use SmartLicenseServer\Assets\AssetsManager;
-use SmartLicenseServer\Assets\CSS;
-use SmartLicenseServer\Assets\JS;
 use SmartLicenseServer\Cache\Cache;
-use SmartLicenseServer\Console\CommandRegistry;
-use SmartLicenseServer\Console\ConsoleInput;
-use SmartLicenseServer\Console\ConsoleOutput;
-use SmartLicenseServer\Console\Terminal;
+use SmartLicenseServer\Environments\Application\Boot\BootManager;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\DataStore;
-use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environment;
-use SmartLicenseServer\Environments\Application\Auth\ConsoleIdentityProvider;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
-use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
-use SmartLicenseServer\Environments\Application\Routing\RouteManager;
-use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\Environments\Application\Boot\CLIBootstrapper;
+use SmartLicenseServer\Environments\Application\Boot\WebBootstrapper;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
-use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
-use SmartLicenseServer\Security\Authentication\Session\SessionManager;
-use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\Settings;
-use SmartLicenseServer\SettingsAPI\UserSettings;
-use SmartLicenseServer\Templates\TemplateDiscovery;
 
 /**
- * Smart License Server running as a standalone PHP application.
+ * Class ApplicationEnvironment
+ *
+ * Smart License Server running as a standalone PHP application environment.
+ * Orchestrates container bindings and boot sequences for both HTTP/Web and CLI modes
+ * using context-specific bootstrappers.
+ *
+ * @package SmartLicenseServer\Environments\Application
+ * @since 0.2.0
  */
 class ApplicationEnvironment extends Environment {
+
+    /**
+     * Boot manager instance for handling environment bootstrappers.
+     *
+     * @var BootManager
+     */
+    protected BootManager $bootManager;
 
     /**
      * {@inheritdoc}
      */
     protected function registerDependencies() : void {
+        $this->container->singleton( ApplicationEnvironment::class, $this );
+        
         $this->container->singleton(
             URLManager::class,
             fn ( Container $c ) : URLManager => new URLManager(
                 settings: $c->get( Settings::class ),
                 app_url: url(),
                 admin_base_url: url(),
-                assets_url: url()->append_path( '/assets/' ),
+                assets_url: url( '/assets/' ),
             )
         );
 
-        if ( is_cli() ) {
-            $this->registerCLIDependencies();
-        } else {
-            $this->registerWebDependencies();
-        }
+        $this->container->alias(
+            PasswordIdentityProviderInterface::class,
+            IdentityService::class
+        );
 
-        $this->container->alias( PasswordIdentityProviderInterface::class, IdentityService::class );
+        $this->container->alias(
+            RESTProviderInterface::class,
+            RestAPIProvider::class
+        );
 
-        $this->container->alias( RESTProviderInterface::class, RestAPIProvider::class );
-        
-        $this->container->singleton( ApplicationEnvironment::class, $this );
+        /*
+         * Initialize BootManager and attach context bootstrappers.
+         */
+        $this->bootManager = new BootManager( $this->container );
+        $this->bootManager
+            ->add( new CLIBootstrapper() )
+            ->add( new WebBootstrapper() );
+
+        $this->bootManager->registerAll();
     }
 
     /**
@@ -87,10 +98,14 @@ class ApplicationEnvironment extends Environment {
             $this->container->get( URLManager::class )
         );
 
-        // Bootup the template locator API.
-        $this->container->get( TemplateDiscovery::class )
-            ->discover( 'core', SMLISER_RUNTIME_DIR . '/templates/', 0 );
+        /*
+         * Boot environment bootstrappers (routing, assets, terminal inputs, etc.).
+         */
+        $this->bootManager->bootAll();
 
+        /*
+         * Trigger context identity authentication.
+         */
         $this->container->get( IdentityService::class )->authenticate();
     }
 
@@ -99,15 +114,15 @@ class ApplicationEnvironment extends Environment {
      */
     protected function createDatabaseConfig() : DBConfigDTO {
         $dbConfig = new DBConfigDTO([
-            'driver'    => $_ENV['SMLISER_DB_DRIVER'] ?? '',
-            'host'      => $_ENV['SMLISER_DB_HOST'] ?? '',
-            'port'      => $_ENV['SMLISER_DB_PORT'] ?? '',
-            'dbname'    => $_ENV['SMLISER_DB_NAME'] ?? '',
-            'username'  => $_ENV['SMLISER_DB_USER'] ?? '',
-            'password'  => $_ENV['SMLISER_DB_PASSWORD'] ?? '',
-            'charset'   => $_ENV['SMLISER_DB_CHARSET'] ?? '',
-            'prefix'    => $_ENV['SMLISER_DB_PREFIX'] ?? '',
-            'path'      => $_ENV['SMLISER_DB_PATH'] ?? '',
+            'driver'   => $_ENV['SMLISER_DB_DRIVER'] ?? '',
+            'host'     => $_ENV['SMLISER_DB_HOST'] ?? '',
+            'port'     => $_ENV['SMLISER_DB_PORT'] ?? '',
+            'dbname'   => $_ENV['SMLISER_DB_NAME'] ?? '',
+            'username' => $_ENV['SMLISER_DB_USER'] ?? '',
+            'password' => $_ENV['SMLISER_DB_PASSWORD'] ?? '',
+            'charset'  => $_ENV['SMLISER_DB_CHARSET'] ?? '',
+            'prefix'   => $_ENV['SMLISER_DB_PREFIX'] ?? '',
+            'path'     => $_ENV['SMLISER_DB_PATH'] ?? '',
         ]);
 
         if (
@@ -118,111 +133,5 @@ class ApplicationEnvironment extends Environment {
         }
 
         return $dbConfig;
-    }
-
-    /**
-     * Register CLI Dependencies.
-     * 
-     * @return void
-     */
-    protected function registerCLIDependencies() : void {
-        $this->container->singleton(
-            IdentityService::class,
-            function( Container $container ) {
-                return new IdentityService(
-                    $container->get( Guard::class ),
-                    $container->get( ConsoleIdentityProvider::class )
-                );
-            }
-        );
-
-        $this->container->singleton(
-            CommandRegistry::class,
-            fn () : CommandRegistry => CommandRegistry::instance( $this->container )
-        );
-
-        $this->container->set(
-            ConsoleInput::class,
-            fn ( Container $c ) : ConsoleInput => new ConsoleInput(
-                $c->get( Terminal::class )
-            )
-        );
-
-        $this->container->set(
-            ConsoleOutput::class,
-            fn ( Container $c ) : ConsoleOutput => new ConsoleOutput(
-                $c->get( Terminal::class )
-            )
-        );
-
-    }
-
-    /**
-     * Register Web Dependencies.
-     * 
-     * @return void
-     */
-    protected function registerWebDependencies() : void {
-        // Bootup the filesystem API.
-        $this->container->get( FileSystem::class );
-
-        $this->container->singleton(
-            Request::class,
-            fn () : Request => Request::createFromGlobals()
-        );
-
-        $this->container->set(
-            SessionManager::class, new SessionManager( $this->runtime->secret )
-        );
-
-        $this->container->singleton(
-            IdentityService::class,
-            function( Container $container ) {
-                return new IdentityService(
-                    $container->get( Guard::class ),
-                    $container->get( WebIdentityProvider::class )
-                );
-            }
-        );
-    
-        $this->container->singleton(
-            RestAPIProvider::class,
-            RestAPIProvider::init(
-                $this->container->get( V1::class )
-            )
-        );
-
-        $this->container->singleton(
-            AssetsManager::class,
-            fn ( Container $c ) : AssetsManager => new AssetsManager(
-                $c->get( Guard::class ),
-                $c->get( URLManager::class ),
-                $c->get( CSS::class ),
-                $c->get( JS::class )
-            )
-        );
-
-        $guard  = $this->container->get( Guard::class );
-
-        if ( $guard->has_principal() ) {
-            $this->container->singleton(
-                UserSettings::class,
-                UserSettings::for(
-                    $guard->principal()->get_actor(),
-                )
-            );
-        }
-
-        $defaut_page    = $this->container->get( DefaultPage::class );
-        $route_manager  = $this->container->get( RouteManager::class )
-            ->homeHandler( [$defaut_page, 'home'] )
-            ->notFound( [$defaut_page, 'not_found'] )
-            ->methodNotAllowed( [$defaut_page, 'method_not_allowed'] );
-
-        $route_manager->registerCoreRoutes();
-
-        $this->container->singleton( RouteManager::class, $route_manager );
-
-        $this->container->singleton( DefaultPage::class, $this->container->get( DefaultPage::class ) );
     }
 }

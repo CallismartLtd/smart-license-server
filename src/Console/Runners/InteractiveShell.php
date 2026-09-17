@@ -401,15 +401,17 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
      */
     private function resolve_logo(): string {
         return match ( $this->logo_mode ) {
-            LogoMode::LARGE      => AsciiLogo::LARGE,
-            LogoMode::MONOSPACED => AsciiLogo::MONOSPACED,
-            LogoMode::NONE       => '',
-            LogoMode::AUTO       => match ( $this->output->get_verbosity() ) {
+            LogoMode::LARGE         => AsciiLogo::LARGE,
+            LogoMode::MONOSPACED    => AsciiLogo::MONOSPACED,
+            LogoMode::SHORT         => AsciiLogo::SHORT,
+            LogoMode::AUTO          => match ( $this->output->get_verbosity() ) {
                 OutputInterface::VERBOSITY_NORMAL  => AsciiLogo::MONOSPACED,
                 OutputInterface::VERBOSITY_VERBOSE => AsciiLogo::LARGE,
                 OutputInterface::VERBOSITY_QUIET   => '',
                 default                            => '',
             },
+            LogoMode::NONE  => '',
+            default         => ''
         };
     }
 

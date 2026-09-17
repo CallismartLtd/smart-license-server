@@ -22,8 +22,7 @@ interface RunnerInterface {
      * Run the CLI session to completion.
      *
      * @return int Process exit code — 0 for success, non-zero for
-     *             failure. CLIEnvironment is expected to call
-     *             `exit( $runner->init() )` with this value.
+     *             failure.
      */
     public function init(): int;
 }

@@ -1,13 +1,15 @@
 <?php
 /**
- * RouteManager class file.
+ * HttpDispatcher class file.
  *
+ * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Environments\Application\Routing
+ * @since 0.2.0
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
-namespace SmartLicenseServer\Environments\Application\Routing;
+namespace SmartLicenseServer\Environments\Application\Web;
 
 use SmartLicenseServer\Admin\ActionHandlers\AccountManagements;
 use SmartLicenseServer\Admin\ActionHandlers\AppManagement;
@@ -29,20 +31,22 @@ use SmartLicenseServer\Environments\Application\Middlewares\AdminDownloadMiddlew
 use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddleware;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
-use SmartLicenseServer\Routing\Router as CoreRouter;
-use SmartLicenseServer\Routing\DispatchStatus;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
+use SmartLicenseServer\Routing\DispatchStatus;
+use SmartLicenseServer\Routing\Router as CoreRouter;
 use SmartLicenseServer\SettingsAPI\SettingsController;
 
 /**
- * The application environment's route manager, which wraps the core Router and 
- * provides the environment-specific dispatching logic.
+ * Class HttpDispatcher
  *
- * This class is: registers
- * routes onto the core Router, and is also the thing that resolves a live
- * request all the way through to calling a handler, middleware included.
+ * Registers application routes onto the core router and dispatches live HTTP
+ * requests through middleware pipelines to resolve normalized HTTP responses.
+ *
+ * @package SmartLicenseServer\Environments\Application\Routing
+ * @since 0.2.0
  */
-final class RouteManager {
+final class HttpDispatcher {
+
 	/** 
      * The 404 page response callback.
      * 

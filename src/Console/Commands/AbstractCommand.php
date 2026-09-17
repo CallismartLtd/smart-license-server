@@ -11,11 +11,10 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
-use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
-use SmartLicenseServer\Security\Context\Guard;
+use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Utils\Stopwatch;
 
 /**
@@ -45,7 +44,7 @@ abstract class AbstractCommand implements CommandInterface {
     public function __construct(
         protected InputInterface $io,
         protected OutputInterface $output,
-        protected string $script_name
+        protected ScriptName $script_name
     ) {}
 
     /**

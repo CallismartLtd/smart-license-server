@@ -4,6 +4,7 @@
  *
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Environments\Application\Kernel
+ * @since 0.2.0
  */
 
 declare( strict_types=1 );
@@ -11,38 +12,38 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Environments\Application\Kernel;
 
 use Callismart\DBPrism\Database;
-use SmartLicenseServer\Core\Container\Container;
-use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Environments\Application\ApplicationEnvironment;
-use SmartLicenseServer\Environments\Application\Routing\RouteManager;
+use SmartLicenseServer\Environments\Application\Web\HttpExecutionHandler;
 
 /**
  * HTTP kernel coordinates the HTTP request lifecycle.
+ *
+ * @package SmartLicenseServer\Environments\Application\Kernel
+ * @since 0.2.0
  */
 class HTTPKernel extends Kernel {
 
     /**
-     * Response generated during request dispatch.
+     * Exit status code.
+     *
+     * @var int
      */
-    protected Response $response;
-
-    /**
-     * The current request object.
-     */
-    protected Request $request;
-
-    /**
-     * The route management object.
-     */
-    protected RouteManager $routeManager;
-
+    protected int $exit_code = 0;
 
     /**
      * Constructor.
+     *
+     * All execution dependencies are explicitly declared and resolved
+     * by the container when this class is retrieved.
+     *
+     * @param ApplicationEnvironment    $app     The application environment adapter.
+     * @param ExecutionHandlerInterface $handler The HTTP request handler strategy.
+     * @param Database                  $db      Database instance.
      */
     public function __construct(
         protected ApplicationEnvironment $app,
+        protected ExecutionHandlerInterface $handler,
+        protected Database $db
     ) {}
 
     /**
@@ -51,10 +52,6 @@ class HTTPKernel extends Kernel {
     public function boot() : static {
         $this->app->boot();
 
-        $this->container    = $this->app->container();
-        $this->request      = $this->container->get( Request::class );
-        $this->routeManager = $this->container->get( RouteManager::class );
-
         return $this;
     }
 
@@ -62,10 +59,7 @@ class HTTPKernel extends Kernel {
      * {@inheritdoc}
      */
     public function run() : static {
-
-        $this->response = $this->routeManager->dispatch( $this->request );
-        
-        $this->response->send();
+        $this->exit_code = $this->handler->handle();
 
         return $this;
     }
@@ -76,12 +70,15 @@ class HTTPKernel extends Kernel {
      * @return never
      */
     public function terminate() : never {
-        $this->container->get( Database::class )->close();
+        $this->db->close();
 
-        if ( isset( $this->response ) ) {
-            $this->response->stop();
+        if ( $this->handler instanceof HttpExecutionHandler ) {
+            $response = $this->handler->getResponse();
+            if ( $response !== null ) {
+                $response->stop();
+            }
         }
 
-        exit( 0 );
+        exit( $this->exit_code );
     }
 }

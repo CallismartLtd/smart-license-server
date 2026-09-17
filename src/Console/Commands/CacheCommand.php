@@ -11,8 +11,12 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Console\CommandInput;
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\Stopwatch;
 
@@ -28,6 +32,14 @@ use SmartLicenseServer\Utils\Stopwatch;
  *   smliser cache help
  */
 class CacheCommand extends AbstractCommand {
+    public function __construct(
+        protected Cache $cache,
+        InputInterface $io,
+        OutputInterface $output,
+        ScriptName $script_name
+    ) {
+        return parent::__construct( $io, $output, $script_name );
+    }
 
     public static function name(): string {
         return 'cache';
@@ -52,6 +64,9 @@ class CacheCommand extends AbstractCommand {
             '  delete <key>                 Remove a specific key from the cache.',
             '  use-adapter <adapter_id>     Switch to a specific cache adapter.',
             '  help                         Show this help message.',
+            '',
+            'OPTIONS',
+            '   --yes -y    Skip confirmation when clearing cache',
             '',
             'Examples:',
             "  $script_name cache stats",
@@ -92,7 +107,7 @@ class CacheCommand extends AbstractCommand {
      * so there's no "unknown subcommand" branch to handle here anymore.
      */
     public function run( CommandInput $input ): int {
-        $this->output->info( 'Active Cache Adapter: ' . smliser_cache()->get_name() );
+        $this->output->info( 'Active Cache Adapter: ' . $this->cache->get_name() );
         $this->output->newline();
         $this->output->writeln( 'Run `smliser cache help` to see available subcommands.' );
 
@@ -112,7 +127,7 @@ class CacheCommand extends AbstractCommand {
      * @return int
      */
     public function handle_stats( CommandInput $input ): int {
-        $cache = smliser_cache();
+        $cache = $this->cache;
         $stats = $cache->get_stats();
 
         $this->output->info( 'Cache Engine: ' . $cache->get_name() );
@@ -141,7 +156,9 @@ class CacheCommand extends AbstractCommand {
      * @return int
      */
     public function handle_clear( CommandInput $input ): int {
-        if ( ! $this->io->confirm( 'This will flush all cached data. Are you sure?' ) ) {
+        $skip_confirm   = (bool) ( $input->get_option( 'yes' ) ?? $input->get_option( 'y' ) );
+
+        if ( ! $skip_confirm && ! $this->io->confirm( 'This will flush all cached data. Are you sure?' ) ) {
             $this->output->writeln( 'Aborted.' );
             return 0;
         }
@@ -149,9 +166,17 @@ class CacheCommand extends AbstractCommand {
         $stopwatch = new Stopwatch();
         $stopwatch->start();
 
-        if ( ! smliser_cache()->clear() ) {
+        if ( ! $this->cache->clear() ) {
             $this->output->error( 'Failed to clear cache.' );
             return 1;
+        }
+
+        if ( 'sqlitecache' === $this->cache->get_id() ) {
+            $cache  = $this->cache;
+            /** @var \SmartLicenseServer\Cache\Adapters\SQLiteCacheAdapter $cache */
+            $cache->prune_expired() &&
+
+            $this->output->info( 'Exipired cache entries cleared' );
         }
 
         $this->output->success( sprintf( 'Cache cleared successfully. Completed in %ss.', $stopwatch->elapsed() ) );
@@ -173,7 +198,7 @@ class CacheCommand extends AbstractCommand {
             return 1;
         }
 
-        $value = smliser_cache()->get( $key );
+        $value = $this->cache->get( $key );
 
         if ( false === $value ) {
             $this->output->warning( "Key [{$key}] not found in cache." );
@@ -218,7 +243,7 @@ class CacheCommand extends AbstractCommand {
             return 0;
         }
 
-        if ( ! smliser_cache()->delete( $key ) ) {
+        if ( ! $this->cache->delete( $key ) ) {
             $this->output->error( "Failed to delete key [{$key}]. It may not exist." );
             return 1;
         }

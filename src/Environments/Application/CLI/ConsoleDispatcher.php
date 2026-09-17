@@ -1,10 +1,12 @@
 <?php
 /**
- * The console manager class file.
+ * The console dispatcher class file.
  * 
  * @author Callistus Nwachukwu
- * @package SmartLicenseServer
+ * @package SmartLicenseServer\Environments\Application\CLI
+ * @since 0.2.0
  */
+
 namespace SmartLicenseServer\Environments\Application\CLI;
 
 use Callismart\DBPrism\Database;
@@ -22,19 +24,20 @@ use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**
- * The console manager class manages the creation of the appropriate
- * console runner interface.
+ * Class ConsoleDispatcher
+ *
+ * Manages stream contexts, checks positional argument tokens, and dispatches
+ * to either an InteractiveShell or NonInteractiveRunner.
+ *
+ * @package SmartLicenseServer\Environments\Application\CLI
+ * @since 0.2.0
  */
-class ConsoleManager {
-    /**
-     * The currently resolve console runner instance.
-     */
-    protected RunnerInterface $runner;
+class ConsoleDispatcher {
 
     /**
-     * The invoked script name.
+     * The currently resolved console runner instance.
      */
-    protected string $script_name = 'smliser';
+    protected RunnerInterface $runner;
 
     /**
      * Standard input stream.
@@ -64,6 +67,17 @@ class ConsoleManager {
      */
     protected array $tokens;
 
+    /**
+     * Class constructor.
+     *
+     * @param CommandRegistry $registry
+     * @param Terminal        $terminal
+     * @param SignalManager   $signal
+     * @param ConsoleInput    $input
+     * @param ConsoleOutput   $output
+     * @param Guard           $guard
+     * @param Database        $db
+     */
     public function __construct(
         protected CommandRegistry $registry,
         protected Terminal $terminal,
@@ -72,13 +86,14 @@ class ConsoleManager {
         protected ConsoleOutput $output,
         protected Guard $guard,
         protected Database $db
-
     ) {
         $this->tokens = $_SERVER['argv'] ?? [];
     }
 
     /**
      * Resolves live CLI dynamics to execute a command.
+     *
+     * @return RunnerInterface
      */
     public function dispatch() : RunnerInterface {
         $this->build_runner();
@@ -90,30 +105,22 @@ class ConsoleManager {
         }
 
         return $this->runner;
-
     }
 
     /**
      * Build the appropriate runner for this invocation.
      *
      * One-shot dispatch (`smliser <command> ...`) gets a NonInteractiveRunner.
-     * No command argument at all (`smliser`) gets the interactive shell.
+     * An invocation with no tokens, or with only verbosity/quiet flags
+     * (`smliser`, `smliser -v`, `smliser -vvv`, `smliser --verbose`,
+     * `smliser -q`, or any combination of these), gets the interactive shell.
      *
      * @return RunnerInterface
      */
     protected function build_runner() : RunnerInterface {
-        $this->script_name = $this->tokens[0] ?? $this->script_name;
 
-        if ( isset( $this->tokens[1] ) ) {
-            $this->runner = new NonInteractiveRunner( 
-                registry: $this->registry,
-                tokens: $this->tokens, 
-                io: $this->input,
-                output: $this->output,
-                terminal: $this->terminal,
-                signal: $this->signal
-            );
-        } else {
+        if ( $this->is_interactive_invocation( $this->tokens ) ) {
+
             $this->runner = new InteractiveShell(
                 registry: $this->registry,
                 io: $this->build_shell_input( $this->input, $this->terminal ),
@@ -124,15 +131,57 @@ class ConsoleManager {
                 guard: $this->guard,
                 db: $this->db
             );
+        } else {
+            $this->runner = new NonInteractiveRunner(
+                registry: $this->registry,
+                tokens: $this->tokens,
+                io: $this->input,
+                output: $this->output,
+                terminal: $this->terminal,
+                signal: $this->signal,
+                guard: $this->guard
+            );
         }
 
         return $this->runner;
     }
 
     /**
+     * Determine whether this invocation should enter the interactive shell.
+     *
+     * True only when `--interactive` or `-i` is explicitly present among the
+     * tokens after the script path, AND stdin is a real, attached terminal.
+     * The explicit flag alone is not enough — a non-TTY stdin (piped input,
+     * cron, CI, `< file`) falls through to non-interactive dispatch even
+     * with `--interactive` present, since there'd be no one there to type
+     * into the shell. Every other invocation is non-interactive, including
+     * a bare `smliser` with no tokens at all.
+     *
+     * @param array<int, string> $tokens Raw CLI tokens, tokens[0] being the script path.
+     * @return bool
+     */
+    protected function is_interactive_invocation( array $tokens ): bool {
+
+        $count  = count( $tokens );
+
+        for ( $i = 1; $i < $count; $i++ ) {
+
+            $token = $tokens[ $i ];
+
+            if ( ! is_string( $token ) ) {
+                continue;
+            }
+
+            if ( '--interactive' === $token || '-i' === $token ) {
+                return $this->terminal->is_tty( $this->stdin );
+            }
+        }
+
+        return false;
+    }
+    /**
      * Wrap the base ConsoleInput with history-aware (↑/↓) reading for
-     * the interactive shell. NonInteractiveRunner does not need this — a one-shot
-     * invocation has no session to navigate history within.
+     * the interactive shell.
      *
      * @param ConsoleInput $input
      * @param Terminal     $terminal

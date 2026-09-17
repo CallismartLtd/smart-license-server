@@ -89,12 +89,13 @@ class TestCommand extends AbstractCommand {
 
     public function get_subcommands(): array {
         return [
+            'help'          => [$this, 'handle_help'],
             'script-name'   => [$this, 'test_script_name']
         ];
     }
 
     public function test_script_name() : int {
-        $this->output->writeln( $this->script_name );
+        $this->output->writeln( $this->script_name->value );
         return 0;
     }
 }

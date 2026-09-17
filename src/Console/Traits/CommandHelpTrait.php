@@ -50,16 +50,25 @@ trait CommandHelpTrait {
 
         ksort( $commands, \SORT_ASC );
 
-        foreach ( $commands as $cmd_name => $class ) {
+        foreach ( $commands as $cmd_name => $command ) {
             $custom_marker = $this->registry->is_custom( $cmd_name ) ? ' [custom]' : '';
             $this->output->writeln( sprintf(
                 '  %s  %s%s',
                 str_pad( $cmd_name, $max ),
-                $class->description(),
+                $command->description(),
                 $custom_marker
             ) );
         }
 
+        $this->output->newline();
+        $this->output->writeln( 'Global flags:' );
+        $this->output->writeln( '  -i, --interactive     Enter the interactive shell (requires a TTY)' );
+        $this->output->writeln( '  -v, -vv, -vvv         Increase output verbosity' );
+        $this->output->writeln( '      --verbose[=N]     Same, with an explicit level' );
+        $this->output->writeln( '  -q, --quiet           Suppress non-essential output' );
+        $this->output->writeln( '  -h, --help            Show this help, or help for a specific command' );
+        $this->output->writeln( '      --version         Show version information' );
+        $this->output->writeln( '      --info            Show system and session information' );
         $this->output->newline();
         $this->output->writeln( 'Run `smliser help <command>` for detailed usage of any command.' );
     }
