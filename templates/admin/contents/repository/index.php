@@ -26,13 +26,13 @@ $menu_args  = array(
         array(
             'title' => 'Repository',
             'label' => 'Repository',
-            'url'   => $urlmanager->repository_url()
+            'url'   => $urlmanager->admin_repo_url()->url()
         ),
 
         array(
             'title' => sprintf( '%s Repository', (string) $type ),
             'label' => ucfirst( (string) $type ),
-            'url'   => $current_url->remove_query_param( 'tab', 'status' )->get_href()
+            'url'   => $urlmanager->admin_repo_url()->add_query_param( 'type', $type )->url()
         ),
 
         array(
@@ -51,7 +51,7 @@ $menu_args  = array(
         array(
             'title'     => 'Plugin Repository',
             'label'     => 'Plugins',
-            'url'       => $current_url->add_query_param( 'type', 'plugin' )->get_href(),
+            'url'       => $urlmanager->admin_repo_url()->add_query_param( 'type', 'plugin' )->url(),
             'icon'      => 'ti ti-plug',
             'active'    => 'plugin' === $type
         ),
@@ -59,7 +59,7 @@ $menu_args  = array(
         array(
             'title'     => 'Theme Repository',
             'label'     => 'Themes',
-            'url'       => $current_url->add_query_param( 'type', 'theme' )->get_href(),
+            'url'       => $urlmanager->admin_repo_url()->add_query_param( 'type', 'theme' )->url(),
             'icon'      => 'ti ti-palette',
             'active'    => 'theme' === $type
         ),
@@ -67,14 +67,14 @@ $menu_args  = array(
         array(
             'title'     => 'Software Repository',
             'label'     => 'Software',
-            'url'       => $current_url->add_query_param( 'type', 'software' )->get_href(),
+            'url'       => $current_url->add_query_param( 'type', 'software' )->url(),
             'icon'      => 'ti ti-device-desktop-code',
             'active'    => 'software' === $type
         ),
     )
 );
 
-if ( count( $current_url ->get_query_params() ) <= 1 ) {
+if ( ! $current_url->has_query_param( 'type' ) && ! $current_url->has_query_param( 'status' ) ) {
     unset( $menu_args['breadcrumbs'][0] ); // Remove the home link on home page.
 }
 

@@ -148,7 +148,13 @@ class HtmlSanitizer {
 			->allowRelativeLinks()
 			->allowMediaSchemes( [ 'http', 'https' ] )
 			->allowRelativeMedias()
-			->forceAttribute( 'a', 'rel', 'noopener noreferrer nofollow' );
+			->forceAttribute( 'a', 'rel', 'noopener noreferrer nofollow' )
+			->allowAttribute( 'class', '*' )
+			->allowAttribute( 'id', '*' )
+			->allowAttribute( 'src', '*' )
+			->allowAttribute( 'alt', '*' )
+			->allowAttribute( 'title', '*' )
+			->allowAttribute( 'style', '*' );
 	}
 
 	public static function default_editor_config() : HtmlSanitizerConfig {

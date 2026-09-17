@@ -887,6 +887,9 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
     }
 
     function __destruct() {
+        if ( ! isset( $this->db ) ) {
+            return;
+        }
         $this->db->close();
     }
 }

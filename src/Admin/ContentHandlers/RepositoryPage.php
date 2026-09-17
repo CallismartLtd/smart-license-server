@@ -132,7 +132,7 @@ class RepositoryPage implements AdminPageInterface {
                 array(
                     'title' => 'Repository',
                     'label' => 'Repository',
-                    'url'   => $current_url ->remove_query_param( 'tab', 'type', 'status' )->url()
+                    'url'   => $this->urlmanager->admin_repo_url()->url()
                 ),
 
                 array(
@@ -151,21 +151,21 @@ class RepositoryPage implements AdminPageInterface {
                 array(
                     'title'     => 'Plugin Repository',
                     'label'     => 'Plugins',
-                    'url'       => $current_url->add_query_param( 'type', 'plugin' )->url(),
+                    'url'       => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'plugin' )->url(),
                     'icon'      => 'ti ti-plug',
                 ),
                 
                 array(
                     'title'     => 'Theme Repository',
                     'label'     => 'Themes',
-                    'url'       => $current_url->add_query_param( 'type', 'theme' )->url(),
+                    'url'       => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'theme' )->url(),
                     'icon'      => 'ti ti-palette',
                 ),
                 
                 array(
                     'title'     => 'Software Repository',
                     'label'     => 'Software',
-                    'url'       => $current_url->add_query_param( 'type', 'software' )->url(),
+                    'url'       => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'software' )->url(),
                     'icon'      => 'ti ti-device-desktop-code',
                 ),
             )

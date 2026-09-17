@@ -132,6 +132,7 @@ class CacheCommand extends AbstractCommand {
 
         $this->output->info( 'Cache Engine: ' . $cache->get_name() );
         $this->output->info( 'Connection status: ' . ( $cache->is_active() ? 'Connected' : 'Not Connected' ) );
+        $this->output->info( 'Cache TTL: ' . $cache->default_ttl() );
         $this->output->newline();
 
         $this->output->table(

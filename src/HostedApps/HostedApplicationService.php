@@ -419,7 +419,8 @@ class HostedApplicationService extends DataStore {
             if ( 1 === count( $sql_parts ) ) {
                 $count_sql  = static::query()
                     ->select( 'COUNT(*) as total_records' )
-                    ->from( $sql_parts[0]->get_table_name() );
+                    ->from( $sql_parts[0]->get_table_name() )
+                    ->where( 'status', '=', $status );
         
                 $total = $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
                 $count  = (int) $total;
