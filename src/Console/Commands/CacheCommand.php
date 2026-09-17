@@ -174,9 +174,13 @@ class CacheCommand extends AbstractCommand {
         if ( 'sqlitecache' === $this->cache->get_id() ) {
             $cache  = $this->cache;
             /** @var \SmartLicenseServer\Cache\Adapters\SQLiteCacheAdapter $cache */
-            $cache->prune_expired() &&
+            $pruned  = $cache->prune_expired();
 
-            $this->output->info( 'Exipired cache entries cleared' );
+            if ( $pruned > 0 )  {
+                $this->output->info(
+                    sprintf( 'Flushed %d expired entr%s.', $pruned, $pruned !== 1 ? 'ies' : 'y' )
+                );                
+            }
         }
 
         $this->output->success( sprintf( 'Cache cleared successfully. Completed in %ss.', $stopwatch->elapsed() ) );

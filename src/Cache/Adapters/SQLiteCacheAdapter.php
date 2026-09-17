@@ -125,6 +125,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
      * @param string $table         The main cache table name.
      * @param int $storage_limit    Maximum storage memory (MB).
      * @param int $cache_memory     Page cache memory.
+     * @param int $dir_perm         The directory permission bit.
      */
     public function __construct(
         protected string $base_dir,
@@ -133,6 +134,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
         protected string $table         = 'main_cache',
         protected int $storage_limit    = 512,
         protected int $cache_memory     = 4,
+        protected int $dir_perm         = 0775
     ) {}
 
     /*
@@ -794,14 +796,14 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             $dir    = rtrim( dirname( $file ), '/' ) . '/';
 
             if ( ! is_dir( $dir ) ) {
-                mkdir( $dir, 0775, true );
+                mkdir( $dir, $this->dir_perm, true );
             }
 
             $this->db = new SQLite3(
                 $file,
                 SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE
             );
-
+            $this->db->enableExceptions( true );
             $this->db->busyTimeout( 5000 );
             $this->db->exec( 'PRAGMA temp_store   = MEMORY;' );
 
@@ -882,5 +884,9 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
 
     private function db_file() : string {
         return rtrim( $this->base_dir, '/' ) . '/' . $this->db_filename;
+    }
+
+    function __destruct() {
+        $this->db->close();
     }
 }

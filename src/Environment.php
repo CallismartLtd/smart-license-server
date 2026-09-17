@@ -156,7 +156,8 @@ abstract class Environment {
                     stats_table: 'smliser_stats_table',
                     table: 'smliser_main_cache',
                     storage_limit: 512,
-                    cache_memory: 4
+                    cache_memory: 4,
+                    dir_perm: \SMLISER_DIR_PERMISSION
                 )
         );
     }

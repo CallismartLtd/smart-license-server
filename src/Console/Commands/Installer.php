@@ -65,7 +65,7 @@ class Installer extends AbstractCommand {
         $commands = [
             'run'           => 'Executes full automated installation wizard.',
             'check'         => 'Performs environment sanity checks.',
-            'check:db'      => 'Tests a database configuration without installing.',
+            'test:db'      => 'Tests a database configuration without installing.',
             'make:dir'      => 'Creates all required directories.',
             'make:dotenv'   => 'Create a .env file if missing.',
             'make:tables'   => 'Creates all registered database tables.',
@@ -107,7 +107,7 @@ class Installer extends AbstractCommand {
             '--htaccess-example-path    The absolute path to the .htaccess.example file. The file will be searched for in',
             '                           the parent directory and the runtime directory.',
             '',
-            '   Testing a database connection (check:db): ',
+            '   Testing a database connection (test:db): ',
             '--db-driver, -d        (required) Database driver: mysql, pgsql, or sqlite.',
             '--dbname, -n           (required) Target database or schema name.',
             '--host, -h             Server hostname or IP. Used by mysql/pgsql; not applicable to sqlite.',
@@ -133,7 +133,7 @@ class Installer extends AbstractCommand {
             'run'           => [$this, 'run_wizard'],
             'help'          => [$this, 'handle_help'],
             'check'         => [$this, 'handle_checks'],
-            'check:db'      => [$this, 'check_database'],
+            'test:db'       => [$this, 'test_db'],
             'make:dir'      => [$this, 'make_directories'],
             'make:dotenv'   => [$this, 'make_dot_env'],
             'make:tables'   => [$this, 'make_db_tables'],
@@ -680,7 +680,7 @@ class Installer extends AbstractCommand {
      * @param CommandInput|null $input
      * @return int
      */
-    public function check_database( ?CommandInput $input = null ): int {
+    public function test_db( ?CommandInput $input = null ): int {
         $this->start_timer();
 
         if ( ! $input ) {

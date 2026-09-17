@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Console\Traits;
 
 use SmartLicenseServer\Console\CommandRegistry;
 use SmartLicenseServer\Console\ConsoleOutput;
+use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Security\Context\Guard;
 
@@ -77,19 +78,19 @@ trait CommandHelpTrait {
      * Print per-command help — synopsis, description, and detailed
      * help body.
      *
-     * @param class-string $class
+     * @param CommandInterface $command
      * @return void
      */
-    protected function print_command_help( string $class ): void {
+    protected function print_command_help( CommandInterface $command ): void {
         $this->output->newline();
-        $this->output->writeln( 'Command: ' . $class::name() );
+        $this->output->writeln( 'Command: ' . $command->name() );
         $this->output->newline();
 
         $this->output->writeln( 'Description:' );
-        $this->output->writeln( '  ' . $class::description() );
+        $this->output->writeln( '  ' . $command->description() );
         $this->output->newline();
 
-        $synopsis = $class::synopsis();
+        $synopsis = $command->synopsis();
 
         if ( '' !== $synopsis ) {
             $this->output->writeln( 'Usage:' );
@@ -97,7 +98,7 @@ trait CommandHelpTrait {
             $this->output->newline();
         }
 
-        $help = $class::help();
+        $help = $command->help();
 
         if ( '' !== $help ) {
             $this->output->writeln( $help );

@@ -107,8 +107,9 @@ abstract class AbstractCommandRouter {
         }
 
         if ( in_array( $command, [ 'help', '-h', '--help' ], true ) ) {
-            if ( null !== $subcommand && $this->registry->has( $subcommand ) ) {
-                $this->print_command_help( $this->registry->get( $subcommand ) );
+            if ( null !== $subcommand && $subcommand = $this->registry->get_command( $subcommand ) ) {
+                // @TODO: implement proper subcommand help API.
+                $this->print_command_help( $subcommand );
             } else {
                 $this->print_global_help();
             }
@@ -129,14 +130,16 @@ abstract class AbstractCommandRouter {
                 $command_input->get_options()
             )
         );
+        
+        $command_instance = $this->registry->get_command( $command );
 
         if ( $has_command_help ) {
-            $this->print_command_help( $class );
+            $this->print_command_help( $command_instance );
 
             return 0;
         }
 
-        $command_instance = $this->registry->get_command( $command );
+        
 
         if ( null !== $subcommand ) {
             $subcommands = $command_instance->get_subcommands();
