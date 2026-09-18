@@ -9,31 +9,18 @@
  */
 
 use SmartLicenseServer\RuntimeConfig;
-use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 
 // Register the autoloader if it hasn't been registered yet.
 require_once 'Autoloader.php';
 
-$smliser_runtime   = RuntimeConfig::defaults();
+// Merge the runtime configuration with the default configuration values.
+$smliser_runtime   = RuntimeConfig::defaults()->merge( $config ?? [] );
 
-try {
-    $smliser_runtime->merge( $config ?? [] );
-} catch ( \Throwable $e ) {
-    GlobalErrorHandler::instance()
-        ->abort( $e, 'Configuration Error.' );
-} finally {
-    unset( $config );
-    GlobalErrorHandler::reset();
-}
-
-GlobalErrorHandler::instance()->bootstrap([
-    'debug'             => $smliser_runtime->debug_mode,
-    'display_errors'    => $smliser_runtime->display_errors,
-    'log_errors'        => $smliser_runtime->log_errors,
-    'log_path'          => $smliser_runtime->error_log_path,
-    'error_reporting'   => $smliser_runtime->debug_mode ? E_COMPILE_ERROR : 0
-])->registerHandlers();
-
+// Define the global constants used in the application.
 require_once 'constants.php';
 
+// Destroy the default config variable to avoid global scope pollution.
+unset( $config );
+
+// Return the initialized runtime configuration.
 return $smliser_runtime;
