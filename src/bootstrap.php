@@ -11,6 +11,7 @@
 use SmartLicenseServer\RuntimeConfig;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 
+// Register the autoloader if it hasn't been registered yet.
 require_once 'Autoloader.php';
 
 $smliser_runtime   = RuntimeConfig::defaults();
@@ -21,7 +22,7 @@ try {
     GlobalErrorHandler::instance()
         ->abort( $e, 'Configuration Error.' );
 } finally {
-    // unset( $config );
+    unset( $config );
     GlobalErrorHandler::reset();
 }
 
