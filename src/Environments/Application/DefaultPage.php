@@ -18,7 +18,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\RESTAPI\RouteCatalog;
-
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Builds and renders the application's default HTML pages.
@@ -65,17 +65,10 @@ final class DefaultPage {
 	 */
 	private string $content;
 
-
-	/**
-	 * Class constructor.
-	 *
-	 * @param mixed $env_provider Optional environment provider override,
-	 *                            primarily for tests. Falls back to
-	 *                            `\smliser_envProvider()` when null.
-	 */
 	public function __construct(
 		private URLManager $urlmanager,
-		private RestAPIProvider $api_provider 
+		private RestAPIProvider $api_provider,
+		private Guard $guard
 	) {}
 
 	/**
@@ -650,25 +643,57 @@ final class DefaultPage {
 	 * @return string
 	 */
 	private function render_navigation(): string {
+		$navs	= [
+			[
+				'url'	=> $this->urlmanager->url( '/' ),
+				'text'	=> 'Home'
+			]
+
+		];
+
+		if ( $this->guard->has_principal() ) {
+			$navs[] = [
+				'url'	=> $this->urlmanager->client_dashboard_url(),
+				'text'	=> 'Client Area'
+			];
+
+			if ( $this->guard->principal()->is( 'system_admin' ) ) {
+				$navs[]	= [
+					'url'	=> $this->urlmanager->admin_url(),
+					'text'	=> 'Admin Area'
+				];
+			}
+
+			$navs[] = [
+				'url'	=> $this->urlmanager->logout_url(),
+				'text'	=> 'Logout'
+			];
+		} else {
+			$navs[] = [
+				'url'	=> $this->urlmanager->login_url(),
+				'text'	=> 'Login'
+			];
+		}
+
+		$navs[] = [
+			'url'	=> $this->urlmanager->url( 'documentation' ),
+			'text'	=> 'Documentation'
+		];
+
+		$links	= '';
+		foreach( $navs as $nav ) {
+			$links .= sprintf( '<a href="%s">%s</a>', $nav['url'], $nav['text'] );
+		}
+
 		return \sprintf(
 			'<nav>
 				<a class="brand" href="/">Smart License Server</a>
 
 				<div class="nav-links">
-					<a href="%s">Home</a>
-					<a href="%s">login</a>
-					<a href="%s">Client Area</a>
 					%s
-					<a href="%s">Documentation</a>
 				</div>
 			</nav>',
-			$this->urlmanager->url()->url(),
-			$this->urlmanager->login_url()->url(),
-			$this->urlmanager->client_dashboard_url()->url(),
-			\smliser_debug_enabled() ? sprintf(
-				'<a href="%s">Admin Area</a>', $this->urlmanager->admin_url()->url() 
-			) : '',
-			\url( 'documentation' )->url(),
+			$links
 		);
 	}
 
