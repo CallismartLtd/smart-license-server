@@ -75,14 +75,14 @@ class Request {
     private array $params = [];
 
     /**
-     * Dedicated storage for query parameters ($_GET).
+     * Dedicated storage for query parameters $_GET.
      * 
      * @var array
      */
     protected array $query = [];
 
     /**
-     * Dedicated storage for POST form parameters ($_POST).
+     * Dedicated storage for POST form parameters $_POST.
      * 
      * @var array
      */
@@ -96,14 +96,14 @@ class Request {
     protected array $json = [];
 
     /**
-     * Dedicated storage for cookie parameters ($_COOKIE).
+     * Dedicated storage for cookie parameters $_COOKIE.
      * 
      * @var array
      */
     protected array $cookies = [];
 
     /**
-     * Dedicated storage for server environment variables ($_SERVER).
+     * Dedicated storage for server environment variables $_SERVER.
      * 
      * @var array
      */
@@ -262,7 +262,7 @@ class Request {
     */
 
     /**
-     * Access query ($_GET) parameters.
+     * Access query $_GET parameters.
      *
      * @param string|null $key     Parameter key or null to get all query parameters.
      * @param mixed       $default Default value if parameter key is missing.

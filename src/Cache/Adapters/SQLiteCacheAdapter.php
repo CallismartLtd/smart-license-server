@@ -812,7 +812,7 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             $cache_pages = -1 * ( $this->cache_memory * 1024 ) / $page_size;
             $this->db->exec( "PRAGMA cache_size = {$cache_pages};" );
 
-            $max_pages = ($this->storage_limit * 1024 * 1024) / $page_size;
+            $max_pages = ( $this->storage_limit * 1024 * 1024 ) / $page_size;
             $this->db->exec( "PRAGMA max_page_count = " . (int) $max_pages . ";" );
 
             $this->db->exec( 'PRAGMA mmap_size    = 268435456;' );

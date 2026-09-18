@@ -83,7 +83,7 @@ class CacheRequestController {
             ]);
 
         } catch ( RequestException $e ) {
-            return Response::error($e)
+            return Response::error( $e )
                 ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
         }
     }

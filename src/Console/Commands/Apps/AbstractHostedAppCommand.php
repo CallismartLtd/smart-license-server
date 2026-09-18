@@ -43,7 +43,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
         ScriptName $script_name
     ) {
         $this->file_system  = $file_system;
-        return parent::__construct($io, $output, $script_name);
+        return parent::__construct( $io, $output, $script_name );
     }
 
     /*

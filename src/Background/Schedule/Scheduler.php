@@ -2,10 +2,6 @@
 /**
  * Scheduler class file.
  *
- * Central recurring task manager for Smart License Server.
- * Environment-agnostic — the runner (WP cron, system cron, CLI)
- * simply calls run_due_tasks() and the scheduler handles the rest.
- *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Background\Schedule
  * @since   0.2.0
@@ -23,7 +19,7 @@ use SmartLicenseServer\Background\Jobs\Analytics\PruneLicenseActivityLogsJob;
 use SmartLicenseServer\Background\Queue\JobQueue;
 
 /**
- * Scheduler — manages and runs recurring scheduled tasks.
+ * Manages and runs recurring scheduled tasks.
  *
  * Tasks are registered in memory at first access (lazy loaded).
  * Only execution state (last_ran_at, next_run_at) is persisted
@@ -76,7 +72,7 @@ class Scheduler {
      * Returns the ScheduledTask so the fluent schedule methods
      * can be chained immediately:
      *
-     *   smliser_scheduler()->call( 'schedule_id', $fn )->daily_at( '02:00' );
+     *   $this->call( 'schedule_id', $fn )->daily_at( '02:00' );
      *
      * @param string $id The Schedule ID.
      * @param callable $callable Any PHP callable.
@@ -95,7 +91,7 @@ class Scheduler {
      * recurring schedule. The job is pushed onto the queue each time
      * the task fires — the worker processes it asynchronously.
      *
-     *   smliser_scheduler()
+     *   $this
      *       ->dispatch( PruneAnalyticsLogsJob::class, ['retention_days' => 90] )
      *       ->weekly_on( 'sunday', '03:00' );
      *
@@ -104,11 +100,7 @@ class Scheduler {
      * @param string               $queue     Queue to dispatch onto. Default: 'low'.
      * @return ScheduledTask Fluent — chain schedule methods on the returned object.
      */
-    public function dispatch(
-        string $job_class,
-        array  $payload = [],
-        string $queue   = JobDTO::QUEUE_LOW
-    ): ScheduledTask {
+    public function dispatch( string $job_class, array $payload = [], string $queue = JobDTO::QUEUE_LOW ): ScheduledTask {
         $task = new ScheduledTask(
             $job_class,
             function() use ( $job_class, $payload, $queue ) {

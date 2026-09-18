@@ -344,7 +344,7 @@ class PluginRepository extends Repository {
         
         // Step 1: Start from Description block
         if ( preg_match('/==\s*Description\s*==\s*(.+)/si', $readme_contents, $matches) ) {
-            $description = trim($matches[1]);
+            $description = trim( $matches[1] );
 
             // Step 2: Remove official sections that might appear afterwards.
             $official_sections = ['Installation', 'Changelog', 'Frequently Asked Questions', 'Screenshots', 'Upgrade Notice'];

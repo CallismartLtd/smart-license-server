@@ -30,7 +30,7 @@ class ScheduleCommand extends AbstractCommand {
         OutputInterface $output,
         ScriptName $script_name
     ) {
-        return parent::__construct($io, $output, $script_name);
+        return parent::__construct( $io, $output, $script_name );
     }
 
     public static function name(): string {

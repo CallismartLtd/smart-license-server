@@ -421,7 +421,7 @@ trait SanitizeAwareTrait {
         
         $items = explode( ',', $value );
         $items = array_map( 'trim', $items );
-        $items = array_filter( $items, fn($item) => $item !== '' );
+        $items = array_filter( $items, fn( $item ) => $item !== '' );
         
         return array_map( [ static::class, 'sanitize_text' ], $items );
     }

@@ -275,7 +275,7 @@ class RepositoryAnalytics extends DataStore {
                 $aggregated[ $day ] = [];
             }
 
-            $aggregated[ $day ][ $event_type ] = ($aggregated[ $day ][ $event_type ] ?? 0) + 1;
+            $aggregated[ $day ][ $event_type ] = ( $aggregated[ $day ][ $event_type ] ?? 0 ) + 1;
         }
 
         ksort( $aggregated );
@@ -293,24 +293,24 @@ class RepositoryAnalytics extends DataStore {
         $per_day = self::get_license_activity_per_day( $days * 2 ); // include previous period
         $all_days = array_keys( $per_day );
 
-        $current_period = array_slice($all_days, -$days, $days);
-        $previous_period = array_slice($all_days, -2*$days, $days);
+        $current_period     = array_slice( $all_days, -$days, $days );
+        $previous_period    = array_slice( $all_days, -2*$days, $days );
 
         $current_total = 0;
-        foreach ($current_period as $day) {
+        foreach ( $current_period as $day ) {
             $current_total += $per_day[$day][$event_type] ?? 0;
         }
 
         $previous_total = 0;
-        foreach ($previous_period as $day) {
+        foreach ( $previous_period as $day ) {
             $previous_total += $per_day[$day][$event_type] ?? 0;
         }
 
-        if ($previous_total === 0) {
+        if ( $previous_total === 0 ) {
             return $current_total === 0 ? 0.0 : 100.0;
         }
 
-        return (($current_total - $previous_total) / $previous_total) * 100;
+        return ( ( $current_total - $previous_total ) / $previous_total ) * 100;
     }
 
     /**
@@ -324,7 +324,7 @@ class RepositoryAnalytics extends DataStore {
         $per_day = self::get_license_activity_per_day( $days );
         $total = 0;
 
-        foreach ($per_day as $day => $events) {
+        foreach ( $per_day as $day => $events ) {
             $total += $events[$event_type] ?? 0;
         }
 

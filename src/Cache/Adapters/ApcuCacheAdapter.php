@@ -124,7 +124,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
      * the update is aborted.
      *
      * @param string                 $key      Unique cache key.
-     * @param callable(mixed): mixed $callback Receives ($currentValue), returns updated value.
+     * @param callable(mixed $currentValue ): mixed $callback Receives $currentValue, returns updated value.
      * @param int                    $ttl      Time-to-live in seconds for updated entry.
      * @param mixed                  $default  Fallback value passed to callback if key does not exist.
      * @return mixed Returns the updated value on success, or false on failure.
