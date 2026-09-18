@@ -1260,6 +1260,7 @@ input.smliser_toggle-switch-input {
     backdrop-filter: blur(10px);
     color: var(--dashboard-accent);
     border: 1px solid var(--dashboard-accent);
+    padding: 4px 8px;
 }
 
 .smliser-btn-glass:hover {

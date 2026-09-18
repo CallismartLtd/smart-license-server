@@ -14,13 +14,8 @@ use SmartLicenseServer\Background\Queue\JobDTO;
 
 /**
  * Contract for all job queue storage backends.
- *
- * The storage adapter is solely responsible for the persistence
- * layer — writing, reading, and updating JobDTO records. It knows
- * nothing about how jobs are executed; that is the worker's concern.
- *
- * Every method accepts and/or returns JobDTO instances so the rest
- * of the system never needs to know which backend is in use.
+ * 
+ * Provides CRUD API for background job operations.
  */
 interface JobStorageAdapterInterface {
 

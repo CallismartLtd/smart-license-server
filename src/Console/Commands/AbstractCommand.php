@@ -18,15 +18,11 @@ use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Utils\Stopwatch;
 
 /**
- * Base class for leaf commands — the constructor shape
- * AbstractCommandRouter::route_command() instantiates every command
- * with (`new $class( $this->io, $this->output )`), plus defaults for
- * definition()/get_subcommands() so a simple command with neither
- * doesn't have to declare empty-array boilerplate.
+ * Base class for leaf commands.
  *
  * A command with subcommands overrides get_subcommands() and can
  * leave run() unimplemented in the sense of it never being called —
- * route_command() only calls run() when no subcommand was supplied.
+ * caller only calls run() when no subcommand was supplied.
  * Whether that should instead print available subcommands rather than
  * silently doing nothing is a per-command decision; this base class
  * doesn't impose one.

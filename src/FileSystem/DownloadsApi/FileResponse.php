@@ -106,7 +106,7 @@ class FileResponse extends Response {
         } catch( \Throwable ) {}
         
         if ( ! isset( $this->repo_class ) ) {
-            $this->repo_class = smliser_filesystem();
+            $this->repo_class = FileSystem::instance();
         } 
 
         if ( $this->has_errors() ) {

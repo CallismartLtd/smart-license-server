@@ -318,12 +318,12 @@ class URLManager implements URLManagerInterface {
      * Get app downloads url for admins.
      * 
      * @param string $app_type
-     * @param string $app_slug
+     * @param int|string $app_id
      * @return URL
      */
-    public function admin_app_downloads_url( string $app_type, string $app_slug ) : URL {
+    public function admin_app_downloads_url( string $app_type, int|string $app_id ) : URL {
         return $this->admin_downloads_url( $app_type )
-            ->append_path( "{$app_slug}.zip" );
+            ->append_path( (string) $app_id );
     }
 
     /**

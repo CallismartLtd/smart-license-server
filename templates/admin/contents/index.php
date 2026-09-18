@@ -276,7 +276,7 @@ function get_metric_icon( mixed $key ) {
 /**
  * Get icon for app type
  */
-function smliser_get_type_icon( $type ) {
+function smliser_get_type_icon( ?string $type ) {
     $icons = [
         'plugin'    => 'ti-plug',
         'theme'     => 'ti-palette',
@@ -288,7 +288,7 @@ function smliser_get_type_icon( $type ) {
 /**
  * Get icon for event type
  */
-function smliser_get_event_icon( $event_type ) {
+function smliser_get_event_icon( ?string $event_type ) {
     $icons = [
         'activation'        => 'ti-check',
         'deactivation'      => 'ti-x',
@@ -302,7 +302,7 @@ function smliser_get_event_icon( $event_type ) {
 /**
  * Format metric label for display
  */
-function smliser_format_metric_label( $key ) {
+function smliser_format_metric_label( string $key ) {
     // Skip growth keys
     if ( strpos( $key, '_growth' ) !== false ) {
         return '';

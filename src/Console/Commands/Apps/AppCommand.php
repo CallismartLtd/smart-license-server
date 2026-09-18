@@ -19,8 +19,12 @@ namespace SmartLicenseServer\Console\Commands\Apps;
 
 use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Commands\AbstractCommand;
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
 use SmartLicenseServer\Console\Traits\CLIFilesystemAwareTrait;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Utils\Stopwatch;
@@ -30,6 +34,16 @@ use SmartLicenseServer\Utils\Stopwatch;
  */
 class AppCommand extends AbstractCommand {
     use CLIUtilsTrait, CLIFilesystemAwareTrait;
+
+    public function __construct(
+        FileSystem $file_system,
+        InputInterface $io,
+        OutputInterface $output,
+        ScriptName $script_name
+    ) {
+        $this->file_system = $file_system;
+        return parent::__construct( $io, $output, $script_name );
+    }
 
     /*
     |--------------------------------------------

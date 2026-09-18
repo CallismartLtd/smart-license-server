@@ -42,9 +42,10 @@ class PluginRepository extends Repository {
      */
     public function __construct(
         protected MDParser $mdparser,
-        protected URLManager $urlmanager
+        protected URLManager $urlmanager,
+        FileSystem $file_system
     ) {
-        parent::__construct( 'plugins' );
+        parent::__construct( $file_system, 'plugins' );
     }
     
     /**

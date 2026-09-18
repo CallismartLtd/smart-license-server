@@ -62,7 +62,7 @@ final class UploadedFileCollection implements IteratorAggregate, Countable {
 	 *
 	 * @param string      $key The field name, i.e. $_FILES[ $key ].
 	 * @param ?FileSystem $fs  Filesystem abstraction passed to every UploadedFile
-	 *                          created. Defaults to smliser_filesystem() per file.
+	 *                          created.
 	 * @return self Empty collection (count() === 0) if $key is absent from
 	 *               $_FILES or its value isn't an array.
 	 */

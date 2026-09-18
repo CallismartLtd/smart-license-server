@@ -16,6 +16,8 @@ use SmartLicenseServer\Templates\TemplateLocator;
 
 /**
  * The admin dashboard page handler.
+ * 
+ * All chart data prepared are consumed by chart JS.
  */
 class DashboardPage implements AdminPageInterface {
 
@@ -125,7 +127,7 @@ class DashboardPage implements AdminPageInterface {
 
         // Maintenance Timeline Bar Chart
         $maintenance_labels = [];
-        $maintenance_data = [];
+        $maintenance_data   = [];
         foreach ( $maintained as $type => $months_data ) {
             $type_data = [];
             foreach ( $months_data as $month => $info ) {

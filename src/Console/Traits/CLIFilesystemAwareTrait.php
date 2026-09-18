@@ -14,6 +14,7 @@ use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\FileSystemException;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 
 /**
@@ -21,6 +22,7 @@ use SmartLicenseServer\FileSystem\FileSystemHelper;
  */
 trait CLIFilesystemAwareTrait {
     protected OutputInterface $output;
+    protected FileSystem $file_system;
     /**
      * Resolve a local file path and verify it exists and is readable.
      *
@@ -34,13 +36,12 @@ trait CLIFilesystemAwareTrait {
      * @return string Temp path, or null on failure.
      */
     private function resolve_local_file( string $path, bool $auto_clean = true ): string {
-        $fs = smliser_filesystem();
 
-        if ( ! $fs->is_file( $path ) ) {
+        if ( ! $this->file_system->is_file( $path ) ) {
             throw new FileSystemException( sprintf( 'File not found: %s', $path ) );
         }
 
-        if ( ! $fs->is_readable( $path ) ) {
+        if ( ! $this->file_system->is_readable( $path ) ) {
             throw new FileSystemException( sprintf( 'File is not readable: %s', $path ) );
         }
 
@@ -49,7 +50,7 @@ trait CLIFilesystemAwareTrait {
             SMLISER_UPLOAD_TMP_PREFIX . basename( $path )
         );
 
-        if ( ! $fs->copy( $path, $destination ) ) {
+        if ( ! $this->file_system->copy( $path, $destination ) ) {
             throw new FileSystemException( sprintf( 'Failed to copy file to tmp directory: %s', $path ) );
         }
 
@@ -109,9 +110,8 @@ trait CLIFilesystemAwareTrait {
      * @return Request|null
      */
     private function inject_uploaded_file( Request $request, string $tmp_path, string $key ): ?Request {
-        $fs = smliser_filesystem();
 
-        if ( ! $fs->exists( $tmp_path ) ) {
+        if ( ! $this->file_system->exists( $tmp_path ) ) {
             throw new FileSystemException( sprintf( 'Temp file missing: %s', $tmp_path ) );
         }
 
@@ -120,7 +120,7 @@ trait CLIFilesystemAwareTrait {
             'type'     => FileSystemHelper::get_mime_type( $tmp_path ),
             'tmp_name' => $tmp_path,
             'error'    => UPLOAD_ERR_OK,
-            'size'     => $fs->filesize( $tmp_path ),
+            'size'     => $this->file_system->filesize( $tmp_path ),
         ];
 
         // Populate $_FILES so Request::parse_uploaded_files() picks it up.
@@ -141,11 +141,10 @@ trait CLIFilesystemAwareTrait {
      * @return Request|null
      */
     private function inject_uploaded_files( Request $request, array $tmp_paths, string $key ): ?Request {
-        $fs = smliser_filesystem();
 
         $file_entries = [];
         foreach ( $tmp_paths as $index => $tmp_path ) {
-            if ( ! $fs->exists( $tmp_path ) ) {
+            if ( ! $this->file_system->exists( $tmp_path ) ) {
                 throw new FileSystemException( sprintf( 'Temp file missing: %s', $tmp_path ) );
             }
 
@@ -154,7 +153,7 @@ trait CLIFilesystemAwareTrait {
                 'type'     => FileSystemHelper::get_mime_type( $tmp_path ),
                 'tmp_name' => $tmp_path,
                 'error'    => UPLOAD_ERR_OK,
-                'size'     => $fs->filesize( $tmp_path ),
+                'size'     => $this->file_system->filesize( $tmp_path ),
             ];
         }
 

@@ -170,10 +170,10 @@ class FileRequestController {
 
     /**
      * Process and serve admin package download.
-     * @param FileRequest $request The file request object.
+     * @param FileRequest|Request $request The file request object.
      * @return FileResponse
      */
-    public function get_admin_application_zip_file( FileRequest $request ): FileResponse {
+    public function get_admin_application_zip_file( FileRequest|Request $request ): FileResponse {
         try {
             static::is_system_admin();
 

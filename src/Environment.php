@@ -177,12 +177,12 @@ abstract class Environment {
 
         $this->container->singleton(
             DatabaseAdapterInterface::class,
-            function ( Container $container ) : DatabaseAdapterInterface {
-                $config   = $container->get( DBConfigDTO::class );
-                $registry = $container->get( DatabaseAdapterRegistry::class );
+            function ( Container $c ) : DatabaseAdapterInterface {
+                $config   = $c->get( DBConfigDTO::class );
+                $registry = $c->get( DatabaseAdapterRegistry::class );
                 $adapter  = $registry->select( $config->driver );
 
-                return new $adapter( $config );
+                return $c->get( $adapter );
             }
         );
 
@@ -250,9 +250,10 @@ abstract class Environment {
 
         $this->container->singleton(
             QueueWorker::class,
-            fn ( Container $container ) : QueueWorker =>
+            fn ( Container $c ) : QueueWorker =>
                 new QueueWorker(
-                    $container->get( JobQueue::class ),
+                    queue: $c->get( JobQueue::class ),
+                    container: $c,
                     memory_limit_mb: safe_worker_memory_limit_mb()
                 )
         );

@@ -1276,9 +1276,9 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
     /**
      * Set Download url.
      * 
-     * @param string|URL $url The download url.
+     * @param string|URL|null $url The download url.
      */
-    public function set_download_url( string|URL $url = '' ) : static {
+    public function set_download_url( string|URL|null $url = '' ) : static {
         $url    = ( $url instanceof URL ) ? $url : URL::from( $url );
         
         if ( $url->is_valid() ) {
@@ -1296,16 +1296,9 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
      * Get the download URL for the application.
      */
     public function get_download_url() : URL {
-        return $this->download_link ? $this->download_link : URL::from( (string) $this->download_link );
-    }
-
-    /**
-     * Get the URL of an app artifact.
-     * 
-     * @param string $filename
-     */
-    public function get_artifact_url( string $filename ) : URL {
-        return static::$urlmanager->app_artifact_download_url( $this->get_type(), $this->get_slug(), $filename );
+        return $this->download_link ?? static::$urlmanager->app_downloads_url(
+                $this->get_type(), $this->get_slug()
+        );
     }
 
     /**

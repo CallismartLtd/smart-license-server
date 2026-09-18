@@ -13,11 +13,15 @@ namespace SmartLicenseServer\Console\Commands\Apps;
 use Override;
 use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Commands\AbstractCommand;
+use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\Console\Contracts\OutputInterface;
+use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Console\Traits\CLIFilesystemAwareTrait;
 use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
@@ -30,6 +34,17 @@ use SmartLicenseServer\Utils\Stopwatch;
  */
 abstract class AbstractHostedAppCommand extends AbstractCommand {
     use CLIFilesystemAwareTrait, CLIUtilsTrait;
+
+    public function __construct(
+        protected HostingController $controller, 
+        FileSystem $file_system,
+        InputInterface $io,
+        OutputInterface $output,
+        ScriptName $script_name
+    ) {
+        $this->file_system  = $file_system;
+        return parent::__construct($io, $output, $script_name);
+    }
 
     /*
     |-------------------
@@ -190,7 +205,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
             return 1;
         }
         
-        $response = HostingController::save_app( $request );
+        $response = $this->controller->save_app( $request );
 
         if ( $response->ok() ) {
 
@@ -238,10 +253,10 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
             return 1;
         }
 
-        $response = HostingController::save_app( $request );
+        $response = $this->controller->save_app( $request );
 
         if ( $response->ok() ) {
-            $slug = $response->get_response_data()->get( 'smliser_resource' )?->get_slug() ?? static::get_type();
+            $slug = $response->get_request()->get( 'smliser_resource' )?->get_slug() ?? static::get_type();
 
             $this->output->success(
                 sprintf( 
@@ -402,7 +417,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
             'app_status' => $status,
         ], method: 'POST' );
 
-        $response = HostingController::change_app_status( $request );
+        $response = $this->controller->change_app_status( $request );
 
         if ( $response->ok() ) {
             $this->output->success(
@@ -442,7 +457,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
         $stopwatch = new Stopwatch();
         $stopwatch->start();
 
-        $response   = HostingController::app_asset_upload( $request );
+        $response   = $this->controller->app_asset_upload( $request );
 
         if ( $response->ok() ) {
             // Get the results of the upload.

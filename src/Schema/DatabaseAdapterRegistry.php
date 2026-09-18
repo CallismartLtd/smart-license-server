@@ -227,10 +227,7 @@ class DatabaseAdapterRegistry extends AbstractRegistry {
      * @param bool $instantiate Whether to instantiate the adapters.
      * @return array<string, class-string<DatabaseAdapterInterface>|DatabaseAdapterInterface>
      */
-    public function for_engine(
-        string $engine,
-        bool $instantiate = false
-    ) : array {
+    public function for_engine( string $engine, bool $instantiate = false ) : array {
         $this->ensure_core();
 
         $adapters = $this->engines[ $engine ] ?? [];
@@ -262,10 +259,7 @@ class DatabaseAdapterRegistry extends AbstractRegistry {
      *                           the engine, or the configured default is
      *                           invalid.
      */
-    public function select(
-        string $engine,
-        ?string $adapter_id = null
-    ) : string {
+    public function select( string $engine, ?string $adapter_id = null, ) : string {
         $this->ensure_core();
 
         $adapters = $this->engines[ $engine ] ?? [];
@@ -321,16 +315,12 @@ class DatabaseAdapterRegistry extends AbstractRegistry {
      * Get the default adapter for a database engine.
      *
      * @param string $engine Database engine identifier.
-     * @param bool $instantiate Whether to instantiate the adapter.
-     * @return class-string<DatabaseAdapterInterface>|DatabaseAdapterInterface|null
+     * @return class-string<DatabaseAdapterInterface>|null
      *
      * @throws DatabaseException If a configured default adapter is no longer
      *                           registered for the specified engine.
      */
-    public function get_default(
-        string $engine,
-        bool $instantiate = false
-    ) {
+    public function get_default( string $engine ) : ?string {
         $this->ensure_core();
 
         $adapter_id = $this->defaults[ $engine ] ?? null;
@@ -352,7 +342,7 @@ class DatabaseAdapterRegistry extends AbstractRegistry {
             );
         }
 
-        return $instantiate ? $this->container->get( $class_string ) : $class_string;
+        return $class_string;
     }
 
     /**
@@ -367,10 +357,7 @@ class DatabaseAdapterRegistry extends AbstractRegistry {
      * @throws DatabaseException If the adapter is not registered for the
      *                           specified engine.
      */
-    public function set_default(
-        string $engine,
-        string $adapter_id
-    ) : static {
+    public function set_default( string $engine, string $adapter_id ) : static {
         $this->ensure_core();
 
         if ( ! isset( $this->engines[ $engine ][ $adapter_id ] ) ) {
@@ -396,10 +383,7 @@ class DatabaseAdapterRegistry extends AbstractRegistry {
      * @param bool $instantiate Whether to instantiate the adapters.
      * @return array<int|string, class-string<DatabaseAdapterInterface>|DatabaseAdapterInterface>
      */
-    public function all(
-        bool $assoc = true,
-        bool $instantiate = false
-    ) : array {
+    public function all( bool $assoc = true, bool $instantiate = false ) : array {
         return parent::all( $assoc, $instantiate );
     }
 

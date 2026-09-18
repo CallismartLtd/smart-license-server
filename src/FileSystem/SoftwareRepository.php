@@ -41,9 +41,10 @@ class SoftwareRepository extends Repository {
      */
     public function __construct(
         protected MDParser $mdparser,
-        protected URLManager $urlmanager
+        protected URLManager $urlmanager,
+        FileSystem $file_system
     ) {
-        parent::__construct( 'software' );
+        parent::__construct( $file_system, 'software' );
     }
 
     /**

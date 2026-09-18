@@ -59,9 +59,11 @@ final class Container
     private array $aliases = [];
 
     /**
-     * Services currently being resolved.
+     * Services currently being resolved, in resolution order.
      *
-     * Used to detect circular dependencies.
+     * Used to detect circular dependencies and, since it is the live
+     * resolution path at any point in time, to trace a failure back to the
+     * top-level service that triggered it.
      *
      * @var array<string, true>
      */
@@ -194,7 +196,10 @@ final class Container
      *
      * @return T
      *
-     * @throws RuntimeException When the service cannot be resolved.
+     * @throws ContainerException When the service cannot be resolved. The
+     *         message includes the full resolution chain that led to the
+     *         failure (e.g. "resolving: A -> B -> C -> D"), not just the
+     *         class that ultimately failed.
      */
     public function get( string $id ): object {
         /** @var class-string<T> $id */
@@ -288,16 +293,19 @@ final class Container
             try {
                 return $definition instanceof Closure ? $definition( $this ) : $definition;
             } catch ( Throwable $exception ) {
-                throw new RuntimeException(
+                if ( $exception instanceof ContainerException ) {
+                    throw $exception;
+                }
+
+                throw $this->unresolvable(
                     "Failed to resolve service '{$id}': {$exception->getMessage()}",
-                    0,
                     $exception
                 );
             }
         } );
 
         if ( ! is_object( $service ) ) {
-            throw new RuntimeException(
+            throw $this->unresolvable(
                 "Service definition '{$id}' must resolve to an object; " .
                 get_debug_type( $service ) . ' returned.'
             );
@@ -317,7 +325,7 @@ final class Container
      */
     private function autowire( string $id ): object {
         if ( ! class_exists( $id ) ) {
-            throw new RuntimeException(
+            throw $this->unresolvable(
                 "Unable to resolve '{$id}': the class does not exist."
             );
         }
@@ -325,15 +333,14 @@ final class Container
         try {
             $reflection = new ReflectionClass( $id );
         } catch ( ReflectionException $exception ) {
-            throw new RuntimeException(
+            throw $this->unresolvable(
                 "Unable to reflect service '{$id}'.",
-                0,
                 $exception
             );
         }
 
         if ( ! $reflection->isInstantiable() ) {
-            throw new RuntimeException(
+            throw $this->unresolvable(
                 "Unable to autowire '{$id}': the class is not instantiable. " .
                 'Interfaces and abstract classes must be explicitly bound.'
             );
@@ -355,13 +362,12 @@ final class Container
 
                 return $reflection->newInstanceArgs( $arguments );
             } catch ( Throwable $exception ) {
-                if ( $exception instanceof RuntimeException ) {
+                if ( $exception instanceof ContainerException ) {
                     throw $exception;
                 }
 
-                throw new RuntimeException(
+                throw $this->unresolvable(
                     "Unable to autowire '{$id}': {$exception->getMessage()}",
-                    0,
                     $exception
                 );
             }
@@ -379,7 +385,7 @@ final class Container
         $type = $parameter->getType();
 
         if ( $type === null ) {
-            throw new RuntimeException(
+            throw $this->unresolvable(
                 $this->format_unresolvable_parameter_message(
                     $parameter,
                     'has no type declaration'
@@ -388,7 +394,7 @@ final class Container
         }
 
         if ( $type instanceof ReflectionUnionType ) {
-            throw new RuntimeException(
+            throw $this->unresolvable(
                 $this->format_unresolvable_parameter_message(
                     $parameter,
                     'uses a union type'
@@ -398,7 +404,7 @@ final class Container
         }
 
         if ( ! $type instanceof ReflectionNamedType ) {
-            throw new RuntimeException(
+            throw $this->unresolvable(
                 $this->format_unresolvable_parameter_message(
                     $parameter,
                     'uses an unsupported type declaration'
@@ -408,7 +414,7 @@ final class Container
 
         if ( $type->isBuiltin() ) {
             if ( $parameter->isDefaultValueAvailable() ) {
-                throw new RuntimeException(
+                throw $this->unresolvable(
                     $this->format_unresolvable_parameter_message(
                         $parameter,
                         'is a built-in type with a default value'
@@ -418,7 +424,7 @@ final class Container
                 );
             }
 
-            throw new RuntimeException(
+            throw $this->unresolvable(
                 $this->format_unresolvable_parameter_message(
                     $parameter,
                     'is a built-in type'
@@ -448,7 +454,7 @@ final class Container
                 return $parameter->getDefaultValue();
             }
 
-            throw new RuntimeException(
+            throw $this->unresolvable(
                 $this->format_unresolvable_parameter_message(
                     $parameter,
                     "cannot resolve dependency '{$dependency}'"
@@ -476,7 +482,7 @@ final class Container
                     array_keys( $visited )
                 );
 
-                throw new RuntimeException(
+                throw new ContainerException(
                     "Circular service alias detected: {$chain} -> {$id}."
                 );
             }
@@ -525,7 +531,7 @@ final class Container
             $chain = array_keys( $this->resolving );
             $chain[] = $id;
 
-            throw new RuntimeException(
+            throw new ContainerException(
                 'Circular dependency detected: ' .
                 implode( ' -> ', $chain ) . '.'
             );
@@ -543,6 +549,43 @@ final class Container
      */
     private function end_resolution( string $id ): void {
         unset( $this->resolving[$id] );
+    }
+
+    /**
+     * Build a resolution-failure exception carrying the live resolution
+     * chain.
+     *
+     * Must be called while the failing service (and its ancestry, if any) is
+     * still marked as "resolving" — i.e. from inside the try/catch that
+     * detected the failure, before guarded()'s finally block unwinds
+     * $this->resolving. That is what lets a failure four levels deep report
+     * "resolving: A -> B -> C -> D" instead of just "D".
+     *
+     * @param string $message
+     * @param Throwable|null $previous
+     *
+     * @return ContainerException
+     */
+    private function unresolvable( string $message, ?Throwable $previous = null ): ContainerException {
+        $chain = implode( ' -> ', array_keys( $this->resolving ) );
+
+        $full_message = $chain === ''
+            ? $message
+            : "{$message} (resolving: {$chain})";
+
+        /*
+         * A wrapped exception's own getFile()/getLine() always points here,
+         * inside Container.php — never the actual throw site, since that is
+         * where `new ContainerException(...)` runs. $previous is the raw
+         * exception we caught, so its file/line IS the real throw site. Bake
+         * it into the message so it survives however this gets logged,
+         * rather than relying on the logger to walk getPrevious() itself.
+         */
+        if ( $previous !== null ) {
+            $full_message .= " [thrown at {$previous->getFile()}:{$previous->getLine()}]";
+        }
+
+        return new ContainerException( $full_message, 0, $previous );
     }
 
     /**

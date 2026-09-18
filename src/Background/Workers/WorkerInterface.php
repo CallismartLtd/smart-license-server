@@ -17,23 +17,6 @@ namespace SmartLicenseServer\Background\Workers;
  * A worker is the runtime agent responsible for claiming jobs
  * from the queue, resolving their handlers, executing them, and
  * reporting the outcome back to the JobQueue manager.
- *
- * Workers are intentionally decoupled from storage — they never
- * touch the database directly. All persistence goes through
- * JobQueue, which in turn delegates to the storage adapter.
- *
- * ## Invocation
- *
- * A worker can be triggered by anything that can run PHP:
- *
- *   // Via cron (recommended for production):
- *   php artisan smliser:work
- *
- *   // Via a web hook (useful for shared hosting):
- *   GET /smliser-worker?token=secret
- *
- *   // Programmatically (e.g. after a request completes):
- *   smliser_queue_worker()->process_next_job();
  */
 interface WorkerInterface {
 
@@ -42,7 +25,7 @@ interface WorkerInterface {
      *
      * Implementations must:
      *   1. Call JobQueue::claim_next_job() to atomically claim a job.
-     *   2. Resolve the handler via JobDTO::resolve_handler().
+     *   2. Obtain the handler class via JobDTO::get_job_class().
      *   3. Call JobHandlerInterface::handle() with the job payload.
      *   4. Report the outcome via JobQueue::record_job_completed()
      *      or JobQueue::record_job_failed().

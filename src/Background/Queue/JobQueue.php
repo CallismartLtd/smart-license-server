@@ -2,43 +2,6 @@
 /**
  * Job queue manager class file.
  *
- * Central background job API for Smart License Server.
- * Wraps the active job storage adapter and exposes a clean,
- * self-documenting dispatch and management interface.
- *
- * Basic usage — dispatch a job:
- *
- *   smliser_job_queue()->dispatch(
- *       JobDTO::make(
- *           job_class : SendLicenseExpiryEmailJob::class,
- *           payload   : [
- *               'license_id' => 42,
- *               'recipient'  => 'user@example.com',
- *               'days_left'  => 7,
- *           ],
- *       )
- *   );
- *
- * Dispatch on a specific queue:
- *
- *   smliser_job_queue()->dispatch(
- *       JobDTO::make(
- *           job_class : GenerateMonthlyReportJob::class,
- *           payload   : ['month' => '2025-01'],
- *           queue     : JobDTO::QUEUE_LOW,
- *       )
- *   );
- *
- * Dispatch with a delay (seconds):
- *
- *   smliser_job_queue()->dispatch(
- *       JobDTO::make(
- *           job_class : SendWelcomeEmailJob::class,
- *           payload   : ['user_id' => 10],
- *           delay     : 300, // available in 5 minutes
- *       )
- *   );
- *
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Background\Queue
  * @since   0.2.0
@@ -53,23 +16,9 @@ use SmartLicenseServer\Background\Queue\Adapters\JobStorageAdapterInterface;
 /**
  * Job queue manager.
  *
- * Acts as a proxy to the active job storage adapter, providing a
- * clean public API for dispatching, inspecting, and maintaining
- * the background job queue.
- *
- * Follows the same singleton + adapter proxy pattern as Cache,
- * Database, and Mailer — one instance per runtime, constructed
- * with a concrete adapter in Environment::setGlobalQueueAdapter().
- *
- * @method JobDTO          dispatch( JobDTO $job )                                                  Enqueue a job for background processing.
- * @method JobDTO|null     claim_next_job( ?string $queue = null )                                  Claim and return the next available job.
- * @method JobDTO          record_job_failed( JobDTO $job, string $error_message )                  Mark a running job as failed and handle retry/archive logic.
- * @method JobDTO|null     find_job( int $id )                                                      Retrieve a job by its storage ID.
- * @method JobDTO[]        get_jobs_by_status( string $status, ?string $queue, int $limit, int $offset ) Retrieve jobs filtered by status.
- * @method int             count_jobs_by_status( string $status, ?string $queue = null )            Count jobs by status.
- * @method bool            remove_job( JobDTO $job )                                                Remove a job from the queue.
- * @method int             release_stale_running_jobs( int $timeout_seconds = 300 )                 Release jobs stuck in running state.                       Purge old completed jobs.
- * @method string          get_adapter_id()                                                         Return the active adapter identifier.
+ * The central background job API for Smart License Server.
+ * Uses the active job storage adapter and provides API to dispatch and
+ * manage queues.
  */
 class JobQueue {
 
@@ -110,12 +59,12 @@ class JobQueue {
     }
 
     /*
-    |--------------------------------------------
+    |-----------------------------------------------------------------
     | WORKER-FACING API
     |
     | These methods are called by workers, not application code.
     | Application code dispatches; workers claim, complete, fail.
-    |--------------------------------------------
+    |-----------------------------------------------------------------
     */
 
     /**

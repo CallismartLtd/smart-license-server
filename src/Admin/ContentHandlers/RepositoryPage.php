@@ -342,13 +342,8 @@ class RepositoryPage implements AdminPageInterface {
         $repo_class = HostedApplicationService::get_app_repository_class( $app->get_type() );
 
         $url                    = $this->urlmanager->admin_repo_url();
-        $download_actions       = [
-            'action' => 'smliser_admin_download',
-            'type'   => $app->get_type(),
-            'id'     => $app->get_id(),
-            'download_token' => ''
-        ];
-        $download_url           = url( '/', $download_actions );
+
+        $download_url           = $this->urlmanager->admin_app_downloads_url( $app->get_type(), $app->get_id() );
         $last_updated_string    = Format::time_ago( $app->get_updated_at()->getTimestamp() );
         $file_size              = FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) );
 

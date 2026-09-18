@@ -22,6 +22,7 @@ use SmartLicenseServer\Environment;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\Environments\Application\Boot\CLIBootstrapper;
 use SmartLicenseServer\Environments\Application\Boot\WebBootstrapper;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
 use SmartLicenseServer\SettingsAPI\Settings;
@@ -97,6 +98,9 @@ class ApplicationEnvironment extends Environment {
         DataStore::set_urlmanager(
             $this->container->get( URLManager::class )
         );
+
+        // Shadow boot hosted app registry.
+        $this->container->get( HostedAppsRegistry::class );
 
         /*
          * Boot environment bootstrappers (routing, assets, terminal inputs, etc.).

@@ -6,19 +6,9 @@
  * @package SmartLicenseServer\Utils
  */
 
-use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\FileSystem\FileSystemPermission;
 use SmartLicenseServer\Utils\Format;
-
-/**
- * Get the filesystem abstraction class
- * 
- * @return FileSystem
- */
-function smliser_filesystem() : FileSystem {
-    return FileSystem::instance();
-}
 
 /**
  * Derive file or directory permission from the given path.

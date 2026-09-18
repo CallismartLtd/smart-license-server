@@ -100,25 +100,24 @@ abstract class Repository {
      * Constructor.
      *
      * @param string $dir One of the allowed directories.
-     * @param bool $switch Whether to switch to the given dir immediately.
      */
-    public function __construct( $dir = '', $switch = true ) {
+    protected function __construct( FileSystem $fs, $dir ) {
+        $this->fs   = $fs;
         
         $this->base_dir = FileSystemHelper::sanitize_path( SMLISER_REPO_DIR );
 
-        if ( $switch ) {
-            $this->switch( $dir );
-        }
+        $this->set_curr_dir( $dir );
+        
     }
 
     /**
-     * Switch to another allowed subdirectory.
+     * Set current directory.
      *
      * @param string $dir
      * @return void
      * @throws FileSystemException When illegal subdirectory is passed.
      */
-    public function switch( $dir ) {
+    private function set_curr_dir( $dir ) {
         if ( ! in_array( $dir, $this->allowed_dirs, true ) ) {
             throw new FileSystemException( sprintf(
                 'Directory "%s" is not allowed. Allowed directories: %s',

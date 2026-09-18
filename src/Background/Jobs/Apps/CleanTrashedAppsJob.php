@@ -23,12 +23,17 @@ namespace SmartLicenseServer\Background\Jobs\Apps;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Core\Dates\TimestampValue;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 
 /**
  * Permanently deletes trashed apps past the retention threshold.
  */
 class CleanTrashedAppsJob implements JobHandlerInterface {
+
+    public function __construct(
+        protected FileSystem $file_system
+    ) {}
 
     public static function get_job_name(): string {
         return 'clean_trashed_apps';
@@ -54,7 +59,7 @@ class CleanTrashedAppsJob implements JobHandlerInterface {
         $deleted            = 0;
         $failed             = 0;
         $processed_batch    = 0;
-        $trashed_apps_data  = HostedApplicationService::list_trashed_apps();
+        $trashed_apps_data  = HostedApplicationService::list_trashed_apps( $this->file_system );
 
         foreach ( $trashed_apps_data as $data ) {
             if ( $processed_batch >= $batch_size ) {
@@ -78,7 +83,7 @@ class CleanTrashedAppsJob implements JobHandlerInterface {
                 // Even if the app record is deleted, we attempt to delete the files.
                 // This ensures that if the record deletion fails but files are removed,
                 // we don't leave orphaned files.
-                $files_deleted  = smliser_filesystem()->rmdir( $data['trash_path'], true );
+                $files_deleted  = $this->file_system->rmdir( $data['trash_path'], true );
 
                 if ( $app_deleted || $files_deleted ) {
                     $deleted++;

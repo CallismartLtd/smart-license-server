@@ -13,31 +13,6 @@ namespace SmartLicenseServer\Background\Queue;
 
 /**
  * Queue-aware trait.
- *
- * Provides convenient job dispatch methods to any class that needs
- * to push work onto the background queue without depending directly
- * on the JobQueue singleton.
- *
- * Mirrors the pattern of CacheAwareTrait — use it anywhere a class
- * needs to dispatch background work as a natural part of its flow.
- *
- * ## Usage
- *
- *   class LicenseService {
- *       use QueueAwareTrait;
- *
- *       public function issue( License $license ): void {
- *           // ... create license ...
- *
- *           $this->dispatch_job(
- *               SendLicenseIssuedEmailJob::class,
- *               [
- *                   'license_id' => $license->get_id(),
- *                   'recipient'  => $license->get_licensee_email(),
- *               ]
- *           );
- *       }
- *   }
  */
 trait QueueAwareTrait {
     protected JobQueue $job_queue;

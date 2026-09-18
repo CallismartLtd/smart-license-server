@@ -508,7 +508,7 @@ final class HttpDispatcher {
                 // app_type matches: theme|plugin|addon.
                 // app_slug.ext:zip matches: {app_slug}.zip -> captures 'app_slug' & 'app_slug_ext'.
                 $this->router->get(
-                    pattern: "{app_type:{$app_types}}/{app_slug.ext:zip}",
+                    pattern: "{app_type:{$app_types}}/{app_id:int}",
                     handler: [FileRequestController::class, 'get_admin_application_zip_file'],
                     middleware: [AppDownloadMiddleware::class]
                 );

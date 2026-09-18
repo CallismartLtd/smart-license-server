@@ -16,6 +16,7 @@ namespace SmartLicenseServer\Background\Queue\Adapters;
 
 use SmartLicenseServer\Background\Queue\JobDTO;
 use Callismart\DBPrism\Database;
+use Callismart\DBPrism\Query\SQLBuilder;
 use Callismart\DBPrism\Utils\CaseExpression;
 use DateTimeImmutable;
 use RuntimeException;
@@ -86,7 +87,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             $this->db->begin_transaction();
 
             // Build queue filter.
-            $queue_sql    = \smliserQueryBuilder( $this->db->get_driver() )
+            $queue_sql    = $this->query()
                 ->select( '*' )->from( $this->jobs_table )
                 ->where_in( 'status', [ JobDTO::STATUS_PENDING, JobDTO::STATUS_RETRYING] )
                 ->where( 'available_at', '<=', $now );
@@ -177,7 +178,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      * {@inheritdoc}
      */
     public function get_job_by_id( int $id ): ?JobDTO {
-        $sql    = \smliserQueryBuilder( $this->db->get_driver() )
+        $sql    = $this->query()
             ->select( '*' )->from( $this->jobs_table )
             ->where( 'id', '=', $id )
             ->limit( 1 );
@@ -190,7 +191,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      * {@inheritdoc}
      */
     public function get_jobs_by_status( string $status, ?string $queue = null, int $limit = 50, int $offset = 0 ): array {
-        $sql    = \smliserQueryBuilder( $this->db->get_driver() )
+        $sql    = $this->query()
             ->select( '*' )->from( $this->jobs_table )
             ->where( 'status', '=', $status );
 
@@ -274,7 +275,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      * {@inheritdoc}
      */
     public function count_jobs_by_status( string $status, ?string $queue = null ): int {
-        $queue_sql = smliserQueryBuilder( $this->db->get_driver() )
+        $queue_sql = $this->query()
             ->select( 'COUNT(*)' )->from( $this->jobs_table )
             ->where( 'status', '=', $status );
 
@@ -298,7 +299,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             ->modify( "-{$timeout_seconds} seconds" )
             ->format( 'Y-m-d H:i:s' );
 
-            $sql    = \smliserQueryBuilder( $this->db->get_driver() )
+            $sql    = $this->query()
                 ->select( '*' )->from( $this->jobs_table )
                 ->where( 'status', '=', JobDTO::STATUS_RUNNING )
                 ->where( 'started_at', '<=', $cutoff );
@@ -342,7 +343,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             ->modify( "-{$older_than_days} days" )
             ->format( 'Y-m-d H:i:s' );
 
-        $sql    = smliserQueryBuilder( $this->db->get_driver() )
+        $sql    = $this->query()
             ->delete( $this->jobs_table )
             ->where( 'status', '=', JobDTO::STATUS_COMPLETED )
             ->where( 'completed_at', '<=', $cutoff );
@@ -435,5 +436,14 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
         $decoded = json_decode( (string) $raw, true );
 
         return is_array( $decoded ) ? $decoded : [];
+    }
+
+    /**
+     * Start an SQL query building.
+     * 
+     * @return SQLBuilder
+     */
+    private function query() : SQLBuilder {
+        return smliserQueryBuilder( $this->db->get_driver() );
     }
 }

@@ -13,101 +13,93 @@
 namespace SmartLicenseServer\FileSystem;
 
 trait FileSystemAwareTrait {
-
-    /**
-     * Get the FileSystem singleton instance.
-     *
-     * @return FileSystem
-     */
-    public function fs(): FileSystem {
-        return smliser_filesystem();
-    }
+    protected FileSystem $fs;
 
     // Core checks.
     public function is_dir( string $path ): bool {
-        return $this->fs()->is_dir( $path );
+        return $this->fs->is_dir( $path );
     }
 
     public function is_file( string $path ): bool {
-        return $this->fs()->is_file( $path );
+        return $this->fs->is_file( $path );
     }
 
     public function exists( string $path ): bool {
-        return $this->fs()->exists( $path );
+        return $this->fs->exists( $path );
     }
 
     public function is_readable( string $path ): bool {
-        return $this->fs()->is_readable( $path );
+        return $this->fs->is_readable( $path );
     }
 
     public function is_writable( string $path ): bool {
-        return $this->fs()->is_writable( $path );
+        return $this->fs->is_writable( $path );
     }
 
     public function is_stream( mixed $thing ): bool {
-        return $this->fs()->is_stream( $thing );
+        return $this->fs->is_stream( $thing );
     }
 
     // File operations.
     public function get_contents( string $file ): string|false {
-        return $this->fs()->get_contents( $file );
+        return $this->fs->get_contents( $file );
     }
 
     public function put_contents( string $path, string $contents, int $mode = SMLISER_FILE_PERMISSION ): bool {
-        return $this->fs()->put_contents( $path, $contents, $mode );
+        return $this->fs->put_contents( $path, $contents, $mode );
     }
 
     public function delete( string $file, bool $recursive = false, string|false $type = false ): bool {
-        return $this->fs()->delete( $file, $recursive, $type );
+        return $this->fs->delete( $file, $recursive, $type );
     }
 
     public function mkdir( string $path, int|false $chmod = false, bool $recursive = true ): bool {
-        return $this->fs()->mkdir( $path, $chmod, $recursive );
+        return $this->fs->mkdir( $path, $chmod, $recursive );
     }
 
     public function mkdir_recursive( string $path, int|false $chmod = false ): bool {
-        return $this->fs()->mkdir_recursive( $path, $chmod );
+        return $this->fs->mkdir_recursive( $path, $chmod );
     }
 
     public function rmdir( string $path, bool $recursive = false ): bool {
-        return $this->fs()->rmdir( $path, $recursive );
+        return $this->fs->rmdir( $path, $recursive );
     }
 
     public function copy( string $source, string $dest, bool $overwrite = false ): bool {
-        return $this->fs()->copy( $source, $dest, $overwrite );
+        return $this->fs->copy( $source, $dest, $overwrite );
     }
 
     public function move( string $source, string $dest, bool $overwrite = false ): bool {
-        return $this->fs()->move( $source, $dest, $overwrite );
+        return $this->fs->move( $source, $dest, $overwrite );
     }
 
     public function rename( string $source, string $dest ): bool {
-        return $this->fs()->rename( $source, $dest );
+        return $this->fs->rename( $source, $dest );
     }
 
     public function chmod( string $file, int|false $mode = false, bool $recursive = false ): bool {
-        return $this->fs()->chmod( $file, $mode, $recursive );
+        return $this->fs->chmod( $file, $mode, $recursive );
     }
 
     public function chown( string $file, string|int $owner, bool $recursive = false ): bool {
-        return $this->fs()->chown( $file, $owner, $recursive );
+        return $this->fs->chown( $file, $owner, $recursive );
     }
 
     // File information.
     public function filesize( string $path ): int|false {
-        return $this->fs()->filesize( $path );
+        return $this->fs->filesize( $path );
     }
 
     public function filemtime( string $path ): int|false {
-        return $this->fs()->filemtime( $path );
+        return $this->fs->filemtime( $path );
     }
 
     public function stat( string $path ): array|false {
-        return $this->fs()->stat( $path );
+        return $this->fs->stat( $path );
     }
 
     // Utilities.
     public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ): bool {
-        return $this->fs()->readfile( $path, $start, $length, $chunk_size );
+        return $this->fs->readfile( $path, $start, $length, $chunk_size );
     }
 }

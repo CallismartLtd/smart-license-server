@@ -11,10 +11,7 @@
 namespace SmartLicenseServer\FileSystem;
 
 use Normalizer;
-use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
-
-use function smliser_filesystem;
 
 defined( 'SMLISER_ROOT' ) || exit; // phpcs:ignore
 
@@ -89,9 +86,7 @@ class FileSystemHelper {
      * @return string|null
      */
     public static function get_mime_type( string $path ): ?string {
-        $fs = smliser_filesystem();
-
-        if ( ! $fs->exists( $path ) || ! $fs->is_readable( $path ) ) {
+        if ( ! \file_exists( $path ) || ! is_readable( $path ) ) {
             return null;
         }
 
@@ -224,13 +219,12 @@ class FileSystemHelper {
      * @return bool
      */
     public static function is_valid_file( string $path, array $allowed_extensions = [] ): bool {
-        $fs = smliser_filesystem();
 
-        if ( ! $fs->exists( $path ) || ! $fs->is_readable( $path ) || $fs->is_dir( $path ) ) {
+        if ( ! file_exists( $path ) || ! is_readable( $path ) || is_dir( $path ) ) {
             return false;
         }
 
-        $size = $fs->filesize( $path );
+        $size = filesize( $path );
         if ( $size === false || $size <= 0 ) {
             return false;
         }
@@ -272,9 +266,8 @@ class FileSystemHelper {
      * @return string|null
      */
     public static function checksum( string $path, string $algo = 'sha256' ): ?string {
-        $fs = smliser_filesystem();
 
-        if ( ! $fs->exists( $path ) || ! $fs->is_readable( $path ) ) {
+        if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
             return null;
         }
 
@@ -319,19 +312,17 @@ class FileSystemHelper {
      * @return array|null
      */
     public static function inspect( string $path ): ?array {
-        $fs = smliser_filesystem();
-
-        if ( ! $fs->exists( $path ) ) {
+        if ( ! file_exists( $path ) ) {
             return null;
         }
 
         return [
             'path'          => $path,
             'exists'        => true,
-            'is_dir'        => $fs->is_dir( $path ),
-            'is_file'       => $fs->is_file( $path ),
-            'size'          => $fs->filesize( $path ),
-            'mtime'         => $fs->filemtime( $path ),
+            'is_dir'        => is_dir( $path ),
+            'is_file'       => is_file( $path ),
+            'size'          => filesize( $path ),
+            'mtime'         => filemtime( $path ),
             'extension'     => static::get_extension( $path ),
             'mime_type'     => static::get_mime_type( $path ),
             'checksum'      => static::checksum( $path ),

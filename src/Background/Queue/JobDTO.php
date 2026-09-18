@@ -2,6 +2,22 @@
 /**
  * Job Data Transfer Object file.
  *
+ * @author  Callistus Nwachukwu
+ * @package SmartLicenseServer\Background
+ * @since   0.2.0
+ *
+ */
+
+declare( strict_types = 1 );
+
+namespace SmartLicenseServer\Background\Queue;
+
+use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
+use Callismart\DTO\DTO;
+use DateTimeImmutable;
+use InvalidArgumentException;
+
+/**
  * Represents a single unit of deferred work — the "envelope" that
  * carries everything a worker needs to locate, execute, and track
  * a background job through its full lifecycle.
@@ -10,7 +26,7 @@
  * strictly validated on assignment. The payload field is intentionally
  * open — it holds whatever argument array the handler function needs
  * and is passed through as-is.
- *
+ * 
  * ## Basic usage
  *
  *   // Via named constructor (recommended at dispatch sites):
@@ -32,11 +48,7 @@
  *       'status'    => JobDTO::STATUS_PENDING,
  *       'queue'     => JobDTO::QUEUE_DEFAULT,
  *   ]);
- *
- * @author  Callistus Nwachukwu
- * @package SmartLicenseServer\Background
- * @since   0.2.0
- *
+ * 
  * @property int|null          $id             Storage-assigned identifier. Null until persisted.
  * @property string            $job_class      Fully-qualified handler class name.
  * @property string            $queue          Processing lane: critical | default | low.
@@ -51,23 +63,6 @@
  * @property DateTimeImmutable|null $completed_at   Datetime the job completed. Null until finished.
  * @property mixed                  $result         Return value captured by the worker after handle().
  * @property string|null            $error_message  Last failure reason. Null on success.
- */
-
-declare( strict_types = 1 );
-
-namespace SmartLicenseServer\Background\Queue;
-
-use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
-use Callismart\DTO\DTO;
-use DateTimeImmutable;
-use InvalidArgumentException;
-/**
-* @property string $job_class   Fully-qualified handler class name.
-* @property array  $payload     Argument array passed to the handler's handle() method.
-* @property string $queue       Processing lane. Default: 'default'.
-* @property int    $priority    1 (highest) – 10 (lowest). Default: 5.
-* @property int    $max_attempts Maximum delivery attempts. Default: 3.
-* @property int    $delay       Seconds to wait before the job becomes available. Default: 0.
  */
 final class JobDTO extends DTO {
 
@@ -551,13 +546,12 @@ final class JobDTO extends DTO {
     }
 
     /**
-     * Return the handler class resolved from job_class.
+     * Get the job class string from job_class.
      *
-     * @return JobHandlerInterface
+     * @return class-string<JobHandlerInterface>
      */
-    public function resolve_handler(): JobHandlerInterface {
-        $class = $this->props[ self::KEY_JOB_CLASS ];
-        return new $class();
+    public function get_job_class(): string {
+        return $this->props[ self::KEY_JOB_CLASS ];
     }
 
     /*

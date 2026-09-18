@@ -14,6 +14,7 @@ namespace SmartLicenseServer\Core;
 
 use RuntimeException;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\FileSystem\FileSystem;
 
@@ -77,12 +78,17 @@ final class UploadedFile {
 	/**
 	 * @param UploadedFileArray|null $file Single $_FILES-style entry, or null if absent.
 	 * @param string                 $key  Logical key, used only in error messages.
-	 * @param ?FileSystem            $fs   Filesystem abstraction. Defaults to smliser_filesystem().
+	 * @param ?FileSystem            $fs   Filesystem abstraction.
 	 */
 	public function __construct( ?array $file, string $key = 'file', ?FileSystem $fs = null ) {
 		$this->file = $file;
 		$this->key  = $key;
-		$this->fs   = $fs ?? smliser_filesystem();
+		$this->fs   = $fs ?? FileSystem::instance(
+			new DirectFileSystem(
+				\SMLISER_FILE_PERMISSION,
+				\SMLISER_DIR_PERMISSION
+			)
+		);
 	}
 
 	/**
@@ -102,7 +108,7 @@ final class UploadedFile {
 	 *
 	 * @param UploadedFileArray $file The normalized single-file array (name, type, tmp_name, error, size).
 	 * @param string            $key  Logical identifier for the file input, used only in error messages.
-	 * @param ?FileSystem       $fs   Filesystem abstraction. Defaults to smliser_filesystem().
+	 * @param ?FileSystem       $fs   Filesystem abstraction.
 	 * @return static
 	 */
 	public static function from_array( array $file, string $key = 'file', ?FileSystem $fs = null ) : static {

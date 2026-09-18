@@ -75,6 +75,17 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
                 'class' => 'smliser-logout-link-btn'
             ]
         ]);
+
+        $this->add_top_menu( 'home_url', [
+            'title'         => 'Home',
+            'type'          => 'link',
+            'href'          => $this->urlmanager->url( '/' ),
+            'visibility'    => true,
+            'icon'          => 'ti ti-home',
+            'attributes'    => [
+                'class' => 'smliser-btn-glass'
+            ]
+        ]);
     }
 
     /**

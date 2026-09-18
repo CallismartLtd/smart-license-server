@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Background\Workers;
 
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\Core\Container\Container;
 
 /**
  * Queue worker.
@@ -21,94 +22,27 @@ use SmartLicenseServer\Background\Queue\JobQueue;
  * handlers, executing them, and reporting outcomes back to JobQueue.
  *
  * The worker is intentionally thin — it knows how to run a job
- * but nothing about how jobs are stored. All persistence is
+ * but nothing about how jobs are stored. All persistence is`
  * delegated to the injected JobQueue instance.
- *
- * ## Single job (web hook / post-request):
- *
- *   smliser_queue_worker()->process_next_job();
- *
- * ## Continuous processing (CLI / cron):
- *
- *   smliser_queue_worker()->start_processing();
- *
- * ## WordPress cron (time-budgeted, safe for WP request lifecycle):
- *
- *   smliser_queue_worker()->process_within_time_budget( 25 );
- *
- * ## Specific queue:
- *
- *   smliser_queue_worker()->process_next_job( JobDTO::QUEUE_CRITICAL );
  */
 class QueueWorker implements WorkerInterface {
-
-    /*
-    |----------------------
-    | CONFIGURATION
-    |----------------------
-    */
-
-    /**
-     * Maximum number of jobs to process in one start_processing() run.
-     * 0 means unlimited — run until the queue is empty.
-     *
-     * @var int
-     */
-    private int $max_jobs;
-
-    /**
-     * Memory limit in megabytes. Worker exits start_processing() if
-     * current usage exceeds this ceiling to avoid OOM crashes.
-     *
-     * @var int
-     */
-    private int $memory_limit_mb;
-
-    /**
-     * Seconds to sleep between polling cycles when the queue is empty.
-     *
-     * @var int
-     */
-    private int $sleep_seconds;
-
-    /*
-    |----------------------
-    | DEPENDENCIES
-    |----------------------
-    */
-
-    /**
-     * The job queue manager.
-     *
-     * @var JobQueue
-     */
-    private JobQueue $queue;
-
-    /*
-    |----------------------
-    | CONSTRUCTOR
-    |----------------------
-    */
 
     /**
      * Constructor.
      *
      * @param JobQueue $queue           The bootstrapped job queue manager.
+     * @param Container $container      The DI container used to resolve handler classes.
      * @param int      $max_jobs        Max jobs per run. 0 = unlimited. Default 0.
      * @param int      $memory_limit_mb Memory ceiling in MB. Default 128.
      * @param int      $sleep_seconds   Seconds to sleep when queue is empty. Default 5.
      */
     public function __construct(
-        JobQueue $queue,
-        int      $max_jobs        = 0,
-        int      $memory_limit_mb = 128,
-        int      $sleep_seconds   = 5
-    ) {
-        $this->queue           = $queue;
-        $this->max_jobs        = $max_jobs;
-        $this->memory_limit_mb = $memory_limit_mb;
-        $this->sleep_seconds   = $sleep_seconds;
-    }
+        protected JobQueue $queue,
+        protected Container $container,
+        protected int      $max_jobs        = 0,
+        protected int      $memory_limit_mb = 128,
+        protected int      $sleep_seconds   = 5
+    ) {}
 
     /*
     |----------------------
@@ -120,7 +54,7 @@ class QueueWorker implements WorkerInterface {
      * {@inheritdoc}
      *
      * Claims the next available job, resolves its handler, calls
-     * handle() with the payload, and records the outcome on the
+     * execute() with the payload, and records the outcome on the
      * JobQueue. All exceptions thrown by the handler are caught —
      * the worker never dies because a single job failed.
      */
@@ -247,7 +181,7 @@ class QueueWorker implements WorkerInterface {
      */
     private function execute( JobDTO $job ): void {
         try {
-            $handler = $job->resolve_handler();
+            $handler = $this->container->get( $job->get_job_class() );
             $result  = $handler->handle( $job->get( JobDTO::KEY_PAYLOAD ) );
             $this->queue->record_job_completed( $job, $result );
         } catch ( \Throwable $e ) {

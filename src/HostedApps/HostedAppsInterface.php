@@ -106,9 +106,9 @@ interface HostedAppsInterface {
     /**
      * Set app download url
      * 
-     * @param string|URL $url
+     * @param string|URL|null $url
      */
-    public function set_download_url( string|URL $url ) : static;
+    public function set_download_url( string|URL|null $url ) : static;
 
     /**
      * Set the absolute path to the applications zip file or an uploaded file.
@@ -248,14 +248,6 @@ interface HostedAppsInterface {
      * @return URL
      */
     public function get_download_url() : URL;
-
-    /**
-     * Get the URL to download an app artifact file.
-     * 
-     * @param string $filename
-     * @return URL
-     */
-    public function get_artifact_url( string $filename ) : URL;
 
     /**
      * Get the application author.
