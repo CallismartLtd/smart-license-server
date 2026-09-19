@@ -59,10 +59,6 @@ class AppCommand extends AbstractCommand {
         return 'Inspect and manage hosted applications.';
     }
 
-    public function synopsis(): string {
-        return "{$this->script_name} app <subcommand> [arguments] [--options]";
-    }
-
     public function help(): string {
         $script_name    = $this->script_name;
         return implode( PHP_EOL, [

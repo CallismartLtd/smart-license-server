@@ -43,10 +43,6 @@ class WhoAmI extends AbstractCommand {
         return 'Print the user name associated with the current principal.';
     }
 
-    public function synopsis(): string {
-        return 'smliser whoami';
-    }
-
     public function help(): string {
         return '';
     }

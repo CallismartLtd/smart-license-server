@@ -16,25 +16,39 @@ use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Core\Container\Container;
 
 /**
- * Queue worker.
- *
- * Responsible for claiming jobs from the queue, resolving their
- * handlers, executing them, and reporting outcomes back to JobQueue.
- *
- * The worker is intentionally thin — it knows how to run a job
- * but nothing about how jobs are stored. All persistence is`
- * delegated to the injected JobQueue instance.
+ * Decoupled, web-safe queue worker execution engine.
  */
 class QueueWorker implements WorkerInterface {
 
     /**
+     * Internal stop request flag.
+     *
+     * @var bool
+     */
+    protected bool $should_quit = false;
+
+    /**
+     * Optional external stop checker closure.
+     *
+     * @var callable|null
+     */
+    protected $stop_checker = null;
+
+    /**
+     * Optional logging callback for CLI streaming.
+     *
+     * @var callable|null
+     */
+    protected $logger = null;
+
+    /**
      * Constructor.
      *
-     * @param JobQueue $queue           The bootstrapped job queue manager.
-     * @param Container $container      The DI container used to resolve handler classes.
-     * @param int      $max_jobs        Max jobs per run. 0 = unlimited. Default 0.
-     * @param int      $memory_limit_mb Memory ceiling in MB. Default 128.
-     * @param int      $sleep_seconds   Seconds to sleep when queue is empty. Default 5.
+     * @param JobQueue  $queue            The bootstrapped job queue instance.
+     * @param Container $container        The DI container used to resolve job handlers.
+     * @param int       $max_jobs         Max jobs to process per run cycle. 0 = unlimited.
+     * @param int       $memory_limit_mb  Memory limit ceiling in MB. Default 128.
+     * @param int       $sleep_seconds    Seconds to wait when queue is idle. Default 5.
      */
     public function __construct(
         protected JobQueue $queue,
@@ -44,19 +58,57 @@ class QueueWorker implements WorkerInterface {
         protected int      $sleep_seconds   = 5
     ) {}
 
-    /*
-    |----------------------
-    | WorkerInterface
-    |----------------------
-    */
+    /**
+     * Attach an optional logger callback for stdout or file logging.
+     *
+     * @param callable|null $logger
+     * @return void
+     */
+    public function set_logger( ?callable $logger ): void {
+        $this->logger = $logger;
+    }
 
     /**
-     * {@inheritdoc}
+     * Attach an external stop condition callback.
      *
-     * Claims the next available job, resolves its handler, calls
-     * execute() with the payload, and records the outcome on the
-     * JobQueue. All exceptions thrown by the handler are caught —
-     * the worker never dies because a single job failed.
+     * @param callable|null $checker Callback returning bool.
+     * @return void
+     */
+    public function set_stop_checker( ?callable $checker ): void {
+        $this->stop_checker = $checker;
+    }
+
+    /**
+     * Flag the worker loop to request a graceful exit.
+     *
+     * @return void
+     */
+    public function request_stop(): void {
+        $this->should_quit = true;
+    }
+
+    /**
+     * Determine whether worker execution should cease.
+     *
+     * @return bool
+     */
+    public function should_stop(): bool {
+        if ( $this->should_quit ) {
+            return true;
+        }
+
+        if ( is_callable( $this->stop_checker ) && call_user_func( $this->stop_checker ) ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Claim and execute the next available job in the queue.
+     *
+     * @param string|null $queue Target queue channel name.
+     * @return bool True if a job was found and processed, false otherwise.
      */
     public function process_next_job( ?string $queue = null ): bool {
         $job = $this->queue->claim_next_job( $queue );
@@ -71,23 +123,24 @@ class QueueWorker implements WorkerInterface {
     }
 
     /**
-     * {@inheritdoc}
+     * Start continuous worker execution daemon loop.
      *
-     * Runs a continuous processing loop, polling the queue and
-     * sleeping when it is empty. Exits when:
-     *   - The queue is empty and $max_jobs > 0 and the limit is reached.
-     *   - Memory usage exceeds $memory_limit_mb.
-     *   - $max_jobs is reached.
+     * @param string|null $queue Target queue channel name.
+     * @return int Total number of jobs processed.
      */
     public function start_processing( ?string $queue = null ): int {
         $processed = 0;
 
-        while ( true ) {
+        $this->log( 'Worker daemon initiated.' );
+
+        while ( ! $this->should_stop() ) {
             if ( $this->has_exceeded_memory_limit() ) {
+                $this->log( sprintf( 'Memory ceiling (%dMB) reached. Stopping worker.', $this->memory_limit_mb ) );
                 break;
             }
 
             if ( $this->max_jobs > 0 && $processed >= $this->max_jobs ) {
+                $this->log( sprintf( 'Maximum job limit (%d) reached. Stopping worker.', $this->max_jobs ) );
                 break;
             }
 
@@ -98,52 +151,35 @@ class QueueWorker implements WorkerInterface {
                 continue;
             }
 
-            // Queue was empty — if max_jobs is set we are done,
-            // otherwise sleep and poll again.
             if ( $this->max_jobs > 0 ) {
                 break;
             }
 
-            sleep( $this->sleep_seconds );
+            $this->smart_sleep( $this->sleep_seconds );
         }
+
+        $this->log( sprintf( 'Worker process exited gracefully. Processed %d job(s).', $processed ) );
 
         return $processed;
     }
 
-
     /**
-     * Process jobs until the time budget is exhausted.
+     * Process job queue within a restricted time window.
      *
-     * Designed for web-triggered workers where
-     * execution time is constrained by PHP max_execution_time or
-     * server request timeouts.
-     *
-     * Stops cleanly before the budget runs out — never mid-job —
-     * so jobs are never abandoned in a running state due to a timeout.
-     * Stale running jobs are handled separately by release_stale_running_jobs().
-     *
-     * Exits early if memory limit is exceeded, ensuring the process
-     * never crashes due to OOM regardless of time remaining.
-     *
-     *
-     * @param int|null    $time_budget_seconds Max seconds to spend processing. Null derives
-     *                                         a safe budget from max_execution_time automatically.
-     * @param string|null $queue               Restrict to a specific queue, or null for
-     *                                         the default priority order.
-     * @return int Total number of jobs processed within the budget.
+     * @param int|null    $time_budget_seconds Execution budget in seconds.
+     * @param string|null $queue               Target queue channel name.
+     * @return int Total number of jobs processed.
      */
     public function process_within_time_budget( ?int $time_budget_seconds = null, ?string $queue = null ): int {
         $budget     = $time_budget_seconds ?? $this->safe_time_budget_seconds();
         $start_time = microtime( true );
         $processed  = 0;
 
-        while ( true ) {
+        while ( ! $this->should_stop() ) {
             if ( $this->has_exceeded_memory_limit() ) {
                 break;
             }
 
-            // Stop if we are within 1 second of the budget ceiling —
-            // leaving a safety margin so we never run over.
             $elapsed = microtime( true ) - $start_time;
             if ( $elapsed >= ( $budget - 1 ) ) {
                 break;
@@ -152,7 +188,7 @@ class QueueWorker implements WorkerInterface {
             $found = $this->process_next_job( $queue );
 
             if ( ! $found ) {
-                break; // Queue is empty — nothing left to do.
+                break;
             }
 
             $processed++;
@@ -161,80 +197,79 @@ class QueueWorker implements WorkerInterface {
         return $processed;
     }
 
-    /*
-    |----------------------
-    | EXECUTION
-    |----------------------
-    */
-
     /**
-     * Execute a single claimed job and record its outcome.
+     * Instantiate handler from DI container and process job payload.
      *
-     * Resolves the handler class from the JobDTO, calls handle()
-     * with the payload, and delegates success/failure recording
-     * to the JobQueue manager.
-     *
-     * All Throwables are caught so a bad job never kills the worker.
-     *
-     * @param JobDTO $job The claimed job envelope.
+     * @param JobDTO $job
      * @return void
      */
-    private function execute( JobDTO $job ): void {
+    protected function execute( JobDTO $job ): void {
+        $start_time = microtime( true );
+        $job_class  = $job->get_job_class();
+
+        $this->log( sprintf( 'Processing job [%s]...', $job_class ) );
+
         try {
-            $handler = $this->container->get( $job->get_job_class() );
+            $handler = $this->container->get( $job_class );
             $result  = $handler->handle( $job->get( JobDTO::KEY_PAYLOAD ) );
             $this->queue->record_job_completed( $job, $result );
+
+            $duration = round( microtime( true ) - $start_time, 4 );
+            $this->log( sprintf( 'Job [%s] PROCESSED successfully (%fs).', $job_class, $duration ) );
         } catch ( \Throwable $e ) {
+            $duration = round( microtime( true ) - $start_time, 4 );
+            $this->log( sprintf( 'Job [%s] FAILED (%fs): %s', $job_class, $duration, $e->getMessage() ) );
             $this->queue->record_job_failed( $job, $this->format_error( $e ) );
         }
     }
 
-    /*
-    |----------------------
-    | HELPERS
-    |----------------------
-    */
+    /**
+     * Sleep in 1-second ticks to quickly respond to termination signals.
+     *
+     * @param int $seconds
+     * @return void
+     */
+    protected function smart_sleep( int $seconds ): void {
+        for ( $i = 0; $i < $seconds; $i++ ) {
+            if ( $this->should_stop() ) {
+                break;
+            }
+            sleep( 1 );
+        }
+    }
 
     /**
-     * Whether current memory usage has exceeded the configured limit.
+     * Check if allocated memory threshold has been reached.
      *
      * @return bool
      */
-    private function has_exceeded_memory_limit(): bool {
+    protected function has_exceeded_memory_limit(): bool {
         $used_mb = memory_get_usage( true ) / 1024 / 1024;
         return $used_mb >= $this->memory_limit_mb;
     }
 
     /**
-     * Derive a safe time budget in seconds from the PHP ini max_execution_time.
+     * Calculate a safe timeout ceiling based on PHP configuration.
      *
-     * Applies an 80% safety factor so the worker stops well before PHP
-     * forcibly kills the process. Floors at 5 seconds so it always does
-     * some useful work. Falls back to 25 seconds when max_execution_time
-     * is 0 (unlimited) or unparseable — a conservative default that works
-     * safely within typical WordPress cron request lifecycles.
-     *
-     * @return int Safe time budget in seconds.
+     * @return int
      */
-    private function safe_time_budget_seconds(): int {
+    protected function safe_time_budget_seconds(): int {
         $max = (int) ini_get( 'max_execution_time' );
 
-        // 0 means unlimited — use a conservative default.
         if ( $max <= 0 ) {
             return 100;
         }
 
-        // Apply 80% safety factor and floor at 5 seconds.
         return max( 5, (int) ( $max * 0.8 ) );
     }
 
     /**
-     * Format a Throwable into a concise error string for storage.
+     * Format a Throwable exception into a readable error trail.
      *
      * @param \Throwable $e
      * @return string
      */
-    private function format_error( \Throwable $e ): string {
+    protected function format_error( \Throwable $e ): string {
         return sprintf(
             '%s: %s in %s on line %d',
             get_class( $e ),
@@ -242,5 +277,17 @@ class QueueWorker implements WorkerInterface {
             $e->getFile(),
             $e->getLine()
         );
+    }
+
+    /**
+     * Send log line to custom logger callback if assigned.
+     *
+     * @param string $message
+     * @return void
+     */
+    protected function log( string $message ): void {
+        if ( is_callable( $this->logger ) ) {
+            call_user_func( $this->logger, $message );
+        }
     }
 }

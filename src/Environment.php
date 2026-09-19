@@ -232,7 +232,8 @@ abstract class Environment {
             fn ( Container $c ) : DatabaseJobStorageAdapter =>
                 new DatabaseJobStorageAdapter(
                     $c->get( Database::class ),
-                    \SMLISER_BACKGROUND_JOBS_TABLE
+                    \SMLISER_BACKGROUND_JOBS_TABLE,
+                    \SMLISER_FAILED_JOBS_TABLE
                 )
         );
 

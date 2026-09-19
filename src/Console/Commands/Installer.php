@@ -53,11 +53,6 @@ class Installer extends AbstractCommand {
         return 'Handle installation.';
     }
 
-    public function synopsis() : string {
-        $name   = static::name();
-        return "smliser {$name} <subcommands> [options]";
-    }
-
     public function help() : string {
         $command_name   = static::name();
         $app_name       = SMLISER_APP_NAME;

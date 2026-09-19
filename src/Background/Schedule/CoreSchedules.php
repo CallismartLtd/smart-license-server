@@ -145,6 +145,4 @@ final class CoreSchedules {
     public function purgeCompletedJobs() : void {
         $this->job_queue->purge_completed_jobs( 7 );
     }
-
-
 }

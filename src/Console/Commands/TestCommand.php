@@ -37,13 +37,6 @@ class TestCommand extends AbstractCommand {
     /**
      * {@inheritDoc}
      */
-    public function synopsis() : string {
-        return 'smliser test [phpunit options]';
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function help() : string {
         $app_name       = \SMLISER_APP_NAME;
         $script_name    = $this->script_name;

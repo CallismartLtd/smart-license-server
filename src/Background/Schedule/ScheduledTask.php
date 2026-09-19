@@ -83,13 +83,22 @@ class ScheduledTask {
     private int $interval_seconds = 0;
 
     /**
-     * Specific time-of-day to run (H:i format).
-     * Used by daily_at(), weekly_on() etc.
+     * Specific time-of-day to run, kept as the original "H:i" string
+     * purely for display purposes (get_schedule_description()).
      * Null means run as soon as the interval elapses.
      *
      * @var string|null
      */
     private ?string $time_of_day = null;
+
+    /**
+     * Real DateTimeImmutable representation of $time_of_day, holding
+     * only an hour/minute — built once when the time is set, and used
+     * for every date/time calculation instead of re-parsing the string.
+     *
+     * @var DateTimeImmutable|null
+     */
+    private ?DateTimeImmutable $time_of_day_template = null;
 
     /**
      * Day of week constraint (0 = Sunday … 6 = Saturday).
@@ -173,7 +182,7 @@ class ScheduledTask {
      */
     public function daily(): static {
         $this->interval_seconds = 86400;
-        $this->time_of_day      = '00:00';
+        $this->set_time_of_day( '00:00' );
         return $this;
     }
 
@@ -185,9 +194,8 @@ class ScheduledTask {
      * @throws InvalidArgumentException On invalid time format.
      */
     public function daily_at( string $time ): static {
-        $this->assert_valid_time( $time );
         $this->interval_seconds = 86400;
-        $this->time_of_day      = $time;
+        $this->set_time_of_day( $time );
         return $this;
     }
 
@@ -200,10 +208,9 @@ class ScheduledTask {
      * @throws InvalidArgumentException On invalid day or time.
      */
     public function weekly_on( string $day, string $time = '00:00' ): static {
-        $this->assert_valid_time( $time );
         $this->interval_seconds = 604800;
         $this->day_of_week      = $this->parse_day_of_week( $day );
-        $this->time_of_day      = $time;
+        $this->set_time_of_day( $time );
         return $this;
     }
 
@@ -227,10 +234,9 @@ class ScheduledTask {
             );
         }
 
-        $this->assert_valid_time( $time );
         $this->interval_seconds = -1; // Sentinel: calendar month, not a raw second count.
         $this->day_of_month     = $day;
-        $this->time_of_day      = $time;
+        $this->set_time_of_day( $time );
         return $this;
     }
 
@@ -321,62 +327,29 @@ class ScheduledTask {
     /**
      * Compute the first eligible run time for a task that has never run.
      *
+     * Resolves the calendar date against any day-of-week / day-of-month
+     * constraint FIRST, then applies the time-of-day. Only if that
+     * combined slot is still not in the future do we advance by exactly
+     * one cycle — never more than once. (Applying the time-of-day check
+     * before the day constraint, or vice versa, independently of each
+     * other, is what previously caused first runs to overshoot by a
+     * full extra week/month whenever "now" fell on the wrong weekday
+     * AND after the target clock time.)
+     *
      * @param DateTimeImmutable $now
      * @return DateTimeImmutable
      */
     private function compute_first_run( DateTimeImmutable $now ): DateTimeImmutable {
-        $first = $now;
+        $candidate = $this->apply_time_of_day( $this->resolve_constrained_date( $now ) );
 
-        if ( $this->time_of_day !== null ) {
-            [ $h, $m ] = explode( ':', $this->time_of_day );
-            $first = $first->setTime( (int) $h, (int) $m, 0 );
-
-            // If the scheduled time has already passed today, advance by one interval
-            // and re-apply the time-of-day so the slot stays canonical.
-            if ( $first < $now ) {
-                $first = $this->interval_seconds === -1
-                    ? $first->modify( '+1 month' )
-                    : $first->modify( "+{$this->interval_seconds} seconds" );
-
-                [ $h, $m ] = explode( ':', $this->time_of_day );
-                $first = $first->setTime( (int) $h, (int) $m, 0 );
-            }
+        // Only push forward if there's an actual clock target and it has
+        // already elapsed on the resolved date. A plain interval-only
+        // task (no time_of_day, no day constraint) is due immediately.
+        if ( $this->time_of_day_template !== null && $candidate <= $now ) {
+            $candidate = $this->apply_time_of_day( $this->advance_one_cycle( $candidate ) );
         }
 
-        if ( $this->day_of_week !== null ) {
-            $current_dow = (int) $first->format( 'w' );
-            $days_ahead  = ( $this->day_of_week - $current_dow + 7 ) % 7;
-
-            if ( $days_ahead === 0 ) {
-                // Already the right weekday — only stay if the time slot is still ahead.
-                // Otherwise push a full week forward to avoid an immediate double-fire.
-                if ( $first <= $now ) {
-                    $first = $first->modify( '+7 days' );
-                }
-            } else {
-                $first = $first->modify( "+{$days_ahead} days" );
-            }
-        }
-
-        if ( $this->day_of_month !== null ) {
-            $first = $first->setDate(
-                (int) $first->format( 'Y' ),
-                (int) $first->format( 'm' ),
-                $this->day_of_month
-            );
-
-            if ( $first < $now ) {
-                $first = $first->modify( '+1 month' );
-                // Re-apply the day after the month advance in case setDate drifted.
-                $first = $first->setDate(
-                    (int) $first->format( 'Y' ),
-                    (int) $first->format( 'm' ),
-                    $this->day_of_month
-                );
-            }
-        }
-
-        return $first;
+        return $candidate;
     }
 
     /**
@@ -395,64 +368,129 @@ class ScheduledTask {
      */
     public function compute_next_run( DateTimeImmutable $last_ran_at ): DateTimeImmutable {
         // Snap the anchor back to the canonical scheduled time so a late pickup
-        // does not shift the entire future schedule forward.
-        $anchor = $last_ran_at;
+        // does not shift the entire future schedule forward. If it somehow ran
+        // before the scheduled time (e.g. manual trigger), keep the real run time.
+        $canonical = $this->apply_time_of_day( $last_ran_at );
+        $anchor    = ( $canonical <= $last_ran_at ) ? $canonical : $last_ran_at;
 
-        if ( $this->time_of_day !== null ) {
-            [ $h, $m ] = explode( ':', $this->time_of_day );
-            $canonical = $anchor->setTime( (int) $h, (int) $m, 0 );
+        $next = $this->apply_time_of_day( $this->advance_one_cycle( $anchor ) );
 
-            // Only snap back if the task ran after the scheduled time (late pickup).
-            // If it somehow ran before (e.g. manual trigger), keep the real run time.
-            if ( $canonical <= $last_ran_at ) {
-                $anchor = $canonical;
-            }
-        }
-
-        // Advance by one interval from the canonical anchor.
-        $next = $this->interval_seconds === -1
-            ? $anchor->modify( '+1 month' )
-            : $anchor->modify( "+{$this->interval_seconds} seconds" );
-
-        // Re-apply time-of-day to the next slot.
-        if ( $this->time_of_day !== null ) {
-            [ $h, $m ] = explode( ':', $this->time_of_day );
-            $next = $next->setTime( (int) $h, (int) $m, 0 );
-        }
-
-        // Apply day-of-week constraint.
-        if ( $this->day_of_week !== null ) {
-            $current_dow = (int) $next->format( 'w' );
-            $days_ahead  = ( $this->day_of_week - $current_dow + 7 ) % 7;
-
-            if ( $days_ahead === 0 ) {
-                // Already on the right weekday — but if that slot is now in the past
-                // (e.g. due to a late pickup spanning midnight), push a full week.
-                $now = new DateTimeImmutable();
-                if ( $next <= $now ) {
-                    $next = $next->modify( '+7 days' );
-                }
-            } else {
-                $next = $next->modify( "+{$days_ahead} days" );
-            }
-        }
-
-        // Apply day-of-month constraint.
-        if ( $this->day_of_month !== null ) {
-            $next = $next->setDate(
-                (int) $next->format( 'Y' ),
-                (int) $next->format( 'm' ),
-                $this->day_of_month
-            );
-
-            // If the computed date is still in the past relative to the last run,
-            // advance one calendar month.
-            if ( $next <= $last_ran_at ) {
-                $next = $next->modify( '+1 month' );
-            }
+        // Safety net: after a long outage (or a hand-edited last_ran_at),
+        // one cycle may still not be enough to reach the future — keep
+        // advancing until it actually is. is_due() already filters out
+        // interval_seconds === 0, so this always terminates.
+        $now = new DateTimeImmutable();
+        while ( $next <= $now ) {
+            $next = $this->apply_time_of_day( $this->advance_one_cycle( $next ) );
         }
 
         return $next;
+    }
+
+    /*
+    |------------------------------------------------
+    | DATE / TIME CALCULATION HELPERS
+    |------------------------------------------------
+    */
+
+    /**
+     * Resolve the calendar date satisfying the day-of-week or
+     * day-of-month constraint (if any), at or after $from's date.
+     * Time-of-day is intentionally untouched here — see apply_time_of_day().
+     *
+     * @param DateTimeImmutable $from
+     * @return DateTimeImmutable
+     */
+    private function resolve_constrained_date( DateTimeImmutable $from ): DateTimeImmutable {
+        if ( $this->day_of_week !== null ) {
+            $current_dow = (int) $from->format( 'w' );
+            $days_ahead  = ( $this->day_of_week - $current_dow + 7 ) % 7;
+
+            return $from->modify( "+{$days_ahead} days" );
+        }
+
+        if ( $this->day_of_month !== null ) {
+            $current_day = (int) $from->format( 'd' );
+            $candidate   = $from->setDate( (int) $from->format( 'Y' ), (int) $from->format( 'm' ), $this->day_of_month );
+
+            // Target day already passed this month — roll to next month.
+            if ( $this->day_of_month < $current_day ) {
+                $candidate = $candidate->modify( '+1 month' );
+            }
+
+            return $candidate;
+        }
+
+        return $from;
+    }
+
+    /**
+     * Advance a resolved date by exactly one schedule cycle, respecting
+     * whichever constraint defines the cycle (day-of-week, day-of-month,
+     * or a raw interval for plain daily/hourly/minute-based schedules).
+     *
+     * @param DateTimeImmutable $date
+     * @return DateTimeImmutable
+     */
+    private function advance_one_cycle( DateTimeImmutable $date ): DateTimeImmutable {
+        if ( $this->day_of_week !== null ) {
+            return $date->modify( '+7 days' );
+        }
+
+        if ( $this->day_of_month !== null ) {
+            $next = $date->modify( '+1 month' );
+            return $next->setDate( (int) $next->format( 'Y' ), (int) $next->format( 'm' ), $this->day_of_month );
+        }
+
+        return $this->interval_seconds === -1
+            ? $date->modify( '+1 month' )
+            : $date->modify( "+{$this->interval_seconds} seconds" );
+    }
+
+    /**
+     * Apply the stored time-of-day template to a date, using the real
+     * DateTimeImmutable object built once by set_time_of_day() rather
+     * than re-parsing the "H:i" string on every call.
+     *
+     * @param DateTimeImmutable $date
+     * @return DateTimeImmutable
+     */
+    private function apply_time_of_day( DateTimeImmutable $date ): DateTimeImmutable {
+        if ( $this->time_of_day_template === null ) {
+            return $date;
+        }
+
+        return $date->setTime(
+            (int) $this->time_of_day_template->format( 'H' ),
+            (int) $this->time_of_day_template->format( 'i' ),
+            0
+        );
+    }
+
+    /**
+     * Validate and store a time-of-day, building the real
+     * DateTimeImmutable template used for all later calculations.
+     *
+     * @param string $time Time in H:i format.
+     * @return void
+     * @throws InvalidArgumentException On invalid time format.
+     */
+    private function set_time_of_day( string $time ): void {
+        $this->assert_valid_time( $time );
+
+        // The "!" flag resets every field not specified (year, month, day...)
+        // to the Unix epoch, leaving a real DateTimeImmutable that carries
+        // only the parsed hour/minute — no manual explode()/cast needed.
+        $template = DateTimeImmutable::createFromFormat( '!H:i', $time );
+
+        if ( $template === false ) {
+            throw new InvalidArgumentException(
+                sprintf( 'ScheduledTask: unable to parse time "%s".', $time )
+            );
+        }
+
+        $this->time_of_day          = $time;
+        $this->time_of_day_template = $template;
     }
 
     /*
@@ -621,51 +659,5 @@ class ScheduledTask {
         }
 
         return $map[ $key ];
-    }
-
-    /**
-     * Generate a stable ID for any callable.
-     *
-     * Not called internally — available as a utility for the Scheduler
-     * when auto-generating task IDs before constructing a ScheduledTask.
-     *
-     * @param callable $callable
-     * @return string
-     */
-    private function generate_id( callable $callable ): string {
-
-        // Function name.
-        if ( is_string( $callable ) ) {
-            return 'func:' . strtolower( $callable );
-        }
-
-        // Class method or object method.
-        if ( is_array( $callable ) ) {
-            $class  = $callable[0];
-            $method = $callable[1];
-
-            // Static method.
-            if ( is_string( $class ) ) {
-                return 'static:' . $class . '::' . $method;
-            }
-
-            // Object method.
-            if ( is_object( $class ) ) {
-                return 'object:' . get_class( $class ) . '::' . $method . '#' . spl_object_hash( $class );
-            }
-        }
-
-        // Closure.
-        if ( $callable instanceof \Closure ) {
-            return 'closure:' . spl_object_hash( $callable );
-        }
-
-        // Invokable object.
-        if ( is_object( $callable ) && method_exists( $callable, '__invoke' ) ) {
-            return 'invokable:' . get_class( $callable ) . '#' . spl_object_hash( $callable );
-        }
-
-        // Fallback.
-        return 'task:' . md5( uniqid( '', true ) );
     }
 }

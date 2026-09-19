@@ -44,9 +44,6 @@ class WorkScheduleCommand extends AbstractCommand {
     public function description(): string {
         return 'Process background jobs and run due scheduled tasks in one pass.';
     }
-    public function synopsis(): string {
-        return 'smliser work:schedule';
-    }
 
     public function help(): string {
         return '';

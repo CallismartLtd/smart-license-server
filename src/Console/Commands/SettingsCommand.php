@@ -38,9 +38,6 @@ class SettingsCommand extends AbstractCommand {
     public function description(): string {
         return 'Manage the system settings.';
     }
-    public function synopsis(): string {
-        return "{$this->script_name} settings <subcommand> [arguments]";
-    }
 
     public function help(): string {
         $script_name    = $this->script_name;

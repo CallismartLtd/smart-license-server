@@ -60,13 +60,6 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
         return sprintf( 'Inspect and manage a hosted %s.', static::get_type() );
     }
 
-    public function synopsis(): string {
-        return sprintf(
-            '%s %s <subcommand> [arguments] [--options]',
-            $this->script_name, static::get_type()
-        );
-    }
-
     public function run( CommandInput $input ): int {
         $this->output->info( static::description() );
         $this->output->newline();

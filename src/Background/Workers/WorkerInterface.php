@@ -21,6 +21,44 @@ namespace SmartLicenseServer\Background\Workers;
 interface WorkerInterface {
 
     /**
+     * Attach an optional logger callback for external output streaming.
+     *
+     * @param callable|null $logger A callable that accepts a single string message.
+     * @return void
+     */
+    public function set_logger( ?callable $logger ): void;
+
+    /**
+     * Attach an external stop condition callback.
+     *
+     * Useful for bridging CLI signal handlers or custom termination logic.
+     *
+     * @param callable|null $checker A callable returning boolean (true if execution should stop).
+     * @return void
+     */
+    public function set_stop_checker( ?callable $checker ): void;
+
+    /**
+     * Request the worker loop to shut down gracefully.
+     *
+     * Triggers the worker to finish the currently executing job and
+     * then break out of its processing loop.
+     *
+     * @return void
+     */
+    public function request_stop(): void;
+
+    /**
+     * Determine whether worker execution should cease.
+     *
+     * Evaluates both internal termination requests and any attached
+     * external stop checkers.
+     *
+     * @return bool True if the worker should halt, false otherwise.
+     */
+    public function should_stop(): bool;
+
+    /**
      * Claim and process the next available job from the queue.
      *
      * Implementations must:
@@ -41,16 +79,17 @@ interface WorkerInterface {
 
     /**
      * Continuously process jobs until the queue is empty or a stop
-     * condition is reached (memory limit, max jobs, timeout).
+     * condition is reached (memory limit, max jobs, timeout, or signal).
      *
      * Intended for long-running CLI workers. Web-triggered workers
-     * should use process_next_job() directly to avoid timeout issues.
+     * should use process_next_job() or process_within_time_budget() directly.
      *
      * @param string|null $queue Restrict to a specific queue, or null
      *                           for the default priority order.
      * @return int Total number of jobs processed in this run.
      */
     public function start_processing( ?string $queue = null ): int;
+
     /**
      * Process jobs until the time budget is exhausted.
      *

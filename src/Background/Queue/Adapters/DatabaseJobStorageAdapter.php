@@ -34,7 +34,8 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      */
     public function __construct( 
         private Database $db, 
-        private string $jobs_table 
+        private string $jobs_table,
+        private string $failed_job_table
     ) {}
 
     /*
@@ -100,10 +101,9 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             // then numeric priority then availability time.
             $queue_sql->order_by_case( 
                 fn( CaseExpression $case ) => $case
-                    ->as( 'priority')
-                    ->when( fn( CaseExpression $q ) => $q->where( 'queue', '=', 'critical' ), '1' )
-                    ->when( fn( CaseExpression $q ) => $q->where( 'queue', '=', 'default' ), '2' )
-                    ->when( fn( CaseExpression $q ) => $q->where( 'queue', '=', 'low' ), '3' )
+                    ->when( fn( CaseExpression $q ) => $q->where( 'queue', '=', 'critical' ), 1 )
+                    ->when( fn( CaseExpression $q ) => $q->where( 'queue', '=', 'default' ), 2 )
+                    ->when( fn( CaseExpression $q ) => $q->where( 'queue', '=', 'low' ), 3 )
                     ->else( 4 ),
                 'ASC'
             )
@@ -115,6 +115,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             $row = $this->db->get_row( $queue_sql->build(), $queue_sql->get_bindings() );
 
             if ( ! $row ) {
+                $this->db->rollback();
                 return null;
             }
 
@@ -226,7 +227,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
         try {
             $this->db->begin_transaction();
 
-            $archived = $this->db->insert( SMLISER_FAILED_JOBS_TABLE, [
+            $archived = $this->db->insert( $this->failed_job_table, [
                 'job_id'        => $id,
                 'job_class'     => $row['job_class'],
                 'queue'         => $row['queue'],

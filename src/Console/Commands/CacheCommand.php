@@ -49,10 +49,6 @@ class CacheCommand extends AbstractCommand {
         return 'Inspect and manage the system cache.';
     }
 
-    public function synopsis(): string {
-        return 'smliser cache <subcommand> [key]';
-    }
-
     public function help(): string {
         $script_name    = $this->script_name;
 
@@ -109,7 +105,11 @@ class CacheCommand extends AbstractCommand {
     public function run( CommandInput $input ): int {
         $this->output->info( 'Active Cache Adapter: ' . $this->cache->get_name() );
         $this->output->newline();
-        $this->output->writeln( 'Run `smliser cache help` to see available subcommands.' );
+
+        $this->output->writeln( sprintf(
+            'Run `%s cache help` to see available subcommands.',
+            $this->script_name
+        ));
 
         return 0;
     }

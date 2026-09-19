@@ -9,7 +9,7 @@
  * ## Registering commands
  *
  *   // Core (protected — cannot be unregistered)
- *   CommandRegistry::instance()->register_core( WorkCommand::class );
+ *   CommandRegistry::instance()->register_core( CustomCommand::class );
  *
  *   // Custom (removable)
  *   CommandRegistry::instance()->register( MyCommand::class );
@@ -43,13 +43,12 @@ use SmartLicenseServer\Console\Commands\Apps\SoftwareCommand;
 use SmartLicenseServer\Console\Commands\Apps\ThemeCommand;
 use SmartLicenseServer\Console\Commands\CacheCommand;
 use SmartLicenseServer\Console\Commands\Installer;
-use SmartLicenseServer\Console\Commands\InstallRolesCommand;
 use SmartLicenseServer\Console\Commands\MigrateCommand;
+use SmartLicenseServer\Console\Commands\QueueCommand;
 use SmartLicenseServer\Console\Commands\ScheduleCommand;
 use SmartLicenseServer\Console\Commands\SettingsCommand;
 use SmartLicenseServer\Console\Commands\TestCommand;
 use SmartLicenseServer\Console\Commands\WhoAmI;
-use SmartLicenseServer\Console\Commands\WorkCommand;
 use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Contracts\AbstractRegistry;
@@ -72,7 +71,6 @@ class CommandRegistry extends AbstractRegistry {
      */
     private array $core_commands  = [
         WhoAmI::class,
-        WorkCommand::class,
         ScheduleCommand::class,
         WorkScheduleCommand::class,
         MigrateCommand::class,
@@ -83,7 +81,8 @@ class CommandRegistry extends AbstractRegistry {
         ThemeCommand::class,
         SoftwareCommand::class,
         SettingsCommand::class,
-        TestCommand::class
+        TestCommand::class,
+        QueueCommand::class,
     ];
 
     /*

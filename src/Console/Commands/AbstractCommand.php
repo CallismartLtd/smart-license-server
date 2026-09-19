@@ -45,6 +45,16 @@ abstract class AbstractCommand implements CommandInterface {
 
     /**
      * {@inheritdoc}
+     */
+    public function synopsis(): string {
+        $has_subcommands = ! empty( $this->get_subcommands() );
+        
+        return $has_subcommands
+            ? sprintf( '%s <subcommand> [options]', $this->script_name )
+            : sprintf( '%s [options]', $this->script_name );
+    }
+    /**
+     * {@inheritdoc}
      *
      * Default: no options/arguments beyond what the command's own
      * run()/subcommand handlers read positionally.
@@ -84,10 +94,11 @@ abstract class AbstractCommand implements CommandInterface {
     | PRIVATE HELPERS
     |-----------------------
     */
+    
     /**
      * Start the timer.
      */
-    protected function start_timer() : static {
+    protected function start_timer(): static {
         if ( ! isset( $this->timer ) ) {
             $this->timer = new Stopwatch();
         }
@@ -98,15 +109,29 @@ abstract class AbstractCommand implements CommandInterface {
     }
 
     /**
-     * Stop the timer and return time elapsed.
+     * Stop the timer and return raw time elapsed in seconds.
      */
-    protected function stop_timer() : float {
+    protected function stop_timer(): float {
         if ( ! isset( $this->timer ) ) {
             $this->timer = new Stopwatch();
         }
         
-        $elaped = $this->timer->elapsed();
+        $elapsed = $this->timer->elapsed();
         $this->timer->reset();
-        return $elaped;
+
+        return $elapsed;
+    }
+
+    /**
+     * Stop the timer and return formatted time string.
+     */
+    protected function elapsed_formatted(): string {
+        $seconds = $this->stop_timer();
+
+        if ( $seconds < 1.0 ) {
+            return sprintf( '%.2f ms', $seconds * 1000 );
+        }
+
+        return sprintf( '%.2f s', $seconds );
     }
 }
