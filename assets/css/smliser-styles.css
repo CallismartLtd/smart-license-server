@@ -662,7 +662,7 @@ input.smliser_toggle-switch-input {
     flex-direction: column;
     background-color: var(--dashboard-surface);
     border-radius: 8px;
-    margin: 15px;
+    margin: 0;
     padding: 10px;
 }
 

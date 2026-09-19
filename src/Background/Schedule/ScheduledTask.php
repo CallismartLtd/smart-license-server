@@ -19,13 +19,36 @@ use Closure;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use ReflectionFunction;
+use RuntimeException;
+use SmartLicenseServer\Background\Schedule\DayMatchers\DayMatcher;
+use SmartLicenseServer\Background\Schedule\DayMatchers\DaysOfMonth;
+use SmartLicenseServer\Background\Schedule\DayMatchers\EveryDay;
+use SmartLicenseServer\Background\Schedule\DayMatchers\EveryNDays;
+use SmartLicenseServer\Background\Schedule\DayMatchers\EveryNMonths;
+use SmartLicenseServer\Background\Schedule\DayMatchers\Weekdays;
 
 /**
  * Fluent scheduled task definition.
  *
- * Holds the callable, the schedule definition, and the computed
- * next run time. The Scheduler evaluates whether it is due and
- * calls execute() when the time comes.
+ * A schedule is composed of two independent parts:
+ *   - a DayMatcher, deciding which calendar dates qualify (any day,
+ *     specific weekdays, specific days-of-month, every N days, every
+ *     N months), and
+ *   - a set of TimeOfDay values, deciding what time(s) on those dates.
+ *
+ * Every calendar-based pattern — daily(), weekly_on(), every_days(4),
+ * twice-daily via daily_at('08:00', '20:00') — reduces to the same
+ * "walk forward and ask the matcher" algorithm in next_slot_after().
+ * Pure sub-day intervals (every_minutes()/every_hours()) bypass all of
+ * this and just add seconds, since they have no notion of a day at all.
+ *
+ * IMPORTANT: Scheduler rebuilds every ScheduledTask from scratch on
+ * every tick (WP cron, crontab, CLI — see Scheduler's docblock; nothing
+ * persists in memory between runs, only last_ran_at/next_run_at via
+ * Settings). Nothing in this class may rely on "when was this object
+ * constructed" for scheduling math — every_days()/every_months() are
+ * deliberately anchored to a fixed epoch inside their DayMatcher
+ * (not to a timestamp captured here) for exactly that reason.
  */
 class ScheduledTask {
 
@@ -71,50 +94,33 @@ class ScheduledTask {
     */
 
     /**
-     * Interval in seconds between executions.
-     * Derived from the fluent schedule methods.
-     *
-     * A value of  0  means no schedule has been defined yet.
-     * A value of -1  is a sentinel meaning "one calendar month" — used
-     * by monthly_on() to avoid the inaccuracy of a fixed 30-day offset.
+     * Interval in seconds — only meaningful for a pure sub-day interval
+     * schedule (every_minutes()/every_hours()/hourly()). Stays 0 for
+     * any calendar-based schedule, where $day_matcher drives the cadence
+     * instead. A value of 0 with $day_matcher also null means "no
+     * schedule defined yet".
      *
      * @var int
      */
     private int $interval_seconds = 0;
 
     /**
-     * Specific time-of-day to run, kept as the original "H:i" string
-     * purely for display purposes (get_schedule_description()).
-     * Null means run as soon as the interval elapses.
+     * Decides which calendar dates this task runs on. Null for a pure
+     * sub-day interval schedule, or before any schedule method has
+     * been called.
      *
-     * @var string|null
+     * @var DayMatcher|null
      */
-    private ?string $time_of_day = null;
+    private ?DayMatcher $day_matcher = null;
 
     /**
-     * Real DateTimeImmutable representation of $time_of_day, holding
-     * only an hour/minute — built once when the time is set, and used
-     * for every date/time calculation instead of re-parsing the string.
+     * Time(s) of day to run on each date $day_matcher accepts. Always
+     * has at least one entry once a calendar-based schedule method has
+     * been called (defaults to 00:00 when no time is given).
      *
-     * @var DateTimeImmutable|null
+     * @var TimeOfDay[]
      */
-    private ?DateTimeImmutable $time_of_day_template = null;
-
-    /**
-     * Day of week constraint (0 = Sunday … 6 = Saturday).
-     * Used by weekly_on(). Null means no day constraint.
-     *
-     * @var int|null
-     */
-    private ?int $day_of_week = null;
-
-    /**
-     * Day of month constraint (1–28).
-     * Used by monthly_on(). Null means no day-of-month constraint.
-     *
-     * @var int|null
-     */
-    private ?int $day_of_month = null;
+    private array $times = [];
 
     /*
     |---------------
@@ -138,42 +144,60 @@ class ScheduledTask {
     }
 
     /*
-    |------------------------------
-    | FLUENT SCHEDULE DEFINITION
-    |------------------------------
+    |-------------------------------------------------
+    | FLUENT SCHEDULE DEFINITION — SUB-DAY INTERVALS
+    |-------------------------------------------------
     */
 
     /**
-     * Run every N minutes.
+     * Run every N minutes. No day pattern, no fixed clock time.
      *
      * @param int $minutes
      * @return static Fluent.
      */
     public function every_minutes( int $minutes ): static {
+        $this->day_matcher      = null;
+        $this->times            = [];
         $this->interval_seconds = max( 1, $minutes ) * 60;
         return $this;
     }
 
     /**
-     * Run every N hours.
+     * Run once every minute.
+     * 
+     * @return static
+     */
+    public function minutely() : static {
+        return $this->every_minutes( 1 );
+    }
+
+    /**
+     * Run every N hours. No day pattern, no fixed clock time.
      *
      * @param int $hours
      * @return static Fluent.
      */
     public function every_hours( int $hours ): static {
+        $this->day_matcher      = null;
+        $this->times            = [];
         $this->interval_seconds = max( 1, $hours ) * 3600;
         return $this;
     }
 
     /**
-     * Run once every hour at the top of the hour.
+     * Run once every hour, on the hour.
      *
      * @return static Fluent.
      */
     public function hourly(): static {
-        $this->interval_seconds = 3600;
-        return $this;
+        return $this->every_hours( 1 );
     }
+
+    /*
+    |------------------------------
+    | FLUENT SCHEDULE DEFINITION — CALENDAR PATTERNS
+    |------------------------------
+    */
 
     /**
      * Run once every day at midnight.
@@ -181,62 +205,144 @@ class ScheduledTask {
      * @return static Fluent.
      */
     public function daily(): static {
-        $this->interval_seconds = 86400;
-        $this->set_time_of_day( '00:00' );
+        $this->interval_seconds = 0;
+        $this->day_matcher      = new EveryDay();
+        $this->set_times();
         return $this;
     }
 
     /**
-     * Run once every day at a specific time.
+     * Run every day at one or more specific times.
      *
-     * @param string $time Time in H:i format e.g. '08:00', '23:30'.
+     *   ->daily_at( '08:00' )              // once a day
+     *   ->daily_at( '08:00', '20:00' )     // twice a day
+     *
+     * @param string ...$times One or more times in H:i format.
      * @return static Fluent.
-     * @throws InvalidArgumentException On invalid time format.
+     * @throws InvalidArgumentException On any invalid time.
      */
-    public function daily_at( string $time ): static {
-        $this->interval_seconds = 86400;
-        $this->set_time_of_day( $time );
+    public function daily_at( string ...$times ): static {
+        $this->interval_seconds = 0;
+        $this->day_matcher      = new EveryDay();
+        $this->set_times( ...$times );
         return $this;
     }
 
     /**
-     * Run once every week on a specific day and time.
+     * Run every N days, counted from a fixed epoch (see EveryNDays) —
+     * NOT from when this task happens to be registered, since Scheduler
+     * rebuilds tasks fresh on every tick.
      *
-     * @param string $day  Day name e.g. 'monday', 'sunday'. Case-insensitive.
-     * @param string $time Time in H:i format e.g. '02:00'.
+     *   ->every_days( 4 )                  // every 4 days, at midnight
+     *   ->every_days( 4, '06:00' )         // every 4 days, at 06:00
+     *
+     * @param int    $n        Run every N days. Must be >= 1.
+     * @param string ...$times One or more times in H:i format. Defaults to '00:00'.
      * @return static Fluent.
-     * @throws InvalidArgumentException On invalid day or time.
+     * @throws InvalidArgumentException If $n < 1, or on any invalid time.
      */
-    public function weekly_on( string $day, string $time = '00:00' ): static {
-        $this->interval_seconds = 604800;
-        $this->day_of_week      = $this->parse_day_of_week( $day );
-        $this->set_time_of_day( $time );
+    public function every_days( int $n, string ...$times ): static {
+        $this->interval_seconds = 0;
+        $this->day_matcher      = $n === 1 ? new EveryDay() : new EveryNDays( $n );
+        $this->set_times( ...$times );
         return $this;
     }
 
     /**
-     * Run once every month on a specific day and time.
+     * Run once every 7 days, at midnight, not tied to a specific weekday.
+     * Shorthand for every_days(7) — use weekly_on() to pin a weekday.
      *
-     * Uses a calendar-month interval (+1 month) rather than a fixed
-     * 30-day offset, so January → February → March etc. are always
-     * correct regardless of month length.
-     *
-     * @param int    $day  Day of month (1–28). Values above 28 are rejected
-     *                     to guarantee the date exists in every month.
-     * @param string $time Time in H:i format e.g. '06:00'.
      * @return static Fluent.
-     * @throws InvalidArgumentException On invalid day or time.
      */
-    public function monthly_on( int $day = 1, string $time = '00:00' ): static {
-        if ( $day < 1 || $day > 28 ) {
-            throw new InvalidArgumentException(
-                'ScheduledTask: day of month must be between 1 and 28.'
-            );
-        }
+    public function weekly(): static {
+        return $this->every_days( 7 );
+    }
 
-        $this->interval_seconds = -1; // Sentinel: calendar month, not a raw second count.
-        $this->day_of_month     = $day;
-        $this->set_time_of_day( $time );
+    /**
+     * Run weekly on one or more specific weekdays.
+     *
+     *   ->weekly_on( 'sunday', '03:00' )
+     *   ->weekly_on( ['monday', 'thursday'], '09:00' )
+     *
+     * @param string|int|array<string|int> $days     Day name(s) (case-insensitive) or 0-6 (0 = Sunday).
+     * @param string                       ...$times One or more times in H:i format. Defaults to '00:00'.
+     * @return static Fluent.
+     * @throws InvalidArgumentException On an unrecognised day, or any invalid time.
+     */
+    public function weekly_on( string|int|array $days, string ...$times ): static {
+        $days = is_array( $days ) ? $days : [ $days ];
+        $ints = array_map( fn( string|int $day ) => $this->parse_day_of_week( $day ), $days );
+
+        $this->interval_seconds = 0;
+        $this->day_matcher      = new Weekdays( ...$ints );
+        $this->set_times( ...$times );
+        return $this;
+    }
+
+    /**
+     * Run once a calendar month, on the 1st, at midnight. Shorthand for
+     * every_months(1, 1) — use monthly_on() to pin a different day.
+     *
+     * @return static Fluent.
+     */
+    public function monthly(): static {
+        return $this->every_months( 1, 1 );
+    }
+
+    /**
+     * Run monthly on one or more specific days-of-month.
+     *
+     *   ->monthly_on( 1, '00:00' )
+     *   ->monthly_on( [1, 15], '00:00' )   // twice a month
+     *
+     * @param int|array<int> $days     Day(s) of month, 1-28.
+     * @param string         ...$times One or more times in H:i format. Defaults to '00:00'.
+     * @return static Fluent.
+     * @throws InvalidArgumentException On an out-of-range day, or any invalid time.
+     */
+    public function monthly_on( int|array $days, string ...$times ): static {
+        $days = is_array( $days ) ? $days : [ $days ];
+
+        $this->interval_seconds = 0;
+        $this->day_matcher      = new DaysOfMonth( ...$days );
+        $this->set_times( ...$times );
+        return $this;
+    }
+
+    /**
+     * Run every N calendar months, on a specific day-of-month, counted
+     * from a fixed epoch month (see EveryNMonths) — NOT from when this
+     * task happens to be registered, since Scheduler rebuilds tasks
+     * fresh on every tick.
+     *
+     *   ->every_months( 2, 15, '06:00' )   // 15th, every other month
+     *
+     * @param int    $n        Run every N months. Must be >= 1.
+     * @param int    $day      Day of month, 1-28. Default 1.
+     * @param string ...$times One or more times in H:i format. Defaults to '00:00'.
+     * @return static Fluent.
+     * @throws InvalidArgumentException On invalid $n/$day, or any invalid time.
+     */
+    public function every_months( int $n, int $day = 1, string ...$times ): static {
+        $this->interval_seconds = 0;
+        $this->day_matcher      = new EveryNMonths( $n, $day );
+        $this->set_times( ...$times );
+        return $this;
+    }
+
+    /**
+     * Replace the time(s) of day for whichever calendar pattern is
+     * already configured. Lets a day pattern and its time(s) be
+     * chained separately when that reads better:
+     *
+     *   ->every_days( 4 )->at( '06:00' )
+     *
+     * @param string ...$times One or more times in H:i format.
+     * @return static Fluent.
+     * @throws InvalidArgumentException On any invalid time.
+     */
+    public function at( string ...$times ): static {
+        $this->set_times( ...$times );
         return $this;
     }
 
@@ -302,195 +408,130 @@ class ScheduledTask {
     /**
      * Determine whether this task is due to run.
      *
-     * Computes the next expected run time from the last run time
-     * and the schedule definition, then checks if now is at or past it.
-     *
      * @param DateTimeImmutable|null $last_ran_at Last execution time, or null if never run.
      * @return bool True if the task should run now.
      */
     public function is_due( ?DateTimeImmutable $last_ran_at ): bool {
-        if ( $this->interval_seconds === 0 ) {
+        if ( $this->day_matcher === null && $this->interval_seconds === 0 ) {
             return false; // No schedule defined yet.
         }
 
         $now = new DateTimeImmutable();
 
-        // Never run before — check if we are at or past the first eligible run time.
-        if ( $last_ran_at === null ) {
-            return $now >= $this->compute_first_run( $now );
-        }
+        // Never run before — resolve the first eligible slot from right
+        // now. (Deliberately "now", not a stored construction time —
+        // see the class docblock on why nothing here may depend on that.)
+        $next = $last_ran_at === null
+            ? $this->compute_next_run( $now, true )
+            : $this->compute_next_run( $last_ran_at, false );
 
-        $next = $this->compute_next_run( $last_ran_at );
         return $now >= $next;
     }
 
     /**
-     * Compute the first eligible run time for a task that has never run.
+     * Compute the next run datetime after $after.
      *
-     * Resolves the calendar date against any day-of-week / day-of-month
-     * constraint FIRST, then applies the time-of-day. Only if that
-     * combined slot is still not in the future do we advance by exactly
-     * one cycle — never more than once. (Applying the time-of-day check
-     * before the day constraint, or vice versa, independently of each
-     * other, is what previously caused first runs to overshoot by a
-     * full extra week/month whenever "now" fell on the wrong weekday
-     * AND after the target clock time.)
+     * For a calendar-based schedule this walks forward day by day
+     * (see next_slot_after()) so a late pickup is naturally absorbed —
+     * comparing the real elapsed-since-last-run timestamp against the
+     * actual candidate slots, rather than adding a fixed interval to a
+     * possibly-late timestamp, means lateness never compounds into
+     * future runs drifting later and later.
      *
-     * @param DateTimeImmutable $now
+     * @param DateTimeImmutable $after     Reference point to compute the next run after.
+     * @param bool              $inclusive Whether a slot exactly at $after counts (used
+     *                                     for a task's very first run).
      * @return DateTimeImmutable
      */
-    private function compute_first_run( DateTimeImmutable $now ): DateTimeImmutable {
-        $candidate = $this->apply_time_of_day( $this->resolve_constrained_date( $now ) );
-
-        // Only push forward if there's an actual clock target and it has
-        // already elapsed on the resolved date. A plain interval-only
-        // task (no time_of_day, no day constraint) is due immediately.
-        if ( $this->time_of_day_template !== null && $candidate <= $now ) {
-            $candidate = $this->apply_time_of_day( $this->advance_one_cycle( $candidate ) );
+    public function compute_next_run( DateTimeImmutable $after, bool $inclusive = false ): DateTimeImmutable {
+        if ( $this->day_matcher !== null ) {
+            return $this->next_slot_after( $after, $inclusive );
         }
 
-        return $candidate;
-    }
-
-    /**
-     * Compute the next run datetime after the given last run time.
-     *
-     * To avoid a late pickup causing the next run to land in the past
-     * (and therefore firing again immediately), we anchor to the canonical
-     * scheduled slot rather than the actual run timestamp.
-     *
-     * Example: daily-at-13:00 task picked up at 13:47.
-     *   Anchor  = 13:00 (snap back to scheduled time)
-     *   Next    = anchor + 24h → tomorrow 13:00  ✓
-     *
-     * @param DateTimeImmutable $last_ran_at
-     * @return DateTimeImmutable
-     */
-    public function compute_next_run( DateTimeImmutable $last_ran_at ): DateTimeImmutable {
-        // Snap the anchor back to the canonical scheduled time so a late pickup
-        // does not shift the entire future schedule forward. If it somehow ran
-        // before the scheduled time (e.g. manual trigger), keep the real run time.
-        $canonical = $this->apply_time_of_day( $last_ran_at );
-        $anchor    = ( $canonical <= $last_ran_at ) ? $canonical : $last_ran_at;
-
-        $next = $this->apply_time_of_day( $this->advance_one_cycle( $anchor ) );
-
-        // Safety net: after a long outage (or a hand-edited last_ran_at),
-        // one cycle may still not be enough to reach the future — keep
-        // advancing until it actually is. is_due() already filters out
-        // interval_seconds === 0, so this always terminates.
-        $now = new DateTimeImmutable();
-        while ( $next <= $now ) {
-            $next = $this->apply_time_of_day( $this->advance_one_cycle( $next ) );
-        }
-
-        return $next;
+        return $inclusive ? $after : $after->modify( "+{$this->interval_seconds} seconds" );
     }
 
     /*
     |------------------------------------------------
-    | DATE / TIME CALCULATION HELPERS
+    | CALENDAR CALCULATION
     |------------------------------------------------
     */
 
     /**
-     * Resolve the calendar date satisfying the day-of-week or
-     * day-of-month constraint (if any), at or after $from's date.
-     * Time-of-day is intentionally untouched here — see apply_time_of_day().
-     *
-     * @param DateTimeImmutable $from
-     * @return DateTimeImmutable
+     * How far ahead to search for a matching date before giving up.
+     * Generous even for a sparse "every 6 months" pattern; cheap either
+     * way since this only ever walks whole days, never sub-day steps.
      */
-    private function resolve_constrained_date( DateTimeImmutable $from ): DateTimeImmutable {
-        if ( $this->day_of_week !== null ) {
-            $current_dow = (int) $from->format( 'w' );
-            $days_ahead  = ( $this->day_of_week - $current_dow + 7 ) % 7;
+    private const MAX_LOOKAHEAD_DAYS = 732;
 
-            return $from->modify( "+{$days_ahead} days" );
-        }
+    /**
+     * Walk forward from $after, day by day, until $day_matcher accepts
+     * a date AND one of $times on that date is still ahead of $after
+     * (or at-or-after it, when $inclusive).
+     *
+     * This single loop is what makes twice-daily, multi-weekday, every-
+     * N-days and every-N-months all "just work" without separate code
+     * paths: the matcher and the time set are fully decoupled, and every
+     * pattern is answered by the same walk.
+     *
+     * @param DateTimeImmutable $after
+     * @param bool              $inclusive
+     * @return DateTimeImmutable
+     * @throws RuntimeException If no matching slot is found within MAX_LOOKAHEAD_DAYS.
+     */
+    private function next_slot_after( DateTimeImmutable $after, bool $inclusive ): DateTimeImmutable {
+        $cursor = $after->setTime( 0, 0, 0 );
 
-        if ( $this->day_of_month !== null ) {
-            $current_day = (int) $from->format( 'd' );
-            $candidate   = $from->setDate( (int) $from->format( 'Y' ), (int) $from->format( 'm' ), $this->day_of_month );
+        for ( $day = 0; $day <= self::MAX_LOOKAHEAD_DAYS; $day++ ) {
+            if ( $this->day_matcher->matches( $cursor ) ) {
+                foreach ( $this->sorted_times() as $time ) {
+                    $candidate = $time->apply_to( $cursor );
 
-            // Target day already passed this month — roll to next month.
-            if ( $this->day_of_month < $current_day ) {
-                $candidate = $candidate->modify( '+1 month' );
+                    if ( $inclusive ? $candidate >= $after : $candidate > $after ) {
+                        return $candidate;
+                    }
+                }
             }
 
-            return $candidate;
+            $cursor    = $cursor->modify( '+1 day' );
+            $inclusive = true; // Any time on a later day already qualifies.
         }
 
-        return $from;
-    }
-
-    /**
-     * Advance a resolved date by exactly one schedule cycle, respecting
-     * whichever constraint defines the cycle (day-of-week, day-of-month,
-     * or a raw interval for plain daily/hourly/minute-based schedules).
-     *
-     * @param DateTimeImmutable $date
-     * @return DateTimeImmutable
-     */
-    private function advance_one_cycle( DateTimeImmutable $date ): DateTimeImmutable {
-        if ( $this->day_of_week !== null ) {
-            return $date->modify( '+7 days' );
-        }
-
-        if ( $this->day_of_month !== null ) {
-            $next = $date->modify( '+1 month' );
-            return $next->setDate( (int) $next->format( 'Y' ), (int) $next->format( 'm' ), $this->day_of_month );
-        }
-
-        return $this->interval_seconds === -1
-            ? $date->modify( '+1 month' )
-            : $date->modify( "+{$this->interval_seconds} seconds" );
-    }
-
-    /**
-     * Apply the stored time-of-day template to a date, using the real
-     * DateTimeImmutable object built once by set_time_of_day() rather
-     * than re-parsing the "H:i" string on every call.
-     *
-     * @param DateTimeImmutable $date
-     * @return DateTimeImmutable
-     */
-    private function apply_time_of_day( DateTimeImmutable $date ): DateTimeImmutable {
-        if ( $this->time_of_day_template === null ) {
-            return $date;
-        }
-
-        return $date->setTime(
-            (int) $this->time_of_day_template->format( 'H' ),
-            (int) $this->time_of_day_template->format( 'i' ),
-            0
+        throw new RuntimeException(
+            sprintf( 'ScheduledTask "%s": no matching run date found within %d days.', $this->id, self::MAX_LOOKAHEAD_DAYS )
         );
     }
 
     /**
-     * Validate and store a time-of-day, building the real
-     * DateTimeImmutable template used for all later calculations.
+     * $times sorted ascending by time-of-day, so next_slot_after() checks
+     * each date's candidates in chronological order.
      *
-     * @param string $time Time in H:i format.
-     * @return void
-     * @throws InvalidArgumentException On invalid time format.
+     * @return TimeOfDay[]
      */
-    private function set_time_of_day( string $time ): void {
-        $this->assert_valid_time( $time );
+    private function sorted_times(): array {
+        $times = $this->times;
 
-        // The "!" flag resets every field not specified (year, month, day...)
-        // to the Unix epoch, leaving a real DateTimeImmutable that carries
-        // only the parsed hour/minute — no manual explode()/cast needed.
-        $template = DateTimeImmutable::createFromFormat( '!H:i', $time );
+        usort(
+            $times,
+            fn( TimeOfDay $a, TimeOfDay $b ) => $a->to_seconds_since_midnight() <=> $b->to_seconds_since_midnight()
+        );
 
-        if ( $template === false ) {
-            throw new InvalidArgumentException(
-                sprintf( 'ScheduledTask: unable to parse time "%s".', $time )
-            );
+        return $times;
+    }
+
+    /**
+     * Validate and store the time-of-day set for a calendar-based schedule.
+     *
+     * @param string ...$times One or more times in H:i format. Defaults to '00:00'.
+     * @return void
+     * @throws InvalidArgumentException On any invalid time.
+     */
+    private function set_times( string ...$times ): void {
+        if ( empty( $times ) ) {
+            $times = [ '00:00' ];
         }
 
-        $this->time_of_day          = $time;
-        $this->time_of_day_template = $template;
+        $this->times = array_map( [ TimeOfDay::class, 'from_string' ], $times );
     }
 
     /*
@@ -518,9 +559,12 @@ class ScheduledTask {
     }
 
     /**
-     * Return the interval in seconds.
+     * Return the interval in seconds for a pure sub-day interval schedule
+     * (every_minutes()/every_hours()/hourly()).
      *
-     * Returns -1 for monthly tasks (calendar-month interval sentinel).
+     * Returns 0 when this task instead uses a calendar-based schedule
+     * (daily(), weekly_on(), every_days(), etc.) — use
+     * get_schedule_description() or get_day_matcher() for those.
      *
      * @return int
      */
@@ -529,32 +573,46 @@ class ScheduledTask {
     }
 
     /**
+     * Return the day matcher driving this task's calendar pattern, or
+     * null for a pure sub-day interval schedule.
+     *
+     * @return DayMatcher|null
+     */
+    public function get_day_matcher(): ?DayMatcher {
+        return $this->day_matcher;
+    }
+
+    /**
+     * Return the configured time(s) of day, sorted ascending. Empty for
+     * a pure sub-day interval schedule.
+     *
+     * @return TimeOfDay[]
+     */
+    public function get_times(): array {
+        return $this->sorted_times();
+    }
+
+    /**
      * Return a human-readable description of the schedule.
      *
      * @return string
      */
     public function get_schedule_description(): string {
-        if ( $this->interval_seconds === 0 ) {
+        if ( $this->day_matcher === null && $this->interval_seconds === 0 ) {
             return 'No schedule defined.';
         }
 
-        $time = $this->time_of_day ?? 'any time';
-
-        if ( $this->day_of_month !== null ) {
-            return sprintf( 'Monthly on day %d at %s', $this->day_of_month, $time );
+        if ( $this->day_matcher === null ) {
+            return match ( $this->interval_seconds ) {
+                60      => 'Every minute',
+                3600    => 'Every hour',
+                default => sprintf( 'Every %d seconds', $this->interval_seconds ),
+            };
         }
 
-        if ( $this->day_of_week !== null ) {
-            $days = [ 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' ];
-            return sprintf( 'Weekly on %s at %s', $days[ $this->day_of_week ], $time );
-        }
+        $times = implode( ', ', array_map( 'strval', $this->sorted_times() ) );
 
-        return match ( $this->interval_seconds ) {
-            60      => 'Every minute',
-            3600    => 'Every hour',
-            86400   => sprintf( 'Daily at %s', $time ),
-            default => sprintf( 'Every %d seconds', $this->interval_seconds ),
-        };
+        return sprintf( '%s at %s', $this->day_matcher->describe(), $times );
     }
 
     /**
@@ -611,36 +669,20 @@ class ScheduledTask {
     */
 
     /**
-     * Assert that a time string is in valid H:i format.
+     * Resolve a day name or an already-valid 0-6 integer to a
+     * day-of-week integer (0 = Sunday … 6 = Saturday). Range validation
+     * for an integer input is left to Weekdays itself.
      *
-     * @param string $time
-     * @throws InvalidArgumentException
-     */
-    private function assert_valid_time( string $time ): void {
-        if ( ! preg_match( '/^\d{1,2}:\d{2}$/', $time ) ) {
-            throw new InvalidArgumentException(
-                sprintf( 'ScheduledTask: "%s" is not a valid time. Use H:i format e.g. "08:00".', $time )
-            );
-        }
-
-        [ $h, $m ] = explode( ':', $time );
-
-        if ( (int) $h > 23 || (int) $m > 59 ) {
-            throw new InvalidArgumentException(
-                sprintf( 'ScheduledTask: "%s" is out of range. Hours must be 0-23, minutes 0-59.', $time )
-            );
-        }
-    }
-
-    /**
-     * Parse a day name string to a day-of-week integer (0 = Sunday … 6 = Saturday).
-     *
-     * @param string $day
+     * @param string|int $day
      * @return int
-     * @throws InvalidArgumentException On unrecognised day name.
+     * @throws InvalidArgumentException On an unrecognised day name.
      */
-    private function parse_day_of_week( string $day ): int {
-        $map = [
+    private function parse_day_of_week( string|int $day ): int {
+        if ( is_int( $day ) ) {
+            return $day;
+        }
+
+        static $map = [
             'sunday'    => 0,
             'monday'    => 1,
             'tuesday'   => 2,

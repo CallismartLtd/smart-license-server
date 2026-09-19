@@ -84,7 +84,7 @@ class ScheduleCommand extends AbstractCommand {
      * @return int
      */
     public function handle_run( CommandInput $input ): int {
-        $force = (bool)$input->get_option( 'force', false );
+        $force = (bool) $input->get_option( 'force', false );
 
         $this->start_timer();
         $this->output->info( 'Evaluating scheduled tasks...' );
@@ -103,21 +103,19 @@ class ScheduleCommand extends AbstractCommand {
         $rows      = [];
         $run_count = 0;
 
-        foreach ( $tasks_to_run as $id =>$task ) {
+        foreach ( $tasks_to_run as $id => $task ) {
             try {
+
                 $task->execute();
-                $rows[] = [$id,
-                    $task->get_label() ?? $id,
-                    'PASSED',
-                    '—',
-                ];
+                $rows[] = [ $id, $task->get_label(), 'PASSED', '—' ];
+
+                $this->scheduler->record_task_ran( $id, $task );
+
             } catch ( \Throwable $e ) {
-                $rows[] = [$id,
-                    $task->get_label() ?? $id,
-                    'FAILED',
-                    $e->getMessage(),
-                ];
+                $rows[] = [ $id, $task->get_label(), 'FAILED', $e->getMessage() ];
+                $this->scheduler->record_task_failed( $id, $e->getMessage() );
             }
+
             $run_count++;
         }
 
@@ -148,14 +146,12 @@ class ScheduleCommand extends AbstractCommand {
 
         $rows = [];
         foreach ( $tasks_with_state as $id => $data ) {
-            /** @var ScheduledTask $task */
             $task  = $data['task'];
             $state = $data['state'];
 
             $last_ran   = $state['last_ran_at'] ? $state['last_ran_at']->format( \smliser_datetime_format() ) : 'Never';
             $next_run   = $state['next_run_at'] ? $state['next_run_at']->format( \smliser_datetime_format() ) : 'N/A';
-            $is_due     = $task->is_due( $state['last_ran_at'] );
-            $status     = $is_due ? 'DUE' : 'WAITING';
+            $status     = $task->is_due( $state['last_ran_at'] ) ? 'DUE' : 'WAITING';
 
             if ( ! empty( $state['last_error'] ) ) {
                 $status = 'ERROR';
