@@ -188,7 +188,7 @@ class QueueCommand extends AbstractCommand {
         $this->output->newline();
         $this->output->table( [ 'Status', 'Count' ], $rows );
         $this->output->newline();
-        $this->output->writeln( sprintf( 'Total Jobs across all states: \%d', $total ) );
+        $this->output->writeln( sprintf( 'Total Jobs across all states: %d', $total ) );
 
         return 0;
     }

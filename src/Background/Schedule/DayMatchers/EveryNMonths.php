@@ -20,7 +20,7 @@ use InvalidArgumentException;
  * task/matcher happened to be constructed.
  *
  * Scheduler rebuilds every ScheduledTask from scratch on every tick
- * (WP cron, crontab, CLI — nothing persists in memory between runs).
+ * crontab, CLI — nothing persists in memory between runs).
  * An anchor tied to construction time would therefore silently shift
  * every tick, breaking the "every N months" cadence. Anchoring to a
  * fixed epoch month instead makes matches() a pure function of the

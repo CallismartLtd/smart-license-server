@@ -20,7 +20,7 @@ use InvalidArgumentException;
  * constructed.
  *
  * Scheduler rebuilds every ScheduledTask from scratch on every tick
- * (WP cron, crontab, CLI — nothing persists in memory between runs).
+ * crontab, CLI — nothing persists in memory between runs).
  * An anchor tied to construction time would therefore silently shift
  * every tick, collapsing "every 4 days" down to "whatever day the
  * next tick happens to land on". Anchoring to a fixed epoch instead

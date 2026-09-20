@@ -23,6 +23,17 @@ class QueueWorker implements WorkerInterface {
     /**
      * Internal stop request flag.
      *
+     * Set true by request_stop() (e.g. from a signal handler) and read
+     * by should_stop(). Reset to false at the top of each run entry
+     * point (start_processing() / process_within_time_budget()) — NOT
+     * inside should_stop() itself, since should_stop() is also polled
+     * mid-loop and must not silently un-stop a worker that's already
+     * been told to shut down. Without that reset, a worker instance
+     * that outlives a single run (e.g. reused across repeated `queue
+     * work` invocations in one interactive CLI session) would carry a
+     * stale "stop requested" flag into every subsequent run and exit
+     * immediately, before processing anything.
+     *
      * @var bool
      */
     protected bool $should_quit = false;
@@ -129,6 +140,10 @@ class QueueWorker implements WorkerInterface {
      * @return int Total number of jobs processed.
      */
     public function start_processing( ?string $queue = null ): int {
+        // Re-arm: a stop requested on a previous run of this same worker
+        // instance must not carry over into this new one.
+        $this->should_quit = false;
+
         $processed = 0;
 
         $this->log( 'Worker daemon initiated.' );
@@ -171,6 +186,10 @@ class QueueWorker implements WorkerInterface {
      * @return int Total number of jobs processed.
      */
     public function process_within_time_budget( ?int $time_budget_seconds = null, ?string $queue = null ): int {
+        // Re-arm: a stop requested on a previous run of this same worker
+        // instance must not carry over into this new one.
+        $this->should_quit = false;
+
         $budget     = $time_budget_seconds ?? $this->safe_time_budget_seconds();
         $start_time = microtime( true );
         $processed  = 0;

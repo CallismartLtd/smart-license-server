@@ -18,7 +18,6 @@ use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
 use SmartLicenseServer\Background\Schedule\Scheduler;
-use SmartLicenseServer\Background\Schedule\ScheduledTask;
 
 /**
  * Manage and execute scheduled tasks from the CLI.
@@ -145,6 +144,7 @@ class ScheduleCommand extends AbstractCommand {
         }
 
         $rows = [];
+
         foreach ( $tasks_with_state as $id => $data ) {
             $task  = $data['task'];
             $state = $data['state'];

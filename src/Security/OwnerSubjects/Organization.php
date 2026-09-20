@@ -18,6 +18,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Actors\OrganizationMember;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 
 use const SMLISER_ORGANIZATIONS_TABLE;
 
@@ -29,7 +30,7 @@ use const SMLISER_ORGANIZATIONS_TABLE;
  * collaborative ownership and permission management.
  */
 class Organization extends DataStore implements OwnerSubjectInterface {
-    use SanitizeAwareTrait;
+    use SanitizeAwareTrait, DatePropertyAwareTrait;
     /**
      * Organization active status.
      *
@@ -252,23 +253,7 @@ class Organization extends DataStore implements OwnerSubjectInterface {
      * @return static
      */
     public function set_created_at( $date ) : static {
-        if ( $date instanceof DateTimeImmutable ) {
-            $this->created_at = $date;
-            return $this;
-        }
-
-        if ( ! is_string( $date ) ) {
-            return $this;
-        }
-        
-        try {
-            $date   = new DateTimeImmutable( $date );
-        } catch( DateMalformedStringException $e ) {
-            return $this;
-        }
-
-        $this->created_at = $date;
-        return $this;
+        return $this->set_date_prop( $date, 'created_at' );
     }
 
     /**
@@ -278,23 +263,7 @@ class Organization extends DataStore implements OwnerSubjectInterface {
      * @return static
      */
     public function set_updated_at( $date ) : static {
-        if ( $date instanceof DateTimeImmutable ) {
-            $this->updated_at = $date;
-            return $this;
-        }
-
-        if ( ! is_string( $date ) ) {
-            return $this;
-        }
-        
-        try {
-            $date   = new DateTimeImmutable( $date );
-        } catch( DateMalformedStringException $e ) {
-            return $this;
-        }
-
-        $this->updated_at = $date;
-        return $this;
+        return $this->set_date_prop( $date, 'updated_at' );
     }
 
     /*

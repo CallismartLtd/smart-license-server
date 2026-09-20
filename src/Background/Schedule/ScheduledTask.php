@@ -43,7 +43,7 @@ use SmartLicenseServer\Background\Schedule\DayMatchers\Weekdays;
  * this and just add seconds, since they have no notion of a day at all.
  *
  * IMPORTANT: Scheduler rebuilds every ScheduledTask from scratch on
- * every tick (WP cron, crontab, CLI — see Scheduler's docblock; nothing
+ * every tick crontab, CLI — see Scheduler's docblock; nothing
  * persists in memory between runs, only last_ran_at/next_run_at via
  * Settings). Nothing in this class may rely on "when was this object
  * constructed" for scheduling math — every_days()/every_months() are

@@ -9,10 +9,12 @@
 namespace SmartLicenseServer\Security\Actors;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
+use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const SMLISER_USERS_TABLE;
@@ -29,7 +31,7 @@ use function is_string, md5, get_object_vars;
  * Ownership is always mediated through an Owner.
  */
 class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
-    use SanitizeAwareTrait;
+    use SanitizeAwareTrait, DatePropertyAwareTrait;
 
     /**
      * User active status.
@@ -279,23 +281,7 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
      * @return static
      */
     public function set_created_at( $date ) : static {
-        if ( $date instanceof DateTimeImmutable ) {
-            $this->created_at = $date;
-            return $this;
-        }
-
-        if ( ! is_string( $date ) ) {
-            return $this;
-        }
-        
-        try {
-            $date   = new DateTimeImmutable( $date );
-        } catch( \DateMalformedStringException $e ) {
-            return $this;
-        }
-
-        $this->created_at = $date;
-        return $this;
+        return $this->set_date_prop( $date, 'created_at' );
     }
 
     /**
@@ -305,23 +291,7 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
      * @return static
      */
     public function set_updated_at( $date ) : static {
-        if ( $date instanceof DateTimeImmutable ) {
-            $this->updated_at = $date;
-            return $this;
-        }
-
-        if ( ! is_string( $date ) ) {
-            return $this;
-        }
-        
-        try {
-            $date   = new DateTimeImmutable( $date );
-        } catch( \DateMalformedStringException $e ) {
-            return $this;
-        }
-
-        $this->updated_at = $date;
-        return $this;
+        return $this->set_date_prop( $date, 'updated_at' );
     }
 
     /*
@@ -434,7 +404,7 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
         return (bool) static::$DB->transactional( function() {
             $table  = SMLISER_USERS_TABLE;
 
-            $now    = new DateTimeImmutable();
+            $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
             $fields = array(
                 'display_name'  => $this->get_display_name(),
                 'email'         => $this->get_email(),

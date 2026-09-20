@@ -22,7 +22,26 @@ class SignalManager {
     ];
 
     /**
-     * @var array<int, array<int, callable>> Registered signal listeners indexed by signal constant.
+     * Registered signal listeners, indexed by signal constant, then by a
+     * canonical identity key computed from the callback itself (see
+     * callback_key()) rather than by sequential position.
+     *
+     * Keying by identity — instead of a plain list scanned with === —
+     * means remove_listener() is an O(1) unset() rather than an O(n)
+     * scan, and re-registering the same callback overwrites its entry
+     * instead of adding a second one that would fire twice.
+     *
+     * This does NOT make two separately-defined closures with identical
+     * bodies equal — that's not an implementation gap, it's inherent:
+     * two closure objects are different values no matter how alike
+     * their code looks, so removing one requires passing the exact
+     * closure instance that was registered (same as before). What
+     * changes is everything else: string callables, and array callables
+     * ([$obj, 'method'] / [Class::class, 'method']), are now matched by
+     * stable identity rather than by how the array literal happens to be
+     * constructed.
+     *
+     * @var array<int, array<string, callable>>
      */
     private array $listeners = [];
 
@@ -80,6 +99,11 @@ class SignalManager {
      * Attach a listener callback to a specific signal.
      * Automatically hooks the signal in pcntl if supported.
      *
+     * Registering the same callback again for the same signal (by
+     * identity — see callback_key()) replaces its existing entry rather
+     * than adding a second one, so a callback can never end up firing
+     * twice per dispatch from a duplicate on() call.
+     *
      * @param int|string $signal Signal constant (e.g. SIGWINCH) or name ('SIGWINCH').
      * @param callable   $callback
      * @return static
@@ -101,15 +125,22 @@ class SignalManager {
             $this->registered_signals[ $signo ] = true;
         }
 
-        $this->listeners[ $signo ][] = $callback;
+        $this->listeners[ $signo ][ $this->callback_key( $callback ) ] = $callback;
         return $this;
     }
 
     /**
      * Remove a specific callable listener from a signal.
      *
+     * Matches by the same identity key on() stores under (see
+     * callback_key()), not by array position — an O(1) removal that
+     * works reliably for string and array callables regardless of how
+     * the caller's array literal was constructed, as long as it points
+     * at the same underlying function/object+method. A closure can only
+     * be removed by passing the exact instance that was registered.
+     *
      * @param int|string $signal Signal constant or name.
-     * @param callable   $callback The exact closure/callable instance to remove.
+     * @param callable   $callback The callback to remove.
      * @return static
      */
     public function remove_listener( int|string $signal, callable $callback ): static {
@@ -119,14 +150,7 @@ class SignalManager {
             return $this;
         }
 
-        foreach ( $this->listeners[ $signo ] as $index => $registered ) {
-            if ( $registered === $callback ) {
-                unset( $this->listeners[ $signo ][ $index ] );
-            }
-        }
-
-        // Re-index array keys to keep list clean
-        $this->listeners[ $signo ] = array_values( $this->listeners[ $signo ] );
+        unset( $this->listeners[ $signo ][ $this->callback_key( $callback ) ] );
 
         return $this;
     }
@@ -199,5 +223,44 @@ class SignalManager {
         }
 
         return defined( $signal ) ? constant( $signal ) : null;
+    }
+
+    /**
+     * Compute a canonical identity key for any callable shape, so
+     * listener storage can be keyed by "what this callback actually is"
+     * instead of relying on === against a possibly-freshly-constructed
+     * value.
+     *
+     *   - string callable   ('my_function')            -> the function name itself, which
+     *                                                       is already a stable value.
+     *   - array, instance    ([$obj, 'method'])          -> spl_object_id($obj) + the method
+     *                                                       name. Stable for as long as $obj
+     *                                                       is referenced — and it is, since
+     *                                                       a reference to it lives inside
+     *                                                       the stored callable itself.
+     *   - array, static      ([Class::class, 'method'])  -> the class name + method name.
+     *   - Closure / invokable object                     -> spl_object_id($callback). Two
+     *                                                       separately-created closures always
+     *                                                       get different ids, by design — see
+     *                                                       the $listeners property docblock.
+     *
+     * @param callable $callback
+     * @return string
+     */
+    private function callback_key( callable $callback ): string {
+        if ( is_string( $callback ) ) {
+            return 'function:' . $callback;
+        }
+
+        if ( is_array( $callback ) ) {
+            [ $target, $method ] = $callback;
+
+            return is_object( $target )
+                ? 'method:' . spl_object_id( $target ) . '::' . $method
+                : 'static:' . $target . '::' . $method;
+        }
+
+        // Closure or invokable object.
+        return 'object:' . spl_object_id( $callback );
     }
 }

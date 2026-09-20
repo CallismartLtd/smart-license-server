@@ -6,6 +6,7 @@
 namespace SmartLicenseServer\Utils;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Throwable;
 
 trait DatePropertyAwareTrait {
@@ -28,7 +29,7 @@ trait DatePropertyAwareTrait {
         }
 
         try {
-            $date   = new DateTimeImmutable( $date );
+            $date   = new DateTimeImmutable( $date, new DateTimeZone( 'UTC' ) );
         } catch ( Throwable ) {
             return $this;
         }

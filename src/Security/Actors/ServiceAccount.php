@@ -17,6 +17,7 @@ use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
@@ -31,7 +32,7 @@ use const SMLISER_SERVICE_ACCOUNTS_TABLE;
  */
 class ServiceAccount extends DataStore implements ActorInterface {
 
-    use SanitizeAwareTrait, TokenDeliveryTrait;
+    use SanitizeAwareTrait, TokenDeliveryTrait, DatePropertyAwareTrait;
 
     /**
      * Service account active status.
@@ -377,12 +378,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
      * @return static Fluent instance.
      */
     public function set_created_at( $date ) : static {
-        if ( $date instanceof DateTimeImmutable ) {
-            $this->created_at = $date;
-        } elseif ( is_string( $date ) ) {
-            try { $this->created_at = new DateTimeImmutable( $date ); } catch ( \Exception $e ) {}
-        }
-        return $this;
+        return $this->set_date_prop( $date, 'created_at' );
     }
 
     /**
@@ -392,28 +388,17 @@ class ServiceAccount extends DataStore implements ActorInterface {
      * @return static Fluent instance.
      */
     public function set_updated_at( $date ) : static {
-        if ( $date instanceof DateTimeImmutable ) {
-            $this->updated_at = $date;
-        } elseif ( is_string( $date ) ) {
-            try { $this->updated_at = new DateTimeImmutable( $date ); } catch ( \Exception $e ) {}
-        }
-        return $this;
+        return $this->set_date_prop( $date, 'updated_at' );
     }
 
     /**
      * Set the last used timestamp.
      *
-     * @param string|DateTimeImmutable $dt
+     * @param string|DateTimeImmutable $date
      * @return static Fluent instance
      */
-    public function set_last_used_at( $dt ) : static {
-        if ( $dt instanceof DateTimeImmutable ) {
-            $this->last_used_at = $dt;
-        } elseif ( is_string( $dt ) ) {
-            try { $this->last_used_at = new DateTimeImmutable( $dt ); } catch ( \Exception $e ) {}
-        }
-
-        return $this;
+    public function set_last_used_at( $date ) : static {
+        return $this->set_date_prop( $date, 'last_used_at' );
     }
 
     /*
@@ -692,7 +677,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
         }
         
         // Smart "Last Used" Update (Throttle to once every 5 minutes).
-        $now = new DateTimeImmutable();
+        $now = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
         $last_used = $sa->get_last_used_at();
         
         if ( ! $last_used || ( $now->getTimestamp() - $last_used->getTimestamp() ) > 300 ) {

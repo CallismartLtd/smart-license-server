@@ -172,7 +172,7 @@ class Scheduler {
 	/**
 	 * Evaluate all registered tasks and run any that are due.
 	 *
-	 * This is the single entry point called by any runner - WP cron,
+	 * This is the single entry point called by any runner -
 	 * system crontab, CLI script, or web hook. The runner provides
 	 * the tick; the scheduler decides what fires.
 	 *
