@@ -538,6 +538,10 @@ button:hover:not( :disabled ),
 	box-shadow: var( --dashboard-shadow );
 }
 
+.dashboard-home-url.smliser-btn-glass {
+	border-radius: 8px;
+}
+
 .smliser-logout-link-btn {
 	cursor: pointer;
 	background: var( --dashboard-danger-bg );

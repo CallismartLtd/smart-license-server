@@ -4,6 +4,7 @@ namespace SmartLicenseServer\Core\Dates;
 
 use DateTimeImmutable;
 use DateInterval;
+use DateTimeZone;
 
 /**
  * Immutable timestamp utility with calendar-accurate month/year support.
@@ -240,7 +241,7 @@ class TimestampValue {
 		// Clamp day
 		$day = min( $day, $lastDay );
 
-		$newTimestamp = (new DateTimeImmutable())
+		$newTimestamp = (new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) )
 			->setDate( $year, $month, $day )
 			->setTime( $hour, $minute, $second )
 			->getTimestamp();
@@ -289,7 +290,7 @@ class TimestampValue {
 	}
 
 	public function toDateTime() : DateTimeImmutable {
-		return ( new DateTimeImmutable() )->setTimestamp( $this->timestamp );
+		return ( new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) )->setTimestamp( $this->timestamp );
 	}
 
 	/**

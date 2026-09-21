@@ -17,6 +17,7 @@ namespace SmartLicenseServer\Background\Schedule;
 
 use Closure;
 use DateTimeImmutable;
+use DateTimeZone;
 use InvalidArgumentException;
 use ReflectionFunction;
 use RuntimeException;
@@ -416,7 +417,7 @@ class ScheduledTask {
             return false; // No schedule defined yet.
         }
 
-        $now = new DateTimeImmutable();
+        $now = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
         // Never run before — resolve the first eligible slot from right
         // now. (Deliberately "now", not a stored construction time —

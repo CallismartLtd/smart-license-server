@@ -42,9 +42,12 @@ class RequestController {
     use SanitizeAwareTrait, SecurityAwareTrait;
     public function __construct(
         protected AvatarManager $avatar,
-        protected Guard $guard,
-        protected AvatarManager $avatar_manager
-    ) {}
+        
+        protected AvatarManager $avatar_manager,
+        Guard $guard,
+    ) {
+        $this->guard = $guard;
+    }
 
     /**
      * Process request to create or update a security entity.

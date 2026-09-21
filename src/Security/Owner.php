@@ -15,6 +15,7 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use DateMalformedStringException;
+use DateTimeZone;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Schema\SchemaRegistry;
@@ -215,7 +216,7 @@ class Owner extends DataStore {
         }
 
         try {
-            $date   = new DateTimeImmutable( $date );
+            $date   = new DateTimeImmutable( $date, new DateTimeZone( 'UTC' ) );
         } catch ( DateMalformedStringException $e ) {
             return $this;
         }
@@ -242,7 +243,7 @@ class Owner extends DataStore {
         }
 
         try {
-            $date   = new DateTimeImmutable( $date );
+            $date   = new DateTimeImmutable( $date, new DateTimeZone( 'UTC' ) );
         } catch ( DateMalformedStringException $e ) {
             return $this;
         }
@@ -357,7 +358,7 @@ class Owner extends DataStore {
     public function save() : bool {
         return (bool) static::$DB->transactional( function( Database $db ) {
             $table  = SMLISER_OWNERS_TABLE;
-            $now    = new DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
+            $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
             $data   = [
                 'subject_id'    => $this->get_subject_id(),

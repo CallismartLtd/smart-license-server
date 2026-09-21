@@ -12,6 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Background\Schedule\DayMatchers;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use InvalidArgumentException;
 
 /**
@@ -54,7 +55,7 @@ final class EveryNDays implements DayMatcher {
             throw new InvalidArgumentException( 'EveryNDays: n must be at least 1.' );
         }
 
-        $this->epoch = new DateTimeImmutable( self::EPOCH );
+        $this->epoch = new DateTimeImmutable( self::EPOCH, new DateTimeZone( 'UTC' )  );
     }
 
     /**

@@ -18,8 +18,9 @@ namespace SmartLicenseServer\ClientDashboard\Handlers;
 
 use SmartLicenseServer\Background\Jobs\Accounts\PasswordResetJob;
 use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
+use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
-use SmartLicenseServer\Cache\CacheAwareTrait;
+use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Core\Dates\DateDuration;
 use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\Core\Request;
@@ -36,7 +37,7 @@ use SmartLicenseServer\SettingsAPI\UserSettings;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
 class AuthController {
-    use QueueAwareTrait, TokenDeliveryTrait, CacheAwareTrait;
+    use QueueAwareTrait, TokenDeliveryTrait;
 
     /**
      * Class constructor.
@@ -45,8 +46,12 @@ class AuthController {
         protected Guard $guard,
         protected PasswordIdentityProviderInterface $id_provider,
         protected URLManager $urlmanager,
-        protected Settings $settings
-    ) {}
+        protected Settings $settings,
+        protected Cache $cache,
+        JobQueue $job_queue
+    ) {
+        $this->job_queue = $job_queue;
+    }
 
     /*
     |--------------------------------------------------
@@ -527,7 +532,7 @@ class AuthController {
             );
         }
 
-        static::cache_delete( $cache_key );
+        $this->cache->delete( $cache_key );
         
         return static::success_response(
             200,
@@ -572,7 +577,7 @@ class AuthController {
             $user->get_id()
         );
 
-        static::cache_set(
+        $this->cache->set(
             $cache_key,
             hash( 'sha256', $token ),
             (int) DateDuration::fromHours(1)->toSeconds()
@@ -625,7 +630,7 @@ class AuthController {
         }
 
         $cache_key      = sprintf( '%s_%d', UserSettings::PWD_RESET_NAME, $payload['id'] );
-        $stored_hash    = static::cache_get( $cache_key );
+        $stored_hash    = $this->cache->get( $cache_key );
         $current_hash   = hash( 'sha256', $token );
 
         if ( ! $stored_hash || ! hash_equals( $stored_hash, $current_hash ) ) {

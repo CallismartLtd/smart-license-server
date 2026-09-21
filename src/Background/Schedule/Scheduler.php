@@ -14,6 +14,7 @@ namespace SmartLicenseServer\Background\Schedule;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\SettingsAPI\Settings;
 use DateTimeImmutable;
+use DateTimeZone;
 use SmartLicenseServer\Background\Jobs\Analytics\PruneAnalyticsLogsJob;
 use SmartLicenseServer\Background\Jobs\Analytics\PruneLicenseActivityLogsJob;
 use SmartLicenseServer\Background\Queue\JobQueue;
@@ -284,11 +285,11 @@ class Scheduler {
 
 		return [
 			'last_ran_at' => ! empty( $raw['last_ran_at'] )
-				? new DateTimeImmutable( $raw['last_ran_at'] )
+				? new DateTimeImmutable( $raw['last_ran_at'], new DateTimeZone( 'UTC' ) )
 				: null,
 
 			'next_run_at' => ! empty( $raw['next_run_at'] )
-				? new DateTimeImmutable( $raw['next_run_at'] )
+				? new DateTimeImmutable( $raw['next_run_at'], new DateTimeZone( 'UTC' ) )
 				: null,
 
 			'last_error' => $raw['last_error'] ?? null,
@@ -400,7 +401,7 @@ class Scheduler {
 	 * @return void
 	 */
 	public function record_task_ran( string $task_id, ScheduledTask $task ): void {
-		$now        = new DateTimeImmutable();
+		$now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 		$next_run   = $task->compute_next_run( $now );
 
 		$state = $this->get_persisted_state();

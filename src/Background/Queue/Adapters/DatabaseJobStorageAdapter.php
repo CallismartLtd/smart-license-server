@@ -19,6 +19,7 @@ use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\SQLBuilder;
 use Callismart\DBPrism\Utils\CaseExpression;
 use DateTimeImmutable;
+use DateTimeZone;
 use RuntimeException;
 
 /**
@@ -82,7 +83,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      * Queue ordering: critical → default → low, then by priority, then by available_at.
      */
     public function dequeue( ?string $queue = null ): ?JobDTO {
-        $now    = ( new DateTimeImmutable() )->format( 'Y-m-d H:i:s' );
+        $now    = ( new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) )->format( 'Y-m-d H:i:s' );
 
         try {
             $this->db->begin_transaction();
@@ -233,7 +234,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
                 'queue'         => $row['queue'],
                 'payload'       => $row['payload'],
                 'error_message' => $row['error_message'],
-                'failed_at'     => ( new DateTimeImmutable() )->format( 'Y-m-d H:i:s' ),
+                'failed_at'     => ( new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) )->format( 'Y-m-d H:i:s' ),
             ] );
 
             if ( $archived === false ) {
@@ -296,7 +297,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      * This handles workers that died mid-execution without updating the job.
      */
     public function release_stale_running_jobs( int $timeout_seconds = 300 ): int {
-        $cutoff = ( new DateTimeImmutable() )
+        $cutoff = ( new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) )
             ->modify( "-{$timeout_seconds} seconds" )
             ->format( 'Y-m-d H:i:s' );
 
@@ -340,7 +341,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      * {@inheritdoc}
      */
     public function purge_completed_jobs( int $older_than_days = 7 ): int {
-        $cutoff = ( new DateTimeImmutable() )
+        $cutoff = ( new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) )
             ->modify( "-{$older_than_days} days" )
             ->format( 'Y-m-d H:i:s' );
 

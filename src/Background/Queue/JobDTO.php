@@ -15,6 +15,7 @@ namespace SmartLicenseServer\Background\Queue;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use Callismart\DTO\DTO;
 use DateTimeImmutable;
+use DateTimeZone;
 use InvalidArgumentException;
 
 /**
@@ -190,8 +191,8 @@ final class JobDTO extends DTO {
         int    $delay        = 0,
     ): static {
         $available_at = $delay > 0
-            ? new DateTimeImmutable( "+{$delay} seconds" )
-            : new DateTimeImmutable();
+            ? new DateTimeImmutable( "+{$delay} seconds", new DateTimeZone( 'UTC' ) )
+            : new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
         return new static( [
             self::KEY_JOB_CLASS    => $job_class,
@@ -457,12 +458,12 @@ final class JobDTO extends DTO {
         }
 
         if ( is_int( $value ) ) {
-            return ( new DateTimeImmutable() )->setTimestamp( $value );
+            return ( new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) )->setTimestamp( $value );
         }
 
         if ( is_string( $value ) && $value !== '' ) {
             $dt = DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $value )
-                ?: new DateTimeImmutable( $value );
+                ?: new DateTimeImmutable( $value, new DateTimeZone( 'UTC' ) );
 
             if ( $dt === false ) {
                 throw new InvalidArgumentException(
@@ -474,7 +475,7 @@ final class JobDTO extends DTO {
         }
 
         // Fallback — use now.
-        return new DateTimeImmutable();
+        return new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
     }
 
     /*
@@ -501,8 +502,8 @@ final class JobDTO extends DTO {
             self::KEY_PAYLOAD       => [],
             self::KEY_ATTEMPTS      => 0,
             self::KEY_MAX_ATTEMPTS  => 3,
-            self::KEY_AVAILABLE_AT  => new DateTimeImmutable(),
-            self::KEY_CREATED_AT    => new DateTimeImmutable(),
+            self::KEY_AVAILABLE_AT  => new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ),
+            self::KEY_CREATED_AT    => new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ),
             self::KEY_STARTED_AT    => null,
             self::KEY_COMPLETED_AT  => null,
             self::KEY_RESULT        => null,
@@ -542,7 +543,7 @@ final class JobDTO extends DTO {
      * @return bool
      */
     public function is_available(): bool {
-        return $this->props[ self::KEY_AVAILABLE_AT ] <= new DateTimeImmutable();
+        return $this->props[ self::KEY_AVAILABLE_AT ] <= new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
     }
 
     /**

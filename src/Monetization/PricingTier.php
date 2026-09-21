@@ -12,6 +12,7 @@ namespace SmartLicenseServer\Monetization;
 
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
+use DateTimeZone;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Exceptions\Exception;
@@ -330,7 +331,7 @@ class PricingTier extends DataStore {
      */
     public function save() : bool {
         return static::$DB->transactional( function( Database $db ) {
-            $now    = new DateTimeImmutable();
+            $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
             $data   = [
                 'monetization_id'   => $this->monetization_id,
                 'name'              => $this->name,

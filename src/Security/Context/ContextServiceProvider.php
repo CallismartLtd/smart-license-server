@@ -34,7 +34,7 @@ use SmartLicenseServer\Security\Permission\DefaultRoles;
 
 use const SMLISER_ROLE_ASSIGNMENT_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE, 
 SMLISER_OWNERS_TABLE, SMLISER_ORGANIZATIONS_TABLE, SMLISER_USERS_TABLE, SMLISER_SERVICE_ACCOUNTS_TABLE;
-use function class_exists, parse_args_recursive, strtolower, gmdate, method_exists,
+use function class_exists, parse_args_recursive, strtolower, method_exists,
 sprintf, class_implements, in_array;
 
 /**

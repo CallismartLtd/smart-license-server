@@ -12,6 +12,10 @@ use Throwable;
 trait DatePropertyAwareTrait {
     use SanitizeAwareTrait;
     private function set_date_prop( mixed $date, string $prop ) : static {
+        if ( ! property_exists( $this, $prop ) ) {
+            return $this;
+        }
+        
         if ( $date instanceof DateTimeImmutable ) {
             $this->{$prop} = $date;
             return $this;
