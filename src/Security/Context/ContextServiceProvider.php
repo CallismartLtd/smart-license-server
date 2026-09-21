@@ -821,6 +821,7 @@ class ContextServiceProvider extends DataStore {
      * 
      * @param User $user
      * @return bool
+     * @throws SecurityException On super admin delete.
      */
     public static function delete_user( User $user ) : bool {
         return static::$DB->transactional( function ( Database $db ) use ( $user ) {

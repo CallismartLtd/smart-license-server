@@ -114,7 +114,7 @@ class RequestController {
         }
     }
 
-    /**
+/**
      * Process result to delete a security entity.
      * 
      * @param Request $request
@@ -122,19 +122,21 @@ class RequestController {
      */
     public function delete_entity( Request $request ) : Response {
         try {
+            $this->is_system_admin();
+
             $entity = $request->get( 'entity_type' );
 
             if ( ! $entity ) {
-                throw new RequestException( 'required_param', 'Please provide the security entity.' );
+                throw new RequestException( 'required_param', 'Please provide the security entity.', ['status' => 400] );
             }
 
-            $class  = ContextServiceProvider::get_entity_classname( $entity );
+            $class = ContextServiceProvider::get_entity_classname( $entity );
 
             if ( ! $class ) {
-                throw new RequestException( 'required_param', 'This provided security entity is not supported.', ['status' => 400] );
+                throw new RequestException( 'invalid_param', 'The provided security entity is not supported.', ['status' => 400] );
             }
 
-            $permission_domain =   match( strtolower( $entity ) ) {
+            $permission_domain = match( strtolower( $entity ) ) {
                 Owner::TYPE_INDIVIDUAL, 'user'      => 'user',
                 Owner::TYPE_ORGANIZATION            => 'organization',
                 'serviceaccount', 'service_account' => 'service_account',
@@ -143,34 +145,57 @@ class RequestController {
             };
 
             if ( ! $permission_domain ) {
-                throw new RequestException( 'precondition_failed' );
+                throw new RequestException( 'invalid_param', 'Invalid or unsupported permission domain.', ['status' => 400] );
             }
 
-            $cap    = sprintf( 'security.%s.delete', $permission_domain );
-
+            $cap = sprintf( 'security.%s.delete', $permission_domain );
             $this->check_permissions( $cap );
 
-            $id     = $request->get( 'id' );
-
-            $ent_object = $class::get_by_id( $id );
+            $id          = (int) $request->get( 'id' );
+            $ent_object  = $class::get_by_id( $id );
+            $entity_name = ucwords( str_replace( '_', ' ', $permission_domain ) );
 
             if ( ! $ent_object ) {
-                $ent_object = new $class;
+                throw new RequestException( 'not_found', sprintf( '%s does not exist in the database.', $entity_name ), ['status' => 404] );
             }
 
+            $actor = $this->guard->principal()->get_actor();
+
+            // Universal Self-Deletion Prevention (Users & Service Accounts).
+            if ( $actor && $ent_object->get_id() === $actor->get_id() && get_class( $ent_object ) === get_class( $actor ) ) {
+                throw new RequestException( 'precondition_failed', 'You cannot delete your own active identity.' );
+            }
+
+            // Universal Last Administrative Lockout Safeguard.
+            $role = ContextServiceProvider::get_principal_role( $ent_object );
+            
+            if ( $role && 'system_admin' === $role->get_slug() ) {
+                $admins = ContextServiceProvider::get_platform_admins();
+                
+                // Count active admins filtering out the target entity ID
+                $remaining_admins = array_filter( $admins, function( $admin ) use ( $ent_object ) {
+                    return $admin->get_id() !== $ent_object->get_id();
+                });
+
+                if ( empty( $remaining_admins ) ) {
+                    throw new RequestException( 'precondition_failed', 'Action blocked: Cannot delete the sole remaining system administrator.' );
+                }
+            }
+
+            // Execution
             ContextServiceProvider::delete_entity( $ent_object );
 
             return Response::json([
-                'success'   => true,
-                'data'      => array(
-                    'message'   => sprintf( '%s deleted successfully.', ucwords( str_replace( '_', ' ', $permission_domain ) ) ),
+                'success' => true,
+                'data'    => [
+                    'message'   => sprintf( '%s deleted successfully.', $entity_name ),
                     'entity_id' => $ent_object->get_id(),
                     'entity'    => $entity
-                )
+                ]
             ]);
         } catch ( Exception $e ) {
             return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8'  );
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
 
