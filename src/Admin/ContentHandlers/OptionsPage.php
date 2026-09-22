@@ -3,7 +3,7 @@
  * The admin options page handler class
  *
  * @author  Callistus Nwachukwu
- * @package SmartLicenseServer\Admin
+ * @package SmartLicenseServer
  * @since   0.2.0
  */
 

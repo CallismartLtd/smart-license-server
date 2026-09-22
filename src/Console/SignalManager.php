@@ -55,6 +55,11 @@ class SignalManager {
      */
     private bool $async_enabled = false;
 
+    /**
+     * @var array<int, string>|null Lazily-built signal-number-to-name lookup, cached after first use.
+     */
+    private ?array $signal_names = null;
+
     public function __construct( private Terminal $terminal ) {}
 
     /**
@@ -197,8 +202,12 @@ class SignalManager {
     /**
      * Internal handler executed by pcntl_signal or manually via dispatch().
      *
+     * Normalizes whatever pcntl (or a synthetic dispatch() call) provides
+     * into a single SignalInfo shape, so listeners never need to know
+     * the raw siginfo layout for a given signal.
+     *
      * @param int   $signal
-     * @param mixed $siginfo
+     * @param mixed $siginfo Raw pcntl siginfo array, a SignalInfo already, or arbitrary synthetic payload.
      * @return void
      */
     public function handle_signal( int $signal, mixed $siginfo = null ): void {
@@ -206,8 +215,16 @@ class SignalManager {
             return;
         }
 
+        $name = $this->signal_name( $signal );
+
+        $info = match ( true ) {
+            $siginfo instanceof SignalInfo => $siginfo,
+            is_array( $siginfo )           => SignalInfo::from_kernel( $signal, $name, $siginfo ),
+            default                        => SignalInfo::synthetic( $signal, $name, $siginfo ),
+        };
+
         foreach ( $this->listeners[ $signal ] as $callback ) {
-            $callback( $signal, $siginfo );
+            $callback( $signal, $info );
         }
     }
 
@@ -223,6 +240,29 @@ class SignalManager {
         }
 
         return defined( $signal ) ? constant( $signal ) : null;
+    }
+
+    /**
+     * Resolve a signal number back to its constant name (e.g. 15 -> 'SIGTERM').
+     *
+     * Built once from the pcntl extension's defined constants and
+     * cached, so repeated signal delivery doesn't re-scan constants.
+     *
+     * @param int $signo
+     * @return string The signal name, or the numeric value as a string if unknown.
+     */
+    private function signal_name( int $signo ): string {
+        if ( null === $this->signal_names ) {
+            $this->signal_names = [];
+
+            foreach ( get_defined_constants( true )['pcntl'] ?? [] as $name => $value ) {
+                if ( str_starts_with( $name, 'SIG' ) && ! str_starts_with( $name, 'SIG_' ) ) {
+                    $this->signal_names[ $value ] = $name;
+                }
+            }
+        }
+
+        return $this->signal_names[ $signo ] ?? (string) $signo;
     }
 
     /**

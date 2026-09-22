@@ -463,10 +463,6 @@ class AuthController {
 
         $user   = User::get_by_email( $email );
 
-        if ( ! $user ) {
-            return static::success_response( 200, $response_data );
-        }
-
         $this->password_recovery( $user, $request );
 
         return static::success_response( 200, $response_data );
@@ -546,15 +542,15 @@ class AuthController {
      * 
      * Dispatches password reset email in the background.
      *
-     * @param User $user
+     * @param User|null $user
      * @param Request $request
      */
-    private function password_recovery( User $user, Request $request ) : void {
+    private function password_recovery( ?User $user, Request $request ) : void {
 
         $raw_key = static::generate_secure_token();
 
         $payload = [
-            'id'        => $user->get_id(),
+            'id'        => $user?->get_id() ?? null,
             'timestamp' => time(),
             'nonce'     => $raw_key,
         ];
@@ -574,25 +570,28 @@ class AuthController {
         $cache_key = sprintf(
             '%s_%d',
             UserSettings::PWD_RESET_NAME,
-            $user->get_id()
+            $user?->get_id() ?? null
         );
+
+        $duration   = DateDuration::fromMinutes(15);
 
         $this->cache->set(
             $cache_key,
             hash( 'sha256', $token ),
-            (int) DateDuration::fromHours(1)->toSeconds()
+            (int) $duration->toSeconds()
         );
 
         $reset_link = $this->urlmanager->client_dashboard_url( '', array( 'key' => $token ) )
             ->set_hash( 'reset-password' );
 
+        // Enqueue to run in the background.
         $this->dispatch_job(
             PasswordResetJob::class,
             array(
-                'user_id'       => $user->get_id(),
-                'recipient'     => $user->get_email(),
+                'user_id'       => $user?->get_id() ?? null,
+                'recipient'     => $user?->get_email() ?? null,
                 'reset_url'     => $reset_link,
-                'expires_in'    => 3600,
+                'expires_in'    => (int) $duration->toMinutes(),
                 'ip_address'    => $request->ip(),
                 'user_agent'    => $request->userAgent(),
             )

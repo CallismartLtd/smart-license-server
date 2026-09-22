@@ -49,14 +49,27 @@ class PasswordResetJob implements JobHandlerInterface {
         $user       = User::get_by_id( $user_id );
 
         if ( ! $user ) {
-            return false;
+            return [
+                'Error' => sprintf(
+                    'The supplied user ID %s is not valid',
+                    $user_id
+                )
+            ];
         }
 
         $recipient      = (string) $payload['recipient'] ?? '';
         $reset_url      = (string) $payload['reset_url'] ?? '';
 
-        if ( ! $recipient || ! $reset_url ) {
-            return false;
+        if ( ! $recipient ) {
+            return [
+                'Error' => 'No valid recipient email supplied.'
+            ];
+        }
+
+        if ( ! $reset_url ) {
+            return [
+                'Error' => 'No valid reset url supplied.'
+            ];
         }
 
         $expires_in     = (int) $payload['expires_in'] ?? 0;

@@ -23,20 +23,11 @@ use SmartLicenseServer\Background\Queue\Adapters\JobStorageAdapterInterface;
 class JobQueue {
 
     /**
-     * The active job storage adapter.
-     *
-     * @var JobStorageAdapterInterface
-     */
-    protected JobStorageAdapterInterface $adapter;
-
-    /**
      * Constructor.
      *
-     * @param JobStorageAdapterInterface $adapter The storage adapter instance.
+     * @param JobStorageAdapterInterface $adapter The active job storage adapter.
      */
-    public function __construct( JobStorageAdapterInterface $adapter ) {
-        $this->adapter = $adapter;
-    }
+    public function __construct( private JobStorageAdapterInterface $adapter ) {}
 
     /*
     |--------------------
@@ -145,21 +136,63 @@ class JobQueue {
     }
 
     /**
-     * Retrieve jobs filtered by status, optionally restricted to a queue.
+     * Retrieve a page of jobs filtered by status, optionally restricted to a queue.
      *
+     * @param int         $page   1-indexed page number.
+     * @param int         $limit  Maximum number of records per page. Default 50.
      * @param string      $status One of the JobDTO::STATUS_* constants.
      * @param string|null $queue  Optionally restrict to a specific queue.
-     * @param int         $limit  Maximum number of records to return. Default 50.
-     * @param int         $offset Pagination offset. Default 0.
      * @return JobDTO[]
      */
     public function get_jobs_by_status(
+        int     $page,
+        int     $limit,
         string  $status,
-        ?string $queue  = null,
-        int     $limit  = 50,
-        int     $offset = 0
+        ?string $queue = null
     ): array {
-        return $this->adapter->get_jobs_by_status( $status, $queue, $limit, $offset );
+        return $this->adapter->get_jobs_by_status( $page, $limit, $status, $queue );
+    }
+
+    /**
+     * Retrieve a page of jobs with optional, independently-combinable filters.
+     *
+     * Unlike get_jobs_by_status(), status is optional here — the
+     * general-purpose listing for admin/CLI views that browse the
+     * queue without fixing a status up front.
+     *
+     * @param int         $page      1-indexed page number.
+     * @param int         $limit     Maximum number of records per page. Default 50.
+     * @param string|null $queue     Optionally restrict to a specific queue.
+     * @param string|null $status    Optionally restrict to a specific status.
+     * @param string|null $job_class Optionally restrict to a specific job class.
+     * @return JobDTO[]
+     */
+    public function get_jobs(
+        int     $page,
+        int     $limit,
+        ?string $queue     = null,
+        ?string $status    = null,
+        ?string $job_class = null
+    ): array {
+        return $this->adapter->get_jobs( $page, $limit, $queue, $status, $job_class );
+    }
+
+    /**
+     * Retrieve a page of archived failed jobs, optionally filtered by queue or job class.
+     *
+     * @param int         $page      1-indexed page number.
+     * @param int         $limit     Maximum number of records per page. Default 50.
+     * @param string|null $queue     Optionally restrict to a specific queue.
+     * @param string|null $job_class Optionally restrict to a specific job class.
+     * @return array<int, array<string, mixed>>
+     */
+    public function get_failed_jobs(
+        int     $page,
+        int     $limit,
+        ?string $queue     = null,
+        ?string $job_class = null
+    ): array {
+        return $this->adapter->get_failed_jobs( $page, $limit, $queue, $job_class );
     }
 
     /**
@@ -171,6 +204,29 @@ class JobQueue {
      */
     public function count_jobs_by_status( string $status, ?string $queue = null ): int {
         return $this->adapter->count_jobs_by_status( $status, $queue );
+    }
+
+    /**
+     * Count jobs matching the same optional filters as get_jobs().
+     *
+     * @param string|null $queue     Optionally restrict to a specific queue.
+     * @param string|null $status    Optionally restrict to a specific status.
+     * @param string|null $job_class Optionally restrict to a specific job class.
+     * @return int
+     */
+    public function count_jobs( ?string $queue = null, ?string $status = null, ?string $job_class = null ): int {
+        return $this->adapter->count_jobs( $queue, $status, $job_class );
+    }
+
+    /**
+     * Count archived failed jobs matching the same optional filters as get_failed_jobs().
+     *
+     * @param string|null $queue     Optionally restrict to a specific queue.
+     * @param string|null $job_class Optionally restrict to a specific job class.
+     * @return int
+     */
+    public function count_failed_jobs( ?string $queue = null, ?string $job_class = null ): int {
+        return $this->adapter->count_failed_jobs( $queue, $job_class );
     }
 
     /**
@@ -219,6 +275,20 @@ class JobQueue {
         return $this->adapter->purge_completed_jobs( $older_than_days );
     }
 
+    /**
+     * Purge archived failed jobs older than the given number of days.
+     *
+     * Failed jobs are an audit trail — call this deliberately, with a
+     * retention period appropriate to your compliance/debugging needs,
+     * rather than as part of routine completed-job cleanup.
+     *
+     * @param int $older_than_days Default 30.
+     * @return int Number of failed jobs purged.
+     */
+    public function purge_failed_jobs( int $older_than_days = 30 ): int {
+        return $this->adapter->purge_failed_jobs( $older_than_days );
+    }
+    
     /**
      * Return the active storage adapter identifier.
      *

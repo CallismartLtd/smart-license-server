@@ -19,6 +19,12 @@ use SmartLicenseServer\Background\Queue\JobDTO;
  */
 interface JobStorageAdapterInterface {
 
+    /*
+    |------------------
+    | Write operations
+    |------------------
+    */
+
     /**
      * Persist a new job to the queue.
      *
@@ -60,23 +66,15 @@ interface JobStorageAdapterInterface {
     public function update_job( JobDTO $job ): JobDTO;
 
     /**
-     * Retrieve a single job by its storage ID.
+     * Permanently remove a job from the queue.
      *
-     * @param int $id The storage-assigned job identifier.
-     * @return JobDTO|null The job envelope, or null if not found.
-     */
-    public function get_job_by_id( int $id ): ?JobDTO;
-
-    /**
-     * Retrieve all jobs matching the given status.
+     * Intended for completed jobs or manual admin purges.
+     * Does not archive — use archive_failed_job() for failures.
      *
-     * @param string      $status One of the JobDTO::STATUS_* constants.
-     * @param string|null $queue  Optionally restrict to a specific queue.
-     * @param int         $limit  Maximum number of records to return.
-     * @param int         $offset Pagination offset.
-     * @return JobDTO[]           Array of matching job envelopes, oldest first.
+     * @param JobDTO $job The job envelope to remove.
+     * @return bool       True if removed, false if not found or on failure.
      */
-    public function get_jobs_by_status( string $status, ?string $queue = null, int $limit = 50, int $offset = 0 ): array;
+    public function remove_job( JobDTO $job ): bool;
 
     /**
      * Move a failed job to the failed jobs archive and remove it from the queue.
@@ -89,16 +87,73 @@ interface JobStorageAdapterInterface {
      */
     public function archive_failed_job( JobDTO $job ): bool;
 
+    /*
+    |-----------------------
+    | Single-record lookups
+    |-----------------------
+    */
+
     /**
-     * Permanently remove a job from the queue.
+     * Retrieve a single job by its storage ID.
      *
-     * Intended for completed jobs or manual admin purges.
-     * Does not archive — use archive_failed_job() for failures.
-     *
-     * @param JobDTO $job The job envelope to remove.
-     * @return bool       True if removed, false if not found or on failure.
+     * @param int $id The storage-assigned job identifier.
+     * @return JobDTO|null The job envelope, or null if not found.
      */
-    public function remove_job( JobDTO $job ): bool;
+    public function get_job_by_id( int $id ): ?JobDTO;
+
+    /*
+    |--------------------
+    | Listing operations
+    |--------------------
+    */
+
+    /**
+     * Retrieve a page of jobs matching the given status.
+     *
+     * @param int         $page   1-indexed page number. Values below 1 are treated as 1.
+     * @param int         $limit  Maximum number of records per page.
+     * @param string      $status One of the JobDTO::STATUS_* constants.
+     * @param string|null $queue  Optionally restrict to a specific queue.
+     * @return JobDTO[]           Array of matching job envelopes, oldest first.
+     */
+    public function get_jobs_by_status( int $page, int $limit, string $status, ?string $queue = null ): array;
+
+    /**
+     * Retrieve a page of jobs with optional, independently-combinable filters.
+     *
+     * Unlike get_jobs_by_status(), status is optional here — this is
+     * the general-purpose listing method for admin/CLI views that need
+     * to browse the queue without fixing a status up front.
+     *
+     * @param int         $page      1-indexed page number. Values below 1 are treated as 1.
+     * @param int         $limit     Maximum number of records per page.
+     * @param string|null $queue     Optionally restrict to a specific queue.
+     * @param string|null $status    Optionally restrict to a specific status.
+     * @param string|null $job_class Optionally restrict to a specific job class.
+     * @return JobDTO[]              Array of matching job envelopes, oldest first.
+     */
+    public function get_jobs( int $page, int $limit, ?string $queue = null, ?string $status = null, ?string $job_class = null ): array;
+
+    /**
+     * Retrieve a page of archived failed jobs, optionally filtered by queue or job class.
+     *
+     * Failed jobs live in a separate archive table with a narrower shape
+     * than JobDTO (no status/priority/attempts lifecycle fields), so
+     * implementations return plain associative arrays rather than JobDTO.
+     *
+     * @param int         $page      1-indexed page number. Values below 1 are treated as 1.
+     * @param int         $limit     Maximum number of records per page.
+     * @param string|null $queue     Optionally restrict to a specific queue.
+     * @param string|null $job_class Optionally restrict to a specific job class.
+     * @return array<int, array<string, mixed>> Matching failed-job records, most recently failed first.
+     */
+    public function get_failed_jobs( int $page, int $limit, ?string $queue = null, ?string $job_class = null ): array;
+
+    /*
+    |---------------------
+    | Counting operations
+    |---------------------
+    */
 
     /**
      * Count jobs matching the given status, optionally filtered by queue.
@@ -108,6 +163,31 @@ interface JobStorageAdapterInterface {
      * @return int                Number of matching jobs.
      */
     public function count_jobs_by_status( string $status, ?string $queue = null ): int;
+
+    /**
+     * Count jobs matching the same optional filters as get_jobs().
+     *
+     * @param string|null $queue     Optionally restrict to a specific queue.
+     * @param string|null $status    Optionally restrict to a specific status.
+     * @param string|null $job_class Optionally restrict to a specific job class.
+     * @return int                   Number of matching jobs.
+     */
+    public function count_jobs( ?string $queue = null, ?string $status = null, ?string $job_class = null ): int;
+
+    /**
+     * Count archived failed jobs matching the same optional filters as get_failed_jobs().
+     *
+     * @param string|null $queue     Optionally restrict to a specific queue.
+     * @param string|null $job_class Optionally restrict to a specific job class.
+     * @return int                   Number of matching failed jobs.
+     */
+    public function count_failed_jobs( ?string $queue = null, ?string $job_class = null ): int;
+
+    /*
+    |-----------------------
+    | Maintenance operations
+    |-----------------------
+    */
 
     /**
      * Release jobs that have been in 'running' state longer than the
@@ -131,6 +211,25 @@ interface JobStorageAdapterInterface {
      * @return int                 Number of jobs purged.
      */
     public function purge_completed_jobs( int $older_than_days = 7 ): int;
+
+    /**
+     * Purge archived failed jobs older than the given number of days.
+     *
+     * Failed jobs are an audit trail, not disposable state like
+     * completed jobs — implementations should use a longer default
+     * retention than purge_completed_jobs() and this should always
+     * be an explicit, deliberate action.
+     *
+     * @param int $older_than_days Failed jobs archived more than this many days ago are removed.
+     * @return int                 Number of failed jobs purged.
+     */
+    public function purge_failed_jobs( int $older_than_days = 30 ): int;
+    
+    /*
+    |----------
+    | Identity
+    |----------
+    */
 
     /**
      * Return a unique identifier for this storage backend.

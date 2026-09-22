@@ -40,9 +40,9 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
     ) {}
 
     /*
-    |-------------------------------------------
-    | JobStorageAdapterInterface implementation
-    |-------------------------------------------
+    |------------------
+    | Write operations
+    |------------------
     */
 
     /**
@@ -179,35 +179,16 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
     /**
      * {@inheritdoc}
      */
-    public function get_job_by_id( int $id ): ?JobDTO {
-        $sql    = $this->query()
-            ->select( '*' )->from( $this->jobs_table )
-            ->where( 'id', '=', $id )
-            ->limit( 1 );
-        $row = $this->db->get_row( $sql->build(), $sql->get_bindings() );
+    public function remove_job( JobDTO $job ): bool {
+        $id = $job->get( JobDTO::KEY_ID );
 
-        return $row ? $this->row_to_dto( $row ) : null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function get_jobs_by_status( string $status, ?string $queue = null, int $limit = 50, int $offset = 0 ): array {
-        $sql    = $this->query()
-            ->select( '*' )->from( $this->jobs_table )
-            ->where( 'status', '=', $status );
-
-        if ( $queue !== null ) {
-            $sql->where( 'queue', '=', $queue );
+        if ( ! $id ) {
+            return false;
         }
 
-        $sql->order_by( 'created_at', 'ASC' )
-        ->limit( $limit )
-        ->offset( $offset );
+        $affected = $this->db->delete( $this->jobs_table, [ 'id' => $id ] );
 
-        $rows = $this->db->get_results( $sql->build(), $sql->get_bindings() );
-
-        return array_map( [ $this, 'row_to_dto' ], $rows );
+        return false !== $affected;
     }
 
     /**
@@ -258,36 +239,172 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
         }
     }
 
+    /*
+    |-----------------------
+    | Single-record lookups
+    |-----------------------
+    */
+
     /**
      * {@inheritdoc}
      */
-    public function remove_job( JobDTO $job ): bool {
-        $id = $job->get( JobDTO::KEY_ID );
+    public function get_job_by_id( int $id ): ?JobDTO {
+        $sql    = $this->query()
+            ->select( '*' )->from( $this->jobs_table )
+            ->where( 'id', '=', $id )
+            ->limit( 1 );
+        $row = $this->db->get_row( $sql->build(), $sql->get_bindings() );
 
-        if ( ! $id ) {
-            return false;
+        return $row ? $this->row_to_dto( $row ) : null;
+    }
+
+    /*
+    |--------------------
+    | Listing operations
+    |--------------------
+    */
+
+    /**
+     * {@inheritdoc}
+     */
+    public function get_jobs_by_status( int $page, int $limit, string $status, ?string $queue = null ): array {
+        $sql = $this->query()
+            ->select( '*' )->from( $this->jobs_table )
+            ->where( 'status', '=', $status );
+
+        if ( null !== $queue ) {
+            $sql->where( 'queue', '=', $queue );
         }
 
-        $affected = $this->db->delete( $this->jobs_table, [ 'id' => $id ] );
+        $sql->order_by( 'created_at', 'ASC' )
+            ->limit( $limit )
+            ->offset( $this->paginate_offset( $page, $limit ) );
 
-        return (bool) $affected;
+        $rows = $this->db->get_results( $sql->build(), $sql->get_bindings() );
+
+        return array_map( [ $this, 'row_to_dto' ], $rows );
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function get_jobs( int $page, int $limit, ?string $queue = null, ?string $status = null, ?string $job_class = null ): array {
+        $sql = $this->query()
+            ->select( '*' )->from( $this->jobs_table );
+
+        if ( null !== $queue ) {
+            $sql->where( 'queue', '=', $queue );
+        }
+
+        if ( null !== $status ) {
+            $sql->where( 'status', '=', $status );
+        }
+
+        if ( null !== $job_class ) {
+            $sql->where( 'job_class', '=', $job_class );
+        }
+
+        $sql->order_by( 'created_at', 'ASC' )
+            ->limit( $limit )
+            ->offset( $this->paginate_offset( $page, $limit ) );
+
+        $rows = $this->db->get_results( $sql->build(), $sql->get_bindings() );
+
+        return array_map( [ $this, 'row_to_dto' ], $rows );
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Lists archived failed jobs, most recently failed first.
+     */
+    public function get_failed_jobs( int $page, int $limit, ?string $queue = null, ?string $job_class = null ): array {
+        $sql = $this->query()
+            ->select( '*' )->from( $this->failed_job_table );
+
+        if ( null !== $queue ) {
+            $sql->where( 'queue', '=', $queue );
+        }
+
+        if ( null !== $job_class ) {
+            $sql->where( 'job_class', '=', $job_class );
+        }
+
+        $sql->order_by( 'failed_at', 'DESC' )
+            ->limit( $limit )
+            ->offset( $this->paginate_offset( $page, $limit ) );
+
+        $rows = $this->db->get_results( $sql->build(), $sql->get_bindings() );
+
+        return array_map( [ $this, 'failed_row_to_array' ], $rows );
+    }
+
+    /*
+    |---------------------
+    | Counting operations
+    |---------------------
+    */
 
     /**
      * {@inheritdoc}
      */
     public function count_jobs_by_status( string $status, ?string $queue = null ): int {
-        $queue_sql = $this->query()
+        $sql = $this->query()
             ->select( 'COUNT(*)' )->from( $this->jobs_table )
             ->where( 'status', '=', $status );
 
-
-        if ( $queue !== null ) {
-            $queue_sql->where( 'queue', '=', $queue );
+        if ( null !== $queue ) {
+            $sql->where( 'queue', '=', $queue );
         }
 
-        return (int) $this->db->get_var( $queue_sql->build(), $queue_sql->get_bindings() );
+        return (int) $this->db->get_var( $sql->build(), $sql->get_bindings() );
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function count_jobs( ?string $queue = null, ?string $status = null, ?string $job_class = null ): int {
+        $sql = $this->query()
+            ->select( 'COUNT(*)' )->from( $this->jobs_table );
+
+        if ( null !== $queue ) {
+            $sql->where( 'queue', '=', $queue );
+        }
+
+        if ( null !== $status ) {
+            $sql->where( 'status', '=', $status );
+        }
+
+        if ( null !== $job_class ) {
+            $sql->where( 'job_class', '=', $job_class );
+        }
+
+        return (int) $this->db->get_var( $sql->build(), $sql->get_bindings() );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function count_failed_jobs( ?string $queue = null, ?string $job_class = null ): int {
+        $sql = $this->query()
+            ->select( 'COUNT(*)' )->from( $this->failed_job_table );
+
+        if ( null !== $queue ) {
+            $sql->where( 'queue', '=', $queue );
+        }
+
+        if ( null !== $job_class ) {
+            $sql->where( 'job_class', '=', $job_class );
+        }
+
+        return (int) $this->db->get_var( $sql->build(), $sql->get_bindings() );
+    }
+
+    /*
+    |-----------------------
+    | Maintenance operations
+    |-----------------------
+    */
 
     /**
      * {@inheritdoc}
@@ -301,10 +418,10 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             ->modify( "-{$timeout_seconds} seconds" )
             ->format( 'Y-m-d H:i:s' );
 
-            $sql    = $this->query()
-                ->select( '*' )->from( $this->jobs_table )
-                ->where( 'status', '=', JobDTO::STATUS_RUNNING )
-                ->where( 'started_at', '<=', $cutoff );
+        $sql = $this->query()
+            ->select( '*' )->from( $this->jobs_table )
+            ->where( 'status', '=', JobDTO::STATUS_RUNNING )
+            ->where( 'started_at', '<=', $cutoff );
 
         $stale_jobs = $this->db->get_results( $sql->build(), $sql->get_bindings() );
 
@@ -345,14 +462,38 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             ->modify( "-{$older_than_days} days" )
             ->format( 'Y-m-d H:i:s' );
 
-        $sql    = $this->query()
+        $sql = $this->query()
             ->delete( $this->jobs_table )
             ->where( 'status', '=', JobDTO::STATUS_COMPLETED )
             ->where( 'completed_at', '<=', $cutoff );
+
         $deleted = $this->db->execute( $sql->build(), $sql->get_bindings() );
 
         return $deleted;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function purge_failed_jobs( int $older_than_days = 30 ): int {
+        $cutoff = ( new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) )
+            ->modify( "-{$older_than_days} days" )
+            ->format( 'Y-m-d H:i:s' );
+
+        $sql = $this->query()
+            ->delete( $this->failed_job_table )
+            ->where( 'failed_at', '<=', $cutoff );
+
+        $deleted = $this->db->execute( $sql->build(), $sql->get_bindings() );
+
+        return $deleted;
+    }
+    
+    /*
+    |----------
+    | Identity
+    |----------
+    */
 
     /**
      * {@inheritdoc}
@@ -422,6 +563,27 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
     }
 
     /**
+     * Shape a raw failed_job_table row for consumption, decoding its
+     * JSON payload column. Not a JobDTO — the failed-jobs table has
+     * a narrower, archival shape (job_id, job_class, queue, payload,
+     * error_message, failed_at).
+     *
+     * @param array<string, mixed> $row Raw associative row from the DB.
+     * @return array<string, mixed>
+     */
+    private function failed_row_to_array( array $row ): array {
+        return [
+            'id'            => (int) $row['id'],
+            'job_id'        => (int) $row['job_id'],
+            'job_class'     => (string) $row['job_class'],
+            'queue'         => (string) $row['queue'],
+            'payload'       => $this->decode_payload( $row['payload'] ?? '' ),
+            'error_message' => (string) ( $row['error_message'] ?? '' ),
+            'failed_at'     => (string) $row['failed_at'],
+        ];
+    }
+
+    /**
      * Decode a JSON-encoded payload string from the database.
      *
      * Returns an empty array on any decode failure so the system
@@ -438,6 +600,22 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
         $decoded = json_decode( (string) $raw, true );
 
         return is_array( $decoded ) ? $decoded : [];
+    }
+
+    /**
+     * Convert a 1-indexed page number and page size into a SQL OFFSET.
+     *
+     * Pages below 1 are clamped to 1 so callers can't request a
+     * negative offset.
+     *
+     * @param int $page  1-indexed page number.
+     * @param int $limit Records per page.
+     * @return int        Row offset for the query.
+     */
+    private function paginate_offset( int $page, int $limit ): int {
+        $page = max( 1, $page );
+
+        return ( $page - 1 ) * $limit;
     }
 
     /**
