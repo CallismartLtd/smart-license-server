@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
+use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
@@ -17,10 +18,11 @@ use SmartLicenseServer\Templates\TemplateLocator;
 /**
  * The admin system operations page handler.
  */
-class SystemPage implements AdminPageInterface {
+class ToolsPage implements AdminPageInterface {
 
     public function __construct(
         protected Scheduler $scheduler,
+        protected JobQueue $job_queue,
         protected TemplateLocator $locator,
         protected URLManager $urlmanager
     ) {}
@@ -34,22 +36,30 @@ class SystemPage implements AdminPageInterface {
     }
 
     public function queues_page( Request $request ) {
-        $jobs           = [];
+        $section    = $request->query( 'section' );
+        $page       = (int) $request->get( 'page', 1 );
+        $limit      = (int) $request->get( 'limit', 25 );
+        $queue      = $request->get( 'queue', null );
+        $status     = $request->get( 'status', null );
+        $jobs       = 'failed' === $section
+            ? $this->job_queue->get_failed_jobs( $page, $limit, $queue )
+            : $this->job_queue->get_jobs( $page, $limit, $queue, $status );
+
         $page_handler   = $this;
         $vars   = \compact( 'jobs', 'page_handler', 'request' );
-        $this->locator->render( 'admin.contents.system.index', $vars ); 
+        $this->locator->render( 'admin.contents.system.queues', $vars ); 
     }
 
     public function get_menu_key() : string {
-        return 'system';
+        return 'tools';
     }
 
     public function get_menu_data(): array {
         return [
-            'title'         => 'System',
+            'title'         => 'Tools',
             'icon'          => 'ti ti-tool',
             'handler'       => $this,
-            'slug'          => 'system',
+            'slug'          => 'tools',
             'visibility'    => true
         ];
     }

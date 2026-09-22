@@ -137,15 +137,15 @@ interface JobStorageAdapterInterface {
     /**
      * Retrieve a page of archived failed jobs, optionally filtered by queue or job class.
      *
-     * Failed jobs live in a separate archive table with a narrower shape
-     * than JobDTO (no status/priority/attempts lifecycle fields), so
-     * implementations return plain associative arrays rather than JobDTO.
+     * As of the widened failed-jobs archive, this returns full JobDTO
+     * envelopes — attempt history, timing, and any partial result are
+     * preserved on archive, not just enough to identify the failure.
      *
      * @param int         $page      1-indexed page number. Values below 1 are treated as 1.
      * @param int         $limit     Maximum number of records per page.
      * @param string|null $queue     Optionally restrict to a specific queue.
      * @param string|null $job_class Optionally restrict to a specific job class.
-     * @return array<int, array<string, mixed>> Matching failed-job records, most recently failed first.
+     * @return JobDTO[]              Matching failed jobs, most recently failed first.
      */
     public function get_failed_jobs( int $page, int $limit, ?string $queue = null, ?string $job_class = null ): array;
 

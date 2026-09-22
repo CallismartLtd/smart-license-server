@@ -811,6 +811,31 @@ function initBroadcastEditor() {
     });
 }
 
+/**
+ * Open a detail modal for the queues table action.
+ *
+ * @param {HTMLElement} trigger
+ */
+function openQueueDetails( trigger ) {
+    const title   = trigger.getAttribute( 'data-title' ) || 'Detail';
+    const content = trigger.getAttribute( 'data-content' ) || '';
+
+    const body = document.createElement( 'pre' );
+    body.className = 'smliser-detail-modal-content';
+    body.textContent = content; // textContent, not innerHTML — content is raw, not HTML.
+
+    const modal = new SmliserModal( {
+        title:       title,
+        body:        body,
+        width:       '640px',
+        customClass: 'smliser-detail-modal',
+    } );
+
+    modal.on( 'afterClose', () => modal.destroy() );
+
+    modal.open();
+}
+
 document.addEventListener( 'DOMContentLoaded', async function() {
     let licenseDownloadTokenBtn = document.querySelector( '.smliser-generate-download-token-btn' );
     let licenseKeyContainers    = document.querySelectorAll( '.smliser-license-obfuscation' );
@@ -850,6 +875,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     const emailTemplateToggle   = document.querySelectorAll( '.smliser-template-toggle' );
     const testCacheAdapterBtn   = document.querySelector( '.test-cache-btn' );
     const resetCacheAdapterBtn  = document.querySelector( '.reset-cache-btn' );
+    const queueDetailsBtn       = document.querySelectorAll( '.smliser-view-detail' );
 
     const $adminPage = $( '.smliser-admin-page' ).css( 'position', 'relative' );
 
@@ -2824,6 +2850,14 @@ document.addEventListener( 'DOMContentLoaded', async function() {
                 resetCacheAdapterBtn.disabled    = false;
             }
         });
+    }
+
+    if ( queueDetailsBtn.length ) {
+        queueDetailsBtn.forEach( btn => {
+            btn.addEventListener( 'click', e => {
+                openQueueDetails( e.target );
+            })
+        })
     }
 
 });

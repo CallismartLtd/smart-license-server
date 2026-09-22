@@ -1,10 +1,22 @@
 /**
  * SmliserModal - A highly customizable, event-driven modal component
  * Supports HTMLElement instances, template strings, and custom events
- * WITH FULL ACCESSIBILITY SUPPORT
+ * WITH FULL ACCESSIBILITY SUPPORT AND GLOBAL THEME SUPPORT
+ *
+ * Theming: every instance reads SmliserModal's shared global theme
+ * ('auto' | 'light' | 'dark') by default — no per-call changes needed
+ * anywhere. To go dark app-wide, call SmliserModal.setGlobalTheme('dark')
+ * once. To live-sync with a host app's own theme toggle, call
+ * SmliserModal.watchTheme(...) once at bootstrap — the modal never reads
+ * document.documentElement or guesses an attribute on its own; the host
+ * must opt in explicitly via that call. An individual modal can still
+ * override the global theme by passing its own `theme` option, in which
+ * case that instance stops following later global changes.
  */
 class SmliserModal {
     constructor( options = {} ) {
+        const hasExplicitTheme = Object.prototype.hasOwnProperty.call( options, 'theme' );
+
         this.options = {
             title: options.title || 'Modal Title',
             body: options.body || '',
@@ -19,8 +31,15 @@ class SmliserModal {
             maxWidth: options.maxWidth || '90vw',
             zIndex: options.zIndex || 9999,
             autoFocus: options.autoFocus || true,
+            theme: hasExplicitTheme ? options.theme : SmliserModal._globalTheme,
+            themeWatch: options.themeWatch || null,
             ...options
         };
+
+        // True unless this instance was given its own explicit `theme`
+        // option — in which case it opts out of following later
+        // SmliserModal.setGlobalTheme() calls.
+        this._followsGlobalTheme = ! hasExplicitTheme;
 
         this.isOpen         = false;
         this.backdrop       = null;
@@ -38,6 +57,10 @@ class SmliserModal {
         this.titleId = 'smliser-modal-title-' + Date.now();
         this.bodyId = 'smliser-modal-body-' + Date.now();
 
+        // Per-instance theme watcher (opt-in, rarely needed now that
+        // SmliserModal.watchTheme() covers the global case).
+        this._themeObserver = null;
+
         // Event handlers storage.
         this.eventHandlers = {
             beforeOpen: [],
@@ -54,6 +77,8 @@ class SmliserModal {
          */
         this.target = null;
 
+        SmliserModal._instances.add( this );
+
         this._init();
     }
 
@@ -65,6 +90,8 @@ class SmliserModal {
         this._createBackdrop();
         this._createModal();
         this._setupEventListeners();
+        this._applyTheme( this.options.theme );
+        this._setupThemeWatcher();
     }
 
     /**
@@ -180,6 +207,181 @@ class SmliserModal {
         const div = document.createElement('div');
         div.textContent = html; // Use textContent to prevent XSS
         return div.innerHTML;
+    }
+
+    /**
+     * Apply a theme to this modal instance by writing the single
+     * attribute the CSS keys off (`data-smliser-theme`). 'auto'
+     * clears the attribute so prefers-color-scheme governs instead.
+     * @private
+     * @param {'auto'|'light'|'dark'} theme
+     */
+    _applyTheme( theme ) {
+        if ( ! this.backdrop ) {
+            return;
+        }
+
+        if ( 'dark' === theme || 'light' === theme ) {
+            this.backdrop.setAttribute( 'data-smliser-theme', theme );
+        } else {
+            this.backdrop.removeAttribute( 'data-smliser-theme' );
+        }
+    }
+
+    /**
+     * Override this specific instance's theme. After calling this, the
+     * instance stops following SmliserModal.setGlobalTheme() — it's
+     * been given an explicit instruction and won't be silently
+     * overridden by a later app-wide change.
+     * @param {'auto'|'light'|'dark'} theme
+     * @returns {SmliserModal}
+     */
+    setTheme( theme ) {
+        this.options.theme = theme;
+        this._followsGlobalTheme = false;
+        this._applyTheme( theme );
+        return this;
+    }
+
+    /**
+     * Optionally sync THIS instance's theme with a host-defined signal,
+     * independent of the global theme. Rarely needed — prefer the
+     * static SmliserModal.watchTheme() for app-wide syncing, which
+     * needs to be set up only once. Use this only when one specific
+     * modal must track a different signal than the rest of the app.
+     *
+     * The modal never reads document.documentElement or any other host
+     * element on its own; a host that wants this must opt in explicitly:
+     *
+     *   themeWatch: {
+     *     target: someElement,
+     *     attribute: 'data-theme',
+     *     resolve: (value) => value === 'dark' ? 'dark' : 'light'
+     *   }
+     * @private
+     */
+    _setupThemeWatcher() {
+        const watch = this.options.themeWatch;
+
+        if ( ! watch || ! watch.target || ! watch.attribute ) {
+            return;
+        }
+
+        this._followsGlobalTheme = false;
+
+        const resolve = typeof watch.resolve === 'function'
+            ? watch.resolve
+            : ( value ) => value;
+
+        const sync = () => {
+            const raw = watch.target.getAttribute( watch.attribute );
+            this.setTheme( resolve( raw ) );
+        };
+
+        sync(); // Initial sync so the modal opens already matching the host.
+
+        this._themeObserver = new MutationObserver( sync );
+        this._themeObserver.observe( watch.target, {
+            attributes: true,
+            attributeFilter: [ watch.attribute ],
+        } );
+    }
+
+    /**
+     * Stop this instance's own theme watcher, if one was set up.
+     * @private
+     */
+    _teardownThemeWatcher() {
+        if ( this._themeObserver ) {
+            this._themeObserver.disconnect();
+            this._themeObserver = null;
+        }
+    }
+
+    /**
+     * Set the theme used by every SmliserModal instance that hasn't
+     * been given its own explicit `theme` option or its own
+     * `themeWatch`. Already-created, still-tracked instances are
+     * updated immediately; any instance created afterwards inherits
+     * this value automatically, with no per-call changes needed.
+     *
+     * @param {'auto'|'light'|'dark'} theme
+     */
+    static setGlobalTheme( theme ) {
+        SmliserModal._globalTheme = theme;
+
+        SmliserModal._instances.forEach( ( instance ) => {
+            if ( instance._followsGlobalTheme ) {
+                instance._applyTheme( theme );
+            }
+        } );
+    }
+
+    /**
+     * @returns {'auto'|'light'|'dark'} The current global theme.
+     */
+    static getGlobalTheme() {
+        return SmliserModal._globalTheme;
+    }
+
+    /**
+     * Opt the whole app into live theme syncing, ONCE, globally —
+     * instead of wiring `themeWatch` into every individual modal call.
+     * Observes a host element/attribute and pushes resolved changes
+     * through setGlobalTheme(), which then reaches every tracked
+     * instance (open or yet to be created).
+     *
+     * The modal has no opinion on how a host app represents its theme
+     * (a data-attribute, a class, etc.), so it never reads any host
+     * element unless told to via this call.
+     *
+     * @param {Object} config
+     * @param {HTMLElement} config.target - Element to observe (e.g. document.documentElement).
+     * @param {string} config.attribute - Attribute to watch (e.g. 'data-theme').
+     * @param {(value: string|null) => ('auto'|'light'|'dark')} [config.resolve] - Maps the raw attribute value to a theme. Defaults to passing the raw value through.
+     *
+     * @example
+     * SmliserModal.watchTheme({
+     *     target: document.documentElement,
+     *     attribute: 'data-theme',
+     *     resolve: ( value ) => value === 'dark' ? 'dark' : 'light',
+     * });
+     * // Every SmliserModal.alert(), .confirm(), new SmliserModal(...)
+     * // call anywhere in the app now follows this automatically.
+     */
+    static watchTheme( config ) {
+        if ( ! config || ! config.target || ! config.attribute ) {
+            return;
+        }
+
+        SmliserModal.unwatchTheme();
+
+        const resolve = typeof config.resolve === 'function'
+            ? config.resolve
+            : ( value ) => value;
+
+        const sync = () => {
+            const raw = config.target.getAttribute( config.attribute );
+            SmliserModal.setGlobalTheme( resolve( raw ) );
+        };
+
+        sync(); // Initial sync so the current global theme matches the host right away.
+
+        SmliserModal._globalThemeObserver = new MutationObserver( sync );
+        SmliserModal._globalThemeObserver.observe( config.target, {
+            attributes: true,
+            attributeFilter: [ config.attribute ],
+        } );
+    }
+
+    /**
+     * Stop the global theme watcher started by watchTheme(), if any.
+     */
+    static unwatchTheme() {
+        if ( SmliserModal._globalThemeObserver ) {
+            SmliserModal._globalThemeObserver.disconnect();
+            SmliserModal._globalThemeObserver = null;
+        }
     }
 
     /**
@@ -612,6 +814,9 @@ class SmliserModal {
         if ( this.isOpen ) {
             await this.close();
         }
+
+        this._teardownThemeWatcher();
+        SmliserModal._instances.delete( this );
         
         if ( this.backdrop && this.backdrop.parentNode ) {
             document.body.removeChild( this.backdrop );
@@ -648,6 +853,7 @@ class SmliserModal {
      * @param {string} options.confirmClass - CSS class for confirm button (default: 'btn-primary')
      * @param {string} options.cancelClass - CSS class for cancel button (default: 'btn-secondary')
      * @param {boolean} options.danger - Use danger styling (default: false)
+     * @param {'auto'|'light'|'dark'} [options.theme] - Optional per-call theme override. Omit to follow the global theme.
      * @returns {Promise<boolean>} True if confirmed, false if cancelled
      * 
      * @example
@@ -680,7 +886,7 @@ class SmliserModal {
                 confirmClass: options.confirmClass || 'smliser-btn-primary',
                 cancelClass: options.cancelClass || 'smliser-btn-secondary',
                 danger: options.danger || false,
-                icon: options.icon || '❓'
+                icon: options.icon || ( options.danger ? SmliserModal.icons.warning : SmliserModal.icons.question )
             };
 
             // Create body content
@@ -688,7 +894,7 @@ class SmliserModal {
             bodyContent.className = 'smliser-dialog-content';
             bodyContent.innerHTML = `
                 <div class="smliser-dialog-icon ${config.danger ? 'danger' : 'info'}">
-                    ${config.danger ? '⚠️' : config.icon}
+                    ${config.icon}
                 </div>
                 <div class="smliser-dialog-message">${config.message}</div>
             `;
@@ -710,16 +916,20 @@ class SmliserModal {
             footerContent.appendChild( cancelBtn );
             footerContent.appendChild( confirmBtn );
 
-            // Create modal
-            const modal = new SmliserModal({
+            // Create modal. Theme is intentionally NOT set here unless the
+            // caller explicitly passed one — omitting it lets the instance
+            // follow SmliserModal's global theme automatically.
+            const modal = new SmliserModal( {
                 title: config.title,
                 body: bodyContent,
                 footer: footerContent,
                 width: '500px',
                 customClass: 'smliser-dialog smliser-confirm-dialog',
                 closeOnBackdropClick: false,
-                closeOnEscape: true
-            });
+                closeOnEscape: true,
+                ...( 'theme' in options ? { theme: options.theme } : {} ),
+                ...( 'themeWatch' in options ? { themeWatch: options.themeWatch } : {} )
+            } );
 
             let handled = false;
             // Event handlers
@@ -760,6 +970,7 @@ class SmliserModal {
      * @param {string} options.message - Alert message
      * @param {string} options.buttonText - Button text (default: 'OK')
      * @param {string} options.type - Alert type: 'info', 'success', 'warning', 'error' (default: 'info')
+     * @param {'auto'|'light'|'dark'} [options.theme] - Optional per-call theme override. Omit to follow the global theme.
      * @returns {Promise<void>}
      * 
      * @example
@@ -789,12 +1000,7 @@ class SmliserModal {
             };
 
             // Icon mapping
-            const iconMap = {
-                info: 'ℹ️',
-                success: '✅',
-                warning: '⚠️',
-                error: '❌'
-            };
+            const iconMap = SmliserModal.icons;
 
             // Create body content
             const bodyContent = document.createElement( 'div' );
@@ -817,8 +1023,10 @@ class SmliserModal {
             
             footerContent.appendChild( okBtn );
 
-            // Create modal
-            const modal = new SmliserModal({
+            // Create modal. As with confirm(), theme is only set if the
+            // caller explicitly passed one — otherwise the global theme
+            // is followed automatically.
+            const modal = new SmliserModal( {
                 title: config.title,
                 body: bodyContent,
                 footer: footerContent,
@@ -826,8 +1034,9 @@ class SmliserModal {
                 customClass: `smliser-dialog smliser-alert-dialog smliser-alert-${config.type}`,
                 closeOnBackdropClick: false,
                 closeOnEscape: true,
-                ...config
-            });
+                ...( 'theme' in options ? { theme: options.theme } : {} ),
+                ...( 'themeWatch' in options ? { themeWatch: options.themeWatch } : {} )
+            } );
 
             // Event handler
             const handleOk = async () => {
@@ -860,6 +1069,7 @@ class SmliserModal {
      * @param {string} options.cancelText - Cancel button text (default: 'Cancel')
      * @param {Function} options.validator - Validation function, return error message or null
      * @param {boolean} options.required - Input is required (default: false)
+     * @param {'auto'|'light'|'dark'} [options.theme] - Optional per-call theme override. Omit to follow the global theme.
      * @returns {Promise<string|null>} Input value or null if cancelled
      * 
      * @example
@@ -954,16 +1164,19 @@ class SmliserModal {
             footerContent.appendChild( cancelBtn );
             footerContent.appendChild( confirmBtn );
 
-            // Create modal
-            const modal = new SmliserModal({
+            // Create modal. Theme follows the global default unless the
+            // caller explicitly passed one.
+            const modal = new SmliserModal( {
                 title: config.title,
                 body: bodyContent,
                 footer: footerContent,
                 width: '500px',
                 customClass: 'smliser-dialog smliser-prompt-dialog',
                 closeOnBackdropClick: false,
-                closeOnEscape: true
-            });
+                closeOnEscape: true,
+                ...( 'theme' in options ? { theme: options.theme } : {} ),
+                ...( 'themeWatch' in options ? { themeWatch: options.themeWatch } : {} )
+            } );
 
             // Validation helper
             const validateInput = ( value ) => {
@@ -1059,6 +1272,7 @@ class SmliserModal {
      * @param {string} options.buttons[].value - Button return value
      * @param {string} options.buttons[].class - Button CSS class
      * @param {boolean} options.buttons[].primary - Is primary button
+     * @param {'auto'|'light'|'dark'} [options.theme] - Optional per-call theme override. Omit to follow the global theme.
      * @returns {Promise<string|null>} Selected button value or null if closed
      * 
      * @example
@@ -1084,7 +1298,7 @@ class SmliserModal {
                 title: options.title || 'Choose',
                 message: options.message || 'Please select an option:',
                 buttons: options.buttons || [],
-                icon: options.icon || '❓'
+                icon: options.icon || SmliserModal.icons.question,
             };
 
             // Create body content
@@ -1118,16 +1332,19 @@ class SmliserModal {
                 buttonElements.push( btn );
             });
 
-            // Create modal
-            const modal = new SmliserModal({
+            // Create modal. Theme follows the global default unless the
+            // caller explicitly passed one.
+            const modal = new SmliserModal( {
                 title: config.title,
                 body: bodyContent,
                 footer: footerContent,
                 width: '500px',
                 customClass: 'smliser-dialog smliser-choice-dialog',
                 closeOnBackdropClick: false,
-                closeOnEscape: true
-            });
+                closeOnEscape: true,
+                ...( 'theme' in options ? { theme: options.theme } : {} ),
+                ...( 'themeWatch' in options ? { themeWatch: options.themeWatch } : {} )
+            } );
 
             let handled = false;
             // Event handler.
@@ -1207,6 +1424,26 @@ class SmliserModal {
 
 }
 
-// if ( typeof module !== 'undefined' && module.exports ) {
-//     module.exports = SmliserModal;
-// }
+// Global theme state — shared across every SmliserModal instance.
+// Set once, anywhere, via SmliserModal.setGlobalTheme() or
+// SmliserModal.watchTheme(); every existing call site across the app
+// picks it up automatically, with no per-call changes required.
+SmliserModal._globalTheme = 'auto';
+SmliserModal._instances = new Set();
+SmliserModal._globalThemeObserver = null;
+// Built-in SVG icon set used by the confirm/alert/choice dialog helpers.
+// currentColor lets each icon inherit its wrapper's color rule
+// (.smliser-dialog-icon.info / .success / .warning / .error), so no
+// per-icon color logic is needed here. Callers can still pass their
+// own `icon` string (emoji, SVG, whatever) to override any of these.
+SmliserModal.icons = {
+    question: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.25"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.83-.9c.35.98-.1 1.6-.85 2.2-.7.56-1.48 1.05-1.48 2.2"/><circle cx="12" cy="17" r="0.75" fill="currentColor" stroke="none"/></svg>',
+
+    info: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.25"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.5" r="0.75" fill="currentColor" stroke="none"/></svg>',
+
+    success: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.25"/><path d="M8 12.5l2.5 2.5 5.5-6"/></svg>',
+
+    warning: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l9.25 16.25a1 1 0 0 1-.87 1.5H3.62a1 1 0 0 1-.87-1.5L12 3.5z"/><line x1="12" y1="10" x2="12" y2="14.25"/><circle cx="12" cy="17.25" r="0.75" fill="currentColor" stroke="none"/></svg>',
+
+    error: '<svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.25"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/><line x1="15.5" y1="8.5" x2="8.5" y2="15.5"/></svg>',
+};

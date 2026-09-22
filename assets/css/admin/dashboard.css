@@ -88,6 +88,7 @@ pre {
 	background: var( --dashboard-bg );
 	border: 1px solid var( --dashboard-border );
 	border-radius: var( --dashboard-radius );
+	color: var( --dashboard-text );
 }
 
 code {

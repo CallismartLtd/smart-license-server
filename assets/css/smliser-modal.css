@@ -1,5 +1,102 @@
 /* Custom Modal Styles */
 
+/* ==============================================
+   THEME TOKENS
+   Every color used below is a custom property, so
+   dark mode is a matter of overriding this block,
+   not touching individual rules. Defaults are light.
+   ============================================== */
+.smliser-modal-backdrop {
+    --smliser-overlay: rgba(0, 0, 0, 0.5);
+    --smliser-modal-bg: #ffffff;
+    --smliser-modal-shadow: rgba(0, 0, 0, 0.2);
+    --smliser-border: #e5e7eb;
+    --smliser-text-heading: #111827;
+    --smliser-text-body: #374151;
+    --smliser-text-muted: #6b7280;
+    --smliser-close-hover-bg: #f3f4f6;
+    --smliser-close-active-bg: #e5e7eb;
+    --smliser-footer-bg: #f9fafb;
+    --smliser-scrollbar-track: #f3f4f6;
+    --smliser-scrollbar-thumb: #d1d5db;
+    --smliser-scrollbar-thumb-hover: #9ca3af;
+    --smliser-input-border: #d1d5db;
+    --smliser-input-bg: #ffffff;
+    --smliser-input-text: #111827;
+    --smliser-error-bg: #fee2e2;
+    --smliser-error-text: #ef4444;
+    --smliser-focus-ring: #3b82f6;
+
+    --smliser-btn-secondary-bg: #f3f4f6;
+    --smliser-btn-secondary-text: #374151;
+    --smliser-btn-secondary-border: #d1d5db;
+    --smliser-btn-secondary-hover-bg: #e5e7eb;
+}
+
+/* Automatic OS-level dark mode — applies whenever the host page's
+   color-scheme preference is dark AND the modal hasn't been given
+   an explicit theme override (see [data-smliser-theme] below). */
+@media (prefers-color-scheme: dark) {
+    .smliser-modal-backdrop:not([data-smliser-theme="light"]) {
+        --smliser-overlay: rgba(0, 0, 0, 0.65);
+        --smliser-modal-bg: #1f2937;
+        --smliser-modal-shadow: rgba(0, 0, 0, 0.5);
+        --smliser-border: #374151;
+        --smliser-text-heading: #f9fafb;
+        --smliser-text-body: #d1d5db;
+        --smliser-text-muted: #9ca3af;
+        --smliser-close-hover-bg: #374151;
+        --smliser-close-active-bg: #4b5563;
+        --smliser-footer-bg: #111827;
+        --smliser-scrollbar-track: #374151;
+        --smliser-scrollbar-thumb: #4b5563;
+        --smliser-scrollbar-thumb-hover: #6b7280;
+        --smliser-input-border: #4b5563;
+        --smliser-input-bg: #111827;
+        --smliser-input-text: #f3f4f6;
+        --smliser-error-bg: #7f1d1d;
+        --smliser-error-text: #fca5a5;
+        --smliser-focus-ring: #60a5fa;
+
+        --smliser-btn-secondary-bg: #374151;
+        --smliser-btn-secondary-text: #f3f4f6;
+        --smliser-btn-secondary-border: #4b5563;
+        --smliser-btn-secondary-hover-bg: #4b5563;
+    }
+}
+
+/* Explicit runtime override, set by SmliserModal.setTheme() /
+   the `theme` option — takes precedence over both the media query
+   above and the light defaults, regardless of OS preference.
+   This is the ONLY selector the JS ever writes to; the modal
+   never reads or assumes any attribute on the host document. */
+.smliser-modal-backdrop[data-smliser-theme="dark"] {
+    --smliser-overlay: rgba(0, 0, 0, 0.65);
+    --smliser-modal-bg: #1f2937;
+    --smliser-modal-shadow: rgba(0, 0, 0, 0.5);
+    --smliser-border: #374151;
+    --smliser-text-heading: #f9fafb;
+    --smliser-text-body: #d1d5db;
+    --smliser-text-muted: #9ca3af;
+    --smliser-close-hover-bg: #374151;
+    --smliser-close-active-bg: #4b5563;
+    --smliser-footer-bg: #111827;
+    --smliser-scrollbar-track: #374151;
+    --smliser-scrollbar-thumb: #4b5563;
+    --smliser-scrollbar-thumb-hover: #6b7280;
+    --smliser-input-border: #4b5563;
+    --smliser-input-bg: #111827;
+    --smliser-input-text: #f3f4f6;
+    --smliser-error-bg: #7f1d1d;
+    --smliser-error-text: #fca5a5;
+    --smliser-focus-ring: #60a5fa;
+
+    --smliser-btn-secondary-bg: #374151;
+    --smliser-btn-secondary-text: #f3f4f6;
+    --smliser-btn-secondary-border: #4b5563;
+    --smliser-btn-secondary-hover-bg: #4b5563;
+}
+
 /* Backdrop */
 .smliser-modal-backdrop {
     position: fixed;
@@ -7,7 +104,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0);
+    background-color: var(--smliser-overlay);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -19,23 +116,23 @@
 }
 
 .smliser-modal-backdrop.smliser-modal-open {
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--smliser-overlay);
     opacity: 1;
     visibility: visible;
 }
 
 /* Modal Container */
 .smliser-modal {
-    background: #ffffff;
+    background: var(--smliser-modal-bg);
     border-radius: 8px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 40px var(--smliser-modal-shadow);
     max-height: 90vh;
     display: flex;
     flex-direction: column;
     position: relative;
     transform: scale(0.7);
     opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.3s ease;
     margin: auto;
 }
 
@@ -47,7 +144,7 @@
 /* Modal Header */
 .smliser-modal-header {
     padding: 10px 15px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--smliser-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -58,7 +155,7 @@
     margin: 0;
     font-size: 1.5rem;
     font-weight: 600;
-    color: #111827;
+    color: var(--smliser-text-heading);
     line-height: 1.4;
 }
 
@@ -67,7 +164,7 @@
     border: none;
     font-size: 2rem;
     line-height: 1;
-    color: #6b7280;
+    color: var(--smliser-text-muted);
     cursor: pointer;
     padding: 0;
     width: 32px;
@@ -82,17 +179,17 @@
 }
 
 .smliser-modal-close:hover {
-    background-color: #f3f4f6;
-    color: #111827;
+    background-color: var(--smliser-close-hover-bg);
+    color: var(--smliser-text-heading);
 }
 
 .smliser-modal-close:focus {
-    outline: 2px solid #3b82f6;
+    outline: 2px solid var(--smliser-focus-ring);
     outline-offset: 2px;
 }
 
 .smliser-modal-close:active {
-    background-color: #e5e7eb;
+    background-color: var(--smliser-close-active-bg);
 }
 
 /* Modal Body */
@@ -100,7 +197,7 @@
     padding: 24px;
     overflow-y: auto;
     flex: 1;
-    color: #374151;
+    color: var(--smliser-text-body);
     font-size: 1rem;
     line-height: 1.6;
 }
@@ -110,29 +207,29 @@
 }
 
 .smliser-modal-body::-webkit-scrollbar-track {
-    background: #f3f4f6;
+    background: var(--smliser-scrollbar-track);
     border-radius: 4px;
 }
 
 .smliser-modal-body::-webkit-scrollbar-thumb {
-    background: #d1d5db;
+    background: var(--smliser-scrollbar-thumb);
     border-radius: 4px;
 }
 
 .smliser-modal-body::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: var(--smliser-scrollbar-thumb-hover);
 }
 
 /* Modal Footer */
 .smliser-modal-footer {
     padding: 16px 24px;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--smliser-border);
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 12px;
     flex-shrink: 0;
-    background-color: #f9fafb;
+    background-color: var(--smliser-footer-bg);
     border-radius: 0 0 8px 8px;
 }
 
@@ -149,7 +246,7 @@
 }
 
 .smliser-modal-footer button:focus {
-    outline: 2px solid #3b82f6;
+    outline: 2px solid var(--smliser-focus-ring);
     outline-offset: 2px;
 }
 
@@ -172,18 +269,18 @@
 
 /* Secondary Button */
 .smliser-modal-footer .btn-secondary {
-    background-color: white;
-    color: #374151;
-    border-color: #d1d5db;
+    background-color: var(--smliser-modal-bg);
+    color: var(--smliser-text-body);
+    border-color: var(--smliser-input-border);
 }
 
 .smliser-modal-footer .btn-secondary:hover {
-    background-color: #f9fafb;
-    border-color: #9ca3af;
+    background-color: var(--smliser-footer-bg);
+    border-color: var(--smliser-text-muted);
 }
 
 .smliser-modal-footer .btn-secondary:active {
-    background-color: #f3f4f6;
+    background-color: var(--smliser-scrollbar-track);
 }
 
 /* Danger Button */
@@ -251,71 +348,6 @@
     }
 }
 
-/* Dark Mode Support (Optional) */
-/* @media (prefers-color-scheme: dark) {
-    .smliser-modal {
-        background: #1f2937;
-        color: #f3f4f6;
-    }
-
-    .smliser-modal-header {
-        border-bottom-color: #374151;
-    }
-
-    .smliser-modal-title {
-        color: #f9fafb;
-    }
-
-    .smliser-modal-close {
-        color: #9ca3af;
-    }
-
-    .smliser-modal-close:hover {
-        background-color: #374151;
-        color: #f3f4f6;
-    }
-
-    .smliser-modal-close:active {
-        background-color: #4b5563;
-    }
-
-    .smliser-modal-body {
-        color: #d1d5db;
-    }
-
-    .smliser-modal-body::-webkit-scrollbar-track {
-        background: #374151;
-    }
-
-    .smliser-modal-body::-webkit-scrollbar-thumb {
-        background: #4b5563;
-    }
-
-    .smliser-modal-body::-webkit-scrollbar-thumb:hover {
-        background: #6b7280;
-    }
-
-    .smliser-modal-footer {
-        border-top-color: #374151;
-        background-color: #111827;
-    }
-
-    .smliser-modal-footer .btn-secondary {
-        background-color: #374151;
-        color: #f3f4f6;
-        border-color: #4b5563;
-    }
-
-    .smliser-modal-footer .btn-secondary:hover {
-        background-color: #4b5563;
-        border-color: #6b7280;
-    }
-
-    .smliser-modal-footer .btn-secondary:active {
-        background-color: #6b7280;
-    }
-} */
-
 /* Additional Utility Classes */
 .smliser-modal.modal-sm {
     width: 400px !important;
@@ -371,6 +403,9 @@
     font-size: 48px;
     margin-bottom: 20px;
     animation: smliser-dialog-icon-bounce 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 @keyframes smliser-dialog-icon-bounce {
@@ -405,7 +440,7 @@
 .smliser-dialog-message {
     font-size: 16px;
     line-height: 1.6;
-    color: #374151;
+    color: var(--smliser-text-body);
     margin-bottom: 0;
 }
 
@@ -464,13 +499,13 @@
 
 /* Secondary Button */
 .smliser-btn-secondary {
-    background: #f3f4f6;
-    color: #374151;
-    border: 1px solid #d1d5db;
+    background: var(--smliser-btn-secondary-bg);
+    color: var(--smliser-btn-secondary-text);
+    border: 1px solid var(--smliser-btn-secondary-border);
 }
 
 .smliser-btn-secondary:hover {
-    background: #e5e7eb;
+    background: var(--smliser-btn-secondary-hover-bg);
 }
 
 /* Danger Button */
@@ -513,7 +548,9 @@
     width: 100%;
     padding: 12px 16px;
     font-size: 15px;
-    border: 2px solid #d1d5db;
+    border: 2px solid var(--smliser-input-border);
+    background: var(--smliser-input-bg);
+    color: var(--smliser-input-text);
     border-radius: 8px;
     font-family: inherit;
     transition: all 0.2s ease;
@@ -522,16 +559,16 @@
 
 .smliser-prompt-input:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: var(--smliser-focus-ring);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--smliser-focus-ring) 15%, transparent);
 }
 
 .smliser-prompt-input.error {
-    border-color: #ef4444;
+    border-color: var(--smliser-error-text);
 }
 
 .smliser-prompt-input.error:focus {
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--smliser-error-text) 15%, transparent);
 }
 
 .smliser-prompt-textarea {
@@ -541,13 +578,13 @@
 }
 
 .smliser-prompt-error {
-    color: #ef4444;
+    color: var(--smliser-error-text);
     font-size: 13px;
     margin-top: 8px;
     padding: 8px 12px;
-    background: #fee2e2;
+    background: var(--smliser-error-bg);
     border-radius: 6px;
-    border-left: 3px solid #ef4444;
+    border-left: 3px solid var(--smliser-error-text);
 }
 
 /* ==============================================
@@ -629,7 +666,7 @@
    ACCESSIBILITY
    ============================================== */
 .smliser-btn:focus-visible {
-    outline: 2px solid #3b82f6;
+    outline: 2px solid var(--smliser-focus-ring);
     outline-offset: 2px;
 }
 
@@ -642,37 +679,3 @@
         transition: none;
     }
 }
-
-/* ==============================================
-   DARK MODE SUPPORT (Optional)
-   ============================================== */
-/* @media (prefers-color-scheme: dark) {
-    .smliser-dialog-message {
-        color: #e5e7eb;
-    }
-
-    .smliser-prompt-input {
-        background: #374151;
-        color: #f3f4f6;
-        border-color: #4b5563;
-    }
-
-    .smliser-prompt-input:focus {
-        border-color: #60a5fa;
-    }
-
-    .smliser-btn-secondary {
-        background: #374151;
-        color: #f3f4f6;
-        border-color: #4b5563;
-    }
-
-    .smliser-btn-secondary:hover {
-        background: #4b5563;
-    }
-
-    .smliser-prompt-error {
-        background: #7f1d1d;
-        color: #fca5a5;
-    }
-} */

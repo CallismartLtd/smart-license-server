@@ -168,8 +168,8 @@ class JobQueue {
      * @return JobDTO[]
      */
     public function get_jobs(
-        int     $page,
-        int     $limit,
+        int     $page       = 1,
+        int     $limit      = 25,
         ?string $queue     = null,
         ?string $status    = null,
         ?string $job_class = null
@@ -184,7 +184,7 @@ class JobQueue {
      * @param int         $limit     Maximum number of records per page. Default 50.
      * @param string|null $queue     Optionally restrict to a specific queue.
      * @param string|null $job_class Optionally restrict to a specific job class.
-     * @return array<int, array<string, mixed>>
+     * @return JobDTO[]
      */
     public function get_failed_jobs(
         int     $page,

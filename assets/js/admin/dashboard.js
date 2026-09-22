@@ -215,4 +215,10 @@
         }
     });
 
+	SmliserModal.watchTheme({
+		target: document.documentElement,
+		attribute: 'data-theme',
+		resolve: ( value ) => value === 'dark' ? 'dark' : 'light',
+	} );
+	
 } )();

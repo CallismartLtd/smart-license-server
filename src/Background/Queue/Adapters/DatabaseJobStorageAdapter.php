@@ -192,10 +192,14 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
     }
 
     /**
+    /**
      * {@inheritdoc}
      *
-     * Copies the full job row to the failed jobs archive table,
-     * then removes it from the active queue.
+     * Copies the full job row — including attempt history, timing,
+     * and any partial result — to the failed jobs archive table,
+     * then removes it from the active queue. The archive is meant
+     * to be a genuine audit record, not a stripped pointer back to
+     * state that no longer exists once the row is removed.
      */
     public function archive_failed_job( JobDTO $job ): bool {
         $id = $job->get( JobDTO::KEY_ID );
@@ -213,7 +217,14 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
                 'job_id'        => $id,
                 'job_class'     => $row['job_class'],
                 'queue'         => $row['queue'],
+                'priority'      => $row['priority'],
                 'payload'       => $row['payload'],
+                'attempts'      => $row['attempts'],
+                'max_attempts'  => $row['max_attempts'],
+                'created_at'    => $row['created_at'],
+                'started_at'    => $row['started_at'],
+                'completed_at'  => $row['completed_at'],
+                'result'        => $row['result'],
                 'error_message' => $row['error_message'],
                 'failed_at'     => ( new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) )->format( 'Y-m-d H:i:s' ),
             ] );
@@ -336,7 +347,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
 
         $rows = $this->db->get_results( $sql->build(), $sql->get_bindings() );
 
-        return array_map( [ $this, 'failed_row_to_array' ], $rows );
+        return array_map( [ $this, 'failed_row_to_dto' ], $rows );
     }
 
     /*
@@ -563,24 +574,42 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
     }
 
     /**
-     * Shape a raw failed_job_table row for consumption, decoding its
-     * JSON payload column. Not a JobDTO — the failed-jobs table has
-     * a narrower, archival shape (job_id, job_class, queue, payload,
-     * error_message, failed_at).
+     * Hydrate a JobDTO from a raw failed_job_table row.
+     *
+     * The failed table now carries the full job envelope as it stood
+     * at the moment of failure, so this mirrors row_to_dto() closely.
+     * Two differences: the DTO's ID is the original job's ID (job_id),
+     * not the archive row's own auto-increment id — find_job()-style
+     * lookups should resolve against the job the failure is about, not
+     * the archive record. And available_at has no meaning once a job
+     * is archived as failed, so failed_at stands in for it — the DTO
+     * still needs a value there, and failed_at is the closest honest
+     * substitute.
      *
      * @param array<string, mixed> $row Raw associative row from the DB.
-     * @return array<string, mixed>
+     * @return JobDTO
      */
-    private function failed_row_to_array( array $row ): array {
-        return [
-            'id'            => (int) $row['id'],
-            'job_id'        => (int) $row['job_id'],
-            'job_class'     => (string) $row['job_class'],
-            'queue'         => (string) $row['queue'],
-            'payload'       => $this->decode_payload( $row['payload'] ?? '' ),
-            'error_message' => (string) ( $row['error_message'] ?? '' ),
-            'failed_at'     => (string) $row['failed_at'],
-        ];
+    private function failed_row_to_dto( array $row ): JobDTO {
+        return new JobDTO( [
+            JobDTO::KEY_ID            => (int) $row['job_id'],
+            JobDTO::KEY_JOB_CLASS     => (string) $row['job_class'],
+            JobDTO::KEY_QUEUE         => (string) $row['queue'],
+            JobDTO::KEY_PRIORITY      => (int) $row['priority'],
+            JobDTO::KEY_STATUS        => JobDTO::STATUS_FAILED,
+            JobDTO::KEY_PAYLOAD       => $this->decode_payload( $row['payload'] ?? '' ),
+            JobDTO::KEY_ATTEMPTS      => (int) $row['attempts'],
+            JobDTO::KEY_MAX_ATTEMPTS  => (int) $row['max_attempts'],
+            JobDTO::KEY_AVAILABLE_AT  => (string) $row['failed_at'], // see docblock — no real available_at once archived.
+            JobDTO::KEY_CREATED_AT    => (string) $row['created_at'],
+            JobDTO::KEY_STARTED_AT    => ! empty( $row['started_at'] ) ? (string) $row['started_at'] : null,
+            JobDTO::KEY_COMPLETED_AT  => ! empty( $row['completed_at'] ) ? (string) $row['completed_at'] : null,
+            JobDTO::KEY_RESULT        => isset( $row['result'] )
+                                            ? $this->decode_payload( $row['result'] )
+                                            : null,
+            JobDTO::KEY_ERROR_MESSAGE => ! empty( $row['error_message'] )
+                                            ? (string) $row['error_message']
+                                            : null,
+        ] );
     }
 
     /**

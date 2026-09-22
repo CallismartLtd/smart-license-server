@@ -268,8 +268,8 @@ class QueueCommand extends AbstractCommand {
      * List archived failed jobs, optionally filtered by queue and/or job class.
      *
      * Rendered as individual blocks rather than a table — these logs
-     * exist for auditing, and a table forces the error message column
-     * to a fixed width, truncating exactly the detail an auditor needs.
+     * exist for auditing, and a table forces every column to a fixed
+     * width, truncating exactly the detail an auditor needs.
      *
      * @param CommandInput $input
      * @return int
@@ -292,14 +292,43 @@ class QueueCommand extends AbstractCommand {
 
         $this->output->newline();
 
-        foreach ( $failed_jobs as $row ) {
+        foreach ( $failed_jobs as $job ) {
+            $started_at   = $job->get( JobDTO::KEY_STARTED_AT );
+            $completed_at = $job->get( JobDTO::KEY_COMPLETED_AT );
+            $result       = $job->get( JobDTO::KEY_RESULT );
+
             $this->output->writeln( $divider );
-            $this->output->info( sprintf( 'ID: %d    Job ID: %d    Queue: %s', $row['id'], $row['job_id'], $row['queue'] ) );
-            $this->output->info( sprintf( 'Job Class: %s', $row['job_class'] ) );
-            $this->output->info( sprintf( 'Failed At: %s', $row['failed_at'] ) );
+            $this->output->info( sprintf(
+                'ID: %d    Queue: %s    Priority: %d',
+                $job->get( JobDTO::KEY_ID ),
+                $job->get( JobDTO::KEY_QUEUE ),
+                $job->get( JobDTO::KEY_PRIORITY )
+            ) );
+            $this->output->info( sprintf( 'Job Class: %s', $job->get( JobDTO::KEY_JOB_CLASS ) ) );
+            $this->output->info( sprintf(
+                'Attempts: %d / %d',
+                $job->get( JobDTO::KEY_ATTEMPTS ),
+                $job->get( JobDTO::KEY_MAX_ATTEMPTS )
+            ) );
+            $this->output->info( sprintf(
+                'Created: %s    Started: %s',
+                $job->get( JobDTO::KEY_CREATED_AT )->format( \smliser_datetime_format() ),
+                $started_at ? $started_at->format( \smliser_datetime_format() ) : '-'
+            ) );
+            $this->output->info( sprintf(
+                'Failed At: %s',
+                $job->get( JobDTO::KEY_AVAILABLE_AT )->format( \smliser_datetime_format() )
+            ) );
+
+            if ( null !== $result ) {
+                $this->output->newline();
+                $this->output->info( 'Result at time of failure:' );
+                $this->output->writeln( $this->format_result( $result ) );
+            }
+
             $this->output->newline();
             $this->output->info( 'Error:' );
-            $this->output->error( $row['error_message'] );
+            $this->output->error( (string) $job->get( JobDTO::KEY_ERROR_MESSAGE ) );
             $this->output->newline();
         }
 

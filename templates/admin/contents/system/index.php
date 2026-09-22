@@ -4,7 +4,7 @@
  * 
  * @author Callistus Nwachukwu
  * @var array<string, array{task: \SmartLicenseServer\Background\Schedule\ScheduledTask, state: array{last_ran_at: \DateTimeImmutable|null, next_run_at: \DateTimeImmutable|null, last_error: string|null}}> $tasks
- * @var SmartLicenseServer\Admin\ContentHandlers\SystemPage $page_handler
+ * @var SmartLicenseServer\Admin\ContentHandlers\ToolsPage $page_handler
  * @var SmartLicenseServer\Core\Request $request
  */
 

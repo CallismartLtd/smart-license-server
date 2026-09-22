@@ -1404,7 +1404,24 @@ class AppUploader {
             title: 'APP JSON Editor',
             description: textarea.dataset.editorDescription ?? "Edit your application's JSON file (app.json). File contents will be served in the REST API response.",
             data: jsonData,
-            autoFocus: false
+            autoFocus: false,
+            theme: document.documentElement.getAttribute( 'data-theme' )
+        });
+
+        // Listen for theme toggles using MutationObserver.
+        const observer = new MutationObserver( ( mutations ) => {
+            for ( const mutation of mutations ) {
+                if ( mutation.type === 'attributes' && mutation.attributeName === 'data-theme' ) {
+                    this.editor.options.theme   = mutation.target.dataset.theme === 'dark' ? 'light' : 'dark';
+                    this.editor.toggleTheme();
+                    
+                }
+            }
+        });
+
+        observer.observe( document.documentElement, {
+            attributes: true,
+            attributeFilter: [ 'data-theme' ]
         });
 
         this.editor.expandAll();
