@@ -21,7 +21,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
         <?php echo smliser_not_found_container(
             sprintf(
                 'Invalid or deleted message. <a href="%s">Go Back</a>',
-                $urlmanager->admin_broadcats_page_url()->url()
+                $urlmanager->admin_broadcasts_page_url()->url()
             )
         ); // phpcs:ignore ?>
     <?php else : ?>

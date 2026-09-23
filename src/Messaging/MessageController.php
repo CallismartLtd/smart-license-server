@@ -85,7 +85,7 @@ class MessageController {
                 'data'      => [
                     'message'       => $is_new_message ? 'Message has been published.' : 'Message has been updated.',
                     'message_id'    => $message->get_message_id(),
-                    'redirect_url'  => $this->urlmanager->admin_broadcats_page_url( 'edit',
+                    'redirect_url'  => $this->urlmanager->admin_broadcasts_page_url( 'edit',
                         [
                             'msg_id' => $message->get_message_id()
                         ]
@@ -133,7 +133,7 @@ class MessageController {
                     }
             }
 
-            $url    = $this->urlmanager->admin_broadcats_page_url()
+            $url    = $this->urlmanager->admin_broadcasts_page_url()
                 ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
 
             $response = ( new Response( 200, [], '' ) )

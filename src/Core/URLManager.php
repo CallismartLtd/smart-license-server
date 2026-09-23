@@ -10,346 +10,84 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Core;
 
 use SmartLicenseServer\Contracts\URLManagerInterface;
-use SmartLicenseServer\Security\Owner;
-use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
- * Manages URLs for this application
+ * Manages URLs for this application.
+ *
+ * This is the canonical URL manager for this application, environment
+ * providers are required either bind this class to the DIC or swap it with
+ * their specific implementation.
+ *
+ * @method URL url( string $path = '', array $query = [] )
+ * @method URL assets_url( string $path = '', array $query = [] )
+ *
+ * @method string admin_url_prefix()
+ * @method URL admin_url( string $page = '', string $tab = '', array $query = [] )
+ *
+ * @method URL admin_repo_url( string $tab = '', array $query = [] )
+ * @method URL admin_options_url( string $tab = '', array $query = [] )
+ * @method URL admin_license_page_url( string $tab = '', array $query = [] )
+ * @method URL admin_broadcasts_page_url( string $tab = '', array $query = [] )
+ * @method URL admin_accounts_page_url( string $tab = '', array $query = [] )
+ *
+ * @method string login_url_prefix()
+ * @method URL login_url( string $path = '', array $query = [] )
+ * @method string logout_url_prefix()
+ * @method URL logout_url( array $query = [] )
+ *
+ * @method string client_dashboard_url_prefix()
+ * @method URL client_dashboard_url( string $path = '', array $query = [] )
+ *
+ * @method string downloads_url_prefix()
+ * @method string admin_downloads_url_prefix()
+ * @method URL downloads_url( string $path = '', array $query = [] )
+ * @method URL admin_downloads_url( string $path = '', array $query = [] )
+ * @method URL document_download_url( int $id, array $query = [] )
+ * @method URL admin_document_download_url( int $id, array $query = [] )
+ *
+ * @method string repository_url_prefix()
+ * @method URL repository_url( string $path = '', array $query = [] )
+ *
+ * @method string uploads_url_prefix()
+ * @method URL uploads_url( string $path = '' )
+ *
+ * @method URL app_asset_url( string $app_type, string $app_slug, string $filename = '' )
+ * @method URL app_downloads_url( string $app_type, string $app_slug )
+ * @method URL admin_app_downloads_url( string $app_type, int|string $app_id )
+ * @method URL app_artifact_download_url( string $app_type, string $app_slug, string $filename )
+ * @method URL app_repository_url( string $app_type, string $app_slug )
  */
-class URLManager implements URLManagerInterface {
+class URLManager {
 
     public function __construct(
-        protected Settings $settings,
-        protected URL $app_url,
-        protected URL $admin_base_url,
-        protected URL $assets_url
+        protected URLManagerInterface $urlmanager
         
     ) {}
 
     /**
-     * Get the canonical app url
-     * 
-     * @param string $path  Optional path to append.
-     * @param array $query  Optional query params
-     */
-    public function url( string $path = '', array $query = [] ) : URL {
-        $basename       = \basename( $path );
-        $trail_slash    = ! \str_contains( $basename,  '.' );
-
-        return $this->app_url->append_path( $path, $trail_slash )->add_query_params( $query );
-    }
-
-    /**
-     * Get the admin url prefix
-     * 
-     * @return string
-     */
-    public function admin_url_prefix() : string {
-        return (string) $this->settings->get( static::ADMIN_URL_PREFIX_KEY, 'smliser-admin' );
-    }
-
-    /**
-     * Get the admin url.
-     * 
-     * @param string $page  Optional page path to append.
-     * @param string $tab   Optional submenu tab path to append.
-     * @param array $query  Optional query params.
-     */
-    public function admin_url( string $page = '', string $tab = '', array $query = [] ) : URL {
-        return $this->admin_base_url
-            ->append_path( $this->admin_url_prefix() )
-            ->append_path( $page )->append_path( $tab )
-            ->add_query_params( $query );
-    }
-
-    /**
-     * Get the base URL to public assets.
-     * 
-     * @param string $path  Optional path to append.
-     * @param array $query  Optional query params.
-     */
-    public function assets_url( string $path = '', array $query = [] ) : URL {
-        return $this->assets_url->append_path( $path )->add_query_params( $query );
-    }
-
-    /**
-     * Get the login url prefix
-     * 
-     * @return string
-     */
-    public function login_url_prefix() : string {
-        return (string) $this->settings->get( static::LOGIN_URL_PREFIX_KEY, 'auth' );
-    }
-
-    /**
-     * Get the login URL.
-     * 
-     * @param string $path  Optional path to append.
-     * @param array $query  Optional query params.
-     * @return URL
-     */
-    public function login_url( string $path = '', array $query = [] ) : URL {
-        return $this->url( $this->login_url_prefix(), $query )
-            ->append_path( $path, true );
-    }
-
-    /**
-     * Get the logout url prefix.
-     * 
-     * @return string
-     */
-    public function logout_url_prefix() : string {
-        return (string) $this->settings->get( static::LOGOUT_URL_PREFIX_KEY, 'logout' );
-    }
-
-    /**
-     * Get the logout url.
-     * 
-     * @param array $query
-     * @return URL
-     */
-    public function logout_url( array $query = [] ) : URL {
-        return $this->url( $this->logout_url_prefix(), $query );
-    }
-
-    /**
-     * Get the client dashboard url prefix
-     * 
-     * @return string
-     */
-    public function client_dasboard_url_prefix() : string {
-        return (string) $this->settings->get( static::CLIENT_DASHBOARD_URL_PREFIX_KEY, 'client-dashboard' );
-    }
-
-    /**
-     * Get the the client dashboard url.
-     * 
-     * @param string $path  Optional path to append.
-     * @param array $query  Optional query params.
-     */
-    public function client_dashboard_url( string $path = '', array $query = [] ) : URL {
-        return $this->url( $this->client_dasboard_url_prefix(), $query )
-            ->append_path( $path );
-    }
-
-    /**
-     * Get the prefix for the downloads URL.
-     * 
-     * @return string
-     */
-    public function downloads_url_prefix() : string {
-        return (string) $this->settings->get( static::DOWNLOADS_URL_PREFIX_KEY, 'downloads' );
-    }
-
-    /**
-     * Get the prefix for the admin downloads URL.
-     * 
-     * @return string
-     */
-    public function admin_downloads_url_prefix() : string {
-        return (string) $this->settings->get( static::ADMIN_DOWNLOADS_URL_PREFIX_KEY, 'admin-downloads' );
-    }
-
-    /**
-     * Get the downloads url.
-     * 
-     * @param string $path  Optional path to append.
-     * @param array $query  Optional query params.
-     */
-    public function downloads_url( string $path = '', array $query = [] ) : URL {
-        return $this->url( $this->downloads_url_prefix(), $query )
-            ->append_path( $path );
-    }
-
-    /**
-     * Get the admin downloads url.
-     * 
-     * @param string $path  Optional path to append.
-     * @param array $query  Optional query params.
-     */
-    public function admin_downloads_url( string $path = '', array $query = [] ) : URL {
-        return $this->url( $this->admin_downloads_url_prefix(), $query )
-            ->append_path( $path );
-    }
-
-    /**
-     * Get the repository url prefix
-     * 
-     * @return string 
-     */
-    public function repository_url_prefix() : string {
-        return (string) $this->settings->get( static::REPOSITORY_URL_PREFIX_KEY, 'repository' );
-    }
-
-    /**
-     * Get the repository url.
-     * 
-     * @param string $path  Optional path to append.
-     * @param array $query  Optional query params.
-     * 
-     * @return URL
-     */
-    public function repository_url( string $path = '', array $query = [] ) : URL {
-        return $this->url( $this->repository_url_prefix(), $query )
-            ->append_path( $path );
-    }
-
-    /**
-     * Get document download url.
-     * 
-     * @param int $id       The document ID.
-     * @param array $query  Optional query params.
-     * @return URL
-     */
-    public function document_download_url( int $id, array $query = [] ) : URL {
-        return $this->downloads_url( 'document', $query )
-            ->append_path( "license-document-{$id}.txt" );
-    }
-
-    /**
-     * Get the admin document download url.
-     * 
-     * @param int $id       The document ID.
-     * @param array $query  Optional query params.
-     * @return URL
-     */
-    public function admin_document_download_url( int $id, array $query = [] ) : URL {
-        return $this->admin_downloads_url( "license-document-{$id}.txt", $query );
-    }
-
-    /**
-     * Admin repository page URL.
-     * 
-     * @param string $tab Optional submenu tab to append.
-     * @param array $query
-     */
-    public function admin_repo_url( string $tab = '', array $query = [] ) : URL {
-        return $this->admin_url( 'repository', $tab, $query );
-    }
-
-    /**
-     * Admin settings page URL.
-     * 
-     * @param string $tab Optional submenu tab to append.
-     * @param array $query
-     */
-    public function admin_options_url( string $tab = '', array $query = [] ) : URL {
-        return $this->admin_url( 'settings', $tab, $query );
-    }
-
-    /**
-     * Get the admin license URL.
-     * 
-     * @param string $tab   Optional tab to append.
-     * @param array $query  Optional query params.
-     */
-    public function admin_license_page_url( string $tab = '', array $query = [] ) : URL {
-        return $this->admin_url( 'licenses', $tab, $query );
-    }
-
-    /**
-     * Get the admin broadcasts page URL.
-     * 
-     * @param string $tab   Optional tab to append.
-     * @param array $query  Optional query params.
-     */
-    public function admin_broadcats_page_url( string $tab = '', array $query = [] ) : URL {
-        return $this->admin_url( 'broadcasts', $tab, $query );
-    }
-
-    /**
-     * Get the admin accounts page URL.
-     * 
-     * @param string $tab   Optional tab to append.
-     * @param array $query  Optional query params.
-     */
-    public function admin_accounts_page_url( string $tab = '', array $query = [] ) : URL {
-        return $this->admin_url( 'accounts', $tab, $query );
-    }
-
-    /**
-     * Get app assets URLs
+     * Proxy calls to the adapter methods.
      *
-     * @param string $app_type  The app type.
-     * @param string $app_slug  The app slug.
-     * @param string $filename  Optional asset filename.
+     * @param string $method Method name.
+     * @param array  $args   Method arguments.
+     *
+     * @return mixed
+     *
+     * @throws \ErrorException If the method does not exist in the adapter.
      */
-    public function app_asset_url( string $app_type, string $app_slug, string $filename = '' ) : URL {
-        $path   = "$app_type/$app_slug/assets";
-        return $this->repository_url( $path )
-            ->append_path( $filename );
-    }
+    public function __call( string $method, array $args ) {
+        if ( method_exists( $this->urlmanager, $method ) ) {
+            return call_user_func_array( [ $this->urlmanager, $method ], $args );
+        }
 
-    /**
-     * Get the uploads URL prefix.
-     * 
-     * @return string
-     */
-    public function uploads_url_prefix() : string {
-        return (string) $this->settings->get( static::UPLOADS_URL_PREFIX_KEY, 'smliser-uploads' );
-    }
-    
-    /**
-     * Get the uploads url.
-     * 
-     * Contructs the URL to get resource from the uploads directory.
-     * 
-     * @param $path
-     * @return URL
-     */
-    function uploads_url( string $path  = '' ) : URL {        
-        return url( $this->uploads_url_prefix() )
-            ->append_path( $path );
-    }
+        $backtrace  = \debug_backtrace( \DEBUG_BACKTRACE_IGNORE_ARGS, 3 );
+        $file       = $backtrace[0]['file'] ?? null;
+        $line       = $backtrace[0]['line'] ?? null;
+        $message    = sprintf(
+            'Method %s::%s does not exist.', 
+            get_class( $this ),
+            $method
+        );
 
-    /**
-     * Get app downloads url.
-     * 
-     * @param string $app_type
-     * @param string $app_slug
-     * @return URL
-     */
-    public function app_downloads_url( string $app_type, string $app_slug ) : URL {
-        return $this->downloads_url( $app_type )
-            ->append_path( "{$app_slug}.zip" );
-    }
-
-    /**
-     * Get app downloads url for admins.
-     * 
-     * @param string $app_type
-     * @param int|string $app_id
-     * @return URL
-     */
-    public function admin_app_downloads_url( string $app_type, int|string $app_id ) : URL {
-        return $this->admin_downloads_url( $app_type )
-            ->append_path( (string) $app_id );
-    }
-
-    /**
-     * Get the URL to download an app artifact.
-     * 
-     * @param string $app_type The app type.
-     * @param string $app_slug The app slug.
-     * @param string $filename The artifact file name
-     * 
-     * @return URL
-     */
-    public function app_artifact_download_url( string $app_type, string $app_slug, string $filename ) : URL {
-        return $this->downloads_url( $app_type )
-            ->append_path( $app_slug )
-            ->append_path( 'artifacts' )
-            ->append_path( $filename );
-    }
-
-    /**
-     * Get the preview/home url of a hosted application.
-     * 
-     * @param string $app_type
-     * @param string $app_slug
-     */
-    public function app_repository_url( string $app_type, string $app_slug ) : URL {
-        return $this->repository_url( $app_type )
-            ->append_path( $app_slug );
+        throw new \ErrorException( $message, 0, 1, $file, $line );
     }
 }

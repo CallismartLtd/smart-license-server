@@ -121,7 +121,7 @@ class BulkMessagePage implements AdminPageInterface{
             'breadcrumbs'   => array(
                 array(
                     'label' => 'Bulk Messages',
-                    'url'   => $this->urlmanager->admin_broadcats_page_url(),
+                    'url'   => $this->urlmanager->admin_broadcasts_page_url(),
                     'icon'  => 'ti ti-home-filled'
                 ),
 
@@ -133,7 +133,7 @@ class BulkMessagePage implements AdminPageInterface{
                 array(
                     'title' => 'Compose new message',
                     'label' => 'Compose New',
-                    'url'   => $this->urlmanager->admin_broadcats_page_url( 'compose-new' ),
+                    'url'   => $this->urlmanager->admin_broadcasts_page_url( 'compose-new' ),
                     'icon'  => 'ti ti-plus',
                     'active'    => 'compose-new' === $tab
                 )

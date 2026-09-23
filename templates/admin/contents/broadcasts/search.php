@@ -51,7 +51,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                 <td class="smliser-edit-row">
                                     <?php echo escHtml( $message->get_id() ); ?>
                                     <p class="smliser-edit-link">
-                                        <a href="<?php echo escUrl( $urlmanager->admin_broadcats_page_url( 'edit', ['msg_id' => $message->get_message_id()] )->url() ); ?>">Edit</a>
+                                        <a href="<?php echo escUrl( $urlmanager->admin_broadcasts_page_url( 'edit', ['msg_id' => $message->get_message_id()] )->url() ); ?>">Edit</a>
                                     </p>
                                 </td>
                             

@@ -14,8 +14,10 @@ namespace SmartLicenseServer\Environments\Application;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Cache\Cache;
+use SmartLicenseServer\Contracts\URLManagerInterface;
 use SmartLicenseServer\Environments\Application\Boot\BootManager;
 use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Core\CoreURLManager;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environment;
@@ -52,9 +54,9 @@ class ApplicationEnvironment extends Environment {
     protected function registerDependencies() : void {
         $this->container->singleton( ApplicationEnvironment::class, $this );
         
-        $this->container->singleton(
-            URLManager::class,
-            fn ( Container $c ) : URLManager => new URLManager(
+        $this->container->set(
+            URLManagerInterface::class,
+            fn( Container $c ) : URLManagerInterface => new CoreURLManager(
                 settings: $c->get( Settings::class ),
                 app_url: url(),
                 admin_base_url: url(),

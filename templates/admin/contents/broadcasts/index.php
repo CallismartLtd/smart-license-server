@@ -37,7 +37,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         </select>
                         <button type="submit" class="button action smliser-bulk-action-button"><?php echo escHtml( 'Apply' ); ?></button>
                     </div>
-                    <a href="<?php echo escUrl( $urlmanager->admin_broadcats_page_url( 'search' )->url() ); ?>" class="smliser-btn smliser-surface-btn">Search Messages</a>
+                    <a href="<?php echo escUrl( $urlmanager->admin_broadcasts_page_url( 'search' )->url() ); ?>" class="smliser-btn smliser-surface-btn">Search Messages</a>
                 </div>
             
                 <input type="hidden" name="action" value="smliser_bulk_action">
@@ -61,7 +61,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                 <td class="smliser-edit-row">
                                     <?php echo escHtml( $message->get_id() ); ?>
                                     <p class="smliser-edit-link">
-                                        <a href="<?php echo escUrl( $urlmanager->admin_broadcats_page_url( 'edit', ['msg_id' => $message->get_message_id() ] )->url() ); ?>">Edit</a>
+                                        <a href="<?php echo escUrl( $urlmanager->admin_broadcasts_page_url( 'edit', ['msg_id' => $message->get_message_id() ] )->url() ); ?>">Edit</a>
                                     </p>
                                 </td>
                             

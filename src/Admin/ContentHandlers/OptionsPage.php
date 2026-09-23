@@ -564,7 +564,7 @@ class OptionsPage implements AdminPageInterface {
                 'input' => [
                     'type'  => 'text',
                     'name'  => URLManagerInterface::CLIENT_DASHBOARD_URL_PREFIX_KEY,
-                    'value' => $this->urlmanager->client_dasboard_url_prefix(),
+                    'value' => $this->urlmanager->client_dashboard_url_prefix(),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',

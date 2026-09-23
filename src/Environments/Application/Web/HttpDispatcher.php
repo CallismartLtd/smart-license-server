@@ -400,7 +400,7 @@ final class HttpDispatcher {
 		| The client dashboard routes.
 		|------------------------------
 		*/
-        $this->router->group( $urlmanager->client_dasboard_url_prefix(),
+        $this->router->group( $urlmanager->client_dashboard_url_prefix(),
             callback: function () {
                 $this->router->get(
                     pattern: '',
