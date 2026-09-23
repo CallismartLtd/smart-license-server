@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Core;
 
 use SmartLicenseServer\Contracts\URLManagerInterface;
+use SmartLicenseServer\Exceptions\ProxyMethodException;
 
 /**
  * Manages URLs for this application.
@@ -85,22 +86,13 @@ class URLManager {
      *
      * @return mixed
      *
-     * @throws \ErrorException If the method does not exist in the adapter.
+     * @throws ProxyMethodException If the method does not exist in the adapter.
      */
     public function __call( string $method, array $args ) {
         if ( method_exists( $this->adapter, $method ) ) {
-            return call_user_func_array( [ $this->adapter, $method ], $args );
+            return $this->adapter->$method( ...$args );
         }
 
-        $backtrace  = \debug_backtrace( \DEBUG_BACKTRACE_IGNORE_ARGS, 3 );
-        $file       = $backtrace[0]['file'] ?? null;
-        $line       = $backtrace[0]['line'] ?? null;
-        $message    = sprintf(
-            'Method %s::%s does not exist.', 
-            get_class( $this ),
-            $method
-        );
-
-        throw new \ErrorException( $message, 0, 1, $file, $line );
+        throw new ProxyMethodException( static::class, $method );
     }
 }

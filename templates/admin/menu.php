@@ -60,7 +60,6 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                             <?php
                             $sub_url        = $urlmanager->admin_url( $menu['slug'], $submenu['slug'] );
                             $current_slug_marker    = "{$menu['slug']}/{$submenu['slug']}";
-                            $sub_index_marker       = "{$menu['slug']}/index";
                             $current_sub_marker     = $current_submenu ? "{$current_menu['slug']}/{$current_submenu['slug']}" : null;
                             $is_current_sub         = $current_slug_marker === $current_sub_marker;
 

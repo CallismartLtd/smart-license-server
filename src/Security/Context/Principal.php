@@ -9,6 +9,7 @@ namespace SmartLicenseServer\Security\Context;
 
 use BadMethodCallException;
 use InvalidArgumentException;
+use SmartLicenseServer\Exceptions\ProxyMethodException;
 use SmartLicenseServer\Security\Actors\ActorInterface;
 use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\Security\Owner;
@@ -209,12 +210,6 @@ final class Principal {
             return $this->actor->$method( ...$args );
         }
 
-        throw new BadMethodCallException(
-            sprintf(
-                'Method %s::%s does not exist.',
-                get_class( $this->actor ),
-                $method
-            )
-        );
+        throw new ProxyMethodException( static::class, $method );
     }
 }

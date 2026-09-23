@@ -21,7 +21,8 @@
 		if ( ! wrapper ) {
 			return;
 		}
-
+		
+		cleanUrlQuery( smliser_var.stripable_query_vars );
 		initDismissibleNotices();
 		restoreScrollPos();
 
@@ -221,4 +222,29 @@
 		resolve: ( value ) => value === 'dark' ? 'dark' : 'light',
 	} );
 	
+	/**
+	 * Strips specified query parameters from the current URL without reloading the page.
+	 *
+	 * @param {Array<string>} keysToRemove Array of parameter keys to strip (e.g. ['message', 'status', 'error']).
+	 */
+	function cleanUrlQuery( keysToRemove ) {
+		if ( ! keysToRemove?.length ) {
+			return;
+		}
+		
+		const url		= new URL( window.location.href );
+		let modified	= false;
+
+		keysToRemove.forEach( ( key ) => {
+			if ( url.searchParams.has( key ) ) {
+				url.searchParams.delete( key );
+				modified = true;
+			}
+		} );
+
+		if ( modified ) {
+			// Update browser address bar without reloading
+			window.history.replaceState( {}, document.title, url.toString() );
+		}
+	}
 } )();
