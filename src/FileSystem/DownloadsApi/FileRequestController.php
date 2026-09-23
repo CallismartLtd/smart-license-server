@@ -441,8 +441,8 @@ class FileRequestController {
         $max_domains    = $license->get_max_allowed_domains();
         $licensee       = $license->get_licensee_fullname();
         $today          = gmdate( 'F j, Y g:i:s a' );
-        $issuer         = $this->settings->get( 'repository_name', SMLISER_APP_NAME, true );
-        $terms_url      = $this->settings->get( 'terms_url', '', true );
+        $issuer         = $this->settings->get( Settings::REPOSITORY_NAME, SMLISER_APP_NAME );
+        $terms_url      = $this->settings->get( Settings::TERMS_URL, '' );
         $app_id         = $license->is_issued() ? $license->get_app_id() : 'N/A';
 
         $document = <<<LICENSE

@@ -11,6 +11,8 @@
  * - Form submission via AJAX to {rest_base}auth/signup
  */
 
+use SmartLicenseServer\SettingsAPI\Settings;
+
 defined( 'SMLISER_ROOT' ) || exit;
 
 $settings = smliser_settings();
@@ -124,10 +126,10 @@ $settings = smliser_settings();
 
         <label for="smlag-signup-terms">
             I agree to the
-            <a href="<?php echo escUrl( $settings->get( 'terms_url', '/', true ) ); ?>" 
+            <a href="<?php echo escUrl( $settings->get( Settings::TERMS_URL, '/', true ) ); ?>" 
                 target="_blank">Terms of Service</a>
             and
-            <a href="<?php echo escUrl( $settings->get( 'privacy_policy_url', '/', true ) ); ?>"
+            <a href="<?php echo escUrl( $settings->get( Settings::PRIVACY_POLICY_URL, '/', true ) ); ?>"
                 target="_blank">Privacy Policy</a>
         </label>
     </div>

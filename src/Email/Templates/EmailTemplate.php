@@ -340,8 +340,8 @@ abstract class EmailTemplate {
         $settings = Settings::instance();
 
         return [
-            '{{app_name}}'      => (string) $settings->get( 'repository_name', SMLISER_APP_NAME, true ),
-            '{{support_email}}' => (string) $settings->get( 'support_email', '', true ),
+            '{{app_name}}'      => (string) $settings->get( Settings::REPOSITORY_NAME, SMLISER_APP_NAME ),
+            '{{support_email}}' => (string) $settings->get( Settings::SUPPORT_EMAIL, '' ),
             '{{year}}'          => gmdate( 'Y' ),
             '{{recipient}}'     => $this->recipient(),
         ];

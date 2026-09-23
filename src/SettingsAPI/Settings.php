@@ -41,6 +41,72 @@ use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
  * @since 0.2.0
  */
 class Settings {
+    /*
+    |-------------------------------------
+    | CORE SETTINGS OPTION NAME CONSTANTS
+    |-------------------------------------
+    */
+
+    /**
+     * The option name for the repository name.
+     */
+    public const REPOSITORY_NAME = 'repository_name';
+
+    /**
+     * The option name for the administration email.
+     */
+    public const ADMIN_EMAIL = 'admin_email';
+
+    /**
+     * The option name for the hosting email.
+     */
+    public const HOSTING_EMAIL = 'hosting_email';
+
+    /**
+     * The option name for the support email.
+     */
+    public const SUPPORT_EMAIL = 'support_email';
+
+    /**
+     * The option name for the license key prefix.
+     */
+    public const LICENSE_KEY_PREFIX = 'license_key_prefix';
+
+    /**
+     * The option name for the default license duration.
+     */
+    public const DEFAULT_LICENSE_DURATION = 'default_license_duration';
+
+    /**
+     * The option name for the default license activation limit.
+     */
+    public const DEFAULT_ACTIVATION_LIMIT = 'default_activation_limit';
+
+    /**
+     * The option name for the API rate limit.
+     */
+    public const API_RATE_LIMIT = 'api_rate_limit';
+
+    /**
+     * The option name for log retention.
+     */
+    public const LOG_RETENTION_DAYS = 'log_retention_days';
+
+    /**
+     * The option name for the environment mode.
+     */
+    public const ENVIRONMENT_MODE = 'environment_mode';
+
+    /**
+     * The option name for the Terms URL.
+     */
+    public const TERMS_URL = 'terms_url';
+
+    /**
+     * The option name for the privacy policy URL.
+     */
+    public const PRIVACY_POLICY_URL = 'privacy_policy_url';
+
     /**
      * Private constructor to enforce the Singleton pattern.
      * Initializes the correct adapter based on environment detection.

@@ -181,7 +181,7 @@ class LicensePage implements AdminPageInterface {
 
         $page_handler   = $this;
         $urlmanager     = $this->urlmanager;
-        $log_duration   = (int) ( $this->settings->get( 'log_retention_days', 30 ) ?? 30 );
+        $log_duration   = (int) ( $this->settings->get( Settings::LOG_RETENTION_DAYS, 30 ) ?? 30 );
         $vars   = compact( 'log_duration', 'logs', 'request', 'urlmanager', 'page_handler' );
         
         $this->locator->render( 'admin.contents.license.logs', $vars );

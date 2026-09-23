@@ -1191,7 +1191,7 @@ class License extends DataStore {
      */
     public function make_licence_key( string $prefix = '' ) {
         if ( '' === $prefix ) {
-            $prefix = (string) ( Settings::instance()->get( 'license_key_prefix', 'SMLISER', true ) ?? 'SMLISER' );
+            $prefix = (string) ( Settings::instance()->get( Settings::LICENSE_KEY_PREFIX, 'SMLISER' ) ?? 'SMLISER' );
         }
 
         $uid            = sha1( uniqid( '', true ) );

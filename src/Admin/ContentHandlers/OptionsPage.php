@@ -385,8 +385,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'Public name of this license repository. This may appear in system emails, API responses, and administrative interfaces.',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => 'repository_name',
-                    'value' => $settings->get( 'repository_name', SMLISER_APP_NAME ),
+                    'name'  => Settings::REPOSITORY_NAME,
+                    'value' => $settings->get( Settings::REPOSITORY_NAME, SMLISER_APP_NAME ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -399,8 +399,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'Primary email address for receiving system notifications, error reports, and administrative alerts.',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => 'admin_email',
-                    'value' => $settings->get( 'admin_email', '' ),
+                    'name'  => Settings::ADMIN_EMAIL,
+                    'value' => $settings->get( Settings::ADMIN_EMAIL, '' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -413,8 +413,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'Designated contact email for server, infrastructure, or application hosting-related issues and notifications.',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => 'hosting_email',
-                    'value' => $settings->get( 'hosting_email', '' ),
+                    'name'  => Settings::HOSTING_EMAIL,
+                    'value' => $settings->get( Settings::HOSTING_EMAIL, '' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -427,8 +427,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'Customer-facing support email address used in license communications and support responses.',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => 'support_email',
-                    'value' => $settings->get( 'support_email', '' ),
+                    'name'  => Settings::SUPPORT_EMAIL,
+                    'value' => $settings->get( Settings::SUPPORT_EMAIL, '' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -441,8 +441,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'Prefix automatically added to generated license keys (e.g., SMLISER-XXXX-XXXX). Helps identify the issuing system.',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => 'license_key_prefix',
-                    'value' => $settings->get( 'license_key_prefix', 'SMLISER' ),
+                    'name'  => Settings::LICENSE_KEY_PREFIX,
+                    'value' => $settings->get( Settings::LICENSE_KEY_PREFIX, 'SMLISER' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
@@ -455,8 +455,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'Default number of days a newly generated license remains valid when no expiration date is specified.',
                 'input' => [
                     'type'  => 'number',
-                    'name'  => 'default_license_duration',
-                    'value' => $settings->get( 'default_license_duration', 365 ),
+                    'name'  => Settings::DEFAULT_LICENSE_DURATION,
+                    'value' => $settings->get( Settings::DEFAULT_LICENSE_DURATION, 365 ),
                     'attr'  => [ 'min' => 1 ],
                 ],
             ],
@@ -466,8 +466,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'Default number of activations allowed per license key.',
                 'input' => [
                     'type'  => 'number',
-                    'name'  => 'default_activation_limit',
-                    'value' => $settings->get( 'default_activation_limit', 1 ),
+                    'name'  => Settings::DEFAULT_ACTIVATION_LIMIT,
+                    'value' => $settings->get( Settings::DEFAULT_ACTIVATION_LIMIT, 1 ),
                     'attr'  => [ 'min' => 1 ],
                 ],
             ],
@@ -477,8 +477,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'Maximum number of API requests allowed per client within a one-minute window.',
                 'input' => [
                     'type'  => 'number',
-                    'name'  => 'api_rate_limit',
-                    'value' => $settings->get( 'api_rate_limit', 60 ),
+                    'name'  => Settings::API_RATE_LIMIT,
+                    'value' => $settings->get( Settings::API_RATE_LIMIT, 60 ),
                     'attr'  => [ 'min' => 1 ],
                 ],
             ],
@@ -488,8 +488,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'Number of days system logs are retained before automatic cleanup.',
                 'input' => [
                     'type'  => 'number',
-                    'name'  => 'log_retention_days',
-                    'value' => $settings->get( 'log_retention_days', 30 ),
+                    'name'  => Settings::LOG_RETENTION_DAYS,
+                    'value' => $settings->get( Settings::LOG_RETENTION_DAYS, 30 ),
                     'attr'  => [ 'min' => 1 ],
                 ],
             ],
@@ -499,8 +499,8 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'Defines whether this repository operates in production, staging, or development mode.',
                 'input' => [
                     'type'    => 'select',
-                    'name'    => 'environment_mode',
-                    'value'   => $settings->get( 'environment_mode', 'production' ),
+                    'name'    => Settings::ENVIRONMENT_MODE,
+                    'value'   => $settings->get( Settings::ENVIRONMENT_MODE, 'production' ),
                     'options' => [
                         'production'  => 'Production',
                         'staging'     => 'Staging',
@@ -514,21 +514,22 @@ class OptionsPage implements AdminPageInterface {
                 'help'  => 'Full URL to your Terms of Service or license agreement page.',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => 'terms_url',
-                    'value' => $settings->get( 'terms_url', '' ),
+                    'name'  => Settings::TERMS_URL,
+                    'value' => $settings->get( Settings::TERMS_URL, '' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',
                     ],
                 ],
             ],
+
             [
                 'label' => 'Privacy Policy URL',
                 'help'  => 'Full URL to your privacy policy page.',
                 'input' => [
                     'type'  => 'text',
-                    'name'  => 'privacy_policy_url',
-                    'value' => $settings->get( 'privacy_policy_url', '' ),
+                    'name'  => Settings::PRIVACY_POLICY_URL,
+                    'value' => $settings->get( Settings::PRIVACY_POLICY_URL, '' ),
                     'attr'  => [
                         'autocomplete' => 'off',
                         'spellcheck'   => 'off',

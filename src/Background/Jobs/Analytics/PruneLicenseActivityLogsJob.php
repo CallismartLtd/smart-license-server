@@ -56,7 +56,7 @@ class PruneLicenseActivityLogsJob implements JobHandlerInterface {
             return 0;
         }
 
-        $default_retention  = (int) $this->settings->get( 'log_retention_days', 30, true );
+        $default_retention  = (int) $this->settings->get( Settings::LOG_RETENTION_DAYS, 30 );
         $retention_days     = (int) ( $payload['retention_days'] ?? $default_retention );
         $pruned             = 0;
 
@@ -70,11 +70,7 @@ class PruneLicenseActivityLogsJob implements JobHandlerInterface {
         }
 
         if ( $pruned > 0 ) {
-            $this->settings->set(
-                RepositoryAnalytics::LICENSE_ACTIVITY_KEY,
-                $logs,
-                true
-            );
+            $this->settings->set( RepositoryAnalytics::LICENSE_ACTIVITY_KEY, $logs );
         }
 
         return $pruned;

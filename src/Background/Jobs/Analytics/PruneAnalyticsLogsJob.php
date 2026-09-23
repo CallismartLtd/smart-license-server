@@ -54,7 +54,7 @@ class PruneAnalyticsLogsJob implements JobHandlerInterface {
      * @return int Number of rows deleted.
      */
     public function handle( array $payload = [] ): mixed {
-        $default_retention  = (int) $this->settings->get( 'log_retention_days', 90, true );
+        $default_retention  = (int) $this->settings->get( Settings::LOG_RETENTION_DAYS, 90 );
         $retention_days = (int) ( $payload['retention_days'] ?? $default_retention );
         $cutoff         = TimestampValue::now()->subtractDays( $retention_days )->format( 'Y-m-d H:i:s' );
 

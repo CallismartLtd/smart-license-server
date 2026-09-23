@@ -412,7 +412,7 @@ class AuthController {
             SignupEmailJob::class,
             [
                 'user_id'       => $principal->get_id(),
-                'recipient'     => $this->settings->get( 'admin_email' ),
+                'recipient'     => $this->settings->get( Settings::ADMIN_EMAIL ),
                 'for_admin'     => true,
                 'ip_address'    => $request->ip(),
                 'account_type'  => $account_type
