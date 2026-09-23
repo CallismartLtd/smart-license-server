@@ -30,7 +30,7 @@ $encode_for_modal = static function ( mixed $value ): string {
         return '';
     }
 
-    $text = is_scalar( $value ) ? (string) $value : json_encode( $value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+    $text = is_scalar( $value ) ? (string) $value : smliser_safe_json_encode( $value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
 
     return $text ?? '';
 };
