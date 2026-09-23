@@ -7,12 +7,15 @@
 
 namespace SmartLicenseServer\ClientDashboard\TemplateHandlers;
 
+use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\ClientDashboard\DashboardHandlerInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Context\Guard;
+use SmartLicenseServer\Templates\TemplateLocator;
 
 /**
  * Handles the login form rendering.
@@ -27,7 +30,13 @@ class Login implements DashboardHandlerInterface {
     public const AUTH_2FA_TEMPLATE          = 'frontend.auth.2fa';
     public const FOOTER_TEMPLATE            = 'frontend.footer';
 
-    public function __construct( protected Guard $guard ){}
+    public function __construct(
+        protected Guard $guard,
+        protected URLManager $urlmanager,
+        protected AuthTemplateRegistry $registry,
+        protected TemplateLocator $locator
+        
+    ){}
 
     public static function slug() : string {
         return 'login';
@@ -47,7 +56,7 @@ class Login implements DashboardHandlerInterface {
      * The SPA container provides the wrapper and alert system.
      */
     public function handle( Request $request ) : Response {
-        $html = smliser_render_template_to_string(
+        $html = $this->locator->render_to_string(
             ClientDashboardRenderer::AUTH_LOGIN_TEMPLATE, [
                 'guard'     => $this->guard,
                 'request'   => $request
@@ -69,15 +78,12 @@ class Login implements DashboardHandlerInterface {
      * @return Response
      */
     public function render_login_form( Request $request ) : Response {
-        $registry       = \authTemplateRegistry();
-        $locator        = smliser_template_locator();
-
         return Response::make(
-            $locator->render_to_string(
+            $this->locator->render_to_string(
                 static::INDEX_TEMPLATE,
                 [
-                    'menu'      => $registry->all(),
-                    'rest_base' => \url( \smliser_login_url_prefix() . '/form/' ),
+                    'menu'      => $this->registry->all(),
+                    'rest_base' => $this->urlmanager->login_url( '/form/' ),
                     'guard'     => $this->guard,
                     'request'   => $request
                 ]

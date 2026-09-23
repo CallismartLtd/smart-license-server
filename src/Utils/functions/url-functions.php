@@ -13,6 +13,8 @@ use SmartLicenseServer\Exceptions\FileRequestException;
  * 
  * @param string $path Path(optional).
  * @param array<string, string> $params Associative array of query params.
+ * 
+ * @deprecated
  * @return URL
  */
 function url( string $path = '', array $params = [] ) : URL {

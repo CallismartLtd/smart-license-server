@@ -145,7 +145,7 @@ class LicensePage implements AdminPageInterface {
         $vars   = compact( 'request', 'license', 'licensed_app', 'license_id' );
         if ( $license ) {
             $licensee   = $license->get_licensee_fullname();
-            $delete_url = url( '', [
+            $delete_url = $this->urlmanager->url( '', [
                 'action'        => 'smliser_delete_license',
                 'license_id'    => $license_id,
                 // 'smliser_nonce' => wp_create_nonce( 'smliser_delete_license_nonce' )

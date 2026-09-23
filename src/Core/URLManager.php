@@ -60,9 +60,22 @@ use SmartLicenseServer\Contracts\URLManagerInterface;
 class URLManager {
 
     public function __construct(
-        protected URLManagerInterface $urlmanager
+        protected URLManagerInterface $adapter
         
     ) {}
+
+    /**
+     * Swap the current adapter.
+     * 
+     * This method is used by the dev server API to update the
+     * url manager.
+     * 
+     * @access private
+     * @param URLManagerInterface $adapter
+     */
+    public function set_adapter( URLManagerInterface $adapter ) : void {
+        $this->adapter   = $adapter;
+    }
 
     /**
      * Proxy calls to the adapter methods.
@@ -75,8 +88,8 @@ class URLManager {
      * @throws \ErrorException If the method does not exist in the adapter.
      */
     public function __call( string $method, array $args ) {
-        if ( method_exists( $this->urlmanager, $method ) ) {
-            return call_user_func_array( [ $this->urlmanager, $method ], $args );
+        if ( method_exists( $this->adapter, $method ) ) {
+            return call_user_func_array( [ $this->adapter, $method ], $args );
         }
 
         $backtrace  = \debug_backtrace( \DEBUG_BACKTRACE_IGNORE_ARGS, 3 );

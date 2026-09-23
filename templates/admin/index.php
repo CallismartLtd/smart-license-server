@@ -25,7 +25,7 @@ if ( ! $principal ) {
         '🛑 401 - Authentication Required',
         [
             'status'    => 401,
-            'link_url'  => url( 'login/' )->add_query_param( 'redirect_url', smliser_get_current_url()->url() )->url(),
+            'link_url'  => $urlmanager->login_url()->add_query_param( 'redirect_url', smliser_get_current_url()->url() )->url(),
             'link_text' => 'Login',
         ]    
     );

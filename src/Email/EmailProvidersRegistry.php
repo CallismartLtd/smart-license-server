@@ -28,6 +28,7 @@ use InvalidArgumentException;
 use Override;
 use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -49,6 +50,8 @@ class EmailProvidersRegistry  extends AbstractRegistry {
      * @var Settings $settings
      */
     protected Settings $settings;
+
+    protected URLManager $urlmanager;
 
     /**
      * Singleton instance.
@@ -94,7 +97,8 @@ class EmailProvidersRegistry  extends AbstractRegistry {
      * 
      */
     private function __construct( protected Container $container ) {
-        $this->settings = $container->get( Settings::class );
+        $this->settings     = $container->get( Settings::class );
+        $this->urlmanager   = $container->get( URLManager::class );
 
     }
 
@@ -313,7 +317,7 @@ class EmailProvidersRegistry  extends AbstractRegistry {
      * This is the default system overriding name.
      */
     public function get_default_sender_email() : string {
-        $url        = \url();
+        $url        = $this->urlmanager->url();
         $default    = \sprintf( 'smliser@%s', $url->get_host() );
         return (string) $this->settings->get( static::DEFAULT_SENDER_EMAIL_KEY, $default );
     }

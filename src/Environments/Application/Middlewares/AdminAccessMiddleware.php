@@ -53,7 +53,7 @@ class AdminAccessMiddleware implements MiddlewareInterface {
             }
 
             // Prevent open redirect attack.
-            $app_origin = \url( '/' )->get_origin();
+            $app_origin = $this->urlmanager->url( '/' )->get_origin();
             if ( ! $return_url->is_valid() || $return_url->get_origin() !== $app_origin ) {
                 $return_url = \smliser_get_current_url();
             }

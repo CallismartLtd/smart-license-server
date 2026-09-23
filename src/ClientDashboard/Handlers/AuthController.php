@@ -93,7 +93,7 @@ class AuthController {
 
         $redirect_url   = URL::from( $request->post( 'redirect_url', '' ) );
 
-        if ( ! $redirect_url->is_valid() || $redirect_url->get_origin() !== \url()->get_origin() ) {
+        if ( ! $redirect_url->is_valid() || $redirect_url->get_origin() !== $this->urlmanager->url()->get_origin() ) {
             $redirect_url   = $this->guard->get_principal()?->is( 'system_admin' )
                 ? $this->urlmanager->admin_url() : $this->urlmanager->client_dashboard_url();
         }
