@@ -573,18 +573,50 @@ function smliser_print_notice( string $message, bool $is_dismissible = false ) :
 }
 
 /**
- * Render the Smart License Server admin top navigation header.
+ * Render the Smart License Server admin content header.
  *
- * @param array $args {
- *     @type array  $breadcrumbs
- *     @type array  $actions
- *     @type string $nav_class
- *     @type string $content_class
- *     @type array  $attributes
+ * The header may contain a breadcrumb trail and a collection of quick
+ * actions. Both sections are optional. Additional HTML attributes may be
+ * supplied for the navigation container and individual breadcrumb/action
+ * elements.
+ *
+ * Breadcrumbs are rendered as anchor elements when a URL is provided and
+ * as span elements otherwise. Actions are always rendered as anchor
+ * elements and may include active state, target, relationship, custom
+ * attributes, and data-* attributes.
+ *
+ * @param array{
+ *     breadcrumbs?: array<int, array{
+ *         label?: string,
+ *         url?: string,
+ *         icon?: string,
+ *         class?: string,
+ *         attributes?: array<string, scalar|null>
+ *     }>,
+ *     actions?: array<int, array{
+ *         label?: string,
+ *         url?: string,
+ *         title?: string,
+ *         icon?: string,
+ *         active?: bool,
+ *         class?: string,
+ *         attributes?: array<string, scalar|null>,
+ *         target?: string,
+ *         rel?: string,
+ *         data?: array<string, scalar|null>
+ *     }>,
+ *     nav_class?: string,
+ *     content_class?: string,
+ *     attributes?: array<string, scalar|null>
+ * } $args {
+ *     Header configuration. Missing values are populated from the
+ *     function defaults.
  * }
- * @param bool $echo
+ * @param bool $echo Whether to echo the rendered header directly. When
+ *     false, the rendered HTML is returned instead.
  *
- * @return string|null
+ * @return string|null The rendered header HTML when `$echo` is false;
+ *     otherwise `null`.
  */
 function smliser_print_admin_content_header( array $args = [], bool $echo = true ) {
 

@@ -527,12 +527,20 @@ class Scheduler {
 			->every_minutes( 15 )
 			->label( 'Release Stale Running Jobs' );
 
-		// Purge completed jobs older than 7 days, nightly.
+		// Purge completed jobs older than log retention days, nightly.
 		$this->call(
 			'purge_completed_jobs',
 			[ $this->core_schedules, 'purgeCompletedJobs' ]
 		)
 			->daily_at( '01:00' )
 			->label( 'Purge Completed Jobs' );
+
+		// Purge failed jobs older than log retention days, nightly.
+		$this->call(
+			'purge_failed_jobs',
+			[ $this->core_schedules, 'purgeFailedJobs' ]
+		)
+			->daily_at( '03:00' )
+			->label( 'Purge Failed Jobs' );
 	}
 }

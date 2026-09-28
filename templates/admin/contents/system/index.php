@@ -8,9 +8,27 @@
  * @var SmartLicenseServer\Core\Request $request
  */
 
+/**
+ * JSON-encode a value for safe embedding in a data-* attribute.
+ *
+ * @param mixed $value
+ * @return string
+ */
+$encode_for_modal = static function ( mixed $value ): string {
+    if ( null === $value ) {
+        return '';
+    }
+
+    $text = is_scalar( $value ) ? (string) $value : smliser_safe_json_encode( $value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+
+    return $text ?? '';
+};
+
+$menu_args  = $page_handler->get_top_menu_args( $request );
+
 ?>
 <div class="smliser-admin-page">
-    <?php smliser_print_admin_content_header( $page_handler->get_top_menu_args( $request ) ); ?>
+    <?php smliser_print_admin_content_header( $menu_args ); ?>
 
     <div class="smliser-table-wrapper">
         <table class="smliser-table widefat striped">
@@ -20,7 +38,8 @@
                     <th>Label</th>
                     <th>Last Ran</th>
                     <th>Next Run</th>
-                    <th>State</th>
+                    <th>State</th> 
+                    <th>Action</th> 
                 </tr>
             </thead>
             <tbody>
@@ -44,7 +63,19 @@
                             <td><?php echo escHtml( $task->get_label() ) ?></td>
                             <td><?php echo escHtml( $last_ran ); ?></td>
                             <td><?php echo escHtml( $next_run ); ?></td>
-                            <td><?php echo escHtml( $status ); ?></td>                            
+                            <td><?php echo escHtml( $status ); ?></td>  
+                            <td>
+                                <?php if ( 'ERROR' === $status ) : ?>
+                                    <button
+                                        type="button"
+                                        class="smliser-btn-glass smliser-view-detail"
+                                        data-title="Error &mdash; Job #<?php echo escAttr( (string) $task->get_label() ); ?>"
+                                        data-content="<?php echo escAttr( $encode_for_modal( $state['last_error'] ) ); ?>"
+                                    >View</button>
+                                <?php else: ?>
+                                    &mdash;
+                                <?php endif; ?>
+                            </td>                          
                         </tr>
 
                     <?php endforeach; ?>

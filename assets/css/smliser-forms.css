@@ -608,6 +608,10 @@ ul.smliser-app-artifacts li.smliser-app-artifacts_item {
     gap: 5px;
 }
 
+.smliser-form-label-row {
+    flex: 1 1 30% !important;
+}
+
 .smliser-form-label-row.submit-row {
     flex-direction: row;
     align-items: center;

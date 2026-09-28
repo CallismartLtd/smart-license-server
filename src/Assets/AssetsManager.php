@@ -902,7 +902,7 @@ final class AssetsManager {
                 'max_upload_size'           => smliser_max_upload_size(),
                 'max_upload_size_readable'  => Format::bytes( smliser_max_upload_size() ) 
             ],
-			'stripable_query_vars'	=> ['message', 'msg', 'status', 'updated', 'error']
+			'stripable_query_vars'	=> ['message', 'msg', 'updated', 'error']
         ];
 
 		if ( $this->guard->has_principal() ) {

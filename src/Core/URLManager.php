@@ -30,6 +30,7 @@ use SmartLicenseServer\Exceptions\ProxyMethodException;
  * @method URL admin_license_page_url( string $tab = '', array $query = [] )
  * @method URL admin_broadcasts_page_url( string $tab = '', array $query = [] )
  * @method URL admin_accounts_page_url( string $tab = '', array $query = [] )
+ * @method URL admin_tools_page_url( string $tab = '', array $query = [] )
  *
  * @method string login_url_prefix()
  * @method URL login_url( string $path = '', array $query = [] )

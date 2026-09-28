@@ -133,6 +133,14 @@ interface URLManagerInterface {
      */
     public function admin_accounts_page_url( string $tab = '', array $query = [] ) : URL;
 
+    /**
+     * Get the admin tools page URL.
+     * 
+     * @param string $tab   Optional tab to append
+     * @param array $query  Optional query params
+     * @return URL
+     */
+    public function admin_tools_page_url( string $tab = '', array $query = [] ) : URL;
 
     /*
      * -------------------------------------------------

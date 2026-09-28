@@ -876,6 +876,7 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     const testCacheAdapterBtn   = document.querySelector( '.test-cache-btn' );
     const resetCacheAdapterBtn  = document.querySelector( '.reset-cache-btn' );
     const queueDetailsBtn       = document.querySelectorAll( '.smliser-view-detail' );
+    const diagnosticsPage       = document.getElementById( 'smliser-diagnostics-grid' );
 
     const $adminPage = $( '.smliser-admin-page' ).css( 'position', 'relative' );
 
@@ -1078,19 +1079,6 @@ document.addEventListener( 'DOMContentLoaded', async function() {
     }
 
     if ( emailProviderSelect ) {
-        // emailProviderSelect.addEventListener( 'change', e => {
-        //     e.preventDefault();
-        //     const value = e.target.value;
-        //     const selected  = document.querySelector( `.smliser-email-provider-card.${value}` );
-
-        //     if ( selected ) {
-        //         document.querySelectorAll( '.smliser-email-provider-card' )
-        //         .forEach( el => el.classList.remove( 'smliser-provider-card--active' ) );
-
-        //         selected.classList.add( 'smliser-provider-card--active' );
-        //     }
-        // });
-
         const $providerSel = jQuery( emailProviderSelect );
 
         $providerSel.on( 'select2:select', ( e ) => {
@@ -2860,6 +2848,116 @@ document.addEventListener( 'DOMContentLoaded', async function() {
         })
     }
 
+    if ( diagnosticsPage ) {
+        const BREAKPOINTS = [
+            { maxWidth: 640,  columns: 1 },
+            { maxWidth: 1100, columns: 2 },
+            { maxWidth: Infinity, columns: 3 },
+        ];
+
+        function columnCountForViewport() {
+            const width = window.innerWidth;
+            const match = BREAKPOINTS.find( ( bp ) => width <= bp.maxWidth );
+            return match ? match.columns : 3;
+        }
+
+        /**
+         * Greedy shortest-column-first placement: measure each panel's
+         * current rendered height, then place it into whichever column
+         * currently has the least total height. Not perfect bin-packing,
+         * but stable, cheap, and only ever runs at load/breakpoint-change
+         * — never on toggle.
+         */
+        function distribute( grid, columnCount ) {
+            const panels = Array.from( grid.querySelectorAll( ':scope > .smliser-diagnostics-panel' ) );
+
+            if ( panels.length === 0 ) {
+                return;
+            }
+
+            // Measure heights BEFORE moving anything — moving a node can
+            // change layout mid-measurement otherwise.
+            const heights = panels.map( ( panel ) => panel.getBoundingClientRect().height );
+
+            const wrapper = document.createElement( 'div' );
+            wrapper.className = 'smliser-diagnostics-columns';
+
+            const columns = [];
+            const columnHeights = [];
+
+            for ( let i = 0; i < columnCount; i++ ) {
+                const col = document.createElement( 'div' );
+                col.className = 'smliser-diagnostics-column';
+                wrapper.appendChild( col );
+                columns.push( col );
+                columnHeights.push( 0 );
+            }
+
+            panels.forEach( ( panel, index ) => {
+                let shortest = 0;
+                for ( let i = 1; i < columnHeights.length; i++ ) {
+                    if ( columnHeights[ i ] < columnHeights[ shortest ] ) {
+                        shortest = i;
+                    }
+                }
+
+                columns[ shortest ].appendChild( panel ); // Moves the existing node — state/listeners intact.
+                columnHeights[ shortest ] += heights[ index ];
+            } );
+
+            grid.innerHTML = '';
+            grid.appendChild( wrapper );
+            grid.classList.add( 'smliser-diagnostics-grid--columns' );
+        }
+
+        function init() {
+            const grid = diagnosticsPage;
+
+            if ( ! grid ) {
+                return;
+            }
+
+            let currentColumnCount = null;
+            let resizeTimer = null;
+
+            function apply() {
+                const count = columnCountForViewport();
+
+                if ( count === currentColumnCount ) {
+                    // No real breakpoint change - do nothing,
+                    // never reshuffle mid-breakpoint.
+                    return; 
+                }
+
+                currentColumnCount = count;
+
+                // On a genuine breakpoint change, panels currently live inside
+                // .smliser-diagnostics-column wrappers (or, on first run, directly
+                // in the grid) — collect them back into a flat list either way.
+                const existingColumns = grid.querySelector( '.smliser-diagnostics-columns' );
+                const flatPanels = existingColumns
+                    ? Array.from( existingColumns.querySelectorAll( '.smliser-diagnostics-panel' ) )
+                    : Array.from( grid.querySelectorAll( '.smliser-diagnostics-panel' ) );
+
+                // Rebuild the grid's direct children back to a flat list before
+                // redistributing, so distribute() can query :scope > .panel again.
+                grid.innerHTML = '';
+                flatPanels.forEach( ( panel ) => grid.appendChild( panel ) );
+
+                distribute( grid, count );
+            }
+
+            apply();
+            
+
+            window.addEventListener( 'resize', function () {
+                clearTimeout( resizeTimer );
+                resizeTimer = setTimeout( apply, 200 );
+            } );
+        }
+        
+        init();
+    }
 });
 
 document.addEventListener( 'click', smliserActionBtns );

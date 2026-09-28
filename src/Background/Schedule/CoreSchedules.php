@@ -17,6 +17,7 @@ use SmartLicenseServer\Background\Jobs\Licenses\PruneLicenseMetaJob;
 use SmartLicenseServer\Background\Jobs\Monetization\CleanExpiredTokensJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
  * Core background schedule.
@@ -25,7 +26,8 @@ use SmartLicenseServer\Background\Queue\JobQueue;
  */
 final class CoreSchedules {
     public function __construct(
-        protected JobQueue $job_queue
+        protected JobQueue $job_queue,
+        protected Settings $settings
     ) {}
 
     /**
@@ -143,13 +145,17 @@ final class CoreSchedules {
      * Purge completed jobs older than 7 days, nightly.
      */
     public function purgeCompletedJobs() : void {
-        $this->job_queue->purge_completed_jobs( 7 );
+        $this->job_queue->purge_completed_jobs(
+            (int) $this->settings->get( Settings::LOG_RETENTION_DAYS )
+        );
     }
 
     /**
      * Purge failed jobs.
      */
     public function purgeFailedJobs() : void {
-        $this->job_queue->purge_failed_jobs();
+        $this->job_queue->purge_failed_jobs(
+            (int) $this->settings->get( Settings::LOG_RETENTION_DAYS )
+        );
     }
 }

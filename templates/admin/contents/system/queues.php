@@ -12,6 +12,9 @@
  * @var SmartLicenseServer\Admin\ContentHandlers\ToolsPage $page_handler
  * @var SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Background\Queue\JobDTO[] $jobs
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var array<string, int> $queue_stats
+ * @var int $log_rentention
  */
 
 use SmartLicenseServer\Background\Queue\JobDTO;
@@ -34,11 +37,58 @@ $encode_for_modal = static function ( mixed $value ): string {
 
     return $text ?? '';
 };
+
+$menu_args  = $page_handler->get_top_menu_args( $request );
+
+$menu_args['actions'] = [
+    [
+        'label'     => 'Failed Jobs',
+        'url'       => $urlmanager->admin_tools_page_url( 'queues' )->add_query_param( 'section', 'failed' ),
+        'icon'      => 'ti ti-clock-exclamation',
+        'active'    => 'failed' === $request->query( 'section' )
+    ]
+];
+
+if ( 'failed' === $request->query( 'section' ) ) {
+    $menu_args['breadcrumbs'][1]['url']     = $urlmanager->admin_tools_page_url( 'queues' );
+    $menu_args['breadcrumbs'][1]['icon']    = 'ti ti-clock';
+    $menu_args['breadcrumbs'][]             = [
+        'label' => 'Failed Jobs'
+    ];
+}
+
 ?>
 <div class="smliser-admin-page">
-    <?php smliser_print_admin_content_header( $page_handler->get_top_menu_args( $request ) ); ?>
+    <?php smliser_print_admin_content_header( $menu_args ); ?>
 
     <div class="smliser-table-wrapper">
+        <?php if( ! $is_failed ) : ?>
+            <ul class="subsubsub smliser-status-filter">
+                <?php $current_status = $request->query( 'status', '' ); ?>
+
+                <?php foreach ( $queue_stats as $label => $total ) : 
+                    $is_active  = $label === $request->query( 'status' );
+                ?>
+
+                    <li class="smliser-status-item">
+                        <a 
+                            href="<?php echo escUrl( smliser_get_current_url()->add_query_param( 'status', $label )->url() ); ?>"
+                            class="smliser-status-link<?php echo $is_active ? ' is-active' : ''; ?>"
+                            aria-current="<?php echo $is_active ? 'page' : 'false'; ?>"
+                        >
+                            <span class="smliser-status-label">
+                                <?php echo escHtml( $label ); ?>
+                            </span>
+                            <span class="smliser-status-count">
+                                (<?php echo intval( $total ); ?>)
+                            </span>
+                        </a>
+                    </li>
+
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+
         <table class="smliser-table widefat striped">
             <thead class="<?php echo empty( $jobs ) ? 'smliser-hide' : ''; ?>">
                 <tr>
@@ -104,7 +154,7 @@ $encode_for_modal = static function ( mixed $value ): string {
                                 </td>
                             <?php else : ?>
                                 <td>
-                                    <span class="smliser-badge smliser-badge--<?php echo escAttr( strtolower( $status ) ); ?>">
+                                    <span class="smliser-badge smliser-badge-<?php echo escAttr( strtolower( $status ) ); ?>">
                                         <?php echo escHtml( strtoupper( $status ) ); ?>
                                     </span>
                                 </td>
@@ -135,5 +185,9 @@ $encode_for_modal = static function ( mixed $value ): string {
                 <?php endif; ?>
             </tbody>
         </table>
+        <span class="smliser-section-description">
+            <i class="ti ti-info-circle"></i>
+            <?php printf( 'These records are automatically purged after %d days', $log_rentention ); ?>
+        </span>
     </div>
 </div>

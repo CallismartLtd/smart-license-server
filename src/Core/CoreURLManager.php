@@ -139,6 +139,10 @@ class CoreURLManager implements URLManagerInterface {
         return $this->admin_url( 'accounts', $tab, $query );
     }
 
+    public function admin_tools_page_url(string $tab = '', array $query = []): URL {
+        return $this->admin_url( 'tools', $tab, $query );
+    }
+
     /*
     |--------------------
     | AUTH
