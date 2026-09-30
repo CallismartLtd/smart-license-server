@@ -1,0 +1,72 @@
+<?php
+/**
+ * Build context class file.
+ *
+ * @author  Callistus Nwachukwu
+ * @package SmartLicenseServer\Build
+ */
+
+declare( strict_types = 1 );
+
+namespace SmartLicenseServer\Build;
+
+/**
+ * Immutable values shared by the builder and every target.
+ */
+final class BuildContext {
+
+	/**
+	 * Constructor.
+	 *
+	 * @param string $repo_root Absolute path to the repository root.
+	 * @param string $out_dir   Absolute path to the build output directory.
+	 * @param string $core_dir  Directory name the repository `src/` is copied to.
+	 * @param string $composer  Composer binary.
+	 */
+	public function __construct(
+		public readonly string $repo_root,
+		public readonly string $out_dir,
+		public readonly string $core_dir,
+		public readonly string $composer
+	) {}
+
+	/**
+	 * Absolute path to a repository-relative path.
+	 *
+	 * @param string $relative Repository-relative path.
+	 * @return string
+	 */
+	public function source( string $relative ): string {
+		return self::join( $this->repo_root, $relative );
+	}
+
+	/**
+	 * Absolute path to a build-relative path.
+	 *
+	 * @param string $relative Build-relative path.
+	 * @return string
+	 */
+	public function target( string $relative ): string {
+		return self::join( $this->out_dir, $relative );
+	}
+
+	/**
+	 * Join path segments with forward slashes, ignoring empty segments.
+	 *
+	 * @param string ...$segments Path segments.
+	 * @return string
+	 */
+	public static function join( string ...$segments ): string {
+		$parts = array();
+
+		foreach ( $segments as $index => $segment ) {
+			$segment = 0 === $index ? rtrim( $segment, '/\\' ) : trim( $segment, '/\\' );
+
+			if ( '' !== $segment ) {
+				$parts[] = $segment;
+			}
+		}
+
+		return implode( '/', $parts );
+	}
+}

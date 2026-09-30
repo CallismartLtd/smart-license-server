@@ -16,6 +16,7 @@ jsconfig.json
 .phpstan.neon
 .vscode/
 .idea/
+dist/
 
 # OS generated files
 .DS_Store
