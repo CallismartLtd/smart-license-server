@@ -68,7 +68,7 @@ $assets = $assets_manager->get_email_editor_assets();
 </head>
 <body class="smliser-editor-page">
 
-<div class="smliser-email-editor" id="smliser-email-editor">
+<div class="email-editor" id="email-editor">
 
     <!-- =====================================================================
          TOOLBAR

@@ -51,32 +51,32 @@ final class ScriptManager {
      * Enqueue scripts (WordPress specific).
      */
     public function enqueue_scripts() {
-        wp_enqueue_script( 'smliser-datetime-picker' );
+        wp_enqueue_script( 'datetime-picker' );
         wp_enqueue_script( 'select2' );
         wp_enqueue_script( 'smliser-script' );
 
         if ( is_admin() ) {
-            wp_enqueue_script( 'smliser-modal' );
+            wp_enqueue_script( 'modal' );
         }
 
         $enqueue_chart = is_admin() && in_array( $this->request->get( 'page' ), ['smliser-overview', 'smliser-repository'] );
         if ( $enqueue_chart ) {
-            wp_enqueue_script( 'smliser-chart' );
+            wp_enqueue_script( 'chart' );
         }
 
         if ( 'smliser-repository' === $this->request->get( 'page' ) ) {
             wp_enqueue_media();
-            wp_enqueue_script( 'smliser-apps-uploader' );
-            wp_enqueue_script( 'smliser-json-editor' );
-            wp_enqueue_script( 'smliser-admin-repository' );
+            wp_enqueue_script( 'apps-uploader' );
+            wp_enqueue_script( 'json-editor' );
+            wp_enqueue_script( 'admin-repository' );
         }
 
         if ( 'smliser-accounts' === $this->request->get( 'page' ) ) {
-            wp_enqueue_script( 'smliser-role-builder' );
+            wp_enqueue_script( 'role-builder' );
         }
 
         if ( 'smliser-settings' === $this->request->get( 'page' ) ) {
-            wp_enqueue_script( 'smliser-cache-stats' );
+            wp_enqueue_script( 'cache-stats' );
         }
 
         // Localize main script
@@ -87,31 +87,31 @@ final class ScriptManager {
      * Enqueue CSS (WordPress specific)
      */
     public function enqueue_styles() {
-        wp_enqueue_style( 'smliser-datetime-picker' );
+        wp_enqueue_style( 'datetime-picker' );
         wp_enqueue_style( 'select2' );
-        wp_enqueue_style( 'smliser-styles' );
-        wp_enqueue_style( 'smliser-form-styles' );
-        wp_enqueue_style( 'smliser-modal' );
+        wp_enqueue_style( 'core-admin' );
+        wp_enqueue_style( 'form-styles' );
+        wp_enqueue_style( 'modal' );
 
         if ( 'smliser-repository' === $this->request->get( 'page' ) ) {
-            wp_enqueue_style( 'smliser-apps-uploader' );
-            wp_enqueue_style( 'smliser-json-editor' );
+            wp_enqueue_style( 'apps-uploader' );
+            wp_enqueue_style( 'json-editor' );
         }
 
         if ( is_admin() ) {
-            wp_enqueue_style( 'smliser-tabler-icons' );
+            wp_enqueue_style( 'tabler-icons' );
         }
 
         if ( 'smliser-accounts' === $this->request->get( 'page' ) ) {
-            wp_enqueue_style( 'smliser-role-builder' );
+            wp_enqueue_style( 'role-builder' );
         }
 
         if ( 'smliser-settings' === $this->request->get( 'page' ) ) {
-            wp_enqueue_style( 'smliser-cache-stats' );
+            wp_enqueue_style( 'cache-stats' );
         }
 
         if ( 'smliser-broadcasts' === $this->request->get( 'page' ) ) {
-            wp_enqueue_script( 'smliser-tinymce' );
+            wp_enqueue_script( 'tinymce' );
         }
     }
 

@@ -29,13 +29,13 @@ final class JS {
      */
     public function all( string $suffix = '' ) : array {
         return [
-            'smliser-gobals'    => [
+            'gobals'    => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/globals%s.js', $suffix ) ),
                 'dependencies'  => [],
                 'version'       => SMLISER_VER,
                 'footer'        => false,
             ],
-            'smliser-theme' => [
+            'theme' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/theme%s.js', $suffix ) ),
                 'dependencies'  => [],
                 'version'       => SMLISER_VER,
@@ -48,123 +48,121 @@ final class JS {
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-admin-dashboard-scripts' => [
+            'admin-dashboard-scripts' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/dashboard%s.js', $suffix ) ),
                 'dependencies'  => [
-                    'smliser-script', 'smliser-apps-uploader', 'smliser-chart',
-                    'smliser-admin-repository', 'smliser-cache-stats'
+                    'core-admin',
                 ],
                 'version'       => SMLISER_VER,
                 'footer'        => true,
                 'category'      => AssetsManager::CATEGORY_ADMIN_DASHBOARD
             ],
-            'smliser-script' => [
-                /** @todo: Rename script file to core-admin.js */
-                'url'           => $this->urlmanager->assets_url( sprintf( 'js/main-script%s.js', $suffix ) ), 
+            'core-admin' => [
+                'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/core%s.js', $suffix ) ), 
                 'dependencies'  => [
-                    'smliser-gobals', 'string-utils', 'smliser-jquery', 'select2', 'smliser-datetime-picker',
-                    'smliser-modal','smliser-toast'
+                    'gobals', 'string-utils', 'jquery', 'select2', 'datetime-picker',
+                    'modal','toast'
                 ],
                 'version'   => SMLISER_VER,
                 'footer'    => true
             ],
-            'smliser-apps-uploader' => [
+            'apps-uploader' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/apps-uploader%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-jquery', 'smliser-script', 'smliser-json-editor'],
+                'dependencies'  => ['jquery', 'core-admin', 'json-editor'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
             'select2' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/Select2/select2%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-jquery'],
+                'dependencies'  => ['jquery'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-tinymce' => [
+            'tinymce' => [
                 'url'           => $this->urlmanager->assets_url( 'js/tinymce/tinymce.min.js' ),
-                'dependencies'  => ['smliser-jquery'],
+                'dependencies'  => ['jquery'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-admin-repository' => [
+            'admin-repository' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/admin-repository%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-jquery', 'smliser-script'],
+                'dependencies'  => ['jquery', 'core-admin'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-role-builder' => [
+            'role-builder' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/role-builder%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-jquery'],
+                'dependencies'  => ['jquery'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-chart' => [
+            'chart' => [
                 'url'           => $this->urlmanager->assets_url( 'js/Chartjs/chart.min.js' ),
-                'dependencies'  => ['smliser-jquery'],
+                'dependencies'  => ['jquery'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-modal' => [
-                'url'           => $this->urlmanager->assets_url( sprintf( 'js/smliser-modal%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-jquery'],
+            'modal' => [
+                'url'           => $this->urlmanager->assets_url( sprintf( 'js/modal%s.js', $suffix ) ),
+                'dependencies'  => ['jquery'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-json-editor' => [
+            'json-editor' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/json-editor%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
+                'dependencies'  => ['jquery', 'core-admin', 'modal'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-datetime-picker' => [
-                'url'           => $this->urlmanager->assets_url( sprintf( 'js/smliser-datetime-picker%s.js', $suffix ) ),
+            'datetime-picker' => [
+                'url'           => $this->urlmanager->assets_url( sprintf( 'js/datetime-picker%s.js', $suffix ) ),
                 'dependencies'  => [],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-email-editor' => [
+            'email-editor' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/email-editor%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
+                'dependencies'  => ['jquery', 'core-admin', 'modal'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-cache-stats' => [
+            'cache-stats' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/cache-stats%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-jquery', 'smliser-script', 'smliser-modal'],
+                'dependencies'  => ['jquery', 'core-admin', 'modal'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-jquery' => [
+            'jquery' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/jQuery/jQuery%s.js', $suffix ) ),
                 'dependencies'  => [],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
 
-            'smliser-client-dashboard' => [
+            'client-dashboard' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/client-dashboard%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-script', 'smliser-modal'],
+                'dependencies'  => ['core-admin', 'modal'],
                 'version'       => SMLISER_VER,
                 'footer'        => true,
                 'category'      => AssetsManager::CATEGORY_CLIENT_DASHBOARD
             ],
 
-            'smliser-client-auth' => [
-                'url'           => $this->urlmanager->assets_url( sprintf( 'js/smliser-client-auth%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-modal', 'smliser-script'],
+            'client-auth' => [
+                'url'           => $this->urlmanager->assets_url( sprintf( 'js/client-auth%s.js', $suffix ) ),
+                'dependencies'  => ['modal', 'core-admin'],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-toast' => [
-                'url'           => $this->urlmanager->assets_url( sprintf( 'js/smliser-toast%s.js', $suffix ) ),
+            'toast' => [
+                'url'           => $this->urlmanager->assets_url( sprintf( 'js/toast%s.js', $suffix ) ),
                 'dependencies'  => [],
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
 
-            'smliser-site-health'   => [
+            'site-health'   => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/site-health%s.js', $suffix ) ),
-                'dependencies'  => ['smliser-script'],
+                'dependencies'  => ['core-admin'],
                 'version'       => SMLISER_VER,
                 'footer'        => true,
             ]

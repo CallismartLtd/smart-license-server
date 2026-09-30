@@ -823,7 +823,7 @@ final class AssetsManager {
 	 * Return the asset definitions required by the standalone email editor page.
 	 *
 	 * Scripts are ordered so that dependencies come before dependants:
-	 *   jquery → smliser-script → smliser-modal → smliser-email-editor
+	 *   jquery → smliser-script → modal → email-editor
 	 *
 	 * @return array<string, array<int, array<string, string>>>
 	 */
@@ -832,21 +832,21 @@ final class AssetsManager {
 		$all_js  = $this->js->all( self::script_suffix() );
 
 		$styles = [
-			'smliser-tabler-icons',
-			'smliser-styles',
-			'smliser-form-styles',
-			'smliser-modal',
-			'smliser-datetime-picker',
-			'smliser-email-editor',
+			'tabler-icons',
+			'core-admin',
+			'form-styles',
+			'modal',
+			'datetime-picker',
+			'email-editor',
 		];
 
 		$scripts = [
-			'smliser-jquery',
+			'jquery',
 			'select2',
-			'smliser-datetime-picker',
+			'datetime-picker',
 			'smliser-script',
-			'smliser-modal',
-			'smliser-email-editor',
+			'modal',
+			'email-editor',
 		];
 
 		return [

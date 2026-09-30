@@ -31,7 +31,7 @@ final class CSS {
      */
     public function all( string $suffix = '' ) : array {
         return [
-            'smliser-variables' => [
+            'variables' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/variables%s.css', $suffix ) ),
                 'dependencies'  => [],
                 'version'       => SMLISER_VER,
@@ -43,38 +43,38 @@ final class CSS {
                 'version'       => SMLISER_VER,
                 'media-type'    => 'all'
             ],
-            'smliser-admin-styles'  => [
+            'admin-styles'  => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/dashboard%s.css', $suffix ) ),
                 'dependencies'  => [
-                    'smliser-variables', 'smliser-tabler-icons', 'smliser-styles', 'smliser-apps-uploader',
-                    'smliser-cache-stats'
+                    'variables', 'tabler-icons', 'core-admin', 'apps-uploader',
+                    'cache-stats'
                 ],
                 'version'       => SMLISER_VER,
                 'media-type'    => 'all',
                 'category'      => AssetsManager::CATEGORY_ADMIN_DASHBOARD
             ],
-            'smliser-styles'    => [
-                'url'   => $this->urlmanager->assets_url( sprintf( 'css/smliser-styles%s.css', $suffix ) ),
+            'core-admin'    => [
+                'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/core%s.css', $suffix ) ),
                 'dependencies'  => [
-                    'smliser-variables',
-                    'smliser-toast',
-                    'smliser-modal',
-                    'smliser-datetime-picker',
+                    'variables',
+                    'toast',
+                    'modal',
+                    'datetime-picker',
                 ],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-apps-uploader' => [
+            'apps-uploader' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/apps-uploader%s.css', $suffix ) ),
                 'dependencies'  => [
-                    'smliser-json-editor'
+                    'json-editor'
                 ],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-form-styles' => [
-                'url'   => $this->urlmanager->assets_url( sprintf( 'css/smliser-forms%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-variables', 'select2'],
+            'form-styles' => [
+                'url'   => $this->urlmanager->assets_url( sprintf( 'css/forms%s.css', $suffix ) ),
+                'dependencies'  => ['variables', 'select2'],
                 'version'       => SMLISER_VER,
                 'media-type'    => 'all',
                 'category'      => AssetsManager::CATEGORY_ADMIN_DASHBOARD
@@ -85,62 +85,62 @@ final class CSS {
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-tabler-icons' => [
+            'tabler-icons' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'icons/tabler-icons%s.css', $suffix ) ),
                 'dependencies'  => [],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-role-builder' => [
+            'role-builder' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/role-builder%s.css', $suffix ) ),
                 'dependencies'  => [],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-modal' => [
-                'url'   => $this->urlmanager->assets_url( sprintf( 'css/smliser-modal%s.css', $suffix ) ),
+            'modal' => [
+                'url'   => $this->urlmanager->assets_url( sprintf( 'css/modal%s.css', $suffix ) ),
                 'dependencies'  => [],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-json-editor' => [
+            'json-editor' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/json-editor%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-styles'],
+                'dependencies'  => ['core-admin'],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-datetime-picker' => [
-                'url'   => $this->urlmanager->assets_url( sprintf( 'css/smliser-datetime-picker%s.css', $suffix ) ),
+            'datetime-picker' => [
+                'url'   => $this->urlmanager->assets_url( sprintf( 'css/datetime-picker%s.css', $suffix ) ),
                 'dependencies'  => [],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-email-editor' => [
+            'email-editor' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/email-editor%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-styles'],
+                'dependencies'  => ['core-admin'],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-cache-stats' => [
+            'cache-stats' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/admin/cache-stats%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-styles'],
+                'dependencies'  => ['core-admin'],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-client-dashboard' => [
+            'client-dashboard' => [
                 'url'   => $this->urlmanager->assets_url( sprintf( 'css/client-dashboard%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-variables', 'smliser-modal', 'smliser-tabler-icons', 'select2'],
+                'dependencies'  => ['variables', 'modal', 'tabler-icons', 'select2'],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-client-auth' => [
-                'url'   => $this->urlmanager->assets_url( sprintf( 'css/smliser-client-auth%s.css', $suffix ) ),
-                'dependencies'  => ['smliser-modal'],
+            'client-auth' => [
+                'url'   => $this->urlmanager->assets_url( sprintf( 'css/client-auth%s.css', $suffix ) ),
+                'dependencies'  => ['modal'],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'
             ],
-            'smliser-toast' => [
-                'url'   => $this->urlmanager->assets_url( sprintf( 'css/smliser-toast%s.css', $suffix ) ),
+            'toast' => [
+                'url'   => $this->urlmanager->assets_url( sprintf( 'css/toast%s.css', $suffix ) ),
                 'dependencies'  => [],
                 'version'   => SMLISER_VER,
                 'media-type' => 'all'

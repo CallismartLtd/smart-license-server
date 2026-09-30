@@ -40,7 +40,13 @@ class OptionsPage implements AdminPageInterface {
         protected EmailProviderIcons $email_icons_provider,
         protected CacheProviderIcons $cache_provider_icons,
         protected AssetsManager $assets_manager
-    ) {}
+    ) {
+        $this->register_scripts();
+    }
+
+    protected function register_scripts() : void {
+        $this->assets_manager->set_script_category( 'cache-stats', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+    }
 
     /*
     |---------

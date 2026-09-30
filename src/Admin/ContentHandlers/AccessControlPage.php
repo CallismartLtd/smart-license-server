@@ -38,7 +38,7 @@ class AccessControlPage implements AdminPageInterface {
     }
 
     protected function register_assets() : void {
-        $rb_asset   = 'smliser-role-builder';
+        $rb_asset   = 'role-builder';
 
         $this->assets_manager->set_script_category( $rb_asset, AssetsManager::CATEGORY_ADMIN_DASHBOARD );
         $this->assets_manager->set_style_category( $rb_asset, AssetsManager::CATEGORY_ADMIN_DASHBOARD );

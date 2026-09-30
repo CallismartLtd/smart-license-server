@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
+use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\Templates\TemplateLocator;
@@ -24,8 +25,15 @@ class DashboardPage implements AdminPageInterface {
     public function __construct(
         protected RepositoryAnalytics $repo_analytics,
         protected TemplateLocator $template_locator,
-        protected URLManager $urlmanager
-    ) {}
+        protected URLManager $urlmanager,
+        protected AssetsManager $assets_manager
+    ) {
+        $this->register_scripts();
+    }
+
+    protected function register_scripts() : void {
+        $this->assets_manager->set_script_category( 'chart', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+    }
 
     /**
      * Dashboard Callback method

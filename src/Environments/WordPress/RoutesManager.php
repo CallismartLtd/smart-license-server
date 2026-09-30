@@ -97,7 +97,7 @@ class RoutesManager {
 		*/
 		$this->router->add(
 			pattern: $dashboard_slug,
-			pagename: 'smliser-client-dashboard',
+			pagename: 'client-dashboard',
 			handler: [ Dispatcher::class, 'render_client_dashboard' ]	
 		);
 

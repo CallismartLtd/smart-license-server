@@ -50,16 +50,16 @@ $collapsed = false;
 | DYNAMIC ASSET LOADING
 |--------------------------------------------------
 */
-$styles  = [ 'smliser-client-dashboard' ];
-$scripts = [ 'smliser-client-dashboard' ];
+$styles  = [ 'client-dashboard' ];
+$scripts = [ 'client-dashboard' ];
 
 if ( $principal ) {
     $settings  = UserSettings::for( $principal->get_actor() );
     $theme     = (string) $settings->get( 'theme', 'dark' );
     $collapsed = (bool) $settings->get( 'sidebar_collapsed', false );
 } else {
-    $styles     = ['smliser-client-auth', 'smliser-client-dashboard'];
-    $scripts    = ['smliser-client-auth'];
+    $styles     = ['client-auth', 'client-dashboard'];
+    $scripts    = ['client-auth'];
 }
 
 /*

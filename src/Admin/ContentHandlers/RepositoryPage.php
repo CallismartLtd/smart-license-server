@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\AppsAnalytics;
+use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
@@ -33,8 +34,16 @@ class RepositoryPage implements AdminPageInterface {
         protected TemplateLocator $locator,
         protected MonetizationRegistry $monetization_registry,
         protected URLManager $urlmanager,
-        protected AppsAnalytics $apps_analytics
-    ) {}
+        protected AppsAnalytics $apps_analytics,
+        protected AssetsManager $assets_manager
+    ) {
+        $this->register_scripts();
+    }
+
+    protected function register_scripts() : void {
+        $this->assets_manager->set_script_category( 'admin-repository', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+        $this->assets_manager->set_script_category( 'apps-uploader', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+    }
 
     /**
      * The repository dashboard page
@@ -805,7 +814,7 @@ class RepositoryPage implements AdminPageInterface {
 
         $html = '<div class="smliser-app-analytics">';
         
-        $html .= '<div class="smliser-chart-container">';
+        $html .= '<div class="chart-container">';
         $html .= sprintf(
             '<canvas class="smliser-app-mini-analytics" data-analytics="%s"></canvas>',
             escAttr( $json )

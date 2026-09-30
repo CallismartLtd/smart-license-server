@@ -83,7 +83,7 @@ class ToolsPage implements AdminPageInterface {
 
 	protected function register_assets() : void {
 		$this->assets_manager->set_script_category(
-			'smliser-site-health',
+			'site-health',
 			AssetsManager::CATEGORY_ADMIN_DASHBOARD
 		);
 	}
