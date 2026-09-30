@@ -27,13 +27,14 @@ class AppUploader {
 
     static SELECTORS = Object.freeze({
         FORM                    : '#appUploaderForm',
-        MODAL                   : '.smliser-admin-modal.app-asset-uploader',
         ASSETS_CONTAINER        : '.app-uploader-below-section_assets',
         UPLOAD_TO_REPO_BTN      : '#upload-image',
         FILE_INPUT              : '#app-uploader-asset-file-input',
         URL_INPUT               : '#app-uploader-asset-url-input',
         IMAGE_UPLOADER_BODY     : '.app-asset-uploader-body_uploaded-asset',
         IMAGE_PREVIEW           : '#currentImage',
+        MULTI_PREVIEW           : '.smliser-multi-preview',
+        MODAL_SPINNER           : '.smliser-spinner.modal',
         JSON_TEXTAREA           : '.smliser-json-textarea',
         ZIP_UPLOAD_BTN          : '.smliser-upload-btn',
         ZIP_FILE_INFO           : '.smliser-file-info',
@@ -78,16 +79,8 @@ class AppUploader {
         this.appUploaderForm            = qs( AppUploader.SELECTORS.FORM );
         this.queryParam                 = new URLSearchParams( window.location.search );
 
-        // Asset modal
-        this.appAssetUploadModal        = qs( AppUploader.SELECTORS.MODAL );
+        // App asset cards. The asset uploader modal itself is built by _createAssetModal().
         this.assetsContainer            = this.appUploaderForm?.querySelector( AppUploader.SELECTORS.ASSETS_CONTAINER );
-        this.uploadToRepoButton         = this.appAssetUploadModal?.querySelector( AppUploader.SELECTORS.UPLOAD_TO_REPO_BTN );
-
-        // Asset uploader inputs & preview
-        this.imageFileInput             = qs( AppUploader.SELECTORS.FILE_INPUT );
-        this.imageUrlInput              = qs( AppUploader.SELECTORS.URL_INPUT );
-        this.assetImageUploaderContainer= qs( AppUploader.SELECTORS.IMAGE_UPLOADER_BODY );
-        this.imagePreview               = qs( AppUploader.SELECTORS.IMAGE_PREVIEW );
         /** @type {HTMLTextAreaElement|null} */
         this.appJsonTextarea            = this.appUploaderForm?.querySelector( AppUploader.SELECTORS.JSON_TEXTAREA );
 
@@ -103,6 +96,15 @@ class AppUploader {
         this.currentConfig  = new Map();
         this.editor         = null;
         this.artifactModal  = null;
+
+        // Asset uploader modal and its controls, set by _createAssetModal().
+        this.assetModal                     = null;
+        this.assetUploaderBody              = null;
+        this.uploadToRepoButton             = null;
+        this.imageFileInput                 = null;
+        this.imageUrlInput                  = null;
+        this.assetImageUploaderContainer    = null;
+        this.imagePreview                   = null;
     }
 
     /**
@@ -563,30 +565,105 @@ class AppUploader {
     */
 
     /**
-     * Wire up all asset-uploader related events.
+     * Wire up the asset cards that open the asset uploader modal.
      */
     _initAssetUploader() {
-        if ( ! this.appAssetUploadModal ) return;
-
-        // Delegated click handlers
-        this.appAssetUploadModal.addEventListener( 'click', ( e ) => this._handleClickAction( e ) );
         this.assetsContainer?.addEventListener( 'click', ( e ) => this._handleClickAction( e ) );
+    }
+
+    /**
+     * Build the asset uploader SmliserModal and wire its controls.
+     *
+     * Called once, the first time the modal is opened.
+     */
+    _createAssetModal() {
+        const hasWpMedia    = this._hasWpMedia();
+        const sources       = hasWpMedia ? 'your device, WordPress gallery, or a URL' : 'your device or a URL';
+        const galleryButton = hasWpMedia ? `
+                    <button type="button" class="button smliser-nav-btn" id="upload-from-wp" data-action="uploadFromWpGallery">
+                        <span class="ti ti-files"></span>
+                        Upload from Gallery
+                    </button>` : '';
+
+        const body      = document.createElement( 'div' );
+        body.className  = 'app-asset-uploader';
+        body.innerHTML  = `
+            <em class="app-asset-uploader_description">
+                Upload from ${ sources }.
+                Multiple files are supported where the asset limit allows.
+            </em>
+
+            <div class="app-asset-uploader-body">
+                <div class="app-asset-uploader-body_uploaded-asset">
+                    <div class="app-asset-uploader-placeholder">
+                        <span class="ti ti-image-in-picture"></span>
+                        <p class="app-asset-uploader-placeholder_hint">No image selected</p>
+                    </div>
+
+                    <div class="app-asset-uploader-uploaded-image">
+                        <span class="ti ti-minus clear-uploaded" title="Clear selected image" data-action="resetModal" role="button" aria-label="Clear selected image" tabindex="0"></span>
+                        <img src="" alt="Uploaded image preview" id="currentImage">
+                    </div>
+
+                    <button type="button" class="button smliser-nav-btn" id="upload-image" data-action="uploadToRepository">
+                        <span class="ti ti-cloud-upload"></span>
+                        Upload to repository
+                    </button>
+                </div>
+
+                <div class="smliser-multi-preview"></div>
+                <div class="smliser-spinner modal"></div>
+
+                <input type="url" id="app-uploader-asset-url-input" placeholder="Enter image URL" aria-label="Image URL">
+                <input type="file" id="app-uploader-asset-file-input" accept="image/*" class="smliser-hide" aria-label="Select image file(s)">
+
+                <div class="app-asset-uploader-buttons-container">
+                    <button type="button" class="button smliser-nav-btn" id="upload-from-device" data-action="uploadFromDevice">
+                        <span class="ti ti-folder-open"></span>
+                        Upload from device
+                    </button>${ galleryButton }
+                    <button type="button" class="button smliser-nav-btn" id="upload-from-url" data-action="uploadFromUrl">
+                        <span class="ti ti-link"></span>
+                        Upload from URL
+                    </button>
+                </div>
+            </div>
+        `;
+
+        this.assetModal = new SmliserModal({
+            title       : 'Asset Uploader',
+            body        : body,
+            customClass : 'app-asset-uploader-modal',
+        });
+
+        this.assetUploaderBody              = body;
+        this.uploadToRepoButton             = body.querySelector( AppUploader.SELECTORS.UPLOAD_TO_REPO_BTN );
+        this.imageFileInput                 = body.querySelector( AppUploader.SELECTORS.FILE_INPUT );
+        this.imageUrlInput                  = body.querySelector( AppUploader.SELECTORS.URL_INPUT );
+        this.assetImageUploaderContainer    = body.querySelector( AppUploader.SELECTORS.IMAGE_UPLOADER_BODY );
+        this.imagePreview                   = body.querySelector( AppUploader.SELECTORS.IMAGE_PREVIEW );
+
+        // Every close path (close button, Escape, backdrop, closeModal()) resets state.
+        this.assetModal.on( 'afterClose', () => this.resetModal( true ) );
+
+        // Delegated click handler for the modal's action buttons.
+        body.addEventListener( 'click', ( e ) => this._handleClickAction( e ) );
 
         // File input — supports multiple files
-        this.imageFileInput?.addEventListener( 'change', ( e ) => this._processUploadedImages( e ) );
+        this.imageFileInput.addEventListener( 'change', ( e ) => this._processUploadedImages( e ) );
 
         // URL input lifecycle
-        this.imageUrlInput?.addEventListener( 'input',  ( e ) => e.target.setCustomValidity( '' ) );
-        this.imageUrlInput?.addEventListener( 'blur',   ( e ) => this._manageInputFocus( e ) );
-        this.imageUrlInput?.addEventListener( 'focus',  ( e ) => this._manageInputFocus( e ) );
+        this.imageUrlInput.addEventListener( 'input',  ( e ) => e.target.setCustomValidity( '' ) );
+        this.imageUrlInput.addEventListener( 'blur',   ( e ) => this._manageInputFocus( e ) );
+        this.imageUrlInput.addEventListener( 'focus',  ( e ) => this._manageInputFocus( e ) );
 
         // Fullscreen preview on double-click
-        this.imagePreview?.addEventListener( 'dblclick', () => this.imagePreview.requestFullscreen() );
+        this.imagePreview.addEventListener( 'dblclick', () => this.imagePreview.requestFullscreen() );
 
         // Re-enable upload button when image src changes
-        this.imagePreview?.addEventListener( 'srcChanged', ( e ) => {
+        this.imagePreview.addEventListener( 'srcChanged', ( e ) => {
             if ( e.detail.oldSrc !== e.detail.newSrc ) {
-                this.uploadToRepoButton?.removeAttribute( 'disabled' );
+                this.uploadToRepoButton.removeAttribute( 'disabled' );
             }
         });
     }
@@ -595,12 +672,6 @@ class AppUploader {
      * Delegated click dispatcher for all action buttons.
      */
     _handleClickAction( e ) {
-        // Clicking the modal backdrop closes it
-        if ( e.target === this.appAssetUploadModal ) {
-            this.closeModal();
-            return;
-        }
-
         const btn       = e.target.closest( AppUploader.SELECTORS.CLICKABLE_ACTIONS );
         const action    = btn?.getAttribute( 'data-action' );
 
@@ -634,6 +705,10 @@ class AppUploader {
     openModal( config ) {
         if ( ! config ) return;
 
+        if ( ! this.assetModal ) {
+            this._createAssetModal();
+        }
+
         const totalImages   = document.querySelectorAll( `.app-uploader-asset-container.${ config.asset_type } img` ).length;
         const addButton     = document.querySelector( `.app-uploader-asset-container.${ config.asset_type } .smliser-uploader-add-image` );
         
@@ -656,15 +731,16 @@ class AppUploader {
             this.currentConfig.set( 'observer', this._observeImageSrcChange( this.imagePreview ) );
         }        
         
-        this.appAssetUploadModal.classList.remove( 'smliser-hide' );
+        this.assetModal.open();
     }
 
     /**
-     * Close the modal and fully reset state.
+     * Close the modal. State is fully reset by the modal's afterClose handler.
+     *
+     * @return {Promise<SmliserModal>|undefined}
      */
     closeModal() {
-        this.resetModal( true );
-        this.appAssetUploadModal.classList.add( 'smliser-hide' );
+        return this.assetModal?.close();
     }
 
     /**
@@ -673,6 +749,8 @@ class AppUploader {
      * @param {boolean} all  When true, also clears the currentConfig map.
      */
     resetModal( all = false ) {
+        if ( ! this.assetModal ) return;
+
         this._clearPreviewState();
         this.currentFiles           = [];
         this.imageFileInput.value   = '';
@@ -698,9 +776,20 @@ class AppUploader {
     }
 
     /**
+     * Whether the WordPress media library (wp.media) is available on this page.
+     *
+     * @return {boolean}
+     */
+    _hasWpMedia() {
+        return 'function' === typeof window.wp?.media;
+    }
+
+    /**
      * Open the WordPress media gallery picker.
      */
     _uploadFromWpGallery() {
+        if ( ! this._hasWpMedia() ) return;
+
         const frame = wp.media({
             title   : 'Select an Image',
             button  : { text: 'Use this image' },
@@ -810,7 +899,7 @@ class AppUploader {
         this.imagePreview.removeAttribute( 'src' );
 
         // Clear the multi-file strip
-        const strip = document.querySelector( '.smliser-multi-preview' );
+        const strip = this.assetUploaderBody.querySelector( AppUploader.SELECTORS.MULTI_PREVIEW );
         if ( strip ) strip.innerHTML = '';
 
         // Disable the upload button until something is staged again
@@ -852,7 +941,7 @@ class AppUploader {
         payLoad.set( 'security',  smliser_var.csrf_token );
         
 
-        const spinner = showSpinner( '.smliser-spinner.modal' );
+        const spinner = showSpinner( this.assetUploaderBody.querySelector( AppUploader.SELECTORS.MODAL_SPINNER ) );
 
         try {
             const response      = await fetch( endpoint.href, {
@@ -930,7 +1019,7 @@ class AppUploader {
      * @param {File[]} files
      */
     _showMultiFilePreview( files ) {
-        let strip = document.querySelector( '.smliser-multi-preview' );
+        let strip = this.assetUploaderBody.querySelector( AppUploader.SELECTORS.MULTI_PREVIEW );
 
         if ( ! strip ) {
             strip           = document.createElement( 'div' );
@@ -1061,7 +1150,7 @@ class AppUploader {
         }
 
         const container = document.querySelector( `.app-uploader-asset-container.${ assetType }` );
-        const spinner   = showSpinner( '.smliser-spinner.modal', true );
+        const spinner   = showSpinner( this.assetUploaderBody.querySelector( AppUploader.SELECTORS.MODAL_SPINNER ), true );
 
         try {
             const url = new URL( smliser_var.ajaxURL );
@@ -1120,6 +1209,7 @@ class AppUploader {
         const uploadedEntries       = Object.entries( uploaded );
         const failedEntries         = Object.entries( failed );
         const existingName          = this.currentConfig.get( 'asset_name' );
+        const context               = this.currentConfig.get( 'context' );
         const existingImageSelector = `#${ existingName.split( '.' )[0] }`;
 
         // ── Bulk Successes ──────────────────────────────────────────────────────────
@@ -1149,18 +1239,12 @@ class AppUploader {
         const uploadCount   = uploadedEntries.length;
         const failCount     = failedEntries.length;
 
-        if ( uploadCount > 0 && failCount === 0 ) {
-            // All succeeded — close silently
-            this.resetModal();
-            this.closeModal();
-        } else if ( uploadCount > 0 && failCount > 0 ) {
+        if ( uploadCount > 0 && failCount > 0 ) {
             // Partial success — close but leave the user informed via the notices above
             SmliserToast.show( `${ uploadCount } uploaded, ${ failCount } failed. See details above.`, 15000 );
-            this.resetModal();
-            this.closeModal();
         }
-        
-        if ( 'edit' === this.currentConfig.get( 'context' ) ) {
+
+        if ( 'edit' === context ) {
             // This is a PATCH request.
             const { asset_url: newImageUrl } = result;
             
@@ -1173,11 +1257,13 @@ class AppUploader {
                 assetConfig.context = 'edit';
                 configEl.setAttribute( 'data-config', encodeURIComponent( JSON.stringify( assetConfig ) ));
             }
+        }
 
-            this.resetModal();
+        // Close on any success. If everything failed on a new upload, keep the
+        // modal open so the user can correct and retry.
+        if ( uploadCount > 0 || 'edit' === context ) {
             this.closeModal();
         }
-        // If uploadCount === 0 (all failed), keep the modal open so the user can correct and retry
     }
 
     /**
