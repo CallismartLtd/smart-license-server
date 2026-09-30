@@ -45,9 +45,7 @@ spl_autoload_register(
 
 			if ( is_file( $file ) ) {
 				require_once $file;
-			} else {
-                var_dump( $file ); exit;
-            }
+			}
 		}
 	}
 );
