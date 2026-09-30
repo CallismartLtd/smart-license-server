@@ -9,13 +9,16 @@
 namespace SmartLicenseServer\Cache;
 
 use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
+use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\Exceptions\ProxyMethodException;
 use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
  * Cache manager singleton.
  *
- * Provides a unified cache API for Smart License Server.
+ * Provides a unified cache API for Smart License Server. The instance is
+ * created once at boot with the adapter resolved from the cache adapter
+ * registry; later calls to instance() return that same instance.
  *
  * Methods are proxied to the underlying adapter:
  *
@@ -38,50 +41,110 @@ use SmartLicenseServer\SettingsAPI\Settings;
  * @method string get_name() Get the cache adapter name.
  * @method string get_id() Get the cache adapter id.
  */
-class Cache {
+final class Cache {
 
-    /**
-     * Singleton instance.
-     *
-     * @var Cache|null
-     */
-    protected static ?Cache $instance = null;
+	/**
+	 * Singleton instance.
+	 *
+	 * @var Cache|null
+	 */
+	private static ?Cache $instance = null;
 
-    /**
-     * Private constructor to enforce singleton.
-     *
-     * @param CacheAdapterInterface $adapter The cache adapter instance.
-     */
-    public function __construct(
-        protected CacheAdapterInterface $adapter,
-        protected Settings $settings
-        
-    ) {}
+	/**
+	 * Private constructor — use instance().
+	 *
+	 * @param CacheAdapterInterface $adapter  The cache adapter instance.
+	 * @param Settings              $settings The settings API.
+	 */
+	private function __construct(
+		protected CacheAdapterInterface $adapter,
+		protected Settings $settings
+	) {}
 
-    /**
-     * Default cache ttl
-     * 
-     * @return int
-     */
-    public function default_ttl() : int {
-        return (int) max( 0, $this->settings->get( 'default_cache_ttl', 0 ) );
-    }
+	/**
+	 * Prevent cloning, which would create a second instance.
+	 */
+	private function __clone() {}
 
-    /**
-     * Proxy calls to the adapter methods.
-     *
-     * @param string $method Method name.
-     * @param array  $args   Method arguments.
-     *
-     * @return mixed
-     *
-     * @throws \ErrorException If the method does not exist in the adapter.
-     */
-    public function __call( string $method, array $args ) {
-        if ( method_exists( $this->adapter, $method ) ) {
-            return call_user_func_array( [ $this->adapter, $method ], $args );
-        }
+	/*
+	|------------------
+	| SINGLETON ACCESS
+	|------------------
+	*/
 
-        throw new ProxyMethodException( static::class, $method );
-    }
+	/**
+	 * Return the singleton instance, creating it on the first call.
+	 *
+	 * The first call must supply both the adapter and settings. Once the
+	 * instance exists, arguments are ignored — use reset_instance() to
+	 * rebuild with a different adapter.
+	 *
+	 * @param CacheAdapterInterface|null $adapter  Required on the first call.
+	 * @param Settings|null              $settings Required on the first call.
+	 * @return self
+	 * @throws EnvironmentBootstrapException If first called without an adapter and settings.
+	 */
+	public static function instance( ?CacheAdapterInterface $adapter = null, ?Settings $settings = null ) : self {
+		if ( null === self::$instance ) {
+			if ( null === $adapter || null === $settings ) {
+				throw new EnvironmentBootstrapException(
+					'misconfiguration',
+					'Cache must be initialized at boot with a cache adapter and settings.'
+				);
+			}
+
+			self::$instance = new self( $adapter, $settings );
+		}
+
+		return self::$instance;
+	}
+
+	/**
+	 * Discard the singleton so the next instance() call rebuilds it.
+	 *
+	 * Intended for tests and for switching adapters after the cache
+	 * settings change.
+	 *
+	 * @return void
+	 */
+	public static function reset_instance() : void {
+		self::$instance = null;
+	}
+
+	/*
+	|----------
+	| SETTINGS
+	|----------
+	*/
+
+	/**
+	 * Default cache TTL in seconds (0 = forever).
+	 *
+	 * @return int
+	 */
+	public function default_ttl() : int {
+		return (int) \max( 0, $this->settings->get( 'default_cache_ttl', 0 ) );
+	}
+
+	/*
+	|--------
+	| PROXY
+	|--------
+	*/
+
+	/**
+	 * Proxy calls to the adapter methods.
+	 *
+	 * @param string            $method Method name.
+	 * @param array<int, mixed> $args   Method arguments.
+	 * @return mixed
+	 * @throws ProxyMethodException If the method does not exist on the adapter.
+	 */
+	public function __call( string $method, array $args ) : mixed {
+		if ( \method_exists( $this->adapter, $method ) ) {
+			return \call_user_func_array( [ $this->adapter, $method ], $args );
+		}
+
+		throw new ProxyMethodException( static::class, $method );
+	}
 }

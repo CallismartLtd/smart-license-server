@@ -201,20 +201,19 @@ abstract class Environment {
                     $container->get( FileSystemAdapterInterface::class )
                 )
         );
-
-        $this->container->singleton(
-            Cache::class,
-            fn ( Container $container ) : Cache =>
-                new Cache(
-                    $container->get( CacheAdapterInterface::class ),
-                    $container->get( Settings::class )
-                )
-        );
-
         $this->container->singleton(
             CacheAdapterInterface::class,
             fn ( Container $container ) : CacheAdapterInterface =>
                 $container->get( CacheAdapterRegistry::class )->get_adapter()
+        );
+        
+        $this->container->singleton(
+            Cache::class,
+            fn ( Container $container ) : Cache =>
+                Cache::instance(
+                    $container->get( CacheAdapterInterface::class ),
+                    $container->get( Settings::class )
+                )
         );
 
         $this->container->singleton(

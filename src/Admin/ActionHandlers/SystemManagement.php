@@ -10,9 +10,8 @@ namespace SmartLicenseServer\Admin\ActionHandlers;
 
 use Callismart\Http\HttpClient;
 use Callismart\Http\Exceptions\HttpTimeoutException;
-use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
 use SmartLicenseServer\Cache\Adapters\RuntimeCacheAdapter;
-use SmartLicenseServer\Cache\CacheAdapterRegistry;
+use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Contracts\AdminRequests\SystemSettingsHandlerInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
@@ -56,7 +55,7 @@ class SystemManagement implements SystemSettingsHandlerInterface {
 
 	public function __construct(
 		protected HttpClient $http_client,
-		protected CacheAdapterRegistry $cache_registry
+		protected Cache $cache
 	) {}
 
 	public function handle_database_migration_request( Request $request ) : Response {
@@ -96,17 +95,17 @@ class SystemManagement implements SystemSettingsHandlerInterface {
 	 * @return Response
 	 */
 	public function handle_cache_seed( Request $request ) : Response {
-		[ $adapter, $failure ] = $this->resolve_cache_adapter();
+		$failure = $this->check_cache_usable();
 
 		if ( null !== $failure ) {
 			return $this->seed_response( null, $failure );
 		}
 
-		$adapter_id = $adapter::get_id();
+		$adapter_id = $this->cache->get_id();
 		$token      = \bin2hex( \random_bytes( 16 ) );
 
 		try {
-			$written = $adapter->set( self::PROBE_KEY_PREFIX . $token, $token, self::PROBE_TTL );
+			$written = $this->cache->set( self::PROBE_KEY_PREFIX . $token, $token, self::PROBE_TTL );
 		} catch ( \Throwable $e ) {
 			return $this->seed_response(
 				null,
@@ -146,18 +145,18 @@ class SystemManagement implements SystemSettingsHandlerInterface {
 			);
 		}
 
-		[ $adapter, $failure ] = $this->resolve_cache_adapter();
+		$failure = $this->check_cache_usable();
 
 		if ( null !== $failure ) {
 			return $this->checks_response( [ $failure ] );
 		}
 
-		$adapter_id = $adapter::get_id();
+		$adapter_id = $this->cache->get_id();
 		$key        = self::PROBE_KEY_PREFIX . $token;
 
 		try {
-			$read = $adapter->get( $key );
-			$adapter->delete( $key );
+			$read = $this->cache->get( $key );
+			$this->cache->delete( $key );
 		} catch ( \Throwable $e ) {
 			return $this->checks_response( [
 				$this->cache_failure( \sprintf( 'The "%s" cache adapter could not read a value: %s', $adapter_id, $e->getMessage() ) ),
@@ -165,7 +164,7 @@ class SystemManagement implements SystemSettingsHandlerInterface {
 		}
 
 		if ( $read !== $token ) {
-			$message = $adapter instanceof RuntimeCacheAdapter
+			$message = RuntimeCacheAdapter::get_id() === $adapter_id
 				? 'The active cache adapter is the in-memory runtime cache, so a value written in one request was gone in the next.'
 				: \sprintf( 'A value written to the "%s" cache adapter in one request was gone in the next.', $adapter_id );
 
@@ -268,45 +267,32 @@ class SystemManagement implements SystemSettingsHandlerInterface {
 	}
 
 	/**
-	 * Load the configured cache adapter and confirm it can run.
+	 * Confirm the active cache adapter can run before probing it.
 	 *
 	 * Shared by both halves of the persistence check so each request
 	 * reports an unusable adapter the same way.
 	 *
-	 * @return array{0: ?CacheAdapterInterface, 1: ?array} The adapter and null, or null and a failed check.
+	 * @return array{id: string, label: string, status: string, message: string, recommendation: ?string}|null
+	 *         A failed check, or null when the adapter is usable.
 	 */
-	private function resolve_cache_adapter() : array {
-		try {
-			$adapter = $this->cache_registry->get_adapter();
-		} catch ( \Throwable $e ) {
-			return [ null, $this->cache_failure(
-				'The configured cache adapter could not be loaded: ' . $e->getMessage(),
-				'Review the cache settings and select an available adapter.'
-			) ];
-		}
+	private function check_cache_usable() : ?array {
+		$adapter_id = $this->cache->get_id();
 
-		if ( null === $adapter ) {
-			return [ null, $this->cache_failure(
-				\sprintf( 'The configured cache adapter "%s" is not registered.', CacheAdapterRegistry::get_default_adapter_id() ),
-				'Select an available adapter in the cache settings.'
-			) ];
-		}
-
-		if ( ! $adapter->is_supported() ) {
-			return [ null, $this->cache_failure(
-				\sprintf( 'The configured "%s" cache adapter cannot run on this server.', $adapter::get_id() ),
+		if ( ! $this->cache->is_supported() ) {
+			return $this->cache_failure(
+				\sprintf( 'The active "%s" cache adapter cannot run on this server.', $adapter_id ),
 				'Enable the PHP extension this adapter requires, or select a different adapter.'
-			) ];
+			);
 		}
 
-		if ( ! $adapter->is_active() ) {
-			return [ null, $this->cache_failure(
-				\sprintf( 'The "%s" cache adapter is configured but not active.', $adapter::get_id() ),
+		if ( ! $this->cache->is_active() ) {
+			return $this->cache_failure(
+				\sprintf( 'The "%s" cache adapter is configured but not active.', $adapter_id ),
 				'Check the adapter\'s connection settings (host, port, credentials) in the cache settings.'
-			) ];
+			);
 		}
 
-		return [ $adapter, null ];
+		return null;
 	}
 
 	/*
