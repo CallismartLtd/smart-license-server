@@ -45,7 +45,7 @@ $args   = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
                 'isNew'     => true
             ]));
             foreach( $app_files as $file_data ) : 
-                $download_url   = 'main' === $file_data['slug'] ? $app->get_download_url() : $app->get_artifact_url( $file_data['filename'] );
+                $download_url   = 'main' === $file_data['slug'] ? $app->get_download_url() : $urlmanager->app_artifact_download_url( $app->get_type(), $app->get_slug(), $file_data['filename'] );
                 $config         = rawurlencode( smliser_json_encode_attr([
                     'filename'  => $file_data['filename'],
                     'slug'      => $file_data['slug'],

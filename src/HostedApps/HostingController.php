@@ -616,8 +616,12 @@ class HostingController {
                 );
             } 
 
-            $response_data['download_url']  = $app->get_artifact_url( $response_data['filename'] );
-            $response                       = ['success' => true, 'data' => $response_data ];
+            $response_data['download_url']  = $this->urlmanager->app_artifact_download_url(
+                $app->get_type(),
+                $app->get_slug(),
+                $response_data['filename']
+            );
+            $response   = ['success' => true, 'data' => $response_data ];
 
             return Response::json( $response, 200 );
         } catch ( RequestException $e ) {

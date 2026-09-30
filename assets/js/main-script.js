@@ -1,2999 +1,2192 @@
 /**
- * Add a loading spinner to a given element
- * 
- * @param {String|HTMLElement} selector - The element selector.
- * @param {Boolean} larger - Whether the spinner should be bigger?
- * @return {HTMLImageElement}
- */
-function showSpinner( selector, larger = false ) {
-    const element = ( selector instanceof HTMLElement ) ? selector : document.querySelector( selector );
-
-    if ( ! element ) { console.warn( 'Spinner element not found' ); return };
-
-    const image     = document.createElement( 'img' );
-    const gifUrl    = larger ? smliser_var.spinner_gif_2x : smliser_var.spinner_gif;
-
-    image.src       = gifUrl;
-    image.id        = 'smliser-spinner-image';
-
-    element.querySelector( '#smliser-spinner-image' )?.remove();
-
-    element.appendChild( image );
-    document.body.style.setProperty( 'cursor', 'progress' );
-
-    return image;
-}
-
-/**
- * Remove spinner
- * 
- * @param {HTMLImageElement} spinner
- */
-function removeSpinner( spinner ) {
-    spinner?.remove();
-    document.body.style.removeProperty( 'cursor' );
-}
-
-/**
- * Utility: Fetch wrapper (consistent error parsing)
- * 
- * @param {URL|RequestInfo} url - The URL to fetch
- * @param {RequestInfo|null} options - Fetch options
- * @param {string} options.responseType - Expected response type: 'json' (default), 'text', 'html', 'blob'
- * @returns {Promise<Object|string|Blob>} Parsed response based on type
- * @throws {Object} Error object with message and optional field
- */
-async function smliserFetch( url, options = { responseType: 'json' } ) {
-    // Extract custom option
-    const responseType = options.responseType || 'json';
-    delete options.responseType; // Remove before passing to fetch
-    
-    try {
-        const response = await fetch( url, options );
-        const contentType = response.headers.get( 'content-type' ) || '';
-        
-        // Handle successful responses
-        if ( response.ok ) {
-            // Return based on requested response type
-            switch ( responseType ) {
-                case 'json':
-                    if ( contentType.includes( 'application/json' ) ) {
-                        return await response.json();
-                    }
-                    // Fallback: try to parse as JSON anyway
-                    try {
-                        return await response.json();
-                    } catch {
-                        return { success: true };
-                    }
-                
-                case 'text':
-                case 'html':
-                    return await response.text();
-                
-                case 'blob':
-                    return await response.blob();
-                
-                case 'arraybuffer':
-                    return await response.arrayBuffer();
-                
-                case 'formdata':
-                    return await response.formData();
-                
-                default:
-                    // Auto-detect based on content-type
-                    if ( contentType.includes( 'application/json' ) ) {
-                        return await response.json();
-                    } else if ( contentType.includes( 'text/html' ) ) {
-                        return await response.text();
-                    } else if ( contentType.includes( 'text/' ) ) {
-                        return await response.text();
-                    } else {
-                        return await response.blob();
-                    }
-            }
-        }
-        
-        // Handle error responses
-        let errorMessage = 'An error occurred';
-        let errorField = null;
-        let errorCode = null;
-        
-        if ( contentType.includes( 'application/json' ) ) {
-            try {
-                const errorData = await response.json();
-                errorMessage = errorData.data?.message 
-                            || errorData.message 
-                            || errorData.error.message
-                            || errorMessage;
-                errorField = errorData.data?.field_id || errorData.field || null;
-                errorCode = errorData.code || errorData.data?.code || null;
-            } catch ( parseError ) {
-                console.error( 'Failed to parse error JSON:', parseError );
-            }
-        } else if ( contentType.includes( 'text/html' ) ) {
-            // Handle HTML error pages (e.g., 404, 500 pages)
-            try {
-                const htmlText = await response.text();
-                
-                // Try to extract meaningful error from HTML
-                const parser = new DOMParser();
-                const doc = parser.parseFromString( htmlText, 'text/html' );
-                
-                // Look for common error message containers
-                const errorElement = doc.querySelector( '.error-message, .wp-die-message, h1, title' );
-                if ( errorElement ) {
-                    errorMessage = errorElement.textContent.trim() || errorMessage;
-                }
-                
-                // Fallback to status text
-                if ( errorMessage === 'An error occurred' ) {
-                    errorMessage = `${response.status}: ${response.statusText}`;
-                }
-            } catch ( htmlError ) {
-                errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
-            }
-        } else {
-            // Non-JSON, non-HTML error response
-            try {
-                const text = await response.text();
-                errorMessage = text || `HTTP Error ${response.status}: ${response.statusText}`;
-            } catch ( textError ) {
-                errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
-            }
-        }
-        
-        // Throw structured error object.
-        throw {
-            message: errorMessage,
-            field: errorField,
-            code: errorCode,
-            status: response.status,
-            statusText: response.statusText,
-            contentType: contentType
-        };
-        
-    } catch ( error ) {
-        if ( error.message && typeof error.status !== 'undefined' ) {
-            // Already structured error from above.
-            throw error;
-        }        
-        
-        let category        = 'request_failed';
-        let customMessage   = error.message || 'An unexpected error occurred';
-
-        if ( error instanceof TypeError ) {
-            // The request never reached the server.
-            if ( ! navigator.onLine ) {
-                category = 'offline';
-                customMessage = 'You appear to be offline. Please check your connection.';
-            } else {
-                // If online but TypeError occurs, it's almost always DNS or CORS.
-                category = 'network_error';
-                customMessage = 'Server unreachable (DNS or Connection Refused).';
-            }
-        } else if ( error.name === 'AbortError' ) {
-            category = 'timeout';
-            customMessage = 'The request timed out.';
-        }
-
-        throw {
-            message: customMessage,
-            field: null,
-            code: category,
-            status: 0,
-            statusText: 'Network Error',
-            originalError: error // Useful for debugging
-        };
-    }
-}
-
-/**
- * Helper: Fetch and expect JSON
- * 
- * @param {URL|RequestInfo} url
- * @param {RequestInit|null} options
- */
-async function smliserFetchJSON( url, options = {} ) {
-    const headers = {
-        'Accept': 'application/json',
-    };
-
-    options.headers = { ...headers, ...( options.headers || {} ) };
-
-    return await smliserFetch( url, { ...options, responseType: 'json' } );
-}
-
-/**
- * Helper: Fetch and expect HTML
- */
-async function smliserFetchHTML( url, options = {} ) {
-    const headers = {
-        'Accept': 'text/html',
-    };
-
-    options.headers = { ...headers, ...( options.headers || {} ) };
-
-    return await smliserFetch( url, { ...options, responseType: 'html' } );
-}
-
-/**
- * Helper: Fetch and expect text
- */
-async function smliserFetchText( url, options = {} ) {
-    const headers = {
-        'Accept': 'text/plain',
-    };
-
-    options.headers = { ...headers, ...( options.headers || {} ) };
-
-    return await smliserFetch( url, { ...options, responseType: 'text' } );
-}
-
-/**
- * Helper: Fetch and expect blob (for files/images)
- */
-async function smliserFetchBlob( url, options = {} ) {
-    const headers = {
-        'Accept': 'application/octet-stream',
-    };
-
-    options.headers = { ...headers, ...( options.headers || {} ) };
-
-    return await smliserFetch( url, { ...options, responseType: 'blob' } );
-}
-
-/**
- * Download a file from a URL.
+ * SmartLicenseServer admin UI.
  *
- * @param {string} url - Download URL.
- * @param {RequestInit} [options={}] - Fetch options.
- * @returns {Promise<{
- *     filename: string,
- *     size: number,
- *     type: string,
- *     duration: number,
- *     url: string,
- *     status: number,
- *     statusText: string,
- *     headers: Headers
- * }>} Information about the downloaded file.
- * @throws {Error} If the response status is not ok.
+ * Classic script. Load after globals.js and the libraries it relies on
+ * (`smliser_var`, `jQuery`, `SmliserModal`, `SmliserToast`, `StringUtils`,
+ * `CallismartDatePicker`, `RoleBuilder`, `tinymce`, `Chart`).
  */
-async function smliserDownloadUrl( url, options = {} ) {
 
-	const started  = performance.now();
-	const response = await fetch( url, {
-		...options,
-	} );
+( function () {
+	'use strict';
 
-	if ( ! response.ok ) {
-		throw new Error(
-			`Download failed: ${ response.status } ${ response.statusText } (${ response.url || url })`
-		);
+	const queryParam = new URLSearchParams( window.location.search );
+
+	/*
+	|----------------
+	|Shared Utilities
+	|----------------
+	*/
+
+	/**
+	 * Create an element with properties and children.
+	 *
+	 * @param {string} tag
+	 * @param {Object} [props={}] - Assigned directly to the element (not for `style`).
+	 * @param {...(Node|string)} children
+	 * @return {HTMLElement}
+	 */
+	function el( tag, props = {}, ...children ) {
+		const node = Object.assign( document.createElement( tag ), props );
+
+		node.append( ...children );
+
+		return node;
 	}
 
-	const blob = await response.blob();
+	/**
+	 * Set a custom validity message that clears on the next edit.
+	 *
+	 * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} field
+	 * @param {string} message
+	 */
+	function flagInvalid( field, message ) {
+		field.setCustomValidity( message );
+		field.addEventListener( 'input', () => field.setCustomValidity( '' ), { once: true } );
+	}
 
-	let filename = 'download';
-
-	// Try Content-Disposition first.
-	const disposition = response.headers.get( 'Content-Disposition' );
-
-	if ( disposition ) {
-		const match = disposition.match(
-			/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i
-		);
-
-		if ( match ) {
-			try {
-				filename = decodeURIComponent( match[1] );
-			} catch ( error ) {
-				filename = match[1];
-			}
+	/**
+	 * Fade an element out with jQuery, then remove it.
+	 *
+	 * @param {Element|null} element
+	 * @param {Function} [after] - Runs after removal.
+	 */
+	function fadeOutAndRemove( element, after ) {
+		if ( ! element ) {
+			return;
 		}
+
+		jQuery( element ).fadeOut( 'slow', () => {
+			element.remove();
+			after?.();
+		} );
 	}
 
-	// Fallback to filename from URL.
-	if ( 'download' === filename ) {
+	/**
+	 * Copy text and flash "Copied!" on the button.
+	 *
+	 * @param {HTMLButtonElement} button
+	 * @param {string} text
+	 */
+	async function copyWithFeedback( button, text ) {
 		try {
-			const pathname = new URL( response.url || url, window.location.href ).pathname;
-			const basename = pathname.substring( pathname.lastIndexOf( '/' ) + 1 );
+			await navigator.clipboard.writeText( text );
 
-			if ( basename ) {
-				filename = decodeURIComponent( basename );
-			}
+			button.dataset.label ??= button.textContent;
+			button.textContent     = 'Copied!';
+
+			setTimeout( () => {
+				button.textContent = button.dataset.label;
+			}, 2000 );
 		} catch ( error ) {
-			// Ignore malformed URLs.
+			console.error( 'Could not copy text', error );
 		}
 	}
 
-	const objectUrl = URL.createObjectURL( blob );
+	/**
+	 * Build the body and footer for a one-time secret display (API key, download token).
+	 *
+	 * @param {Object} args
+	 * @param {string} args.warning - Text after the "Important:" prefix.
+	 * @param {string} args.label - Label before the identifier.
+	 * @param {string|number} args.identifier
+	 * @param {string} args.secret - The value shown and copied.
+	 * @param {string} args.info - Small text on the left of the footer.
+	 * @param {string} args.downloadLabel - Download button text.
+	 * @return {{ body: HTMLElement, footer: HTMLElement, downloadBtn: HTMLButtonElement }}
+	 */
+	function buildSecretDelivery( { warning, label, identifier, secret, info, downloadLabel } ) {
+		const body = el( 'div', { className: 'smliser-api-key-delivery' },
+			el( 'div', { className: 'smliser-api-key-warning' }, el( 'strong', { textContent: 'Important: ' } ), warning ),
+			el( 'span', { className: 'smliser-api-key-label' }, label, el( 'code', { textContent: String( identifier ) } ) ),
+			el( 'div', { className: 'smliser-api-key-display', textContent: secret } ),
+		);
 
-	const anchor = document.createElement( 'a' );
+		const downloadBtn = el( 'button', { type: 'button', className: 'button', textContent: downloadLabel } );
+		const copyBtn     = el( 'button', { type: 'button', className: 'smliser-copy-btn', textContent: 'Copy Key' } );
+		const infoText    = el( 'span', { textContent: info } );
+		const btnGroup    = el( 'div', {}, downloadBtn, copyBtn );
+		const footer      = el( 'div', { className: 'smliser-modal-footer-api-actions' }, infoText, btnGroup );
 
-	anchor.href = objectUrl;
-	anchor.download = filename;
-	anchor.style.display = 'none';
+		Object.assign( infoText.style, { fontSize: '12px', color: '#666' } );
+		Object.assign( btnGroup.style, { display: 'flex', gap: '10px' } );
+		Object.assign( footer.style, { display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' } );
 
-	document.body.appendChild( anchor );
-	anchor.click();
-	document.body.removeChild( anchor );
+		copyBtn.addEventListener( 'click', () => copyWithFeedback( copyBtn, secret ) );
 
-	// Delay revocation for browser compatibility.
-	setTimeout( () => URL.revokeObjectURL( objectUrl ), 1000 );
+		return { body, footer, downloadBtn };
+	}
 
-	const duration = performance.now() - started;
+	/**
+	 * Safe localStorage access; storage can throw in private modes or when blocked.
+	 */
+	const storage = {
+		get( key ) {
+			try {
+				return localStorage.getItem( key );
+			} catch {
+				return null;
+			}
+		},
 
-	return {
-		filename,
-		size: blob.size,
-		type: blob.type,
-		duration,
-		url: response.url,
-		status: response.status,
-		statusText: response.statusText,
-		headers: response.headers
+		set( key, value ) {
+			try {
+				localStorage.setItem( key, value );
+			} catch ( error ) {
+				console.warn( `Could not store "${ key }": ${ error.message }` );
+			}
+		},
 	};
-}
-
-// Function to copy text to clipboard using Clipboard API
-function smliserCopyToClipboard(text) {
-    navigator.clipboard.writeText(text).then( () => {
-        const copiedText    = text.length > 0 && text.length < 50 ? `: ${text}` : '';
-        SmliserToast.show( `Copied to clipboard ${copiedText}`, 3000);
-    }).catch( (err) => {
-        console.error('Could not copy text', err);
-    });
-}
-
-/**
- * App search via select2 with proper infinite scroll
- * 
- * @param {Element} selectEl 
- */
-function smliserSelect2AppSelect( selectEl ) {
-    if ( ! ( selectEl instanceof HTMLElement ) ) {
-        console.warn( 'Could not instantiate app selection, invalid html element' );
-        return;     
-    }
-
-    // Convert Select2 params into query args
-    const prepareArgs = ( params, _ ) => ({
-        search: params.term || '',
-        page: params.page || 1,
-    });
-
-    const processResults = ( data, params ) => {
-        params.page = params.page || 1;
-
-        if ( !Array.isArray(data.apps) ) data.apps = [];
-
-        // Group apps by type
-        const grouped = {};
-        data.apps.forEach( app => {
-            if ( ! grouped[ app.type ] ) grouped[ app.type ] = [];
-            grouped[ app.type ].push({
-                id: `${app.type}:${app.slug}`,
-                text: app.name,
-                type: app.type,
-            });
-        });
-
-        // Convert to Select2 optgroup structure
-        const results = Object.keys( grouped ).map( type => ({
-            text: type.charAt(0).toUpperCase() + type.slice(1),
-            children: grouped[ type ]
-        }));
-
-        return {
-            results,
-            pagination: {
-                more: (data.pagination?.total_pages ?? 0) > params.page
-            }
-        };
-    };
-
-    jQuery( selectEl ).select2({
-        placeholder: 'Search apps',
-        ajax: {
-            url: smliser_var.app_search_api,
-            dataType: 'json',
-            delay: 100,
-            data: prepareArgs,
-            processResults: processResults,
-            cache: true,
-        },
-        allowClear: true,
-        minimumInputLength: 1,
-        width: '100%',
-    });    
-}
-
-/**
- * Search security entities using select2 with pagination.
- * 
- * @param {Element} selectEl
- * @param {Object} options
- */
-function smliserSearchSecurityEntities( selectEl, options = {} ) {
-    if ( ! ( selectEl instanceof HTMLElement ) ) {
-        console.warn( 'Could not instantiate entity selection, invalid html element' );
-        return;     
-    }
-
-    const defaults = {
-        placeholder: 'Search users or organizations',
-        entityType: 'resource_owners', // Only `resource_owners` and `owner_subjects` supported.
-        types: []
-    };
-
-    options = { ...defaults, ...options };
-
-    const prepareArgs = ( params ) => ({
-        search: params.term || '',
-        types: options.types,
-        page: params.page || 1
-    });
-
-    const processResults = ( data, params ) => {
-        params.page = params.page || 1;
-
-        if ( ! Array.isArray(data.items ) ){
-            data.items = []; 
-        } 
-
-        // Group entities by type (individuals, organizations)
-        const grouped = {};
-        data.items.forEach( entity => {
-            if ( ! grouped[ entity.type ] ) grouped[ entity.type ] = [];
-            grouped[ entity.type ].push({
-                id: `${entity.type}:${entity.id}`,
-                text: entity?.name ?? entity?.display_name ?? 'No name',
-                type: entity.type,
-                avatar: entity?.avatar
-            });
-        });
-
-        // Convert to Select2 optgroup structure
-        const results = Object.keys( grouped ).map( type => ({
-            text: type.charAt(0).toUpperCase() + type.slice(1),
-            children: grouped[ type ]
-        }));
-
-        return {
-            results,
-            pagination: {
-                more: (data.pagination?.total_pages ?? 0) > params.page
-            }
-        };
-    };
-
-    const $select2 = jQuery( selectEl );
-    const url      = new URL( smliser_var.ajaxURL );
-
-    url.pathname    += `/search/${options.entityType}/`;
-
-    url.searchParams.set( 'security', smliser_var.csrf_token );
-
-    $select2.select2({
-        placeholder: options.placeholder,
-        ajax: {
-            url: url,
-            dataType: 'json',
-            delay: 500,
-            data: prepareArgs,
-            processResults: processResults,
-            cache: true,
-        },
-        allowClear: true,
-        minimumInputLength: 2,
-        width: '100%',
-    });
-
-    const ownerTypeInput = $select2.closest( 'form' ).find('#owner_type');
-    const nameInput      = $select2.closest( 'form' ).find('#name');
-    const avatarOnly     = $select2.closest( 'form' ).find('.smliser-avatar-upload_image-preview.avatar-only');
-    const defaultValue   = ownerTypeInput.val();
-
-    $select2.on('select2:select select2:unselect', e => {
-        const data = e.params?.data;
-
-        if ( ownerTypeInput.length ) {
-            ownerTypeInput.val(e.params.data.selected ? data.type : defaultValue);
-
-            if ( e.params.data.selected && nameInput.length && ! nameInput.val() ) {
-                nameInput.val( data.text );
-            }
-        }
-
-        if ( avatarOnly.length && data?.avatar ) {
-            avatarOnly.attr('src', data.avatar);
-            avatarOnly.attr('title', data.text);
-        }        
-    });
-}
-
-function smliserHelpToolTip() {
-    'use strict';
-
-    /**
-     * How close to the viewport edge (px) before we flip the tooltip.
-     */
-    var EDGE_THRESHOLD = 16;
-
-    function reposition( tooltip ) {
-        tooltip.classList.remove( 'smliser-tooltip-below', 'smliser-tooltip-left', 'smliser-tooltip-right' );
-        tooltip.style.width     = '';
-        tooltip.style.left      = '';
-        tooltip.style.transform = '';
-
-        void tooltip.offsetWidth;
-
-        var viewport_w    = window.innerWidth;
-        var rect          = tooltip.getBoundingClientRect();
-        var parent_rect   = tooltip.offsetParent ? tooltip.offsetParent.getBoundingClientRect() : { left: 0, right: viewport_w };
-
-        // Convert tooltip edges to viewport-space for accurate comparison.
-        var tooltip_left  = rect.left;
-        var tooltip_right = rect.right;
-
-        // Flip below if cropped at the top.
-        if ( rect.top < EDGE_THRESHOLD ) {
-            tooltip.classList.add( 'smliser-tooltip-below' );
-            void tooltip.offsetWidth;
-        }
-
-        // Resolve horizontal overflow — these are mutually exclusive so we
-        // check right-edge first, then left-edge, and left always wins.
-        if ( tooltip_right > ( viewport_w - EDGE_THRESHOLD ) ) {
-            tooltip.classList.add( 'smliser-tooltip-left' );
-        }
-
-        if ( tooltip_left < EDGE_THRESHOLD ) {
-            tooltip.classList.remove( 'smliser-tooltip-left' );
-            tooltip.classList.add( 'smliser-tooltip-right' );
-        }
-
-        // Last resort — after flipping, re-measure and check if the tooltip
-        // still bleeds outside the viewport on either side. If so, clamp its
-        // width and nudge it using offset-parent-relative coordinates so we
-        // stay in the correct coordinate space.
-        void tooltip.offsetWidth;
-        var final_rect = tooltip.getBoundingClientRect();
-
-        if ( final_rect.left < EDGE_THRESHOLD || final_rect.right > ( viewport_w - EDGE_THRESHOLD ) ) {
-            var available_w  = viewport_w - ( EDGE_THRESHOLD * 2 );
-            // Translate the desired viewport-space left into offset-parent space.
-            var target_left  = EDGE_THRESHOLD - parent_rect.left;
-
-            tooltip.style.width     = available_w + 'px';
-            tooltip.style.left      = target_left + 'px';
-            tooltip.style.transform = 'none';
-        }
-    }
-
-    /**
-     * Show a tooltip.
-     *
-     * @param {HTMLElement} tooltip
-     */
-    function show( tooltip ) {
-        tooltip.classList.add( 'is-visible' );
-        reposition( tooltip );
-    }
-
-    /**
-     * Hide a tooltip.
-     *
-     * @param {HTMLElement} tooltip
-     */
-    function hide( tooltip ) {
-        tooltip.classList.remove( 'is-visible' );
-    }
-
-    /**
-     * Hide every open tooltip except the one provided.
-     *
-     * @param {HTMLElement|null} except
-     */
-    function hide_all( except ) {
-        document.querySelectorAll( '.smliser-help-tooltip.is-visible' ).forEach( function ( tooltip ) {
-            if ( tooltip !== except ) {
-                hide( tooltip );
-            }
-        } );
-    }
-
-    /**
-     * Wire up a single help icon button.
-     *
-     * @param {HTMLElement} btn
-     */
-    function init_icon( btn ) {
-        var tooltip = btn.nextElementSibling;
-
-        if ( ! tooltip || ! tooltip.classList.contains( 'smliser-help-tooltip' ) ) {
-            return;
-        }
-
-        // Toggle on click (covers both mouse and touch).
-        btn.addEventListener( 'click', function ( e ) {
-            e.stopPropagation();
-            var is_open = tooltip.classList.contains( 'is-visible' );
-            hide_all( null );
-            is_open ? hide( tooltip ) : show( tooltip );
-        } );
-
-        // Show on keyboard focus, hide on blur.
-        btn.addEventListener( 'focusin', function () {
-            hide_all( tooltip );
-            show( tooltip );
-        } );
-
-        btn.addEventListener( 'focusout', function ( e ) {
-            // Don't hide if focus moves into the tooltip itself.
-            if ( ! tooltip.contains( e.relatedTarget ) ) {
-                hide( tooltip );
-            }
-        } );
-    }
-
-    /**
-     * Close any open tooltip on Escape key.
-     */
-    document.addEventListener( 'keydown', function ( e ) {
-        if ( e.key === 'Escape' ) {
-            hide_all( null );
-        }
-    } );
-
-    /**
-     * Close any open tooltip when clicking outside.
-     */
-    document.addEventListener( 'click', function () {
-        hide_all( null );
-    } );
-
-    /**
-     * Initialise all help icons currently in the DOM, and watch for
-     * any added dynamically (e.g. fields rendered via AJAX).
-     */
-    function init_all() {
-        document.querySelectorAll( '.smliser-help-icon' ).forEach( init_icon );
-    }
-
-    // Handle dynamically injected fields.
-    var observer = new MutationObserver( function ( mutations ) {
-        mutations.forEach( function ( mutation ) {
-            mutation.addedNodes.forEach( function ( node ) {
-                if ( node.nodeType !== 1 ) return;
-                if ( node.classList.contains( 'smliser-help-icon' ) ) {
-                    init_icon( node );
-                } else {
-                    node.querySelectorAll( '.smliser-help-icon' ).forEach( init_icon );
-                }
-            } );
-        } );
-    } );
-
-    observer.observe( document.body, { childList: true, subtree: true } );
-    init_all();
-
-};
-
-/**
- * Turn buttons with .smliser-action-button into AJAX actions.
- * 
- * @param {MouseEvent} e - Click event.
- */
-async function smliserActionBtns( e ) {
-    /** @type {HTMLButtonElement|null} */
-    const button = e.target.closest( '.smliser-action-button' );
-    
-    if ( ! button ) return;
-
-    /** * @typedef {Object} SmliserButtonArgs
-     * @property {string} slug              - The route slug.
-     * @property {string|undefined} method  - Optional request method.
-     * @property {string|undefined} [url]   - Optional custom URL.
-     * @property {Object.<string, any>} [payLoad] - Optional data payload.
-     */
-
-    /** @type {SmliserButtonArgs|null} */
-    const args = StringUtils.JSONparse( button.dataset.args );    
-
-    if ( ! args || ! args.slug ) {
-        await SmliserModal.error( 'Action button missing required data-args slug.' );
-        return;
-    }
-
-    // Visual feedback: disable button and show loading state
-    button.disabled = true;
-    const originalText = button.innerHTML;
-    button.innerHTML = originalText + '<span class="ti ti-loader rotate"></span>';
-
-    try {
-        const baseUrl   = args.url || smliser_var.ajaxURL;
-        const url       = new URL( baseUrl, window.location.origin );
-        url.pathname    += `/${StringUtils.trim( args.slug, '/' )}/`;
-        
-        url.searchParams.set( 'security', smliser_var.csrf_token );
-
-        // Determine method and body based on payLoad presence.
-        const hasPayload = args.payLoad && Object.keys(args.payLoad).length > 0;
-
-        let method  = hasPayload ? 'POST' : 'GET';
-
-        if ( args.method ) {
-            method  = args.method;
-        }        
-        
-        const result = await smliserFetchJSON( url, {
-            method: method,
-            ...( hasPayload && { body: JSON.stringify( args.payLoad ) } )
-        });
-
-        if ( result.success ) {
-            SmliserModal.success( result.data.message || 'Action completed!', 'Success' );
-            // Trigger a custom event if other parts of the UI need to refresh
-            document.dispatchEvent( new CustomEvent( 'smliser:action_success', { detail: { button, args, result } } ) );
-        } else {
-            throw new Error( result.data.message || 'Operation failed' );
-        }
-
-    } catch ( error ) {
-        // Since smliserFetch already structures the error, we just pass the message
-        SmliserModal.error( error.message, 'Error' );
-    } finally {
-        // Restore button state
-        button.disabled = false;
-        button.innerHTML = originalText;
-    }
-}
-
-/**
- * Initialize the editor for broadcast messages with zero theme flash.
- */
-function initBroadcastEditor() {
-    const isDark   = document.documentElement.getAttribute( 'data-theme' ) === 'dark';
-    const selector = '#message-body';
-    const targetEl = document.querySelector( selector );
-
-    if ( ! targetEl ) return;
-
-    let container = targetEl.closest( '.tox-tinymce-wrapper' );
-    if ( ! container ) {
-        container = document.createElement( 'div' );
-        container.className = 'tox-tinymce-wrapper';
-        targetEl.parentNode.insertBefore( container, targetEl );
-        container.appendChild( targetEl );
-    }
-
-    container.style.opacity = '0';
-    container.style.pointerEvents = 'none';
-
-    if ( tinymce.get( 'message-body' ) ) {
-        tinymce.remove( selector );
-    }
-
-    tinymce.init({
-        selector: selector,
-        skin: isDark ? 'oxide-dark' : 'oxide',
-        content_css: isDark ? 'dark' : 'default',
-        branding: false,
-        license_key: 'gpl',
-        menubar: 'file insert table',
-        plugins: 'lists link image media table code preview fullscreen autosave searchreplace visualblocks insertdatetime emoticons',
-        toolbar: 'add_media_button | styles | alignleft aligncenter alignjustify alignright bullist numlist outdent indent | forecolor backcolor | code fullscreen preview | undo redo',
-        height: 600,
-        relative_urls: false,
-        remove_script_host: false,
-        promotion: false,
-        valid_children: '+div[div|span],+span[span|div]',
-        font_formats: 'Inter=Inter, sans-serif; Arial=Arial, Helvetica, sans-serif; Verdana=Verdana, Geneva, sans-serif; Tahoma=Tahoma, Geneva, sans-serif; Trebuchet MS=Trebuchet MS, Helvetica, sans-serif; Times New Roman=Times New Roman, Times, serif; Georgia=Georgia, serif; Palatino Linotype=Palatino Linotype, Palatino, serif; Courier New=Courier New, Courier, monospace',
-        toolbar_mode: 'sliding',
-        content_style: `
-            body { 
-                font-family: "Inter", sans-serif; 
-                font-size: 16px; 
-                background-color: ${ isDark ? '#1b1e27' : '#ffffff' }; 
-                color: ${ isDark ? '#e6e8ee' : '#1f2430' }; 
-            }
-        `,
-        setup: function ( editor ) {
-            editor.on( 'init', function () {
-                requestAnimationFrame( () => {
-                    container.style.opacity = '1';
-                    container.style.pointerEvents = 'all';
-                });
-            });
-        }
-    });
-}
-
-/**
- * Open a detail modal for the queues table action.
- *
- * @param {HTMLElement} trigger
- */
-function openQueueDetails( trigger ) {
-    const title   = trigger.getAttribute( 'data-title' ) || 'Detail';
-    const content = trigger.getAttribute( 'data-content' ) || '';
-
-    const body = document.createElement( 'pre' );
-    body.className = 'smliser-detail-modal-content';
-    body.textContent = content; // textContent, not innerHTML — content is raw, not HTML.
-
-    const modal = new SmliserModal( {
-        title:       title,
-        body:        body,
-        width:       '640px',
-        customClass: 'smliser-detail-modal',
-    } );
-
-    modal.on( 'afterClose', () => modal.destroy() );
-
-    modal.open();
-}
-
-document.addEventListener( 'DOMContentLoaded', async function() {
-    let licenseDownloadTokenBtn = document.querySelector( '.smliser-generate-download-token-btn' );
-    let licenseKeyContainers    = document.querySelectorAll( '.smliser-license-obfuscation' );
-    let searchInput             = document.getElementById('smliser-search');
-    let tooltips                = document.querySelectorAll( '.smliser-form-description, .smliser-tooltip' );
-    let deleteLicenseBtn        = document.getElementById( 'smliser-license-delete-button' );
-    let updateBtn               = document.querySelector('#smliser-update-btn');
-    let appActionsBtn           = document.querySelectorAll( '.smliser-app-delete-button, .smliser-app-restore-button' );
-
-    /**@type {HTMLInputElement} Select all checkbox */
-    let selectAllCheckbox       = document.querySelector('#smliser-select-all');
-    let dashboardPage           = document.querySelector( '.smliser-admin-dashboard-template.overview' );
-    let monetizationUI          = document.querySelector( '.smliser-monetization-ui' );
-    let optionForms             = document.querySelectorAll( 'form.smliser-options-form' );
-    const emailProviderSelect   = document.querySelector( '#email_default_provider' );
-    const bulkMessageForm       = document.querySelector( 'form.smliser-compose-message-container' );
-    const licenseAppSelect      = document.querySelector( '.license-app-select' );
-    const allCopyEl             = document.querySelectorAll( '.smliser-click-to-copy' );
-    const adminNav              = document.querySelector( '.smliser-top-nav' );
-    const allLicenseDomain      = document.querySelector( '.smliser-all-license-domains' );
-    const queryParam            = new URLSearchParams( window.location.search );
-    const roleBuilderEl         = document.querySelector( '#smliser-role-builder' );
-    const avatarUploadFields    = document.querySelectorAll( '.smliser-avatar-upload' );
-    const generatePasswordBtn   = document.querySelector( '#smliser-generate-password' );
-    const smliserPasswordFields = document.querySelectorAll( 'input[type="password"].smliser-password-input' );
-    const licenseForm           = document.querySelector( '.smliser-license-form' );
-
-    /** @type {HTMLFormElement} */
-    const accessControlForm     = document.querySelector( '.smliser-access-control-form' );
-    const ownerSubjectSearch    = document.querySelector( '#subject_id' );
-    /** @type {HTMLSelectElement} */
-    const usersSearch           = document.querySelector( '#user_id' );
-    /** @type {HTMLSelectElement} */
-    const ownersSearch          = document.querySelector( '#owner_id, #app_owner_id' );
-    const deleteEntities        = document.querySelectorAll( '.smliser-delete-entity' );
-    const emailTemplatesPage    = document.querySelector( '#smliser-email-templates-table' );
-    const emailTemplateToggle   = document.querySelectorAll( '.smliser-template-toggle' );
-    const testCacheAdapterBtn   = document.querySelector( '.test-cache-btn' );
-    const resetCacheAdapterBtn  = document.querySelector( '.reset-cache-btn' );
-    const queueDetailsBtn       = document.querySelectorAll( '.smliser-view-detail' );
-    const diagnosticsPage       = document.getElementById( 'smliser-diagnostics-grid' );
-
-    const $adminPage = $( '.smliser-admin-page' ).css( 'position', 'relative' );
-
-    $( '.smliser-auto-select2 select' ).each( function() {
-        const $select = $( this );
-
-        $select.select2({
-            width: '100%',
-            dropdownParent: $adminPage.length ? $adminPage : $( document.body )
-        });
-    });
-
-    licenseAppSelect && smliserSelect2AppSelect( licenseAppSelect );
-
-    CallismartDatePicker.mountAll();
-    smliserHelpToolTip();
-    /**
-     * Resets custom validity on form input.
-     * @param {InputEvent} e - The input event
-     */
-    const resetValidity = ( e ) => {
-        e.target.setCustomValidity( '' );
-        e.target.removeEventListener( 'input', resetValidity );
-    };
-    
-    if ( usersSearch ) {
-        const options = {
-            entityType: 'owner_subjects',
-            placeholder: 'Search users...',
-            types: ['individual']
-        };
-
-        const selectedUser  = usersSearch.value.trim();
-        if ( selectedUser.length ) {
-            const shadowInput       = document.createElement( 'input' );
-            shadowInput.name        = usersSearch.name;
-            shadowInput.type        = 'hidden';
-            shadowInput.value       = selectedUser;
-            const form              = usersSearch.closest( 'form' );
-            
-            usersSearch.removeAttribute('name');
-            usersSearch.disabled    = true;
-
-            form.appendChild( shadowInput );
-        }
-        smliserSearchSecurityEntities( usersSearch, options );
-    }
-
-    if ( ownerSubjectSearch ) {
-        const options = {
-            entityType: 'owner_subjects',
-            placeholder: 'Search for users or organizations...'
-        };
-
-        smliserSearchSecurityEntities( ownerSubjectSearch, options );
-    }
-
-    if ( ownersSearch ) {
-        const options = {
-            entityType: 'resource_owners',
-            placeholder: 'Search for resource owners...'
-        };
-
-        smliserSearchSecurityEntities( ownersSearch, options );
-    }
-
-    if ( generatePasswordBtn ) {
-
-        const jsonField = generatePasswordBtn.getAttribute( 'data-fields' );
-        let pwdvalues   = StringUtils.JSONparse( jsonField, null );
-
-        if ( ! pwdvalues ) return;
-
-        const [pwd1Selector, pwd2Selector] = pwdvalues;
-        /** @type {HTMLInputElement} */
-        const pwd1Field = document.querySelector( `#${pwd1Selector}` );
-         /** @type {HTMLInputElement} */
-        const pwd2Field = document.querySelector( `#${pwd2Selector}` );
-
-        generatePasswordBtn.addEventListener( 'click', e => {
-            const btn   = e.target?.closest( '.button' );
-
-            if ( ! btn ) return;
-            const password  = StringUtils.generatePassword();
-
-            if ( pwd1Field ) {
-                pwd1Field.value = password;
-            }
-
-            if ( pwd2Field ) {
-                pwd2Field.value = password;
-            }
-            
-        });
-    }
-
-    if ( smliserPasswordFields ) {
-        smliserPasswordFields.forEach( pwdInput => {
-            pwdInput.parentElement.addEventListener( 'click', e => {
-                const btn = e.target.closest( '.smliser-password-toggle' );
-                
-                if ( ! btn ) return;
-                
-                const targetId      = btn.getAttribute( 'data-target' );
-                const passwordField = document.querySelector( `#${targetId}` );
-                const showIcon      = btn.querySelector( '.smliser-eye-show' );
-                const hideIcon      = btn.querySelector( '.smliser-eye-hide' );
-                
-                if ( ! passwordField ) return;
-                
-                if ( passwordField.type === 'password' ) {
-                    passwordField.type = 'text';
-                    showIcon.style.display = 'none';
-                    hideIcon.style.display = 'block';
-                    btn.setAttribute( 'aria-label', 'Hide password' );
-                } else {
-                    passwordField.type = 'password';
-                    showIcon.style.display = 'block';
-                    hideIcon.style.display = 'none';
-                    btn.setAttribute( 'aria-label', 'Show password' );
-                }
-            });
-
-            const openField = () => {
-                if ( pwdInput.disabled ) {
-                    pwdInput.disabled   = false
-                    pwdInput.type       = 'text';
-                    
-                    if ( queryParam.has( 'section', 'edit' ) ) {
-                        pwdInput.required = false;
-                    }                    
-                }
-            }
-
-            setTimeout( openField, 500 );
-        })
-    }
-
-    if ( adminNav ) {
-        document.addEventListener( 'scroll', (e) => {
-            if ( window.scrollY > 0 ) {
-                adminNav.classList.add( 'is-scrolled' );
-            } else {
-                adminNav.classList.remove( 'is-scrolled' );
-            }
-
-            if ( window.matchMedia( `( min-width: 19px) and (max-width: 600px )`).matches ) {
-                let scrollUp = window.scrollY > 20;
-                if( scrollUp ) {
-                    adminNav.style.top = "0";
-                } else {
-                    adminNav.style.top = "35px";
-                }
-            }
-            
-        })
-    }
-
-    if ( optionForms ) {
-        optionForms.forEach( form => {
-            form.addEventListener( 'submit', async ( e ) => {
-                e.preventDefault();
-                                
-                const submittedForm = e.target;
-                if ( ! submittedForm instanceof HTMLFormElement ) return;
-                const payLoad   = new FormData( submittedForm );
-                const slug      = submittedForm.dataset.slug;
-
-                if ( ! slug ) {
-                    await SmliserModal.error( 'This form does not have a slug dataset.', 'Form Error.' );
-                    return;
-                } 
-                const url       = new URL( smliser_var.ajaxURL );
-
-                url.pathname    += `/options-form/${slug}/`;
-                payLoad.set( 'security', smliser_var.csrf_token );
-                const submitBtn = submittedForm.querySelector( 'button[type="submit"]' );
-                
-                submitBtn?.setAttribute( 'disabled', 'disabled' );
-                const spinner = showSpinner( '.smliser-spinner', true );
-
-                smliserFetchJSON( url, {
-                    method: 'POST',
-                    body: payLoad,
-                    credentials: 'same-origin'
-                }).then( async response => {
-                    const message = response?.data?.message ?? 'Success';
-                    await SmliserModal.success( message, 'Saved' );
-                    
-                }).catch( async error => {
-                    await SmliserModal.error( error.message, error.category );
-                    
-                }).finally( () => {
-                    removeSpinner( spinner );
-                    submitBtn?.removeAttribute( 'disabled' );
-                });
-                
-            })
-        })
-    }
-
-    if ( emailProviderSelect ) {
-        const $providerSel = jQuery( emailProviderSelect );
-
-        $providerSel.on( 'select2:select', ( e ) => {
-            const value = e.params.data.id;
-
-            jQuery( '.smliser-provider-card' )
-                .removeClass( 'smliser-provider-card--active' );
-
-            jQuery( `.smliser-provider-card.${value}` )
-                .addClass( 'smliser-provider-card--active' );
-        } );
-    }
-
-    if ( deleteLicenseBtn ) {
-        deleteLicenseBtn.addEventListener( 'click', async ( event ) => {
-            event.preventDefault();
-            const userConfirmed = await SmliserModal.confirm( 'You are about to delete this license, be careful action cannot be reversed' );
-            if ( ! userConfirmed  ) {                
-                return;
-            }
-
-            try {
-                const url       = new URL( smliser_var.ajaxURL );
-                url.pathname    += '/license-delete/';
-
-                url.searchParams.set( 'license_id', queryParam.get('id') );
-
-                const response  = await smliserFetchJSON( url, {
-                    method: 'DELETE',
-                    credentials: 'same-origin',
-                });
-
-                if ( response.success ) {
-                    await SmliserModal.success( response.data?.message ?? 'Deleted successfully' );
-                } else {
-                    throw new Error( response.data?.message ?? 'Unable to delete license' );
-                }
-
-                if ( response.data.redirect ) {
-                    window.location.href    = new URL( response.data.location ).toString();
-                }
-
-            } catch (error) {
-                await SmliserModal.error( error.message );
-            }
-
-
-        });
-    }
-
-    if ( licenseDownloadTokenBtn ) {
-        const config    = StringUtils.JSONparse( licenseDownloadTokenBtn.getAttribute( 'data-args' ) );
-        
-        if ( ! config ) return;
-        const licenseID = config.license_id;
-        const appName   = config.app_name;
-        const modalBody     = document.createElement( 'form' );
-        modalBody.className = 'smliser-license-download-token-form';
-        modalBody.id        = 'licenseDownloadTokenForm';
-        
-        const licenseInput  = document.createElement( 'input' );
-        licenseInput.type   = 'hidden';
-        licenseInput.name   = 'license_id';
-        licenseInput.value  = licenseID;
-        
-        const expiryLabel       = document.createElement( 'label' );
-        expiryLabel.textContent = 'Token Expiry (optional)';
-        expiryLabel.setAttribute( 'for', 'expiryDate' );
-        expiryLabel.className   = 'smliser-form-label-row';
-
-        const expiryInput       = document.createElement( 'input' );
-        expiryInput.type        = 'datetime-local';
-        expiryInput.name        = 'expiry';
-        expiryInput.id          = 'expiryDate';
-        expiryInput.className   = 'smliser-input';
-        expiryInput.setAttribute( 'smliser-date-picker', 'date' );
-
-        const description           = document.createElement( 'em' );
-        description.textContent     = 'Download tokens allow clients to download the application monetized under this license without exposing the primary license key. If expiry is not set, If expiry is not set, token will be valid for 24 hours by default.';
-
-        modalBody.appendChild( licenseInput );
-        expiryLabel.appendChild( expiryInput );
-        modalBody.appendChild( description );
-        modalBody.appendChild( expiryLabel );
-
-        const footerContent     = document.createElement( 'div' );
-        footerContent.className = 'smliser-dialog-buttons';
-        const submitBtn         = document.createElement( 'button' );
-        submitBtn.type          = 'submit';
-        submitBtn.className     = 'smliser-btn';
-        submitBtn.textContent   = 'Generate Token';
-
-        submitBtn.setAttribute( 'form', modalBody.id );
-
-        footerContent.appendChild( submitBtn );
-        let title = `Generate Download Token`;
-
-        if ( appName ) {
-            title += ` for ${appName}`;
-        }
-
-        let picker = null;
-
-        const modal     = new SmliserModal({
-            title: title,
-            body: modalBody,
-            showCloseButton: true,
-            closeOnBackdropClick: false,
-            animation: true,
-            closeOnEscape: true,
-            footer: footerContent,
-            maxWidth: '600px'
-        });
-
-        modal.on( 'afterOpen', () => {
-            if ( ! picker ) {
-                picker  = CallismartDatePicker.mountAll();
-            }
-        });
-
-        modal.on( 'onSubmit', async (e) => {            
-            if ( ! config.is_issued ) {
-                await SmliserModal.error( 'Download token can only be generated for issued licenses.' );
-                // return;
-            }
-
-            try {
-                let url         = new URL( smliser_var.ajaxURL );
-                url.pathname    += '/generate-app-download-token/';
-                const payLoad   = new FormData( e.getBody( 'form' ) );
-                
-                payLoad.set( 'security', smliser_var.csrf_token );
-
-                const response  = await smliserFetchJSON( url, {
-                    method: 'POST',
-                    body: payLoad
-                });
-
-                if ( response.success ) {
-                    const token = response?.data?.token;
-
-                    if ( ! token ) {
-                        await SmliserModal.error( 'Unable to get API key Data' );
-                        return;                        
-                    }
-
-                    const newModalBody     = document.createElement( 'div' );
-                    newModalBody.className = 'smliser-api-key-delivery';
-
-                    const warning       = document.createElement( 'div' );
-                    warning.className   = 'smliser-api-key-warning';
-                    const strong        = document.createElement( 'strong' );
-                    strong.textContent  = 'Important: ';
-                    warning.append( strong, document.createTextNode( 'Copy this token now. For security, it will not be shown to you again.' ) );
-
-                    const label         = document.createElement( 'span' );
-                    label.className     = 'smliser-api-key-label';
-                    label.textContent   = 'License ID: ';
-                    const code          = document.createElement( 'code' );
-                    code.textContent    = licenseID;
-                    label.appendChild( code );
-
-                    const keyDisplay        = document.createElement( 'div' );
-                    keyDisplay.className    = 'smliser-api-key-display';
-                    keyDisplay.textContent  = token;
-
-                    newModalBody.append( warning, label, keyDisplay );
-
-                    const footerContainer                   = document.createElement( 'div' );
-                    footerContainer.className               = 'smliser-modal-footer-api-actions';
-                    footerContainer.style.display           = 'flex';
-                    footerContainer.style.justifyContent    = 'space-between';
-                    footerContainer.style.alignItems        = 'center';
-                    footerContainer.style.width             = '100%';
-
-                    const creationInfo          = document.createElement( 'span' );
-                    creationInfo.style.fontSize = '12px';
-                    creationInfo.style.color    = '#666';
-                    creationInfo.textContent    = `License issued to: ${response?.data?.licensee_fullname ?? 'N/A'}`;
-
-                    const btnGroup              = document.createElement( 'div' );
-                    btnGroup.style.display      = 'flex';
-                    btnGroup.style.gap          = '10px';
-
-                    const downloadBtn           = document.createElement( 'button' );
-                    downloadBtn.className       = 'button';
-                    downloadBtn.textContent     = 'Download License File';
-
-                    const copyBtn               = document.createElement( 'button' );
-                    copyBtn.className           = 'smliser-copy-btn';
-                    copyBtn.textContent         = 'Copy Key';
-
-                    btnGroup.append( downloadBtn, copyBtn );
-                    footerContainer.append( creationInfo, btnGroup );
-
-                    modal.setBody( newModalBody )
-                    .setFooter( footerContainer )
-                    .setTitle( 'Download Token Generated' );
-
-                    copyBtn.addEventListener( 'click', () => {
-                        navigator.clipboard.writeText( token ).then( () => {
-                            const originalText = copyBtn.textContent;
-                            copyBtn.textContent = 'Copied!';
-                            setTimeout( () => { copyBtn.textContent = originalText; }, 2000 );
-                        });
-                    });
-
-                    downloadBtn.addEventListener( 'click', async () => {
-
-                        try {
-                            /**
-                             * @type {Blob}
-                             */
-                            let blob      = await smliserFetchBlob( response.data.document_download_url );
-
-                            // Apend token data to the text file.
-                            const tokenData = [
-                                '\r\n',
-                                `Download Token: ${token}`, 
-                                `Token Expiry: ${response?.data?.expiry ?? '24 hours from now'}`,
-                            ].join('\r\n');
-
-                            const tokenBlob = new Blob([tokenData], { type: 'text/plain' });
-                            blob            = new Blob([blob, tokenBlob], { type: 'text/plain' });
-                            const url       = window.URL.createObjectURL(blob);
-                            const a         = document.createElement('a');
-                            const filename  = response.data.licensee_fullname.replace(/\s+/g, '-').toLowerCase();
-                            
-                            a.href = url;
-                            a.download = `${filename}-license-${Date.now()}.txt`;
-                            document.body.appendChild(a);
-                            a.click();
-                            
-                            setTimeout( () => { window.URL.revokeObjectURL(url) }, 400 );
-                            document.body.removeChild(a);                        
-                        } catch( error ) {
-                            await SmliserModal.error( error.message, 'Download Failed' );
-                        }
-
-                    });
-
-                    modal.open().then( () => downloadBtn.focus() );
-                    modal.on( 'afterClose', () => {
-                        window.location.reload();
-                    });
-                    return;
-                }
-                
-            } catch (error) {
-                SmliserModal.error( error.message, 'Request Error' );
-            }
-
-        });
-
-        licenseDownloadTokenBtn.addEventListener( 'click', async e => {
-            e.preventDefault()
-            modal.open();
-        })
-        
-    }
-
-    if ( licenseKeyContainers.length ) {
-        licenseKeyContainers.forEach(container => {
-            const inputField    = container.querySelector( '.smliser-license-input' );
-
-            container.addEventListener( 'click', (e) => {
-                const checkToggle = e.target.closest( '.smliser-licence-key-visibility-toggle' );
-                const copyButton = e.target.closest( '.copy-key' );
-                if ( checkToggle ) {
-                    inputField.classList.toggle( 'active' );
-                    return;
-                }
-                if ( copyButton ) {
-                    const licenseKeyField = container.querySelector( '.smliser-license-text' );
-                    navigator.clipboard.writeText(licenseKeyField.value).then(function() {
-                        SmliserToast.show('copied', 2000)
-                    }).catch(function(error) {
-                        SmliserToast.show( error, 2000)
-                    });
-                }
-            });
-        });
-    }
-
-    if (searchInput) { // @todo refactor with ajax rendering
-        let tableRows = document.querySelectorAll('.smliser-table tbody tr');
-        let tableBody = document.querySelector('.smliser-table tbody');
-        searchInput.addEventListener('input', function () {
-            const searchTerm = searchInput.value.toLowerCase();
-            let noMatchFound = true;
-    
-            tableRows.forEach(function (row) {
-                const licenseId = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-                const clientName = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-                const licenseKey = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
-                const serviceId = row.querySelector('td:nth-child(5)').textContent.toLowerCase();
-                const itemId = row.querySelector('td:nth-child(6)').textContent.toLowerCase();
-                const status = row.querySelector('td:nth-child(7)').textContent.toLowerCase();
-    
-                if (
-                    licenseId.includes(searchTerm) ||
-                    clientName.includes(searchTerm) ||
-                    licenseKey.includes(searchTerm) ||
-                    serviceId.includes(searchTerm) ||
-                    itemId.includes(searchTerm) ||
-                    status.includes(searchTerm)
-                ) {
-                    row.style.display = '';
-                    noMatchFound = false;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-
-            // Show or hide the "not found" message
-            if (noMatchFound) {
-                if (!document.querySelector('.smliser-not-found')) {
-                    const notFoundMessage = document.createElement('tr');
-                    notFoundMessage.className = 'smliser-not-found';
-                    notFoundMessage.innerHTML = '<td colspan="7">No results found</td>';
-                    tableBody.appendChild(notFoundMessage);
-                }
-            } else {
-                const notFoundMessage = document.querySelector('.smliser-not-found');
-                if (notFoundMessage) {
-                    notFoundMessage.remove();
-                }
-            }
-        });
-    }
-
-    if ( tooltips.length ) {
-        tooltips.forEach(function(tooltip) {
-            tooltip.addEventListener('mouseenter', function() {
-                var title = this.getAttribute('title');
-                if (title) {
-                    this.setAttribute('data-title', title);
-                    this.removeAttribute('title');
-
-                    var tooltipElement = document.createElement('div');
-                    tooltipElement.className = 'custom-tooltip';
-                    tooltipElement.innerText = title;
-                    document.body.appendChild(tooltipElement);
-
-                    var rect = this.getBoundingClientRect();
-                    tooltipElement.style.top = rect.top + window.scrollY - tooltipElement.offsetHeight - 5 + 'px';
-                    tooltipElement.style.left = rect.left + window.scrollX + (rect.width / 2) - (tooltipElement.offsetWidth / 2) + 'px';
-                    
-                    tooltipElement.classList.add('show');
-
-                    this._tooltipElement = tooltipElement;
-                }
-            });
-
-            tooltip.addEventListener('mouseleave', function() {
-                var tooltipElement = this._tooltipElement;
-                if (tooltipElement) {
-                    tooltipElement.classList.remove('show');
-                    setTimeout(function() {
-                        document.body.removeChild(tooltipElement);
-                    }, 300);
-                    this.setAttribute('title', this.getAttribute('data-title'));
-                    this.removeAttribute('data-title');
-                    this._tooltipElement = null;
-                }
-            });
-        });
-    }
-
-    if ( updateBtn ) {
-        let   updateClickedNotice = document.querySelector('#smliser-click-notice');
-        updateBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            updateBtn.parentElement.style.display = 'none';
-            updateClickedNotice.style.display ='block';
-            let dismissBtn = document.createElement( 'span' );
-            dismissBtn.classList.add( 'ti', 'ti-x' );
-            dismissBtn.style.color = 'red';
-            dismissBtn.style.float = 'right';
-            dismissBtn.addEventListener( 'click', ()=>{
-                dismissBtn.parentElement.parentElement.remove();
-            });
-            
-            updateClickedNotice.appendChild(dismissBtn);
-            
-            // Construct the URL
-            let updateUrl = new URL( smliser_var.ajaxURL );
-            updateUrl.searchParams.set( 'action', 'smliser_upgrade' );
-            updateUrl.searchParams.set( 'security', smliser_var.csrf_token );
-        
-            // Fetch request
-            fetch( updateUrl )
-                .then(response => {
-                    // Check if the response is ok
-                    if (!response.ok) {
-                        throw new Error(response.statusText);
-                    }
-                    return response.json(); // Parse the JSON body
-                })
-                .then(data => {
-                    if (data.success) {
-                        SmliserToast.show(data.data.message || 'Upgrade successful!', 5000);
-                        updateBtn.parentElement.style.display = 'none'; // Update UI only if successful
-                        updateClickedNotice.style.display = 'block';
-                    } else {
-                        SmliserToast.show(data.data?.message || 'An error occurred', 5000);
-                    }
-                })
-                .catch(error => {
-                    // Handle fetch or JSON parsing errors
-                    SmliserToast.show(error.message || 'An unexpected error occurred', 5000);
-                });
-        });
-    }
-
-    if ( appActionsBtn.length ) {
-        appActionsBtn.forEach( actionBtn => {
-            actionBtn.addEventListener('click', async (e)=>{
-                e.preventDefault();
-                let requestArgs    = StringUtils.JSONparse( actionBtn.getAttribute( 'data-action-args' ) );
-                
-                if ( ! requestArgs ) {
-                    SmliserToast.show( 'App data not found', 5000 );
-                    return;
-                }
-
-                if ( 'trash' === requestArgs.status ) {
-                    let message     = `You are about to trash this ${requestArgs.type}, it will be automatically deleted after 60 days. Are you sure you want to proceed?`;
-                    let confirmed   = await SmliserModal.confirm( message );
-                    
-                    if ( ! confirmed ) {
-                        return;
-                    }                    
-                }
-
-                let url = new URL( smliser_var.ajaxURL );
-                url.searchParams.set( 'action', 'smliser_app_status_action' );
-                url.searchParams.set( 'app_slug', requestArgs.slug );
-                url.searchParams.set( 'app_type', requestArgs.type );
-                url.searchParams.set( 'security', smliser_var.csrf_token );
-                url.searchParams.set( 'app_status', requestArgs.status );
-                
-                fetch(url)
-                    .then( response=>{
-                        if ( ! response.ok ) {
-                            SmliserToast.show(`Error: [${response.status}] ${response.statusText}`, 5000);
-                        }
-                        return response.json();
-                    })
-                    .then( responseData => {
-                        
-                        if ( responseData.success ) {
-                            SmliserToast.show(`Success: ${responseData.data.message}`, 3000);
-                            setTimeout( () => {
-                                window.location.href = responseData.data.redirect_url;
-                            }, 3000);
-                        } else {
-                            SmliserToast.show(`Error: ${responseData.data.message}`, 6000 );
-
-                        }
-                    });
-                
-            });
-        });
-    }
-
-    if ( selectAllCheckbox ) {
-        /** @type {NodeListOf<HTMLInputElement>} */
-        let checkboxes = document.querySelectorAll('.smliser-license-checkbox, .smliser-checkbox');
-        let lastChecked = null; // Track the last checkbox clicked
-
-        selectAllCheckbox.addEventListener('change', function () {
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = selectAllCheckbox.checked;
-            });
-        });
-
-        // Individual and Shift-Select Logic.
-        checkboxes.forEach((checkbox, index) => {
-            checkbox.addEventListener('click', function (e) {
-                // Check if Shift key is held and there's a previous click
-                if (e.shiftKey && lastChecked !== null) {
-                    let start = Math.min(index, lastChecked);
-                    let end = Math.max(index, lastChecked);
-
-                    // Apply the state of the clicked checkbox to the whole range
-                    for (let i = start; i <= end; i++) {
-                        checkboxes[i].checked = checkbox.checked;
-                    }
-                }
-
-                // Update the lastChecked reference
-                lastChecked = index;
-
-                // Update the "Select All" master checkbox state
-                selectAllCheckbox.checked = Array.from(checkboxes).every(cb => cb.checked);
-            });
-        });
-    }
-
-    if ( dashboardPage ) {
-        const colors = {
-            blue:   { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
-            purple: { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },
-            emerald:{ border: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
-            rose:   { border: '#f43f5e', bg: 'rgba(244, 63, 94, 0.1)' },
-            amber:  { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' }
-        };
-
-        Chart.defaults.font.family  = "'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', Roboto, sans-serif";
-        Chart.defaults.font.size    = 12;
-        Chart.defaults.color        = '#64748b'; // Slate 500
-        Chart.defaults.plugins.tooltip.padding      = 12;
-        Chart.defaults.plugins.tooltip.borderRadius = 8;
-        Chart.defaults.elements.bar.borderRadius    = 4; // Rounded bars
-        Chart.defaults.elements.line.borderWidth    = 3;
-        Chart.defaults.elements.point.radius        = 0; // Hide points until hover
-        Chart.defaults.elements.point.hoverRadius   = 5;
-
-        const canvases                              = document.querySelectorAll('canvas[data-chart-json]');
-        
-        canvases.forEach(function(canvas) {
-            const chartConfig = StringUtils.JSONparse( canvas.getAttribute( 'data-chart-json' ) );
-            
-            // Inject smooth line tension if not defined
-            if (chartConfig.type === 'line') {
-                chartConfig.data.datasets.forEach(ds => {
-                    ds.tension = 0.4; // Smooth curves
-                    ds.fill = true;  // Modern Area chart look
-                });
-            }
-
-            new Chart(canvas.getContext('2d'), chartConfig);
-        });
-    }
-
-    if ( monetizationUI ) {
-        let monetizationEditor  = document.querySelector( '#smliser-app-monetization-editor' );
-        let tierForm            = document.querySelector( '#tier-form' );
-        /** @type {SmliserModal|null} */
-        let activeModal         = null;
-
-        /**
-         * Utility: Validate and reset field errors
-         */
-        const checkValidity = ( field ) => {
-            if ( ! field.value.trim() ) {
-                let fieldName = field.getAttribute( 'field-name' ) || 'This field';
-                field.setCustomValidity( `${fieldName} is required.` );
-                field.addEventListener( 'input', resetValidity );
-            }
-        };
-
-        const highlightErrorField = ( fieldId, message ) => {
-            const field = tierForm.querySelector( `#${fieldId}` );
-            if ( field ) {
-                field.setCustomValidity( message );
-                field.reportValidity();
-                field.addEventListener( 'input', resetValidity );
-            }
-        };
-
-        /**
-         * Form Submit Handler
-         * 
-         * @param {MouseEvent} e
-         */
-        const submitForm = ( e ) => {
-            e.preventDefault();
-
-            tierForm.querySelectorAll( '#tier_name, #product_id, #billing_cycle, #provider_id, #features' )
-                .forEach( checkValidity );
-
-            if ( ! tierForm.checkValidity() ) {
-                tierForm.reportValidity();
-                return;
-            }
-
-            const payLoad = new FormData( tierForm );
-            payLoad.set( 'security', smliser_var.csrf_token );
-
-            const spinner = showSpinner( '.smliser-spinner', true );
-
-            const url       = new URL( smliser_var.ajaxURL );
-            url.pathname    += '/save-monetization/';
-
-            smliserFetchJSON( url,
-                {
-                    method: 'POST',
-                    body: payLoad,
-                }
-            )
-            .then( responseJson => {
-                if ( responseJson.success ) {
-                    SmliserToast.show( responseJson.data?.message || 'Operation successful', 3000 );
-                    setTimeout( () => window.location.reload(), 3000 );
-                } else {
-                    let errorMessage = responseJson.data?.message || 'An unknown error occurred.';
-                    let errorField   = responseJson.data?.field_id || null;
-                    if ( errorField ) highlightErrorField( errorField, errorMessage );
-                    SmliserToast.show( errorMessage, 6000 );
-                }
-            })
-            .catch( error => {
-                if ( error.field ) highlightErrorField( error.field, error.message );
-                SmliserToast.show( error.message || 'An unexpected error occurred', 6000 );
-            })
-            .finally( () => removeSpinner( spinner ) );
-        };
-
-        /**
-         * Modal Actions
-         */
-        const smliserModalActions = {
-            openModal: ( isEdit ) => {
-                if ( ! activeModal ) {
-                    const submitBtn         = document.createElement( 'button' );
-                    submitBtn.type          = 'submit'
-                    submitBtn.className     = 'button smliser-nav-btn';
-                    submitBtn.innerHTML     = '<span class="ti ti-cloud"></span> Save';
-                    
-                    submitBtn.setAttribute( 'form', tierForm.id );
-
-                    monetizationEditor.classList.remove( 'smliser-hide' );
-                    activeModal = new SmliserModal({
-                        title: 'Add Pricing Tier',
-                        body: monetizationEditor,
-                        footer: submitBtn
-                    });
-                }
-
-                if ( isEdit ) {
-                    activeModal.setTitle( 'Edit Pricing Tier' );
-                }
-
-                activeModal.open();
-            },
-            addNewTier: () => {
-                tierForm.querySelectorAll( 'input, select, textarea' ).forEach( input => {
-                    if ( 'action' === input.name ) {
-                        input.value = 'smliser_save_monetization_tier';
-                    }
-                    if ( 'hidden' !== input.type ) {
-                        input.value = '';
-                    }
-                });
-
-                smliserModalActions.openModal();
-            },
-
-            editTier: ( json ) => {
-                let tier = StringUtils.JSONparse( json );
-
-                // Switch action to update
-                tierForm.querySelector( 'input[name="action"]' ).value = 'smliser_save_monetization_tier';
-                tierForm.querySelector( 'input[name="tier_id"]' ).value = tier.id || '';
-
-                tierForm.querySelector( '#tier_name' ).value     = tier.name || '';
-                tierForm.querySelector( '#product_id' ).value   = tier.product_id || '';
-                tierForm.querySelector( '#billing_cycle' ).value = tier.billing_cycle || '';
-                tierForm.querySelector( '#provider_id' ).value  = tier.provider_id || '';
-                tierForm.querySelector( '#max_sites' ).value    = tier.max_sites || '';
-                tierForm.querySelector( '#features' ).value     = Array.isArray( tier.features ) ? tier.features.join(', ') : ( tier.features || '' );
-
-                smliserModalActions.openModal( true );
-            },
-
-            deleteTier: async ( json ) => {
-                let tier = StringUtils.JSONparse( json );
-                const confirmed = await SmliserModal.confirm( `Are you sure you want to delete tier "${tier.name}"?` );
-                if ( ! confirmed ) {
-                    return;
-                }
-                const payLoad = new FormData();
-                payLoad.set( 'security', smliser_var.csrf_token );
-                payLoad.set( 'monetization_id', tier.monetization_id );
-                payLoad.set( 'tier_id', tier.id );
-
-                const url       = new URL( smliser_var.ajaxURL );
-                url.pathname    += '/pricing-tier/';
-
-                smliserFetchJSON( url, { method: 'DELETE', body: payLoad } )
-                .then( responseJson => {
-                    if ( responseJson.success ) {
-                        SmliserToast.show( responseJson.data?.message || 'Tier deleted', 3000 );
-                        
-                        const table = document.querySelector( 'table.tier-list');
-                        const row   = table?.querySelector( `tr.tier-row-${tier.id}`);
-                        jQuery( row ).fadeOut( 'slow', () => {
-                            row?.remove();
-                            if ( ! table.querySelectorAll( 'tr' ).length ) {
-                                table.innerHTML = `
-                                <tr>
-                                    <td>No pricing tiers has been set</td>
-                                </tr>`;
-                            }
-
-                        });
-                    } else {
-                        SmliserToast.show( responseJson.data?.message || 'Delete failed', 6000 );
-                    }
-                })
-                .catch( error => SmliserToast.show( error.message || 'Delete failed', 6000 ) );
-                
-            },
-
-            closeModal: () => {
-                tierModal.classList.add( 'smliser-hide' );
-            },
-
-            viewProductData: ( json ) => {
-                let tier = StringUtils.JSONparse( json );
-
-                // Remove any existing product-data modal
-                activeModal?.close();
-
-                let modalBody           = document.createElement( 'div' );
-                let modalHeader         = document.createElement( 'h2' );
-
-                modalHeader.className   = 'product-data-header';
-                modalHeader.innerHTML   = `
-                    <span class="product-image-slot"></span>
-                    <span class="product-title">${tier.name || ''}</span>
-                `;
-
-                modalBody.innerHTML = `                        
-                        <table class="striped">
-                            <tbody>
-                                <tr><th scope="row">Product ID</th><td>${tier.product_id}</td></tr>
-                                <tr><th scope="row">Provider</th><td>${tier.provider_id}</td></tr>
-                                <tr><th scope="row">Billing Cycle</th><td>${tier.billing_cycle}</td></tr>
-                                <tr><th scope="row">Price</th><td><span class="price-field">Loading...</span></td></tr>
-                                <tr><th scope="row">Description</th><td><span class="desc-field">Loading...</span></td></tr>
-                            </tbody>
-                        </table>
-                        <div class="spinner-overlay show">
-                            <img src="${smliser_var.spinner_gif_2x}" alt="Loading..." class="spinner-img">
-                        </div>
-                    </div>
-                `;
-                modalBody.prepend( modalHeader );
-                activeModal = new SmliserModal({
-                    body: modalBody,
-                    title: 'Product Details',
-                    closeOnEscape: true
-                });
-
-                activeModal.open();
-
-
-                // Fetch provider product
-                const params = new URLSearchParams({
-                    action: 'smliser_get_product_data',
-                    security: smliser_var.csrf_token,
-                    provider_id: tier.provider_id,
-                    product_id: tier.product_id,
-                });
-
-                const url       = new URL( smliser_var.ajaxURL );
-                url.pathname    += '/tier-product/';
-                url.search      = `?${params.toString()}`;                
-
-                smliserFetchJSON( url, { method: 'GET' } )
-                    .then( responseJson => {
-                        modalBody.querySelector( '.spinner-overlay' )?.remove();
-                        if ( ! responseJson.success ) {
-                            SmliserToast.show( responseJson.data?.message || 'Could not fetch product data', 6000 );
-                            return;
-                        }
-
-                        const product = responseJson.data.product || {};
-                        const pricing = product.pricing || {};
-
-                        // Insert first image if available
-                        if ( product.images && product.images.length > 0 ) {
-                            const img = document.createElement( 'img' );
-                            img.src = product.images[0].src;
-                            img.alt = product.images[0].alt || 'Product Image';
-                            img.className = 'product-thumb';
-                            modalBody.querySelector( '.product-image-slot' ).appendChild( img );
-                        }
-
-                        // Format price
-                        let formattedPrice = 'N/A';
-                        if ( pricing.price ) {
-                            formattedPrice = StringUtils.formatCurrency( pricing.price, product.currency );
-                        }
-
-                        modalBody.querySelector( '.price-field' ).textContent = formattedPrice;
-                        modalBody.querySelector( '.desc-field' ).innerHTML   = product.description || '';
-                    })
-                    .catch( error => {
-                        modalBody.querySelector( '.spinner-overlay' )?.remove();
-                        SmliserToast.show( error.message || 'An unexpected error occurred', 6000 );
-                    });
-            },
-
-            toggleMonetization: ( monetizationId, enabled ) => {
-                const payLoad = new FormData();
-                payLoad.set( 'action', 'smliser_toggle_monetization' );
-                payLoad.set( 'security', smliser_var.csrf_token );
-                payLoad.set( 'monetization_id', monetizationId );
-                payLoad.set( 'enabled', enabled );
-
-                const url   = new URL( smliser_var.ajaxURL );
-                url.pathname    += '/toggle-monetization-status/';
-                smliserFetchJSON( url, {
-                    method: 'POST',
-                    body: payLoad,
-                })
-                .then( responseJson => {
-                    if ( responseJson.success ) {
-                        SmliserToast.show( responseJson.data?.message || 'Monetization updated', 3000 );
-                    } else {
-                        throw new Error( responseJson.data?.message || 'Update failed' );
-                    }
-                })
-                .catch( error => {
-                    SmliserToast.show( error.message || 'An unexpected error occurred', 6000 );
-                    const toggle    = monetizationUI.querySelector( '.smliser_toggle-switch-input' );
-                    const current   = toggle?.checked;
-                    toggle.checked  = ! current;
-                });
-            }
-        };
-
-        /**
-         * Delegated Click Handler
-         */
-        monetizationUI.addEventListener( 'click', ( e ) => {
-            const modal = e.target.closest( '#add-pricing-tier, .remove-modal' );
-            if ( modal ) {
-                e.preventDefault();
-                const action = modal.getAttribute( 'data-command' );
-                smliserModalActions[action]?.();
-                return;
-            }
-
-            // Tier buttons
-            const tierBtn = e.target.closest( '.smliser-tier-edit, .smliser-tier-delete, .smliser-tier-view' );
-            if ( tierBtn ) {
-                e.preventDefault();
-                const action = tierBtn.getAttribute( 'data-action' );
-                const tierDiv = tierBtn.closest( '.smliser-pricing-tier-info' );
-                smliserModalActions[action]?.( tierDiv.dataset.json );
-            }
-        });
-
-        monetizationUI.addEventListener( 'change', e => {
-            const input = e.target.closest('.smliser_toggle-switch-input');
-            if ( input && input.dataset.action === 'toggleMonetization' ) {
-                const monetizationId = input.dataset.monetizationId;
-                const enabled = input.checked ? 1 : 0;
-
-                smliserModalActions['toggleMonetization']( monetizationId, enabled );
-            }
-        });
-
-
-        tierForm.addEventListener( 'submit', submitForm );
-    }
-
-    if ( bulkMessageForm ) {
-        let appSelect   = bulkMessageForm.querySelector( '#smliser-app-select' );
-
-        if ( appSelect ) {
-            smliserSelect2AppSelect( appSelect );
-        }
-
-        // Initial boot.
-        initBroadcastEditor();
-
-        // Listen for theme toggles using MutationObserver.
-        const observer = new MutationObserver( ( mutations ) => {
-            for ( const mutation of mutations ) {
-                if ( mutation.type === 'attributes' && mutation.attributeName === 'data-theme' ) {
-                    initBroadcastEditor();
-                }
-            }
-        });
-
-        observer.observe( document.documentElement, {
-            attributes: true,
-            attributeFilter: [ 'data-theme' ]
-        });
-
-        const clearValidity = ( e ) => {
-            e.target.setCustomValidity( '' );
-            e.target.removeEventListener( 'input', clearValidity );
-        }
-
-        bulkMessageForm.addEventListener( 'submit', async e => {
-            e.preventDefault();
-            /** @type {import('../../stubs/tinymce').Editor|null} */
-            const editor = tinymce.get( 'message-body' );
-
-            editor?.save();
-
-            const subject       = bulkMessageForm.querySelector( '#subject' );
-            const messageBody   = bulkMessageForm.querySelector( '#message-body' );
-            
-
-            if ( ! subject.value.trim().length ) {
-                subject.setCustomValidity( 'Message subject is required.' );
-                subject.addEventListener( 'input', clearValidity );
-            }
-
-            if ( ! messageBody.value.trim().length ) {
-                editor?.notificationManager.open({
-                    text: 'Message body cannot be empty.',
-                    type: 'error',
-                    timeout: 5000,
-                    
-
-                });
-
-                return;
-            }
-
-            if ( ! bulkMessageForm.reportValidity() ) {
-                return;
-            }
-
-            const payLoad = new FormData( bulkMessageForm );
-            payLoad.set( 'security', smliser_var.csrf_token );
-            
-            const submitBtn = bulkMessageForm.querySelector( 'button[type="submit"]' );
-            const spinner    = showSpinner( submitBtn );
-            submitBtn && ( submitBtn.disabled = true );
-            const slug  = bulkMessageForm.dataset.slug;
-
-            try {
-                const url       = new URL( smliser_var.ajaxURL );
-                url.pathname    += `/${slug}/`;
-                const response = await smliserFetchJSON( url, {
-                    method: 'POST',
-                    body: payLoad,
-                    credentials: 'same-origin',
-                });
-
-                if ( response.success ) {
-                    await SmliserModal.success( response.data?.message || 'Message saved successfully' );
-
-                    const redirect_url  = response.data?.redirect_url ? new URL( response.data?.redirect_url ) : null;
-
-                    redirect_url && ( window.location.href = redirect_url.href );
-                } else {
-                    const errorMessage = response.data?.message || 'An unknown error occurred.';
-                    const error = new Error( errorMessage );
-                    throw error;
-                }
-            } catch ( error ) {
-
-                await SmliserModal.error( error.message );
-                
-            } finally {
-                submitBtn && ( submitBtn.disabled = false );
-                removeSpinner( spinner );
-            }
-
-        })
-
-    }
-
-    if ( allCopyEl.length ) {
-        allCopyEl.forEach( el => {
-            el.addEventListener( 'click', e => {
-                smliserCopyToClipboard( e.target.getAttribute( 'data-copy-value' ) );
-            });
-        })
-    }
-
-    if ( allLicenseDomain ) {
-        allLicenseDomain.addEventListener( 'click', async e => {
-            if ( 'a' === e.target?.tagName?.toLowerCase() ) {
-                return;
-            }
-            const deleteBtn = e.target.closest( '.remove' );
-            if ( ! deleteBtn ) return;
-
-            const confirmed = await SmliserModal.confirm( 'Are you sure you want to remove this domain?' );
-
-            if ( ! confirmed ) return;
-
-            const domain    = e.target.closest( '[data-domain-value]' )?.getAttribute( 'data-domain-value' );
-
-            if ( ! domain ) {
-                SmliserToast.show( 'Domain value was not found', 5000 );
-                return;
-            }
-
-            const url   = new URL( smliser_var.ajaxURL );
-
-            url.searchParams.set( 'action', 'smliser_remove_licensed_domain' );
-            url.searchParams.set( 'security', smliser_var.csrf_token );
-            url.searchParams.set( 'license_id', queryParam.get( 'license_id' ) );
-            url.searchParams.set( 'domain', domain );
-            
-            try {
-                const response = await fetch( url, {credentials: 'same-origin'} );
-
-                const contentType = response.headers.get( 'content-type' );
-                if ( ! response.ok ) {
-                    let errorMessage = 'Something went wrong!';
-                    if ( contentType.includes( 'application/json' ) ) {
-                        const body      = await response.json();
-                        errorMessage    = body?.data?.message ?? errorMessage;
-                    } else {
-                        errorMessage = await response.text();
-                    }
-
-                    throw new Error( errorMessage );
-                }
-
-                const responseJson = await response.json();
-
-                if ( ! responseJson.success ) {
-                    let errorMessage = responseJson?.data?.message ?? 'An error occurred';
-
-                    throw new Error( errorMessage );
-                }
-
-                const message = responseJson?.data?.message ?? 'Success';
-                SmliserToast.show( message, 5000 );
-                const el    = e.target.closest( '[data-domain-value]' );
-
-                jQuery( el ).fadeOut( 'slow', () => {
-                    el?.remove();
-                });
-                
-            } catch (error) {
-                SmliserToast.show( error.message, 5000 );
-            }
-
-        });
-    }
-
-    if ( roleBuilderEl ) {
-        const defaultRoles  = smliser_var.default_roles;
-
-        let existingRoles   = StringUtils.JSONparse( roleBuilderEl.getAttribute( 'data-roles' ), null );
-        const builder       = new RoleBuilder( roleBuilderEl, defaultRoles, existingRoles );
-    
-        window.SmliserRoleBuilder = builder;
-    }
-
-    if ( accessControlForm ) {
-        const orgMembersContainer   = document.querySelector( '.smliser-organization-members-list' );
-        const qv                    = new URLSearchParams( queryParam );
-        
-        accessControlForm.addEventListener( 'submit', async e => {
-            e.preventDefault();
-            const payLoad   = new FormData( accessControlForm );
-            const slug      = accessControlForm.dataset.slug;
-            
-            if ( typeof window.SmliserRoleBuilder !== 'undefined' ) {
-                const roleValues = SmliserRoleBuilder.getValue();
-
-                payLoad.set( 'role_slug', roleValues.roleSlug ?? '' );
-                payLoad.set( 'role_label', roleValues.roleLabel );
-
-                roleValues.capabilities.forEach( cap => {
-                    payLoad.append( 'capabilities[]', cap );
-                });
-            }
-
-            payLoad.set( 'security', smliser_var.csrf_token );
-            let spinner = showSpinner( '.smliser-spinner', true );
-
-            try {
-                const url       = new URL( smliser_var.ajaxURL );
-                url.pathname    += `/${slug}/`;
-                const response  = await smliserFetchJSON( url.href, {
-                    method: "POST",
-                    body: payLoad,
-                    credentials: "same-origin"
-                });
-
-                let message   = response?.data?.message ?? response;
-
-                if ( ! response.success ) {
-                    const errorMessage  = message;
-                    throw new Error( errorMessage );
-                }
-
-                message   = message ?? 'Request was successfull, but no response message.';
-
-                await SmliserModal.success( message );
-                processAfterEntitySave(response)
-            } catch ( error ) {
-                await SmliserModal.error( error.message );
-                
-            } finally {
-                removeSpinner( spinner );
-            }
-
-        });
-
-        if ( orgMembersContainer ) {
-            orgMembersContainer.addEventListener( 'click', async e => {
-                e.preventDefault();
-                const addnewMemberBtn   = e.target.closest( '.smliser-add-member-to-org-btn' );
-                const editMemberBtn     = e.target.closest( '.button.edit-member' );
-                const deleteMemberBtn   = e.target.closest( '.button.delete-member' );
-                const clickedBtn        = addnewMemberBtn ?? editMemberBtn ?? deleteMemberBtn;
-                
-                qv.set( 'org_id', qv.get( 'id' ) );
-                
-                if ( editMemberBtn ) {
-                    qv.set( 'section', 'edit-member' );
-                    qv.set( 'id', editMemberBtn.dataset.memberId );
-                }
-
-                if ( addnewMemberBtn ) {
-                    qv.set( 'section', 'add-new-member' );
-                }
-
-                if ( clickedBtn ) {
-                    clickedBtn.disabled = true;
-
-                    if ( clickedBtn === deleteMemberBtn ) {
-                        const confirmed = await SmliserModal.confirm(
-                            {
-                                confirmText: 'Yes',
-                                cancelText: 'No',
-                                message: 'Are you sure you want to remove the selected member from this organization?',
-                                title: 'Confirm Member Removal'
-                            }
-                        );
-                        
-                        if ( ! confirmed ) {
-                            clickedBtn.disabled = false;
-                            return;
-                        }
-                        
-                        const url   = new URL( smliser_var.ajaxURL );
-
-                        url.pathname    += '/delete-organization-member/';
-
-                        url.searchParams.set( 'security', smliser_var.csrf_token );
-                        url.searchParams.set( 'organization_id', qv.get( 'org_id' ) );
-                        url.searchParams.set( 'member_id', deleteMemberBtn.dataset.memberId );
-                        let spinner = showSpinner( '.smliser-spinner', true );
-
-                        try {
-                            const response  = await smliserFetchJSON( url.href, {
-                                method: 'DELETE'
-                            } );
-                            let message     = response?.data.message;
-
-                            if ( response?.success ) {
-                                const memberContainer   = clickedBtn.closest( 'li.smliser-org-member' );
-                                jQuery( memberContainer ).fadeOut( 'slow', () => {
-                                    memberContainer.remove();
-                                });
-
-                                SmliserToast.show( message, 5000 );
-                            } else {
-                                throw new Error( message );
-                            }                         
-
-                        } catch (error) {
-                            clickedBtn.disabled = false;
-                            SmliserToast.show( error.message, 10000 );
-                        } finally {
-                            removeSpinner( spinner );
-                        }
-                        return;
-                    }
-
-                    const spinner = showSpinner( '.smliser-spinner', true );
-                    
-                    const url   = new URL( window.location );
-                    url.search  = qv.toString();
-                    window.location.href = url.href;
-
-                    setTimeout( () => {
-                        removeSpinner( spinner );
-                        clickedBtn.disabled = false;
-                    }, 3000 );
-                }
-                
-            });
-        }
-
-        /**
-         * Process the response body ofter a successful submission of the
-         * access control form.
-         * 
-         * @param {Object} responseBody - The HTTP response body.
-         */
-        const processAfterEntitySave    = ( responseBody ) => {
-            const currentUrl                = window.location.href;
-            const redirectUrl               = new URL( currentUrl );
-            
-            const isUsersTab                = responseBody.data.entity === 'user';
-            const isAPITab                  = responseBody.data.entity === 'service_account';
-            const isOwnersTab               = responseBody.data.entity === 'owner';
-            const isOrgTab                  = responseBody.data.entity === 'organization';
-            const doRedirectOnAddNewPage    = isUsersTab || isOrgTab || isOwnersTab;
-            const responseData              = responseBody.data;
-            const entityID                  = responseData?.entity_id ?? 0;
-
-            redirectUrl.searchParams.set( 'section', 'edit' );
-            redirectUrl.searchParams.set( 'id', entityID );
-
-            if ( 'add-new' === qv.get( 'section' ) ) {
-                
-                if ( doRedirectOnAddNewPage ) {
-                    window.location.href = redirectUrl.href;
-                    return;                 
-                }
-
-                if ( isAPITab ) {
-                    const apiKeyData = responseData?.api_keys;
-
-                    if ( ! apiKeyData?.api_key ) {
-                        console.warn( 'Unable to get API key Data' );
-                        return;                        
-                    }
-
-                    const modalBody     = document.createElement( 'div' );
-                    modalBody.className = 'smliser-api-key-delivery';
-
-                    const warning       = document.createElement( 'div' );
-                    warning.className   = 'smliser-api-key-warning';
-                    const strong        = document.createElement( 'strong' );
-                    strong.textContent  = 'Important: ';
-                    warning.append( strong, document.createTextNode( 'Save this key now. For security, it will not be shown to you again.' ) );
-
-                    const label         = document.createElement( 'span' );
-                    label.className     = 'smliser-api-key-label';
-                    label.textContent   = 'Identifier: ';
-                    const code          = document.createElement( 'code' );
-                    code.textContent    = apiKeyData.identifier;
-                    label.appendChild( code );
-
-                    const keyDisplay        = document.createElement( 'div' );
-                    keyDisplay.className    = 'smliser-api-key-display';
-                    keyDisplay.textContent  = apiKeyData.api_key;
-
-                    modalBody.append( warning, label, keyDisplay );
-
-                    const footerContainer                   = document.createElement( 'div' );
-                    footerContainer.className               = 'smliser-modal-footer-api-actions';
-                    footerContainer.style.display           = 'flex';
-                    footerContainer.style.justifyContent    = 'space-between';
-                    footerContainer.style.alignItems        = 'center';
-                    footerContainer.style.width             = '100%';
-
-                    const creationInfo          = document.createElement( 'span' );
-                    creationInfo.style.fontSize = '12px';
-                    creationInfo.style.color    = '#666';
-                    creationInfo.textContent    = `For: ${apiKeyData.display_name}`;
-
-                    const btnGroup              = document.createElement( 'div' );
-                    btnGroup.style.display      = 'flex';
-                    btnGroup.style.gap          = '10px';
-
-                    const downloadBtn           = document.createElement( 'button' );
-                    downloadBtn.className       = 'button';
-                    downloadBtn.textContent     = 'Download Key';
-
-                    const copyBtn               = document.createElement( 'button' );
-                    copyBtn.className           = 'smliser-copy-btn';
-                    copyBtn.textContent         = 'Copy Key';
-
-                    btnGroup.append( downloadBtn, copyBtn );
-                    footerContainer.append( creationInfo, btnGroup );
-
-                    const modal = new SmliserModal({
-                        title: 'API Key Generated',
-                        body: modalBody,
-                        footer: footerContainer,
-                    });
-
-                    copyBtn.addEventListener( 'click', () => {
-                        navigator.clipboard.writeText( apiKeyData.api_key ).then( () => {
-                            const originalText = copyBtn.textContent;
-                            copyBtn.textContent = 'Copied!';
-                            setTimeout( () => { copyBtn.textContent = originalText; }, 2000 );
-                        });
-                    });
-
-                    downloadBtn.addEventListener( 'click', () => {
-                        const timestamp = new Date().toLocaleString();
-                        const fileContent = [
-                            `${smliser_var.app_name} - API Key Export`,
-                            `------------------------------------`,
-                            `Display Name : ${apiKeyData.display_name}`,
-                            `Identifier   : ${apiKeyData.identifier}`,
-                            `Description  : ${apiKeyData.description || 'N/A'}`,
-                            `Created At   : ${timestamp}`,
-                            `------------------------------------`,
-                            `SECRET API KEY (Keep this safe):`,
-                            `${apiKeyData.api_key}`,
-                            `------------------------------------`,
-                            `Note: This key provides access to your service account. Do not share it.`
-                        ].join('\r\n');
-
-                        const blob = new Blob([fileContent], { type: 'text/plain' });
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        
-                        a.href = url;
-                        a.download = `${apiKeyData.identifier}_key.txt`;
-                        document.body.appendChild(a);
-                        a.click();
-                        
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-                    });
-
-                    modal.open().then( () => downloadBtn.focus() );
-                    
-                    modal.on( 'afterClose', () => {
-                        window.location.href = redirectUrl.href;
-                    });
-
-                    return;
-                }
-
-
-            }
-            
-            if ( isOrgTab && 'add-new-member' === qv.get( 'section' ) ) {
-                const orgID = qv.get( 'org_id' );
-
-                redirectUrl.searchParams.set( 'id', orgID );
-
-                redirectUrl.searchParams.delete( 'org_id', orgID );
-                window.location.href = redirectUrl.href;
-                return;
-            }
-
-            if ( 'edit' === qv.get( 'section' ) ) {
-                window.location.reload();
-            }
-        }
-    }
-
-    if ( avatarUploadFields.length ) {
-        avatarUploadFields.forEach( avatarUpload => {
-            /**
-             * @type {HTMLInputElement}
-             */
-            const fileInput = avatarUpload.querySelector( 'input[type="file"]' );
-
-            avatarUpload.addEventListener( 'dragover', e => {
-                e.preventDefault();
-                if ( e.dataTransfer.types.includes( 'Files' ) ) {
-                    e.dataTransfer.dropEffect = 'copy';
-                } else {
-                    e.dataTransfer.dropEffect = 'none';
-                }
-                avatarUpload.style.border = "dashed 3px #dcdcde";
-            });
-
-            avatarUpload.addEventListener( 'dragleave', e => {
-                e.preventDefault();
-                avatarUpload.style.removeProperty( 'border' );
-            });
-
-            avatarUpload.addEventListener( 'drop', e => {
-                e.preventDefault();
-                avatarUpload.style.removeProperty( 'border' );
-                if ( e.dataTransfer.types.includes( 'Files' ) ) {
-                    const files = e.dataTransfer.files;
-                    const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add( files[0] );
-                    fileInput.files = dataTransfer.files;
-                    fileInput.dispatchEvent( new Event( 'change' ) );
-                }
-
-            });
-
-            /**
-             * @type {HTMLImageElement}
-             */
-            const imagePreview          = avatarUpload.querySelector( '.smliser-avatar-upload_image-preview' );
-            const imageHolder           = avatarUpload.querySelector( '.smliser-avatar-upload_image-holder' );
-            const originalSrc           = imagePreview.src;
-            const originalImageTitle    = imagePreview.title;
-            const imageNamePreview      = avatarUpload.querySelector( '.smliser-avatar-upload_data-filename' );
-            const defaultFilename       = imageNamePreview?.textContent;
-
-            const buttonsRow            = avatarUpload.querySelector( '.smliser-avatar-upload_buttons-row' );
-
-            imagePreview?.setAttribute( 'draggable', false );
-            const imageFullScreenMode = () => {
-                if ( ! imageHolder.requestFullscreen ) {
-                    SmliserToast.show( 'Fullscreen not supported by your browser.', 3000 );
-                    return;
-                }
-
-                imageHolder.requestFullscreen().catch( err => {
-                    SmliserToast.show( `Error attempting to enable fullscreen: ${err.message}`, 3000 );
-                });
-            }
-
-            const clearImagePreview = () => {
-                fileInput.value                 = '';
-                imagePreview.src                = originalSrc;
-                imageNamePreview.textContent    = defaultFilename;
-                imagePreview.title              = originalImageTitle;
-
-                buttonsRow.querySelector( '.clear' )?.classList.add( 'smliser-hide' );
-                buttonsRow.querySelector( '.add-file' )?.classList.remove( 'smliser-hide' );
-            }
-
-            imageNamePreview?.addEventListener( 'click', imageFullScreenMode );
-            imagePreview?.addEventListener( 'dblclick', imageFullScreenMode );
-
-            buttonsRow?.addEventListener( 'click', e => {
-                const btn = e.target.closest( '.button' );
-
-                if ( ! btn ) return;
-                
-                if ( btn.classList.contains( 'clear' ) ) {
-                    clearImagePreview();
-                    return;
-                }
-
-                if ( btn.classList.contains( 'add-file' ) ) {
-                    fileInput.click();
-                }                
-            });
-
-            fileInput?.addEventListener( 'change', e => {
-                const target    = e.target;
-                if ( target.type !== 'file' ) return;
-
-                /**
-                 * @type {File}
-                 */
-                const image         = target.files[0];
-                
-                if ( ! image || ! image.type.includes( 'image/' ) ) {
-                    clearImagePreview();
-                    SmliserToast.show( 'Please upload an image.', 3000 );
-                    return;
-                }
-
-                const maxSize = 2 * 1024 * 1024;
-
-                if ( image.size > maxSize ) {
-                    SmliserToast.show( 'File is too large. Maximum size is 2MB.', 3000 );
-                    fileInput.value = ''; // Reset the input
-                    return;
-                }
-                
-                if ( imagePreview.src.startsWith('blob:') ) {
-                    URL.revokeObjectURL(imagePreview.src);
-                }
-
-                const objectUrl = URL.createObjectURL( image );
-                imagePreview.src = objectUrl;
-                imagePreview.title = image.name;
-                imageNamePreview.textContent = image.name;
-                buttonsRow.querySelector( '.clear' )?.classList.remove( 'smliser-hide' );
-                
-            });
-        });
-    }
-
-    if ( deleteEntities.length ) {
-        /**
-         * Render empty table state.
-         * @param {HTMLTableElement} table HTML table
-         */
-        const renderEmptyTableState = ( table ) => {
-            if ( ! table ) return;
-            
-            // Find how many columns the table has to span the message across all of them
-            const colCount          = table.querySelector( 'thead tr' )?.cells.length || 1;
-            const notFoundMessage   = `No ${queryParam.get( 'tab' ).replace( '-', ' ' )} found`;
-            
-            const emptyRow = `
-                <tr class="no-results">
-                    <td colspan="${colCount}" style="text-align: center;
-                        padding: 20px; background-color: #ffffff">
-                        ${notFoundMessage}
-                    </td>
-                </tr>`;
-            table.querySelector( 'thead' )?.classList.add( 'smliser-hide' );
-            table.tBodies[0].innerHTML = emptyRow;
-        }
-
-        deleteEntities.forEach( deleteBtn => {
-            deleteBtn.addEventListener( 'click', async e => {
-                e.preventDefault();
-                
-                const args  = StringUtils.JSONparse( deleteBtn.dataset.args, null );
-                if ( ! args ) return;
-
-                deleteBtn.blur();
-                deleteBtn.style.pointerEvents   = 'none'; 
-                const confirmed                 = await SmliserModal.confirm( 'Are you sure to delete' );
-                
-                if ( ! confirmed ) {
-                    deleteBtn.style.pointerEvents = 'auto';
-                    deleteBtn.style.opacity = '1';
-                    deleteBtn.focus();
-                    return;
-                };
-
-                const url       = new URL( smliser_var.ajaxURL );
-                url.pathname    += '/delete-account/';
-                url.searchParams.set( 'security', smliser_var.csrf_token );
-
-                Object.entries( args ).forEach( ( [key, value] ) => {
-                    url.searchParams.set( key, value );
-                });
-                
-                try {
-                    const result    = await smliserFetchJSON( url.href,{
-                        method: 'DELETE',
-                        credentials: 'same-origin',
-                        headers: { 'X-HTTP-Method-Override': 'DELETE' }
-                    });
-
-                    if ( result.success ) {
-                        await SmliserModal.success( result.data.message || 'Deleted' );
-
-                        const tableRow  = deleteBtn.closest( 'tr' );
-                        const table     = tableRow?.closest( 'table' );
-
-                        jQuery( tableRow ).fadeOut( 'slow', () => {
-                            tableRow.remove();
-
-                            // Check the row count AFTER removal
-                            const bodyRowsCount = table?.tBodies[0]?.rows.length || 0;
-
-                            if ( bodyRowsCount === 0 ) {
-                                renderEmptyTableState( table );
-                            }
-
-                            console.log(bodyRowsCount);
-                            
-                        });
-                    }
-
-                } catch ( error ) {
-                    await SmliserModal.error( error.message, error.statusText );
-                } finally {
-                    deleteBtn?.style.removeProperty( 'pointer-events' )
-                }
-
-            });
-        });
-    }
-
-    if ( licenseForm ) {
-        licenseForm.addEventListener( 'submit', e => {
-            e.preventDefault();
-
-            const spinner   = showSpinner( '.smliser-spinner', true );
-            const payLoad   = new FormData( e.target.closest( 'form' ) );
-            const url       = new URL( smliser_var.ajaxURL );
-
-            const slug      = licenseForm.dataset.slug;
-
-            url.pathname    += `/${slug}/`;
-            url.searchParams.set( 'security', smliser_var.csrf_token );
-            smliserFetch( url.href,
-                {
-                    credentials: 'same-origin',
-                    method: 'POST',
-                    responseType: 'json',
-                    body: payLoad
-                }
-            ).then( async response => {
-                if ( response.success ) {
-                    await SmliserModal.success( response.message );
-
-                    const url   = response?.redirect_url;
-                    if ( ! url ) return;
-
-                    window.location.href    = url;
-                }
-            }).catch( async error => {
-                SmliserModal.error( error.message );
-
-            }).finally( () => {
-                removeSpinner( spinner );
-            });
-        });
-    }
-
-    if ( emailTemplatesPage ) {
-        const btns  = document.querySelectorAll( '.smliser-filter-btn' );
-        const rows  = document.querySelectorAll( '#smliser-email-templates-table tbody tr' );
-
-        btns.forEach( function( btn ) {
-            btn.addEventListener( 'click', function() {
-                const group = this.dataset.group;
-
-                btns.forEach( b => b.classList.remove( 'smliser-filter-btn--active' ) );
-                this.classList.add( 'smliser-filter-btn--active' );
-
-                rows.forEach( function( row ) {
-                    row.style.display = ( group === 'all' || row.dataset.group === group )
-                        ? ''
-                        : 'none';
-                });
-            } );
-        });
-    }
-
-    if ( emailTemplateToggle ) {
-        emailTemplateToggle.forEach( function( btn ) {
-            btn.addEventListener( 'click', function() {
-                const key     = this.dataset.key;
-                const enabled = this.dataset.enabled;
-                toggleEmailTemplate( key, enabled, this );
-            } );
-        } );
-
-        const toggleEmailTemplate = ( tempKey, currentState, btn ) => {
-            const url      = new URL( smliser_var.ajaxURL );
-
-            url.pathname    += '/options-form/email-template-status-toggle/';
-            const payLoad  = new FormData;
-            const enabling = currentState === '0'; // if currently disabled, we are enabling
-
-            payLoad.set( 'security',     smliser_var.csrf_token );
-            payLoad.set( 'template_key', tempKey );
-
-            btn.disabled = true;
-
-            smliserFetchJSON( url, {
-                method:      'POST',
-                credentials: 'same-origin',
-                body:        payLoad,
-            } ).then( async response => {
-                if ( response.success ) {
-                    await SmliserModal.success( response?.data?.message || 'Success' );
-
-                    // Update button data attribute to reflect new state.
-                    btn.dataset.enabled = response.data.is_enable ? '1' : '0';
-
-                    // Update button appearance.
-                    if ( enabling ) {
-                        btn.style.border     = '1px solid #fecaca';
-                        btn.style.background = '#fef2f2';
-                        btn.style.color      = '#991b1b';
-                        btn.querySelector( 'i.ti' ).classList.replace( 'ti-eye', 'ti-eye-off' );
-                        btn.lastChild.textContent = 'Disable';
-                        btn.title = 'Disable this template';
-                    } else {
-                        btn.style.border     = '1px solid #bbf7d0';
-                        btn.style.background = '#f0fdf4';
-                        btn.style.color      = '#166534';
-                        btn.querySelector( 'i.ti' ).classList.replace( 'ti-eye-off', 'ti-eye' );
-                        btn.lastChild.textContent = 'Enable';
-                        btn.title = 'Enable this template';
-                    }
-                }
-            } ).catch( err => {
-                SmliserModal.error( err.message, 'Error Occurred' );
-            } ).finally( () => {
-                btn.disabled = false;
-            } );
-        };
-    }
-
-    if ( testCacheAdapterBtn ) {
-        const originalBtnText   = testCacheAdapterBtn.innerHTML;
-        testCacheAdapterBtn.addEventListener( 'click', async e => {
-            e.preventDefault();
-            /** @type {HTMLFormElement|null} */
-            const form      = e.target.closest( 'form' );
-            if ( ! form ) return;
-
-            /** @type {NodeListOf<HTMLInputElement>} */
-            const requiredFields    = form.querySelectorAll( 'input[required]' );
-            let hasError            = false;
-            requiredFields.forEach( input => {
-                if ( ! input.value.trim().length ) {
-                    input.setCustomValidity( `${input.getAttribute( 'field_name' )} is required.` );
-                    form.reportValidity();
-
-                    input.addEventListener( 'input', resetValidity );
-                    hasError    = true;
-                }
-            });
-
-            if ( hasError ) return;
-
-            testCacheAdapterBtn.innerHTML   = '<i class="ti ti-loader rotate">';
-            testCacheAdapterBtn.disabled    = true;
-            const payLoad   = new FormData( form );
-            payLoad.set( 'security', smliser_var.csrf_token );
-
-            try {
-                const url           = new URL( smliser_var.ajaxURL );
-
-                url.pathname        += '/options-form/cache-test-adapter/';
-                const testResult    = await smliserFetchJSON( url, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    body: payLoad
-                });
-
-                if ( ! testResult.success ) {
-                    throw {
-                        message: testResult.data?.message || 'Something went wrong!',
-                    };
-                }
-
-                await SmliserModal.success( testResult.data?.message || 'Test passed' );
-            } catch ( error ) {
-                await SmliserModal.error( error.message, 'Test Failed' );
-            } finally {
-                testCacheAdapterBtn.innerHTML   = originalBtnText;
-                testCacheAdapterBtn.disabled    = false;
-            }
-        })
-    }
-
-    if ( resetCacheAdapterBtn ) {
-        let originalBtnText   = resetCacheAdapterBtn.innerHTML;
-        resetCacheAdapterBtn.addEventListener( 'click', async e => {
-            e.preventDefault();
-            const confirmed = await SmliserModal.confirm( 'Are you sure you want to reset the cache adapter to default settings?' );
-
-            if ( ! confirmed ) return;
-
-            resetCacheAdapterBtn.innerHTML   = '<i class="ti ti-loader rotate">';
-            resetCacheAdapterBtn.disabled    = true;
-
-            const payLoad   = new FormData();
-            payLoad.set( 'security', smliser_var.csrf_token );
-            payLoad.set( 'adapter_id', queryParam.get( 'adapter' ) );
-
-            try {
-                const url           = new URL( smliser_var.ajaxURL );
-                url.pathname        += '/options-form/cache-reset-adapter/';
-                const resetResult   = await smliserFetchJSON( url, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    body: payLoad
-                });
-
-                if ( ! resetResult.success ) {
-                    throw {
-                        message: resetResult.data?.message || 'Something went wrong!',
-                    };
-                }
-
-                await SmliserModal.success( resetResult.data?.message || 'Reset successful' );
-                window.location.reload();
-            } catch ( error ) {
-                await SmliserModal.error( error.message, 'Reset Failed' );
-            } finally {
-                resetCacheAdapterBtn.innerHTML   = originalBtnText;
-                resetCacheAdapterBtn.disabled    = false;
-            }
-        });
-    }
-
-    if ( queueDetailsBtn.length ) {
-        queueDetailsBtn.forEach( btn => {
-            btn.addEventListener( 'click', e => {
-                openQueueDetails( e.target );
-            })
-        })
-    }
-
-    if ( diagnosticsPage ) {
-        const BREAKPOINTS = [
-            { maxWidth: 640,  columns: 1 },
-            { maxWidth: 1100, columns: 2 },
-            { maxWidth: Infinity, columns: 3 },
-        ];
-
-        const storagePrefix = 'smliser_diagostics_';
-
-        function columnCountForViewport() {
-            const width = window.innerWidth;
-            const match = BREAKPOINTS.find( ( bp ) => width <= bp.maxWidth );
-            return match ? match.columns : 3;
-        }
-
-        /**
-         * Greedy shortest-column-first placement: measure each panel's
-         * current rendered height, then place it into whichever column
-         * currently has the least total height. Not perfect bin-packing,
-         * but stable, cheap, and only ever runs at load/breakpoint-change
-         * — never on toggle.
-         */
-        function distribute( grid, columnCount ) {
-            const panels = Array.from( grid.querySelectorAll( ':scope > .smliser-diagnostics-panel' ) );
-
-            if ( panels.length === 0 ) {
-                return;
-            }
-
-            // Measure heights BEFORE moving anything — moving a node can
-            // change layout mid-measurement otherwise.
-            const heights = panels.map( ( panel ) => panel.getBoundingClientRect().height );
-
-            const wrapper = document.createElement( 'div' );
-            wrapper.className = 'smliser-diagnostics-columns';
-
-            const columns = [];
-            const columnHeights = [];
-
-            for ( let i = 0; i < columnCount; i++ ) {
-                const col = document.createElement( 'div' );
-                col.className = 'smliser-diagnostics-column';
-                wrapper.appendChild( col );
-                columns.push( col );
-                columnHeights.push( 0 );
-            }
-
-            panels.forEach( ( panel, index ) => {
-                let shortest = 0;
-                for ( let i = 1; i < columnHeights.length; i++ ) {
-                    if ( columnHeights[ i ] < columnHeights[ shortest ] ) {
-                        shortest = i;
-                    }
-                }
-
-                columns[ shortest ].appendChild( panel ); // Moves the existing node — state/listeners intact.
-                columnHeights[ shortest ] += heights[ index ];
-            } );
-
-            grid.innerHTML = '';
-            grid.appendChild( wrapper );
-            grid.classList.add( 'smliser-diagnostics-grid--columns' );
-        }
-
-        /**
-         * Restore panel state
-         */
-        function restoreState() {
-            diagnosticsPage.querySelectorAll( '.smliser-diagnostics-panel' )
-            .forEach( panel => {
-                if ( ! panel.id ) return;
-
-                panel.open  = localStorage.getItem( panel.id ) === '1' ? true : false;
-            })
-
-        }
-
-        /**
-         * @param {MouseEvent} e
-         */
-        function handlePanelClick( e ) {
-            /** @type {HTMLDetailsElement|null} */
-            const panel = e.target.closest( '.smliser-diagnostics-panel' );
-
-            if ( ! panel || ! panel.id ) return;
-
-            try {
-                const state = panel.hasAttribute( 'open' ) ? '0' : '1';
-                localStorage.setItem( panel.id, state );
-            } catch ( err ) {
-                console.warn( 'Could not set panel state: '. err.message );
-            }
-        }
-
-        function init() {
-            const grid = diagnosticsPage;
-
-            if ( ! grid ) {
-                return;
-            }
-
-            let currentColumnCount = null;
-            let resizeTimer = null;
-
-            function apply() {
-                const count = columnCountForViewport();
-
-                if ( count === currentColumnCount ) {
-                    // No real breakpoint change - do nothing,
-                    // never reshuffle mid-breakpoint.
-                    return; 
-                }
-
-                currentColumnCount = count;
-
-                // On a genuine breakpoint change, panels currently live inside
-                // .smliser-diagnostics-column wrappers (or, on first run, directly
-                // in the grid) — collect them back into a flat list either way.
-                const existingColumns = grid.querySelector( '.smliser-diagnostics-columns' );
-                const flatPanels = existingColumns
-                    ? Array.from( existingColumns.querySelectorAll( '.smliser-diagnostics-panel' ) )
-                    : Array.from( grid.querySelectorAll( '.smliser-diagnostics-panel' ) );
-
-                // Rebuild the grid's direct children back to a flat list before
-                // redistributing, so distribute() can query :scope > .panel again.
-                grid.innerHTML = '';
-                flatPanels.forEach( ( panel ) => grid.appendChild( panel ) );
-
-                distribute( grid, count );
-            }
-
-            apply();
-            restoreState();
-            
-
-            window.addEventListener( 'resize', function () {
-                clearTimeout( resizeTimer );
-                resizeTimer = setTimeout( apply, 200 );
-            } );
-
-            grid.addEventListener( 'click', handlePanelClick );
-        }
-        
-        init();
-    }
-});
-
-document.addEventListener( 'click', smliserActionBtns );
+
+	/*
+	|-------------
+	|Form Controls
+	|-------------
+	*/
+
+	function initAutoSelect2() {
+		const $adminPage = jQuery( '.smliser-admin-page' ).css( 'position', 'relative' );
+
+		jQuery( '.smliser-auto-select2 select' ).select2( {
+			width: '100%',
+			dropdownParent: $adminPage.length ? $adminPage : jQuery( document.body ),
+		} );
+	}
+
+	function initLicenseAppSelect() {
+		const select = document.querySelector( '.license-app-select' );
+
+		if ( select ) {
+			smliserSelect2AppSelect( select );
+		}
+	}
+
+	function initDatePickers() {
+		CallismartDatePicker.mountAll();
+	}
+
+	function initHelpTooltips() {
+		smliserHelpToolTip();
+	}
+
+	function initEntitySearches() {
+		/** @type {HTMLSelectElement|null} */
+		const usersSearch        = document.querySelector( '#user_id' );
+		const ownerSubjectSearch = document.querySelector( '#subject_id' );
+		const ownersSearch       = document.querySelector( '#owner_id, #app_owner_id' );
+
+		if ( usersSearch ) {
+			const selectedUser = usersSearch.value.trim();
+
+			// A preselected user is locked: submit it through a hidden input instead.
+			if ( selectedUser ) {
+				usersSearch.closest( 'form' )?.append(
+					el( 'input', { type: 'hidden', name: usersSearch.name, value: selectedUser } )
+				);
+
+				usersSearch.removeAttribute( 'name' );
+				usersSearch.disabled = true;
+			}
+
+			smliserSearchSecurityEntities( usersSearch, {
+				entityType: 'owner_subjects',
+				placeholder: 'Search users...',
+				types: [ 'individual' ],
+			} );
+		}
+
+		if ( ownerSubjectSearch ) {
+			smliserSearchSecurityEntities( ownerSubjectSearch, {
+				entityType: 'owner_subjects',
+				placeholder: 'Search for users or organizations...',
+			} );
+		}
+
+		if ( ownersSearch ) {
+			smliserSearchSecurityEntities( ownersSearch, {
+				entityType: 'resource_owners',
+				placeholder: 'Search for resource owners...',
+			} );
+		}
+	}
+
+	function initPasswordGenerator() {
+		const btn = document.querySelector( '#smliser-generate-password' );
+
+		if ( ! btn ) {
+			return;
+		}
+
+		const fieldIds = StringUtils.JSONparse( btn.getAttribute( 'data-fields' ), null );
+
+		if ( ! Array.isArray( fieldIds ) ) {
+			return;
+		}
+
+		/** @type {HTMLInputElement[]} */
+		const fields = fieldIds.map( ( id ) => document.getElementById( id ) ).filter( Boolean );
+
+		btn.addEventListener( 'click', ( e ) => {
+			if ( ! e.target.closest( '.button' ) ) {
+				return;
+			}
+
+			const password = StringUtils.generatePassword();
+
+			fields.forEach( ( field ) => {
+				field.value = password;
+			} );
+		} );
+	}
+
+	function initPasswordFields() {
+		/** @type {NodeListOf<HTMLInputElement>} */
+		const fields = document.querySelectorAll( 'input[type="password"].smliser-password-input' );
+
+		fields.forEach( ( pwdInput ) => {
+			pwdInput.parentElement.addEventListener( 'click', ( e ) => {
+				const btn = e.target.closest( '.smliser-password-toggle' );
+
+				if ( ! btn ) {
+					return;
+				}
+
+				const passwordField = document.getElementById( btn.dataset.target );
+
+				if ( ! passwordField ) {
+					return;
+				}
+
+				const reveal = 'password' === passwordField.type;
+
+				passwordField.type = reveal ? 'text' : 'password';
+				btn.querySelector( '.smliser-eye-show' ).style.display = reveal ? 'none' : 'block';
+				btn.querySelector( '.smliser-eye-hide' ).style.display = reveal ? 'block' : 'none';
+				btn.setAttribute( 'aria-label', reveal ? 'Hide password' : 'Show password' );
+			} );
+
+			// Fields render disabled so browsers don't autofill them; unlock after a beat.
+			setTimeout( () => {
+				if ( ! pwdInput.disabled ) {
+					return;
+				}
+
+				pwdInput.disabled = false;
+				pwdInput.type     = 'text';
+
+				if ( queryParam.has( 'section', 'edit' ) ) {
+					pwdInput.required = false;
+				}
+			}, 500 );
+		} );
+	}
+
+	function initOptionForms() {
+		/** @type {NodeListOf<HTMLFormElement>} */
+		const forms = document.querySelectorAll( 'form.smliser-options-form' );
+
+		forms.forEach( ( form ) => {
+			form.addEventListener( 'submit', async ( e ) => {
+				e.preventDefault();
+
+				const { slug } = form.dataset;
+
+				if ( ! slug ) {
+					await SmliserModal.error( 'This form does not have a slug dataset.', 'Form Error.' );
+					return;
+				}
+
+				const payLoad   = new FormData( form );
+				const submitBtn = form.querySelector( 'button[type="submit"]' );
+				const spinner   = showSpinner( '.smliser-spinner', true );
+
+				payLoad.set( 'security', smliser_var.csrf_token );
+				submitBtn?.setAttribute( 'disabled', 'disabled' );
+
+				try {
+					const response = await smliserFetchJSON( smliserAjaxUrl( `options-form/${ slug }` ), {
+						method: 'POST',
+						body: payLoad,
+						credentials: 'same-origin',
+					} );
+
+					await SmliserModal.success( response?.data?.message ?? 'Success', 'Saved' );
+				} catch ( error ) {
+					await SmliserModal.error( error.message, error.statusText || 'Error' );
+				} finally {
+					removeSpinner( spinner );
+					submitBtn?.removeAttribute( 'disabled' );
+				}
+			} );
+		} );
+	}
+
+	function initEmailProviderSelect() {
+		const select = document.querySelector( '#email_default_provider' );
+
+		if ( ! select ) {
+			return;
+		}
+
+		jQuery( select ).on( 'select2:select', ( e ) => {
+			const value = e.params.data.id;
+
+			jQuery( '.smliser-provider-card' ).removeClass( 'smliser-provider-card--active' );
+			jQuery( `.smliser-provider-card.${ CSS.escape( value ) }` ).addClass( 'smliser-provider-card--active' );
+		} );
+	}
+
+	function initAvatarUploads() {
+		document.querySelectorAll( '.smliser-avatar-upload' ).forEach( ( avatarUpload ) => {
+			/** @type {HTMLInputElement} */
+			const fileInput = avatarUpload.querySelector( 'input[type="file"]' );
+
+			/** @type {HTMLImageElement} */
+			const imagePreview     = avatarUpload.querySelector( '.smliser-avatar-upload_image-preview' );
+			const imageHolder      = avatarUpload.querySelector( '.smliser-avatar-upload_image-holder' );
+			const imageNamePreview = avatarUpload.querySelector( '.smliser-avatar-upload_data-filename' );
+			const buttonsRow       = avatarUpload.querySelector( '.smliser-avatar-upload_buttons-row' );
+
+			const original = {
+				src: imagePreview.src,
+				title: imagePreview.title,
+				filename: imageNamePreview?.textContent,
+			};
+
+			const MAX_SIZE = 2 * 1024 * 1024;
+
+			imagePreview.draggable = false;
+
+			const revokePreview = () => {
+				if ( imagePreview.src.startsWith( 'blob:' ) ) {
+					URL.revokeObjectURL( imagePreview.src );
+				}
+			};
+
+			const clearImagePreview = () => {
+				revokePreview();
+
+				fileInput.value    = '';
+				imagePreview.src   = original.src;
+				imagePreview.title = original.title;
+
+				if ( imageNamePreview ) {
+					imageNamePreview.textContent = original.filename;
+				}
+
+				buttonsRow?.querySelector( '.clear' )?.classList.add( 'smliser-hide' );
+				buttonsRow?.querySelector( '.add-file' )?.classList.remove( 'smliser-hide' );
+			};
+
+			const openFullscreen = async () => {
+				if ( ! imageHolder?.requestFullscreen ) {
+					SmliserToast.show( 'Fullscreen not supported by your browser.', 3000 );
+					return;
+				}
+
+				try {
+					await imageHolder.requestFullscreen();
+				} catch ( error ) {
+					SmliserToast.show( `Error attempting to enable fullscreen: ${ error.message }`, 3000 );
+				}
+			};
+
+			avatarUpload.addEventListener( 'dragover', ( e ) => {
+				e.preventDefault();
+				e.dataTransfer.dropEffect = e.dataTransfer.types.includes( 'Files' ) ? 'copy' : 'none';
+				avatarUpload.style.border = 'dashed 3px #dcdcde';
+			} );
+
+			avatarUpload.addEventListener( 'dragleave', ( e ) => {
+				e.preventDefault();
+				avatarUpload.style.removeProperty( 'border' );
+			} );
+
+			avatarUpload.addEventListener( 'drop', ( e ) => {
+				e.preventDefault();
+				avatarUpload.style.removeProperty( 'border' );
+
+				const [ file ] = e.dataTransfer.files;
+
+				if ( ! file ) {
+					return;
+				}
+
+				const transfer = new DataTransfer();
+
+				transfer.items.add( file );
+				fileInput.files = transfer.files;
+				fileInput.dispatchEvent( new Event( 'change' ) );
+			} );
+
+			imageNamePreview?.addEventListener( 'click', openFullscreen );
+			imagePreview.addEventListener( 'dblclick', openFullscreen );
+
+			buttonsRow?.addEventListener( 'click', ( e ) => {
+				const btn = e.target.closest( '.button' );
+
+				if ( btn?.classList.contains( 'clear' ) ) {
+					clearImagePreview();
+				} else if ( btn?.classList.contains( 'add-file' ) ) {
+					fileInput.click();
+				}
+			} );
+
+			fileInput?.addEventListener( 'change', () => {
+				const [ image ] = fileInput.files;
+
+				if ( ! image?.type.startsWith( 'image/' ) ) {
+					clearImagePreview();
+					SmliserToast.show( 'Please upload an image.', 3000 );
+					return;
+				}
+
+				if ( image.size > MAX_SIZE ) {
+					SmliserToast.show( 'File is too large. Maximum size is 2MB.', 3000 );
+					fileInput.value = '';
+					return;
+				}
+
+				revokePreview();
+
+				imagePreview.src   = URL.createObjectURL( image );
+				imagePreview.title = image.name;
+
+				if ( imageNamePreview ) {
+					imageNamePreview.textContent = image.name;
+				}
+
+				buttonsRow?.querySelector( '.clear' )?.classList.remove( 'smliser-hide' );
+			} );
+		} );
+	}
+
+	function initCopyElements() {
+		document.querySelectorAll( '.smliser-click-to-copy' ).forEach( ( element ) => {
+			element.addEventListener( 'click', () => smliserCopyToClipboard( element.dataset.copyValue ?? '' ) );
+		} );
+	}
+
+	function initLegacyTooltips() {
+		document.querySelectorAll( '.smliser-form-description, .smliser-tooltip' ).forEach( ( target ) => {
+			/** @type {HTMLElement|null} */
+			let bubble = null;
+
+			target.addEventListener( 'mouseenter', () => {
+				const title = target.getAttribute( 'title' );
+
+				if ( ! title ) {
+					return;
+				}
+
+				target.dataset.title = title;
+				target.removeAttribute( 'title' );
+
+				bubble = el( 'div', { className: 'custom-tooltip', innerText: title } );
+				document.body.append( bubble );
+
+				const rect = target.getBoundingClientRect();
+
+				bubble.style.top  = `${ rect.top + window.scrollY - bubble.offsetHeight - 5 }px`;
+				bubble.style.left = `${ rect.left + window.scrollX + ( rect.width / 2 ) - ( bubble.offsetWidth / 2 ) }px`;
+				bubble.classList.add( 'show' );
+			} );
+
+			target.addEventListener( 'mouseleave', () => {
+				if ( ! bubble ) {
+					return;
+				}
+
+				const leaving = bubble;
+
+				bubble = null;
+				leaving.classList.remove( 'show' );
+				setTimeout( () => leaving.remove(), 300 );
+
+				target.setAttribute( 'title', target.dataset.title );
+				delete target.dataset.title;
+			} );
+		} );
+	}
+
+	/*
+	|----------
+	|Navigation
+	|----------
+	*/
+
+	function initStickyNav() {
+		const adminNav = document.querySelector( '.smliser-top-nav' );
+
+		if ( ! adminNav ) {
+			return;
+		}
+
+		const mobile = window.matchMedia( '(min-width: 19px) and (max-width: 600px)' );
+
+		document.addEventListener( 'scroll', () => {
+			adminNav.classList.toggle( 'is-scrolled', window.scrollY > 0 );
+
+			if ( mobile.matches ) {
+				adminNav.style.top = window.scrollY > 20 ? '0' : '35px';
+			}
+		}, { passive: true } );
+	}
+
+	/*
+	|--------
+	|Licenses
+	|--------
+	*/
+
+	function initLicenseDelete() {
+		const deleteBtn = document.getElementById( 'smliser-license-delete-button' );
+
+		if ( ! deleteBtn ) {
+			return;
+		}
+
+		deleteBtn.addEventListener( 'click', async ( e ) => {
+			e.preventDefault();
+
+			const confirmed = await SmliserModal.confirm( 'You are about to delete this license, be careful action cannot be reversed' );
+
+			if ( ! confirmed ) {
+				return;
+			}
+
+			try {
+				const response = await smliserFetchJSON( smliserAjaxUrl( 'license-delete', { license_id: queryParam.get( 'id' ) } ), {
+					method: 'DELETE',
+					credentials: 'same-origin',
+				} );
+
+				if ( ! response.success ) {
+					throw new Error( response.data?.message ?? 'Unable to delete license' );
+				}
+
+				await SmliserModal.success( response.data?.message ?? 'Deleted successfully' );
+
+				if ( response.data?.redirect ) {
+					window.location.href = new URL( response.data.location ).href;
+				}
+			} catch ( error ) {
+				await SmliserModal.error( error.message );
+			}
+		} );
+	}
+
+	function initDownloadTokenModal() {
+		const trigger = document.querySelector( '.smliser-generate-download-token-btn' );
+
+		if ( ! trigger ) {
+			return;
+		}
+
+		const config = StringUtils.JSONparse( trigger.getAttribute( 'data-args' ) );
+
+		if ( ! config ) {
+			return;
+		}
+
+		const { license_id: licenseId, app_name: appName } = config;
+
+		const form = el( 'form', {
+			className: 'smliser-license-download-token-form',
+			id: 'licenseDownloadTokenForm',
+		} );
+
+		form.innerHTML = `
+			<input type="hidden" name="license_id">
+			<em>Download tokens allow clients to download the application monetized under this license without exposing the primary license key. If expiry is not set, the token will be valid for 24 hours by default.</em>
+			<label for="expiryDate" class="smliser-form-label-row">Token Expiry (optional)
+				<input type="datetime-local" name="expiry" id="expiryDate" class="smliser-input" smliser-date-picker="date">
+			</label>
+		`;
+
+		form.elements.license_id.value = licenseId;
+
+		const footer = el( 'div', { className: 'smliser-dialog-buttons' } );
+
+		footer.innerHTML = `<button type="submit" class="smliser-btn" form="${ form.id }">Generate Token</button>`;
+
+		const modal = new SmliserModal( {
+			title: appName ? `Generate Download Token for ${ appName }` : 'Generate Download Token',
+			body: form,
+			showCloseButton: true,
+			closeOnBackdropClick: false,
+			animation: true,
+			closeOnEscape: true,
+			footer,
+			maxWidth: '600px',
+		} );
+
+		let pickerMounted = false;
+
+		modal.on( 'afterOpen', () => {
+			if ( ! pickerMounted ) {
+				CallismartDatePicker.mountAll();
+				pickerMounted = true;
+			}
+		} );
+
+		modal.on( 'onSubmit', async ( e ) => {
+			if ( ! config.is_issued ) {
+				await SmliserModal.error( 'Download token can only be generated for issued licenses.' );
+				// return;
+			}
+
+			try {
+				const payLoad = new FormData( e.getBody( 'form' ) );
+
+				payLoad.set( 'security', smliser_var.csrf_token );
+
+				const response = await smliserFetchJSON( smliserAjaxUrl( 'generate-app-download-token' ), {
+					method: 'POST',
+					body: payLoad,
+				} );
+
+				if ( ! response.success ) {
+					throw new Error( response.data?.message ?? 'Unable to generate download token' );
+				}
+
+				const {
+					token,
+					expiry,
+					licensee_fullname: licensee,
+					document_download_url: documentUrl,
+				} = response.data ?? {};
+
+				if ( ! token ) {
+					await SmliserModal.error( 'Unable to get download token data' );
+					return;
+				}
+
+				const delivery = buildSecretDelivery( {
+					warning: 'Copy this token now. For security, it will not be shown to you again.',
+					label: 'License ID: ',
+					identifier: licenseId,
+					secret: token,
+					info: `License issued to: ${ licensee ?? 'N/A' }`,
+					downloadLabel: 'Download License File',
+				} );
+
+				delivery.downloadBtn.addEventListener( 'click', async () => {
+					try {
+						const licenseFile = await smliserFetchBlob( documentUrl );
+						const tokenLines  = [
+							'\r\n',
+							`Download Token: ${ token }`,
+							`Token Expiry: ${ expiry ?? '24 hours from now' }`,
+						].join( '\r\n' );
+
+						const filename = ( licensee ?? 'licensee' ).replace( /\s+/g, '-' ).toLowerCase();
+
+						smliserSaveBlob(
+							new Blob( [ licenseFile, tokenLines ], { type: 'text/plain' } ),
+							`${ filename }-license-${ Date.now() }.txt`
+						);
+					} catch ( error ) {
+						await SmliserModal.error( error.message, 'Download Failed' );
+					}
+				} );
+
+				modal.setBody( delivery.body )
+					.setFooter( delivery.footer )
+					.setTitle( 'Download Token Generated' );
+
+				modal.open().then( () => delivery.downloadBtn.focus() );
+				modal.on( 'afterClose', () => window.location.reload() );
+			} catch ( error ) {
+				SmliserModal.error( error.message, 'Request Error' );
+			}
+		} );
+
+		trigger.addEventListener( 'click', ( e ) => {
+			e.preventDefault();
+			modal.open();
+		} );
+	}
+
+	function initLicenseKeyContainers() {
+		document.querySelectorAll( '.smliser-license-obfuscation' ).forEach( ( container ) => {
+			const inputField = container.querySelector( '.smliser-license-input' );
+
+			container.addEventListener( 'click', async ( e ) => {
+				if ( e.target.closest( '.smliser-licence-key-visibility-toggle' ) ) {
+					inputField.classList.toggle( 'active' );
+					return;
+				}
+
+				if ( ! e.target.closest( '.copy-key' ) ) {
+					return;
+				}
+
+				try {
+					await navigator.clipboard.writeText( container.querySelector( '.smliser-license-text' ).value );
+					SmliserToast.show( 'copied', 2000 );
+				} catch ( error ) {
+					SmliserToast.show( error.message, 2000 );
+				}
+			} );
+		} );
+	}
+
+	function initLicenseDomains() {
+		const container = document.querySelector( '.smliser-all-license-domains' );
+
+		if ( ! container ) {
+			return;
+		}
+
+		container.addEventListener( 'click', async ( e ) => {
+			if ( e.target.closest( 'a' ) || ! e.target.closest( '.remove' ) ) {
+				return;
+			}
+
+			const confirmed = await SmliserModal.confirm( 'Are you sure you want to remove this domain?' );
+
+			if ( ! confirmed ) {
+				return;
+			}
+
+			const row    = e.target.closest( '[data-domain-value]' );
+			const domain = row?.dataset.domainValue;
+
+			if ( ! domain ) {
+				SmliserToast.show( 'Domain value was not found', 5000 );
+				return;
+			}
+
+			const url = smliserAjaxUrl( '', {
+				action: 'smliser_remove_licensed_domain',
+				license_id: queryParam.get( 'license_id' ),
+				domain,
+			}, { nonce: true } );
+
+			try {
+				const response = await smliserFetchJSON( url, { credentials: 'same-origin' } );
+
+				if ( ! response.success ) {
+					throw new Error( response.data?.message ?? 'An error occurred' );
+				}
+
+				SmliserToast.show( response.data?.message ?? 'Success', 5000 );
+				fadeOutAndRemove( row );
+			} catch ( error ) {
+				SmliserToast.show( error.message, 5000 );
+			}
+		} );
+	}
+
+	function initLicenseForm() {
+		/** @type {HTMLFormElement|null} */
+		const form = document.querySelector( '.smliser-license-form' );
+
+		if ( ! form ) {
+			return;
+		}
+
+		form.addEventListener( 'submit', async ( e ) => {
+			e.preventDefault();
+
+			const spinner = showSpinner( '.smliser-spinner', true );
+
+			try {
+				const response = await smliserFetchJSON( smliserAjaxUrl( form.dataset.slug, {}, { nonce: true } ), {
+					credentials: 'same-origin',
+					method: 'POST',
+					body: new FormData( form ),
+				} );
+
+				if ( ! response.success ) {
+					throw new Error( response.data?.message ?? response.message ?? 'Unable to save license' );
+				}
+
+				await SmliserModal.success( response.data?.message ?? response.message );
+
+				if ( response.redirect_url ) {
+					window.location.href = response.redirect_url;
+				}
+			} catch ( error ) {
+				SmliserModal.error( error.message );
+			} finally {
+				removeSpinner( spinner );
+			}
+		} );
+	}
+
+	/*
+	|----
+	|Apps
+	|----
+	*/
+
+	function initUpgradeButton() {
+		const updateBtn = document.querySelector( '#smliser-update-btn' );
+
+		if ( ! updateBtn ) {
+			return;
+		}
+
+		const notice = document.querySelector( '#smliser-click-notice' );
+
+		updateBtn.addEventListener( 'click', async ( e ) => {
+			e.preventDefault();
+
+			updateBtn.parentElement.style.display = 'none';
+
+			if ( notice ) {
+				const dismissBtn = el( 'span', { className: 'ti ti-x' } );
+
+				Object.assign( dismissBtn.style, { color: 'red', float: 'right' } );
+				dismissBtn.addEventListener( 'click', () => dismissBtn.parentElement.parentElement.remove() );
+
+				notice.style.display = 'block';
+				notice.append( dismissBtn );
+			}
+
+			try {
+				const data = await smliserFetchJSON( smliserAjaxUrl( '', { action: 'smliser_upgrade' }, { nonce: true } ) );
+
+				SmliserToast.show(
+					data.data?.message || ( data.success ? 'Upgrade successful!' : 'An error occurred' ),
+					5000
+				);
+			} catch ( error ) {
+				SmliserToast.show( error.message || 'An unexpected error occurred', 5000 );
+			}
+		} );
+	}
+
+	function initAppStatusActions() {
+		document.querySelectorAll( '.smliser-app-delete-button, .smliser-app-restore-button' ).forEach( ( btn ) => {
+			btn.addEventListener( 'click', async ( e ) => {
+				e.preventDefault();
+
+				const args = StringUtils.JSONparse( btn.getAttribute( 'data-action-args' ) );
+
+				if ( ! args ) {
+					SmliserToast.show( 'App data not found', 5000 );
+					return;
+				}
+
+				if ( 'trash' === args.status ) {
+					const confirmed = await SmliserModal.confirm(
+						`You are about to trash this ${ args.type }, it will be automatically deleted after 60 days. Are you sure you want to proceed?`
+					);
+
+					if ( ! confirmed ) {
+						return;
+					}
+				}
+
+				const url = smliserAjaxUrl( '', {
+					action: 'smliser_app_status_action',
+					app_slug: args.slug,
+					app_type: args.type,
+					app_status: args.status,
+				}, { nonce: true } );
+
+				try {
+					const response = await smliserFetchJSON( url );
+
+					if ( ! response.success ) {
+						throw new Error( response.data?.message ?? 'Request failed' );
+					}
+
+					SmliserToast.show( `Success: ${ response.data.message }`, 3000 );
+					setTimeout( () => {
+						window.location.href = response.data.redirect_url;
+					}, 3000 );
+				} catch ( error ) {
+					SmliserToast.show( `Error: ${ error.message }`, 6000 );
+				}
+			} );
+		} );
+	}
+
+	/*
+	|------
+	|Tables
+	|------
+	*/
+
+	function initTableSearch() {
+		const searchInput = document.getElementById( 'smliser-search' );
+		const tableBody   = document.querySelector( '.smliser-table tbody' );
+
+		if ( ! searchInput || ! tableBody ) {
+			return;
+		}
+
+		// Columns 2-7: license ID, client, key, service ID, item ID, status.
+		const SEARCH_COLUMNS = [ 2, 3, 4, 5, 6, 7 ];
+
+		const rows = Array.from( tableBody.querySelectorAll( 'tr' ), ( row ) => ( {
+			row,
+			cells: SEARCH_COLUMNS.map( ( n ) => row.querySelector( `td:nth-child(${ n })` )?.textContent.toLowerCase() ?? '' ),
+		} ) );
+
+		searchInput.addEventListener( 'input', () => {
+			const term    = searchInput.value.toLowerCase();
+			let anyMatch  = false;
+
+			for ( const { row, cells } of rows ) {
+				const match = cells.some( ( text ) => text.includes( term ) );
+
+				row.style.display = match ? '' : 'none';
+				anyMatch ||= match;
+			}
+
+			const notFound = tableBody.querySelector( '.smliser-not-found' );
+
+			if ( anyMatch ) {
+				notFound?.remove();
+			} else if ( ! notFound ) {
+				tableBody.insertAdjacentHTML( 'beforeend', '<tr class="smliser-not-found"><td colspan="7">No results found</td></tr>' );
+			}
+		} );
+	}
+
+	function initBulkSelect() {
+		/** @type {HTMLInputElement|null} */
+		const selectAll = document.querySelector( '#smliser-select-all' );
+
+		if ( ! selectAll ) {
+			return;
+		}
+
+		/** @type {HTMLInputElement[]} */
+		const checkboxes = Array.from( document.querySelectorAll( '.smliser-license-checkbox, .smliser-checkbox' ) );
+		let lastChecked  = null;
+
+		selectAll.addEventListener( 'change', () => {
+			checkboxes.forEach( ( checkbox ) => {
+				checkbox.checked = selectAll.checked;
+			} );
+		} );
+
+		checkboxes.forEach( ( checkbox, index ) => {
+			checkbox.addEventListener( 'click', ( e ) => {
+				// Shift-click applies the clicked state to the whole range.
+				if ( e.shiftKey && null !== lastChecked ) {
+					const start = Math.min( index, lastChecked );
+					const end   = Math.max( index, lastChecked );
+
+					for ( let i = start; i <= end; i++ ) {
+						checkboxes[ i ].checked = checkbox.checked;
+					}
+				}
+
+				lastChecked       = index;
+				selectAll.checked = checkboxes.every( ( cb ) => cb.checked );
+			} );
+		} );
+	}
+
+	function initEntityDelete() {
+		const deleteButtons = document.querySelectorAll( '.smliser-delete-entity' );
+
+		if ( ! deleteButtons.length ) {
+			return;
+		}
+
+		/**
+		 * @param {HTMLTableElement|null} table
+		 */
+		const renderEmptyTableState = ( table ) => {
+			if ( ! table ) {
+				return;
+			}
+
+			const colCount = table.querySelector( 'thead tr' )?.cells.length || 1;
+			const label    = ( queryParam.get( 'tab' ) ?? 'items' ).replace( '-', ' ' );
+
+			table.querySelector( 'thead' )?.classList.add( 'smliser-hide' );
+			table.tBodies[ 0 ].innerHTML = `
+				<tr class="no-results">
+					<td colspan="${ colCount }" style="text-align: center; padding: 20px; background-color: #ffffff">
+						No ${ label } found
+					</td>
+				</tr>`;
+		};
+
+		deleteButtons.forEach( ( deleteBtn ) => {
+			deleteBtn.addEventListener( 'click', async ( e ) => {
+				e.preventDefault();
+
+				const args = StringUtils.JSONparse( deleteBtn.dataset.args, null );
+
+				if ( ! args ) {
+					return;
+				}
+
+				deleteBtn.blur();
+				deleteBtn.style.pointerEvents = 'none';
+
+				try {
+					const confirmed = await SmliserModal.confirm( 'Are you sure to delete' );
+
+					if ( ! confirmed ) {
+						deleteBtn.focus();
+						return;
+					}
+
+					const result = await smliserFetchJSON( smliserAjaxUrl( 'delete-account', args, { nonce: true } ), {
+						method: 'DELETE',
+						credentials: 'same-origin',
+						headers: { 'X-HTTP-Method-Override': 'DELETE' },
+					} );
+
+					if ( ! result.success ) {
+						throw new Error( result.data?.message ?? 'Unable to delete' );
+					}
+
+					await SmliserModal.success( result.data?.message || 'Deleted' );
+
+					const tableRow = deleteBtn.closest( 'tr' );
+					const table    = tableRow?.closest( 'table' );
+
+					fadeOutAndRemove( tableRow, () => {
+						if ( ! table?.tBodies[ 0 ]?.rows.length ) {
+							renderEmptyTableState( table );
+						}
+					} );
+				} catch ( error ) {
+					await SmliserModal.error( error.message, error.statusText );
+				} finally {
+					deleteBtn.style.removeProperty( 'pointer-events' );
+				}
+			} );
+		} );
+	}
+
+	/*
+	|---------
+	|Dashboard
+	|---------
+	*/
+
+	function initDashboardCharts() {
+		if ( ! document.querySelector( '.smliser-admin-dashboard-template.overview' ) ) {
+			return;
+		}
+
+		Object.assign( Chart.defaults.font, {
+			family: "'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', Roboto, sans-serif",
+			size: 12,
+		} );
+
+		Chart.defaults.color                        = '#64748b'; // Slate 500.
+		Chart.defaults.plugins.tooltip.padding      = 12;
+		Chart.defaults.plugins.tooltip.borderRadius = 8;
+		Chart.defaults.elements.bar.borderRadius    = 4;
+		Chart.defaults.elements.line.borderWidth    = 3;
+		Chart.defaults.elements.point.radius        = 0; // Hidden until hover.
+		Chart.defaults.elements.point.hoverRadius   = 5;
+
+		document.querySelectorAll( 'canvas[data-chart-json]' ).forEach( ( canvas ) => {
+			const config = StringUtils.JSONparse( canvas.dataset.chartJson );
+
+			if ( ! config ) {
+				return;
+			}
+
+			// Smooth, filled area look for line charts.
+			if ( 'line' === config.type ) {
+				config.data.datasets.forEach( ( dataset ) => {
+					dataset.tension = 0.4;
+					dataset.fill    = true;
+				} );
+			}
+
+			new Chart( canvas.getContext( '2d' ), config );
+		} );
+	}
+
+	/*
+	|------------
+	|Monetization
+	|------------
+	*/
+
+	function initMonetization() {
+		const ui = document.querySelector( '.smliser-monetization-ui' );
+
+		if ( ! ui ) {
+			return;
+		}
+
+		const editor = document.querySelector( '#smliser-app-monetization-editor' );
+
+		/** @type {HTMLFormElement} */
+		const tierForm = document.querySelector( '#tier-form' );
+
+		/** @type {SmliserModal|null} */
+		let editorModal = null;
+
+		const requireField = ( field ) => {
+			if ( ! field.value.trim() ) {
+				flagInvalid( field, `${ field.getAttribute( 'field-name' ) || 'This field' } is required.` );
+			}
+		};
+
+		const highlightErrorField = ( fieldId, message ) => {
+			const field = tierForm.querySelector( `#${ CSS.escape( fieldId ) }` );
+
+			if ( field ) {
+				flagInvalid( field, message );
+				field.reportValidity();
+			}
+		};
+
+		const openEditor = ( isEdit = false ) => {
+			if ( ! editorModal ) {
+				const submitBtn = el( 'button', {
+					type: 'submit',
+					className: 'button smliser-nav-btn',
+					innerHTML: '<span class="ti ti-cloud"></span> Save',
+				} );
+
+				submitBtn.setAttribute( 'form', tierForm.id );
+				editor.classList.remove( 'smliser-hide' );
+
+				editorModal = new SmliserModal( {
+					title: 'Add Pricing Tier',
+					body: editor,
+					footer: submitBtn,
+				} );
+			}
+
+			editorModal.setTitle( isEdit ? 'Edit Pricing Tier' : 'Add Pricing Tier' );
+			editorModal.open();
+		};
+
+		const actions = {
+			addNewTier() {
+				tierForm.querySelectorAll( 'input, select, textarea' ).forEach( ( input ) => {
+					if ( 'action' === input.name ) {
+						input.value = 'smliser_save_monetization_tier';
+					} else if ( 'tier_id' === input.name || 'hidden' !== input.type ) {
+						input.value = '';
+					}
+				} );
+
+				openEditor();
+			},
+
+			editTier( json ) {
+				const tier = StringUtils.JSONparse( json );
+
+				if ( ! tier ) {
+					return;
+				}
+
+				tierForm.querySelector( 'input[name="action"]' ).value  = 'smliser_save_monetization_tier';
+				tierForm.querySelector( 'input[name="tier_id"]' ).value = tier.id ?? '';
+
+				const values = {
+					tier_name: tier.name,
+					product_id: tier.product_id,
+					billing_cycle: tier.billing_cycle,
+					provider_id: tier.provider_id,
+					max_sites: tier.max_sites,
+					features: Array.isArray( tier.features ) ? tier.features.join( ', ' ) : tier.features,
+				};
+
+				for ( const [ id, value ] of Object.entries( values ) ) {
+					tierForm.querySelector( `#${ id }` ).value = value ?? '';
+				}
+
+				openEditor( true );
+			},
+
+			async deleteTier( json ) {
+				const tier = StringUtils.JSONparse( json );
+
+				if ( ! tier ) {
+					return;
+				}
+
+				const confirmed = await SmliserModal.confirm( `Are you sure you want to delete tier "${ tier.name }"?` );
+
+				if ( ! confirmed ) {
+					return;
+				}
+
+				const payLoad = new FormData();
+
+				payLoad.set( 'security', smliser_var.csrf_token );
+				payLoad.set( 'monetization_id', tier.monetization_id );
+				payLoad.set( 'tier_id', tier.id );
+
+				try {
+					const response = await smliserFetchJSON( smliserAjaxUrl( 'pricing-tier' ), { method: 'DELETE', body: payLoad } );
+
+					if ( ! response.success ) {
+						SmliserToast.show( response.data?.message || 'Delete failed', 6000 );
+						return;
+					}
+
+					SmliserToast.show( response.data?.message || 'Tier deleted', 3000 );
+
+					const table = document.querySelector( 'table.tier-list' );
+
+					fadeOutAndRemove( table?.querySelector( `tr.tier-row-${ CSS.escape( String( tier.id ) ) }` ), () => {
+						if ( ! table.querySelectorAll( 'tr' ).length ) {
+							table.innerHTML = '<tr><td>No pricing tiers has been set</td></tr>';
+						}
+					} );
+				} catch ( error ) {
+					SmliserToast.show( error.message || 'Delete failed', 6000 );
+				}
+			},
+
+			closeModal() {
+				editorModal?.close();
+			},
+
+			async viewProductData( json ) {
+				const tier = StringUtils.JSONparse( json );
+
+				if ( ! tier ) {
+					return;
+				}
+
+				const imageSlot = el( 'span', { className: 'product-image-slot' } );
+				const priceCell = el( 'span', { className: 'price-field', textContent: 'Loading...' } );
+				const descCell  = el( 'span', { className: 'desc-field', textContent: 'Loading...' } );
+				const overlay   = el( 'div', { className: 'spinner-overlay show' },
+					el( 'img', { src: smliser_var.spinner_gif_2x, alt: 'Loading...', className: 'spinner-img' } ),
+				);
+
+				const row = ( label, value ) => el( 'tr', {},
+					el( 'th', { scope: 'row', textContent: label } ),
+					el( 'td', {}, value ?? '' ),
+				);
+
+				const body = el( 'div', {},
+					el( 'h2', { className: 'product-data-header' },
+						imageSlot,
+						el( 'span', { className: 'product-title', textContent: tier.name ?? '' } ),
+					),
+					el( 'table', { className: 'striped' },
+						el( 'tbody', {},
+							row( 'Product ID', String( tier.product_id ?? '' ) ),
+							row( 'Provider', String( tier.provider_id ?? '' ) ),
+							row( 'Billing Cycle', String( tier.billing_cycle ?? '' ) ),
+							row( 'Price', priceCell ),
+							row( 'Description', descCell ),
+						),
+					),
+					overlay,
+				);
+
+				const modal = new SmliserModal( {
+					body,
+					title: 'Product Details',
+					closeOnEscape: true,
+				} );
+
+				modal.on( 'afterClose', () => modal.destroy() );
+				modal.open();
+
+				const url = smliserAjaxUrl( 'tier-product', {
+					action: 'smliser_get_product_data',
+					provider_id: tier.provider_id,
+					product_id: tier.product_id,
+				}, { nonce: true } );
+
+				try {
+					const response = await smliserFetchJSON( url, { method: 'GET' } );
+
+					if ( ! response.success ) {
+						SmliserToast.show( response.data?.message || 'Could not fetch product data', 6000 );
+						return;
+					}
+
+					const product = response.data?.product ?? {};
+					const image   = product.images?.[ 0 ];
+
+					if ( image ) {
+						imageSlot.append( el( 'img', { src: image.src, alt: image.alt || 'Product Image', className: 'product-thumb' } ) );
+					}
+
+					priceCell.textContent = product.pricing?.price
+						? StringUtils.formatCurrency( product.pricing.price, product.currency )
+						: 'N/A';
+
+					// Provider-supplied HTML description.
+					descCell.innerHTML = product.description || '';
+				} catch ( error ) {
+					SmliserToast.show( error.message || 'An unexpected error occurred', 6000 );
+				} finally {
+					overlay.remove();
+				}
+			},
+
+			/**
+			 * @param {HTMLInputElement} input - The toggle switch.
+			 */
+			async toggleMonetization( input ) {
+				const payLoad = new FormData();
+
+				payLoad.set( 'action', 'smliser_toggle_monetization' );
+				payLoad.set( 'security', smliser_var.csrf_token );
+				payLoad.set( 'monetization_id', input.dataset.monetizationId );
+				payLoad.set( 'enabled', input.checked ? '1' : '0' );
+
+				try {
+					const response = await smliserFetchJSON( smliserAjaxUrl( 'toggle-monetization-status' ), {
+						method: 'POST',
+						body: payLoad,
+					} );
+
+					if ( ! response.success ) {
+						throw new Error( response.data?.message || 'Update failed' );
+					}
+
+					SmliserToast.show( response.data?.message || 'Monetization updated', 3000 );
+				} catch ( error ) {
+					SmliserToast.show( error.message || 'An unexpected error occurred', 6000 );
+					input.checked = ! input.checked;
+				}
+			},
+		};
+
+		const run = ( name, ...args ) => {
+			if ( name && Object.hasOwn( actions, name ) ) {
+				actions[ name ]( ...args );
+			}
+		};
+
+		ui.addEventListener( 'click', ( e ) => {
+			const command = e.target.closest( '#add-pricing-tier, .remove-modal' );
+
+			if ( command ) {
+				e.preventDefault();
+				run( command.dataset.command );
+				return;
+			}
+
+			const tierBtn = e.target.closest( '.smliser-tier-edit, .smliser-tier-delete, .smliser-tier-view' );
+
+			if ( tierBtn ) {
+				e.preventDefault();
+				run( tierBtn.dataset.action, tierBtn.closest( '.smliser-pricing-tier-info' )?.dataset.json );
+			}
+		} );
+
+		ui.addEventListener( 'change', ( e ) => {
+			const input = e.target.closest( '.smliser_toggle-switch-input' );
+
+			if ( 'toggleMonetization' === input?.dataset.action ) {
+				actions.toggleMonetization( input );
+			}
+		} );
+
+		tierForm.addEventListener( 'submit', async ( e ) => {
+			e.preventDefault();
+
+			tierForm.querySelectorAll( '#tier_name, #product_id, #billing_cycle, #provider_id, #features' ).forEach( requireField );
+
+			if ( ! tierForm.reportValidity() ) {
+				return;
+			}
+
+			const payLoad = new FormData( tierForm );
+			const spinner = showSpinner( '.smliser-spinner', true );
+
+			payLoad.set( 'security', smliser_var.csrf_token );
+
+			try {
+				const response = await smliserFetchJSON( smliserAjaxUrl( 'save-monetization' ), { method: 'POST', body: payLoad } );
+
+				if ( response.success ) {
+					SmliserToast.show( response.data?.message || 'Operation successful', 3000 );
+					setTimeout( () => window.location.reload(), 3000 );
+					return;
+				}
+
+				const message = response.data?.message || 'An unknown error occurred.';
+
+				if ( response.data?.field_id ) {
+					highlightErrorField( response.data.field_id, message );
+				}
+
+				SmliserToast.show( message, 6000 );
+			} catch ( error ) {
+				if ( error.field ) {
+					highlightErrorField( error.field, error.message );
+				}
+
+				SmliserToast.show( error.message || 'An unexpected error occurred', 6000 );
+			} finally {
+				removeSpinner( spinner );
+			}
+		} );
+	}
+
+	/*
+	|------------------
+	|Broadcast Messages
+	|------------------
+	*/
+
+	/**
+	 * Initialize the broadcast message editor with no theme flash.
+	 */
+	function initBroadcastEditor() {
+		const selector = '#message-body';
+		const targetEl = document.querySelector( selector );
+
+		if ( ! targetEl ) {
+			return;
+		}
+
+		const isDark = 'dark' === document.documentElement.getAttribute( 'data-theme' );
+
+		let container = targetEl.closest( '.tox-tinymce-wrapper' );
+
+		if ( ! container ) {
+			container = el( 'div', { className: 'tox-tinymce-wrapper' } );
+			targetEl.before( container );
+			container.append( targetEl );
+		}
+
+		container.style.opacity       = '0';
+		container.style.pointerEvents = 'none';
+
+		if ( tinymce.get( 'message-body' ) ) {
+			tinymce.remove( selector );
+		}
+
+		tinymce.init( {
+			selector,
+			skin: isDark ? 'oxide-dark' : 'oxide',
+			content_css: isDark ? 'dark' : 'default',
+			branding: false,
+			license_key: 'gpl',
+			menubar: 'file insert table',
+			plugins: 'lists link image media table code preview fullscreen autosave searchreplace visualblocks insertdatetime emoticons',
+			toolbar: 'add_media_button | styles | alignleft aligncenter alignjustify alignright bullist numlist outdent indent | forecolor backcolor | code fullscreen preview | undo redo',
+			height: 600,
+			relative_urls: false,
+			remove_script_host: false,
+			promotion: false,
+			valid_children: '+div[div|span],+span[span|div]',
+			font_formats: 'Inter=Inter, sans-serif; Arial=Arial, Helvetica, sans-serif; Verdana=Verdana, Geneva, sans-serif; Tahoma=Tahoma, Geneva, sans-serif; Trebuchet MS=Trebuchet MS, Helvetica, sans-serif; Times New Roman=Times New Roman, Times, serif; Georgia=Georgia, serif; Palatino Linotype=Palatino Linotype, Palatino, serif; Courier New=Courier New, Courier, monospace',
+			toolbar_mode: 'sliding',
+			content_style: `
+				body {
+					font-family: "Inter", sans-serif;
+					font-size: 16px;
+					background-color: ${ isDark ? '#1b1e27' : '#ffffff' };
+					color: ${ isDark ? '#e6e8ee' : '#1f2430' };
+				}
+			`,
+			setup( editor ) {
+				editor.on( 'init', () => {
+					requestAnimationFrame( () => {
+						container.style.opacity       = '1';
+						container.style.pointerEvents = 'all';
+					} );
+				} );
+			},
+		} );
+	}
+
+	function initBulkMessageForm() {
+		/** @type {HTMLFormElement|null} */
+		const form = document.querySelector( 'form.smliser-compose-message-container' );
+
+		if ( ! form ) {
+			return;
+		}
+
+		const appSelect = form.querySelector( '#smliser-app-select' );
+
+		if ( appSelect ) {
+			smliserSelect2AppSelect( appSelect );
+		}
+
+		initBroadcastEditor();
+
+		// Re-init the editor when the theme toggles.
+		new MutationObserver( initBroadcastEditor ).observe( document.documentElement, {
+			attributes: true,
+			attributeFilter: [ 'data-theme' ],
+		} );
+
+		form.addEventListener( 'submit', async ( e ) => {
+			e.preventDefault();
+
+			const editor = tinymce.get( 'message-body' );
+
+			editor?.save();
+
+			const subject     = form.querySelector( '#subject' );
+			const messageBody = form.querySelector( '#message-body' );
+
+			if ( ! subject.value.trim() ) {
+				flagInvalid( subject, 'Message subject is required.' );
+			}
+
+			if ( ! messageBody.value.trim() ) {
+				editor?.notificationManager.open( {
+					text: 'Message body cannot be empty.',
+					type: 'error',
+					timeout: 5000,
+				} );
+
+				return;
+			}
+
+			if ( ! form.reportValidity() ) {
+				return;
+			}
+
+			const payLoad   = new FormData( form );
+			const submitBtn = form.querySelector( 'button[type="submit"]' );
+			const spinner   = showSpinner( submitBtn );
+
+			payLoad.set( 'security', smliser_var.csrf_token );
+
+			if ( submitBtn ) {
+				submitBtn.disabled = true;
+			}
+
+			try {
+				const response = await smliserFetchJSON( smliserAjaxUrl( form.dataset.slug ), {
+					method: 'POST',
+					body: payLoad,
+					credentials: 'same-origin',
+				} );
+
+				if ( ! response.success ) {
+					throw new Error( response.data?.message || 'An unknown error occurred.' );
+				}
+
+				await SmliserModal.success( response.data?.message || 'Message saved successfully' );
+
+				if ( response.data?.redirect_url ) {
+					window.location.href = new URL( response.data.redirect_url ).href;
+				}
+			} catch ( error ) {
+				await SmliserModal.error( error.message );
+			} finally {
+				if ( submitBtn ) {
+					submitBtn.disabled = false;
+				}
+
+				removeSpinner( spinner );
+			}
+		} );
+	}
+
+	/*
+	|--------------
+	|Access Control
+	|--------------
+	*/
+
+	function initRoleBuilder() {
+		const roleBuilderEl = document.querySelector( '#smliser-role-builder' );
+
+		if ( ! roleBuilderEl ) {
+			return;
+		}
+
+		const existingRoles = StringUtils.JSONparse( roleBuilderEl.getAttribute( 'data-roles' ), null );
+
+		window.SmliserRoleBuilder = new RoleBuilder( roleBuilderEl, smliser_var.default_roles, existingRoles );
+	}
+
+	/**
+	 * Show a newly generated API key, then send the user to the edit screen on close.
+	 *
+	 * @param {Object} apiKey - `api_keys` from the save response.
+	 * @param {URL} redirectUrl
+	 */
+	function showApiKeyModal( apiKey, redirectUrl ) {
+		const delivery = buildSecretDelivery( {
+			warning: 'Save this key now. For security, it will not be shown to you again.',
+			label: 'Identifier: ',
+			identifier: apiKey.identifier,
+			secret: apiKey.api_key,
+			info: `For: ${ apiKey.display_name }`,
+			downloadLabel: 'Download Key',
+		} );
+
+		delivery.downloadBtn.addEventListener( 'click', () => {
+			const content = [
+				`${ smliser_var.app_name } - API Key Export`,
+				'------------------------------------',
+				`Display Name : ${ apiKey.display_name }`,
+				`Identifier   : ${ apiKey.identifier }`,
+				`Description  : ${ apiKey.description || 'N/A' }`,
+				`Created At   : ${ new Date().toLocaleString() }`,
+				'------------------------------------',
+				'SECRET API KEY (Keep this safe):',
+				apiKey.api_key,
+				'------------------------------------',
+				'Note: This key provides access to your service account. Do not share it.',
+			].join( '\r\n' );
+
+			smliserSaveBlob( new Blob( [ content ], { type: 'text/plain' } ), `${ apiKey.identifier }_key.txt` );
+		} );
+
+		const modal = new SmliserModal( {
+			title: 'API Key Generated',
+			body: delivery.body,
+			footer: delivery.footer,
+		} );
+
+		modal.open().then( () => delivery.downloadBtn.focus() );
+		modal.on( 'afterClose', () => {
+			window.location.href = redirectUrl.href;
+		} );
+	}
+
+	/**
+	 * Route the user after a successful access control form save.
+	 *
+	 * @param {Object} responseBody - The HTTP response body.
+	 */
+	function processAfterEntitySave( responseBody ) {
+		const data        = responseBody.data ?? {};
+		const section     = queryParam.get( 'section' );
+		const redirectUrl = new URL( window.location.href );
+
+		redirectUrl.searchParams.set( 'section', 'edit' );
+		redirectUrl.searchParams.set( 'id', data.entity_id ?? 0 );
+
+		if ( 'add-new' === section ) {
+			if ( [ 'user', 'organization', 'owner' ].includes( data.entity ) ) {
+				window.location.href = redirectUrl.href;
+				return;
+			}
+
+			if ( 'service_account' === data.entity ) {
+				if ( data.api_keys?.api_key ) {
+					showApiKeyModal( data.api_keys, redirectUrl );
+				} else {
+					console.warn( 'Unable to get API key Data' );
+				}
+
+				return;
+			}
+		}
+
+		if ( 'organization' === data.entity && 'add-new-member' === section ) {
+			redirectUrl.searchParams.set( 'id', queryParam.get( 'org_id' ) );
+			redirectUrl.searchParams.delete( 'org_id' );
+			window.location.href = redirectUrl.href;
+			return;
+		}
+
+		if ( 'edit' === section ) {
+			window.location.reload();
+		}
+	}
+
+	function initAccessControlForm() {
+		/** @type {HTMLFormElement|null} */
+		const form = document.querySelector( '.smliser-access-control-form' );
+
+		if ( ! form ) {
+			return;
+		}
+
+		form.addEventListener( 'submit', async ( e ) => {
+			e.preventDefault();
+
+			const payLoad = new FormData( form );
+
+			if ( window.SmliserRoleBuilder ) {
+				const { roleSlug, roleLabel, capabilities } = window.SmliserRoleBuilder.getValue();
+
+				payLoad.set( 'role_slug', roleSlug ?? '' );
+				payLoad.set( 'role_label', roleLabel );
+				capabilities.forEach( ( cap ) => payLoad.append( 'capabilities[]', cap ) );
+			}
+
+			payLoad.set( 'security', smliser_var.csrf_token );
+
+			const spinner = showSpinner( '.smliser-spinner', true );
+
+			try {
+				const response = await smliserFetchJSON( smliserAjaxUrl( form.dataset.slug ).href, {
+					method: 'POST',
+					body: payLoad,
+					credentials: 'same-origin',
+				} );
+
+				const message = response?.data?.message;
+
+				if ( ! response.success ) {
+					throw new Error( message ?? 'Request failed.' );
+				}
+
+				await SmliserModal.success( message ?? 'Request was successful, but no response message.' );
+				processAfterEntitySave( response );
+			} catch ( error ) {
+				await SmliserModal.error( error.message );
+			} finally {
+				removeSpinner( spinner );
+			}
+		} );
+
+		initOrganizationMembers();
+	}
+
+	function initOrganizationMembers() {
+		const container = document.querySelector( '.smliser-organization-members-list' );
+
+		if ( ! container ) {
+			return;
+		}
+
+		container.addEventListener( 'click', async ( e ) => {
+			const addBtn    = e.target.closest( '.smliser-add-member-to-org-btn' );
+			const editBtn   = e.target.closest( '.button.edit-member' );
+			const deleteBtn = e.target.closest( '.button.delete-member' );
+			const clicked   = addBtn ?? editBtn ?? deleteBtn;
+
+			if ( ! clicked ) {
+				return;
+			}
+
+			e.preventDefault();
+			clicked.disabled = true;
+
+			const orgId = queryParam.get( 'id' );
+
+			if ( deleteBtn ) {
+				const confirmed = await SmliserModal.confirm( {
+					confirmText: 'Yes',
+					cancelText: 'No',
+					message: 'Are you sure you want to remove the selected member from this organization?',
+					title: 'Confirm Member Removal',
+				} );
+
+				if ( ! confirmed ) {
+					clicked.disabled = false;
+					return;
+				}
+
+				const url = smliserAjaxUrl( 'delete-organization-member', {
+					organization_id: orgId,
+					member_id: deleteBtn.dataset.memberId,
+				}, { nonce: true } );
+
+				const spinner = showSpinner( '.smliser-spinner', true );
+
+				try {
+					const response = await smliserFetchJSON( url.href, { method: 'DELETE' } );
+					const message  = response?.data?.message;
+
+					if ( ! response?.success ) {
+						throw new Error( message ?? 'Unable to remove member' );
+					}
+
+					fadeOutAndRemove( clicked.closest( 'li.smliser-org-member' ) );
+					SmliserToast.show( message, 5000 );
+				} catch ( error ) {
+					clicked.disabled = false;
+					SmliserToast.show( error.message, 10000 );
+				} finally {
+					removeSpinner( spinner );
+				}
+
+				return;
+			}
+
+			const params = new URLSearchParams( queryParam );
+
+			params.set( 'org_id', orgId );
+
+			if ( editBtn ) {
+				params.set( 'section', 'edit-member' );
+				params.set( 'id', editBtn.dataset.memberId );
+			} else {
+				params.set( 'section', 'add-new-member' );
+			}
+
+			showSpinner( '.smliser-spinner', true );
+
+			const url = new URL( window.location.href );
+
+			url.search           = params.toString();
+			window.location.href = url.href;
+		} );
+	}
+
+	/*
+	|---------------
+	|Email Templates
+	|---------------
+	*/
+
+	function initEmailTemplateFilters() {
+		if ( ! document.querySelector( '#smliser-email-templates-table' ) ) {
+			return;
+		}
+
+		const buttons = document.querySelectorAll( '.smliser-filter-btn' );
+		const rows    = document.querySelectorAll( '#smliser-email-templates-table tbody tr' );
+
+		buttons.forEach( ( btn ) => {
+			btn.addEventListener( 'click', () => {
+				const { group } = btn.dataset;
+
+				buttons.forEach( ( b ) => b.classList.toggle( 'smliser-filter-btn--active', b === btn ) );
+				rows.forEach( ( row ) => {
+					row.style.display = 'all' === group || row.dataset.group === group ? '' : 'none';
+				} );
+			} );
+		} );
+	}
+
+	function initEmailTemplateToggles() {
+		const STATES = {
+			// Template is now enabled: offer to disable.
+			enabled: { border: '1px solid #fecaca', background: '#fef2f2', color: '#991b1b', icon: [ 'ti-eye', 'ti-eye-off' ], label: 'Disable', title: 'Disable this template' },
+			// Template is now disabled: offer to enable.
+			disabled: { border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#166534', icon: [ 'ti-eye-off', 'ti-eye' ], label: 'Enable', title: 'Enable this template' },
+		};
+
+		document.querySelectorAll( '.smliser-template-toggle' ).forEach( ( btn ) => {
+			btn.addEventListener( 'click', async () => {
+				const enabling = '0' === btn.dataset.enabled;
+				const payLoad  = new FormData();
+
+				payLoad.set( 'security', smliser_var.csrf_token );
+				payLoad.set( 'template_key', btn.dataset.key );
+
+				btn.disabled = true;
+
+				try {
+					const response = await smliserFetchJSON( smliserAjaxUrl( 'options-form/email-template-status-toggle' ), {
+						method: 'POST',
+						credentials: 'same-origin',
+						body: payLoad,
+					} );
+
+					if ( ! response.success ) {
+						return;
+					}
+
+					await SmliserModal.success( response.data?.message || 'Success' );
+
+					const { border, background, color, icon, label, title } = STATES[ enabling ? 'enabled' : 'disabled' ];
+
+					btn.dataset.enabled = response.data.is_enable ? '1' : '0';
+					Object.assign( btn.style, { border, background, color } );
+					btn.querySelector( 'i.ti' )?.classList.replace( ...icon );
+					btn.lastChild.textContent = label;
+					btn.title                 = title;
+				} catch ( error ) {
+					SmliserModal.error( error.message, 'Error Occurred' );
+				} finally {
+					btn.disabled = false;
+				}
+			} );
+		} );
+	}
+
+	/*
+	|--------------
+	|Cache Adapters
+	|--------------
+	*/
+
+	/**
+	 * Run a cache adapter request with a loading state on the button.
+	 *
+	 * @param {HTMLButtonElement} btn
+	 * @param {string} route
+	 * @param {FormData} payLoad
+	 * @param {string} fallbackMessage
+	 * @return {Promise<Object>} The response body.
+	 */
+	async function runCacheAdapterRequest( btn, route, payLoad, fallbackMessage ) {
+		const originalHtml = btn.innerHTML;
+
+		btn.innerHTML = '<i class="ti ti-loader rotate"></i>';
+		btn.disabled  = true;
+		payLoad.set( 'security', smliser_var.csrf_token );
+
+		try {
+			const response = await smliserFetchJSON( smliserAjaxUrl( route ), {
+				method: 'POST',
+				credentials: 'same-origin',
+				body: payLoad,
+			} );
+
+			if ( ! response.success ) {
+				throw new Error( response.data?.message || fallbackMessage );
+			}
+
+			return response;
+		} finally {
+			btn.innerHTML = originalHtml;
+			btn.disabled  = false;
+		}
+	}
+
+	function initCacheAdapterButtons() {
+		const testBtn  = document.querySelector( '.test-cache-btn' );
+		const resetBtn = document.querySelector( '.reset-cache-btn' );
+
+		testBtn?.addEventListener( 'click', async ( e ) => {
+			e.preventDefault();
+
+			const form = testBtn.closest( 'form' );
+
+			if ( ! form ) {
+				return;
+			}
+
+			/** @type {NodeListOf<HTMLInputElement>} */
+			const requiredFields = form.querySelectorAll( 'input[required]' );
+			let hasError         = false;
+
+			requiredFields.forEach( ( input ) => {
+				if ( ! input.value.trim() ) {
+					flagInvalid( input, `${ input.getAttribute( 'field_name' ) } is required.` );
+					hasError = true;
+				}
+			} );
+
+			if ( hasError ) {
+				form.reportValidity();
+				return;
+			}
+
+			try {
+				const result = await runCacheAdapterRequest( testBtn, 'options-form/cache-test-adapter', new FormData( form ), 'Something went wrong!' );
+
+				await SmliserModal.success( result.data?.message || 'Test passed' );
+			} catch ( error ) {
+				await SmliserModal.error( error.message, 'Test Failed' );
+			}
+		} );
+
+		resetBtn?.addEventListener( 'click', async ( e ) => {
+			e.preventDefault();
+
+			const confirmed = await SmliserModal.confirm( 'Are you sure you want to reset the cache adapter to default settings?' );
+
+			if ( ! confirmed ) {
+				return;
+			}
+
+			const payLoad = new FormData();
+
+			payLoad.set( 'adapter_id', queryParam.get( 'adapter' ) ?? '' );
+
+			try {
+				const result = await runCacheAdapterRequest( resetBtn, 'options-form/cache-reset-adapter', payLoad, 'Something went wrong!' );
+
+				await SmliserModal.success( result.data?.message || 'Reset successful' );
+				window.location.reload();
+			} catch ( error ) {
+				await SmliserModal.error( error.message, 'Reset Failed' );
+			}
+		} );
+	}
+
+	/*
+	|------
+	|Queues
+	|------
+	*/
+
+	/**
+	 * Open a detail modal for a queues table action.
+	 *
+	 * @param {HTMLElement} trigger - Element carrying `data-title` and `data-content`.
+	 */
+	function openQueueDetails( trigger ) {
+		const modal = new SmliserModal( {
+			title: trigger.dataset.title || 'Detail',
+			// Content is raw text, not HTML.
+			body: el( 'pre', { className: 'smliser-detail-modal-content', textContent: trigger.dataset.content || '' } ),
+			width: '640px',
+			customClass: 'smliser-detail-modal',
+		} );
+
+		modal.on( 'afterClose', () => modal.destroy() );
+		modal.open();
+	}
+
+	function initQueueDetails() {
+		document.querySelectorAll( '.smliser-view-detail' ).forEach( ( btn ) => {
+			btn.addEventListener( 'click', () => openQueueDetails( btn ) );
+		} );
+	}
+
+	/*
+	|-----------
+	|Diagnostics
+	|-----------
+	*/
+
+	function initDiagnostics() {
+		const grid = document.getElementById( 'smliser-diagnostics-grid' );
+
+		if ( ! grid ) {
+			return;
+		}
+
+		const BREAKPOINTS = [
+			{ maxWidth: 640, columns: 1 },
+			{ maxWidth: 1100, columns: 2 },
+			{ maxWidth: Infinity, columns: 3 },
+		];
+
+		const columnCountForViewport = () => BREAKPOINTS.find( ( bp ) => window.innerWidth <= bp.maxWidth ).columns;
+
+		/**
+		 * Greedy shortest-column-first placement: measure each panel, then place it
+		 * into whichever column is currently shortest. Runs only on load and on
+		 * breakpoint changes, never on toggle.
+		 *
+		 * @param {HTMLDetailsElement[]} panels
+		 * @param {number} columnCount
+		 */
+		const distribute = ( panels, columnCount ) => {
+			// Measure before moving anything; moving nodes changes layout mid-measurement.
+			const heights = panels.map( ( panel ) => panel.getBoundingClientRect().height );
+			const columns = Array.from( { length: columnCount }, () => el( 'div', { className: 'smliser-diagnostics-column' } ) );
+			const totals  = new Array( columnCount ).fill( 0 );
+
+			panels.forEach( ( panel, index ) => {
+				const shortest = totals.indexOf( Math.min( ...totals ) );
+
+				columns[ shortest ].append( panel ); // Moves the node; state and listeners stay intact.
+				totals[ shortest ] += heights[ index ];
+			} );
+
+			grid.replaceChildren( el( 'div', { className: 'smliser-diagnostics-columns' }, ...columns ) );
+			grid.classList.add( 'smliser-diagnostics-grid--columns' );
+		};
+
+		let currentColumnCount = null;
+
+		const apply = () => {
+			const count = columnCountForViewport();
+
+			// Never reshuffle within the same breakpoint.
+			if ( count === currentColumnCount ) {
+				return;
+			}
+
+			currentColumnCount = count;
+
+			/** @type {HTMLDetailsElement[]} */
+			const panels = Array.from( grid.querySelectorAll( '.smliser-diagnostics-panel' ) );
+
+			if ( ! panels.length ) {
+				return;
+			}
+
+			// Flatten back into the grid so heights are measured in single-column flow.
+			grid.replaceChildren( ...panels );
+			distribute( panels, count );
+		};
+
+		const restoreState = () => {
+			grid.querySelectorAll( '.smliser-diagnostics-panel[id]' ).forEach( ( panel ) => {
+				const stored = storage.get( panel.id );
+
+				if ( null !== stored ) {
+					panel.open = '1' === stored;
+				}
+			} );
+		};
+
+		apply();
+		restoreState();
+
+		let resizeTimer = null;
+
+		window.addEventListener( 'resize', () => {
+			clearTimeout( resizeTimer );
+			resizeTimer = setTimeout( apply, 200 );
+		} );
+
+		// `toggle` doesn't bubble, so listen in the capture phase.
+		grid.addEventListener( 'toggle', ( e ) => {
+			const panel = e.target;
+
+			if ( panel.matches?.( '.smliser-diagnostics-panel' ) && panel.id ) {
+				storage.set( panel.id, panel.open ? '1' : '0' );
+			}
+		}, true );
+	}
+
+	/*
+	|----
+	|Boot
+	|----
+	*/
+
+	const initializers = [
+		initAutoSelect2,
+		initLicenseAppSelect,
+		initDatePickers,
+		initHelpTooltips,
+		initEntitySearches,
+		initPasswordGenerator,
+		initPasswordFields,
+		initStickyNav,
+		initOptionForms,
+		initEmailProviderSelect,
+		initLicenseDelete,
+		initDownloadTokenModal,
+		initLicenseKeyContainers,
+		initTableSearch,
+		initLegacyTooltips,
+		initUpgradeButton,
+		initAppStatusActions,
+		initBulkSelect,
+		initDashboardCharts,
+		initMonetization,
+		initBulkMessageForm,
+		initCopyElements,
+		initLicenseDomains,
+		initRoleBuilder,
+		initAccessControlForm,
+		initAvatarUploads,
+		initEntityDelete,
+		initLicenseForm,
+		initEmailTemplateFilters,
+		initEmailTemplateToggles,
+		initCacheAdapterButtons,
+		initQueueDetails,
+		initDiagnostics,
+	];
+
+	/**
+	 * Run every initializer. One failing feature doesn't stop the rest.
+	 */
+	function boot() {
+		for ( const init of initializers ) {
+			try {
+				init();
+			} catch ( error ) {
+				console.error( `[smliser] ${ init.name } failed:`, error );
+			}
+		}
+	}
+
+	document.addEventListener( 'click', smliserActionBtns );
+
+	if ( 'loading' === document.readyState ) {
+		document.addEventListener( 'DOMContentLoaded', boot, { once: true } );
+	} else {
+		boot();
+	}
+} )();

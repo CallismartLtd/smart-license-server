@@ -29,6 +29,12 @@ final class JS {
      */
     public function all( string $suffix = '' ) : array {
         return [
+            'smliser-gobals'    => [
+                'url'           => $this->urlmanager->assets_url( sprintf( 'js/globals%s.js', $suffix ) ),
+                'dependencies'  => [],
+                'version'       => SMLISER_VER,
+                'footer'        => false,
+            ],
             'smliser-theme' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/theme%s.js', $suffix ) ),
                 'dependencies'  => [],
@@ -42,7 +48,7 @@ final class JS {
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
-            'smliser-admin-scripts' => [
+            'smliser-admin-dashboard-scripts' => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/dashboard%s.js', $suffix ) ),
                 'dependencies'  => [
                     'smliser-script', 'smliser-apps-uploader', 'smliser-chart',
@@ -53,9 +59,10 @@ final class JS {
                 'category'      => AssetsManager::CATEGORY_ADMIN_DASHBOARD
             ],
             'smliser-script' => [
-                'url'           => $this->urlmanager->assets_url( sprintf( 'js/main-script%s.js', $suffix ) ),
+                /** @todo: Rename script file to core-admin.js */
+                'url'           => $this->urlmanager->assets_url( sprintf( 'js/main-script%s.js', $suffix ) ), 
                 'dependencies'  => [
-                    'string-utils', 'smliser-jquery', 'select2', 'smliser-datetime-picker',
+                    'smliser-gobals', 'string-utils', 'smliser-jquery', 'select2', 'smliser-datetime-picker',
                     'smliser-modal','smliser-toast'
                 ],
                 'version'   => SMLISER_VER,
