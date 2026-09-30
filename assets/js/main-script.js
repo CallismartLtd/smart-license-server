@@ -684,7 +684,8 @@ function smliserHelpToolTip() {
 
 /**
  * Turn buttons with .smliser-action-button into AJAX actions.
- * * @param {MouseEvent} e - Click event.
+ * 
+ * @param {MouseEvent} e - Click event.
  */
 async function smliserActionBtns( e ) {
     /** @type {HTMLButtonElement|null} */
@@ -2855,6 +2856,8 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             { maxWidth: Infinity, columns: 3 },
         ];
 
+        const storagePrefix = 'smliser_diagostics_';
+
         function columnCountForViewport() {
             const width = window.innerWidth;
             const match = BREAKPOINTS.find( ( bp ) => width <= bp.maxWidth );
@@ -2910,6 +2913,36 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             grid.classList.add( 'smliser-diagnostics-grid--columns' );
         }
 
+        /**
+         * Restore panel state
+         */
+        function restoreState() {
+            diagnosticsPage.querySelectorAll( '.smliser-diagnostics-panel' )
+            .forEach( panel => {
+                if ( ! panel.id ) return;
+
+                panel.open  = localStorage.getItem( panel.id ) === '1' ? true : false;
+            })
+
+        }
+
+        /**
+         * @param {MouseEvent} e
+         */
+        function handlePanelClick( e ) {
+            /** @type {HTMLDetailsElement|null} */
+            const panel = e.target.closest( '.smliser-diagnostics-panel' );
+
+            if ( ! panel || ! panel.id ) return;
+
+            try {
+                const state = panel.hasAttribute( 'open' ) ? '0' : '1';
+                localStorage.setItem( panel.id, state );
+            } catch ( err ) {
+                console.warn( 'Could not set panel state: '. err.message );
+            }
+        }
+
         function init() {
             const grid = diagnosticsPage;
 
@@ -2948,12 +2981,15 @@ document.addEventListener( 'DOMContentLoaded', async function() {
             }
 
             apply();
+            restoreState();
             
 
             window.addEventListener( 'resize', function () {
                 clearTimeout( resizeTimer );
                 resizeTimer = setTimeout( apply, 200 );
             } );
+
+            grid.addEventListener( 'click', handlePanelClick );
         }
         
         init();

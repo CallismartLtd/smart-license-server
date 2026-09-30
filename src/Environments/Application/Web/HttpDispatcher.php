@@ -15,6 +15,7 @@ use SmartLicenseServer\Admin\ActionHandlers\AccountManagements;
 use SmartLicenseServer\Admin\ActionHandlers\AppManagement;
 use SmartLicenseServer\Admin\ActionHandlers\AppMonetization;
 use SmartLicenseServer\Admin\ActionHandlers\OtherFormsActions;
+use SmartLicenseServer\Admin\ActionHandlers\SystemManagement;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\Cache\CacheRequestController;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
@@ -385,6 +386,26 @@ final class HttpDispatcher {
                         },
                         middleware: []
                     );
+
+					/*
+					|------------------------------
+					| TOOLS PAGE FORMS AND ACTIONS
+					|------------------------------
+					*/
+					$this->router->get(
+						pattern: 'site-health-check/remote-service',
+						handler: [ SystemManagement::class, 'handle_remote_service_check' ]
+					);
+
+					$this->router->get(
+						pattern: 'site-health-check/cache-seed',
+						handler: [ SystemManagement::class, 'handle_cache_seed' ]
+					);
+
+					$this->router->get(
+						pattern: 'site-health-check/cache-verify',
+						handler: [ SystemManagement::class, 'handle_cache_verify' ]
+					);
                     
                 });
                 

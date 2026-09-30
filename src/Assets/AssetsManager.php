@@ -13,6 +13,7 @@
 
 namespace SmartLicenseServer\Assets;
 
+use InvalidArgumentException;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Security\Context\Guard;
@@ -715,11 +716,16 @@ final class AssetsManager {
 	 * @throws \InvalidArgumentException If the category is invalid.
 	 */
 	public function set_script_category( string $handle, string $category ) : bool {
-
+		$this->validate_handle( $handle );
 		$this->validate_category( $category );
 
 		if ( ! isset( $this->scripts[ $handle ] ) ) {
-			return false;
+			throw new InvalidArgumentException(
+				\sprintf(
+					'The JavaScript asset %s has not been registered',
+					$handle
+				)
+			);
 		}
 
 		$this->scripts[ $handle ]['category'] = $category;

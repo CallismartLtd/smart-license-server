@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Assets;
 
 use SmartLicenseServer\Core\URLManager;
+use function sprintf;
 
 final class JS {
 
@@ -153,6 +154,13 @@ final class JS {
                 'version'       => SMLISER_VER,
                 'footer'        => true
             ],
+
+            'smliser-site-health'   => [
+                'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/site-health%s.js', $suffix ) ),
+                'dependencies'  => ['smliser-script'],
+                'version'       => SMLISER_VER,
+                'footer'        => true,
+            ]
         ];
     }
 }

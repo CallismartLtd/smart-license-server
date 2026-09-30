@@ -2195,200 +2195,262 @@ input.smliser_toggle-switch-input {
 /* ============================================
    SITE HEALTH PAGE
    ============================================ */
-.smliser-health-hero {
+
+/* Tones: each status sets the colors its components read. */
+.smliser-health-tone--critical {
+    --smliser-health-color: var(--dashboard-danger);
+    --smliser-health-bg: var(--dashboard-danger-bg);
+    --smliser-health-text: var(--dashboard-danger-text);
+}
+
+.smliser-health-tone--warning {
+    --smliser-health-color: var(--dashboard-warning);
+    --smliser-health-bg: var(--dashboard-warning-bg);
+    --smliser-health-text: var(--dashboard-warning-text);
+}
+
+.smliser-health-tone--info {
+    --smliser-health-color: var(--dashboard-info-text);
+    --smliser-health-bg: var(--dashboard-info-bg);
+    --smliser-health-text: var(--dashboard-info-text);
+}
+
+.smliser-health-tone--pass {
+    --smliser-health-color: var(--dashboard-success);
+    --smliser-health-bg: var(--dashboard-success-bg);
+    --smliser-health-text: var(--dashboard-success-text);
+}
+
+.smliser-health-tone--pending {
+    --smliser-health-color: var(--dashboard-text-muted);
+    --smliser-health-bg: var(--dashboard-hover-bg);
+    --smliser-health-text: var(--dashboard-text-muted);
+}
+
+/* Overview banner */
+.smliser-health-overview {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 20px;
+    padding: 16px 18px;
+    background: var(--dashboard-surface);
+    border: 1px solid var(--dashboard-border);
+    border-left: 4px solid var(--smliser-health-color);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.smliser-health-overview-icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--smliser-health-bg);
+    color: var(--smliser-health-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 40px;
-    flex-wrap: wrap;
-    background: var(--dashboard-surface);
-    border: 1px solid var(--dashboard-border);
-    border-radius: 16px;
-    padding: 30px 20px;
-    margin: 20px;
 }
 
-.smliser-health-gauge {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.smliser-health-overview-icon .ti {
+    font-size: 22px;
 }
 
-.smliser-health-needle {
-    transform: rotate(var(--needle-angle, 0deg));
-    transform-box: fill-box;
-    transition: transform 1s cubic-bezier(0.34, 1.56, 0.64, 1);
-    animation: smliser-needle-settle 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+.smliser-health-overview-text {
+    flex: 1 1 240px;
+    min-width: 0;
 }
 
-@keyframes smliser-needle-settle {
-    from { transform: rotate(-90deg); }
-    to   { transform: rotate(var(--needle-angle, 0deg)); }
-}
-
-.smliser-health-gauge-label {
-    margin-top: -8px;
-    padding: 4px 14px;
-    border-radius: 9999px;
-    font-size: 0.85rem;
+.smliser-health-overview-title {
+    display: block;
+    font-size: 1rem;
     font-weight: 700;
+    color: var(--dashboard-text);
 }
 
-.smliser-health-summary-counts {
+.smliser-health-overview-message {
+    margin: 4px 0 0;
+    color: var(--dashboard-text-muted);
+}
+
+.smliser-health-overview-counts {
     display: flex;
-    gap: 20px;
     flex-wrap: wrap;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
 .smliser-health-count {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 70px;
+    min-width: 84px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--smliser-health-bg);
 }
 
 .smliser-health-count-value {
-    font-size: 1.6rem;
-    font-weight: 800;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--smliser-health-text);
 }
 
 .smliser-health-count-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    color: var(--dashboard-text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
+    color: var(--smliser-health-text);
 }
 
-.smliser-health-badge--good,
-.smliser-health-icon--good,
-.smliser-health-count.smliser-health-badge--good .smliser-health-count-value {
-    color: var(--dashboard-success-text);
-}
-.smliser-health-badge--good {
-    background: var(--dashboard-success-bg);
+/* Panels: status-colored icon instead of the diagnostics gradient */
+.smliser-health-panel .smliser-diagnostics-panel-icon {
+    background: var(--smliser-health-bg);
+    color: var(--smliser-health-color);
 }
 
-.smliser-health-badge--fair,
-.smliser-health-icon--fair,
-.smliser-health-count.smliser-health-badge--fair .smliser-health-count-value {
-    color: var(--dashboard-info-text);
-}
-.smliser-health-badge--fair {
-    background: var(--dashboard-info-bg);
+/* Check rows */
+.smliser-health-checks {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
 }
 
-.smliser-health-badge--usable,
-.smliser-health-icon--usable,
-.smliser-health-count.smliser-health-badge--usable .smliser-health-count-value {
-    color: var(--dashboard-warning-text);
-}
-.smliser-health-badge--usable {
-    background: var(--dashboard-warning-bg);
-}
-
-.smliser-health-badge--critical,
-.smliser-health-icon--critical,
-.smliser-health-count.smliser-health-badge--critical .smliser-health-count-value {
-    color: var(--dashboard-danger-text);
-}
-.smliser-health-badge--critical {
-    background: var(--dashboard-danger-bg);
-}
-
-.smliser-health-icon--pending {
-    color: var(--dashboard-text-muted);
-}
-
-/* Checklist */
-.smliser-health-list {
+.smliser-health-check {
     display: flex;
-    flex-direction: column;
-    gap: 1px;
-    background: var(--dashboard-border);
-    border: 1px solid var(--dashboard-border);
-    border-radius: 12px;
-    overflow: hidden;
-    margin: 20px;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px dashed var(--dashboard-border);
 }
 
-.smliser-health-item {
-    display: grid;
-    grid-template-columns: 44px 1fr auto;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 18px;
-    background: var(--dashboard-surface);
+.smliser-health-check:last-child {
+    border-bottom: none;
 }
 
-.smliser-health-item-icon {
+.smliser-health-check-icon {
+    width: 24px;
+    flex-shrink: 0;
     display: flex;
-    align-items: center;
     justify-content: center;
+    padding-top: 1px;
+    color: var(--smliser-health-color);
 }
 
-.smliser-health-item-label {
-    margin: 0 0 4px;
-    font-size: 0.95rem;
+.smliser-health-check-icon .ti {
+    font-size: 18px;
+}
+
+.smliser-health-check-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.smliser-health-check-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.smliser-health-check-label {
+    font-size: 0.9rem;
     font-weight: 700;
     color: var(--dashboard-text);
 }
 
-.smliser-health-item-message {
-    margin: 0;
-    font-size: 0.85rem;
+.smliser-health-badge {
+    padding: 1px 8px;
+    border-radius: 9999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--smliser-health-bg);
+    color: var(--smliser-health-text);
+}
+
+.smliser-health-check-message {
+    margin: 4px 0 0;
+    line-height: 1.5;
+    color: var(--dashboard-text-muted);
+    overflow-wrap: anywhere;
+}
+
+.smliser-health-check-recommendation {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    background: var(--dashboard-bg);
+    border-left: 3px solid var(--smliser-health-color);
+    border-radius: 4px;
+    color: var(--dashboard-text);
+    overflow-wrap: anywhere;
+}
+
+.smliser-health-check-recommendation .ti {
+    flex-shrink: 0;
+    font-size: 16px;
+    color: var(--smliser-health-color);
+}
+
+.smliser-health-retry {
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+.smliser-health-retry .ti {
+    font-size: 16px;
+}
+
+/* Loading spinner */
+.smliser-health-spin {
+    display: inline-block;
+    animation: smliser-health-spin 1s linear infinite;
+}
+.smliser-health-async-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--dashboard-border);
+    font-size: 12px;
     color: var(--dashboard-text-muted);
 }
 
-/* Draw-in animation for check/triangle/X icons */
-.smliser-health-draw {
-    stroke-dasharray: 40;
-    stroke-dashoffset: 40;
-    animation: smliser-draw-in 0.5s ease forwards;
-    animation-delay: 0.2s;
+.smliser-health-async-footer .smliser-health-retry {
+    margin-top: 0;
 }
 
-@keyframes smliser-draw-in {
-    to { stroke-dashoffset: 0; }
-}
-
-/* Spinning ring for pending/checking items */
-.smliser-health-spin {
-    transform-origin: center;
-    animation: smliser-spin 1s linear infinite;
-}
-
-@keyframes smliser-spin {
-    to { transform: rotate(360deg); }
+@keyframes smliser-health-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .smliser-health-needle,
-    .smliser-health-draw,
     .smliser-health-spin {
         animation: none;
     }
 }
 
-@media (max-width: 782px) {
-    .smliser-health-hero {
-        flex-direction: column;
+@media (max-width: 640px) {
+    .smliser-health-overview-counts {
+        width: 100%;
     }
 
-    .smliser-health-item {
-        grid-template-columns: 32px 1fr;
-        grid-template-areas:
-            "icon label"
-            "icon message"
-            "action action";
-    }
-
-    .smliser-health-item-icon { grid-area: icon; }
-    .smliser-health-item-body { grid-area: label; }
-    .smliser-health-item-action {
-        grid-area: action;
-        justify-self: start;
-        margin-top: 8px;
+    .smliser-health-count {
+        flex: 1 1 40%;
     }
 }

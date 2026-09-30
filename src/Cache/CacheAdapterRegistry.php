@@ -68,9 +68,12 @@ class CacheAdapterRegistry extends AbstractRegistry {
 
     /**
      * Private constructor — use instance().
+     * 
+     * Parent
      */
-    private function __construct( protected Container $container ) {
-        $this->settings = $container->get( Settings::class );
+    private function __construct( Container $container ) {
+        $this->container    = $container;
+        $this->settings     = $container->get( Settings::class );
     }
 
     /*
