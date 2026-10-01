@@ -8,6 +8,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Console\Commands;
 
+use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DatabaseInfoDTO;
 use Callismart\DBPrism\DBConfigDTO;
 use Callismart\DBPrism\Inspection\Inspector;
@@ -60,13 +61,14 @@ class Installer extends AbstractCommand {
         $commands = [
             'run'           => 'Executes full automated installation wizard.',
             'check'         => 'Performs environment sanity checks.',
-            'test:db'      => 'Tests a database configuration without installing.',
+            'test:db'       => 'Tests the database connection set in .env (or given options with --manual).',
             'make:dir'      => 'Creates all required directories.',
-            'make:dotenv'   => 'Create a .env file if missing.',
+            'make:dotenv'   => 'Create a .env file if missing and generate empty application secrets.',
             'make:tables'   => 'Creates all registered database tables.',
             'make:roles'    => 'Install default roles.',
             'make:admin'    => 'Create a human administrator account.',
             'make:htaccess' => 'Creates or updates the .htaccess file.',
+            'mark:installed' => 'Verifies the installation and records it as complete.',
             'help'          => 'Displays this help message.',
         ];
 
@@ -85,7 +87,7 @@ class Installer extends AbstractCommand {
             '',
             '   Full Installation: ',
             '--skip-admin       Skip interactive administrator account creation step.',
-            '--force            Force overwrite existing configuration files.',
+            '--force            Force overwrite existing configuration files (asks before replacing an existing .env).',
             '',
             '   Creating admin account: ',
             '--name             The administrator\'s name.',
@@ -97,12 +99,17 @@ class Installer extends AbstractCommand {
             '--dotenv-example-path      The absolute path to the .env.example file. The file will be searched for in',
             '                           the parent directory and the runtime directory.',
             "Note: The .env file is required to bootstrap {$app_name}.",
+            'Note: Empty SMLISER_SECRET and SMLISER_SALT values are generated automatically; existing values are kept.',
             '',
             '   Creating .htaccess file: ',
             '--htaccess-example-path    The absolute path to the .htaccess.example file. The file will be searched for in',
             '                           the parent directory and the runtime directory.',
             '',
             '   Testing a database connection (test:db): ',
+            'By default, tests the SMLISER_DB_* values currently in the .env file.',
+            '--manual, -m           Test the connection options below instead of the .env values.',
+            '',
+            '   Connection options (require --manual): ',
             '--db-driver, -d        (required) Database driver: mysql, pgsql, or sqlite.',
             '--dbname, -n           (required) Target database or schema name.',
             '--host, -h             Server hostname or IP. Used by mysql/pgsql; not applicable to sqlite.',
@@ -135,6 +142,7 @@ class Installer extends AbstractCommand {
             'make:roles'    => [$this, 'make_roles'],
             'make:admin'    => [$this, 'make_admin'],
             'make:htaccess' => [$this, 'make_dot_htaccess'],
+            'mark:installed' => [$this, 'mark_installed'],
         ];
     }
 
@@ -153,7 +161,7 @@ class Installer extends AbstractCommand {
         $this->output->writeln( '' );
 
         // Step 1: Sanity Checks.
-        $this->output->info( '--- Step 1/6: Checking Environment ---' );
+        $this->output->info( '--- Step 1/7: Checking Environment ---' );
 
         sleep(1);
 
@@ -165,7 +173,7 @@ class Installer extends AbstractCommand {
         $this->output->writeln( '' );
 
         // Step 2: Directories.
-        $this->output->info( '--- Step 2/6: Creating Directories ---' );
+        $this->output->info( '--- Step 2/7: Creating Directories ---' );
 
         sleep(1);
 
@@ -177,7 +185,7 @@ class Installer extends AbstractCommand {
         $this->output->writeln( '' );
 
         // Step 3: Environment File.
-        $this->output->info( '--- Step 3/6: Bootstrapping .env File ---' );
+        $this->output->info( '--- Step 3/7: Bootstrapping .env File ---' );
 
         sleep(1);
 
@@ -189,7 +197,7 @@ class Installer extends AbstractCommand {
         $this->output->writeln( '' );
 
         // Step 4: Web Server (.htaccess) Configuration.
-        $this->output->info( '--- Step 4/6: Writing Apache Web Rules (.htaccess) ---' );
+        $this->output->info( '--- Step 4/7: Writing Apache Web Rules (.htaccess) ---' );
 
         sleep(1);
 
@@ -200,8 +208,20 @@ class Installer extends AbstractCommand {
         }
         $this->output->writeln( '' );
 
-        // Step 5: Database Schema & Default Roles.
-        $this->output->info( '--- Step 5/6: Migrating Database Schema & Roles ---' );
+        // Step 5: Database Connection.
+        $this->output->info( '--- Step 5/7: Connecting to the Database ---' );
+
+        sleep(1);
+
+        if ( ! $this->ensure_database_connection() ) {
+            $this->output->error( 'Installation paused: No working database connection.' );
+            $this->output->info( 'Fill in the SMLISER_DB_* values in your .env file, then run the installer again. Completed steps are skipped.' );
+            return 1;
+        }
+        $this->output->writeln( '' );
+
+        // Step 6: Database Schema & Default Roles.
+        $this->output->info( '--- Step 6/7: Migrating Database Schema & Roles ---' );
 
         sleep(1);
 
@@ -218,8 +238,8 @@ class Installer extends AbstractCommand {
         }
         $this->output->writeln( '' );
 
-        // Step 6: Administrator Account Creation.
-        $this->output->info( '--- Step 6/6: Administrator Account Setup ---' );
+        // Step 7: Administrator Account Creation.
+        $this->output->info( '--- Step 7/7: Administrator Account Setup ---' );
 
         sleep(1);
 
@@ -236,6 +256,12 @@ class Installer extends AbstractCommand {
         }
 
         $this->output->writeln( '' );
+
+        if ( 0 !== $this->mark_installed( $input ) ) {
+            $this->output->error( 'Installation incomplete: Resolve the issues above, then run `installer mark:installed`.' );
+            return 1;
+        }
+
         $this->output->success(
             sprintf( '%s installation completed successfully in %fs!', SMLISER_APP_NAME, $timer->elapsed() )
         );
@@ -282,16 +308,11 @@ class Installer extends AbstractCommand {
         $results   = [];
         $installer = $this->installer;
 
-        $success_callback = function( string $check, string $status, string $message ) use ( &$results ) {
-            $results[] = [ $check, "<info>{$status}</info>", $message ];
+        $record = function( string $check, string $status, string $message ) use ( &$results ) {
+            $results[] = [ $check, $status, $message ];
         };
 
-        $failure_callback = function( string $check, string $status, string $message ) use ( &$results ) {
-            $tag       = 'CRITICAL' === $status ? 'error' : 'comment';
-            $results[] = [ $check, "<{$tag}>{$status}</{$tag}>", $message ];
-        };
-
-        $report = $installer->verify_environment_sanity( $success_callback, $failure_callback );
+        $report = $installer->verify_environment_sanity( $record, $record );
 
         $this->output->table(
             [ 'Check Point', 'Status', 'Diagnostic / Recommendation' ],
@@ -379,18 +400,35 @@ class Installer extends AbstractCommand {
     public function make_dot_env( CommandInput $input ) : int {
         $this->start_timer();
         $path_to_eg = $input->get_option( 'dotenv-example-path', null );
-        $force      = $input->get_option( 'force', false );
+        $force      = (bool) $input->get_option( 'force', false );
+
+        // Replacing an existing .env erases its database credentials and
+        // secrets; new secrets would invalidate every existing session.
+        if ( $force && file_exists( \SMLISER_ROOT . '.env' ) ) {
+            $this->output->warning( 'The existing .env file will be replaced. Its database credentials and application secrets will be lost, and new secrets will sign out every user.' );
+
+            if ( ! $this->io->confirm( 'Replace the existing .env file?', false ) ) {
+                $this->output->info( 'Kept the existing .env file.' );
+                $force = false;
+            }
+        }
 
         try {
             $env_file   = $this->installer->make_dot_env_file( $path_to_eg, $force );
 
-            $this->output->success( 'The env file has been created successfully.' );
+            $this->output->success( 'The env file is ready.' );
             $this->output->writeln(
                 implode( \PHP_EOL, [
                     'Path to .env file: ',
                     "   {$env_file}"
                 ])
             );
+
+            $generated = $this->installer->generate_app_secrets();
+
+            if ( ! empty( $generated ) ) {
+                $this->output->success( sprintf( 'Generated application secrets: %s', implode( ', ', $generated ) ) );
+            }
 
         } catch ( \RuntimeException $e ) {
             $this->output->error( $e->getMessage() );
@@ -454,6 +492,10 @@ class Installer extends AbstractCommand {
             $this->output->progress_advance();
         };
 
+        if ( ! $this->ensure_database_connection() ) {
+            return 1;
+        }
+
         $this->output->progress_start(
             count( SchemaRegistry::instance()->all() ),
             'Creating database tables...'
@@ -484,7 +526,12 @@ class Installer extends AbstractCommand {
      */
     public function make_roles( ?CommandInput $input = null ): int {
         $this->start_timer();
-        $force  = (bool) $input->get_option( 'force', false );
+
+        if ( ! $this->ensure_database_connection() ) {
+            return 1;
+        }
+
+        $force  = $input ? (bool) $input->get_option( 'force', false ) : false;
         $rows   = [];
 
         $callback   = function( $role_name, $message ) use ( &$rows ) {
@@ -519,6 +566,12 @@ class Installer extends AbstractCommand {
      * @return int
      */
     public function make_admin( CommandInput $input ) : int {
+        // Check before prompting: email lookups against a placeholder
+        // database would silently report every address as available.
+        if ( ! $this->ensure_database_connection() ) {
+            return 1;
+        }
+
         if ( ! $this->guard->has_principal() || ! $this->guard->get_principal()?->is( 'system_admin' ) ) {
             $this->output->error(
                 'You must be logged in as a system admin to perform this action'
@@ -670,38 +723,216 @@ class Installer extends AbstractCommand {
     }
 
     /**
-     * Test the configured database connection.
+     * Verify the installation and record it as complete.
+     *
+     * For installations made before the installation state file existed,
+     * and as the final step of the installation wizard.
      *
      * @param CommandInput|null $input
      * @return int
      */
-    public function test_db( ?CommandInput $input = null ): int {
+    public function mark_installed( ?CommandInput $input = null ) : int {
         $this->start_timer();
 
-        if ( ! $input ) {
-            $this->output->error( 'Missing command input.' );
+        if ( ! $this->ensure_database_connection() ) {
             return 1;
         }
 
+        try {
+            $issues = $this->installer->installation_issues();
+        } catch ( DatabaseException $e ) {
+            $this->output->error( sprintf( 'Could not verify the installation: %s', $e->getMessage() ) );
+            return 1;
+        }
+
+        if ( ! empty( $issues ) ) {
+            $this->output->error( 'The installation is not complete:' );
+
+            foreach ( $issues as $issue ) {
+                $this->output->writeln( "   - {$issue}" );
+            }
+
+            return 1;
+        }
+
+        $was_installed = $this->installer->is_installed();
+
+        try {
+            $this->installer->mark_installed();
+        } catch ( \RuntimeException $e ) {
+            $this->output->error( $e->getMessage() );
+            return 1;
+        }
+
+        $this->output->success(
+            $was_installed
+                ? 'Installation verified; the installation state has been updated.'
+                : 'Installation verified and recorded as complete.'
+        );
+
+        $this->output->success(
+            sprintf( 'Completed in %fs', $this->stop_timer() )
+        );
+
+        return 0;
+    }
+
+    /**
+     * Test a database connection.
+     *
+     * Tests the values currently in the .env file by default, or the
+     * connection options given on the command line with --manual (-m).
+     * The connection is only tested; it is never activated.
+     *
+     * @param CommandInput $input
+     * @return int
+     */
+    public function test_db( CommandInput $input ): int {
+        $this->start_timer();
+
+        $manual = (bool) ( $input->get_option( 'manual' ) ?? $input->get_option( 'm' ) ?? false );
+
+        $db_config = $manual
+            ? $this->db_config_from_options( $input )
+            : $this->db_config_from_env_file( $input );
+
+        if ( null === $db_config ) {
+            return 1;
+        }
+
+        $this->output->info(
+            sprintf( 'Testing database configuration from %s...', $manual ? 'command options' : 'the .env file' )
+        );
+        $this->output->writeln( '' );
+
+        try {
+            $adapter = $this->installer->test_db_connection( $db_config );
+
+            $this->output->success( 'Database configuration passed!' );
+            $this->output->writeln( '' );
+
+            // A test only: inspect through a private Database, never the shared one.
+            $inspector = new Inspector( new Database( $adapter ) );
+            $info      = $inspector->get_database_info();
+
+            $this->render_database_info( $info );
+
+            $adapter->close();
+
+        } catch ( DatabaseException $e ) {
+            $this->output->error( $e->getMessage() );
+            return 1;
+        } catch ( \Throwable $e ) {
+            $this->output->error(
+                sprintf(
+                    'Database configuration test failed: %s',
+                    $e->getMessage()
+                )
+            );
+            return 1;
+        }
+
+        $this->output->writeln( '' );
+        $this->output->success(
+            sprintf( 'Completed in %fs', $this->stop_timer() )
+        );
+
+        return 0;
+    }
+
+    /**
+     * Make sure the application has a working database connection.
+     *
+     * When only the placeholder adapter is active, the .env file is read as
+     * it is now, and its connection is tested and activated. This lets a
+     * user fill in .env and continue in the same process.
+     *
+     * @return bool True when a connection is active.
+     */
+    private function ensure_database_connection() : bool {
+        if ( $this->installer->has_database_connection() ) {
+            return true;
+        }
+
+        try {
+            $db_config = $this->installer->read_database_config();
+        } catch ( DatabaseException $e ) {
+            // Not configured yet: missing .env, or no driver / database name.
+            $this->output->error( $e->getMessage() );
+            $this->output->info( 'Fill in the SMLISER_DB_* values in your .env file, then run this command again.' );
+            return false;
+        } catch ( \InvalidArgumentException $e ) {
+            $this->output->error( sprintf( 'Invalid database configuration in the .env file: %s', $e->getMessage() ) );
+            return false;
+        } catch ( \RuntimeException $e ) {
+            $this->output->error( sprintf( 'Unable to read the .env file: %s', $e->getMessage() ) );
+            return false;
+        }
+
+        try {
+            $this->installer->use_connection(
+                $this->installer->test_db_connection( $db_config )
+            );
+        } catch ( DatabaseException $e ) {
+            $this->output->error( sprintf( 'Could not connect to the database: %s', $e->getMessage() ) );
+            $this->output->info( 'Check the SMLISER_DB_* values in your .env file.' );
+            return false;
+        }
+
+        $this->output->success( sprintf( 'Connected to the %s database.', $db_config->driver ) );
+
+        return true;
+    }
+
+    /**
+     * Build the database configuration from the .env file as it is now.
+     *
+     * @param CommandInput $input
+     * @return DBConfigDTO|null Null when the .env file has no database driver.
+     */
+    private function db_config_from_env_file( CommandInput $input ) : ?DBConfigDTO {
+        if ( null !== ( $input->get_option( 'db-driver' ) ?? $input->get_option( 'd' ) ) ) {
+            $this->output->warning( 'Connection options are ignored without --manual (-m); testing the .env values.' );
+        }
+
+        try {
+            return $this->installer->read_database_config();
+        } catch ( DatabaseException $e ) {
+            // Not configured yet: missing .env, or no driver / database name.
+            $this->output->error( $e->getMessage() );
+            $this->output->info( 'Fill in the SMLISER_DB_* values in your .env file, or test explicit values with --manual (-m).' );
+        } catch ( \InvalidArgumentException $e ) {
+            $this->output->error( sprintf( 'Invalid database configuration in the .env file: %s', $e->getMessage() ) );
+        } catch ( \RuntimeException $e ) {
+            $this->output->error( sprintf( 'Unable to read the .env file: %s', $e->getMessage() ) );
+        }
+
+        return null;
+    }
+
+    /**
+     * Build the database configuration from command options (--manual).
+     *
+     * @param CommandInput $input
+     * @return DBConfigDTO|null Null when a required option is missing or invalid.
+     */
+    private function db_config_from_options( CommandInput $input ) : ?DBConfigDTO {
         $driver = $input->get_option( 'db-driver' ) ?? $input->get_option( 'd' );
 
         if ( empty( $driver ) ) {
-            $this->output->error( 'Option --db-driver (-d) is required.' );
-            return 1;
+            $this->output->error( 'Option --db-driver (-d) is required with --manual.' );
+            return null;
         }
 
         $db_name = $input->get_option( 'dbname' ) ?? $input->get_option( 'n' );
 
         if ( empty( $db_name ) ) {
-            $this->output->error( 'Option --dbname (-n) is required.' );
-            return 1;
+            $this->output->error( 'Option --dbname (-n) is required with --manual.' );
+            return null;
         }
 
-        $this->output->info( 'Testing database configuration...' );
-        $this->output->writeln( '' );
-
         try {
-            $db_config = new DBConfigDTO( [
+            return new DBConfigDTO( [
                 'dbname'         => $db_name,
                 'driver'         => $driver,
                 'host'           => $input->get_option( 'host' )           ?? $input->get_option( 'h' ),
@@ -725,36 +956,10 @@ class Installer extends AbstractCommand {
                 'write'          => $input->get_option( 'write' )          ?? $input->get_option( 'w' ),
                 'sticky'         => $input->get_option( 'sticky' )         ?? $input->get_option( 'K' ),
             ] );
-
-            $dbal = $this->installer->test_db_connection( $db_config );
-
-            $this->output->success( 'Database configuration passed!' );
-            $this->output->writeln( '' );
-
-            $inspector = new Inspector( $dbal );
-            $info      = $inspector->get_database_info();
-
-            $this->render_database_info( $info );
-
-        } catch ( DatabaseException $e ) {
-            $this->output->error( $e->getMessage() );
-            return 1;
         } catch ( \Throwable $e ) {
-            $this->output->error(
-                sprintf(
-                    'Database configuration test failed: %s',
-                    $e->getMessage()
-                )
-            );
-            return 1;
+            $this->output->error( sprintf( 'Invalid database options: %s', $e->getMessage() ) );
+            return null;
         }
-
-        $this->output->writeln( '' );
-        $this->output->success(
-            sprintf( 'Completed in %fs', $this->stop_timer() )
-        );
-
-        return 0;
     }
 
     /**

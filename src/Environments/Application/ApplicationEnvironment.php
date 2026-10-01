@@ -16,6 +16,11 @@ use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Contracts\URLManagerInterface;
 use SmartLicenseServer\Environments\Application\Boot\BootManager;
+use SmartLicenseServer\Environments\Application\Boot\BootMode;
+use SmartLicenseServer\Environments\Application\Boot\BootModeResolver;
+use SmartLicenseServer\Environments\Application\Boot\InstallationState;
+use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
+use SmartLicenseServer\Environments\Application\Boot\DowntimeBootstrapper;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\CoreURLManager;
 use SmartLicenseServer\Core\DataStore;
@@ -49,11 +54,27 @@ class ApplicationEnvironment extends Environment {
     protected BootManager $bootManager;
 
     /**
+     * Boot mode resolver for the current request or command.
+     *
+     * @var BootModeResolver
+     */
+    protected BootModeResolver $bootModeResolver;
+
+    /**
      * {@inheritdoc}
      */
     protected function registerDependencies() : void {
         $this->container->singleton( ApplicationEnvironment::class, $this );
-        
+
+        /*
+         * Resolve the boot mode first, from files only (no database access).
+         */
+        $this->bootModeResolver = BootModeResolver::from_runtime();
+        $this->container->singleton( BootModeResolver::class, $this->bootModeResolver );
+        $this->container->singleton( InstallationState::class, $this->bootModeResolver->state() );
+
+        $this->adoptExistingInstallation();
+
         $this->container->set(
             URLManagerInterface::class,
             fn( Container $c ) : URLManagerInterface => new CoreURLManager(
@@ -76,19 +97,107 @@ class ApplicationEnvironment extends Environment {
 
         /*
          * Initialize BootManager and attach context bootstrappers.
+         *
+         * During downtime the web bootstrapper is replaced, so downtime
+         * requests set up no routes, sessions or identity services.
+         * The CLI bootstrapper is always attached.
          */
         $this->bootManager = new BootManager( $this->container );
-        $this->bootManager
-            ->add( new CLIBootstrapper() )
-            ->add( new WebBootstrapper() );
+        $this->bootManager->add( new CLIBootstrapper() );
+
+        if ( $this->bootMode()->blocks_web() ) {
+            $this->bootManager->add( new DowntimeBootstrapper( $this->bootModeResolver ) );
+        } else {
+            $this->bootManager->add( new WebBootstrapper() );
+        }
 
         $this->bootManager->registerAll();
+    }
+
+    /**
+     * Record an installation that predates the installation state file.
+     *
+     * Runs only when the state file is missing, the .env file exists and a
+     * database is configured, so it costs nothing once the state exists.
+     * The .env file is checked on disk because $_ENV can outlive a deleted
+     * .env (DotEnv::load() also calls putenv(), which persists in long-lived
+     * workers such as PHP-FPM). If every installation
+     * requirement is met, the state file is written and the mode re-resolved;
+     * otherwise the application stays in Installation mode. A database that
+     * cannot be reached fails closed to Maintenance, so an outage never
+     * exposes the installer on a live site.
+     *
+     * @return void
+     */
+    protected function adoptExistingInstallation() : void {
+        $resolver = $this->bootModeResolver;
+
+        if (
+            BootMode::Installation !== $resolver->resolve()
+            || null !== $resolver->state()->read()
+            || ! is_file( \SMLISER_ROOT . '.env' )
+            || null === $this->databaseConfig()
+        ) {
+            return;
+        }
+
+        try {
+            $installer = $this->container->get( AppInstaller::class );
+
+            if ( array() !== $installer->installation_issues() ) {
+                return;
+            }
+
+            $installer->mark_installed();
+            $resolver->refresh();
+        } catch ( \Throwable $e ) {
+            $resolver->fail_closed( 'Could not verify an existing installation: ' . $e->getMessage() );
+        }
+    }
+
+    /**
+     * Get the boot mode for the current request or command.
+     *
+     * @return BootMode
+     */
+    public function bootMode() : BootMode {
+        return $this->bootModeResolver->resolve();
     }
 
     /**
      * {@inheritdoc}
      */
     public function boot() : void {
+        $mode = $this->bootMode();
+
+        /*
+         * Not installed: no database, cache, settings or users exist yet.
+         * Only the shared Database is registered, so models use the real
+         * connection once the installer swaps the adapter in. Applies to
+         * the CLI too, so `smliser installer` can run.
+         */
+        if ( BootMode::Installation === $mode ) {
+            DataStore::set_database(
+                $this->container->get( Database::class )
+            );
+
+            $this->bootManager->bootAll();
+            
+            return;
+        }
+
+        /*
+         * Web requests during downtime only need the downtime handler.
+         * Skip data stores, registries and authentication, which may
+         * query a schema that is mid-upgrade.
+         */
+        if ( $mode->blocks_web() && ! \is_cli() ) {
+            $this->bootManager->bootAll();
+            return;
+        }
+        
+        \dd( $mode->blocks_web() );
+
         DataStore::set_database(
             $this->container->get( Database::class )
         );
@@ -118,26 +227,7 @@ class ApplicationEnvironment extends Environment {
     /**
      * {@inheritdoc}
      */
-    protected function createDatabaseConfig() : DBConfigDTO {
-        $dbConfig = new DBConfigDTO([
-            'driver'   => $_ENV['SMLISER_DB_DRIVER'] ?? '',
-            'host'     => $_ENV['SMLISER_DB_HOST'] ?? '',
-            'port'     => $_ENV['SMLISER_DB_PORT'] ?? '',
-            'dbname'   => $_ENV['SMLISER_DB_NAME'] ?? '',
-            'username' => $_ENV['SMLISER_DB_USER'] ?? '',
-            'password' => $_ENV['SMLISER_DB_PASSWORD'] ?? '',
-            'charset'  => $_ENV['SMLISER_DB_CHARSET'] ?? '',
-            'prefix'   => $_ENV['SMLISER_DB_PREFIX'] ?? '',
-            'path'     => $_ENV['SMLISER_DB_PATH'] ?? '',
-        ]);
-
-        if (
-            'sqlite' === $dbConfig->driver
-            && ! empty( $_ENV['SMLISER_SQLITE_ENCRYPTION_KEY'] )
-        ) {
-            $dbConfig->encryption_key = $_ENV['SMLISER_SQLITE_ENCRYPTION_KEY'];
-        }
-
-        return $dbConfig;
+    protected function createDatabaseConfig() : ?DBConfigDTO {
+        return \smliser_db_config_from_env( $_ENV );
     }
 }

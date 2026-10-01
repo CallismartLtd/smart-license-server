@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Installation;
 
+use Callismart\DBPrism\Adapters\Contracts\DatabaseAdapterInterface;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
 use Callismart\DBPrism\Inspection\Inspector;
@@ -16,6 +17,8 @@ use Callismart\DBPrism\Utils\Table;
 use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\Core\DotEnv;
+use SmartLicenseServer\Environments\Application\Boot\InstallationState;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
@@ -41,6 +44,24 @@ use SmartLicenseServer\Security\Permission\Role;
  */
 class AppInstaller {
     /**
+     * .env keys holding application secrets the installer generates.
+     *
+     * SMLISER_CLI_API_KEY is deliberately excluded: it is issued by the
+     * application itself, not generated at install time.
+     *
+     * @var string[]
+     */
+    protected const APP_SECRET_KEYS = array(
+        'SMLISER_SECRET',
+        'SMLISER_SALT',
+    );
+
+    /**
+     * Random bytes per generated secret (base64-encodes to 64 characters).
+     */
+    protected const APP_SECRET_BYTES = 48;
+
+    /**
 	 * The required directories keyed by readable names.
 	 * 
 	 * @var array<string, string>
@@ -59,10 +80,25 @@ class AppInstaller {
 		'Logs Directory'      => \SMLISER_LOGS_DIR,
 	);
 
+    /**
+     * Class constructor.
+     *
+     * The Database may hold a NullDBAdapter placeholder before installation.
+     * Database-backed steps refuse to run until a verified connection has
+     * been activated with use_connection().
+     *
+     * @param Database                $db        The shared application database.
+     * @param DatabaseAdapterRegistry $adapters  Database adapter registry.
+     * @param FileSystem              $fs        Filesystem API.
+     * @param JobQueue                $job_queue Background job queue.
+     * @param InstallationState       $state     The installation state file.
+     */
     public function __construct(
         protected Database $db,
+        protected DatabaseAdapterRegistry $adapters,
         protected FileSystem $fs,
-        protected JobQueue $job_queue
+        protected JobQueue $job_queue,
+        protected InstallationState $state
     ) {}
 
     /**
@@ -309,6 +345,164 @@ class AppInstaller {
     }
 
     /**
+     * Read the database configuration from the .env file as it is now.
+     *
+     * Parses the file directly, so values written during this request are
+     * seen, and $_ENV, $_SERVER and the process environment are not modified.
+     *
+     * @return DBConfigDTO
+     * @throws DatabaseException         ('database_not_configured') When the .env file is missing,
+     *                                   or SMLISER_DB_DRIVER or SMLISER_DB_NAME is empty.
+     * @throws \InvalidArgumentException When a value is invalid (e.g. an unsupported driver).
+     * @throws \RuntimeException         When the .env file contains an unclosed multiline value.
+     */
+    public function read_database_config() : DBConfigDTO {
+        $env_file = \SMLISER_ROOT . '.env';
+
+        if ( ! file_exists( $env_file ) ) {
+            throw new DatabaseException(
+                'database_not_configured',
+                "The .env file \"{$env_file}\" does not exist."
+            );
+        }
+
+        $env    = ( new DotEnv( \SMLISER_ROOT ) )->parse( '.env' );
+        $config = \smliser_db_config_from_env( $env );
+
+        if ( null === $config ) {
+            $keys    = \smliser_db_env_keys();
+            $missing = '' === trim( (string) ( $env[ $keys['driver'] ] ?? '' ) ) ? $keys['driver'] : $keys['dbname'];
+
+            throw new DatabaseException(
+                'database_not_configured',
+                "{$missing} is not set in the .env file."
+            );
+        }
+
+        return $config;
+    }
+
+    /**
+     * Write a database configuration into the existing .env file.
+     *
+     * Updates only the database keys, preserving every other line and comment.
+     * A null field leaves its key unchanged; an empty string clears it.
+     * Does not modify $_ENV; read it back with read_database_config().
+     *
+     * @param DBConfigDTO $config Database configuration to store.
+     * @return string Absolute path to the .env file.
+     * @throws \RuntimeException When the .env file does not exist or cannot be written.
+     */
+    public function write_database_config( DBConfigDTO $config ) : string {
+        $env_file = \SMLISER_ROOT . '.env';
+
+        if ( ! file_exists( $env_file ) ) {
+            throw new \RuntimeException(
+                "The .env file \"{$env_file}\" does not exist. Create it with make_dot_env_file() first."
+            );
+        }
+
+        $values = array();
+
+        foreach ( \smliser_db_env_keys() as $field => $env_key ) {
+            // The encryption key only applies to sqlite.
+            if ( 'encryption_key' === $field && 'sqlite' !== $config->driver ) {
+                continue;
+            }
+
+            $values[ $env_key ] = $config->{$field};
+        }
+
+        $values = array_map(
+            array( $this, 'env_string' ),
+            array_filter( $values, static fn( mixed $value ) : bool => null !== $value )
+        );
+
+        if ( array() === $values ) {
+            return $env_file;
+        }
+
+        if ( ! ( new EnvFileWriter( $env_file ) )->set_multiple( $values )->save() ) {
+            throw new \RuntimeException( "Failed to write the database configuration to \"{$env_file}\"." );
+        }
+
+        return $env_file;
+    }
+
+    /**
+     * Generate the application secrets that are still empty in the .env file.
+     *
+     * Fills SMLISER_SECRET and SMLISER_SALT with distinct, cryptographically
+     * secure random values. Keys that already hold a value are never changed,
+     * since replacing a secret invalidates existing sessions and anything
+     * derived from it. Does not modify $_ENV.
+     *
+     * @return string[] The keys that were generated; empty when all were already set.
+     * @throws \RuntimeException When the .env file does not exist or cannot be written.
+     */
+    public function generate_app_secrets() : array {
+        $env_file = \SMLISER_ROOT . '.env';
+
+        if ( ! file_exists( $env_file ) ) {
+            throw new \RuntimeException(
+                "The .env file \"{$env_file}\" does not exist. Create it with make_dot_env_file() first."
+            );
+        }
+
+        $env       = ( new DotEnv( \SMLISER_ROOT ) )->parse( '.env' );
+        $in_use    = array();
+        $generated = array();
+
+        foreach ( static::APP_SECRET_KEYS as $key ) {
+            $value = $env[ $key ] ?? null;
+
+            if ( is_string( $value ) && '' !== $value ) {
+                $in_use[] = $value;
+            }
+        }
+
+        foreach ( static::APP_SECRET_KEYS as $key ) {
+            $value = $env[ $key ] ?? null;
+
+            if ( is_string( $value ) && '' !== $value ) {
+                continue;
+            }
+
+            // No two secrets may share a value.
+            do {
+                $secret = base64_encode( random_bytes( static::APP_SECRET_BYTES ) );
+            } while ( in_array( $secret, $in_use, true ) );
+
+            $in_use[]          = $secret;
+            $generated[ $key ] = $secret;
+        }
+
+        if ( array() === $generated ) {
+            return array();
+        }
+
+        if ( ! ( new EnvFileWriter( $env_file ) )->set_multiple( $generated )->save() ) {
+            throw new \RuntimeException( "Failed to write the application secrets to \"{$env_file}\"." );
+        }
+
+        return array_keys( $generated );
+    }
+
+    /**
+     * Convert a non-null configuration value to its .env string form.
+     *
+     * @param mixed $value
+     * @return string
+     */
+    protected function env_string( mixed $value ) : string {
+        return match ( true ) {
+            true === $value  => 'true',
+            false === $value => 'false',
+            default          => (string) $value,
+        };
+    }
+
+    /**
      * Get all required directories.
      * 
      * @return array<string,string>
@@ -328,6 +522,8 @@ class AppInstaller {
         ?callable $success_callback = null,
         ?callable $failure_callback = null
         ) : void{
+        $this->assert_database_connection();
+
         $schema     = SchemaRegistry::instance();
         $inspector  = new Inspector( $this->db );
 
@@ -379,7 +575,8 @@ class AppInstaller {
         callable|null $failure_callback = null,
         bool $force = false
         ) : void {
-        
+        $this->assert_database_connection();
+
         $default_roles = DefaultRoles::all();
 
         foreach ( $default_roles as $slug => $roledata ) {
@@ -416,6 +613,8 @@ class AppInstaller {
      * @throws \InvalidArgumentException
      */
     public function create_admin( string $name, string $email, string $password ) : User {
+        $this->assert_database_connection();
+
         $default_role   = DefaultRoles::get( 'system_admin' );
         
         $role           = Role::get_by_slug( $default_role['slug'] );
@@ -476,20 +675,164 @@ class AppInstaller {
 
     /**
      * Test the given credentials against a database engine.
-     * 
-     * @param DBConfigDTO $config
-     * @return Database
-     * @throws DatabaseException
+     *
+     * Builds the engine's adapter from the registry and connects it. The
+     * returned adapter is connected but not active; pass it to
+     * use_connection() to make the application use it.
+     *
+     * @param DBConfigDTO $config     Database configuration to test.
+     * @param string|null $adapter_id Optional adapter ID; the engine default is used when null.
+     * @return DatabaseAdapterInterface The connected adapter.
+     * @throws DatabaseException When no adapter is registered for the engine, or the connection fails.
      */
-    public function test_db_connection( DBConfigDTO $config ) : Database {
-        $db_adapter = DatabaseAdapterRegistry::instance()->select( $config->driver );
+    public function test_db_connection( DBConfigDTO $config, ?string $adapter_id = null ) : DatabaseAdapterInterface {
+        $adapter_class = $this->adapters->select( (string) $config->driver, $adapter_id );
 
-        $adapter    = new $db_adapter( $config );
+        /** @var DatabaseAdapterInterface $adapter */
+        $adapter = new $adapter_class( $config );
 
-        if ( ! $adapter->is_connected() ) {
+        if ( ! $adapter->connect() ) {
             throw new DatabaseException( 'database_connect_error', $adapter->get_last_error() );
         }
 
-        return new Database( $adapter );
+        return $adapter;
+    }
+
+    /**
+     * Make the application use a verified database connection.
+     *
+     * Swaps the adapter on the shared Database instance, so every service
+     * already holding it (models, job queue, this installer) uses the new
+     * connection from its next query onward.
+     *
+     * @param DatabaseAdapterInterface $adapter A connected adapter, typically from test_db_connection().
+     * @return void
+     * @throws DatabaseException When the adapter is not connected.
+     */
+    public function use_connection( DatabaseAdapterInterface $adapter ) : void {
+        if ( ! $adapter->is_connected() ) {
+            throw new DatabaseException(
+                'database_connect_error',
+                'Only a connected database adapter can be activated.'
+            );
+        }
+
+        $this->db->set_adapter( $adapter );
+    }
+
+    /**
+     * Whether a real database connection is active.
+     *
+     * False while the shared Database holds the NullDBAdapter placeholder.
+     *
+     * @return bool
+     */
+    public function has_database_connection() : bool {
+        return ! $this->db->has_null_adapter();
+    }
+
+    /**
+     * List what still prevents this application from counting as installed.
+     *
+     * Checks the .env file, the required directories, the database connection, every
+     * registered table, and that at least one user account exists. A
+     * database that cannot be reached throws instead of being reported as
+     * "not installed", so an outage is never mistaken for a fresh install.
+     *
+     * @return string[] Unmet requirements; empty when the installation is complete.
+     * @throws DatabaseException When the configured database cannot be reached or queried.
+     */
+    public function installation_issues() : array {
+        $issues = array();
+
+        // Checked on disk: $_ENV can outlive a deleted .env in long-lived workers.
+        if ( ! is_file( \SMLISER_ROOT . '.env' ) ) {
+            $issues[] = sprintf( 'Missing .env file: %s', \SMLISER_ROOT . '.env' );
+        }
+
+        foreach ( $this->required_directories as $name => $dir ) {
+            if ( ! $this->fs->is_dir( $dir ) ) {
+                $issues[] = sprintf( 'Missing directory: %s (%s)', $name, $dir );
+            }
+        }
+
+        if ( ! $this->has_database_connection() ) {
+            $issues[] = 'No database connection is configured.';
+            return $issues;
+        }
+
+        if ( ! $this->db->is_connected() && ! $this->db->connect() ) {
+            throw new DatabaseException( 'database_connect_error', $this->db->get_last_error() );
+        }
+
+        $inspector   = new Inspector( $this->db );
+        $users_table = false;
+
+        foreach ( SchemaRegistry::instance()->get_all_tables() as $table ) {
+            if ( ! $inspector->table_exists( $table->get_name() ) ) {
+                $issues[] = sprintf( 'Missing table: %s', $table->get_name() );
+            } elseif ( \SMLISER_USERS_TABLE === $table->get_name() ) {
+                $users_table = true;
+            }
+        }
+
+        if ( $users_table ) {
+            $count = $this->db->get_var( 'SELECT COUNT(*) FROM ' . \SMLISER_USERS_TABLE );
+
+            if ( null === $count && $this->db->get_last_error() ) {
+                throw new DatabaseException( 'database_query_error', $this->db->get_last_error() );
+            }
+
+            if ( 0 === (int) $count ) {
+                $issues[] = 'No user account exists.';
+            }
+        }
+
+        return $issues;
+    }
+
+    /**
+     * Whether the installation state records a completed installation.
+     *
+     * Reads the state file only; use installation_issues() to verify the
+     * installation itself.
+     *
+     * @return bool
+     */
+    public function is_installed() : bool {
+        return $this->state->is_installed();
+    }
+
+    /**
+     * Record the installation as complete in the installation state file.
+     *
+     * Stores the current application and schema versions. Does not verify
+     * the installation; check installation_issues() first.
+     *
+     * @return void
+     * @throws \RuntimeException When the state file cannot be written.
+     */
+    public function mark_installed() : void {
+        $this->state->mark_installed(
+            array(
+                'app'    => \SMLISER_VER,
+                'schema' => \SMLISER_DB_VER,
+            )
+        );
+    }
+
+    /**
+     * Refuse database-backed steps while only the placeholder adapter is active.
+     *
+     * @return void
+     * @throws DatabaseException When no database connection is active.
+     */
+    protected function assert_database_connection() : void {
+        if ( ! $this->has_database_connection() ) {
+            throw new DatabaseException(
+                'database_not_configured',
+                'No database connection is configured. Configure and test the database connection first.'
+            );
+        }
     }
 }

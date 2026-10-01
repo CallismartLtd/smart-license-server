@@ -12,6 +12,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer;
 
 use Callismart\DBPrism\Adapters\Contracts\DatabaseAdapterInterface;
+use Callismart\DBPrism\Adapters\NullDBAdapter;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
 use Callismart\Http\HttpClient;
@@ -28,6 +29,7 @@ use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Email\EmailProviderIcons;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
+use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Email\Providers\AmazonSESProvider;
 use SmartLicenseServer\Email\Providers\BrevoProvider;
 use SmartLicenseServer\Email\Providers\MailgunProvider;
@@ -61,6 +63,14 @@ use SmartLicenseServer\Utils\MDParser;
  * @since 0.2.0
  */
 abstract class Environment {
+    /**
+     * Resolved database configuration: false until resolved, null when no
+     * database is configured.
+     *
+     * @var DBConfigDTO|false|null
+     */
+    private DBConfigDTO|false|null $databaseConfig = false;
+
     /**
      * Class constructor.
      * 
@@ -118,7 +128,18 @@ abstract class Environment {
 
         $this->container->singleton(
             DBConfigDTO::class,
-            fn () : DBConfigDTO => $this->createDatabaseConfig()
+            function () : DBConfigDTO {
+                $config = $this->databaseConfig();
+
+                if ( null === $config ) {
+                    throw new DatabaseException(
+                        'database_not_configured',
+                        'No database is configured. Check Database::has_null_adapter() before resolving the database configuration.'
+                    );
+                }
+
+                return $config;
+            }
         );
 
         /*
@@ -178,7 +199,17 @@ abstract class Environment {
         $this->container->singleton(
             DatabaseAdapterInterface::class,
             function ( Container $c ) : DatabaseAdapterInterface {
-                $config   = $c->get( DBConfigDTO::class );
+                $config   = $this->databaseConfig();
+
+                /*
+                 * No database configured yet (e.g. before installation):
+                 * use a placeholder so Database and its dependents still
+                 * construct. The installer swaps in a real adapter.
+                 */
+                if ( null === $config ) {
+                    return new NullDBAdapter();
+                }
+
                 $registry = $c->get( DatabaseAdapterRegistry::class );
                 $adapter  = $registry->select( $config->driver );
 
@@ -401,9 +432,26 @@ abstract class Environment {
     /**
      * Create the database configuration.
      *
-     * Concrete environments must provide this configuration.
+     * Concrete environments must provide this configuration, or null when no
+     * database is configured yet (e.g. before installation). Null makes the
+     * application run on a NullDBAdapter placeholder.
+     *
+     * @return DBConfigDTO|null
      */
-    abstract protected function createDatabaseConfig() : DBConfigDTO;
+    abstract protected function createDatabaseConfig() : ?DBConfigDTO;
+
+    /**
+     * Get the database configuration, creating it once per environment.
+     *
+     * @return DBConfigDTO|null Null when no database is configured.
+     */
+    final protected function databaseConfig() : ?DBConfigDTO {
+        if ( false === $this->databaseConfig ) {
+            $this->databaseConfig = $this->createDatabaseConfig();
+        }
+
+        return $this->databaseConfig;
+    }
 
     /**
      * Get the application container.

@@ -88,6 +88,96 @@ final class DotEnv {
             return;
         }
 
+        $this->read(
+            $env_file,
+            fn( string $key, mixed $value ) => $this->set( $key, $value ),
+            fn( string $name ) : mixed => $_ENV[ $name ] ?? getenv( $name )
+        );
+    }
+
+    /**
+     * Parse a .env file and return its values without touching the environment.
+     *
+     * Same parsing rules as load(), but $_ENV, $_SERVER and the process
+     * environment are left untouched, so the file can be read fresh at any
+     * time (e.g. after it was written mid-request). Variable references
+     * resolve against keys defined earlier in the same file first, then
+     * against the existing environment. The immutable flag does not apply.
+     *
+     * @param string $file Filename relative to $path. Default '.env'.
+     * @return array<string, bool|null|string> Parsed values keyed by variable name;
+     *                                         empty when the file does not exist.
+     * @throws \RuntimeException When an unclosed multiline block is detected.
+     */
+    public function parse( string $file = '.env' ): array {
+        $env_file = rtrim( $this->path, '/' ) . '/' . $file;
+
+        if ( ! file_exists( $env_file ) ) {
+            return [];
+        }
+
+        $values = [];
+
+        $this->read(
+            $env_file,
+            function ( string $key, mixed $value ) use ( &$values ): void {
+                $values[ $key ] = $value;
+            },
+            function ( string $name ) use ( &$values ): mixed {
+                return array_key_exists( $name, $values )
+                    ? $values[ $name ]
+                    : ( $_ENV[ $name ] ?? getenv( $name ) );
+            }
+        );
+
+        return $values;
+    }
+
+    /**
+     * Assert that a set of keys are present in $_ENV.
+     *
+     * Call after load() to enforce required configuration.
+     *
+     * @param string[] $keys
+     * @throws \RuntimeException For the first missing key found.
+     */
+    public function required( array $keys ): void {
+        foreach ( $keys as $key ) {
+            if ( ! array_key_exists( $key, $_ENV ) ) {
+                throw new \RuntimeException(
+                    sprintf( 'DotEnv: required environment variable "%s" is missing.', $key )
+                );
+            }
+        }
+    }
+
+    /**
+     * Return the list of keys loaded during the most recent load() call.
+     *
+     * @return string[]
+     */
+    public function loaded(): array {
+        return $this->loaded;
+    }
+
+    /*
+    |--------------------------------------------
+    | PROTECTED HELPERS
+    |--------------------------------------------
+    */
+
+    /**
+     * Parse a .env file, handing each key–value pair to $emit.
+     *
+     * Shared by load() and parse(); only what happens to each pair and how
+     * variable references are resolved differ between them.
+     *
+     * @param string                       $env_file Absolute path to an existing .env file.
+     * @param callable(string, mixed): void $emit     Receives each parsed key and value.
+     * @param callable(string): mixed       $lookup   Resolves a variable name for expansion.
+     * @throws \RuntimeException When an unclosed multiline block is detected.
+     */
+    protected function read( string $env_file, callable $emit, callable $lookup ): void {
         // FILE_SKIP_EMPTY_LINES omitted intentionally: empty lines inside a
         // multiline value must be preserved so the buffer accumulates them.
         $lines = file( $env_file, FILE_IGNORE_NEW_LINES );
@@ -119,7 +209,7 @@ final class DotEnv {
                 if ( str_ends_with( $trimmed, '"' ) ) {
                     // Closing quote found — finalise the buffer.
                     $buffer .= "\n" . rtrim( $trimmed, '"' );
-                    $this->set( $key, $this->unescape( $buffer ) );
+                    $emit( $key, $this->unescape( $buffer ) );
                     $multiline = false;
                     $buffer    = '';
                     $key       = null;
@@ -182,7 +272,7 @@ final class DotEnv {
             // Single-quoted values treat ${VAR} as a literal string,
             // consistent with POSIX shell behaviour.
             if ( ! $is_single_quoted ) {
-                $value = $this->expand_variables( $value );
+                $value = $this->expand_variables( $value, $lookup );
             }
 
             // Unescape escape sequences for double-quoted values.
@@ -190,7 +280,7 @@ final class DotEnv {
                 $value = $this->unescape( $value );
             }
 
-            $this->set( $key, $this->cast_value( $value ) );
+            $emit( $key, $this->cast_value( $value ) );
         }
 
         // A multiline block that was opened but never closed is a parse error.
@@ -204,39 +294,6 @@ final class DotEnv {
             );
         }
     }
-
-    /**
-     * Assert that a set of keys are present in $_ENV.
-     *
-     * Call after load() to enforce required configuration.
-     *
-     * @param string[] $keys
-     * @throws \RuntimeException For the first missing key found.
-     */
-    public function required( array $keys ): void {
-        foreach ( $keys as $key ) {
-            if ( ! array_key_exists( $key, $_ENV ) ) {
-                throw new \RuntimeException(
-                    sprintf( 'DotEnv: required environment variable "%s" is missing.', $key )
-                );
-            }
-        }
-    }
-
-    /**
-     * Return the list of keys loaded during the most recent load() call.
-     *
-     * @return string[]
-     */
-    public function loaded(): array {
-        return $this->loaded;
-    }
-
-    /*
-    |--------------------------------------------
-    | PROTECTED HELPERS
-    |--------------------------------------------
-    */
 
     /**
      * Write a key–value pair into $_ENV, $_SERVER, and the process environment.
@@ -277,24 +334,27 @@ final class DotEnv {
     /**
      * Expand ${VAR} and $VAR references in a value string.
      *
-     * Looks up variables in $_ENV first, then falls back to getenv().
-     * Unknown variables are replaced with an empty string.
+     * Escaped references (\${VAR}, \$VAR) are left for unescape() to turn
+     * into a literal "$". Unknown variables are replaced with an empty string.
      *
-     * @param string $value
+     * @param string                  $value
+     * @param callable(string): mixed $lookup Resolves a variable name.
      * @return string
      */
-    protected function expand_variables( string $value ): string {
+    protected function expand_variables( string $value, callable $lookup ): string {
+        $resolve = fn( array $m ) : string => (string) ( $lookup( $m[1] ) ?? '' );
+
         // ${VAR_NAME} syntax.
         $value = preg_replace_callback(
-            '/\$\{([A-Z0-9_]+)\}/i',
-            fn( $m ) => (string) ( $_ENV[ $m[1] ] ?? getenv( $m[1] ) ?? '' ),
+            '/(?<!\\\\)\$\{([A-Z0-9_]+)\}/i',
+            $resolve,
             $value
         );
 
         // $VAR_NAME syntax (not followed by another word character).
         $value = preg_replace_callback(
-            '/\$([A-Z0-9_]+)(?![A-Z0-9_])/i',
-            fn( $m ) => (string) ( $_ENV[ $m[1] ] ?? getenv( $m[1] ) ?? '' ),
+            '/(?<!\\\\)\$([A-Z0-9_]+)(?![A-Z0-9_])/i',
+            $resolve,
             $value
         );
 
@@ -304,14 +364,23 @@ final class DotEnv {
     /**
      * Unescape common escape sequences in double-quoted and multiline values.
      *
+     * Single pass, so an escaped backslash followed by "n" ("\\n") stays a
+     * literal backslash and "n" instead of becoming a newline.
+     *
      * @param string $value
      * @return string
      */
     protected function unescape( string $value ): string {
-        return str_replace(
-            [ '\n', '\r', '\t', '\\"', "\\\\" ],
-            [ "\n", "\r", "\t", '"',   "\\"   ],
-            $value
+        return strtr(
+            $value,
+            [
+                '\n'   => "\n",
+                '\r'   => "\r",
+                '\t'   => "\t",
+                '\"'   => '"',
+                '\$'   => '$',
+                '\\\\' => '\\',
+            ]
         );
     }
 
