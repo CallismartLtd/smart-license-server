@@ -12,9 +12,6 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Environments\Application\Kernel;
 
 use SmartLicenseServer\Core\Container\Container;
-use SmartLicenseServer\Environment;
-use SmartLicenseServer\Environments\Application\Auth\IdentityService;
-use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Abstract application kernel.
