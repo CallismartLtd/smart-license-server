@@ -39,9 +39,11 @@ final class InstallationState {
 	 * @param string     $file Absolute path to the state file.
 	 */
 	public function __construct(
-		private readonly FileSystem $fs,
+		FileSystem $fs,
 		private readonly string $file
-	) {}
+	) {
+		$this->fs	= $fs;
+	}
 
 	/**
 	 * Create the state for the standard runtime layout.

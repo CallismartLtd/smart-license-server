@@ -17,8 +17,10 @@ use SmartLicenseServer\FileSystem\FileSystem;
 /**
  * One-time token proving server access before the web installer can be claimed.
  *
- * Stored in plain text in storage/setup/setup-token.json (0600) so the
- * operator can read it over SSH/FTP or with `smliser installer token`.
+ * Stored in plain text in storage/setup/setup-token.json with the
+ * application's normal file permissions, so the operator can read it through
+ * File Manager, FTP or SSH (often as a different system user than the web
+ * server), or print it with `smliser installer token`.
  * Deleted when the installation completes.
  *
  * @package SmartLicenseServer\Environments\Application\Installation
@@ -26,16 +28,6 @@ use SmartLicenseServer\FileSystem\FileSystem;
  */
 final class SetupToken {
 	use JsonFileTrait;
-
-	/**
-	 * Permissions for the setup directory.
-	 */
-	private const DIR_MODE = 0700;
-
-	/**
-	 * Permissions for the file.
-	 */
-	private const FILE_MODE = 0600;
 
 	/**
 	 * Token file name, inside the setup directory.
@@ -99,9 +91,7 @@ final class SetupToken {
 			array(
 				'token'      => $token,
 				'expires_at' => time() + self::TTL,
-			),
-			\SMLISER_FILE_PERMISSION, //self::FILE_MODE,
-			\SMLISER_DIR_PERMISSION //self::DIR_MODE
+			)
 		);
 
 		return $token;

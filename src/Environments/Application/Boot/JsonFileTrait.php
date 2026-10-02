@@ -53,32 +53,22 @@ trait JsonFileTrait {
 	}
 
 	/**
-	 * Atomically write a JSON object file (temporary file, then rename).
+	 * Write a JSON object file.
 	 *
-	 * @param string               $file      Absolute path.
-	 * @param array<string, mixed> $data      Data to write.
-	 * @param int                  $file_mode File permissions.
-	 * @param int|false            $dir_mode  Permissions for a directory that must be created; false for the default.
+	 * Uses the FileSystem defaults: the application's file and directory
+	 * permissions, and the adapter's atomic write (temporary file, then
+	 * rename), which also creates missing parent directories.
+	 *
+	 * @param string               $file Absolute path.
+	 * @param array<string, mixed> $data Data to write.
 	 * @return void
 	 * @throws \RuntimeException When the file cannot be written.
 	 */
-	private function write_json( string $file, array $data, int $file_mode = \SMLISER_FILE_PERMISSION, int|false $dir_mode = false ) : void {
-		$dir = dirname( $file );
-
-		if ( ! $this->fs->is_dir( $dir ) && ! $this->fs->mkdir( $dir, $dir_mode, true ) ) {
-			throw new \RuntimeException( "Could not create \"{$dir}\". Check that the storage directory is writable." );
-		}
-
-		$temp = $file . '.' . bin2hex( random_bytes( 6 ) ) . '.tmp';
+	private function write_json( string $file, array $data ) : void {
 		$json = json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n";
 
-		if ( ! $this->fs->put_contents( $temp, $json, $file_mode ) ) {
+		if ( ! $this->fs->put_contents( $file, $json ) ) {
 			throw new \RuntimeException( "Could not write \"{$file}\". Check that the storage directory is writable." );
-		}
-
-		if ( ! $this->fs->rename( $temp, $file ) ) {
-			$this->fs->delete( $temp );
-			throw new \RuntimeException( "Could not write \"{$file}\"." );
 		}
 	}
 

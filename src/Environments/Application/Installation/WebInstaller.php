@@ -27,11 +27,18 @@ use SmartLicenseServer\FileSystem\FileSystem;
  *  - The installer owner (holds the cookie of the active InstallerSession
  *    claim): sees the installer at the installer URL; any other URL redirects
  *    there.
+ *
+ * The installer URL is /install, /index.php/install or /?install (see the
+ * URL_* constants), so it works before any rewrite rules exist.
  *  - Anyone at the installer URL while nobody owns the installer: sees the
  *    setup token form. The token is in storage/setup/setup-token.json, or
  *    printed by `smliser installer token`; submitting it claims the installer.
- *  - Everyone else: a 503 "setting things up" response, exactly like the
- *    downtime handler. Normal maintenance never reaches this class.
+ *  - Everyone else: a 503 response. Before anyone has started installing, it
+ *    says the site is not set up yet and links to the installer; once an
+ *    installation is in progress (browser claim or CLI), it is the plain
+ *    "setting things up" notice, exactly like the downtime handler. JSON
+ *    requests always get the plain notice. Normal maintenance never
+ *    reaches this class.
  *
  * The installer's step is never taken from the request: it is derived on
  * every request from the server's real state (the .env file, the database
@@ -51,6 +58,25 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	 * Installer path, relative to the application's base path.
 	 */
 	public const PATH = '/install';
+
+	/**
+	 * Query variable that opens the installer without URL rewriting.
+	 */
+	public const QUERY_VAR = 'install';
+
+	/**
+	 * Ways the installer URL can be written, from prettiest to most portable.
+	 *
+	 *  - path:      /install             Needs URL rewriting (.htaccess, nginx try_files).
+	 *  - path_info: /index.php/install   Needs PATH_INFO, on by default in Apache.
+	 *  - query:     /?install            Works wherever index.php is the directory index.
+	 *
+	 * A fresh upload has no .htaccess yet (the installer writes it), so every
+	 * form is accepted and the installer keeps using the form it was opened with.
+	 */
+	public const URL_PATH      = 'path';
+	public const URL_PATH_INFO = 'path_info';
+	public const URL_QUERY     = 'query';
 
 	/**
 	 * Minimum administrator password length.
@@ -184,7 +210,9 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		}
 
 		if ( ! $this->is_installer_path() ) {
-			return $this->visitor();
+			return $this->is_not_started() && ! $this->wants_json()
+				? $this->not_set_up()
+				: $this->visitor();
 		}
 
 		if ( $this->session->is_claimed() ) {
@@ -205,6 +233,34 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		}
 
 		return $this->is_post() ? $this->claim() : $this->token_form( $expired ? 'Your installer session expired. Enter the setup token to continue.' : null );
+	}
+
+	/**
+	 * Whether nobody has started installing: no installation flag and no active claim.
+	 *
+	 * @return bool
+	 */
+	private function is_not_started() : bool {
+		return ! $this->resolver->installation_in_progress() && ! $this->session->is_claimed();
+	}
+
+	/**
+	 * Tell visitors the site is not set up yet, with a way for the owner to start.
+	 *
+	 * Sent as 503 so search engines do not index it. Links to the query form
+	 * of the installer URL, which works before any rewrite rules exist.
+	 *
+	 * @return Response
+	 */
+	private function not_set_up() : Response {
+		$response = $this->respond(
+			$this->page->not_set_up( $this->base_path() . '/?' . self::QUERY_VAR ),
+			503
+		);
+
+		$response->set_header( 'Retry-After', (string) $this->resolver->retry_after() );
+
+		return $response;
 	}
 
 	/**
@@ -988,12 +1044,51 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	}
 
 	/**
-	 * The installer's URL path.
+	 * The installer's URL, in the form the current request used.
+	 *
+	 * Requests that are not for the installer get the query form, which
+	 * works without URL rewriting or PATH_INFO.
 	 *
 	 * @return string
 	 */
 	private function installer_url() : string {
-		return $this->base_path() . self::PATH;
+		return match ( $this->installer_url_form() ?? self::URL_QUERY ) {
+			self::URL_PATH      => $this->base_path() . self::PATH,
+			self::URL_PATH_INFO => $this->script_path() . self::PATH,
+			default             => $this->base_path() . '/?' . self::QUERY_VAR,
+		};
+	}
+
+	/**
+	 * Which installer URL form the request uses, if any.
+	 *
+	 * @return string|null One of the URL_* constants, or null when the request is not for the installer.
+	 */
+	private function installer_url_form() : ?string {
+		$path = parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '/' ), PHP_URL_PATH );
+		$path = rtrim( rawurldecode( is_string( $path ) ? $path : '/' ), '/' );
+		$base = $this->base_path();
+
+		return match ( true ) {
+			$base . self::PATH === $path                => self::URL_PATH,
+			$this->script_path() . self::PATH === $path => self::URL_PATH_INFO,
+			array_key_exists( self::QUERY_VAR, $_GET ) && in_array( $path, array( $base, $this->script_path() ), true )
+				=> self::URL_QUERY,
+			default                                     => null,
+		};
+	}
+
+	/**
+	 * URL path of the front controller script, e.g. "/index.php" or "/app/index.php".
+	 *
+	 * @return string
+	 */
+	private function script_path() : string {
+		$script = str_replace( '\\', '/', (string) ( $_SERVER['SCRIPT_NAME'] ?? '' ) );
+
+		return str_ends_with( strtolower( $script ), '.php' )
+			? '/' . ltrim( $script, '/' )
+			: $this->base_path() . '/index.php';
 	}
 
 	/**
@@ -1008,15 +1103,12 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	}
 
 	/**
-	 * Whether the request is for the installer URL.
+	 * Whether the request is for the installer, in any of its URL forms.
 	 *
 	 * @return bool
 	 */
 	private function is_installer_path() : bool {
-		$path = parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '/' ), PHP_URL_PATH );
-		$path = rtrim( rawurldecode( is_string( $path ) ? $path : '/' ), '/' );
-
-		return $path === $this->installer_url();
+		return null !== $this->installer_url_form();
 	}
 
 	/**

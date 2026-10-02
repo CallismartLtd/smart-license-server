@@ -20,7 +20,7 @@ use SmartLicenseServer\FileSystem\FileSystem;
  * Handled manually because the application session (SessionManager) needs
  * SMLISER_SECRET, which does not exist until installation writes it. The
  * owner holds a random cookie; only its SHA-256 hash is stored, server-side,
- * in storage/setup/installer-session.json (0600), with a CSRF token and
+ * in storage/setup/installer-session.json, with a CSRF token and
  * activity timestamps.
  *
  * Exactly one owner at a time. A claim idle for longer than the idle
@@ -32,16 +32,6 @@ use SmartLicenseServer\FileSystem\FileSystem;
  */
 final class InstallerSession {
 	use JsonFileTrait;
-
-	/**
-	 * Permissions for the setup directory.
-	 */
-	private const DIR_MODE = 0700;
-
-	/**
-	 * Permissions for the file.
-	 */
-	private const FILE_MODE = 0600;
 
 	/**
 	 * Session file name, inside the setup directory.
@@ -129,9 +119,7 @@ final class InstallerSession {
 				'csrf'       => bin2hex( random_bytes( 16 ) ),
 				'claimed_at' => $now,
 				'last_seen'  => $now,
-			),
-			self::FILE_MODE,
-			self::DIR_MODE
+			)
 		);
 
 		return $cookie;
@@ -147,7 +135,7 @@ final class InstallerSession {
 
 		if ( null !== $record ) {
 			$record['last_seen'] = time();
-			$this->write_json( $this->file, $record, self::FILE_MODE, self::DIR_MODE );
+			$this->write_json( $this->file, $record );
 		}
 	}
 
@@ -184,7 +172,7 @@ final class InstallerSession {
 
 		if ( null !== $record ) {
 			$record['flash'][] = array( 'type' => $type, 'message' => $message );
-			$this->write_json( $this->file, $record, self::FILE_MODE, self::DIR_MODE );
+			$this->write_json( $this->file, $record );
 		}
 	}
 
@@ -202,7 +190,7 @@ final class InstallerSession {
 
 		$notices = $record['flash'];
 		unset( $record['flash'] );
-		$this->write_json( $this->file, $record, self::FILE_MODE, self::DIR_MODE );
+		$this->write_json( $this->file, $record );
 
 		return array_values(
 			array_filter(

@@ -52,9 +52,11 @@ final class MaintenanceFlag {
 	 * @param string     $file Absolute path to the flag file.
 	 */
 	public function __construct(
-		private readonly FileSystem $fs,
+		FileSystem $fs,
 		private readonly string $file
-	) {}
+	) {
+		$this->fs	= $fs;
+	}
 
 	/**
 	 * Create the flag for the standard runtime layout.

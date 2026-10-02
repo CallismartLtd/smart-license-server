@@ -148,11 +148,11 @@ class HtaccessWriter {
     */
 
     /**
-     * Write the current state to the target file atomically.
+     * Write the current state to the target file.
      *
-     * Creates the target directory when missing, writes a temporary file next
-     * to the target, then renames it over the target, so the web server never
-     * reads a partially written file.
+     * Creates the target directory when missing. The FileSystem adapter
+     * writes atomically (temporary file, then rename), so the web server
+     * never reads a partially written file.
      *
      * @return bool True on successful write, false on failure.
      * @throws RuntimeException If target directory cannot be created or is not writable.
@@ -160,7 +160,7 @@ class HtaccessWriter {
     public function save(): bool {
         $target_dir = dirname( $this->target_path );
 
-        if ( ! $this->fs->is_dir( $target_dir ) && ! $this->fs->mkdir( $target_dir, false, true ) && ! $this->fs->is_dir( $target_dir ) ) {
+        if ( ! $this->fs->mkdir( $target_dir ) ) {
             throw new RuntimeException( "Target directory could not be created: {$target_dir}" );
         }
 
@@ -168,19 +168,7 @@ class HtaccessWriter {
             throw new RuntimeException( "Target directory is not writable: {$target_dir}" );
         }
 
-        $content   = implode( "\n", $this->lines ) . "\n";
-        $temp_path = $this->target_path . '.' . uniqid( 'tmp_', true );
-
-        if ( ! $this->fs->put_contents( $temp_path, $content ) ) {
-            return false;
-        }
-
-        if ( ! $this->fs->rename( $temp_path, $this->target_path ) ) {
-            $this->fs->delete( $temp_path );
-            return false;
-        }
-
-        return true;
+        return $this->fs->put_contents( $this->target_path, implode( "\n", $this->lines ) . "\n" );
     }
 
     /*

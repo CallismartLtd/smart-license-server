@@ -394,11 +394,15 @@ class AppInstaller {
 
         $public_dir = dirname( $target );
 
-        if ( ! $this->fs->is_dir( $public_dir ) && ! $this->fs->mkdir( $public_dir ) ) {
+        if ( ! $this->fs->mkdir( $public_dir ) ) {
             throw new \RuntimeException( "Could not create \"{$public_dir}\". Make sure the application folder is writable by the web server." );
         }
 
-        // The FileSystem API has no symlink operations; links are handled natively.
+        /*
+         * Symlinks are handled natively: the FileSystem API has no symlink
+         * operations, and its delete()/rmdir() follow a link to a directory
+         * and would empty system/assets instead of removing the link.
+         */
         if ( is_link( $target ) ) {
             if ( $this->points_to( $target, $source ) ) {
                 return static::ASSETS_UNCHANGED;
@@ -412,7 +416,7 @@ class AppInstaller {
                 return static::ASSETS_KEPT;
             }
 
-            if ( ! $this->fs->delete( $target, true ) ) {
+            if ( ! $this->fs->rmdir( $target, true ) ) {
                 throw new \RuntimeException( "Could not remove the previous copy of the assets at \"{$target}\"." );
             }
         }
@@ -426,7 +430,9 @@ class AppInstaller {
             @unlink( $target );
         }
 
-        $this->copy_directory( $source, $target );
+        if ( ! $this->fs->copy( $source, $target, true ) ) {
+            throw new \RuntimeException( "Could not copy \"{$source}\" to \"{$target}\". Make sure the public folder is writable by the web server." );
+        }
 
         if ( ! $this->fs->put_contents( $target . '/' . static::ASSETS_COPY_MARKER, "Copied from {$source} by the installer. Run the installer's asset command again after an update.\n" ) ) {
             throw new \RuntimeException( "Could not write \"{$target}/" . static::ASSETS_COPY_MARKER . '".' );
@@ -509,40 +515,6 @@ class AppInstaller {
         $relative = str_repeat( '../', count( $from_parts ) ) . implode( '/', $to_parts );
 
         return '' === $relative ? '.' : rtrim( $relative, '/' );
-    }
-
-    /**
-     * Copy a directory tree through the FileSystem API.
-     *
-     * The API has no directory listing, so the tree is walked natively.
-     *
-     * @param string $source Source directory.
-     * @param string $target Target directory (created).
-     * @return void
-     * @throws \RuntimeException When a directory or file cannot be copied.
-     */
-    protected function copy_directory( string $source, string $target ) : void {
-        if ( ! $this->fs->mkdir( $target ) && ! $this->fs->is_dir( $target ) ) {
-            throw new \RuntimeException( "Could not create \"{$target}\"." );
-        }
-
-        $items = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator( $source, \FilesystemIterator::SKIP_DOTS ),
-            \RecursiveIteratorIterator::SELF_FIRST
-        );
-
-        foreach ( $items as $item ) {
-            $relative = substr( $item->getPathname(), strlen( $source ) );
-            $path     = $target . str_replace( '\\', '/', $relative );
-
-            if ( $item->isDir() ) {
-                if ( ! $this->fs->is_dir( $path ) && ! $this->fs->mkdir( $path ) ) {
-                    throw new \RuntimeException( "Could not create \"{$path}\"." );
-                }
-            } elseif ( ! $this->fs->copy( $item->getPathname(), $path, true ) ) {
-                throw new \RuntimeException( "Could not copy \"{$item->getPathname()}\" to \"{$path}\"." );
-            }
-        }
     }
 
     /**

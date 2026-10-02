@@ -161,10 +161,10 @@ class EnvFileWriter {
 	*/
 
 	/**
-	 * Write the current state to the target file atomically.
+	 * Write the current state to the target file.
 	 *
-	 * Writes a temporary file next to the target, then renames it over the
-	 * target, so readers never see a partially written file.
+	 * The FileSystem adapter writes atomically (temporary file, then rename),
+	 * so readers never see a partially written file.
 	 *
 	 * @return bool True on successful write, false on failure.
 	 * @throws RuntimeException If target directory is not writable.
@@ -175,19 +175,7 @@ class EnvFileWriter {
 			throw new RuntimeException( "Target directory is not writable: {$target_dir}" );
 		}
 
-		$content   = implode( "\n", $this->lines ) . "\n";
-		$temp_path = $this->target_path . '.' . uniqid( 'tmp_', true );
-
-		if ( ! $this->fs->put_contents( $temp_path, $content ) ) {
-			return false;
-		}
-
-		if ( ! $this->fs->rename( $temp_path, $this->target_path ) ) {
-			$this->fs->delete( $temp_path );
-			return false;
-		}
-
-		return true;
+		return $this->fs->put_contents( $this->target_path, implode( "\n", $this->lines ) . "\n" );
 	}
 
 	/*

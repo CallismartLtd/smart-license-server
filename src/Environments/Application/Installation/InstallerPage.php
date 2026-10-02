@@ -371,6 +371,24 @@ class InstallerPage {
 	}
 
 	/**
+	 * Page for visitors to a site whose installation has not started yet.
+	 *
+	 * @param string $start_url Installer URL.
+	 * @return array{title: string, html: string}
+	 */
+	public function not_set_up( string $start_url ) : array {
+		$app  = $this->e( \SMLISER_APP_NAME );
+		$body = <<<HTML
+			<p class="lead">{$app} has been uploaded to this server but has not been set up yet.</p>
+			<p>If this is your site, start the setup. It takes a few minutes, and you will need your database details and access to your hosting files (File Manager or FTP).</p>
+			<div class="actions"><a class="btn btn-accent" href="{$this->e( $start_url )}">Start setup</a></div>
+			<p class="hint">Not the owner? This site is not ready yet; please check back later.</p>
+			HTML;
+
+		return $this->page( '', 'This site is not set up yet', $body );
+	}
+
+	/**
 	 * Unexpected failure page.
 	 *
 	 * @param string $message Message to show.
@@ -779,6 +797,7 @@ class InstallerPage {
 			form:not(:has(input[name=db_driver][value=sqlite]:checked)) .sqlite-only { display: none; }
 			.hint { color: var(--muted); font-size: 13px; font-weight: 400; }
 			.actions { display: flex; gap: 10px; margin-top: 4px; }
+			.actions + .hint { margin-top: 14px; }
 			.btn {
 				display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 18px;
 				border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--ink);

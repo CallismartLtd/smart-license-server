@@ -245,11 +245,18 @@ class DirectFileSystem implements FileSystemAdapterInterface {
     /**
      * Copy a file or directory.
      *
+     * Directories are copied recursively. Without an explicit mode, each
+     * copied item gets the adapter's default for its own type: files the
+     * file permission, directories the directory permission. An explicit
+     * mode is applied to every copied item, including a destination
+     * directory that already exists. Missing parent directories of $dest
+     * are created with the default directory permission.
+     *
      * @param string $source Source path.
      * @param string $dest Destination path.
      * @param bool $overwrite Optional. Overwrite if true.
-     * @param int|false $mode Optional. Permissions.
-     * @return bool True on success, false on failure.
+     * @param int|false $mode Optional. Permissions; false for the per-type defaults.
+     * @return bool True when everything was copied, false if anything failed.
      */
     public function copy( string $source, string $dest, bool $overwrite = false, int|false $mode = false ): bool {
         if ( ! $this->exists( $source ) ) {
@@ -260,10 +267,8 @@ class DirectFileSystem implements FileSystemAdapterInterface {
             return false;
         }
 
-        if ( ! $mode ) {
-            $mode = $this->is_file( $source ) ? $this->file_permission : $this->dir_permission;
-        }
-
+        // Missing parents are not copied items, so they get the default
+        // directory permission (as with `mkdir -p`), not $mode.
         $dest_dir = dirname( $dest );
         if ( ! $this->mkdir( $dest_dir ) ) {
             return false;
@@ -272,11 +277,18 @@ class DirectFileSystem implements FileSystemAdapterInterface {
         if ( $this->is_file( $source ) ) {
             return @copy( $source, $dest )
                 && $this->exists( $dest )
-                && $this->chmod( $dest, $mode );
+                && $this->chmod( $dest, $mode ?: $this->file_permission );
         }
 
         if ( $this->is_dir( $source ) ) {
+            // mkdir() applies the directory permission when $mode is false.
             if ( ! $this->mkdir( $dest, $mode ) ) {
+                return false;
+            }
+
+            // mkdir() returns early for an existing directory without applying
+            // the mode, so an explicit mode is applied here as well.
+            if ( false !== $mode && ! $this->chmod( $dest, $mode ) ) {
                 return false;
             }
 
@@ -285,20 +297,23 @@ class DirectFileSystem implements FileSystemAdapterInterface {
                 return false;
             }
 
+            $success = true;
+
             foreach ( $items as $item ) {
                 if ( '.' === $item || '..' === $item ) {
                     continue;
                 }
 
-                $this->copy(
+                // Pass the caller's $mode on unchanged, so a default stays per-type.
+                $success = $this->copy(
                     $source . DIRECTORY_SEPARATOR . $item,
                     $dest . DIRECTORY_SEPARATOR . $item,
                     $overwrite,
                     $mode
-                );
+                ) && $success;
             }
 
-            return true;
+            return $success;
         }
 
         return false;
