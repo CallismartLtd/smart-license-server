@@ -69,6 +69,19 @@ class AppInstaller {
     public const APP_URL_KEY = 'SMLISER_APP_URL';
 
     /**
+     * Results of link_public_assets().
+     */
+    public const ASSETS_LINKED    = 'linked';    // A symlink was created.
+    public const ASSETS_COPIED    = 'copied';    // Symlinks are unavailable; the assets were copied.
+    public const ASSETS_UNCHANGED = 'unchanged'; // The correct symlink already existed.
+    public const ASSETS_KEPT      = 'kept';      // A folder not made by the installer exists; left alone.
+
+    /**
+     * Marker file identifying a copy of the assets made by link_public_assets().
+     */
+    public const ASSETS_COPY_MARKER = '.smliser-assets-copy';
+
+    /**
 	 * The required directories keyed by readable names.
 	 * 
 	 * @var array<string, string>
@@ -253,7 +266,7 @@ class AppInstaller {
                 continue;
             }
 
-            if ( ! $this->fs->mkdir( $dir, true ) ) {
+            if ( ! $this->fs->mkdir( $dir ) ) {
                 $failure_callback && $failure_callback( $type, $dir, 'mkdir failed' );
                 continue;
             }
@@ -301,7 +314,7 @@ class AppInstaller {
             );
         }
 
-        EnvFileWriter::create_from_example( $env_example_path, $env_file )
+        EnvFileWriter::create_from_example( $env_example_path, $env_file, $this->fs )
             ->save();
 
         return $env_file;
@@ -347,10 +360,189 @@ class AppInstaller {
             );
         }
 
-        HtaccessWriter::create_from_example( $htaccess_example_path, $htaccess_file )
+        HtaccessWriter::create_from_example( $htaccess_example_path, $htaccess_file, $this->fs )
             ->save();
 
         return $htaccess_file;
+    }
+
+    /**
+     * Expose the bundled assets (system/assets) at public/assets.
+     *
+     * Prefers a relative symlink (public/assets -> ../system/assets), so the
+     * installation folder can be moved and updates are visible immediately.
+     * Where symlinks are unavailable (symlink() disabled, or not permitted
+     * on the platform), the assets are copied instead, with a marker file so
+     * later runs can refresh the copy.
+     *
+     * Safe to run repeatedly:
+     *  - a correct symlink is left alone;
+     *  - a symlink to anything else, or a broken one, is replaced;
+     *  - a copy made by this method is refreshed;
+     *  - any other file or folder at public/assets is kept and reported.
+     *
+     * @return string One of the ASSETS_* constants describing what was done.
+     * @throws \RuntimeException When the source folder is missing or the assets cannot be published.
+     */
+    public function link_public_assets() : string {
+        $source = $this->assets_source_dir();
+        $target = $this->assets_public_dir();
+
+        if ( ! $this->fs->is_dir( $source ) ) {
+            throw new \RuntimeException( "The assets folder \"{$source}\" does not exist. Re-upload the application files." );
+        }
+
+        $public_dir = dirname( $target );
+
+        if ( ! $this->fs->is_dir( $public_dir ) && ! $this->fs->mkdir( $public_dir ) ) {
+            throw new \RuntimeException( "Could not create \"{$public_dir}\". Make sure the application folder is writable by the web server." );
+        }
+
+        // The FileSystem API has no symlink operations; links are handled natively.
+        if ( is_link( $target ) ) {
+            if ( $this->points_to( $target, $source ) ) {
+                return static::ASSETS_UNCHANGED;
+            }
+
+            if ( ! @unlink( $target ) && ! @rmdir( $target ) ) {
+                throw new \RuntimeException( "Could not replace the outdated link \"{$target}\"." );
+            }
+        } elseif ( $this->fs->exists( $target ) ) {
+            if ( ! $this->fs->is_file( $target . '/' . static::ASSETS_COPY_MARKER ) ) {
+                return static::ASSETS_KEPT;
+            }
+
+            if ( ! $this->fs->delete( $target, true ) ) {
+                throw new \RuntimeException( "Could not remove the previous copy of the assets at \"{$target}\"." );
+            }
+        }
+
+        if ( function_exists( 'symlink' ) && @symlink( $this->relative_path( $public_dir, $source ), $target ) && $this->fs->is_dir( $target ) ) {
+            return static::ASSETS_LINKED;
+        }
+
+        // A link that was created but does not resolve is useless; remove it before copying.
+        if ( is_link( $target ) ) {
+            @unlink( $target );
+        }
+
+        $this->copy_directory( $source, $target );
+
+        if ( ! $this->fs->put_contents( $target . '/' . static::ASSETS_COPY_MARKER, "Copied from {$source} by the installer. Run the installer's asset command again after an update.\n" ) ) {
+            throw new \RuntimeException( "Could not write \"{$target}/" . static::ASSETS_COPY_MARKER . '".' );
+        }
+
+        return static::ASSETS_COPIED;
+    }
+
+    /**
+     * Whether public/assets serves the bundled assets.
+     *
+     * @return bool
+     */
+    public function public_assets_available() : bool {
+        return $this->fs->is_dir( $this->assets_public_dir() );
+    }
+
+    /**
+     * Absolute path to the bundled assets folder (system/assets).
+     *
+     * @return string
+     */
+    public function assets_source_dir() : string {
+        return rtrim( \SMLISER_RUNTIME_DIR, '/\\' ) . '/assets';
+    }
+
+    /**
+     * Absolute path where the assets are published (public/assets).
+     *
+     * @return string
+     */
+    public function assets_public_dir() : string {
+        return rtrim( \SMLISER_ROOT, '/\\' ) . '/public/assets';
+    }
+
+    /**
+     * Whether a symlink resolves to the given directory.
+     *
+     * @param string $link   Symlink path.
+     * @param string $target Expected target directory.
+     * @return bool
+     */
+    protected function points_to( string $link, string $target ) : bool {
+        $resolved = realpath( $link );
+
+        return false !== $resolved && realpath( $target ) === $resolved;
+    }
+
+    /**
+     * Express a path relative to a directory, for portable symlinks.
+     *
+     * Falls back to the absolute path when no relative path exists (e.g.
+     * different drives on Windows).
+     *
+     * @param string $from_dir Directory the link lives in.
+     * @param string $to       Path the link points to.
+     * @return string
+     */
+    protected function relative_path( string $from_dir, string $to ) : string {
+        $from = realpath( $from_dir );
+        $to   = realpath( $to ) ?: $to;
+
+        if ( false === $from ) {
+            return $to;
+        }
+
+        $from_parts = explode( '/', trim( str_replace( '\\', '/', $from ), '/' ) );
+        $to_parts   = explode( '/', trim( str_replace( '\\', '/', $to ), '/' ) );
+
+        // Different roots (e.g. C: and D:) cannot be related.
+        if ( ( $from_parts[0] ?? '' ) !== ( $to_parts[0] ?? '' ) ) {
+            return $to;
+        }
+
+        while ( array() !== $from_parts && array() !== $to_parts && $from_parts[0] === $to_parts[0] ) {
+            array_shift( $from_parts );
+            array_shift( $to_parts );
+        }
+
+        $relative = str_repeat( '../', count( $from_parts ) ) . implode( '/', $to_parts );
+
+        return '' === $relative ? '.' : rtrim( $relative, '/' );
+    }
+
+    /**
+     * Copy a directory tree through the FileSystem API.
+     *
+     * The API has no directory listing, so the tree is walked natively.
+     *
+     * @param string $source Source directory.
+     * @param string $target Target directory (created).
+     * @return void
+     * @throws \RuntimeException When a directory or file cannot be copied.
+     */
+    protected function copy_directory( string $source, string $target ) : void {
+        if ( ! $this->fs->mkdir( $target ) && ! $this->fs->is_dir( $target ) ) {
+            throw new \RuntimeException( "Could not create \"{$target}\"." );
+        }
+
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator( $source, \FilesystemIterator::SKIP_DOTS ),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ( $items as $item ) {
+            $relative = substr( $item->getPathname(), strlen( $source ) );
+            $path     = $target . str_replace( '\\', '/', $relative );
+
+            if ( $item->isDir() ) {
+                if ( ! $this->fs->is_dir( $path ) && ! $this->fs->mkdir( $path ) ) {
+                    throw new \RuntimeException( "Could not create \"{$path}\"." );
+                }
+            } elseif ( ! $this->fs->copy( $item->getPathname(), $path, true ) ) {
+                throw new \RuntimeException( "Could not copy \"{$item->getPathname()}\" to \"{$path}\"." );
+            }
+        }
     }
 
     /**
@@ -431,7 +623,7 @@ class AppInstaller {
             return $env_file;
         }
 
-        if ( ! ( new EnvFileWriter( $env_file ) )->set_multiple( $values )->save() ) {
+        if ( ! ( new EnvFileWriter( $env_file, $this->fs ) )->set_multiple( $values )->save() ) {
             throw new \RuntimeException( "Failed to write the database configuration to \"{$env_file}\"." );
         }
 
@@ -490,7 +682,7 @@ class AppInstaller {
             return array();
         }
 
-        if ( ! ( new EnvFileWriter( $env_file ) )->set_multiple( $generated )->save() ) {
+        if ( ! ( new EnvFileWriter( $env_file, $this->fs ) )->set_multiple( $generated )->save() ) {
             throw new \RuntimeException( "Failed to write the application secrets to \"{$env_file}\"." );
         }
 
@@ -534,7 +726,7 @@ class AppInstaller {
 
         $url = static::normalize_app_url( $url );
 
-        if ( ! ( new EnvFileWriter( $env_file ) )->set( static::APP_URL_KEY, $url )->save() ) {
+        if ( ! ( new EnvFileWriter( $env_file, $this->fs ) )->set( static::APP_URL_KEY, $url )->save() ) {
             throw new \RuntimeException( "Failed to write the application URL to \"{$env_file}\"." );
         }
 
@@ -774,7 +966,7 @@ class AppInstaller {
      * @throws DatabaseException When no adapter is registered for the engine, or the connection fails.
      */
     public function test_db_connection( DBConfigDTO $config, ?string $adapter_id = null ) : DatabaseAdapterInterface {
-        $adapter_class = $this->adapters->select( $config->driver, $adapter_id );
+        $adapter_class = $this->adapters->select( (string) $config->driver, $adapter_id );
 
         /** @var DatabaseAdapterInterface $adapter */
         $adapter = new $adapter_class( $config );
@@ -823,7 +1015,7 @@ class AppInstaller {
      * List what still prevents this application from counting as installed.
      *
      * Checks the .env file and its site address, the required directories, the
-     * database connection, every registered table, the default roles, and that
+     * public assets, the database connection, every registered table, the default roles, and that
      * at least one user account exists. A
      * database that cannot be reached throws instead of being reported as
      * "not installed", so an outage is never mistaken for a fresh install.
@@ -845,6 +1037,10 @@ class AppInstaller {
             if ( ! $this->fs->is_dir( $dir ) ) {
                 $issues[] = sprintf( 'Missing directory: %s (%s)', $name, $dir );
             }
+        }
+
+        if ( ! $this->public_assets_available() ) {
+            $issues[] = sprintf( 'The public assets are not published: %s', $this->assets_public_dir() );
         }
 
         if ( ! $this->has_database_connection() ) {
@@ -872,14 +1068,9 @@ class AppInstaller {
         // Roles are rows in the tables above; checked only once every table exists.
         if ( ! $missing_tables ) {
             foreach ( array_keys( DefaultRoles::all() ) as $slug ) {
-                try {
-                    if ( ! Role::get_by_slug( $slug ) ) {
-                        $issues[] = sprintf( 'Missing default role: %s', $slug );
-                    }
-                } catch( \Throwable $e ) {
-                    $issues[]   = $e->getMessage();
+                if ( ! Role::get_by_slug( $slug ) ) {
+                    $issues[] = sprintf( 'Missing default role: %s', $slug );
                 }
-                
             }
         }
 

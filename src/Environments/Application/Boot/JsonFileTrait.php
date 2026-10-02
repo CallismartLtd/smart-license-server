@@ -11,6 +11,8 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Boot;
 
+use SmartLicenseServer\FileSystem\FileSystem;
+
 /**
  * Reads, atomically writes and deletes small JSON state files through the
  * application's FileSystem API.
@@ -21,6 +23,7 @@ namespace SmartLicenseServer\Environments\Application\Boot;
  * @since 0.2.0
  */
 trait JsonFileTrait {
+	private FileSystem $fs;
 
 	/**
 	 * Read a JSON object file.

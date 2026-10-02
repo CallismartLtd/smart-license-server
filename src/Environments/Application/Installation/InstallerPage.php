@@ -46,6 +46,7 @@ class InstallerPage {
 	public const SETUP_TASKS = array(
 		'site_url'    => 'Save the site address',
 		'directories' => 'Create the storage folders',
+		'assets'      => 'Publish the public assets',
 		'tables'      => 'Create the database tables',
 		'roles'       => 'Install the default roles',
 		'htaccess'    => 'Write the web server rules (.htaccess)',
@@ -355,11 +356,15 @@ class InstallerPage {
 	 * @return array{title: string, html: string}
 	 */
 	public function done( string $home_url ) : array {
-		$app  = $this->e( \SMLISER_APP_NAME );
-		$body = <<<HTML
+		$app       = $this->e( \SMLISER_APP_NAME );
+		$login_url = rtrim( $home_url, '/' ) . '/auth/';
+		$body      = <<<HTML
 			<p class="lead">{$app} is installed and open to visitors. Sign in with the administrator account you just created.</p>
 			<p class="hint">The installer is closed and the setup token has been deleted.</p>
-			<div class="actions"><a class="btn btn-accent" href="{$this->e( $home_url )}">Open {$app}</a></div>
+			<div class="actions">
+				<a class="btn btn-accent" href="{$this->e( $home_url )}">Open {$app}</a>
+				<a class="btn" href="{$this->e( $login_url )}">Sign in</a>
+			</div>
 			HTML;
 
 		return $this->page( 'done', 'Installation complete', $body );

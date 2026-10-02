@@ -714,6 +714,23 @@ final class WebInstaller implements ExecutionHandlerInterface {
 
 					return $result;
 
+				case 'assets':
+					try {
+						$result = $this->installer->link_public_assets();
+					} catch ( \RuntimeException $e ) {
+						return array(
+							'status' => 'failed',
+							'detail' => $e->getMessage(),
+						);
+					}
+
+					return match ( $result ) {
+						AppInstaller::ASSETS_LINKED    => array( 'status' => 'done', 'detail' => 'Linked public/assets to system/assets.' ),
+						AppInstaller::ASSETS_COPIED    => array( 'status' => 'done', 'detail' => 'Your server does not allow links, so the assets were copied. Run setup again after each update.' ),
+						AppInstaller::ASSETS_UNCHANGED => array( 'status' => 'done', 'detail' => 'Already linked.' ),
+						default                        => array( 'status' => 'warning', 'detail' => 'public/assets already exists and was not created by the installer, so it was left as it is. Remove or rename it and run setup again to use the bundled assets.' ),
+					};
+
 				case 'tables':
 					$this->installer->create_tables( $collect, $collect );
 					return $summary( 'tables' );

@@ -70,6 +70,7 @@ class Installer extends AbstractCommand {
             'make:roles'    => 'Install default roles.',
             'make:admin'    => 'Create a human administrator account.',
             'make:htaccess' => 'Creates or updates the .htaccess file.',
+            'link:assets'   => 'Publishes system/assets at public/assets (symlink, or a copy where links are unavailable).',
             'mark:installed' => 'Verifies the installation and records it as complete.',
             'token'         => 'Prints the setup token that claims the web installer.',
             'help'          => 'Displays this help message.',
@@ -147,6 +148,7 @@ class Installer extends AbstractCommand {
             'make:roles'    => [$this, 'make_roles'],
             'make:admin'    => [$this, 'make_admin'],
             'make:htaccess' => [$this, 'make_dot_htaccess'],
+            'link:assets'   => [$this, 'link_assets'],
             'mark:installed' => [$this, 'mark_installed'],
             'token'         => [$this, 'print_setup_token'],
         ];
@@ -212,14 +214,20 @@ class Installer extends AbstractCommand {
         }
         $this->output->writeln( '' );
 
-        // Step 4: Web Server (.htaccess) Configuration.
-        $this->output->info( '--- Step 4/7: Writing Apache Web Rules (.htaccess) ---' );
+        // Step 4: Public web files (.htaccess and assets).
+        $this->output->info( '--- Step 4/7: Writing Apache Web Rules (.htaccess) & Publishing Assets ---' );
 
         sleep(1);
 
         $code = $this->make_dot_htaccess( $input );
         if ( 0 !== $code ) {
             $this->output->error( 'Installation aborted: Failed to create .htaccess file.' );
+            return $code;
+        }
+
+        $code = $this->link_assets( $input );
+        if ( 0 !== $code ) {
+            $this->output->error( 'Installation aborted: Failed to publish the public assets.' );
             return $code;
         }
         $this->output->writeln( '' );
@@ -498,6 +506,51 @@ class Installer extends AbstractCommand {
         $this->output->error( sprintf( 'No valid site URL was given. Set %s in the .env file, or run this command again with --app-url.', AppInstaller::APP_URL_KEY ) );
 
         return 1;
+    }
+
+    /**
+     * Publish system/assets at public/assets.
+     *
+     * @param CommandInput|null $input
+     * @return int
+     */
+    public function link_assets( ?CommandInput $input = null ) : int {
+        $this->start_timer();
+
+        try {
+            $result = $this->installer->link_public_assets();
+        } catch ( \RuntimeException $e ) {
+            $this->output->error( $e->getMessage() );
+            return 1;
+        }
+
+        $source = $this->installer->assets_source_dir();
+        $target = $this->installer->assets_public_dir();
+
+        switch ( $result ) {
+            case AppInstaller::ASSETS_LINKED:
+                $this->output->success( sprintf( 'Linked %s -> %s', $target, $source ) );
+                break;
+
+            case AppInstaller::ASSETS_COPIED:
+                $this->output->warning( 'Symlinks are not available on this server, so the assets were copied.' );
+                $this->output->success( sprintf( 'Copied %s to %s', $source, $target ) );
+                $this->output->info( 'Run this command again after every update to refresh the copy.' );
+                break;
+
+            case AppInstaller::ASSETS_UNCHANGED:
+                $this->output->success( sprintf( '%s is already linked to %s', $target, $source ) );
+                break;
+
+            default:
+                $this->output->warning( sprintf( '%s already exists and was not created by the installer, so it was left as it is.', $target ) );
+                $this->output->info( 'Remove or rename it, then run this command again to use the bundled assets.' );
+                break;
+        }
+
+        $this->output->success( sprintf( 'Completed in %fs', $this->stop_timer() ) );
+
+        return 0;
     }
 
     /**

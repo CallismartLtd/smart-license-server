@@ -6,15 +6,20 @@
  * @package SmartLicenseServer
  */
 
+declare( strict_types=1 );
+
 namespace SmartLicenseServer\Environments\Application\Installation;
 
 use InvalidArgumentException;
 use RuntimeException;
+use SmartLicenseServer\FileSystem\FileSystem;
 
 /**
  * Class EnvFileWriter
  *
  * Safe, comment-preserving .env configuration writer.
+ *
+ * All file access goes through the FileSystem API.
  */
 class EnvFileWriter {
 
@@ -24,6 +29,13 @@ class EnvFileWriter {
 	 * @var string
 	 */
 	private string $target_path;
+
+	/**
+	 * Filesystem API.
+	 *
+	 * @var FileSystem
+	 */
+	private FileSystem $fs;
 
 	/**
 	 * File content represented as an array of individual lines.
@@ -48,12 +60,15 @@ class EnvFileWriter {
 	/**
 	 * EnvFileWriter constructor.
 	 *
-	 * @param string $target_path Absolute or relative path to the target .env file.
+	 * @param string          $target_path Absolute or relative path to the target .env file.
+	 * @param FileSystem|null $fs          Filesystem API; the shared instance when null.
+	 * @throws RuntimeException If the target file exists but cannot be read.
 	 */
-	public function __construct( string $target_path ) {
+	public function __construct( string $target_path, ?FileSystem $fs = null ) {
 		$this->target_path = $target_path;
+		$this->fs          = $fs ?? FileSystem::instance();
 
-		if ( file_exists( $this->target_path ) ) {
+		if ( $this->fs->is_file( $this->target_path ) ) {
 			$this->load_from_file( $this->target_path );
 		}
 	}
@@ -61,18 +76,21 @@ class EnvFileWriter {
 	/**
 	 * Create an instance pre-populated with the production block extracted from an example file.
 	 *
-	 * @param string $example_path Path to the template file (.env.example).
-	 * @param string $target_path  Path to the output .env file.
+	 * @param string          $example_path Path to the template file (.env.example).
+	 * @param string          $target_path  Path to the output .env file.
+	 * @param FileSystem|null $fs           Filesystem API; the shared instance when null.
 	 * @return static
 	 * @throws InvalidArgumentException If the example template file does not exist.
 	 * @throws RuntimeException         If reading the template file fails.
 	 */
-	public static function create_from_example( string $example_path, string $target_path ): static {
-		if ( ! file_exists( $example_path ) ) {
+	public static function create_from_example( string $example_path, string $target_path, ?FileSystem $fs = null ): static {
+		$fs ??= FileSystem::instance();
+
+		if ( ! $fs->is_file( $example_path ) ) {
 			throw new InvalidArgumentException( "Example template not found at path: {$example_path}" );
 		}
 
-		$content = file_get_contents( $example_path );
+		$content = $fs->get_contents( $example_path );
 		if ( false === $content ) {
 			throw new RuntimeException( "Failed to read content from example path: {$example_path}" );
 		}
@@ -84,7 +102,7 @@ class EnvFileWriter {
 			$extracted_content = $content;
 		}
 
-		$instance = new static( $target_path );
+		$instance = new static( $target_path, $fs );
 		$instance->parse_lines( explode( "\n", $extracted_content ) );
 
 		return $instance;
@@ -145,23 +163,31 @@ class EnvFileWriter {
 	/**
 	 * Write the current state to the target file atomically.
 	 *
+	 * Writes a temporary file next to the target, then renames it over the
+	 * target, so readers never see a partially written file.
+	 *
 	 * @return bool True on successful write, false on failure.
 	 * @throws RuntimeException If target directory is not writable.
 	 */
 	public function save(): bool {
 		$target_dir = dirname( $this->target_path );
-		if ( ! is_dir( $target_dir ) || ! is_writable( $target_dir ) ) {
+		if ( ! $this->fs->is_dir( $target_dir ) || ! $this->fs->is_writable( $target_dir ) ) {
 			throw new RuntimeException( "Target directory is not writable: {$target_dir}" );
 		}
 
 		$content   = implode( "\n", $this->lines ) . "\n";
 		$temp_path = $this->target_path . '.' . uniqid( 'tmp_', true );
 
-		if ( false === file_put_contents( $temp_path, $content, LOCK_EX ) ) {
+		if ( ! $this->fs->put_contents( $temp_path, $content ) ) {
 			return false;
 		}
 
-		return rename( $temp_path, $this->target_path );
+		if ( ! $this->fs->rename( $temp_path, $this->target_path ) ) {
+			$this->fs->delete( $temp_path );
+			return false;
+		}
+
+		return true;
 	}
 
 	/*
@@ -178,10 +204,14 @@ class EnvFileWriter {
 	 * @throws RuntimeException If unable to read target file.
 	 */
 	private function load_from_file( string $file_path ): void {
-		$content = file_get_contents( $file_path );
+		$content = $this->fs->get_contents( $file_path );
 		if ( false === $content ) {
 			throw new RuntimeException( "Failed to read target file: {$file_path}" );
 		}
+
+		// save() ends the file with one line break; drop it so a reload does not
+		// add an empty line, which would grow by one on every save.
+		$content = preg_replace( '/\r?\n\z/', '', $content );
 
 		$this->parse_lines( explode( "\n", $content ) );
 	}

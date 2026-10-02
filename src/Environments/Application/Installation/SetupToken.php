@@ -54,9 +54,11 @@ final class SetupToken {
 	 * @param string     $file Absolute path to the token file.
 	 */
 	public function __construct(
-		private readonly FileSystem $fs,
+		FileSystem $fs,
 		private readonly string $file
-	) {}
+	) {
+		$this->fs	= $fs;
+	}
 
 	/**
 	 * Create the token for the standard runtime layout.

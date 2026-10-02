@@ -66,10 +66,12 @@ final class InstallerSession {
 	 * @param int        $idle_timeout Seconds of inactivity after which a claim is stale.
 	 */
 	public function __construct(
-		private readonly FileSystem $fs,
+		FileSystem $fs,
 		private readonly string $file,
 		private readonly int $idle_timeout = self::IDLE_TIMEOUT
-	) {}
+	) {
+		$this->fs	= $fs;
+	}
 
 	/**
 	 * Create the session for the standard runtime layout.
