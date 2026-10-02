@@ -10,6 +10,7 @@ use SmartLicenseServer\Schema\DatabaseSchemaInterface;
 use Callismart\DBPrism\Utils\Column;
 use Callismart\DBPrism\Utils\Constraint;
 use Callismart\DBPrism\Utils\ColumnType;
+use Callismart\DBPrism\Utils\DefaultColumnValue;
 
 /**
  * Stores roles definitions.
@@ -49,7 +50,7 @@ class RolesSchema implements DatabaseSchemaInterface {
             Column::make( 'is_canonical' )
                 ->type( ColumnType::BOOLEAN )
                 ->size( 1 )
-                ->default( 0 ),
+                ->default( DefaultColumnValue::make( true ) ),
 
             Column::make( 'created_at' )
                 ->type( ColumnType::DATETIME ),

@@ -774,7 +774,7 @@ class AppInstaller {
      * @throws DatabaseException When no adapter is registered for the engine, or the connection fails.
      */
     public function test_db_connection( DBConfigDTO $config, ?string $adapter_id = null ) : DatabaseAdapterInterface {
-        $adapter_class = $this->adapters->select( (string) $config->driver, $adapter_id );
+        $adapter_class = $this->adapters->select( $config->driver, $adapter_id );
 
         /** @var DatabaseAdapterInterface $adapter */
         $adapter = new $adapter_class( $config );
@@ -872,9 +872,14 @@ class AppInstaller {
         // Roles are rows in the tables above; checked only once every table exists.
         if ( ! $missing_tables ) {
             foreach ( array_keys( DefaultRoles::all() ) as $slug ) {
-                if ( ! Role::get_by_slug( $slug ) ) {
-                    $issues[] = sprintf( 'Missing default role: %s', $slug );
+                try {
+                    if ( ! Role::get_by_slug( $slug ) ) {
+                        $issues[] = sprintf( 'Missing default role: %s', $slug );
+                    }
+                } catch( \Throwable $e ) {
+                    $issues[]   = $e->getMessage();
                 }
+                
             }
         }
 

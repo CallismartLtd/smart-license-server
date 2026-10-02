@@ -103,7 +103,7 @@ class InstallerPage {
 	 *
 	 * @param array{action_url: string, csrf: string, notices: array} $context Shared page context.
 	 * @param array<string, string>                                   $values  Current values.
-	 * @param array<string, array{label: string, help: string, port: int|null}> $drivers Driver details.
+	 * @param array<string, array{label: string, help: string, port: int|null, charset: string|null}> $drivers Driver details.
 	 * @param string                                                  $sqlite_dir Default SQLite folder.
 	 * @return array{title: string, html: string}
 	 */
@@ -115,12 +115,13 @@ class InstallerPage {
 
 		foreach ( $drivers as $driver => $info ) {
 			$options .= sprintf(
-				'<label class="choice"><input type="radio" name="db_driver" value="%1$s" data-port="%2$s"%3$s required><span><strong>%4$s</strong><small>%5$s</small></span></label>',
+				'<label class="choice"><input type="radio" name="db_driver" value="%1$s" data-port="%2$s" data-charset="%6$s"%3$s required><span><strong>%4$s</strong><small>%5$s</small></span></label>',
 				$this->e( $driver ),
 				null === $info['port'] ? '' : (int) $info['port'],
 				$current === $driver ? ' checked' : '',
 				$this->e( $info['label'] ),
-				$this->e( $info['help'] )
+				$this->e( $info['help'] ),
+				$this->e( (string) ( $info['charset'] ?? '' ) )
 			);
 		}
 
@@ -133,6 +134,19 @@ class InstallerPage {
 
 		$default_port = $drivers[ $current ]['port'] ?? null;
 		$port_ph      = null === $default_port ? '' : (string) $default_port;
+		$charset_ph   = (string) ( $drivers[ $current ]['charset'] ?? '' );
+
+		$charset_hint = array();
+		foreach ( $drivers as $info ) {
+			if ( null !== ( $info['charset'] ?? null ) ) {
+				$charset_hint[] = $info['label'] . ' <code>' . $this->e( $info['charset'] ) . '</code>';
+			}
+		}
+
+		// Keep Advanced open when it holds values, so they (and their errors) stay visible.
+		$advanced_open = ( '' !== (string) ( $values['db_prefix'] ?? '' ) || '' !== (string) ( $values['db_charset'] ?? '' ) ) ? ' open' : '';
+
+		$charset_help = 'How text is stored and sent. Leave empty for the recommended value (' . implode( ', ', $charset_hint ) . '), which supports every language and emoji. Change it only if your host requires another.';
 		$app          = $this->e( \SMLISER_APP_NAME );
 
 		$fields = <<<HTML
@@ -194,7 +208,7 @@ class InstallerPage {
 				true,
 				'sqlite-only'
 			)}
-			<details class="more">
+			<details class="more"{$advanced_open}>
 				<summary>Advanced</summary>
 				{$this->field(
 					'db_prefix',
@@ -202,6 +216,14 @@ class InstallerPage {
 					"<input id=\"db_prefix\" name=\"db_prefix\" type=\"text\" value=\"{$v( 'db_prefix' )}\" placeholder=\"smliser_\" spellcheck=\"false\">",
 					'Added to the start of every table name, so the database can be shared with other applications. Leave empty for <code>smliser_</code>.',
 					true
+				)}
+				{$this->field(
+					'db_charset',
+					'Character set',
+					"<input id=\"db_charset\" name=\"db_charset\" type=\"text\" value=\"{$v( 'db_charset' )}\" placeholder=\"{$this->e( $charset_ph )}\" spellcheck=\"false\" autocomplete=\"off\">",
+					$charset_help,
+					true,
+					'net-only'
 				)}
 			</details>
 			HTML;
@@ -646,12 +668,21 @@ class InstallerPage {
 				const syncDriver = () => {
 					const checked = main.querySelector('input[name=db_driver]:checked');
 					const port = main.querySelector('#db_port');
+					const charset = main.querySelector('#db_charset');
 					if (checked && port) { port.placeholder = checked.dataset.port || ''; }
+					if (checked && charset) {
+						// A charset typed for one engine is usually invalid for another.
+						if (charset.dataset.engine && charset.dataset.engine !== checked.value) { charset.value = ''; }
+						charset.dataset.engine = checked.value;
+						charset.placeholder = checked.dataset.charset || '';
+					}
 				};
 
 				document.addEventListener('change', (event) => {
 					if (event.target.name === 'db_driver') { syncDriver(); }
 				});
+
+				syncDriver();
 			})();
 			JS;
 	}
@@ -794,6 +825,6 @@ class InstallerPage {
 	 * @return string
 	 */
 	protected function e( string $value ) : string {
-		return escHtml( $value );
+		return htmlspecialchars( $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
 	}
 }

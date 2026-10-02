@@ -58,23 +58,29 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	public const MIN_PASSWORD_LENGTH = 8;
 
 	/**
-	 * Supported database drivers: display label, short description and default port.
+	 * Supported database drivers: display label, short description, default port and default charset.
+	 *
+	 * The charset values follow each engine's naming: MySQL "utf8mb4" (full
+	 * Unicode; its "utf8" lacks emoji), PostgreSQL "UTF8". SQLite has none.
 	 */
 	public const DRIVERS = array(
 		'mysql'  => array(
-			'label' => 'MySQL / MariaDB',
-			'help'  => 'Offered by most hosting plans.',
-			'port'  => 3306,
+			'label'   => 'MySQL / MariaDB',
+			'help'    => 'Offered by most hosting plans.',
+			'port'    => 3306,
+			'charset' => 'utf8mb4',
 		),
 		'pgsql'  => array(
-			'label' => 'PostgreSQL',
-			'help'  => 'Choose it if your host gave you a PostgreSQL database.',
-			'port'  => 5432,
+			'label'   => 'PostgreSQL',
+			'help'    => 'Choose it if your host gave you a PostgreSQL database.',
+			'port'    => 5432,
+			'charset' => 'UTF8',
 		),
 		'sqlite' => array(
-			'label' => 'SQLite',
-			'help'  => 'A single file; no database server needed. Good for small sites and testing.',
-			'port'  => null,
+			'label'   => 'SQLite',
+			'help'    => 'A single file; no database server needed. Good for small sites and testing.',
+			'port'    => null,
+			'charset' => null,
 		),
 	);
 
@@ -401,6 +407,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			'db_name'   => (string) $config->dbname,
 			'db_user'   => (string) ( $config->username ?? '' ),
 			'db_prefix' => (string) ( $config->prefix ?? '' ),
+			'db_charset' => (string) ( $config->charset ?? '' ),
 			'db_path'   => (string) ( $config->path ?? '' ),
 		);
 
@@ -484,6 +491,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			'db_user'           => 'username',
 			'db_password'       => 'password',
 			'db_prefix'         => 'prefix',
+			'db_charset'        => 'charset',
 			'db_path'           => 'path',
 			'db_encryption_key' => 'encryption_key',
 		);
@@ -523,15 +531,26 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		}
 
 		if ( 'sqlite' === $driver ) {
-			$input['host'] = '';
-			$input['port'] = '';
-			$input['path'] = '' === $input['path'] ? rtrim( \SMLISER_STORAGE_DIR, '/\\' ) : $input['path'];
+			$input['host']    = '';
+			$input['port']    = '';
+			$input['charset'] = '';
+			$input['path']    = '' === $input['path'] ? rtrim( \SMLISER_STORAGE_DIR, '/\\' ) : $input['path'];
 		} else {
-			$input['host'] = '' === $input['host'] ? self::DEFAULT_HOST : $input['host'];
-			$input['port'] = '' === $input['port'] ? (string) self::DRIVERS[ $driver ]['port'] : $input['port'];
+			$input['host']    = '' === $input['host'] ? self::DEFAULT_HOST : $input['host'];
+			$input['port']    = '' === $input['port'] ? (string) self::DRIVERS[ $driver ]['port'] : $input['port'];
+			$input['charset'] = '' === $input['charset'] ? (string) self::DRIVERS[ $driver ]['charset'] : $input['charset'];
 
 			if ( ! ctype_digit( $input['port'] ) || (int) $input['port'] < 1 || (int) $input['port'] > 65535 ) {
 				return $retry( 'The port must be a number between 1 and 65535. Leave it empty to use the standard port.' );
+			}
+
+			if ( ! preg_match( '/^[A-Za-z0-9_-]{1,64}$/', $input['charset'] ) ) {
+				return $retry(
+					sprintf(
+						'The character set can only contain letters, numbers, "_" and "-". Leave it empty to use %s.',
+						self::DRIVERS[ $driver ]['charset']
+					)
+				);
 			}
 		}
 
@@ -548,6 +567,12 @@ final class WebInstaller implements ExecutionHandlerInterface {
 
 		if ( null === $config ) {
 			return $retry( 'Enter the database name.' );
+		}
+
+		// SQLite has no charset. Store an empty value explicitly, so a charset
+		// left in the .env file (e.g. utf8mb4 from .env.example) is cleared.
+		if ( 'sqlite' === $driver ) {
+			$config->charset = '';
 		}
 
 		try {
