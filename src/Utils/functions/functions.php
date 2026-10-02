@@ -575,9 +575,22 @@ function smliser__( string $text, string $domain = 'default' ): string {
  * Log error messages to the error log.
  * 
  * @param Throwable|string $error
+ * @param bool $force
  */
-function smliser_log_error( Throwable|string $error ) : void {
-    GlobalErrorHandler::instance()->log( $error );
+function smliser_log_error( Throwable|string $error, bool $force = false ) : void {
+    
+    if ( $force ) {
+        $log_status = GlobalErrorHandler::instance()->isLoggingErrors();
+        
+        GlobalErrorHandler::instance()->enableLogging( true );
+        GlobalErrorHandler::instance()->log( $error );
+        
+        GlobalErrorHandler::instance()->enableLogging( $log_status );
+    } else {
+        GlobalErrorHandler::instance()->log( $error );
+    }
+
+    
 }
 
 /**

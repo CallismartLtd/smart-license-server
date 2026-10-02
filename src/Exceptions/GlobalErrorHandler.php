@@ -323,6 +323,16 @@ class GlobalErrorHandler {
     }
 
     /**
+     * Enable or disable error loging
+     * 
+     * @param bool $enable
+     * @return void
+     */
+    public function enableLogging( bool $enable = true ) {
+        $this->handler_class->errorLogStatus( $enable );
+    }
+
+    /**
      * Get current error reporting level.
      *
      * @return int

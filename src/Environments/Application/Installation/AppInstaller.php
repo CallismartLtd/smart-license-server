@@ -18,7 +18,9 @@ use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Core\DotEnv;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Environments\Application\Boot\InstallationState;
+use SmartLicenseServer\Environments\Application\Boot\MaintenanceFlag;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
@@ -62,6 +64,11 @@ class AppInstaller {
     protected const APP_SECRET_BYTES = 48;
 
     /**
+     * .env key holding the application's public URL.
+     */
+    public const APP_URL_KEY = 'SMLISER_APP_URL';
+
+    /**
 	 * The required directories keyed by readable names.
 	 * 
 	 * @var array<string, string>
@@ -92,13 +99,15 @@ class AppInstaller {
      * @param FileSystem              $fs        Filesystem API.
      * @param JobQueue                $job_queue Background job queue.
      * @param InstallationState       $state     The installation state file.
+     * @param MaintenanceFlag         $flag      The maintenance flag file.
      */
     public function __construct(
         protected Database $db,
         protected DatabaseAdapterRegistry $adapters,
         protected FileSystem $fs,
         protected JobQueue $job_queue,
-        protected InstallationState $state
+        protected InstallationState $state,
+        protected MaintenanceFlag $flag
     ) {}
 
     /**
@@ -359,7 +368,7 @@ class AppInstaller {
     public function read_database_config() : DBConfigDTO {
         $env_file = \SMLISER_ROOT . '.env';
 
-        if ( ! file_exists( $env_file ) ) {
+        if ( ! $this->fs->is_file( $env_file ) ) {
             throw new DatabaseException(
                 'database_not_configured',
                 "The .env file \"{$env_file}\" does not exist."
@@ -396,7 +405,7 @@ class AppInstaller {
     public function write_database_config( DBConfigDTO $config ) : string {
         $env_file = \SMLISER_ROOT . '.env';
 
-        if ( ! file_exists( $env_file ) ) {
+        if ( ! $this->fs->is_file( $env_file ) ) {
             throw new \RuntimeException(
                 "The .env file \"{$env_file}\" does not exist. Create it with make_dot_env_file() first."
             );
@@ -443,7 +452,7 @@ class AppInstaller {
     public function generate_app_secrets() : array {
         $env_file = \SMLISER_ROOT . '.env';
 
-        if ( ! file_exists( $env_file ) ) {
+        if ( ! $this->fs->is_file( $env_file ) ) {
             throw new \RuntimeException(
                 "The .env file \"{$env_file}\" does not exist. Create it with make_dot_env_file() first."
             );
@@ -486,6 +495,85 @@ class AppInstaller {
         }
 
         return array_keys( $generated );
+    }
+
+    /**
+     * Read the application URL from the .env file as it is now.
+     *
+     * @return string|null The URL, or null when the .env file is missing or the value is empty.
+     */
+    public function read_app_url() : ?string {
+        if ( ! $this->fs->is_file( \SMLISER_ROOT . '.env' ) ) {
+            return null;
+        }
+
+        $value = ( new DotEnv( \SMLISER_ROOT ) )->parse( '.env' )[ static::APP_URL_KEY ] ?? '';
+        $value = is_string( $value ) ? trim( $value ) : '';
+
+        return '' === $value ? null : $value;
+    }
+
+    /**
+     * Normalize and save the application URL in the existing .env file.
+     *
+     * Does not modify $_ENV; read it back with read_app_url().
+     *
+     * @param string|URL $url The public URL of this installation.
+     * @return string The URL as saved.
+     * @throws \InvalidArgumentException When the URL is not a valid http(s) URL.
+     * @throws \RuntimeException         When the .env file does not exist or cannot be written.
+     */
+    public function write_app_url( string|URL $url ) : string {
+        $env_file = \SMLISER_ROOT . '.env';
+
+        if ( ! $this->fs->is_file( $env_file ) ) {
+            throw new \RuntimeException(
+                "The .env file \"{$env_file}\" does not exist. Create it with make_dot_env_file() first."
+            );
+        }
+
+        $url = static::normalize_app_url( $url );
+
+        if ( ! ( new EnvFileWriter( $env_file ) )->set( static::APP_URL_KEY, $url )->save() ) {
+            throw new \RuntimeException( "Failed to write the application URL to \"{$env_file}\"." );
+        }
+
+        return $url;
+    }
+
+    /**
+     * Normalize an application URL to the form SMLISER_APP_URL expects.
+     *
+     * Keeps the scheme, host, port and path; drops credentials, the query,
+     * the fragment and the trailing slash. A URL without a scheme gets
+     * https:// (http:// for localhost and 127.0.0.1, as URL does).
+     *
+     * @param string|URL $url The URL to normalize.
+     * @return string
+     * @throws \InvalidArgumentException When the URL is not a valid http(s) URL.
+     */
+    public static function normalize_app_url( string|URL $url ) : string {
+        $original = trim( is_string( $url ) ? $url : $url->url() );
+        $raw      = $original;
+
+        if ( '' !== $raw && ! str_contains( $raw, '://' ) && ! preg_match( '#^(localhost|127\.0\.0\.1)#i', $raw ) ) {
+            $raw = 'https://' . $raw;
+        }
+
+        $parsed = URL::from( $raw );
+        $origin = $parsed->get_origin();
+
+        if ( null === $origin || ! in_array( strtolower( (string) $parsed->get_scheme() ), array( 'http', 'https' ), true ) ) {
+            throw new \InvalidArgumentException( 'The site address must be a web address such as https://licenses.example.com.' );
+        }
+
+        $normalized = strtolower( $origin ) . rtrim( (string) $parsed->get_path(), '/' );
+
+        if ( ! URL::from( $normalized )->is_valid() ) {
+            throw new \InvalidArgumentException( "\"{$original}\" is not a valid web address." );
+        }
+
+        return $normalized;
     }
 
     /**
@@ -734,8 +822,9 @@ class AppInstaller {
     /**
      * List what still prevents this application from counting as installed.
      *
-     * Checks the .env file, the required directories, the database connection, every
-     * registered table, and that at least one user account exists. A
+     * Checks the .env file and its site address, the required directories, the
+     * database connection, every registered table, the default roles, and that
+     * at least one user account exists. A
      * database that cannot be reached throws instead of being reported as
      * "not installed", so an outage is never mistaken for a fresh install.
      *
@@ -746,8 +835,10 @@ class AppInstaller {
         $issues = array();
 
         // Checked on disk: $_ENV can outlive a deleted .env in long-lived workers.
-        if ( ! is_file( \SMLISER_ROOT . '.env' ) ) {
+        if ( ! $this->fs->is_file( \SMLISER_ROOT . '.env' ) ) {
             $issues[] = sprintf( 'Missing .env file: %s', \SMLISER_ROOT . '.env' );
+        } elseif ( null === $this->read_app_url() ) {
+            $issues[] = sprintf( 'The site address (%s) is not set in the .env file.', static::APP_URL_KEY );
         }
 
         foreach ( $this->required_directories as $name => $dir ) {
@@ -765,14 +856,25 @@ class AppInstaller {
             throw new DatabaseException( 'database_connect_error', $this->db->get_last_error() );
         }
 
-        $inspector   = new Inspector( $this->db );
-        $users_table = false;
+        $inspector      = new Inspector( $this->db );
+        $users_table    = false;
+        $missing_tables = false;
 
         foreach ( SchemaRegistry::instance()->get_all_tables() as $table ) {
             if ( ! $inspector->table_exists( $table->get_name() ) ) {
-                $issues[] = sprintf( 'Missing table: %s', $table->get_name() );
+                $issues[]       = sprintf( 'Missing table: %s', $table->get_name() );
+                $missing_tables = true;
             } elseif ( \SMLISER_USERS_TABLE === $table->get_name() ) {
                 $users_table = true;
+            }
+        }
+
+        // Roles are rows in the tables above; checked only once every table exists.
+        if ( ! $missing_tables ) {
+            foreach ( array_keys( DefaultRoles::all() ) as $slug ) {
+                if ( ! Role::get_by_slug( $slug ) ) {
+                    $issues[] = sprintf( 'Missing default role: %s', $slug );
+                }
             }
         }
 
@@ -804,10 +906,27 @@ class AppInstaller {
     }
 
     /**
+     * Mark an installation as started by writing the installation flag.
+     *
+     * From then on the web shows visitors the installation notice and only
+     * the installer owner gets through. An existing flag of any reason is
+     * left alone, so a running maintenance is never downgraded.
+     *
+     * @return void
+     * @throws \RuntimeException When the flag cannot be written.
+     */
+    public function begin_installation() : void {
+        if ( null === $this->flag->read() ) {
+            $this->flag->write( MaintenanceFlag::REASON_INSTALLATION );
+        }
+    }
+
+    /**
      * Record the installation as complete in the installation state file.
      *
-     * Stores the current application and schema versions. Does not verify
-     * the installation; check installation_issues() first.
+     * Stores the current application and schema versions, then removes the
+     * installation flag. Does not verify the installation; check
+     * installation_issues() first.
      *
      * @return void
      * @throws \RuntimeException When the state file cannot be written.
@@ -819,6 +938,10 @@ class AppInstaller {
                 'schema' => \SMLISER_DB_VER,
             )
         );
+
+        if ( $this->flag->is_installation() ) {
+            $this->flag->clear();
+        }
     }
 
     /**

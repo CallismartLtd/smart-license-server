@@ -11,6 +11,8 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Boot;
 
+use SmartLicenseServer\FileSystem\FileSystem;
+
 /**
  * Owns the installation state file (storage/state.json).
  *
@@ -23,6 +25,7 @@ namespace SmartLicenseServer\Environments\Application\Boot;
  * @since 0.2.0
  */
 final class InstallationState {
+	use JsonFileTrait;
 
 	/**
 	 * State file name, inside the storage directory.
@@ -32,17 +35,22 @@ final class InstallationState {
 	/**
 	 * Class constructor.
 	 *
-	 * @param string $file Absolute path to the state file.
+	 * @param FileSystem $fs   Filesystem API.
+	 * @param string     $file Absolute path to the state file.
 	 */
-	public function __construct( private readonly string $file ) {}
+	public function __construct(
+		private readonly FileSystem $fs,
+		private readonly string $file
+	) {}
 
 	/**
 	 * Create the state for the standard runtime layout.
 	 *
+	 * @param FileSystem $fs Filesystem API.
 	 * @return self
 	 */
-	public static function from_runtime() : self {
-		return new self( rtrim( \SMLISER_STORAGE_DIR, '/\\' ) . '/' . self::FILE );
+	public static function from_runtime( FileSystem $fs ) : self {
+		return new self( $fs, rtrim( \SMLISER_STORAGE_DIR, '/\\' ) . '/' . self::FILE );
 	}
 
 	/**
@@ -60,23 +68,7 @@ final class InstallationState {
 	 * @return array<string, mixed>|false|null Decoded state; false if unreadable or invalid; null if missing.
 	 */
 	public function read() : array|false|null {
-		if ( ! is_file( $this->file ) ) {
-			return null;
-		}
-
-		$raw = @file_get_contents( $this->file );
-
-		if ( false === $raw ) {
-			return false;
-		}
-
-		try {
-			$data = json_decode( $raw, true, 64, JSON_THROW_ON_ERROR );
-		} catch ( \JsonException ) {
-			return false;
-		}
-
-		return is_array( $data ) ? $data : false;
+		return $this->read_json( $this->file );
 	}
 
 	/**
@@ -94,7 +86,8 @@ final class InstallationState {
 	 * Record a completed installation.
 	 *
 	 * Keeps the original installed_at when the state already exists.
-	 * Written atomically (temporary file + rename) under an exclusive lock.
+	 * Written atomically (temporary file + rename), so readers never see a
+	 * partial file; concurrent writers write the same state.
 	 *
 	 * @param array<string, string> $versions Installed versions, e.g. [ 'app' => SMLISER_VER, 'schema' => SMLISER_DB_VER ].
 	 * @return void
@@ -110,44 +103,6 @@ final class InstallationState {
 			'versions'     => $versions,
 		);
 
-		$this->write( $state );
-	}
-
-	/**
-	 * Atomically write the state file.
-	 *
-	 * @param array<string, mixed> $state State to write.
-	 * @return void
-	 * @throws \RuntimeException When the state cannot be written.
-	 */
-	private function write( array $state ) : void {
-		$dir = dirname( $this->file );
-
-		if ( ! is_dir( $dir ) || ! is_writable( $dir ) ) {
-			throw new \RuntimeException( "The storage directory \"{$dir}\" is not writable." );
-		}
-
-		$lock_file = $this->file . '.lock';
-		$lock      = fopen( $lock_file, 'c' );
-
-		if ( false === $lock || ! flock( $lock, LOCK_EX ) ) {
-			throw new \RuntimeException( "Could not lock \"{$this->file}\"." );
-		}
-
-		try {
-			$temp = $this->file . '.' . bin2hex( random_bytes( 6 ) ) . '.tmp';
-			$json = json_encode( $state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) . "\n";
-
-			if ( false === file_put_contents( $temp, $json ) || ! rename( $temp, $this->file ) ) {
-				@unlink( $temp );
-				throw new \RuntimeException( "Could not write \"{$this->file}\"." );
-			}
-		} finally {
-			// Remove the lock file so it does not linger in storage. A writer
-			// racing on a fresh lock file writes the same state, so this is safe.
-			@unlink( $lock_file );
-			flock( $lock, LOCK_UN );
-			fclose( $lock );
-		}
+		$this->write_json( $this->file, $state );
 	}
 }

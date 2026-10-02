@@ -12,20 +12,24 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Environments\Application\Boot;
 
 use SmartLicenseServer\Core\Container\Container;
-use SmartLicenseServer\Environments\Application\Auth\IdentityService;
-use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
+use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
+use SmartLicenseServer\Environments\Application\Installation\InstallerSession;
+use SmartLicenseServer\Environments\Application\Installation\SetupToken;
+use SmartLicenseServer\Environments\Application\Installation\WebInstaller;
 use SmartLicenseServer\Environments\Application\Kernel\ExecutionHandlerInterface;
 use SmartLicenseServer\Environments\Application\Web\DowntimeExecutionHandler;
-use SmartLicenseServer\RuntimeConfig;
-use SmartLicenseServer\Security\Authentication\Session\SessionManager;
-use SmartLicenseServer\Security\Context\Guard;
+use SmartLicenseServer\FileSystem\FileSystem;
 
 /**
  * Class DowntimeBootstrapper
  *
- * Binds the downtime execution handler for web requests while the
- * application is in Maintenance or Installation mode (see
- * BootMode::blocks_web()). The CLI is never affected.
+ * Binds the execution handler for web requests while the application is
+ * unavailable (see BootMode::blocks_web()). The CLI is never affected.
+ *
+ *  - Installation: WebInstaller. The installer owner gets the installer;
+ *    everyone else gets the 503 installation notice.
+ *  - Maintenance: DowntimeExecutionHandler. Everyone gets the 503
+ *    maintenance notice.
  *
  * Registered in place of WebBootstrapper, so no routes, sessions or
  * identity services are set up for downtime requests.
@@ -55,28 +59,26 @@ final class DowntimeBootstrapper implements BootstrapperInterface {
 	public function register( Container $container ) : void {
 		$resolver = $this->resolver;
 
-		$container->singleton(
-			ExecutionHandlerInterface::class,
-			fn () : DowntimeExecutionHandler => new DowntimeExecutionHandler(
-				$resolver->message(),
-				$resolver->retry_after()
-			)
-		);
-
-        $container->singleton(
-            IdentityService::class,
-            fn ( Container $c ) : IdentityService => new IdentityService(
-                $c->get( Guard::class ),
-                $c->get( WebIdentityProvider::class )
-            )
-        );
-
-        $container->singleton(
-            SessionManager::class,
-            fn( Container $c ) : SessionManager => new SessionManager(
-                $c->get( RuntimeConfig::class )->secret
-            )
-        );
+		if ( BootMode::Installation === $resolver->resolve() ) {
+			$container->singleton(
+				ExecutionHandlerInterface::class,
+				fn ( Container $c ) : WebInstaller => new WebInstaller(
+					$c->get( AppInstaller::class ),
+					$c->get( InstallerSession::class ),
+					$c->get( SetupToken::class ),
+					$resolver,
+					$c->get( FileSystem::class )
+				)
+			);
+		} else {
+			$container->singleton(
+				ExecutionHandlerInterface::class,
+				fn () : DowntimeExecutionHandler => new DowntimeExecutionHandler(
+					$resolver->message(),
+					$resolver->retry_after()
+				)
+			);
+		}
 	}
 
 	/**

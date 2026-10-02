@@ -19,7 +19,11 @@ use SmartLicenseServer\Environments\Application\Boot\BootManager;
 use SmartLicenseServer\Environments\Application\Boot\BootMode;
 use SmartLicenseServer\Environments\Application\Boot\BootModeResolver;
 use SmartLicenseServer\Environments\Application\Boot\InstallationState;
+use SmartLicenseServer\Environments\Application\Boot\MaintenanceFlag;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
+use SmartLicenseServer\Environments\Application\Installation\InstallerSession;
+use SmartLicenseServer\Environments\Application\Installation\SetupToken;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Environments\Application\Boot\DowntimeBootstrapper;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\CoreURLManager;
@@ -69,9 +73,14 @@ class ApplicationEnvironment extends Environment {
         /*
          * Resolve the boot mode first, from files only (no database access).
          */
-        $this->bootModeResolver = BootModeResolver::from_runtime();
+        $fs = $this->container->get( FileSystem::class );
+
+        $this->bootModeResolver = BootModeResolver::from_runtime( $fs );
         $this->container->singleton( BootModeResolver::class, $this->bootModeResolver );
         $this->container->singleton( InstallationState::class, $this->bootModeResolver->state() );
+        $this->container->singleton( MaintenanceFlag::class, $this->bootModeResolver->flag() );
+        $this->container->singleton( SetupToken::class, fn () : SetupToken => SetupToken::from_runtime( $fs ) );
+        $this->container->singleton( InstallerSession::class, fn () : InstallerSession => InstallerSession::from_runtime( $fs ) );
 
         $this->adoptExistingInstallation();
 
@@ -117,8 +126,9 @@ class ApplicationEnvironment extends Environment {
     /**
      * Record an installation that predates the installation state file.
      *
-     * Runs only when the state file is missing, the .env file exists and a
-     * database is configured, so it costs nothing once the state exists.
+     * Runs only when the state file is missing, no installation has been
+     * started (an installer finishes its own run), the .env file exists and
+     * a database is configured, so it costs nothing once the state exists.
      * The .env file is checked on disk because $_ENV can outlive a deleted
      * .env (DotEnv::load() also calls putenv(), which persists in long-lived
      * workers such as PHP-FPM). If every installation
@@ -134,8 +144,9 @@ class ApplicationEnvironment extends Environment {
 
         if (
             BootMode::Installation !== $resolver->resolve()
+            || $resolver->installation_in_progress()
             || null !== $resolver->state()->read()
-            || ! is_file( \SMLISER_ROOT . '.env' )
+            || ! $this->container->get( FileSystem::class )->is_file( \SMLISER_ROOT . '.env' )
             || null === $this->databaseConfig()
         ) {
             return;
@@ -177,12 +188,18 @@ class ApplicationEnvironment extends Environment {
          * the CLI too, so `smliser installer` can run.
          */
         if ( BootMode::Installation === $mode ) {
-            DataStore::set_database(
-                $this->container->get( Database::class )
-            );
+            // Auto provision when available.
+            try {
+                DataStore::set_database(
+                    $this->container->get( Database::class )
+                );
+
+                DataStore::set_cache(
+                    $this->container->get( Cache::class )
+                );
+            } catch ( \Throwable ) {}
 
             $this->bootManager->bootAll();
-            
             return;
         }
 
@@ -195,8 +212,6 @@ class ApplicationEnvironment extends Environment {
             $this->bootManager->bootAll();
             return;
         }
-        
-        \dd( $mode->blocks_web() );
 
         DataStore::set_database(
             $this->container->get( Database::class )

@@ -11,19 +11,21 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Boot;
 
+use SmartLicenseServer\FileSystem\FileSystem;
+
 /**
  * Resolves the boot mode from files only; it never touches the database.
  *
  * Resolution order (first match wins):
- *  1. Maintenance   — maintenance flag file present. Written by any
- *                     maintenance, upgrade or installation run.
- *  2. Installation  — installation state missing, or without installed_at.
- *  3. Normal.
+ *  1. Maintenance flag with reason "installation", while not installed
+ *     → Installation (an installation is in progress). Once installed,
+ *     a leftover installation flag is ignored.
+ *  2. Any other maintenance flag → Maintenance.
+ *  3. Installation state missing, or without installed_at → Installation.
+ *  4. Normal.
  *
  * Fails closed: an unreadable state file resolves to Maintenance, never to
  * Installation or Normal.
- *
- * maintenance.json (storage dir): { "message": "...", "retry_after": 300 } — both keys optional.
  *
  * @package SmartLicenseServer\Environments\Application\Boot
  * @since 0.2.0
@@ -31,14 +33,14 @@ namespace SmartLicenseServer\Environments\Application\Boot;
 final class BootModeResolver {
 
 	/**
-	 * Maintenance flag file name, inside the storage directory.
-	 */
-	public const MAINTENANCE_FILE = 'maintenance.json';
-
-	/**
-	 * Default Retry-After in seconds.
+	 * Default Retry-After in seconds for maintenance.
 	 */
 	public const DEFAULT_RETRY_AFTER = 300;
+
+	/**
+	 * Retry-After in seconds for visitors during an installation.
+	 */
+	public const INSTALLATION_RETRY_AFTER = 120;
 
 	/**
 	 * Resolved mode, cached for the lifetime of the request.
@@ -48,7 +50,14 @@ final class BootModeResolver {
 	private ?BootMode $mode = null;
 
 	/**
-	 * Downtime message for the resolved mode.
+	 * Whether an installation flag marks an installation in progress.
+	 *
+	 * @var bool
+	 */
+	private bool $installation_in_progress = false;
+
+	/**
+	 * Visitor-facing message for the resolved mode.
 	 *
 	 * @var string
 	 */
@@ -64,24 +73,22 @@ final class BootModeResolver {
 	/**
 	 * Class constructor.
 	 *
-	 * @param InstallationState $state            The installation state.
-	 * @param string            $maintenance_file Absolute path to the maintenance flag file.
+	 * @param InstallationState $state The installation state.
+	 * @param MaintenanceFlag   $flag  The maintenance flag.
 	 */
 	public function __construct(
 		private readonly InstallationState $state,
-		private readonly string $maintenance_file
+		private readonly MaintenanceFlag $flag
 	) {}
 
 	/**
 	 * Create a resolver for the standard runtime layout.
 	 *
+	 * @param FileSystem $fs Filesystem API.
 	 * @return self
 	 */
-	public static function from_runtime() : self {
-		return new self(
-			InstallationState::from_runtime(),
-			rtrim( \SMLISER_STORAGE_DIR, '/\\' ) . '/' . self::MAINTENANCE_FILE
-		);
+	public static function from_runtime( FileSystem $fs ) : self {
+		return new self( InstallationState::from_runtime( $fs ), MaintenanceFlag::from_runtime( $fs ) );
 	}
 
 	/**
@@ -99,9 +106,10 @@ final class BootModeResolver {
 	 * @return void
 	 */
 	public function refresh() : void {
-		$this->mode        = null;
-		$this->message     = '';
-		$this->retry_after = self::DEFAULT_RETRY_AFTER;
+		$this->mode                     = null;
+		$this->installation_in_progress = false;
+		$this->message                  = '';
+		$this->retry_after              = self::DEFAULT_RETRY_AFTER;
 	}
 
 	/**
@@ -113,10 +121,21 @@ final class BootModeResolver {
 	public function fail_closed( string $reason ) : BootMode {
 		\smliser_log_error( '[BootModeResolver] Failing closed to maintenance: ' . $reason );
 
-		$this->message     = sprintf( '%s is temporarily unavailable. Please try again shortly.', \SMLISER_APP_NAME );
-		$this->retry_after = self::DEFAULT_RETRY_AFTER;
+		$this->installation_in_progress = false;
+		$this->message                  = sprintf( '%s is temporarily unavailable. Please try again shortly.', \SMLISER_APP_NAME );
+		$this->retry_after              = self::DEFAULT_RETRY_AFTER;
 
 		return $this->mode = BootMode::Maintenance;
+	}
+
+	/**
+	 * Whether an installation has been started (installation flag present).
+	 *
+	 * @return bool
+	 */
+	public function installation_in_progress() : bool {
+		$this->resolve();
+		return $this->installation_in_progress;
 	}
 
 	/**
@@ -129,7 +148,16 @@ final class BootModeResolver {
 	}
 
 	/**
-	 * User-facing downtime message for the resolved mode.
+	 * The maintenance flag this resolver reads.
+	 *
+	 * @return MaintenanceFlag
+	 */
+	public function flag() : MaintenanceFlag {
+		return $this->flag;
+	}
+
+	/**
+	 * Visitor-facing message for the resolved mode.
 	 *
 	 * @return string
 	 */
@@ -160,41 +188,58 @@ final class BootModeResolver {
 	 * @return BootMode
 	 */
 	private function detect() : BootMode {
-		if ( is_file( $this->maintenance_file ) ) {
-			return $this->maintenance();
+		$flag = $this->flag->read();
+
+		if ( null !== $flag ) {
+			$is_installation = MaintenanceFlag::REASON_INSTALLATION === ( $flag['reason'] ?? null );
+
+			if ( ! $is_installation ) {
+				return $this->maintenance( $flag );
+			}
+
+			if ( ! $this->state->is_installed() ) {
+				$this->installation_in_progress = true;
+				return $this->installation();
+			}
+
+			// Leftover installation flag after a completed install: ignore it.
 		}
 
 		$state = $this->state->read();
 
 		if ( false === $state ) {
-			
 			return $this->fail_closed( 'The installation state could not be read.' );
 		}
 
 		if ( null === $state || empty( $state['installed_at'] ) ) {
-			$this->message = sprintf(
-				'%s has not been installed yet. Run `smliser installer run` on the server to install it.',
-				\SMLISER_APP_NAME
-			);
-
-			return BootMode::Installation;
+			return $this->installation();
 		}
 
 		return BootMode::Normal;
 	}
 
 	/**
-	 * Resolve Maintenance from the flag file.
-	 *
-	 * An unreadable flag still means maintenance, with default notice values.
+	 * Resolve Installation, with the message shown to visitors meanwhile.
 	 *
 	 * @return BootMode
 	 */
-	private function maintenance() : BootMode {
-		$raw  = @file_get_contents( $this->maintenance_file );
-		$flag = false === $raw ? null : json_decode( $raw, true );
-		$flag = is_array( $flag ) ? $flag : array();
+	private function installation() : BootMode {
+		$this->message     = sprintf(
+			'We are setting things up behind the scenes. %s will be ready shortly, please check back in a few minutes.',
+			\SMLISER_APP_NAME
+		);
+		$this->retry_after = self::INSTALLATION_RETRY_AFTER;
 
+		return BootMode::Installation;
+	}
+
+	/**
+	 * Resolve Maintenance from the flag's content.
+	 *
+	 * @param array<string, mixed> $flag Parsed flag; empty when unreadable.
+	 * @return BootMode
+	 */
+	private function maintenance( array $flag ) : BootMode {
 		$this->message = isset( $flag['message'] ) && is_string( $flag['message'] ) && '' !== $flag['message']
 			? $flag['message']
 			: sprintf( '%s is undergoing scheduled maintenance. Please try again shortly.', \SMLISER_APP_NAME );

@@ -17,6 +17,7 @@ use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
+use SmartLicenseServer\Environments\Application\Installation\SetupToken;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Security\Actors\User;
@@ -33,6 +34,7 @@ class Installer extends AbstractCommand {
     public function __construct(
         protected AppInstaller $installer,
         protected Guard $guard,
+        protected SetupToken $setup_token,
         InputInterface $io,
         OutputInterface $output,
         ScriptName $script_name
@@ -63,12 +65,13 @@ class Installer extends AbstractCommand {
             'check'         => 'Performs environment sanity checks.',
             'test:db'       => 'Tests the database connection set in .env (or given options with --manual).',
             'make:dir'      => 'Creates all required directories.',
-            'make:dotenv'   => 'Create a .env file if missing and generate empty application secrets.',
+            'make:dotenv'   => 'Create a .env file if missing, generate empty application secrets and set the site URL.',
             'make:tables'   => 'Creates all registered database tables.',
             'make:roles'    => 'Install default roles.',
             'make:admin'    => 'Create a human administrator account.',
             'make:htaccess' => 'Creates or updates the .htaccess file.',
             'mark:installed' => 'Verifies the installation and records it as complete.',
+            'token'         => 'Prints the setup token that claims the web installer.',
             'help'          => 'Displays this help message.',
         ];
 
@@ -98,6 +101,8 @@ class Installer extends AbstractCommand {
             '   Creating .env file: ',
             '--dotenv-example-path      The absolute path to the .env.example file. The file will be searched for in',
             '                           the parent directory and the runtime directory.',
+            '--app-url                  The public URL of this installation, e.g. https://licenses.example.com.',
+            '                           Asked for interactively when SMLISER_APP_URL is empty and this is not given.',
             "Note: The .env file is required to bootstrap {$app_name}.",
             'Note: Empty SMLISER_SECRET and SMLISER_SALT values are generated automatically; existing values are kept.',
             '',
@@ -143,6 +148,7 @@ class Installer extends AbstractCommand {
             'make:admin'    => [$this, 'make_admin'],
             'make:htaccess' => [$this, 'make_dot_htaccess'],
             'mark:installed' => [$this, 'mark_installed'],
+            'token'         => [$this, 'print_setup_token'],
         ];
     }
 
@@ -171,6 +177,16 @@ class Installer extends AbstractCommand {
             return $code;
         }
         $this->output->writeln( '' );
+
+        // Visitors see the installation notice until the final step completes.
+        if ( ! $this->installer->is_installed() ) {
+            try {
+                $this->installer->begin_installation();
+            } catch ( \RuntimeException $e ) {
+                $this->output->error( sprintf( 'Installation aborted: %s', $e->getMessage() ) );
+                return 1;
+            }
+        }
 
         // Step 2: Directories.
         $this->output->info( '--- Step 2/7: Creating Directories ---' );
@@ -430,6 +446,10 @@ class Installer extends AbstractCommand {
                 $this->output->success( sprintf( 'Generated application secrets: %s', implode( ', ', $generated ) ) );
             }
 
+            if ( 0 !== $this->ensure_app_url( $input ) ) {
+                return 1;
+            }
+
         } catch ( \RuntimeException $e ) {
             $this->output->error( $e->getMessage() );
 
@@ -441,6 +461,43 @@ class Installer extends AbstractCommand {
         );
         
         return 0;
+    }
+
+    /**
+     * Set SMLISER_APP_URL when it is empty, from --app-url or by asking.
+     *
+     * An existing value is kept unless --app-url is given.
+     *
+     * @param CommandInput $input
+     * @return int
+     */
+    protected function ensure_app_url( CommandInput $input ) : int {
+        $given = $input->get_option( 'app-url', null );
+
+        if ( ( null === $given || '' === $given ) && null !== $this->installer->read_app_url() ) {
+            return 0;
+        }
+
+        for ( $attempt = 0; $attempt < 3; $attempt++ ) {
+            $url = is_string( $given ) && '' !== $given
+                ? $given
+                : (string) $this->io->prompt( 'Site URL (e.g. https://licenses.example.com): ' );
+
+            try {
+                $saved = $this->installer->write_app_url( $url );
+                $this->output->success( sprintf( 'Site URL set to %s', $saved ) );
+                return 0;
+            } catch ( \InvalidArgumentException $e ) {
+                $this->output->error( $e->getMessage() );
+
+                // A bad --app-url is not retried with the same value.
+                $given = null;
+            }
+        }
+
+        $this->output->error( sprintf( 'No valid site URL was given. Set %s in the .env file, or run this command again with --app-url.', AppInstaller::APP_URL_KEY ) );
+
+        return 1;
     }
 
     /**
@@ -720,6 +777,34 @@ class Installer extends AbstractCommand {
             $this->output->error( $e->getMessage() );
             return 1;
         }
+    }
+
+    /**
+     * Print the setup token that claims the web installer, creating it when needed.
+     *
+     * @param CommandInput|null $input
+     * @return int
+     */
+    public function print_setup_token( ?CommandInput $input = null ) : int {
+        if ( $this->installer->is_installed() ) {
+            $this->output->error( sprintf( '%s is already installed; the web installer is closed.', SMLISER_APP_NAME ) );
+            return 1;
+        }
+
+        $token = $this->setup_token;
+
+        try {
+            $value = $token->get();
+        } catch ( \RuntimeException $e ) {
+            $this->output->error( $e->getMessage() );
+            return 1;
+        }
+
+        $this->output->writeln( $value );
+        $this->output->writeln( '' );
+        $this->output->info( sprintf( 'Enter it on your site at /install. It expires %s UTC.', gmdate( 'Y-m-d H:i', (int) $token->expires_at() ) ) );
+
+        return 0;
     }
 
     /**
