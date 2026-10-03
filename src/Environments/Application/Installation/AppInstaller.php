@@ -956,20 +956,18 @@ class AppInstaller {
     /**
      * Test the given credentials against a database engine.
      *
-     * Builds the engine's adapter from the registry and connects it. The
+     * The adapter registry builds the engine's adapter for this
+     * configuration (not the application's), then it is connected. The
      * returned adapter is connected but not active; pass it to
      * use_connection() to make the application use it.
      *
      * @param DBConfigDTO $config     Database configuration to test.
      * @param string|null $adapter_id Optional adapter ID; the engine default is used when null.
      * @return DatabaseAdapterInterface The connected adapter.
-     * @throws DatabaseException When no adapter is registered for the engine, or the connection fails.
+     * @throws DatabaseException When no suitable adapter is registered for the engine, or the connection fails.
      */
     public function test_db_connection( DBConfigDTO $config, ?string $adapter_id = null ) : DatabaseAdapterInterface {
-        $adapter_class = $this->adapters->select( (string) $config->driver, $adapter_id );
-
-        /** @var DatabaseAdapterInterface $adapter */
-        $adapter = new $adapter_class( $config );
+        $adapter = $this->adapters->create( $config, $adapter_id );
 
         if ( ! $adapter->connect() ) {
             throw new DatabaseException( 'database_connect_error', $adapter->get_last_error() );

@@ -14,6 +14,7 @@ use Callismart\DBPrism\Adapters\MysqliAdapter;
 use Callismart\DBPrism\Adapters\PdoAdapter;
 use Callismart\DBPrism\Adapters\PostgresAdapter;
 use Callismart\DBPrism\Adapters\SqliteAdapter;
+use Callismart\DBPrism\DBConfigDTO;
 use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Exceptions\DatabaseException;
@@ -309,6 +310,65 @@ class DatabaseAdapterRegistry extends AbstractRegistry {
         $class_string = reset( $adapters );
 
         return $class_string;
+    }
+
+    /**
+     * Create an adapter for an explicit database configuration.
+     *
+     * for_engine( $engine, true ) resolves adapters through the container,
+     * which injects the application's own DBConfigDTO. This method builds
+     * the adapter for the configuration given instead, e.g. credentials the
+     * installer is testing before they are saved.
+     *
+     * The adapter is selected as select() does, from the configuration's
+     * driver. Its constructor must accept the DBConfigDTO as its first
+     * parameter and require nothing else. The adapter is not connected.
+     *
+     * @param DBConfigDTO $config     Database configuration.
+     * @param string|null $adapter_id Optional adapter ID; the engine default when null.
+     * @return DatabaseAdapterInterface
+     *
+     * @throws DatabaseException If no suitable adapter is registered, or the
+     *                           adapter cannot be constructed from a DBConfigDTO.
+     */
+    public function create( DBConfigDTO $config, ?string $adapter_id = null ) : DatabaseAdapterInterface {
+        $class_string = $this->select( (string) $config->driver, $adapter_id );
+        $reflection   = new \ReflectionClass( $class_string );
+
+        if ( ! $reflection->isInstantiable() ) {
+            throw new DatabaseException(
+                'adapter_not_instantiable',
+                sprintf( 'The database adapter "%s" cannot be instantiated.', $class_string ),
+                [
+                    'class' => $class_string,
+                ]
+            );
+        }
+
+        $constructor = $reflection->getConstructor();
+        $parameters  = $constructor ? $constructor->getParameters() : [];
+        $first_type  = isset( $parameters[0] ) ? $parameters[0]->getType() : null;
+
+        $accepts_config = $first_type instanceof \ReflectionNamedType
+            && ! $first_type->isBuiltin()
+            && is_a( DBConfigDTO::class, $first_type->getName(), true );
+
+        if ( ! $accepts_config || ( $constructor && $constructor->getNumberOfRequiredParameters() > 1 ) ) {
+            throw new DatabaseException(
+                'adapter_constructor_invalid',
+                sprintf(
+                    'The database adapter "%s" must accept a %s as its only required constructor argument.',
+                    $class_string,
+                    DBConfigDTO::class
+                ),
+                [
+                    'class' => $class_string,
+                ]
+            );
+        }
+
+        /** @var DatabaseAdapterInterface */
+        return $reflection->newInstance( $config );
     }
 
     /**
