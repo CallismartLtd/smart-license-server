@@ -89,9 +89,18 @@ class Installer extends AbstractCommand {
             '',
             'OPTIONS: ',
             '',
+            '   General: ',
+            '--force, -f        Replace or rebuild what a subcommand would otherwise leave as it is:',
+            '                     run            .env (after confirmation), .htaccess and public/assets.',
+            '                                    Roles are never reinstalled by run; use make:roles --force.',
+            '                     make:dotenv    Replace the existing .env file (asks for confirmation first).',
+            '                     make:htaccess  Rewrite the existing .htaccess file.',
+            '                     link:assets    Rebuild public/assets: recreate the link, or switch between',
+            '                                    link and copy based on what the server allows now.',
+            '                     make:roles     Install the default roles again over existing ones.',
+            '',
             '   Full Installation: ',
             '--skip-admin       Skip interactive administrator account creation step.',
-            '--force            Force overwrite existing configuration files (asks before replacing an existing .env).',
             '',
             '   Creating admin account: ',
             '--name             The administrator\'s name.',
@@ -106,10 +115,6 @@ class Installer extends AbstractCommand {
             '                           Asked for interactively when SMLISER_APP_URL is empty and this is not given.',
             "Note: The .env file is required to bootstrap {$app_name}.",
             'Note: Empty SMLISER_SECRET and SMLISER_SALT values are generated automatically; existing values are kept.',
-            '',
-            '   Publishing assets (link:assets): ',
-            '--force                    Rebuild public/assets even when it is already linked: recreate the link,',
-            '                           or switch between link and copy based on what the server allows now.',
             '',
             '   Creating .htaccess file: ',
             '--htaccess-example-path    The absolute path to the .htaccess.example file. The file will be searched for in',
@@ -130,13 +135,18 @@ class Installer extends AbstractCommand {
             '--collation, -C        Connection collation. Used by mysql; not applicable to sqlite.',
             '--prefix, -x           Table name prefix, applied regardless of driver.',
             '--socket, -s           Unix socket path, as an alternative to --host/--port. Used by mysql/pgsql.',
-            '--path, -f             Database file path. Required for sqlite; not applicable to mysql/pgsql.',
+            '--path, -l             Database folder (sqlite). Required for sqlite; not applicable to mysql/pgsql.',
             '--dsn, -D              Raw DSN string that overrides the discrete host/port/socket/path options above.',
+            '--flags, -F            Driver connection attributes as a JSON object.',
+            '--ssl, -S              SSL options and certificate paths as a JSON object.',
             '--sslmode, -M          SSL enforcement tier. Used by mysql/pgsql; not applicable to sqlite.',
             '--encryption-key, -k   At-rest encryption key. Used by mysql (TDE) and sqlite; not applicable to pgsql.',
             '--strict, -t           Enable strict SQL mode enforcement.',
             '--persistent, -e       Reuse a persistent connection instead of opening a new one.',
             '--timeout, -T          Connection timeout in seconds.',
+            '--read, -r             Read replica settings as a JSON object.',
+            '--write, -w            Write primary settings as a JSON object.',
+            '--sticky, -K           Read from the primary after a write in the same request.',
         ] ) );
     }
 
@@ -259,7 +269,8 @@ class Installer extends AbstractCommand {
             return $code;
         }
 
-        $code = $this->make_roles( $input );
+        // --force applies to files in the wizard, never to roles already installed.
+        $code = $this->make_roles( $input, false );
         if ( 0 !== $code ) {
             $this->output->error( 'Installation aborted: Default role installation failed.' );
             return $code;
@@ -428,7 +439,7 @@ class Installer extends AbstractCommand {
     public function make_dot_env( CommandInput $input ) : int {
         $this->start_timer();
         $path_to_eg = $input->get_option( 'dotenv-example-path', null );
-        $force      = (bool) $input->get_option( 'force', false );
+        $force      = $this->is_forced( $input );
 
         // Replacing an existing .env erases its database credentials and
         // secrets; new secrets would invalidate every existing session.
@@ -515,13 +526,13 @@ class Installer extends AbstractCommand {
     /**
      * Publish system/assets at public/assets.
      *
-     * @param CommandInput|null $input
+     * @param CommandInput $input
      * @return int
      */
-    public function link_assets( ?CommandInput $input = null ) : int {
+    public function link_assets( CommandInput $input ) : int {
         $this->start_timer();
 
-        $force = $input ? (bool) $input->get_option( 'force', false ) : false;
+        $force = $this->is_forced( $input );
 
         try {
             $result = $this->installer->link_public_assets( $force );
@@ -568,7 +579,7 @@ class Installer extends AbstractCommand {
     public function make_dot_htaccess( ?CommandInput $input = null ) : int {
         $this->start_timer();
         $path_to_eg = $input ? $input->get_option( 'htaccess-example-path', null ) : null;
-        $force      = $input ? (bool) $input->get_option( 'force', false ) : false;
+        $force      = $this->is_forced( $input );
 
         try {
             $htaccess_file = $this->installer->make_htaccess_file( $path_to_eg, $force );
@@ -638,16 +649,17 @@ class Installer extends AbstractCommand {
      * Install default permission roles.
      *
      * @param CommandInput|null $input
+     * @param bool|null         $force Overrides --force/-f; the wizard passes false so it never reinstalls roles.
      * @return int
      */
-    public function make_roles( ?CommandInput $input = null ): int {
+    public function make_roles( ?CommandInput $input = null, ?bool $force = null ): int {
         $this->start_timer();
 
         if ( ! $this->ensure_database_connection() ) {
             return 1;
         }
 
-        $force  = $input ? (bool) $input->get_option( 'force', false ) : false;
+        $force  = $force ?? $this->is_forced( $input );
         $rows   = [];
 
         $callback   = function( $role_name, $message ) use ( &$rows ) {
@@ -985,6 +997,33 @@ class Installer extends AbstractCommand {
     }
 
     /**
+     * Whether --force or its short form -f was given.
+     *
+     * A bare flag counts as given; an explicit false-like value
+     * (--force=false, --force=0, --force=no) does not.
+     *
+     * @param CommandInput|null $input
+     * @return bool
+     */
+    private function is_forced( ?CommandInput $input ) : bool {
+        if ( null === $input ) {
+            return false;
+        }
+
+        $value = $input->get_option( 'force' ) ?? $input->get_option( 'f' );
+
+        if ( null === $value || false === $value ) {
+            return false;
+        }
+
+        if ( true === $value || '' === $value ) {
+            return true;
+        }
+
+        return false !== filter_var( $value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE );
+    }
+
+    /**
      * Make sure the application has a working database connection.
      *
      * When only the placeholder adapter is active, the .env file is read as
@@ -1087,7 +1126,7 @@ class Installer extends AbstractCommand {
                 'collation'      => $input->get_option( 'collation' )      ?? $input->get_option( 'C' ),
                 'prefix'         => $input->get_option( 'prefix' )         ?? $input->get_option( 'x' ),
                 'socket'         => $input->get_option( 'socket' )         ?? $input->get_option( 's' ),
-                'path'           => $input->get_option( 'path' )           ?? $input->get_option( 'f' ),
+                'path'           => $input->get_option( 'path' )           ?? $input->get_option( 'l' ),
                 'dsn'            => $input->get_option( 'dsn' )            ?? $input->get_option( 'D' ),
                 'flags'          => $input->get_option( 'flags' )          ?? $input->get_option( 'F' ),
                 'ssl'            => $input->get_option( 'ssl' )            ?? $input->get_option( 'S' ),
