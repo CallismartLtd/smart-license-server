@@ -376,15 +376,25 @@ class AppInstaller {
      * later runs can refresh the copy.
      *
      * Safe to run repeatedly:
-     *  - a correct symlink is left alone;
+     *  - a correct symlink is left alone, unless $force is set;
      *  - a symlink to anything else, or a broken one, is replaced;
      *  - a copy made by this method is refreshed;
-     *  - any other file or folder at public/assets is kept and reported.
+     *  - any other file or folder at public/assets is kept and reported,
+     *    even with $force, so data this method did not create is never removed.
      *
+     * $force rebuilds whatever this method manages: an existing correct link
+     * is recreated, and the choice between link and copy is made again from
+     * what the server allows now.
+     *
+     * PHP's stat and realpath caches are cleared after every change, so the
+     * checks that follow (and later code in the same request) see the
+     * current state of public/assets.
+     *
+     * @param bool $force Rebuild even when the correct link already exists.
      * @return string One of the ASSETS_* constants describing what was done.
      * @throws \RuntimeException When the source folder is missing or the assets cannot be published.
      */
-    public function link_public_assets() : string {
+    public function link_public_assets( bool $force = false ) : string {
         $source = $this->assets_source_dir();
         $target = $this->assets_public_dir();
 
@@ -403,14 +413,18 @@ class AppInstaller {
          * operations, and its delete()/rmdir() follow a link to a directory
          * and would empty system/assets instead of removing the link.
          */
+        $this->flush_stat_cache();
+
         if ( is_link( $target ) ) {
-            if ( $this->points_to( $target, $source ) ) {
+            if ( ! $force && $this->points_to( $target, $source ) ) {
                 return static::ASSETS_UNCHANGED;
             }
 
             if ( ! @unlink( $target ) && ! @rmdir( $target ) ) {
-                throw new \RuntimeException( "Could not replace the outdated link \"{$target}\"." );
+                throw new \RuntimeException( "Could not replace the link \"{$target}\"." );
             }
+
+            $this->flush_stat_cache();
         } elseif ( $this->fs->exists( $target ) ) {
             if ( ! $this->fs->is_file( $target . '/' . static::ASSETS_COPY_MARKER ) ) {
                 return static::ASSETS_KEPT;
@@ -419,15 +433,20 @@ class AppInstaller {
             if ( ! $this->fs->rmdir( $target, true ) ) {
                 throw new \RuntimeException( "Could not remove the previous copy of the assets at \"{$target}\"." );
             }
+
+            $this->flush_stat_cache();
         }
 
-        if ( function_exists( 'symlink' ) && @symlink( $this->relative_path( $public_dir, $source ), $target ) && $this->fs->is_dir( $target ) ) {
-            return static::ASSETS_LINKED;
-        }
+        if ( function_exists( 'symlink' ) && @symlink( $this->relative_path( $public_dir, $source ), $target ) ) {
+            $this->flush_stat_cache();
 
-        // A link that was created but does not resolve is useless; remove it before copying.
-        if ( is_link( $target ) ) {
+            if ( $this->fs->is_dir( $target ) ) {
+                return static::ASSETS_LINKED;
+            }
+
+            // A link that was created but does not resolve is useless; remove it before copying.
             @unlink( $target );
+            $this->flush_stat_cache();
         }
 
         if ( ! $this->fs->copy( $source, $target, true ) ) {
@@ -438,7 +457,22 @@ class AppInstaller {
             throw new \RuntimeException( "Could not write \"{$target}/" . static::ASSETS_COPY_MARKER . '".' );
         }
 
+        $this->flush_stat_cache();
+
         return static::ASSETS_COPIED;
+    }
+
+    /**
+     * Clear PHP's stat and realpath caches.
+     *
+     * is_dir(), is_link(), file_exists() and realpath() results are cached
+     * per request; after creating or removing links and folders they can
+     * describe a state that no longer exists.
+     *
+     * @return void
+     */
+    protected function flush_stat_cache() : void {
+        clearstatcache( true );
     }
 
     /**
@@ -832,10 +866,8 @@ class AppInstaller {
         $default_roles = DefaultRoles::all();
 
         foreach ( $default_roles as $slug => $roledata ) {
-            $role   = Role::get_by_slug( $slug );
-
-            if ( $role && ! $force ) {
-                $failure_callback && $failure_callback( $role->get_label(), 'Role Exists' );
+            if ( $this->role_exists( $slug ) && ! $force ) {
+                $failure_callback && $failure_callback( $roledata['label'], 'Role Exists' );
                 continue;
             }
             
@@ -869,11 +901,7 @@ class AppInstaller {
 
         $default_role   = DefaultRoles::get( 'system_admin' );
         
-        $role           = Role::get_by_slug( $default_role['slug'] );
-
-        if ( ! $role ) {
-            $role = new Role();
-        }
+        $role           = $this->find_role( $default_role['slug'] ) ?? new Role();
 
         $role->set_label( $default_role['label'])
             ->set_slug( $default_role['slug'] )
@@ -1040,14 +1068,17 @@ class AppInstaller {
         // Roles are rows in the tables above; checked only once every table exists.
         if ( ! $missing_tables ) {
             foreach ( array_keys( DefaultRoles::all() ) as $slug ) {
-                if ( ! Role::get_by_slug( $slug ) ) {
+                if ( ! $this->role_exists( $slug ) ) {
                     $issues[] = sprintf( 'Missing default role: %s', $slug );
                 }
             }
         }
 
         if ( $users_table ) {
-            $count = $this->db->get_var( 'SELECT COUNT(*) FROM ' . \SMLISER_USERS_TABLE );
+            $sql   = \smliserQueryBuilder( $this->db->get_driver() )
+                ->select( 'COUNT(*)' )
+                ->from( \SMLISER_USERS_TABLE );
+            $count = $this->db->get_var( $sql->build(), $sql->get_bindings() );
 
             if ( null === $count && $this->db->get_last_error() ) {
                 throw new DatabaseException( 'database_query_error', $this->db->get_last_error() );
@@ -1110,6 +1141,61 @@ class AppInstaller {
         if ( $this->flag->is_installation() ) {
             $this->flag->clear();
         }
+    }
+
+    /**
+     * Load a role by slug, tolerating an unavailable cache.
+     *
+     * Role::get_by_slug() goes through the cache, which is not set up during
+     * a fresh installation, so a failure there is treated as "not loaded".
+     *
+     * @param string $slug Role slug.
+     * @return Role|null
+     */
+    protected function find_role( string $slug ) : ?Role {
+        static $logged = false;
+
+        try {
+            return Role::get_by_slug( $slug ) ?: null;
+        } catch ( \Throwable $e ) {
+            // Expected on every installer request until the cache exists; log once per request.
+            if ( ! $logged ) {
+                $logged = true;
+                \smliser_log_error( sprintf( '[AppInstaller] Role lookup failed, falling back to a direct query: %s', $e->getMessage() ) );
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * Whether a role exists, using a direct query when the model lookup fails.
+     *
+     * The direct query bypasses the cache, so the answer is reliable on a
+     * fresh installation; without it, a cache failure would read as
+     * "missing" and the roles would be installed again on every run.
+     *
+     * @param string $slug Role slug.
+     * @return bool
+     */
+    protected function role_exists( string $slug ) : bool {
+        return null !== $this->find_role( $slug ) || in_array( $slug, $this->installed_role_slugs(), true );
+    }
+
+    /**
+     * Slugs of the roles stored in the database, read directly (no cache).
+     *
+     * An empty result is not treated as an error: an empty table and a stale
+     * error from an earlier query cannot be told apart reliably. A real query
+     * failure surfaces when the missing roles are then installed.
+     *
+     * @return string[]
+     */
+    protected function installed_role_slugs() : array {
+        $sql   = \smliserQueryBuilder( $this->db->get_driver() )
+            ->select( 'slug' )
+            ->from( \SMLISER_ROLES_TABLE );
+        return array_map( 'strval', $this->db->get_col( $sql->build(), $sql->get_bindings() ) );
     }
 
     /**

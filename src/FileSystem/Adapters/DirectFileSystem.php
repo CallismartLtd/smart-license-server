@@ -189,8 +189,19 @@ class DirectFileSystem implements FileSystemAdapterInterface {
     /**
      * Create a directory.
      *
+     * Permissions are set explicitly after creation, so they do not depend
+     * on the process umask:
+     *  - the requested directory gets $chmod, or the adapter's directory
+     *    permission when $chmod is false;
+     *  - missing parent directories created on the way always get the
+     *    adapter's directory permission, never $chmod (as `mkdir -p -m`
+     *    does), so a strict mode for one folder never locks down the
+     *    folders above it.
+     *
+     * An existing directory is left untouched.
+     *
      * @param string $path Absolute path.
-     * @param int|false $chmod Optional permissions. False uses the
+     * @param int|false $chmod Optional permissions for $path. False uses the
      *                          adapter's configured directory permission.
      * @param bool $recursive Optional. Create intermediate directories if true.
      * @return bool True on success, false on failure.
@@ -200,13 +211,31 @@ class DirectFileSystem implements FileSystemAdapterInterface {
             return true;
         }
 
-        $result = @mkdir( $path, $chmod ?: $this->dir_permission, $recursive );
+        $mode = $chmod ?: $this->dir_permission;
 
-        if ( $result && false !== $chmod ) {
-            $this->chmod( $path, $chmod );
+        // Parents this call will create, nearest first.
+        $parents = array();
+
+        if ( $recursive ) {
+            for ( $dir = dirname( $path ); $dir !== dirname( $dir ) && ! $this->exists( $dir ); $dir = dirname( $dir ) ) {
+                $parents[] = $dir;
+            }
         }
 
-        return $result;
+        if ( ! @mkdir( $path, $mode, $recursive ) ) {
+            // Another process may have created it in the meantime.
+            clearstatcache( true, $path );
+            return $this->is_dir( $path );
+        }
+
+        // mkdir() applies the umask and gives parents the same mode as $path.
+        foreach ( $parents as $parent ) {
+            @chmod( $parent, $this->dir_permission );
+        }
+
+        @chmod( $path, $mode );
+
+        return true;
     }
 
     /**

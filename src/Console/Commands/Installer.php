@@ -107,6 +107,10 @@ class Installer extends AbstractCommand {
             "Note: The .env file is required to bootstrap {$app_name}.",
             'Note: Empty SMLISER_SECRET and SMLISER_SALT values are generated automatically; existing values are kept.',
             '',
+            '   Publishing assets (link:assets): ',
+            '--force                    Rebuild public/assets even when it is already linked: recreate the link,',
+            '                           or switch between link and copy based on what the server allows now.',
+            '',
             '   Creating .htaccess file: ',
             '--htaccess-example-path    The absolute path to the .htaccess.example file. The file will be searched for in',
             '                           the parent directory and the runtime directory.',
@@ -517,8 +521,10 @@ class Installer extends AbstractCommand {
     public function link_assets( ?CommandInput $input = null ) : int {
         $this->start_timer();
 
+        $force = $input ? (bool) $input->get_option( 'force', false ) : false;
+
         try {
-            $result = $this->installer->link_public_assets();
+            $result = $this->installer->link_public_assets( $force );
         } catch ( \RuntimeException $e ) {
             $this->output->error( $e->getMessage() );
             return 1;
@@ -529,7 +535,7 @@ class Installer extends AbstractCommand {
 
         switch ( $result ) {
             case AppInstaller::ASSETS_LINKED:
-                $this->output->success( sprintf( 'Linked %s -> %s', $target, $source ) );
+                $this->output->success( sprintf( '%s %s -> %s', $force ? 'Relinked' : 'Linked', $target, $source ) );
                 break;
 
             case AppInstaller::ASSETS_COPIED:
@@ -544,7 +550,7 @@ class Installer extends AbstractCommand {
 
             default:
                 $this->output->warning( sprintf( '%s already exists and was not created by the installer, so it was left as it is.', $target ) );
-                $this->output->info( 'Remove or rename it, then run this command again to use the bundled assets.' );
+                $this->output->info( 'Remove or rename it, then run this command again to use the bundled assets. --force does not remove it.' );
                 break;
         }
 
@@ -855,7 +861,7 @@ class Installer extends AbstractCommand {
 
         $this->output->writeln( $value );
         $this->output->writeln( '' );
-        $this->output->info( sprintf( 'Enter it on your site at /install. It expires %s UTC.', gmdate( 'Y-m-d H:i', (int) $token->expires_at() ) ) );
+        $this->output->info( sprintf( 'Enter it at /install on your site (or /?install if that page is not found). It expires %s UTC.', gmdate( 'Y-m-d H:i', (int) $token->expires_at() ) ) );
 
         return 0;
     }
