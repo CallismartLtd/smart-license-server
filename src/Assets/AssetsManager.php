@@ -125,12 +125,17 @@ final class AssetsManager {
 	}
 
 	/**
-	 * Get script suffix depending on debug mode.
+	 * Suffix inserted before the extension of bundled CSS/JS files.
 	 *
-	 * @return string
+	 * SMLISER_SCRIPT_DEBUG=true serves the original files; otherwise the
+	 * minified ".min" copies are served.
+	 *
+	 * @return string ".min" or an empty string.
 	 */
 	public static function script_suffix() : string {
-		return $_ENV['SCRIPT_SUFFIX'] ?? '';
+		$debug = filter_var( $_ENV['SMLISER_SCRIPT_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN );
+
+		return $debug ? '' : '.min';
 	}
 
 	/**

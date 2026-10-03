@@ -22,12 +22,18 @@ final class BuildContext {
 	 * @param string $out_dir   Absolute path to the build output directory.
 	 * @param string $core_dir  Directory name the repository `src/` is copied to.
 	 * @param string $composer  Composer binary.
+	 * @param string $npm       npm binary, used to install the build's Node tools.
+	 * @param string $node      Node.js binary, used to run esbuild.
+	 * @param bool   $minify    Whether to minify assets (targets can still opt out).
 	 */
 	public function __construct(
 		public readonly string $repo_root,
 		public readonly string $out_dir,
 		public readonly string $core_dir,
-		public readonly string $composer
+		public readonly string $composer,
+		public readonly string $npm = 'npm',
+		public readonly bool $minify = true,
+		public readonly string $node = 'node'
 	) {}
 
 	/**

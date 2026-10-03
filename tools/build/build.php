@@ -12,6 +12,9 @@
  *   --core-dir=<name>   Directory name for the copied src/. Default: smliser
  *   --out=<dir>         Output directory. Default: <repo>/dist/<target>
  *   --composer=<path>   Composer binary. Default: composer
+ *   --npm=<path>        npm binary, used once to install esbuild. Default: npm
+ *   --node=<path>       Node.js binary, used to run esbuild. Default: node
+ *   --no-minify         Skip writing minified *.min.js / *.min.css assets.
  *   --help              Show this help.
  *
  * @author  Callistus Nwachukwu
@@ -69,9 +72,9 @@ $console = new BuildConsole();
 try {
 	// getopt() stops at the first positional argument, so parse by hand to
 	// allow options on either side of the target name.
-	$allowed    = ['core-dir' => true, 'out' => true, 'composer' => true, 'help' => false ];
-	$options    = [];
-	$name       = null;
+	$allowed = array( 'core-dir' => true, 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'help' => false );
+	$options = array();
+	$name    = null;
 
 	foreach ( array_slice( $argv, 1 ) as $arg ) {
 		if ( ! str_starts_with( $arg, '--' ) ) {
@@ -121,7 +124,10 @@ try {
 		$repo_root,
 		rtrim( $out_dir, '/\\' ),
 		$core_dir,
-		(string) ( $options['composer'] ?? 'composer' )
+		(string) ( $options['composer'] ?? 'composer' ),
+		(string) ( $options['npm'] ?? 'npm' ),
+		! isset( $options['no-minify'] ),
+		(string) ( $options['node'] ?? 'node' )
 	);
 
 	( new Builder( $context, $console ) )->run( new $targets[ $name ]() );

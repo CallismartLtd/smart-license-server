@@ -81,6 +81,15 @@ abstract class AbstractTarget {
 	}
 
 	/**
+	 * Whether to write minified copies (*.min.js, *.min.css) of the assets.
+	 *
+	 * @return bool
+	 */
+	public function minify_assets(): bool {
+		return true;
+	}
+
+	/**
 	 * Hook run after every shared step has completed.
 	 *
 	 * @param BuildContext $context Build context.

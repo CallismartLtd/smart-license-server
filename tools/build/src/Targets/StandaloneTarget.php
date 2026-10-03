@@ -131,26 +131,30 @@ $config = [
 	'runtime_dir'		=> __DIR__ . '{{RUNTIME}}',
 	'storage_dir'		=> __DIR__ . '/storage/',
 	'index_file'		=> __DIR__ . '/public/index.php',
-	'debug_mode'		=> $_ENV[ 'SMLISER_DEBUG' ] ?? false,
-	'display_errors'	=> $_ENV[ 'SMLISER_DISPLAY_ERRORS' ] ?? false,
-	'log_errors'		=> $_ENV[ 'SMLISER_DEBUG' ] ?? false,
+	'debug_mode'		=> (bool) ( $_ENV[ 'SMLISER_DEBUG' ] ?? false ),
+	'display_errors'	=> (bool) ( $_ENV[ 'SMLISER_DISPLAY_ERRORS' ] ?? false ),
+	'log_errors'		=> true,
 	'secret'			=> $_ENV[ 'SMLISER_SECRET' ] ?? '',
 	'salt'				=> $_ENV[ 'SMLISER_SALT' ] ?? '',
 	'db_table_prefix'	=> $_ENV[ 'SMLISER_DB_PREFIX' ] ?? 'smliser_',
-	'error_log_path'	=> __DIR__ . '/storage/logs/error.log',
+	'error_log_path'	=> ( $_ENV[ 'SMLISER_ERROR_LOG_PATH' ] ?? '' ) ?: __DIR__ . '/storage/logs/error.log',
 ];
 
 /*
 |-----------------------------------------
 | Set the global error handling policy.
 |-----------------------------------------
+| Every error is reported and logged, in
+| production too. SMLISER_DEBUG and
+| SMLISER_DISPLAY_ERRORS only control what
+| is shown to visitors.
 */
 GlobalErrorHandler::instance()->bootstrap([
-    'debug'             => $config['debug_mode'],
-    'display_errors'    => $config['display_errors'],
-    'log_errors'        => $config['log_errors'],
-    'log_path'          => $config['error_log_path'],
-    'error_reporting'   => $config['debug_mode'] ? E_ALL : 0
+	'debug'             => $config['debug_mode'],
+	'display_errors'    => $config['display_errors'],
+	'log_errors'        => $config['log_errors'],
+	'log_path'          => $config['error_log_path'],
+	'error_reporting'   => E_ALL,
 ])->registerHandlers();
 
 /*

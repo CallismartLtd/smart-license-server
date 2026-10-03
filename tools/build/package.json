@@ -1,0 +1,8 @@
+{
+  "name": "smliser-build",
+  "private": true,
+  "description": "Build-time tooling for Smart License Server. Not shipped with the application.",
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

@@ -58,6 +58,10 @@ final class Builder {
 		$this->copy_sources( $target );
 		$this->copy_root_files( $target );
 
+		if ( $this->context->minify && $target->minify_assets() ) {
+			( new AssetMinifier( $this->context, $this->console ) )->run( $this->context->target( $target->assets_path() ) );
+		}
+
 		if ( $target->installs_dependencies() ) {
 			$this->install_dependencies( $target );
 		}
