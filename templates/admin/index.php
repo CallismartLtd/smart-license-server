@@ -105,7 +105,7 @@ if ( $request->isEmpty( 'noheader' ) ) {
 if ( $current_submenu ) {
     $callback    = $current_submenu['callback'];
 } else {
-    $callback   = $current_menu['handler']?->index_page_handler() ?? null;
+    $callback   = $current_menu ? $current_menu['handler']?->index_page_handler() : null;
 }
 
 if ( ! $callback ) {

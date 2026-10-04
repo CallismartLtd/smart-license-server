@@ -880,15 +880,16 @@
 					}
 				}
 
-				const url = smliserAjaxUrl( '', {
-					action: 'smliser_app_status_action',
+				const url = smliserAjaxUrl( 'set-status', {
 					app_slug: args.slug,
 					app_type: args.type,
 					app_status: args.status,
 				}, { nonce: true } );
 
 				try {
-					const response = await smliserFetchJSON( url );
+					const response = await smliserFetchJSON( url, {
+						method: 'PATCH'
+					});
 
 					if ( ! response.success ) {
 						throw new Error( response.data?.message ?? 'Request failed' );

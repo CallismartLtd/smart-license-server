@@ -9,7 +9,7 @@
  *      slug: string,
  *      handler: class-string<\SmartLicenseServer\Admin\Contracts\AdminPageInterface>,
  *      icon: string, visibility: bool|(callable(): bool)
- * } $current_menu
+ * }|null $current_menu
  * @var array{
  *      title: string,
  *      slug: string,
@@ -30,7 +30,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
             <?php
             $url           = $urlmanager->admin_url( $menu['slug'] );
             $has_submenu   = $registry->has_submenu( $key );
-            $is_current_section = $menu['slug'] === $current_menu['slug'];
+            $is_current_section = $menu['slug'] === ( $current_menu['slug'] ?? '' );
             $is_current_page    = $is_current_section;
 
             $extra_li_class  = $is_current_section ? ' is-open' : '';

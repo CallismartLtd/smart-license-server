@@ -7,22 +7,7 @@
  */
 
 use SmartLicenseServer\FileSystem\FileSystemHelper;
-use SmartLicenseServer\FileSystem\FileSystemPermission;
 use SmartLicenseServer\Utils\Format;
-
-/**
- * Derive file or directory permission from the given path.
- * 
- * @param string $path File or directory path.
- * @return int Permission mode (e.g., 0644 for files, 0755
- */
-function smliser_get_default_permissions( string $path ) : int {
-    if ( is_dir( $path ) ) {
-        return FileSystemPermission::get_mode( FileSystemPermission::TYPE_DIR, FileSystemPermission::VISIBILITY_PUBLIC );
-    } else {
-        return FileSystemPermission::get_mode( FileSystemPermission::TYPE_FILE, FileSystemPermission::VISIBILITY_PUBLIC );
-    }
-}
 
 /**
  * Auto-derive permissions for a path based on the current directory permissions.
@@ -122,35 +107,54 @@ function smliser_get_windows_reserved_names() : array {
 }
 
 /**
- * Intercept stray /favicon.ico requests early to prevent unnecessary app booting.
+ * Add execute permissions (+x) to a file while preserving existing permissions.
  *
- * @return void
+ * @param string $file Path to the target file.
+ * @param bool $owner_only Whether to apply the execute bit to the owner only (0100) or all scopes (0111). Default false.
+ * @return bool True on success, false on failure or if file does not exist.
  */
-function intercept_stray_favicon_request(): void {
-    if ( ! isset( $_SERVER['REQUEST_URI'] ) ) {
-        return;
+function smliser_chmod_add_execute( string $file, bool $owner_only = false ) : bool {
+
+    if ( ! file_exists( $file ) ) {
+        return false;
     }
 
-    $requestPath = \strtok( $_SERVER['REQUEST_URI'], '?' );
+    $current_mode = fileperms( $file ) & 0777;
+    $execute_flag = $owner_only ? 0100 : 0111;
 
-    if ( '/favicon.ico' === $requestPath ) {
-        $favicon = \SMLISER_RUNTIME_DIR . 'assets/images/smart-license-server.svg';
+    return chmod( $file, $current_mode | $execute_flag );
+}
 
-        if ( \file_exists( $favicon ) ) {
-            // Clean any preceding output buffers to avoid file corruption
-            while ( \ob_get_level() > 0 ) {
-                \ob_end_clean();
-            }
+/**
+ * Remove execute permissions (-x) from a file while preserving existing permissions.
+ *
+ * @param string $file Path to the target file.
+ * @param bool $owner_only Whether to remove the execute bit from the owner only (0100) or all scopes (0111). Default false.
+ * @return bool True on success, false on failure or if file does not exist.
+ */
+function smliser_chmod_remove_execute( string $file, bool $owner_only = false ) : bool {
 
-            \header( 'Content-Type: image/svg+xml' );
-            \header( 'Content-Length: ' . \filesize( $favicon ) );
-            \header( 'Cache-Control: public, max-age=604800, immutable' );
-            \readfile( $favicon );
-        } else {
-            \http_response_code( 204 );
-            \header( 'Cache-Control: public, max-age=604800' );
-        }
-
-        exit( 0 );
+    if ( ! file_exists( $file ) ) {
+        return false;
     }
+
+    $current_mode = fileperms( $file ) & 0777;
+    $execute_flag = $owner_only ? 0100 : 0111;
+
+    return chmod( $file, $current_mode & ~$execute_flag );
+}
+
+/**
+ * Check whether a file exists and has execute permissions.
+ *
+ * @param string $file Path to the target file.
+ * @return bool True if the file exists and is executable, false otherwise.
+ */
+function smliser_is_executable( string $file ) : bool {
+
+    if ( ! file_exists( $file ) ) {
+        return false;
+    }
+
+    return is_executable( $file );
 }

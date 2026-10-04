@@ -239,6 +239,11 @@ final class HttpDispatcher {
                         middleware: []
                     );
 
+                    $this->router->patch(
+                        pattern: 'set-status',
+                        handler: [AppManagement::class, 'handle_app_status_action_request']
+                    );
+
                     $this->router->add(
                         pattern: 'upload-app-assets',
                         methods: [Request::POST, Request::PATCH, Request::PUT],

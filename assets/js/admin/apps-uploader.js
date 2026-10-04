@@ -530,22 +530,17 @@ class AppUploader {
                 url.pathname += `/${slug}/`; 
             }            
             
-            const response  = await fetch( url, {
+            const response  = await smliserFetchJSON( url, {
                 method      : 'POST',
                 credentials : 'same-origin',
-                headers: {
-                    'Accept': 'application/json'
-                },
                 body : payLoad,
             });
 
-            const data = await this._parseResponse( response );
-
-            if ( ! data.success ) {
-                throw new Error( data.data.message );
+            if ( ! response.success ) {
+                throw new Error( response.error.message );
             }
 
-            SmliserToast.show( data?.data?.message ?? 'Saved', 6000 );
+            SmliserToast.show( response?.data?.message ?? 'Saved', 6000 );
 
             setTimeout( () => {
                 window.location.href = data.data.redirect_url;
@@ -1169,22 +1164,18 @@ class AppUploader {
             const context   = this.currentConfig.get( 'context' );
             const method    = 'edit' === context ? 'PATCH' : 'POST';
 
-            const response  = await fetch( url.href, {
+            const response  = await smliserFetchJSON( url.href, {
                 method      : method,
-                headers: {
-                    'Accept': 'application/json'
-                },
                 body        : payLoad,
                 credentials : 'same-origin',
             });
 
-            const data = await this._parseResponse( response );
 
-            if ( ! data.success ) {
-                throw new Error( data?.result?.message ?? 'Upload request failed.' );
+            if ( ! response.success ) {
+                throw new Error( response?.result?.message ?? 'Upload request failed.' );
             }
 
-            this._processBatchResult( data.result, container );
+            this._processBatchResult( response.result, container );
 
         } catch ( error ) {
             SmliserToast.show( error.message, 20000 );
@@ -1318,22 +1309,17 @@ class AppUploader {
             const url       = new URL( smliser_var.ajaxURL );
 
             url.pathname    += '/app-asset/';
-            const response  = await fetch( url, {
+            const response  = await smliserFetchJSON( url, {
                 method      : 'DELETE',
-                headers: {
-                    'Accept': 'application/json'
-                },
                 body        : payLoad,
                 credentials : 'same-origin',
             });
 
-            const data = await this._parseResponse( response );
-
-            if ( ! data.success ) {
-                throw new Error( data.data?.message ?? `Unable to delete ${ config.asset_name }.` );
+            if ( ! response.success ) {
+                throw new Error( response.data?.message ?? `Unable to delete ${ config.asset_name }.` );
             }
 
-            SmliserToast.show( data.data?.message, 3000 );
+            SmliserToast.show( response.data?.message, 3000 );
 
             const card = btn.closest( '.app-uploader-image-preview' );
             jQuery( card ).fadeOut( 'slow', () => card.remove() );
@@ -1355,34 +1341,6 @@ class AppUploader {
     |Utilities
     |-----------
     */
-
-    /**
-     * Parse a fetch Response, handling both JSON and plain-text error bodies.
-     *
-     * The server may wrap error detail under `data.message` (WP ajax standard)
-     * or under `result.message` (this API's batch envelope) — we check both.
-     *
-     * @param {Response} response
-     * @returns {Promise<object>}
-     */
-    async _parseResponse( response ) {
-        const contentType = response.headers.get( 'Content-Type' ) ?? '';
-
-        if ( ! response.ok ) {
-            let errorMessage = 'Something went wrong!';
-
-            if ( contentType.includes( 'application/json' ) ) {
-                const body      = await response.json();
-                errorMessage    = body?.result?.message ?? body?.data?.message ?? errorMessage;
-            } else {
-                errorMessage = await response.text();
-            }
-
-            throw new Error( errorMessage );
-        }
-
-        return response.json();
-    }
 
     /**
      * Convert any image Blob/File to PNG using an offscreen Canvas.
