@@ -20,6 +20,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Licenses;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
@@ -57,8 +58,8 @@ class PruneLicenseMetaJob implements JobHandlerInterface {
      * @return array{deleted: int}
      */
     public function handle( array $payload = [] ): mixed {
-        $meta_table = SMLISER_LICENSE_META_TABLE;
-        $table      = SMLISER_LICENSE_TABLE;
+        $meta_table = TableName::LICENSE_META->table();
+        $table      = TableName::LICENSES->table();
 
         $sql = \smliserQueryBuilder( $this->db->get_driver() )
             ->delete( $meta_table . ' AS meta' )

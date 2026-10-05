@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer\Analytics;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use SmartLicenseServer\Background\Jobs\Analytics\LogClientAccessJob;
 use SmartLicenseServer\Background\Jobs\Analytics\LogDownloadJob;
@@ -92,7 +93,7 @@ class AppsAnalytics extends DataStore {
         // Build the fluent intent tracking explicit log_date aliases
         $sql = static::query()
             ->select( 'created_at as log_date', 'COUNT(*) as count' )
-            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'app_slug', '=', $app->get_slug() )
             ->where( 'event_type', '=', 'download' )
             ->where( 'created_at', '>=', $date )
@@ -157,7 +158,7 @@ class AppsAnalytics extends DataStore {
 
         $sql = static::query()
             ->select( 'COUNT(*)' )
-            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'app_slug', '=', $app->get_slug() )
             ->where( 'event_type', '=', 'download' )
             ->where( 'created_at', '>=', $start_window )
@@ -215,7 +216,7 @@ class AppsAnalytics extends DataStore {
         // Fetch the global overlapping block window in a single efficient query execution step
         $sql = static::query()
             ->select( 'created_at' )
-            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'app_slug', '=', $app->get_slug() )
             ->where( 'event_type', '=', 'download' )
             ->where( 'created_at', '>=', $previous_boundary )
@@ -307,7 +308,7 @@ class AppsAnalytics extends DataStore {
         // Build the fluent intent tracking explicit log_date aliases
         $sql = static::query()
             ->select( 'created_at as log_date', 'COUNT(*) as count' )
-            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'app_slug', '=', $app->get_slug() )
             ->where( 'event_type', '!=', 'download' )
             ->where( 'created_at', '>=', $date )
@@ -367,7 +368,7 @@ class AppsAnalytics extends DataStore {
         // Build the fluent intent tracking explicit log_date and event_type groupings
         $sql = static::query()
             ->select( 'created_at as log_date', 'event_type', 'COUNT(*) as count' )
-            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'app_slug', '=', $app->get_slug() )
             ->where( 'created_at', '>=', $date )
             ->group_by( 'created_at', 'event_type' )
@@ -410,7 +411,7 @@ class AppsAnalytics extends DataStore {
         // Build the fluent intent using COUNT(DISTINCT ...) tracking
         $sql = static::query()
             ->select( 'COUNT(DISTINCT fingerprint)' )
-            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'app_slug', '=', $app->get_slug() )
             ->where( 'created_at', '>=', $date );
         
@@ -450,7 +451,7 @@ class AppsAnalytics extends DataStore {
         // Fetch the global overlapping block window in a single efficient query execution step
         $sql = static::query()
             ->select( 'created_at' )
-            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'app_slug', '=', $app->get_slug() )
             ->where( 'event_type', '!=', 'download' )
             ->where( 'created_at', '>=', $previous_boundary )

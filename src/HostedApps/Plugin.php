@@ -12,6 +12,7 @@ use Exception;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\PluginRepository;
+use SmartLicenseServer\Schema\TableName;
 
 /**
  * Represents a typical plugin hosted in this repository.
@@ -20,16 +21,16 @@ class Plugin extends AbstractHostedApp {
     /**
      * The plugin database table name.
      * 
-     * @var string
+     * @var TableName
      */
-    const TABLE = SMLISER_PLUGINS_TABLE;
+    const MAIN = TableName::PLUGINS;
 
     /**
      * Plugin metadata table
      * 
-     * @var string
+     * @var TableName
      */
-    const META_TABLE = SMLISER_PLUGINS_META_TABLE;
+    const META = TableName::PLUGIN_META;
 
     /**
      * WordPress version requirement.
@@ -407,8 +408,8 @@ class Plugin extends AbstractHostedApp {
      * 
      * @return string
      */
-    public static function get_db_table() {
-        return self::TABLE;
+    public static function get_db_table() : string {
+        return static::MAIN->table();
     }
 
     /**
@@ -425,8 +426,8 @@ class Plugin extends AbstractHostedApp {
      * 
      * @return string
      */
-    public static function get_db_meta_table() {
-        return self::META_TABLE;
+    public static function get_db_meta_table() : string{
+        return self::META->table();
     }
 
     /**

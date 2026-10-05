@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -557,7 +558,7 @@ class License extends DataStore {
         $result = static::cache_get( $key );
 
         if ( false === $result || ! ( $result instanceof static ) ) {
-            $table  = \SMLISER_LICENSE_TABLE;
+            $table  = TableName::LICENSES->table();
             $sql    = static::query()->select( '*' )->from( $table )
                 ->where( 'service_id', '=', $service_id )
                 ->where( 'license_key', '=', $license_key );
@@ -589,7 +590,7 @@ class License extends DataStore {
         $license = static::cache_get( $key );
 
         if ( false === $license || ! ( $license instanceof static ) ) {
-            $data       = static::fetch_by( 'id', $id, SMLISER_LICENSE_TABLE );
+            $data       = static::fetch_by( 'id', $id, TableName::LICENSES->table() );
             $license    = $data ? static::from_array( $data ) : null;
 
             static::cache_set( $key, $license, static::default_ttl() );
@@ -629,13 +630,13 @@ class License extends DataStore {
 
         $items  = \array_map(
             [static::class, 'from_array'],
-            static::fetch( \SMLISER_LICENSE_TABLE, $page, $limit )
+            static::fetch( TableName::LICENSES->table(), $page, $limit )
         );
 
         /**
          * Fetch total count
          */
-        $count_sql = self::query()->select( 'COUNT(*)' )->from( SMLISER_LICENSE_TABLE );
+        $count_sql = self::query()->select( 'COUNT(*)' )->from( TableName::LICENSES->table() );
         $total     = (int) static::$DB->get_var( $count_sql->build_raw() );
 
         $result = array(
@@ -681,7 +682,7 @@ class License extends DataStore {
         }
 
         $db     = static::$DB;
-        $table  = \SMLISER_LICENSE_TABLE;
+        $table  = TableName::LICENSES->table();
         $page   = max( 1, $args['page'] );
         $limit  = max( 1, $args['limit'] );
         $offset = $db->calculate_query_offset( $page, $limit );
@@ -738,8 +739,8 @@ class License extends DataStore {
      */
     public function save() : bool {
         $db         = static::$DB;
-        $table      = \SMLISER_LICENSE_TABLE;
-        $meta_table = \SMLISER_LICENSE_META_TABLE;
+        $table      = TableName::LICENSES->table();
+        $meta_table = TableName::LICENSE_META->table();
         $now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
         $data       = array(
@@ -828,7 +829,7 @@ class License extends DataStore {
      */
     public function load_meta() : static {
         $db         = static::$DB;
-        $table      = SMLISER_LICENSE_META_TABLE;
+        $table      = TableName::LICENSE_META->table();
         $sql        = 
             $this->query()
             ->select( 'meta_key', 'meta_value')
@@ -862,8 +863,8 @@ class License extends DataStore {
             return false;
         }
 
-        $table      = \SMLISER_LICENSE_TABLE;
-        $meta_table = \SMLISER_LICENSE_META_TABLE;
+        $table      = TableName::LICENSES->table();
+        $meta_table = TableName::LICENSE_META->table();
 
         // Compile query structures via the Query Builder.
         $delete_license_sql = static::query()->delete( $table )->where( 'id', '=', $this->id );
@@ -1238,7 +1239,7 @@ class License extends DataStore {
      */
     public function generate_license_key( string $prefix = '', bool $persist = true, int $tries = 10 ) : string {
         $db         = static::$DB;
-        $table      = \SMLISER_LICENSE_TABLE;
+        $table      = TableName::LICENSES->table();
 
         $attempt    = 0;
         $new_key    = '';

@@ -9,11 +9,11 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\Monetization\License;
-use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
@@ -22,7 +22,7 @@ use SmartLicenseServer\Utils\TokenDeliveryTrait;
  * to hosted applications in the repository.
  */
 class DownloadToken extends DataStore {
-    use CommonQueryTrait, TokenDeliveryTrait, SanitizeAwareTrait;
+    use TokenDeliveryTrait, SanitizeAwareTrait;
     /**
      * Token ID.
      * 
@@ -197,7 +197,7 @@ class DownloadToken extends DataStore {
      * @return bool True on success, false otherwise
      */
     private function save() : bool {
-        $table = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
+        $table = TableName::APP_DOWNLOAD_TOKENS->table();
 
         $data = [
             'app_prop'    => $this->get_app_prop( 'view' ),
@@ -230,7 +230,7 @@ class DownloadToken extends DataStore {
             return false;
         }
 
-        $table = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
+        $table = TableName::APP_DOWNLOAD_TOKENS->table();
 
         $deleted = static::$DB->delete( $table, ['id' => $this->id] );
         return false !== $deleted;
@@ -243,7 +243,9 @@ class DownloadToken extends DataStore {
      * @return static|null
      */
     public static function get_by_id( int $id ) : ?static {
-        return self::get_self_by_id( $id, \SMLISER_APP_DOWNLOAD_TOKEN_TABLE );
+        $data   = static::fetch_by( 'id', $id, TableName::APP_DOWNLOAD_TOKENS->table() );
+
+        return $data ? static::from_array( $data ) : null;
     }
 
     /**
@@ -253,7 +255,7 @@ class DownloadToken extends DataStore {
      * @return static|null
      */
     public static function get_by_token( string $token ) : ?static {
-        $table = \SMLISER_APP_DOWNLOAD_TOKEN_TABLE;
+        $table = TableName::APP_DOWNLOAD_TOKENS->table();
 
         $sql    = static::query()
             ->select( '*' )

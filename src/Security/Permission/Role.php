@@ -11,6 +11,7 @@
 
 namespace SmartLicenseServer\Security\Permission;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -20,7 +21,6 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-use const SMLISER_ROLES_TABLE, SMLISER_ROLE_CAPABILITIES_TABLE;
 use function is_json;
 /**
  * Classical representation of a role.
@@ -315,7 +315,7 @@ class Role extends DataStore {
      * @return static
      */
     public function load_capabilities() : static {
-        $table  = SMLISER_ROLE_CAPABILITIES_TABLE;
+        $table  = TableName::ROLE_CAPS->table();
 
         $sql    = static::query()
             ->select( 'capabilities' )->from( $table )
@@ -343,7 +343,7 @@ class Role extends DataStore {
      * @return static
      */
     public static function from_array( array $data ) : static {
-        $static   = static::from_array_helper( SMLISER_ROLES_TABLE, $data );
+        $static   = static::from_array_helper( TableName::ROLES->table(), $data );
 
         if ( $static->get_id() ) {
             $static->load_capabilities();
@@ -396,10 +396,10 @@ class Role extends DataStore {
         }
 
         $result = (bool) static::$DB->transactional( function ( Database $db ) {
-            $roles_table    = SMLISER_ROLES_TABLE;
-            $caps_table     = SMLISER_ROLE_CAPABILITIES_TABLE;
+            $roles_table    = TableName::ROLES->table();
+            $caps_table     = TableName::ROLE_CAPS->table();
             $lock_sql       = static::query()
-                ->select( 'id' )->from( SMLISER_ROLES_TABLE )
+                ->select( 'id' )->from( TableName::ROLES->table() )
                 ->where( 'slug', '=', $this->get_slug() )
                 ->limit( 1 )->lock_for_update();
 
@@ -499,7 +499,7 @@ class Role extends DataStore {
         static $roles = [];
 
         if ( ! array_key_exists( $id, $roles ) ) {
-            $data           = static::fetch_by( 'id', $id, SMLISER_ROLES_TABLE );
+            $data           = static::fetch_by( 'id', $id, TableName::ROLES->table() );
             $roles[ $id ]   = $data ? static::from_array( $data ) : null;
         }
 
@@ -513,7 +513,7 @@ class Role extends DataStore {
      * @return static|null
      */
     public static function get_by_slug( string $slug ) : ?static {
-        $role   = static::fetch_by( 'slug', $slug, SMLISER_ROLES_TABLE );
+        $role   = static::fetch_by( 'slug', $slug, TableName::ROLES->table() );
         return $role ? static::from_array( $role ) : null;
     }
 
@@ -530,7 +530,7 @@ class Role extends DataStore {
      * }|static[] An array of role objects or array of roles if return param is true.
      */
     public static function all( bool $to_array = false ) : array {
-        $table      = SMLISER_ROLES_TABLE;
+        $table      = TableName::ROLES->table();
         $sql        = static::query()->select( '*' )->from( $table );
         $results    = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
 

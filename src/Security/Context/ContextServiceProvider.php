@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Security\Context;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\QueryIntents\JoinCriteria;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
@@ -32,8 +33,6 @@ use SmartLicenseServer\Security\OwnerSubjects\OrganizationMembers;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
 
-use const SMLISER_ROLE_ASSIGNMENT_TABLE, SMLISER_ORGANIZATION_MEMBERS_TABLE, 
-SMLISER_OWNERS_TABLE, SMLISER_ORGANIZATIONS_TABLE, SMLISER_USERS_TABLE, SMLISER_SERVICE_ACCOUNTS_TABLE;
 use function class_exists, parse_args_recursive, strtolower, method_exists,
 sprintf, class_implements, in_array;
 
@@ -231,7 +230,7 @@ class ContextServiceProvider extends DataStore {
         ];
 
         $args   = parse_args_recursive( $args, $defaults );
-        $table  = SMLISER_OWNERS_TABLE;
+        $table  = TableName::RESOURCE_OWNERS->table();
         $term   = self::sanitize_text( $args['search_term'] );
         $limit  = max( 1, (int) $args['limit'] );
         $page   = max( 1, (int) $args['page'] );
@@ -298,7 +297,7 @@ class ContextServiceProvider extends DataStore {
      * @throws DatabaseException Sensitive database error, caller must handle accordingly.
      */
     public static function save_actor_role( ActorInterface $actor, Role $role, ?OwnerSubjectInterface $subject = null ) : bool {
-        $table          = SMLISER_ROLE_ASSIGNMENT_TABLE;
+        $table          = TableName::PRINCIPAL_ROLES->table();
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
         $subject_id     = $subject ? $subject->get_id() : $actor->get_id();
 
@@ -390,7 +389,7 @@ class ContextServiceProvider extends DataStore {
             );
         }
 
-        $table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+        $table  = TableName::PRINCIPAL_ROLES->table();
         $db     = static::$DB;
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
 
@@ -415,7 +414,7 @@ class ContextServiceProvider extends DataStore {
      */
     public static function get_principal_role( ActorInterface $actor, ?OwnerSubjectInterface $subject = null ) : ?Role {
         $db     = static::$DB;
-        $table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+        $table  = TableName::PRINCIPAL_ROLES->table();
                 
         $subject_type   = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
         $sbj_owner_id   = $subject ? $subject->get_id() : $actor->get_id();
@@ -441,7 +440,7 @@ class ContextServiceProvider extends DataStore {
      */
     public static function get_default_owner( User $user ) : ?Owner {
         $db     = static::$DB;
-        $table  = SMLISER_OWNERS_TABLE;
+        $table  = TableName::RESOURCE_OWNERS->table();
         $sql    = static::query()
             ->select( 'id' )->from( $table )
             ->where( 'subject_id', '=', $user->get_id() )
@@ -495,7 +494,7 @@ class ContextServiceProvider extends DataStore {
                 throw new InvalidArgumentException( 'The role assigned to this member does not exist.' );
             }
 
-            $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+            $table  = TableName::ORGANIZATION_MEMBERS->table();
             $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
             $exists_sql = static::query()
@@ -537,7 +536,7 @@ class ContextServiceProvider extends DataStore {
      * @return OrganizationMembers
      */
     public static function get_organization_members( Organization $organization ): OrganizationMembers {
-        $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+        $table  = TableName::ORGANIZATION_MEMBERS->table();
         $db     = static::$DB;
 
         $sql    = static::query()
@@ -575,7 +574,7 @@ class ContextServiceProvider extends DataStore {
      * @return Organization[]|null
      */
     public static function get_user_organizations( User $user ) : ?array {
-        $table  = SMLISER_ORGANIZATIONS_TABLE;
+        $table  = TableName::ORGANIZATIONS->table();
         $db     = static::$DB;
 
         $sql    = static::query()
@@ -621,7 +620,7 @@ class ContextServiceProvider extends DataStore {
                 );
             }
             $db     = static::$DB;
-            $table  = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+            $table  = TableName::ORGANIZATION_MEMBERS->table();
 
             $deleted    = $db->delete( $table, [
                 'id'                => $member->get_id(),
@@ -710,11 +709,11 @@ class ContextServiceProvider extends DataStore {
         }
 
         $db                     = static::$DB;
-        $users_table            = SMLISER_USERS_TABLE;
-        $organizations_table    = SMLISER_ORGANIZATIONS_TABLE;
-        $org_members_table      = SMLISER_ORGANIZATION_MEMBERS_TABLE;
-        $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
-        $owners_table           = SMLISER_OWNERS_TABLE;
+        $users_table            = TableName::USERS->table();
+        $organizations_table    = TableName::ORGANIZATIONS->table();
+        $org_members_table      = TableName::ORGANIZATION_MEMBERS->table();
+        $service_accounts_table = TableName::SERVICE_ACCOUNTS->table();
+        $owners_table           = TableName::RESOURCE_OWNERS->table();
 
         try {
             $counts_sql = static::query()
@@ -832,11 +831,11 @@ class ContextServiceProvider extends DataStore {
      */
     public static function delete_user( User $user ) : bool {
         return static::$DB->transactional( function ( Database $db ) use ( $user ) {
-            $users_table            = SMLISER_USERS_TABLE;
-            $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
-            $resource_owners_table  = SMLISER_OWNERS_TABLE;
-            $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
-            $org_member_table       = SMLISER_ORGANIZATION_MEMBERS_TABLE;
+            $users_table            = TableName::USERS->table();
+            $role_assignment_table  = TableName::PRINCIPAL_ROLES->table();
+            $resource_owners_table  = TableName::RESOURCE_OWNERS->table();
+            $service_accounts_table = TableName::SERVICE_ACCOUNTS->table();
+            $org_member_table       = TableName::ORGANIZATION_MEMBERS->table();
 
             $lock_sql = static::query()
                 ->select( 'id' )->from( $users_table )
@@ -922,11 +921,11 @@ class ContextServiceProvider extends DataStore {
      */
     public static function delete_organization( Organization $organization ) : bool {
         return static::$DB->transactional( function ( Database $db ) use ( $organization ) {
-            $org_table              = SMLISER_ORGANIZATIONS_TABLE;
-            $org_member_table       = SMLISER_ORGANIZATION_MEMBERS_TABLE;
-            $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
-            $resource_owners_table  = SMLISER_OWNERS_TABLE;
-            $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
+            $org_table              = TableName::ORGANIZATIONS->table();
+            $org_member_table       = TableName::ORGANIZATION_MEMBERS->table();
+            $role_assignment_table  = TableName::PRINCIPAL_ROLES->table();
+            $resource_owners_table  = TableName::RESOURCE_OWNERS->table();
+            $service_accounts_table = TableName::SERVICE_ACCOUNTS->table();
 
             $org_id = $organization->get_id();
 
@@ -1014,8 +1013,8 @@ class ContextServiceProvider extends DataStore {
      */
     public static function delete_service_account( ServiceAccount $service_account ) : bool {
         return static::$DB->transactional( function ( Database $db ) use ( $service_account ) {
-            $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
-            $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+            $service_accounts_table = TableName::SERVICE_ACCOUNTS->table();
+            $role_assignment_table  = TableName::PRINCIPAL_ROLES->table();
 
             $sa_id = $service_account->get_id();
 
@@ -1052,9 +1051,9 @@ class ContextServiceProvider extends DataStore {
     public static function delete_resource_owner( Owner $owner ) : bool {
         $owner_id   = $owner->get_id();
         return static::$DB->transactional( function ( Database $db ) use ( $owner_id ) {
-            $resource_owners_table  = SMLISER_OWNERS_TABLE;
-            $service_accounts_table = SMLISER_SERVICE_ACCOUNTS_TABLE;
-            $role_assignment_table  = SMLISER_ROLE_ASSIGNMENT_TABLE;
+            $resource_owners_table  = TableName::RESOURCE_OWNERS->table();
+            $service_accounts_table = TableName::SERVICE_ACCOUNTS->table();
+            $role_assignment_table  = TableName::PRINCIPAL_ROLES->table();
 
             $lock_sql = static::query()
                 ->select( 'id' )->from( $resource_owners_table )
@@ -1136,8 +1135,8 @@ class ContextServiceProvider extends DataStore {
      */
     protected static function get_entity_table( string $type ) : ?string {
         return match ( $type ) {
-            Owner::TYPE_ORGANIZATION        => SMLISER_ORGANIZATIONS_TABLE,
-            Owner::TYPE_INDIVIDUAL, 'user'  => SMLISER_USERS_TABLE,
+            Owner::TYPE_ORGANIZATION        => TableName::ORGANIZATIONS->table(),
+            Owner::TYPE_INDIVIDUAL, 'user'  => TableName::USERS->table(),
             default                         => null,
         };
     }
@@ -1154,9 +1153,9 @@ class ContextServiceProvider extends DataStore {
     public static function get_platform_admins() : array {
         $db  = static::$DB;
         $sql = static::query()
-            ->select( 'u.*' )->from( SMLISER_USERS_TABLE . ' u' )
-            ->left_join( SMLISER_ROLE_ASSIGNMENT_TABLE . ' ra', 'ra.principal_id', '=', 'u.id' )
-            ->left_join( SMLISER_ROLES_TABLE . ' r', 'ra.role_id', '=', 'r.id' )
+            ->select( 'u.*' )->from( TableName::USERS->table() . ' u' )
+            ->left_join( TableName::PRINCIPAL_ROLES->table() . ' ra', 'ra.principal_id', '=', 'u.id' )
+            ->left_join( TableName::ROLES->table() . ' r', 'ra.role_id', '=', 'r.id' )
             ->where( 'ra.principal_type', '=', Owner::TYPE_INDIVIDUAL )
             ->where( 'ra.owner_subject_type', '=', Owner::TYPE_INDIVIDUAL )
             ->where_column( 'ra.owner_subject_id', '=', 'ra.principal_id' )
@@ -1176,9 +1175,9 @@ class ContextServiceProvider extends DataStore {
     public static function get_organization_admins( Organization $organization ) : array {
         $db  = static::$DB;
         $sql = static::query()
-            ->select( 'u.*' )->from( SMLISER_USERS_TABLE . ' u' )
-            ->left_join( SMLISER_ROLE_ASSIGNMENT_TABLE . ' ra', 'ra.principal_id', '=', 'u.id' )
-            ->left_join( SMLISER_ROLES_TABLE . ' r', 'ra.role_id', '=', 'r.id' )
+            ->select( 'u.*' )->from( TableName::USERS->table() . ' u' )
+            ->left_join( TableName::PRINCIPAL_ROLES->table() . ' ra', 'ra.principal_id', '=', 'u.id' )
+            ->left_join( TableName::ROLES->table() . ' r', 'ra.role_id', '=', 'r.id' )
             ->where( 'ra.principal_type', '=', Owner::TYPE_INDIVIDUAL )
             ->where( 'ra.owner_subject_type', '=', Owner::TYPE_ORGANIZATION )
             ->where( 'ra.owner_subject_id', '=', $organization->get_id() )

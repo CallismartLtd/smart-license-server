@@ -19,6 +19,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Analytics;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Core\Dates\TimestampValue;
@@ -59,7 +60,7 @@ class PruneAnalyticsLogsJob implements JobHandlerInterface {
         $cutoff         = TimestampValue::now()->subtractDays( $retention_days )->format( 'Y-m-d H:i:s' );
 
         $sql    = \smliserQueryBuilder( $this->db->get_driver() )
-            ->delete( SMLISER_ANALYTICS_LOGS_TABLE )
+            ->delete( TableName::ANALYTICS_LOG->table() )
             ->where( 'created_at', '<', $cutoff );
 
         $affected = (int) $this->db->execute( $sql->build(), $sql->get_bindings() );

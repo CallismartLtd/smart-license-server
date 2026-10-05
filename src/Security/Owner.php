@@ -8,19 +8,17 @@
 
 namespace SmartLicenseServer\Security;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
-use SmartLicenseServer\Utils\CommonQueryTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use DateMalformedStringException;
 use DateTimeZone;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\DatabaseException;
-use SmartLicenseServer\Schema\SchemaRegistry;
 
-use const SMLISER_OWNERS_TABLE;
 use function array_key_exists,
 sprintf;
 
@@ -357,7 +355,7 @@ class Owner extends DataStore {
      */
     public function save() : bool {
         return (bool) static::$DB->transactional( function( Database $db ) {
-            $table  = SMLISER_OWNERS_TABLE;
+            $table  = TableName::RESOURCE_OWNERS->table();
             $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
             $data   = [
@@ -416,7 +414,7 @@ class Owner extends DataStore {
         static $owners = [];
 
         if ( ! array_key_exists( $id, $owners ) ) {
-            $data           = static::fetch_by( 'id', $id, SMLISER_OWNERS_TABLE );
+            $data           = static::fetch_by( 'id', $id, TableName::RESOURCE_OWNERS->table() );
             $owners[ $id ]  = $data ? static::from_array( $data ) : null;
         }
 
@@ -436,7 +434,7 @@ class Owner extends DataStore {
         $key    = "$subject_id:$owner_type";
 
         if ( ! array_key_exists( $key, $owners ) ) {
-            $table  = SMLISER_OWNERS_TABLE;
+            $table  = TableName::RESOURCE_OWNERS->table();
             $sql    = static::query()
                 ->select( '*' )->from( $table )
                 ->where( 'subject_id', '=', $subject_id )
@@ -462,7 +460,7 @@ class Owner extends DataStore {
     public static function get_all( int $page = 1, $limit = 25 ) : array {
         return array_map(
             [static::class, 'from_array'],
-            static::fetch( SMLISER_OWNERS_TABLE, $page, $limit )
+            static::fetch( TableName::RESOURCE_OWNERS->table(), $page, $limit )
         );
     }
 
@@ -477,7 +475,7 @@ class Owner extends DataStore {
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $table  = SMLISER_OWNERS_TABLE;
+            $table  = TableName::RESOURCE_OWNERS->table();
 
             $sql    = static::query()
                 ->select( 'COUNT(*)' )->from( $table )
@@ -504,7 +502,7 @@ class Owner extends DataStore {
      * @return static
      */
     public static function from_array( array $data ) : static {
-        return static::from_array_helper( SMLISER_OWNERS_TABLE, $data );
+        return static::from_array_helper( TableName::RESOURCE_OWNERS->table(), $data );
     }
 
     /**

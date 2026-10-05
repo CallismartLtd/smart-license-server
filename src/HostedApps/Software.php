@@ -12,6 +12,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\FileSystem\SoftwareRepository;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
@@ -24,16 +25,16 @@ class Software extends AbstractHostedApp {
     /**
      * The database table for software.
      * 
-     * @var string
+     * @var TableName
      */
-    const TABLE = \SMLISER_SOFTWARE_TABLE;
+    const MAIN = TableName::SOFTWARE;
 
     /**
      * The software metadata table
      * 
-     * @var string
+     * @var TableName
      */
-    const META_TABLE    = SMLISER_SOFTWARE_META_TABLE;
+    const META  = TableName::SOFTWARE_META;
 
     /**
      * Software cover URL
@@ -62,7 +63,7 @@ class Software extends AbstractHostedApp {
      * @return string Database table name.
      */
     public static function get_db_table() : string {
-        return self::TABLE;
+        return static::MAIN->table();
     }
 
     /**
@@ -80,7 +81,7 @@ class Software extends AbstractHostedApp {
      * @return string Metadata table name.
      */
     public static function get_db_meta_table() : string {
-        return self::META_TABLE;
+        return self::META->table();
     }
 
     /**

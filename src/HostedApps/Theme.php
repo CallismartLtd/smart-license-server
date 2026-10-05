@@ -13,6 +13,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\ThemeRepository;
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Utils\Format;
 
 /**
@@ -22,16 +23,16 @@ class Theme extends AbstractHostedApp {
     /**
      * The database table for themes.
      * 
-     * @var string
+     * @var TableName
      */
-    const TABLE = SMLISER_THEMES_TABLE;
+    const MAIN = TableName::THEMES;
 
     /**
      * The theme metadata table
      * 
-     * @var string
+     * @var TableName
      */
-    const META_TABLE    = SMLISER_THEMES_META_TABLE;
+    const META  = TableName::THEME_META;
 
     /**
      * WordPress version requirement.
@@ -217,7 +218,7 @@ class Theme extends AbstractHostedApp {
      * @return string
      */
     public static function get_db_table() : string {
-        return self::TABLE;
+        return static::MAIN->table();
     }
 
     /**
@@ -235,7 +236,7 @@ class Theme extends AbstractHostedApp {
      * @return string
      */
     public static function get_db_meta_table() : string {
-        return self::META_TABLE;
+        return self::META->table();
     }
 
     /**

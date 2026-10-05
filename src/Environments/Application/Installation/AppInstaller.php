@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Installation;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Adapters\Contracts\DatabaseAdapterInterface;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
@@ -935,13 +936,13 @@ class AppInstaller {
     public function has_users() : bool {
         $this->assert_database_connection();
 
-        if ( ! ( new Inspector( $this->db ) )->table_exists( \SMLISER_USERS_TABLE ) ) {
+        if ( ! ( new Inspector( $this->db ) )->table_exists( TableName::USERS->table() ) ) {
             return false;
         }
 
         $sql   = \smliserQueryBuilder( $this->db->get_driver() )
             ->select( 'COUNT(*)' )
-            ->from( \SMLISER_USERS_TABLE );
+            ->from( TableName::USERS->table() );
         $count = $this->db->get_var( $sql->build(), $sql->get_bindings() );
 
         if ( null === $count && $this->db->get_last_error() ) {
@@ -1240,7 +1241,7 @@ class AppInstaller {
     protected function installed_role_slugs() : array {
         $sql   = \smliserQueryBuilder( $this->db->get_driver() )
             ->select( 'slug' )
-            ->from( \SMLISER_ROLES_TABLE );
+            ->from( TableName::ROLES->table() );
         return array_map( 'strval', $this->db->get_col( $sql->build(), $sql->get_bindings() ) );
     }
 

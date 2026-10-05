@@ -74,10 +74,10 @@ class SchemaRegistry extends AbstractRegistry {
      * names resolved afterwards use the new prefix in the same process.
      *
      * @param string $prefix Letters, digits and underscores; may be empty.
-     * @return void
+     * @return static
      * @throws InvalidArgumentException When the prefix contains other characters.
      */
-    public function set_prefix( string $prefix ) : void {
+    public function set_prefix( string $prefix ) : static {
         if ( 1 !== preg_match( '/^[A-Za-z0-9_]*$/', $prefix ) ) {
             throw new InvalidArgumentException(
                 sprintf( 'SchemaRegistry: invalid table prefix "%s". Use letters, digits and underscores only.', $prefix )
@@ -85,6 +85,7 @@ class SchemaRegistry extends AbstractRegistry {
         }
 
         $this->prefix = $prefix;
+        return $this;
     }
 
     /**

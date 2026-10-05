@@ -10,6 +10,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Messaging;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use Callismart\DBPrism\Query\SQLBuilder;
@@ -144,8 +145,8 @@ class BulkMessageService extends DataStore {
         }
 
         $result = (bool) static::$DB->transactional( function( Database $db ) {
-            $msg_table       = SMLISER_BULK_MESSAGES_TABLE;
-            $msgs_apps_table = SMLISER_BULK_MESSAGES_APPS_TABLE;
+            $msg_table       = TableName::BULK_MESSAGES->table();
+            $msgs_apps_table = TableName::BULK_MESSAGES_APPS->table();
 
             $deleted    = $db->delete( $msg_table, [ 'id' => $this->message->get_id() ] );
 
@@ -213,7 +214,7 @@ class BulkMessageService extends DataStore {
      */
     public function get_all( array $args = [] ) : array {
         $db = static::$DB;
-        $table = SMLISER_BULK_MESSAGES_TABLE;
+        $table = TableName::BULK_MESSAGES->table();
 
         $page   = (int) max( 1, (int) ( $args['page'] ?? 1 ) );
         $limit  = (int) max( 1, (int) ( $args['limit'] ?? 30 ) );
@@ -276,8 +277,8 @@ class BulkMessageService extends DataStore {
         $app_type   = (string) ( $args['app_type'] ?? '' );
         $app_slug   = (string) ( $args['app_slug'] ?? '' );
 
-        $msg_table          = SMLISER_BULK_MESSAGES_TABLE;
-        $msgs_apps_table    = SMLISER_BULK_MESSAGES_APPS_TABLE;
+        $msg_table          = TableName::BULK_MESSAGES->table();
+        $msgs_apps_table    = TableName::BULK_MESSAGES_APPS->table();
 
         // ---- Total Count Pipeline via Abstract Joins ----
         $count_query = $this->query()
@@ -342,8 +343,8 @@ class BulkMessageService extends DataStore {
             ];
         }
 
-        $msg_table   = SMLISER_BULK_MESSAGES_TABLE;
-        $assoc_table = SMLISER_BULK_MESSAGES_APPS_TABLE;
+        $msg_table   = TableName::BULK_MESSAGES->table();
+        $assoc_table = TableName::BULK_MESSAGES_APPS->table();
 
         // Shared baseline builder criteria block to decouple query synthesis
         $apply_constraints = function( $query ) use ( $app_slugs, $app_types ) {
@@ -414,7 +415,7 @@ class BulkMessageService extends DataStore {
         $page   = max( 1, (int) ( $args['page'] ?? 1 ) );
         $limit  = max( 1, (int) ( $args['limit'] ?? 20 ) );
         $offset = ( $page - 1 ) * $limit;
-        $table  = SMLISER_BULK_MESSAGES_TABLE;
+        $table  = TableName::BULK_MESSAGES->table();
 
         $apply_search = function( $query ) use ( $search ) {
             if ( '' !== $search ) {
@@ -464,7 +465,7 @@ class BulkMessageService extends DataStore {
     private function load_associated_apps( $message_id ) {
         $db = static::$DB;
 
-        $table = SMLISER_BULK_MESSAGES_APPS_TABLE;
+        $table = TableName::BULK_MESSAGES_APPS->table();
 
         $sql    = $this->query()
             ->select( 'app_type', 'app_slug' )->from( $table )
@@ -507,8 +508,9 @@ class BulkMessageService extends DataStore {
         }
 
         if ( ! empty( $msg->get_message_id() ) ) {
-            $assos_apps    = $this->load_associated_apps( $msg->get_message_id() );
-            $msg->set_associated_apps( $assos_apps );
+            $msg->set_associated_apps(
+                $this->load_associated_apps( $msg->get_message_id() )
+            );
         }
         
         return $msg;

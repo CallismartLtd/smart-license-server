@@ -10,6 +10,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Schema\Definitions;
 
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Schema\DatabaseSchemaInterface;
 use Callismart\DBPrism\Utils\Column;
 use Callismart\DBPrism\Utils\Constraint;
@@ -31,7 +32,7 @@ class RoleAssignmentSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_table_name() : string {
-        return SMLISER_ROLE_ASSIGNMENT_TABLE;
+        return TableName::PRINCIPAL_ROLES->value;
     }
 
     public static function get_columns() : array {

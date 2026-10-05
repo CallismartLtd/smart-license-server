@@ -11,6 +11,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Adapters\Contracts\DatabaseAdapterInterface;
 use Callismart\DBPrism\Adapters\NullDBAdapter;
 use Callismart\DBPrism\Database;
@@ -44,6 +45,7 @@ use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
+use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\Providers\Options;
 use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
@@ -106,6 +108,11 @@ abstract class Environment {
         $this->container->singleton(
             RuntimeConfig::class,
             $this->runtime
+        );
+
+        $this->container->singleton(
+            SchemaRegistry::class,
+            SchemaRegistry::instance()->set_prefix( $this->runtime->db_table_prefix )
         );
 
         $this->container->singleton(
@@ -262,8 +269,8 @@ abstract class Environment {
             fn ( Container $c ) : DatabaseJobStorageAdapter =>
                 new DatabaseJobStorageAdapter(
                     $c->get( Database::class ),
-                    \SMLISER_BACKGROUND_JOBS_TABLE,
-                    \SMLISER_FAILED_JOBS_TABLE
+                    TableName::BACKGROUND_JOBS->table(),
+                    TableName::FAILED_JOBS->table()
                 )
         );
 

@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Analytics;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
@@ -57,7 +58,7 @@ class LogClientAccessJob implements JobHandlerInterface {
         }
 
         // Insert the raw analytics log entry.
-        $inserted = $this->db->insert( SMLISER_ANALYTICS_LOGS_TABLE, [
+        $inserted = $this->db->insert( TableName::ANALYTICS_LOG->table(), [
             'app_type'    => $app_type,
             'app_slug'    => $app_slug,
             'event_type'  => $event_type,

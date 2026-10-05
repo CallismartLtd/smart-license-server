@@ -10,6 +10,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Schema\Definitions;
 
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Schema\DatabaseSchemaInterface;
 use Callismart\DBPrism\Utils\Column;
 use Callismart\DBPrism\Utils\Constraint;
@@ -40,7 +41,7 @@ class OrganizationMembersSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_table_name() : string {
-        return SMLISER_ORGANIZATION_MEMBERS_TABLE;
+        return TableName::ORGANIZATION_MEMBERS->value;
     }
 
     /**

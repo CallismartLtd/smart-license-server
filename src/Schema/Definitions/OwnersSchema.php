@@ -6,6 +6,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Schema\Definitions;
 
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Schema\DatabaseSchemaInterface;
 use Callismart\DBPrism\Utils\Column;
 use Callismart\DBPrism\Utils\Constraint;
@@ -22,7 +23,7 @@ class OwnersSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_table_name() : string {
-        return SMLISER_OWNERS_TABLE;
+        return TableName::RESOURCE_OWNERS->value;
     }
 
     public static function get_columns() : array {

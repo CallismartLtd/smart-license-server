@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\SettingsAPI;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Security\Actors\User;
@@ -58,7 +59,7 @@ class UserSettings extends DataStore {
         }
 
         $sql    = smliserQueryBuilder( static::$DB->get_driver() )
-            ->select( 'option_key', 'option_value' )->from( SMLISER_USER_OPTIONS_TABLE )
+            ->select( 'option_key', 'option_value' )->from( TableName::USER_OPTIONS->table() )
             ->where( 'user_id', '=', $this->user->get_id() );
 
         $results = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
@@ -99,7 +100,7 @@ class UserSettings extends DataStore {
      * Delete a single option.
      */
     public function delete( string $name ) : bool {
-        $table      = SMLISER_USER_OPTIONS_TABLE;
+        $table      = TableName::USER_OPTIONS->table();
         $user_id    = $this->user->get_id();
 
         $deleted = static::$DB->delete( $table, [
@@ -118,7 +119,7 @@ class UserSettings extends DataStore {
      * Delete all options for the user.
      */
     public function delete_all() : bool {
-        $table   = SMLISER_USER_OPTIONS_TABLE;
+        $table   = TableName::USER_OPTIONS->table();
         $user_id = $this->user->get_id();
 
         $deleted = (int) static::$DB->delete( $table, [
@@ -139,7 +140,7 @@ class UserSettings extends DataStore {
      * @return bool
      */
     public function insert_or_update( Database $db ) : bool {
-        $table      = SMLISER_USER_OPTIONS_TABLE;
+        $table      = TableName::USER_OPTIONS->table();
         $user_id    = $this->user->get_id();
 
         $name       = $this->current_data['name'];

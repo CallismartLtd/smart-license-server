@@ -24,6 +24,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Apps;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
@@ -85,7 +86,7 @@ class NotifyAppUpdateJob implements JobHandlerInterface {
         ];
 
         $sql    = \smliserQueryBuilder( $this->db->get_driver() )
-            ->select( '*' )->from( SMLISER_LICENSE_TABLE )
+            ->select( '*' )->from( TableName::LICENSES->table() )
             ->where( 'app_prop', '=', $app_prop )
             ->where_not_in( 'status', $terminal );
 

@@ -8,11 +8,11 @@
 
 namespace SmartLicenseServer\Security\Authentication\IdentityProviders;
 
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Security\Actors\ActorInterface;
 use SmartLicenseServer\Security\Actors\User;
 
-use const SMLISER_IDENTITY_FEDERATION_TABLE;
 
 /**
  * Provides abstract implementation and shared method for identity provision.
@@ -30,7 +30,7 @@ abstract class AbstractIdentityProvider extends DataStore implements IdentityPro
      */
     protected function find_actor( string $issuer, string $external_id ) : ?ActorInterface {
 
-        $table = SMLISER_IDENTITY_FEDERATION_TABLE;
+        $table = TableName::IDENTITY_PROVIDER_LOOKUP->table();
 
         $sql    = static::query()
             ->select( 'user_id' )
@@ -58,7 +58,7 @@ abstract class AbstractIdentityProvider extends DataStore implements IdentityPro
 
         $sql    = static::query()
             ->select( 'external_id' )
-            ->from( SMLISER_IDENTITY_FEDERATION_TABLE )
+            ->from( TableName::IDENTITY_PROVIDER_LOOKUP->table() )
             ->where( 'issuer', '=', $issuer )
             ->where( 'user_id', '=', $user_id );
 
@@ -85,7 +85,7 @@ abstract class AbstractIdentityProvider extends DataStore implements IdentityPro
         }
 
         $inserted   = static::$DB->insert(
-            SMLISER_IDENTITY_FEDERATION_TABLE,
+            TableName::IDENTITY_PROVIDER_LOOKUP->table(),
             [
                 'user_id'       => $user_id,
                 'issuer'        => $issuer,
@@ -122,7 +122,7 @@ abstract class AbstractIdentityProvider extends DataStore implements IdentityPro
         }
 
         $deleted = static::$DB->delete(
-            SMLISER_IDENTITY_FEDERATION_TABLE,
+            TableName::IDENTITY_PROVIDER_LOOKUP->table(),
             [ $column => $value ]
         );
 

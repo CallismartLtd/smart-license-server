@@ -10,6 +10,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Schema\Definitions;
 
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Schema\DatabaseSchemaInterface;
 use Callismart\DBPrism\Utils\Column;
 use Callismart\DBPrism\Utils\Constraint;
@@ -41,7 +42,7 @@ class IdentityFederationSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_table_name() : string {
-        return SMLISER_IDENTITY_FEDERATION_TABLE;
+        return TableName::IDENTITY_PROVIDER_LOOKUP->value;
     }
 
     /**

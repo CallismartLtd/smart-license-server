@@ -6,6 +6,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Schema\Definitions;
 
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Schema\DatabaseSchemaInterface;
 use Callismart\DBPrism\Utils\Column;
 use Callismart\DBPrism\Utils\Constraint;
@@ -25,7 +26,7 @@ class PricingTierSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_table_name() : string {
-        return SMLISER_PRICING_TIER_TABLE;
+        return TableName::PRICING_TIERS->value;
     }
 
     public static function get_columns() : array {
@@ -81,7 +82,7 @@ class PricingTierSchema implements DatabaseSchemaInterface {
             Constraint::index( "{$prefx}monetization_id_index" )->on( 'monetization_id' ),
             Constraint::foreign_key( "{$prefx}monetization_fk" )
                 ->on( 'monetization_id' )
-                ->references( SMLISER_MONETIZATION_TABLE, 'id' )
+                ->references( TableName::MONETIZATION->value, 'id' )
                 ->on_delete( 'CASCADE' )
         ];
     }

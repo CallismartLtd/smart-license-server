@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Security\OwnerSubjects;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use DateMalformedStringException;
 use \DateTimeImmutable;
@@ -20,7 +21,6 @@ use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 
-use const SMLISER_ORGANIZATIONS_TABLE;
 
 /**
  * Canonical representation of an organization.
@@ -282,7 +282,7 @@ class Organization extends DataStore implements OwnerSubjectInterface {
         static $orgs = [];
 
         if ( ! array_key_exists( $id, $orgs ) ) {
-            $data           = static::fetch_by( 'id', $id, SMLISER_ORGANIZATIONS_TABLE );
+            $data           = static::fetch_by( 'id', $id, TableName::ORGANIZATIONS->table() );
             $orgs[ $id ]    = $data ? static::from_array( $data ) : null;
         }
 
@@ -297,7 +297,7 @@ class Organization extends DataStore implements OwnerSubjectInterface {
      */
     public function save() : bool|Exception {
         return static::$DB->transactional( function( Database $db ) {
-            $table          = SMLISER_ORGANIZATIONS_TABLE;
+            $table          = TableName::ORGANIZATIONS->table();
             $exists_by_slug = self::fetch_by( 'slug', $this->get_slug(), $table );
 
             if ( $exists_by_slug && ! $this->exists() ) {
@@ -350,7 +350,7 @@ class Organization extends DataStore implements OwnerSubjectInterface {
     public static function get_all( int $page, int $limit ) : array {
         return array_map(
             [static::class, 'from_array'],
-            self::fetch( SMLISER_ORGANIZATIONS_TABLE, $page, $limit )
+            self::fetch( TableName::ORGANIZATIONS->table(), $page, $limit )
         );
     }
 
@@ -365,7 +365,7 @@ class Organization extends DataStore implements OwnerSubjectInterface {
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $table  = SMLISER_ORGANIZATIONS_TABLE;
+            $table  = TableName::ORGANIZATIONS->table();
 
             $sql    = static::query()
                 ->select( 'COUNT(*)' )->from( $table )
@@ -392,7 +392,7 @@ class Organization extends DataStore implements OwnerSubjectInterface {
      * @return static
      */
     public static function from_array( array $data ) : static {
-        return static::from_array_helper( SMLISER_ORGANIZATIONS_TABLE, $data );
+        return static::from_array_helper( TableName::ORGANIZATIONS->table(), $data );
     }
 
     /**

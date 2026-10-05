@@ -108,11 +108,40 @@ foreach ( $iterator as $file ) {
 	);
 
 	// 2. Replace code references, token by token (strings and comments untouched).
-	$out = '';
+	$out          = '';
+	$statement    = array(); // Significant tokens since the last ;, { or }.
+	$parens       = 0;
+	$await_params = false;   // A function or fn keyword was seen; its "(" opens the parameter list.
+	$param_depth  = null;    // Parenthesis depth of the open parameter list, if any.
 
 	foreach ( token_get_all( $source ) as $token ) {
 		if ( ! is_array( $token ) ) {
 			$out .= $token;
+
+			if ( in_array( $token, array( ';', '{', '}' ), true ) ) {
+				$statement    = array();
+				$parens       = 0;
+				$await_params = false;
+				$param_depth  = null;
+			} else {
+				if ( '(' === $token ) {
+					$parens++;
+
+					if ( $await_params ) {
+						$param_depth  = $parens;
+						$await_params = false;
+					}
+				} elseif ( ')' === $token ) {
+					if ( null !== $param_depth && $parens === $param_depth ) {
+						$param_depth = null; // Parameter list closed; an arrow function body may follow.
+					}
+
+					$parens--;
+				}
+
+				$statement[] = $token;
+			}
+
 			continue;
 		}
 
@@ -120,9 +149,27 @@ foreach ( $iterator as $file ) {
 		$name = ltrim( $text, '\\' );
 
 		if ( ( T_STRING === $id || T_NAME_FULLY_QUALIFIED === $id ) && isset( MAP[ $name ] ) ) {
+			// ->table() is a method call, which PHP does not allow in constant
+			// expressions; ->value (schema files) is allowed there.
+			if ( ! $is_schema && in_constant_expression( $statement, null !== $param_depth ) ) {
+				$notes[]     = sprintf( 'line %d: %s is a const, property or parameter default; a method call is not allowed there. Resolve the name at runtime instead.', $line, $name );
+				$out        .= $text;
+				$statement[] = $id;
+				continue;
+			}
+
 			$out .= 'TableName::' . MAP[ $name ] . ( $is_schema ? '->value' : '->table()' );
 			$replaced++;
+			$statement[] = $id;
 			continue;
+		}
+
+		if ( T_FUNCTION === $id || T_FN === $id ) {
+			$await_params = true;
+		}
+
+		if ( ! in_array( $id, array( T_WHITESPACE, T_COMMENT, T_DOC_COMMENT ), true ) ) {
+			$statement[] = $id;
 		}
 
 		if ( in_array( $id, array( T_CONSTANT_ENCAPSED_STRING, T_ENCAPSED_AND_WHITESPACE, T_COMMENT, T_DOC_COMMENT ), true )
@@ -183,3 +230,36 @@ printf(
 	$warnings,
 	$write ? '' : ' Dry run: nothing was written; add --write to apply.'
 );
+
+/**
+ * Whether the current position is a constant expression: a const, a property
+ * or static variable default, or a parameter default.
+ *
+ * @param array<int, int|string> $statement     Token IDs (or single-character tokens) since the last ;, { or }.
+ * @param bool                   $in_parameters Whether a function's parameter list is open.
+ * @return bool
+ */
+function in_constant_expression( array $statement, bool $in_parameters ) : bool {
+	if ( $in_parameters || in_array( T_CONST, $statement, true ) ) {
+		return true;
+	}
+
+	// Property or static variable default: modifiers, optional type, $name, =.
+	$modifiers = array( T_PUBLIC, T_PROTECTED, T_PRIVATE, T_STATIC, T_VAR, T_READONLY );
+
+	if ( array() === $statement || ! in_array( $statement[0], $modifiers, true ) ) {
+		return false;
+	}
+
+	foreach ( $statement as $token ) {
+		if ( T_DOUBLE_COLON === $token || T_OBJECT_OPERATOR === $token || T_FUNCTION === $token || T_FN === $token ) {
+			return false; // static::$x, static::method(), static function …
+		}
+
+		if ( '=' === $token ) {
+			return in_array( T_VARIABLE, $statement, true );
+		}
+	}
+
+	return false;
+}

@@ -10,6 +10,7 @@
 
 namespace SmartLicenseServer\Security\Actors;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -21,7 +22,6 @@ use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
-use const SMLISER_SERVICE_ACCOUNTS_TABLE;
 
 /**
  * Represents a service account that can act as a Principal.
@@ -414,7 +414,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
      */
     public function save() : bool {
         return (bool) static::$DB->transactional( function( Database $db ) {
-            $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
+            $table  = TableName::SERVICE_ACCOUNTS->table();
             $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
             $data = [
@@ -474,7 +474,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
         static $accounts = [];
 
         if ( ! array_key_exists( $id, $accounts ) ) {
-            $data               = static::fetch_by( 'id', $id, SMLISER_SERVICE_ACCOUNTS_TABLE );
+            $data               = static::fetch_by( 'id', $id, TableName::SERVICE_ACCOUNTS->table() );
             $accounts[ $id ]    = $data ? static::from_array( $data ) : null;
         }
 
@@ -491,7 +491,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
     public static function get_all( int $page = 1, int $limit = 25 ) : array {
         return \array_map(
             [static::class, 'from_array'],
-            static::fetch( SMLISER_SERVICE_ACCOUNTS_TABLE, $page, $limit )
+            static::fetch( TableName::SERVICE_ACCOUNTS->table(), $page, $limit )
         );
     }
 
@@ -506,7 +506,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $table  = SMLISER_SERVICE_ACCOUNTS_TABLE;
+            $table  = TableName::SERVICE_ACCOUNTS->table();
 
             $sql    = static::query()
                 ->select( 'COUNT(*)' )->from( $table )
@@ -533,7 +533,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
      * @return static
      */
     public static function from_array( array $data ) : static {
-        return static::from_array_helper( SMLISER_SERVICE_ACCOUNTS_TABLE, $data );
+        return static::from_array_helper( TableName::SERVICE_ACCOUNTS->table(), $data );
     }
 
     public function get_type() : string {
@@ -648,7 +648,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
         }
 
         // Hydrate ServiceAccount.
-        $data = static::fetch_by( 'identifier', $payload['sa_id'], SMLISER_SERVICE_ACCOUNTS_TABLE );
+        $data = static::fetch_by( 'identifier', $payload['sa_id'], TableName::SERVICE_ACCOUNTS->table() );
         $sa     = $data ? static::from_array( $data ) : null;
         
         if ( ! $sa ) {

@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Security\Actors;
 
+use SmartLicenseServer\Schema\TableName;
 use DateTimeImmutable;
 use DateTimeZone;
 use SmartLicenseServer\Core\DataStore;
@@ -16,7 +17,6 @@ use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
-use const SMLISER_USERS_TABLE;
 
 /**
  * Canonical representation of a human actor in the system.
@@ -307,7 +307,7 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
         static $users = [];
 
         if ( ! array_key_exists( $id, $users ) ) {
-            $data           = static::fetch_by( 'id', $id, SMLISER_USERS_TABLE );
+            $data           = static::fetch_by( 'id', $id, TableName::USERS->table() );
             $users[ $id ]   = $data ? static::from_array( $data ) : null;
         }
 
@@ -338,7 +338,7 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
             unset( $users[ $email ] );
         }
 
-        $data = static::fetch_by( 'email', $email, SMLISER_USERS_TABLE );
+        $data = static::fetch_by( 'email', $email, TableName::USERS->table() );
 
         if ( $data ) {
             $users[ $email ] = [
@@ -364,7 +364,7 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
     public static function get_all( int $page, int $limit ) : array {
         return array_map(
             [static::class, 'from_array'],
-            static::fetch( SMLISER_USERS_TABLE, $page, $limit )
+            static::fetch( TableName::USERS->table(), $page, $limit )
         );
     }
 
@@ -379,7 +379,7 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
         static $statuses    = [];
 
         if ( ! array_key_exists( $status, $statuses ) ) {
-            $table  = SMLISER_USERS_TABLE;
+            $table  = TableName::USERS->table();
 
             $sql    = static::query()
                 ->select( 'COUNT(*)' )->from( $table )
@@ -400,7 +400,7 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
      */
     public function save() : bool {
         return (bool) static::$DB->transactional( function() {
-            $table  = SMLISER_USERS_TABLE;
+            $table  = TableName::USERS->table();
 
             $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
             $fields = array(
@@ -450,7 +450,7 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
      * @return static
      */
     public static function from_array( array $data ) : static {
-        return static::from_array_helper( SMLISER_USERS_TABLE, $data );
+        return static::from_array_helper( TableName::USERS->table(), $data );
     }
 
     /**

@@ -267,17 +267,17 @@ class HostedAppsRegistry extends AbstractRegistry {
             'plugin'    => [
                 'class'             => Plugin::class,
                 'directory_class'   => PluginRepository::class,
-                'table'             => Plugin::TABLE
+                'table'             => Plugin::get_db_table()
             ],
             'theme'     => [
                 'class'             => Theme::class,
                 'directory_class'   => ThemeRepository::class,
-                'table'             => Theme::TABLE
+                'table'             => Theme::get_db_table()
             ],
             'software'  => [
                 'class'             => Software::class,
                 'directory_class'   => SoftwareRepository::class,
-                'table'             => Software::TABLE
+                'table'             => Software::get_db_table()
             ]
         ];
 

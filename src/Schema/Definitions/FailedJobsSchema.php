@@ -10,6 +10,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Schema\Definitions;
 
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Schema\DatabaseSchemaInterface;
 use Callismart\DBPrism\Utils\Column;
 use Callismart\DBPrism\Utils\Constraint;
@@ -46,7 +47,7 @@ class FailedJobsSchema implements DatabaseSchemaInterface {
      * @inheritDoc
      */
     public static function get_table_name() : string {
-        return SMLISER_FAILED_JOBS_TABLE;
+        return TableName::FAILED_JOBS->value;
     }
 
     /**

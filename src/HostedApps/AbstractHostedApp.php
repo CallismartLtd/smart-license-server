@@ -8,6 +8,7 @@
 declare( strict_types=1 );
 namespace SmartLicenseServer\HostedApps;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -855,12 +856,12 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
     /**
      * Method to get the database table name.
      */
-    abstract public static function get_db_table();
+    abstract public static function get_db_table() : string;
 
     /**
      * Method to get the database meta table name.
      */
-    abstract public static function get_db_meta_table();
+    abstract public static function get_db_meta_table() : string;
 
     /**
      * Get the foreign key column name for metadata table
@@ -1473,7 +1474,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
      */
     public function is_monetized() : bool {
         $db         = static::$DB;
-        $table_name = SMLISER_MONETIZATION_TABLE;
+        $table_name = TableName::MONETIZATION->table();
         $query      = static::query()->select( 'COUNT(*)' )->from( $table_name )
             ->where( 'app_type', '=', $this->get_type() )
             ->where( 'app_id', '=', static::sanitize_int( $this->id ) )

@@ -30,6 +30,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Licenses;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
@@ -80,7 +81,7 @@ class NotifyExpiringLicensesJob implements JobHandlerInterface {
         $days_before = max( 1, (int) ( $payload['days_before'] ?? 7 ) );
         $batch_size  = max( 1, (int) ( $payload['batch_size']  ?? 100 ) );
 
-        $table = SMLISER_LICENSE_TABLE;
+        $table = TableName::LICENSES->table();
 
         $start_of_day = TimestampValue::now()
             ->addDays( $days_before )

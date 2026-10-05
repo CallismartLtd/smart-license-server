@@ -9,6 +9,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use SmartLicenseServer\Core\DataStore;
@@ -258,14 +259,14 @@ class Monetization extends DataStore {
             ];
 
             $lock_query = static::query()
-                ->select( 'id' )->from( SMLISER_MONETIZATION_TABLE )
+                ->select( 'id' )->from( TableName::MONETIZATION->table() )
                 ->where( 'id', '=', $this->get_id() )
                 ->limit( 1 )->lock_for_update();
             $id = (int) $db->get_var( $lock_query->build(), $lock_query->get_bindings() );
 
             if ( $id ) {
                 // Update existing record
-                $updated = $db->update( SMLISER_MONETIZATION_TABLE, $data, [ 'id' => $id ] );
+                $updated = $db->update( TableName::MONETIZATION->table(), $data, [ 'id' => $id ] );
 
                 if ( false === $updated ) {
                     return false;
@@ -273,7 +274,7 @@ class Monetization extends DataStore {
 
             } else {
                 $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
-                $inserted           = $db->insert( SMLISER_MONETIZATION_TABLE, $data );
+                $inserted           = $db->insert( TableName::MONETIZATION->table(), $data );
 
                 if ( ! $inserted ) {
                     return false;
@@ -307,8 +308,8 @@ class Monetization extends DataStore {
             return false;
         }
 
-        $monetization_table = SMLISER_MONETIZATION_TABLE;
-        $pricing_tier_table = SMLISER_PRICING_TIER_TABLE;
+        $monetization_table = TableName::MONETIZATION->table();
+        $pricing_tier_table = TableName::PRICING_TIERS->table();
 
         $delete_monetn_sql  = static::query()->delete( $monetization_table  )->where( 'id', '=', $this->id );
         $delete_tiers_sql   = static::query()->delete( $pricing_tier_table )->where( 'monetization_id', '=', $this->id );
@@ -379,7 +380,7 @@ class Monetization extends DataStore {
             return $cache[$id];
         }
 
-        $data   = static::fetch_by( 'id', $id, SMLISER_MONETIZATION_TABLE );
+        $data   = static::fetch_by( 'id', $id, TableName::MONETIZATION->table() );
 
         if ( $data ) {
             $static = static::from_array( $data );
@@ -401,7 +402,7 @@ class Monetization extends DataStore {
      * @return Monetization|null
      */
     public static function get_by_app( $app_type, $app_id ) : ?static {
-        $table  = SMLISER_MONETIZATION_TABLE;
+        $table  = TableName::MONETIZATION->table();
 
         $sql    = static::query()->select( '*' )->from( $table )
             ->where( 'app_type', '=', $app_type )

@@ -6,6 +6,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Schema\Definitions;
 
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Schema\DatabaseSchemaInterface;
 use Callismart\DBPrism\Utils\Column;
 use Callismart\DBPrism\Utils\Constraint;
@@ -25,7 +26,7 @@ class ThemeMetaSchema implements DatabaseSchemaInterface {
     }
 
     public static function get_table_name() : string {
-        return SMLISER_THEMES_META_TABLE;
+        return TableName::THEME_META->value;
     }
 
     public static function get_columns() : array {

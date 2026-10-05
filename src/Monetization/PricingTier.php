@@ -10,6 +10,7 @@
 
 namespace SmartLicenseServer\Monetization;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -344,21 +345,21 @@ class PricingTier extends DataStore {
             ];
 
             $lock_sql   = static::query()
-                ->select( 'id' )->from( \SMLISER_PRICING_TIER_TABLE )
+                ->select( 'id' )->from( TableName::PRICING_TIERS->table() )
                 ->where( 'id', '=', $this->get_id() )
                 ->limit( 1 )->lock_for_update();
             $id = (int) $db->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
 
             if ( $id ) {
                 // Update existing tier.
-                $result = $db->update( SMLISER_PRICING_TIER_TABLE, $data, [ 'id' => $this->id ] );
+                $result = $db->update( TableName::PRICING_TIERS->table(), $data, [ 'id' => $this->id ] );
 
                 $result && $this->set_updated_at( $now );
 
             } else {
                 // Insert new tier.
                 $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
-                $result = $db->insert( SMLISER_PRICING_TIER_TABLE, $data );
+                $result = $db->insert( TableName::PRICING_TIERS->table(), $data );
 
                 $result && 
                     $this->set_id( $db->get_insert_id() )
@@ -389,7 +390,7 @@ class PricingTier extends DataStore {
         }
 
         return (bool) static::$DB->transactional( function( Database $db ) {
-            $result = $db->delete( SMLISER_PRICING_TIER_TABLE, [ 'id' => $this->id ] );
+            $result = $db->delete( TableName::PRICING_TIERS->table(), [ 'id' => $this->id ] );
 
             if ( false === $result ) {
                 throw new DatabaseException( 'delete_failed', $db->get_last_error() );
@@ -412,7 +413,7 @@ class PricingTier extends DataStore {
         $static     = static::cache_get( $cache_key );
 
         if ( false === $static ) {
-            $data   = static::fetch_by( 'id', $id,  \SMLISER_PRICING_TIER_TABLE );
+            $data   = static::fetch_by( 'id', $id,  TableName::PRICING_TIERS->table() );
             $static = $data ? static::from_array( $data ) : null;
 
             static::cache_set( $cache_key, $static );
@@ -435,7 +436,7 @@ class PricingTier extends DataStore {
         $result = static::$cache->get( $cache_key );
 
         if ( false === $result ) {
-            $table  = \SMLISER_PRICING_TIER_TABLE;
+            $table  = TableName::PRICING_TIERS->table();
 
             $sql    = static::query()
                 ->select( '*' )->from( $table )

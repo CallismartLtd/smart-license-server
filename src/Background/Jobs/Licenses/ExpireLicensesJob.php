@@ -21,6 +21,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Background\Jobs\Licenses;
 
+use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
@@ -69,7 +70,7 @@ class ExpireLicensesJob implements JobHandlerInterface {
      */
     public function handle( array $payload = [] ): mixed {
         $batch_size = max( 1, (int) ( $payload['batch_size'] ?? 100 ) );
-        $table      = SMLISER_LICENSE_TABLE;
+        $table      = TableName::LICENSES->table();
 
         $terminal_statuses = [
             License::STATUS_EXPIRED,

@@ -11,6 +11,7 @@
 
 namespace SmartLicenseServer\Analytics;
 
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Background\Jobs\Analytics\LogLicenseActivityJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\JobQueue;
@@ -39,7 +40,7 @@ class RepositoryAnalytics extends DataStore {
      */
     public function get_total_downloads( ?string $type = null ) : int {
         $sql    = static::query()
-            ->select( 'COUNT(*)' )->from( SMLISER_ANALYTICS_LOGS_TABLE )
+            ->select( 'COUNT(*)' )->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'event_type', '=', 'download' );
 
         if ( $type ) {
@@ -61,7 +62,7 @@ class RepositoryAnalytics extends DataStore {
 
         // Standardized explicit 'as' aliases to ensure your custom column normalizer functions flawlessly
         $sql = static::query()->select( 'created_at as log_date', 'COUNT(*) as count' )
-            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'event_type', '=', 'download' )
             ->where( 'created_at', '>=', $date );
         
@@ -104,7 +105,7 @@ class RepositoryAnalytics extends DataStore {
 
         $date   = TimestampValue::now()->subtractDays( $days )->format( 'Y-m-d H:i:s' );
         $sql    = static::query()
-            ->select( 'COUNT(*)' )->from( SMLISER_ANALYTICS_LOGS_TABLE )
+            ->select( 'COUNT(*)' )->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'event_type', '!=', 'download' )
             ->where( 'created_at', '>=', $date );
 
@@ -127,7 +128,7 @@ class RepositoryAnalytics extends DataStore {
 
         $sql = static::query()
             ->select( 'created_at as log_date', 'COUNT(*) as count' )
-            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'event_type', '!=', 'download' )
             ->where( 'created_at', '>=', $date );
 
@@ -172,7 +173,7 @@ class RepositoryAnalytics extends DataStore {
         
         $sql = static::query()
             ->select( 'COUNT(DISTINCT fingerprint) as active_count' )
-            ->from( \SMLISER_ANALYTICS_LOGS_TABLE )
+            ->from( TableName::ANALYTICS_LOG->table() )
             ->where( 'created_at', '>=', $date );
 
         if ( $type ) {
@@ -342,9 +343,9 @@ class RepositoryAnalytics extends DataStore {
 
         if ( $type ) {
             $table = match( $type ) {
-                'plugin'   => SMLISER_PLUGINS_TABLE,
-                'theme'    => SMLISER_THEMES_TABLE,
-                'software' => SMLISER_SOFTWARE_TABLE,
+                'plugin'   => TableName::PLUGINS->table(),
+                'theme'    => TableName::THEMES->table(),
+                'software' => TableName::SOFTWARE->table(),
             };
 
             $sql    = static::query()->select( 'COUNT(*)' )->from( $table );
@@ -352,9 +353,9 @@ class RepositoryAnalytics extends DataStore {
             return (int) static::$DB->get_var( $sql->build() );
         }
 
-        $plugins_sql    = static::query()->select( 'COUNT(*) as total' )->from( SMLISER_PLUGINS_TABLE );
-        $themes_sql     = static::query()->select( 'COUNT(*) as total' )->from( SMLISER_THEMES_TABLE );
-        $software_sql   = static::query()->select( 'COUNT(*) as total' )->from( SMLISER_SOFTWARE_TABLE );
+        $plugins_sql    = static::query()->select( 'COUNT(*) as total' )->from( TableName::PLUGINS->table() );
+        $themes_sql     = static::query()->select( 'COUNT(*) as total' )->from( TableName::THEMES->table() );
+        $software_sql   = static::query()->select( 'COUNT(*) as total' )->from( TableName::SOFTWARE->table() );
 
         $compound_sql = $plugins_sql->union( $themes_sql )->union( $software_sql );
         $results = static::$DB->get_results( $compound_sql->build() );
@@ -377,9 +378,9 @@ class RepositoryAnalytics extends DataStore {
 
         if ( $type ) {
             $table = match( $type ) {
-                'plugin'   => SMLISER_PLUGINS_TABLE,
-                'theme'    => SMLISER_THEMES_TABLE,
-                'software' => SMLISER_SOFTWARE_TABLE,
+                'plugin'   => TableName::PLUGINS->table(),
+                'theme'    => TableName::THEMES->table(),
+                'software' => TableName::SOFTWARE->table(),
                 default    => null,
             };
 
@@ -403,15 +404,15 @@ class RepositoryAnalytics extends DataStore {
 
         $base_sql   = static::query()
             ->select( 'status', 'COUNT(*) as total', "'plugin' as app_type" )
-            ->from( SMLISER_PLUGINS_TABLE )->group_by( 'status' );
+            ->from( TableName::PLUGINS->table() )->group_by( 'status' );
 
         $themes_sql = static::query()
             ->select( 'status', 'COUNT(*) as total', "'theme' as app_type" )
-            ->from( SMLISER_THEMES_TABLE )->group_by( 'status' );
+            ->from( TableName::THEMES->table() )->group_by( 'status' );
 
         $software_sql = static::query()
             ->select( 'status', 'COUNT(*) as total', "'software' as app_type" )
-            ->from( SMLISER_SOFTWARE_TABLE )->group_by( 'status' );
+            ->from( TableName::SOFTWARE->table() )->group_by( 'status' );
 
         $compound_sql = $base_sql->union_all( $themes_sql )->union_all( $software_sql );
         
@@ -436,7 +437,7 @@ class RepositoryAnalytics extends DataStore {
 
         $sql    = static::query()
             ->select( 'app_slug', 'app_type', 'COUNT(*) as metric_total' )
-            ->from( \SMLISER_ANALYTICS_LOGS_TABLE );
+            ->from( TableName::ANALYTICS_LOG->table() );
 
         if ( 'downloads' === $metric ) {
             $sql->where( 'event_type', '=', 'download' );
@@ -476,9 +477,9 @@ class RepositoryAnalytics extends DataStore {
 
         if ( $type ) {
             $table = match( $type ) {
-                'plugin'   => SMLISER_PLUGINS_TABLE,
-                'theme'    => SMLISER_THEMES_TABLE,
-                'software' => SMLISER_SOFTWARE_TABLE,
+                'plugin'   => TableName::PLUGINS->table(),
+                'theme'    => TableName::THEMES->table(),
+                'software' => TableName::SOFTWARE->table(),
             };
 
             $sql = static::query()
@@ -495,17 +496,17 @@ class RepositoryAnalytics extends DataStore {
             // No type filter? Compile ALL tables using our brand new CompoundQueryIntent engine!
             $plugins_sql = static::query()
                 ->select( 'name', 'slug', 'status', 'updated_at', "'plugin' as app_type" )
-                ->from( SMLISER_PLUGINS_TABLE )
+                ->from( TableName::PLUGINS->table() )
                 ->where( 'updated_at', '>=', $date );
 
             $themes_sql = static::query()
                 ->select( 'name', 'slug', 'status', 'updated_at', "'theme' as app_type" )
-                ->from( SMLISER_THEMES_TABLE )
+                ->from( TableName::THEMES->table() )
                 ->where( 'updated_at', '>=', $date );
 
             $software_sql = static::query()
                 ->select( 'name', 'slug', 'status', 'updated_at', "'software' as app_type" )
-                ->from( SMLISER_SOFTWARE_TABLE )
+                ->from( TableName::SOFTWARE->table() )
                 ->where( 'updated_at', '>=', $date );
 
             // Captured using $compound_sql to extract unified bindings and strings safely

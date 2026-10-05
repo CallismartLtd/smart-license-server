@@ -13,6 +13,7 @@ namespace SmartLicenseServer\SettingsAPI\Providers;
 
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\SQLBuilder;
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Utils\Format;
 
 /**
@@ -28,9 +29,9 @@ class Options extends AbstractSettings {
     /**
      * Name of the custom settings database table.
      *
-     * @var string
+     * @var TableName
      */
-    const TABLE_NAME = SMLISER_OPTIONS_TABLE;
+    const TABLE_NAME = TableName::OPTIONS;
 
     /**
      * Constructor for the Options class.
@@ -50,7 +51,7 @@ class Options extends AbstractSettings {
      */
     protected function do_get( string $key, $default = null ) {
         $sql    = smliserQueryBuilder( $this->db->get_driver() )
-            ->select( 'option_value' )->from( static::TABLE_NAME )
+            ->select( 'option_value' )->from( static::TABLE_NAME->table() )
             ->where( 'option_name', '=', $key )
             ->limit( 1 );
 
@@ -83,16 +84,16 @@ class Options extends AbstractSettings {
             );
 
             $lock_sql   = $this->query()
-                ->select( 'option_id' )->from( static::TABLE_NAME )
+                ->select( 'option_id' )->from( static::TABLE_NAME->table() )
                 ->where( 'option_name', '=', $key )
                 ->limit(1)->lock_for_update();
 
             $id = (int) $this->db->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
 
             if ( $id ) {
-                $result = $this->db->update( static::TABLE_NAME, $option, ['option_name' => $key, 'option_id' => $id] );
+                $result = $this->db->update( static::TABLE_NAME->table(), $option, ['option_name' => $key, 'option_id' => $id] );
             } else {
-                $result = $this->db->insert( static::TABLE_NAME, $option );
+                $result = $this->db->insert( static::TABLE_NAME->table(), $option );
             }
             
             // Insert returns ID or false.
@@ -109,7 +110,7 @@ class Options extends AbstractSettings {
      * @return bool True on successful deletion, false otherwise.
      */
     protected function do_delete( string $key ): bool {
-        $result = $this->db->delete( static::TABLE_NAME, [ 'option_name' => $key ] );
+        $result = $this->db->delete( static::TABLE_NAME->table(), [ 'option_name' => $key ] );
 
         return false !== $result;
     }
@@ -124,7 +125,7 @@ class Options extends AbstractSettings {
      */
     protected function do_has( string $key ): bool {
         $sql    = smliserQueryBuilder( $this->db->get_driver() )
-            ->select( '1' )->from( static::TABLE_NAME )
+            ->select( '1' )->from( static::TABLE_NAME->table() )
             ->where( 'option_name', '=', $key )
             ->limit(1);
 
@@ -143,7 +144,7 @@ class Options extends AbstractSettings {
 
         $sql = smliserQueryBuilder( $this->db->get_driver() )
             ->select( 'option_name', 'option_value' )
-            ->from( static::TABLE_NAME )
+            ->from( static::TABLE_NAME->table() )
             ->limit( $limit )
             ->offset( $offset )
             ->order_by( 'option_id', 'ASC' );
@@ -176,7 +177,7 @@ class Options extends AbstractSettings {
 
         $sql = smliserQueryBuilder( $this->db->get_driver() )
             ->select( 'option_name', 'option_value' )
-            ->from( static::TABLE_NAME )
+            ->from( static::TABLE_NAME->table() )
             ->where_contains( 'option_name', $query )
             ->limit( $limit )
             ->offset( $offset )
