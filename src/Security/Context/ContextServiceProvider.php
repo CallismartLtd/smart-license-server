@@ -287,7 +287,10 @@ class ContextServiceProvider extends DataStore {
 
     /**
      * Saves the role of an actor.
-     * 
+     *
+     * Does not touch the cache: callers clear it once the write has succeeded,
+     * so a write never fails, or rolls back, because of the cache.
+     *
      * @param ActorInterface $actor The actor that can authenticate.
      * @param Role $role
      * @param OwnerSubjectInterface|null $subject The subject entity associated with resource owner.
@@ -362,8 +365,6 @@ class ContextServiceProvider extends DataStore {
                 throw new DatabaseException( $code, $db->get_last_error() );
             }
 
-            static::cache_clear();
-
             return $result;
         });
         
@@ -372,7 +373,10 @@ class ContextServiceProvider extends DataStore {
 
     /**
      * Delete an actors' assignedrole from the assignment table.
-     * 
+     *
+     * Does not touch the cache: callers clear it once the write has succeeded,
+     * so a write never fails, or rolls back, because of the cache.
+     *
      * @param ActorInterface $actor
      * @param OwnerSubjectInterface|null $subject
      * @throws DatabaseException Sensitive database error, caller must handle accordingly.
@@ -400,8 +404,6 @@ class ContextServiceProvider extends DataStore {
         if ( false === $deleted ) {
             throw new DatabaseException( 'delete_failed', $db->get_last_error() );
         }
-
-        static::cache_clear();
     }
 
     /**
@@ -468,7 +470,10 @@ class ContextServiceProvider extends DataStore {
 
     /**
      * Save a single member of an organization with their role.
-     * 
+     *
+     * Does not touch the cache: callers clear it once the write has succeeded,
+     * so a write never fails, or rolls back, because of the cache.
+     *
      * @param OrganizationMember $member
      * @param Organization $organization
      * @param Role $role
@@ -522,7 +527,6 @@ class ContextServiceProvider extends DataStore {
             }
             
             static::save_actor_role( $member->get_user(), $role, $organization );
-            static::cache_clear();            
         });
     }
 
@@ -596,7 +600,10 @@ class ContextServiceProvider extends DataStore {
 
     /**
      * Deletes an organization member and their roles
-     * 
+     *
+     * Does not touch the cache: callers clear it once the write has succeeded,
+     * so a write never fails, or rolls back, because of the cache.
+     *
      * @param OrganizationMember $member
      * @param Organization $organization
      * @throws InvalidArgumentException
@@ -627,12 +634,14 @@ class ContextServiceProvider extends DataStore {
             }
 
             static::delete_actor_role( $member, $organization );
-            static::cache_clear();
         });
     }
 
     /**
      * Delete a security entity and all its related data in a single query where possible.
+     *
+     * Does not touch the cache: callers clear it once the write has succeeded,
+     * so a write never fails, or rolls back, because of the cache.
      *
      * @param User|Organization|ServiceAccount|Owner $entity
      * @return void
@@ -677,8 +686,6 @@ class ContextServiceProvider extends DataStore {
                     ['status' => 500]
                 );
             }
-
-            static::cache_clear();
         } catch ( \Exception $e ) {
             throw new SecurityException(
                 'delete_error',

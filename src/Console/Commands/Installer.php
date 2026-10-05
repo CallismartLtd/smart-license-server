@@ -16,7 +16,9 @@ use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\ScriptName;
+use SmartLicenseServer\Environments\Application\Auth\FolderOwnership;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
+use SmartLicenseServer\Environments\Application\Installation\DatabaseSettings;
 use SmartLicenseServer\Environments\Application\Installation\SetupToken;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Schema\SchemaRegistry;
@@ -31,10 +33,16 @@ use SmartLicenseServer\Utils\Stopwatch;
  */
 class Installer extends AbstractCommand {
 
+    /**
+     * How many times a question is asked again after an invalid answer.
+     */
+    protected const MAX_ATTEMPTS = 5;
+
     public function __construct(
         protected AppInstaller $installer,
         protected Guard $guard,
         protected SetupToken $setup_token,
+        protected FolderOwnership $ownership,
         InputInterface $io,
         OutputInterface $output,
         ScriptName $script_name
@@ -61,7 +69,7 @@ class Installer extends AbstractCommand {
         $app_name       = SMLISER_APP_NAME;
 
         $commands = [
-            'run'           => 'Executes full automated installation wizard.',
+            'run'           => 'Installs step by step, asking only for what is missing. Safe to run again.',
             'check'         => 'Performs environment sanity checks.',
             'test:db'       => 'Tests the database connection set in .env (or given options with --manual).',
             'make:dir'      => 'Creates all required directories.',
@@ -99,14 +107,17 @@ class Installer extends AbstractCommand {
             '                                    link and copy based on what the server allows now.',
             '                     make:roles     Install the default roles again over existing ones.',
             '',
-            '   Full Installation: ',
-            '--skip-admin       Skip interactive administrator account creation step.',
+            '   Full installation (run): ',
+            '--skip-admin       Do not create the administrator account now.',
+            '--app-url and the database connection options below answer those questions in advance;',
+            'anything missing is asked. Steps that are already done are skipped.',
             '',
-            '   Creating admin account: ',
-            '--name             The administrator\'s name.',
-            '--email            The administrator\'s email address.',
-            '--password         The administrator\'s password.',
-            'Note: Creating administrator account requires special authentication (usually done automatically).',
+            '   Creating the administrator account (run, make:admin): ',
+            '--admin-name       The administrator\'s name.',
+            '--admin-email      The administrator\'s email address.',
+            '--admin-password   The administrator\'s password (at least ' . AppInstaller::MIN_ADMIN_PASSWORD_LENGTH . ' characters).',
+            'Note: While no account exists, only the user that owns the application folder can create the',
+            '      first administrator. After that, make:admin requires a signed-in system administrator.',
             '',
             '   Creating .env file: ',
             '--dotenv-example-path      The absolute path to the .env.example file. The file will be searched for in',
@@ -124,7 +135,7 @@ class Installer extends AbstractCommand {
             'By default, tests the SMLISER_DB_* values currently in the .env file.',
             '--manual, -m           Test the connection options below instead of the .env values.',
             '',
-            '   Connection options (require --manual): ',
+            '   Connection options (test:db --manual, and run): ',
             '--db-driver, -d        (required) Database driver: mysql, pgsql, or sqlite.',
             '--dbname, -n           (required) Target database or schema name.',
             '--host, -h             Server hostname or IP. Used by mysql/pgsql; not applicable to sqlite.',
@@ -169,143 +180,381 @@ class Installer extends AbstractCommand {
     }
 
     /**
-     * Interactive setup wizard running all installation steps sequentially.
+     * Install the application step by step, asking only for what is missing.
+     *
+     * Every step first checks whether its work is already done and skips it
+     * if so, so the command can be stopped and run again at any time. The
+     * database settings are asked for, tested and saved when the .env file
+     * has none that work, and the administrator account is asked for when no
+     * account exists. Ends by recording the installation as complete.
      *
      * @param CommandInput $input
      * @return int
      */
     public function run_wizard( CommandInput $input ) : int {
-        $timer  = new Stopwatch();
-
+        $timer = new Stopwatch();
         $timer->start();
 
-        $this->output->info( sprintf( 'Starting automated installation wizard for %s...', SMLISER_APP_NAME ) );
-        $this->output->writeln( '' );
+        $this->output->info( sprintf( 'Installing %s.', SMLISER_APP_NAME ) );
+        $this->output->writeln( 'Steps that are already done are checked and skipped, so you can stop and run this command again at any time.' );
 
-        // Step 1: Sanity Checks.
-        $this->output->info( '--- Step 1/7: Checking Environment ---' );
-
-        sleep(1);
-
-        $code = $this->handle_checks( $input );
-        if ( 0 !== $code ) {
-            $this->output->error( 'Installation aborted: Environment sanity checks failed.' );
-            return $code;
-        }
-        $this->output->writeln( '' );
-
-        // Visitors see the installation notice until the final step completes.
-        if ( ! $this->installer->is_installed() ) {
-            try {
-                $this->installer->begin_installation();
-            } catch ( \RuntimeException $e ) {
-                $this->output->error( sprintf( 'Installation aborted: %s', $e->getMessage() ) );
-                return 1;
-            }
-        }
-
-        // Step 2: Directories.
-        $this->output->info( '--- Step 2/7: Creating Directories ---' );
-
-        sleep(1);
-
-        $code = $this->make_directories( $input );
-        if ( 0 !== $code ) {
-            $this->output->error( 'Installation aborted: Directory creation failed.' );
-            return $code;
-        }
-        $this->output->writeln( '' );
-
-        // Step 3: Environment File.
-        $this->output->info( '--- Step 3/7: Bootstrapping .env File ---' );
-
-        sleep(1);
-
-        $code = $this->make_dot_env( $input );
-        if ( 0 !== $code ) {
-            $this->output->error( 'Installation aborted: Failed to create .env file.' );
-            return $code;
-        }
-        $this->output->writeln( '' );
-
-        // Step 4: Public web files (.htaccess and assets).
-        $this->output->info( '--- Step 4/7: Writing Apache Web Rules (.htaccess) & Publishing Assets ---' );
-
-        sleep(1);
-
-        $code = $this->make_dot_htaccess( $input );
-        if ( 0 !== $code ) {
-            $this->output->error( 'Installation aborted: Failed to create .htaccess file.' );
-            return $code;
-        }
-
-        $code = $this->link_assets( $input );
-        if ( 0 !== $code ) {
-            $this->output->error( 'Installation aborted: Failed to publish the public assets.' );
-            return $code;
-        }
-        $this->output->writeln( '' );
-
-        // Step 5: Database Connection.
-        $this->output->info( '--- Step 5/7: Connecting to the Database ---' );
-
-        sleep(1);
-
-        if ( ! $this->ensure_database_connection() ) {
-            $this->output->error( 'Installation paused: No working database connection.' );
-            $this->output->info( 'Fill in the SMLISER_DB_* values in your .env file, then run the installer again. Completed steps are skipped.' );
-            return 1;
-        }
-        $this->output->writeln( '' );
-
-        // Step 6: Database Schema & Default Roles.
-        $this->output->info( '--- Step 6/7: Migrating Database Schema & Roles ---' );
-
-        sleep(1);
-
-        $code = $this->make_db_tables( $input );
-        if ( 0 !== $code ) {
-            $this->output->error( 'Installation aborted: Table creation failed.' );
-            return $code;
-        }
-
-        // --force applies to files in the wizard, never to roles already installed.
-        $code = $this->make_roles( $input, false );
-        if ( 0 !== $code ) {
-            $this->output->error( 'Installation aborted: Default role installation failed.' );
-            return $code;
-        }
-        $this->output->writeln( '' );
-
-        // Step 7: Administrator Account Creation.
-        $this->output->info( '--- Step 7/7: Administrator Account Setup ---' );
-
-        sleep(1);
-
-        $skip_admin = (bool) $input->get_option( 'skip-admin', false );
-
-        if ( $skip_admin ) {
-            $this->output->info( 'Skipped admin creation via --skip-admin flag.' );
-        } else {
-            $code = $this->make_admin( $input );
-            if ( 0 !== $code ) {
-                $this->output->error( 'Installation incomplete: Administrator creation failed.' );
-                return $code;
-            }
-        }
-
-        $this->output->writeln( '' );
-
-        if ( 0 !== $this->mark_installed( $input ) ) {
-            $this->output->error( 'Installation incomplete: Resolve the issues above, then run `installer mark:installed`.' );
-            return 1;
-        }
-
-        $this->output->success(
-            sprintf( '%s installation completed successfully in %fs!', SMLISER_APP_NAME, $timer->elapsed() )
+        $steps = array(
+            'Checking the server'                         => fn () : int => $this->handle_checks( $input ),
+            'Creating folders'                            => fn () : int => $this->make_directories( $input ),
+            'Preparing the configuration file (.env)'     => fn () : int => $this->make_dot_env( $input ),
+            'Connecting to the database'                  => fn () : int => $this->setup_database( $input ),
+            'Creating database tables and default roles'  => fn () : int => $this->make_db_tables( $input ) ?: $this->make_roles( $input, false ),
+            'Publishing web files (.htaccess and assets)' => fn () : int => $this->make_dot_htaccess( $input ) ?: $this->link_assets( $input ),
+            'Creating the administrator account'          => fn () : int => $this->admin_step( $input ),
         );
 
+        $number = 0;
+
+        foreach ( $steps as $title => $step ) {
+            $number++;
+
+            $this->output->newline();
+            $this->output->info( sprintf( 'Step %d/%d: %s', $number, count( $steps ), $title ) );
+
+            $code = $step();
+
+            if ( 0 !== $code ) {
+                $this->output->newline();
+                $this->output->error( sprintf( 'Installation stopped at step %d (%s).', $number, $title ) );
+                $this->output->info( sprintf( 'Fix the problem above, then run `%s` again. Completed steps are skipped.', $this->command_line( 'run' ) ) );
+                return $code;
+            }
+
+            // Visitors see the installation notice from now until the installation is recorded.
+            if ( 1 === $number && ! $this->installer->is_installed() ) {
+                try {
+                    $this->installer->begin_installation();
+                } catch ( \RuntimeException $e ) {
+                    $this->output->error( sprintf( 'Installation stopped: %s', $e->getMessage() ) );
+                    return 1;
+                }
+            }
+        }
+
+        $this->output->newline();
+        $this->output->info( 'Finishing' );
+
+        try {
+            $has_users = $this->installer->has_users();
+        } catch ( DatabaseException $e ) {
+            $this->output->error( sprintf( 'Could not check the user accounts: %s', $e->getMessage() ) );
+            return 1;
+        }
+
+        if ( ! $has_users ) {
+            $this->output->warning( 'The installation is not complete until an administrator account exists.' );
+            $this->output->info( sprintf( 'Create it with `%s`, or run `%s` again.', $this->command_line( 'make:admin' ), $this->command_line( 'run' ) ) );
+            return 0;
+        }
+
+        if ( 0 !== $this->mark_installed( $input ) ) {
+            $this->output->error( sprintf( 'Resolve the issues above, then run `%s` again.', $this->command_line( 'run' ) ) );
+            return 1;
+        }
+
+        // The web installer is closed now; its claim token is no longer needed.
+        try {
+            $this->setup_token->delete();
+        } catch ( \Throwable $e ) {
+            $this->output->warning( sprintf( 'Could not delete the web installer token: %s', $e->getMessage() ) );
+        }
+
+        $this->output->newline();
+        $this->output->success( sprintf( '%s is installed (%.1fs).', SMLISER_APP_NAME, $timer->elapsed() ) );
+
+        $app_url = $this->installer->read_app_url();
+
+        if ( null !== $app_url ) {
+            $this->output->writeln( sprintf( '   Site:     %s/', $app_url ) );
+            $this->output->writeln( sprintf( '   Sign in:  %s/auth/', $app_url ) );
+        }
+
         return 0;
+    }
+
+    /**
+     * Connect to the database saved in the .env file, or ask for, test and save a new one.
+     *
+     * Answers can be given in advance with the connection options (the same
+     * ones test:db accepts); anything missing is asked. A connection that
+     * fails is explained and can be retried with the previous answers as
+     * defaults. The settings are written to the .env file only once the
+     * connection works.
+     *
+     * @param CommandInput $input
+     * @return int
+     */
+    protected function setup_database( CommandInput $input ) : int {
+        if ( $this->installer->has_database_connection() ) {
+            $this->output->success( 'The database is already connected.' );
+            return 0;
+        }
+
+        $values         = array();
+        $saved_password = null;
+
+        try {
+            $saved          = $this->installer->read_database_config();
+            $values         = DatabaseSettings::values( $saved );
+            $saved_password = $saved->password;
+
+            try {
+                $this->installer->use_connection( $this->installer->test_db_connection( $saved ) );
+                $this->output->success( sprintf( 'Connected to the %s database saved in the .env file.', $this->driver_label( (string) $saved->driver ) ) );
+                return 0;
+            } catch ( DatabaseException $e ) {
+                $this->output->warning( 'The database saved in the .env file could not be reached. ' . DatabaseSettings::explain_error( $e->getMessage(), (string) $saved->driver ) );
+                $this->output->writeln( '   ' . $e->getMessage() );
+                $this->output->writeln( 'Enter the database details again; your saved values are the defaults.' );
+            }
+        } catch ( DatabaseException ) {
+            // Nothing configured yet: the normal starting point.
+        } catch ( \InvalidArgumentException | \RuntimeException $e ) {
+            $this->output->warning( sprintf( 'The database settings in the .env file are not valid (%s). Enter them again.', $e->getMessage() ) );
+        }
+
+        $given  = $this->database_options( $input );
+        $values = array_merge( $values, $given );
+
+        // With the type and name given as options, try them before asking anything.
+        $ask = ! isset( $given['driver'], $given['dbname'] );
+
+        if ( $ask ) {
+            $this->output->writeln( 'Enter the details of the database this site will use. Press Enter to accept the value in [brackets].' );
+        }
+
+        for ( $attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++ ) {
+            if ( $ask ) {
+                $values = $this->ask_database( $values, null !== $saved_password && '' !== $saved_password );
+            }
+
+            $ask = true;
+
+            // An empty password keeps the saved one.
+            if ( '' === ( $values['password'] ?? '' ) && null !== $saved_password ) {
+                $values['password'] = $saved_password;
+            }
+
+            try {
+                $config = DatabaseSettings::normalize( $values );
+            } catch ( \InvalidArgumentException $e ) {
+                $this->output->error( $e->getMessage() );
+
+                if ( null !== $e->getPrevious() ) {
+                    $this->output->writeln( '   ' . $e->getPrevious()->getMessage() );
+                }
+
+                continue;
+            }
+
+            $this->output->writeln( 'Testing the connection...' );
+
+            try {
+                $adapter = $this->installer->test_db_connection( $config );
+            } catch ( DatabaseException $e ) {
+                $this->output->error( 'Could not connect to the database. ' . DatabaseSettings::explain_error( $e->getMessage(), (string) $config->driver ) );
+                $this->output->writeln( '   ' . $e->getMessage() );
+
+                if ( $attempt < self::MAX_ATTEMPTS && ! $this->io->confirm( 'Try again?', true ) ) {
+                    break;
+                }
+
+                continue;
+            }
+
+            try {
+                $this->installer->make_dot_env_file();
+                $this->installer->write_database_config( $config );
+                $this->installer->generate_app_secrets();
+            } catch ( \RuntimeException $e ) {
+                $adapter->close();
+                $this->output->error( sprintf( 'The connection works, but the settings could not be saved to the .env file: %s', $e->getMessage() ) );
+                return 1;
+            }
+
+            $this->installer->use_connection( $adapter );
+            $this->output->success( sprintf( 'Connected to the %s database. The settings were saved to the .env file.', $this->driver_label( (string) $config->driver ) ) );
+
+            return 0;
+        }
+
+        $this->output->error( 'No working database connection.' );
+        $this->output->info( sprintf( 'Check the details with your host, then run `%s` again.', $this->command_line( 'run' ) ) );
+
+        return 1;
+    }
+
+    /**
+     * Ask for the database settings, offering the given values as defaults.
+     *
+     * Only the questions that apply to the chosen database type are asked.
+     * The table prefix and character set are only asked when the person
+     * chooses to change them.
+     *
+     * @param array<string, string> $values         Current values keyed by DatabaseSettings::FIELDS.
+     * @param bool                  $password_saved Whether an empty password answer keeps a saved password.
+     * @return array<string, string> The answers.
+     */
+    protected function ask_database( array $values, bool $password_saved = false ) : array {
+        $labels   = array_map( static fn ( array $driver ) : string => "{$driver['label']}. {$driver['help']}", DatabaseSettings::DRIVERS );
+        $previous = (string) ( $values['driver'] ?? '' );
+        $current  = isset( DatabaseSettings::DRIVERS[ $previous ] ) ? $previous : 'mysql';
+
+        $this->output->newline();
+
+        $choice = $this->io->choice( sprintf( 'Database type [%s]', $current ), $labels, $current );
+        $driver = match ( true ) {
+            is_string( $choice ) && isset( $labels[ $choice ] ) => $choice,
+            false !== array_search( $choice, $labels, true )    => (string) array_search( $choice, $labels, true ),
+            default                                             => $current,
+        };
+
+        // Defaults of one engine do not fit another.
+        if ( $driver !== $previous ) {
+            unset( $values['port'], $values['charset'], $values['path'] );
+        }
+
+        $values['driver'] = $driver;
+
+        if ( 'sqlite' === $driver ) {
+            $values['dbname'] = $this->ask( 'Database file name', $values['dbname'] ?? '' ?: 'smliser' );
+            $values['path']   = $this->ask( 'Folder for the database file', $values['path'] ?? '' ?: DatabaseSettings::default_sqlite_dir() );
+
+            return $values;
+        }
+
+        $values['host']   = $this->ask( 'Server address', $values['host'] ?? '' ?: DatabaseSettings::DEFAULT_HOST );
+        $values['port']   = $this->ask( 'Port', $values['port'] ?? '' ?: (string) DatabaseSettings::DRIVERS[ $driver ]['port'] );
+        $values['dbname'] = $this->ask( 'Database name', $values['dbname'] ?? '', true );
+
+        $values['username'] = $this->ask( 'Username', $values['username'] ?? '' );
+        $values['password'] = $this->io->secret( $password_saved ? 'Password (press Enter to keep the saved one): ' : 'Password: ' );
+
+        $prefix  = $values['prefix'] ?? '' ?: 'smliser_';
+        $charset = $values['charset'] ?? '' ?: (string) DatabaseSettings::DRIVERS[ $driver ]['charset'];
+
+        if ( $this->io->confirm( sprintf( 'Change the table prefix (%s) or character set (%s)? Most sites keep them.', $prefix, $charset ), false ) ) {
+            $prefix  = $this->ask( 'Table prefix', $prefix );
+            $charset = $this->ask( 'Character set', $charset );
+        }
+
+        $values['prefix']  = $prefix;
+        $values['charset'] = $charset;
+
+        return $values;
+    }
+
+    /**
+     * Ask one question with a default answer.
+     *
+     * The input prompt shows the default itself, in brackets.
+     *
+     * @param string $label    Question, without punctuation.
+     * @param string $default  Answer used when Enter is pressed.
+     * @param bool   $required Ask again (a few times) while the answer is empty.
+     * @return string The trimmed answer.
+     */
+    protected function ask( string $label, string $default = '', bool $required = false ) : string {
+        $question = "{$label}: ";
+
+        for ( $attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++ ) {
+            $answer = trim( $this->io->prompt( $question, $default ) );
+
+            if ( '' !== $answer || ! $required ) {
+                return $answer;
+            }
+
+            $this->output->error( sprintf( '%s is required.', $label ) );
+        }
+
+        return '';
+    }
+
+    /**
+     * Database answers given as command options.
+     *
+     * @param CommandInput $input
+     * @return array<string, string> Values keyed by DatabaseSettings::FIELDS; options not given are left out.
+     */
+    protected function database_options( CommandInput $input ) : array {
+        $options = array(
+            'driver'         => array( 'db-driver', 'd' ),
+            'host'           => array( 'host', 'h' ),
+            'port'           => array( 'port', 'P' ),
+            'dbname'         => array( 'dbname', 'n' ),
+            'username'       => array( 'username', 'u' ),
+            'password'       => array( 'password', 'p' ),
+            'prefix'         => array( 'prefix', 'x' ),
+            'charset'        => array( 'charset', 'c' ),
+            'path'           => array( 'path', 'l' ),
+            'encryption_key' => array( 'encryption-key', 'k' ),
+        );
+
+        $values = array();
+
+        foreach ( $options as $field => [ $long, $short ] ) {
+            $value = $input->get_option( $long ) ?? $input->get_option( $short );
+
+            if ( is_string( $value ) || is_int( $value ) ) {
+                $values[ $field ] = (string) $value;
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * Create the administrator account during run, unless an account already exists.
+     *
+     * @param CommandInput $input
+     * @return int
+     */
+    protected function admin_step( CommandInput $input ) : int {
+        try {
+            if ( $this->installer->has_users() ) {
+                $this->output->success( 'An account already exists; skipped.' );
+                return 0;
+            }
+        } catch ( DatabaseException $e ) {
+            $this->output->error( sprintf( 'Could not check the user accounts: %s', $e->getMessage() ) );
+            return 1;
+        }
+
+        if ( $this->is_flag_set( $input, 'skip-admin' ) ) {
+            $this->output->info( 'Skipped (--skip-admin).' );
+            return 0;
+        }
+
+        return $this->make_admin( $input );
+    }
+
+    /**
+     * Readable name of a database driver.
+     *
+     * @param string $driver Driver ID.
+     * @return string
+     */
+    protected function driver_label( string $driver ) : string {
+        return DatabaseSettings::DRIVERS[ $driver ]['label'] ?? $driver;
+    }
+
+    /**
+     * How to type one of this command's subcommands in the current context.
+     *
+     * Inside the interactive shell the script name is omitted.
+     *
+     * @param string $subcommand Subcommand.
+     * @return string
+     */
+    protected function command_line( string $subcommand ) : string {
+        $prefix = \is_interactive_shell() ? static::name() : $this->script_name . ' ' . static::name();
+
+        return "{$prefix} {$subcommand}";
     }
 
     public function run( CommandInput $input ) : int {
@@ -690,6 +939,15 @@ class Installer extends AbstractCommand {
     /**
      * Create a human administrator account.
      *
+     * Answers can be given with --admin-name, --admin-email and
+     * --admin-password; anything missing or invalid is asked. The same rules
+     * as the web installer apply (AppInstaller::validate_admin()).
+     *
+     * Who may run it: while no account exists, the user that owns the
+     * application folder (the first administrator is created during
+     * installation, before anyone can sign in); after that, a signed-in
+     * system administrator.
+     *
      * @param CommandInput $input
      * @return int
      */
@@ -700,121 +958,89 @@ class Installer extends AbstractCommand {
             return 1;
         }
 
-        if ( ! $this->guard->has_principal() || ! $this->guard->get_principal()?->is( 'system_admin' ) ) {
-            $this->output->error(
-                'You must be logged in as a system admin to perform this action'
-            );
-            $this->output->info(
-                'A system admin must own the app root directory and the CLI credential set to `root`.'
-            );
-
+        try {
+            $first = ! $this->installer->has_users();
+        } catch ( DatabaseException $e ) {
+            $this->output->error( sprintf( 'Could not check the user accounts: %s', $e->getMessage() ) );
             return 1;
         }
 
-        $name           = $input->get_argument( 'name', null );
-        $email          = $input->get_argument( 'email', null );
-        $email_is_valid = false;
-        $password       = $input->get_argument( 'password', null );
-        $confirmed_pwd  = false;
-        $error_counter  = 0;
+        if ( ! $this->may_create_admin( $first ) ) {
+            return 1;
+        }
 
-        $filled_all = ! empty( $name ) && ! empty( $email ) && ! empty( $password );
-        $terminated = false;
+        $name     = $this->string_option( $input, 'admin-name' );
+        $email    = $this->string_option( $input, 'admin-email' );
+        $password = $this->string_option( $input, 'admin-password', false );
 
-        while ( true ) {
-            if ( $filled_all && $confirmed_pwd ) {
-                break;
+        for ( $attempt = 1; ; $attempt++ ) {
+            if ( $attempt > self::MAX_ATTEMPTS ) {
+                $this->output->error( 'Too many invalid answers. No account was created.' );
+                return 1;
             }
 
-            if ( $error_counter >= 5 ) {
-                $terminated = true;
+            if ( '' === $name ) {
+                $name = trim( $this->io->prompt( 'Your name: ' ) );
             }
 
-            if ( $terminated ) {
-                break;
+            if ( '' === $email ) {
+                $email = trim( $this->io->prompt( 'Your email address: ' ) );
             }
 
-            if ( ! $name ) {
-                $entered_name   = (string) $this->io->prompt( 'Enter Admin Name: ' );
-                $contains_admin = str_contains( strtolower( $entered_name ), 'admin' );
+            if ( '' === $password ) {
+                // Only trailing line-ending artifacts from terminal input are
+                // removed; an intentional space stays part of the password.
+                $password = rtrim( $this->io->secret( sprintf( 'Password (at least %d characters): ', AppInstaller::MIN_ADMIN_PASSWORD_LENGTH ) ), "\r\n" );
+                $confirm  = rtrim( $this->io->secret( 'Type the password again: ' ), "\r\n" );
 
-                if ( empty( $entered_name ) || $contains_admin ) {
-                    $name = '';
-
-                    $error_counter++;
-                    $this->output->error( 'Please enter a valid admin name.' );
-
-                    if ( $contains_admin ) {
-                        $this->output->error( 'Admin name must not contain the word `admin`' );
-                    }
-
+                if ( '' === $password ) {
+                    $this->output->error( 'Enter a password.' );
                     continue;
                 }
 
-                $name = $entered_name;
-            }
-
-            if ( ! $email ) {
-                $email   = $this->io->prompt( 'Enter Admin Email: ' );
-
-                if ( empty( $email ) || ! is_email( $email ) ) {
-                    $email = '';
-
-                    $error_counter++;
-                    $this->output->error( 'Please enter a valid email address.' );
-                    continue;
-                }
-            }
-
-            if ( User::email_exists( $email ) ) {
-                $email = '';
-
-                $this->output->error( 'Sorry the provided email is not available.' );
-                continue;
-            }
-
-            if ( ! $email_is_valid && ! is_email( $email, true ) ) {
-                // DNS record not found for the email?
-                $this->output->warning( 'The system detected that the provided email address cannot be reached!' );
-                if ( ! $this->io->confirm( 'Do you still want to use this email?', false ) ) {
-                    $email = '';
-                    continue;
-                } else {
-                    $email_is_valid = true;
-                }
-            }
-
-            if ( empty( $password ) ) {
-                $password = $this->io->secret( 'Enter Admin Password: ' );
-                if ( empty( $password ) ) {
+                if ( ! hash_equals( $password, $confirm ) ) {
+                    $this->output->error( 'The two passwords do not match. Type them again.' );
                     $password = '';
-
-                    $error_counter++;
-                    $this->output->error( 'Please enter a valid password.' );
                     continue;
+                }
+            }
+
+            $errors = $this->installer->validate_admin( $name, $email, $password );
+
+            if ( ! isset( $errors['name'] ) && str_contains( strtolower( $name ), 'admin' ) ) {
+                $errors['name'] = 'The name must not contain the word "admin".';
+            }
+
+            // No account can use the address before the first one exists.
+            if ( ! isset( $errors['email'] ) && ! $first && User::email_exists( $email ) ) {
+                $errors['email'] = 'An account with this email address already exists.';
+            }
+
+            if ( array() !== $errors ) {
+                foreach ( $errors as $field => $message ) {
+                    $this->output->error( $message );
+
+                    match ( $field ) {
+                        'name'  => $name = '',
+                        'email' => $email = '',
+                        default => $password = '',
+                    };
                 }
 
                 continue;
             }
 
-            if ( ! $confirmed_pwd ) {
-                $pwd           = $this->io->secret( 'Confirm Admin Password: ' );
-                // Strip only trailing line-ending artifacts from terminal input,
-                // not arbitrary whitespace — an intentional space in the
-                // password shouldn't be able to falsely "match".
-                $confirmed_pwd = rtrim( $pwd, "\r\n" ) === rtrim( $password, "\r\n" );
+            // DNS lookup: the address may not be able to receive mail.
+            if ( ! is_email( $email, true ) ) {
+                $this->output->warning( sprintf( 'No mail server was found for %s, so it may not receive email.', $email ) );
 
-                if ( ! $confirmed_pwd ) {
-                    $this->output->error( 'Password mismatch.' );
+                if ( ! $this->io->confirm( 'Use this email address anyway?', false ) ) {
+                    $email = '';
+                    continue;
                 }
             }
 
-            $filled_all = ! empty( $name ) && ! empty( $email ) && ! empty( $password );
-        }
-
-        if ( $terminated ) {
-            $this->output->error( 'Operation cancelled due to multiple errors!' );
-            return 1;
+            break;
         }
 
         try {
@@ -826,7 +1052,6 @@ class Installer extends AbstractCommand {
                 sprintf( 'Admin account for %s has been created successfully.', $admin->get_display_name() )
             );
 
-            $this->output->info( 'See admin account details here...' );
             $this->output->table(
                 ['Name', 'Value'],
                 [
@@ -838,9 +1063,7 @@ class Installer extends AbstractCommand {
             );
 
             $this->output->writeln(
-                sprintf(
-                    'A welcome email has been sent to %s.', $admin->get_email()
-                )
+                sprintf( 'A welcome email is queued for %s.', $admin->get_email() )
             );
 
             return 0;
@@ -848,6 +1071,67 @@ class Installer extends AbstractCommand {
             $this->output->error( $e->getMessage() );
             return 1;
         }
+    }
+
+    /**
+     * Whether the person running this command may create an administrator.
+     *
+     * A signed-in system administrator always may. While no account exists,
+     * so does the user that owns the application folder: nobody can be
+     * signed in yet, and that user already controls the installation.
+     *
+     * @param bool $first Whether this would be the first account.
+     * @return bool
+     */
+    protected function may_create_admin( bool $first ) : bool {
+        if ( $this->guard->has_principal() && $this->guard->get_principal()?->is( 'system_admin' ) ) {
+            return true;
+        }
+
+        if ( ! $first ) {
+            $this->output->error( 'You must be logged in as a system admin to perform this action' );
+            $this->output->info( 'A system admin must own the app root directory and the CLI credential set to `root`.' );
+            return false;
+        }
+
+        if ( $this->ownership->is_owner( \SMLISER_ROOT ) ) {
+            return true;
+        }
+
+        $owner = $this->ownership->owner_name( \SMLISER_ROOT );
+
+        $this->output->error(
+            sprintf(
+                'The first administrator can only be created by the user that owns the application folder%s.',
+                null === $owner ? '' : " ({$owner})"
+            )
+        );
+
+        $this->output->info(
+            null !== $owner && '\\' !== \DIRECTORY_SEPARATOR
+                ? sprintf( 'Run it as that user, e.g. `sudo -u %s %s`, or create the administrator in the web installer.', $owner, $this->script_name . ' ' . static::name() . ' make:admin' )
+                : 'Run it as that user, or create the administrator in the web installer.'
+        );
+
+        return false;
+    }
+
+    /**
+     * A text option, empty when not given.
+     *
+     * @param CommandInput $input
+     * @param string       $name Option name.
+     * @param bool         $trim Trim the value (not for passwords).
+     * @return string
+     */
+    protected function string_option( CommandInput $input, string $name, bool $trim = true ) : string {
+        $value = $input->get_option( $name );
+
+        if ( ! is_string( $value ) ) {
+            return '';
+        }
+
+        return $trim ? trim( $value ) : $value;
     }
 
     /**
@@ -999,18 +1283,30 @@ class Installer extends AbstractCommand {
     /**
      * Whether --force or its short form -f was given.
      *
-     * A bare flag counts as given; an explicit false-like value
-     * (--force=false, --force=0, --force=no) does not.
-     *
      * @param CommandInput|null $input
      * @return bool
      */
     private function is_forced( ?CommandInput $input ) : bool {
+        return $this->is_flag_set( $input, 'force', 'f' );
+    }
+
+    /**
+     * Whether a flag option was given.
+     *
+     * A bare flag counts as given; an explicit false-like value
+     * (--flag=false, --flag=0, --flag=no) does not.
+     *
+     * @param CommandInput|null $input
+     * @param string            $long  Long option name.
+     * @param string|null       $short Short option name.
+     * @return bool
+     */
+    private function is_flag_set( ?CommandInput $input, string $long, ?string $short = null ) : bool {
         if ( null === $input ) {
             return false;
         }
 
-        $value = $input->get_option( 'force' ) ?? $input->get_option( 'f' );
+        $value = $input->get_option( $long ) ?? ( null === $short ? null : $input->get_option( $short ) );
 
         if ( null === $value || false === $value ) {
             return false;
@@ -1062,7 +1358,7 @@ class Installer extends AbstractCommand {
             return false;
         }
 
-        $this->output->success( sprintf( 'Connected to the %s database.', $db_config->driver ) );
+        $this->output->success( sprintf( 'Connected to the %s database.', $this->driver_label( (string) $db_config->driver ) ) );
 
         return true;
     }

@@ -79,43 +79,6 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	public const URL_QUERY     = 'query';
 
 	/**
-	 * Minimum administrator password length.
-	 */
-	public const MIN_PASSWORD_LENGTH = 8;
-
-	/**
-	 * Supported database drivers: display label, short description, default port and default charset.
-	 *
-	 * The charset values follow each engine's naming: MySQL "utf8mb4" (full
-	 * Unicode; its "utf8" lacks emoji), PostgreSQL "UTF8". SQLite has none.
-	 */
-	public const DRIVERS = array(
-		'mysql'  => array(
-			'label'   => 'MySQL / MariaDB',
-			'help'    => 'Offered by most hosting plans.',
-			'port'    => 3306,
-			'charset' => 'utf8mb4',
-		),
-		'pgsql'  => array(
-			'label'   => 'PostgreSQL',
-			'help'    => 'Choose it if your host gave you a PostgreSQL database.',
-			'port'    => 5432,
-			'charset' => 'UTF8',
-		),
-		'sqlite' => array(
-			'label'   => 'SQLite',
-			'help'    => 'A single file; no database server needed. Good for small sites and testing.',
-			'port'    => null,
-			'charset' => null,
-		),
-	);
-
-	/**
-	 * Host used when the server address is left empty.
-	 */
-	public const DEFAULT_HOST = 'localhost';
-
-	/**
 	 * Steps derived from the server state.
 	 */
 	public const STEP_DATABASE = 'database';
@@ -475,7 +438,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			$issues = $this->installer->installation_issues();
 		} catch ( DatabaseException $e ) {
 			$result['notices'][] = $this->error(
-				'The database saved in the .env file could not be reached. ' . $this->explain_db_error( $e->getMessage(), (string) $config->driver ),
+				'The database saved in the .env file could not be reached. ' . DatabaseSettings::explain_error( $e->getMessage(), (string) $config->driver ),
 				$e->getMessage()
 			);
 			return $result;
@@ -514,15 +477,15 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			self::STEP_DATABASE => $this->page->database(
 				$context,
 				$values + $assessment['config'] + array( 'db_driver' => 'mysql' ),
-				self::DRIVERS,
-				rtrim( \SMLISER_STORAGE_DIR, '/\\' )
+				DatabaseSettings::DRIVERS,
+				DatabaseSettings::default_sqlite_dir()
 			),
 			self::STEP_SETUP    => $this->page->setup(
 				$context,
 				$assessment['issues'],
 				$values['app_url'] ?? $this->installer->read_app_url() ?? $this->detect_app_url()
 			),
-			self::STEP_ADMIN    => $this->page->admin( $context, $values, self::MIN_PASSWORD_LENGTH ),
+			self::STEP_ADMIN    => $this->page->admin( $context, $values, AppInstaller::MIN_ADMIN_PASSWORD_LENGTH ),
 			default             => $this->page->finish( $context ),
 		};
 
@@ -576,65 +539,18 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			422
 		);
 
-		$driver = $input['driver'];
-
-		if ( ! isset( self::DRIVERS[ $driver ] ) ) {
-			return $retry( 'Choose the type of database you are using.' );
-		}
-
-		if ( '' === $input['dbname'] ) {
-			return $retry( 'Enter the database name.' );
-		}
-
-		if ( 'sqlite' === $driver ) {
-			$input['host']    = '';
-			$input['port']    = '';
-			$input['charset'] = '';
-			$input['path']    = '' === $input['path'] ? rtrim( \SMLISER_STORAGE_DIR, '/\\' ) : $input['path'];
-		} else {
-			$input['host']    = '' === $input['host'] ? self::DEFAULT_HOST : $input['host'];
-			$input['port']    = '' === $input['port'] ? (string) self::DRIVERS[ $driver ]['port'] : $input['port'];
-			$input['charset'] = '' === $input['charset'] ? (string) self::DRIVERS[ $driver ]['charset'] : $input['charset'];
-
-			if ( ! ctype_digit( $input['port'] ) || (int) $input['port'] < 1 || (int) $input['port'] > 65535 ) {
-				return $retry( 'The port must be a number between 1 and 65535. Leave it empty to use the standard port.' );
-			}
-
-			if ( ! preg_match( '/^[A-Za-z0-9_-]{1,64}$/', $input['charset'] ) ) {
-				return $retry(
-					sprintf(
-						'The character set can only contain letters, numbers, "_" and "-". Leave it empty to use %s.',
-						self::DRIVERS[ $driver ]['charset']
-					)
-				);
-			}
-		}
-
-		$env = array();
-		foreach ( \smliser_db_env_keys() as $field => $key ) {
-			$env[ $key ] = $input[ $field ] ?? '';
-		}
-
 		try {
-			$config = \smliser_db_config_from_env( $env );
+			$config = DatabaseSettings::normalize( $input );
 		} catch ( \InvalidArgumentException $e ) {
-			return $retry( 'Some database settings are not valid.', $e->getMessage() );
+			return $retry( $e->getMessage(), $e->getPrevious()?->getMessage() );
 		}
 
-		if ( null === $config ) {
-			return $retry( 'Enter the database name.' );
-		}
-
-		// SQLite has no charset. Store an empty value explicitly, so a charset
-		// left in the .env file (e.g. utf8mb4 from .env.example) is cleared.
-		if ( 'sqlite' === $driver ) {
-			$config->charset = '';
-		}
+		$driver = (string) $config->driver;
 
 		try {
 			$adapter = $this->installer->test_db_connection( $config );
 		} catch ( DatabaseException $e ) {
-			return $retry( 'Could not connect to the database. ' . $this->explain_db_error( $e->getMessage(), $driver ), $e->getMessage() );
+			return $retry( 'Could not connect to the database. ' . DatabaseSettings::explain_error( $e->getMessage(), $driver ), $e->getMessage() );
 		}
 
 		try {
@@ -838,21 +754,13 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			'admin_name'  => $name,
 			'admin_email' => $email,
 		);
-		$errors   = array();
+		$messages = $this->installer->validate_admin( $name, $email, $password );
 
-		if ( '' === $name ) {
-			$errors[] = $this->error( 'Enter your name.' );
+		if ( ! isset( $messages['password'] ) && ! hash_equals( $password, $confirm ) ) {
+			$messages['password'] = 'The two passwords do not match. Type them again.';
 		}
 
-		if ( false === filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
-			$errors[] = $this->error( 'Enter a valid email address, for example you@example.com.' );
-		}
-
-		if ( mb_strlen( $password ) < self::MIN_PASSWORD_LENGTH ) {
-			$errors[] = $this->error( sprintf( 'The password must be at least %d characters long.', self::MIN_PASSWORD_LENGTH ) );
-		} elseif ( ! hash_equals( $password, $confirm ) ) {
-			$errors[] = $this->error( 'The two passwords do not match. Type them again.' );
-		}
+		$errors = array_map( fn ( string $message ) : array => $this->error( $message ), array_values( $messages ) );
 
 		if ( array() !== $errors ) {
 			return $this->render_step( $assessment, $values, $errors, 422 );
@@ -905,43 +813,6 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			'message' => $message,
 			'detail'  => $detail,
 		);
-	}
-
-	/**
-	 * Translate a database driver error into advice a non-developer can act on.
-	 *
-	 * @param string $raw    The driver's error message.
-	 * @param string $driver The database driver.
-	 * @return string
-	 */
-	private function explain_db_error( string $raw, string $driver ) : string {
-		$message = strtolower( $raw );
-		$has     = static fn ( string ...$needles ) : bool => array_reduce(
-			$needles,
-			static fn ( bool $found, string $needle ) : bool => $found || str_contains( $message, $needle ),
-			false
-		);
-
-		return match ( true ) {
-			$has( 'access denied', 'password authentication failed', 'authentication failed' )
-				=> 'The username or password was rejected. Check them in your hosting control panel, and make sure the user has been given access to this database.',
-			$has( 'unknown database', 'does not exist' ) && ! $has( 'role' )
-				=> 'That database does not exist. Create it in your hosting control panel first, then check the spelling here (some hosts add your account name in front).',
-			$has( 'role' ) && $has( 'does not exist' )
-				=> 'That database user does not exist. Check the username.',
-			$has( 'getaddrinfo', 'name or service not known', 'unknown mysql server host', 'could not translate host name', 'no such host' )
-				=> 'The server address could not be found. Check the server address; it is usually localhost.',
-			$has( 'connection refused', "can't connect", 'could not connect to server' )
-				=> 'Nothing answered at that server address and port. Check both; leave the port empty to use the standard one.',
-			$has( 'timed out', 'timeout' )
-				=> 'The database server did not answer in time. Check the server address, or ask your host whether remote connections are allowed.',
-			$has( 'could not find driver', 'driver' ) && $has( 'not', 'missing', 'find' )
-				=> 'The PHP extension for this database type is not installed on the server. Ask your host to enable it, or choose another database type.',
-			'sqlite' === $driver && $has( 'unable to open', 'readonly', 'read-only', 'permission' )
-				=> 'The database file could not be created or opened. Make sure the database folder exists and is writable by the web server.',
-			default
-				=> 'Check the details and try again.',
-		};
 	}
 
 	/*

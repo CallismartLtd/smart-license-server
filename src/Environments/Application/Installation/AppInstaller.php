@@ -82,6 +82,11 @@ class AppInstaller {
     public const ASSETS_COPY_MARKER = '.smliser-assets-copy';
 
     /**
+     * Minimum administrator password length, for every installer.
+     */
+    public const MIN_ADMIN_PASSWORD_LENGTH = 8;
+
+    /**
 	 * The required directories keyed by readable names.
 	 * 
 	 * @var array<string, string>
@@ -890,6 +895,63 @@ class AppInstaller {
     }
 
     /**
+     * Check the details of a new administrator account.
+     *
+     * The rules every installer applies before create_admin(). Only the
+     * values are checked; whether the email address is already in use is not.
+     *
+     * @param string $name     Display name.
+     * @param string $email    Email address.
+     * @param string $password Password, as typed.
+     * @return array<string, string> Problems keyed by "name", "email" or "password"; empty when all are valid.
+     */
+    public function validate_admin( string $name, string $email, string $password ) : array {
+        $errors = array();
+
+        if ( '' === trim( $name ) ) {
+            $errors['name'] = 'Enter your name.';
+        }
+
+        if ( false === filter_var( trim( $email ), FILTER_VALIDATE_EMAIL ) ) {
+            $errors['email'] = 'Enter a valid email address, for example you@example.com.';
+        }
+
+        if ( mb_strlen( $password ) < static::MIN_ADMIN_PASSWORD_LENGTH ) {
+            $errors['password'] = sprintf( 'The password must be at least %d characters long.', static::MIN_ADMIN_PASSWORD_LENGTH );
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Whether at least one user account exists.
+     *
+     * Queries the users table directly (no cache), so the answer is reliable
+     * during a fresh installation. A missing users table counts as no users.
+     *
+     * @return bool
+     * @throws DatabaseException When no database connection is active, or the query fails.
+     */
+    public function has_users() : bool {
+        $this->assert_database_connection();
+
+        if ( ! ( new Inspector( $this->db ) )->table_exists( \SMLISER_USERS_TABLE ) ) {
+            return false;
+        }
+
+        $sql   = \smliserQueryBuilder( $this->db->get_driver() )
+            ->select( 'COUNT(*)' )
+            ->from( \SMLISER_USERS_TABLE );
+        $count = $this->db->get_var( $sql->build(), $sql->get_bindings() );
+
+        if ( null === $count && $this->db->get_last_error() ) {
+            throw new DatabaseException( 'database_query_error', $this->db->get_last_error() );
+        }
+
+        return (int) $count > 0;
+    }
+
+    /**
      * Create the site administrator.
      * 
      * @return User
@@ -1051,15 +1113,12 @@ class AppInstaller {
         }
 
         $inspector      = new Inspector( $this->db );
-        $users_table    = false;
         $missing_tables = false;
 
         foreach ( SchemaRegistry::instance()->get_all_tables() as $table ) {
             if ( ! $inspector->table_exists( $table->get_name() ) ) {
                 $issues[]       = sprintf( 'Missing table: %s', $table->get_name() );
                 $missing_tables = true;
-            } elseif ( \SMLISER_USERS_TABLE === $table->get_name() ) {
-                $users_table = true;
             }
         }
 
@@ -1072,19 +1131,8 @@ class AppInstaller {
             }
         }
 
-        if ( $users_table ) {
-            $sql   = \smliserQueryBuilder( $this->db->get_driver() )
-                ->select( 'COUNT(*)' )
-                ->from( \SMLISER_USERS_TABLE );
-            $count = $this->db->get_var( $sql->build(), $sql->get_bindings() );
-
-            if ( null === $count && $this->db->get_last_error() ) {
-                throw new DatabaseException( 'database_query_error', $this->db->get_last_error() );
-            }
-
-            if ( 0 === (int) $count ) {
-                $issues[] = 'No user account exists.';
-            }
+        if ( ! $this->has_users() ) {
+            $issues[] = 'No user account exists.';
         }
 
         return $issues;

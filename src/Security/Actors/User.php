@@ -11,14 +11,12 @@ namespace SmartLicenseServer\Security\Actors;
 use DateTimeImmutable;
 use DateTimeZone;
 use SmartLicenseServer\Core\DataStore;
-use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 use const SMLISER_USERS_TABLE;
-use function is_string, md5, get_object_vars;
 
 /**
  * Canonical representation of a human actor in the system.

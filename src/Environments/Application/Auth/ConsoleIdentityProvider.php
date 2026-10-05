@@ -23,7 +23,15 @@ use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Permission\Role;
 
 class ConsoleIdentityProvider implements IdentityProviderInterface {
-    public function __construct( protected Guard $guard ) {}
+    /**
+     * @param Guard           $guard     The security guard.
+     * @param FolderOwnership $ownership Folder ownership check.
+     */
+    public function __construct(
+        protected Guard $guard,
+        protected FolderOwnership $ownership
+    ) {}
+
     /**
      * {@inheritdoc}
      */
@@ -56,78 +64,13 @@ class ConsoleIdentityProvider implements IdentityProviderInterface {
         return null;
     }
 
+    /**
+     * Whether the user running this process owns the application folder.
+     *
+     * @return bool
+     */
     protected function user_owns_root_dir() : bool {
-        $root_dir = \SMLISER_ROOT;
-
-        if ( ! \is_dir( $root_dir ) ) {
-            return false;
-        }
-
-        if ( '\\' === \DIRECTORY_SEPARATOR ) {
-            return $this->windows_user_owns_root_dir( $root_dir );
-        }
-
-        return $this->unix_user_owns_root_dir( $root_dir );
-    }
-
-    protected function unix_user_owns_root_dir( string $root_dir ) : bool {
-        if ( ! \function_exists( 'posix_geteuid' ) ) {
-            return false;
-        }
-
-        $owner_uid = @\fileowner( $root_dir );
-
-        if ( false === $owner_uid ) {
-            return false;
-        }
-
-        return $owner_uid === \posix_geteuid();
-    }
-
-    protected function windows_user_owns_root_dir( string $root_dir ) : bool {
-        $tmp_file = @\tempnam( $root_dir, '.smliser-' );
-
-        if ( false === $tmp_file ) {
-            return false;
-        }
-
-        try {
-            $root_owner = $this->windows_get_file_owner( $root_dir );
-            $file_owner = $this->windows_get_file_owner( $tmp_file );
-
-            if ( false === $root_owner || false === $file_owner ) {
-                return false;
-            }
-
-            return 0 === \strcasecmp( $root_owner, $file_owner );
-        } finally {
-            @\unlink( $tmp_file );
-        }
-    }
-
-    protected function windows_get_file_owner( string $path ) : string|false {
-        $command = 'icacls ' . \escapeshellarg( $path );
-
-        $output = [];
-        $status = -1;
-
-        @\exec( $command . ' 2>NUL', $output, $status );
-
-        if ( 0 !== $status || empty( $output ) ) {
-            return false;
-        }
-
-        foreach ( $output as $line ) {
-            if ( \preg_match( '/^\s*[^:]+:\s+([^\r\n]+)$/', $line, $matches ) ) {
-                $owner = \trim( $matches[1] );
-
-                if ( '' !== $owner ) {
-                    return $owner;
-                }
-            }
-        }
-
-        return false;
+        return $this->ownership->is_owner( \SMLISER_ROOT );
     }
 
     /**
@@ -138,9 +81,12 @@ class ConsoleIdentityProvider implements IdentityProviderInterface {
     protected function make_system_admin() : array {
         $default_role   = DefaultRoles::get( 'system_admin' );
         
-        $role           = Role::get_by_slug( $default_role['slug'] );
-
-        if ( ! $role ) {
+        // The lookup goes through the cache and the database, neither of
+        // which exists before installation. Every field but the ID is set
+        // from the defaults below, so a new Role is an equivalent fallback.
+        try {
+            $role = Role::get_by_slug( $default_role['slug'] ) ?: new Role();
+        } catch ( \Throwable ) {
             $role = new Role();
         }
 

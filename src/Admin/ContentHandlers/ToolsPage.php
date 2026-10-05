@@ -644,41 +644,49 @@ class ToolsPage implements AdminPageInterface {
 	}
 
 	/**
-	 * Gather database engine/connection facts via the DBPrism Inspector.
-	 *
-	 * Only non-null fields from DatabaseInfoDTO are shown — not every
-	 * engine exposes every field (e.g. SQLite has no port/server).
-	 *
-	 * @return array<string, string>
-	 */
-	private function collect_database_diagnostics() : array {
-		try {
-			$info = $this->get_database_info();
-		} catch ( \Throwable $e ) {
-			return [ 'Status' => 'Unable to inspect connection: ' . $e->getMessage() ];
-		}
+     * Gather database engine/connection facts via the DBPrism Inspector.
+     *
+     * Only non-null fields from DatabaseInfoDTO are shown — not every
+     * engine exposes every field (e.g. SQLite has no port/server).
+     *
+     * @return array<string, string>
+     */
+    private function collect_database_diagnostics() : array {
+        try {
+            $info = $this->get_database_info();
+        } catch ( \Throwable $e ) {
+            return [ 'Status' => 'Unable to inspect connection: ' . $e->getMessage() ];
+        }
 
-		$rows = [
-			'Engine'            => $info->engine,
-			'Product'           => $info->product,
-			'Version'           => $info->version,
-			'Protocol Version'  => null !== $info->protocol_version ? (string) $info->protocol_version : null,
-			'Database'          => $info->database,
-			'Size'              => null !== $info->size_bytes ? Format::bytes( $info->size_bytes ) : 'Unknown',
-			'Server'            => $info->server,
-			'Port'              => null !== $info->port ? (string) $info->port : null,
-			'Transport'         => $info->transport,
-			'SSL'               => null !== $info->ssl ? Format::yes_no( $info->ssl ) : null,
-			'Charset'           => $info->charset,
-			'Collation'         => $info->collation,
-			'Timezone'          => $info->timezone,
-			'Schema'            => $info->schema,
-			'Server OS'         => $info->server_os,
-			'Server Hostname'   => $info->server_hostname,
-		];
+        $rows = [
+            // Engine & Driver Identity
+            'Engine'            => $info->engine,
+            'Product'           => $info->product,
+            'Version'           => $info->version,
+            'Driver'            => $this->db->get_adapter()::class,
 
-		return \array_filter( $rows, static fn( $value ) => null !== $value && '' !== $value );
-	}
+            // Database & Schema.
+            'Database'          => $info->database,
+            'Schema'            => $info->schema,
+            'Size'              => null !== $info->size_bytes ? Format::bytes( $info->size_bytes ) : 'Unknown',
+            'Charset'           => $info->charset,
+            'Collation'         => $info->collation,
+            'Timezone'          => $info->timezone,
+
+            // Connection & Network
+            'Server'            => $info->server,
+            'Port'              => null !== $info->port ? (string) $info->port : null,
+            'Transport'         => $info->transport,
+            'Protocol Version'  => null !== $info->protocol_version ? (string) $info->protocol_version : null,
+            'SSL'               => null !== $info->ssl ? Format::yes_no( $info->ssl ) : null,
+
+            // Host Server Environment
+            'Server Hostname'   => $info->server_hostname,
+            'Server OS'         => $info->server_os,
+        ];
+
+        return \array_filter( $rows, static fn( $value ) => null !== $value && '' !== $value );
+    }
 
 	/*
 	|--------------------

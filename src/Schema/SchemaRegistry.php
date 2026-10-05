@@ -28,7 +28,9 @@ use Callismart\DBPrism\Utils\Table;
 /**
  * Database Schema Registry
  *
- * Manages the registration and instantiation of database table schemas.
+ * Manages the registration and instantiation of database table schemas,
+ * and resolves table names: schemas are registered by logical (unprefixed)
+ * name, and the active prefix is added when a name is resolved.
  *
  * @method class-string<DatabaseSchemaInterface>|null get( string $table_name )
  * @method array<string, class-string<DatabaseSchemaInterface>|DatabaseSchemaInterface> all( bool $assoc = true, bool $objects = false)
@@ -56,84 +58,164 @@ class SchemaRegistry extends AbstractRegistry {
     }
 
     /**
-     * Get all registered tables as Table instances.
+     * Prefix added to every table name.
+     *
+     * Null until set_prefix() is called.
+     *
+     * @var string|null
+     */
+    private ?string $prefix = null;
+
+    /**
+     * Set the database table prefix.
+     *
+     * Set when the container registers the registry, and called again to
+     * override it (e.g. by the installer when the prefix changes), so table
+     * names resolved afterwards use the new prefix in the same process.
+     *
+     * @param string $prefix Letters, digits and underscores; may be empty.
+     * @return void
+     * @throws InvalidArgumentException When the prefix contains other characters.
+     */
+    public function set_prefix( string $prefix ) : void {
+        if ( 1 !== preg_match( '/^[A-Za-z0-9_]*$/', $prefix ) ) {
+            throw new InvalidArgumentException(
+                sprintf( 'SchemaRegistry: invalid table prefix "%s". Use letters, digits and underscores only.', $prefix )
+            );
+        }
+
+        $this->prefix = $prefix;
+    }
+
+    /**
+     * Get the database table prefix.
+     *
+     * @return string
+     * @throws \LogicException When the prefix has not been set.
+     */
+    public function prefix() : string {
+        if ( null === $this->prefix ) {
+            throw new \LogicException( 'SchemaRegistry: the table prefix has not been set.' );
+        }
+
+        return $this->prefix;
+    }
+
+    /**
+     * Get the real name of a table: the active prefix plus its logical name.
+     *
+     * @param TableName|string $table A TableName, or a logical name registered by an extension.
+     * @return string E.g. "smliser_users".
+     * @throws \LogicException When the prefix has not been set.
+     */
+    public function table_name( TableName|string $table ) : string {
+        return $this->prefix() . ( $table instanceof TableName ? $table->value : $table );
+    }
+
+    /**
+     * Get the logical (unprefixed) name of a registered table.
+     *
+     * Accepts a TableName, a logical name, or a real (prefixed) name, so
+     * code that already holds a real name can still look up its schema.
+     *
+     * @param TableName|string $table
+     * @return string|null Null when no such table is registered.
+     */
+    public function logical_name( TableName|string $table ) : ?string {
+        $name = $table instanceof TableName ? $table->value : $table;
+
+        if ( null !== $this->get( $name ) ) {
+            return $name;
+        }
+
+        $prefix = $this->prefix ?? '';
+
+        if ( '' !== $prefix && str_starts_with( $name, $prefix ) ) {
+            $name = substr( $name, strlen( $prefix ) );
+
+            return null !== $this->get( $name ) ? $name : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Get all registered tables as Table instances, named with the active prefix.
      *
      * @return Table[]
      */
     public function get_all_tables() : array {
-        $tables    = [];
-        $providers = $this->all( false, false );
+        $tables = [];
 
-        foreach ( $providers as $class_string ) {
-            $tables[] = $this->get_table( $class_string::get_table_name() );
+        foreach ( array_keys( $this->all() ) as $name ) {
+            $tables[] = $this->get_table( $name );
         }
 
         return array_filter( $tables );
     }
 
     /**
-     * Get a Table instance by its table name.
-     * 
-     * @param string $table_name
-     * @return Table|null
+     * Get a Table instance, named with the active prefix.
+     *
+     * @param TableName|string $table A TableName, a logical name, or a real (prefixed) name.
+     * @return Table|null Null when no such table is registered.
      */
-    public function get_table( string $table_name ) : ?Table {
-        $class_string = $this->get( $table_name );
+    public function get_table( TableName|string $table ) : ?Table {
+        $name = $this->logical_name( $table );
 
-        if ( ! $class_string ) {
+        if ( null === $name ) {
             return null;
         }
 
-        return Table::make( $table_name )
+        $class_string = $this->get( $name );
+
+        return Table::make( $this->table_name( $name ) )
             ->add_columns( $class_string::get_columns() )
             ->add_constraints( $class_string::get_constraints() );
     }
 
     /**
-     * Get the columns of the given table
-     * 
-     * @param string $table_name
+     * Get the columns of the given table.
+     *
+     * @param TableName|string $table A TableName, a logical name, or a real (prefixed) name.
      * @return null|Column[]
      */
-    public function get_table_columns( string $table_name ) : ?array {
-        
-        $table  = $this->get_table( $table_name );
-
-        if ( ! $table ) {
-            return null;
-        }
-
-        return $table->get_columns();
+    public function get_table_columns( TableName|string $table ) : ?array {
+        return $this->get_table( $table )?->get_columns();
     }
 
     /**
-     * Get table column names as array
-     * 
-     * @param string $table_name
+     * Get table column names as array.
+     *
+     * @param TableName|string $table A TableName, a logical name, or a real (prefixed) name.
      * @return string[]
      */
-    public function get_table_column_names( string $table_name ) : array {
-        $columns    = $this->get_table_columns( $table_name );
-        $names      = [];
+    public function get_table_column_names( TableName|string $table ) : array {
+        $names = [];
 
-        if ( ! $columns ) {
-            return $names;
-        }
-
-        foreach( $columns as $column ) {
-            $names[]    = $column->name;
+        foreach ( $this->get_table_columns( $table ) ?? [] as $column ) {
+            $names[] = $column->name;
         }
 
         return $names;
     }
 
     /**
-     * Return all registered table names.
+     * Return the real (prefixed) names of all registered tables.
      *
      * @return array<int, string>
      */
     public function table_names() : array {
-        return array_keys( $this->all() );
+        return array_map( [ $this, 'table_name' ], $this->logical_names() );
+    }
+
+    /**
+     * Return the logical (unprefixed) names of all registered tables.
+     *
+     * @return array<int, string>
+     */
+    public function logical_names() : array {
+        return array_map( 'strval', array_keys( $this->all() ) );
     }
 
     /**
@@ -179,8 +261,10 @@ class SchemaRegistry extends AbstractRegistry {
         ];
 
         foreach ( $schemas as $schema ) {
-            // Index by table name for easy retrieval via $this->get()
-            $this->core[ $schema::get_table_name() ] = $schema;
+            // Indexed by logical (unprefixed) name; the prefix is added when a name is resolved.
+            $name = $schema::get_table_name();
+
+            $this->core[ $name instanceof TableName ? $name->value : $name ] = $schema;
         }
 
         $this->core_loaded = true;
