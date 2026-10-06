@@ -21,6 +21,7 @@ use Callismart\DBPrism\Utils\CaseExpression;
 use DateTimeImmutable;
 use DateTimeZone;
 use RuntimeException;
+use SmartLicenseServer\Schema\TableName;
 
 /**
  * Job storage adapter backed by the application Database abstraction.
@@ -31,12 +32,13 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      * Constructor.
      *
      * @param Database $db Database abstraction instance.
-     * @param string $jobs_table The database table name where jobs are stored.
+     * @param TableName $jobs_table The database table name where jobs are stored.
+     * @param TableName $jobs_table The database table name where failed jobs are stored.
      */
     public function __construct( 
         private Database $db, 
-        private string $jobs_table,
-        private string $failed_job_table
+        private TableName $jobs_table,
+        private TableName $failed_job_table
     ) {}
 
     /*
@@ -58,7 +60,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
         // ID is assigned by the DB — never insert it explicitly.
         unset( $data['id'] );
 
-        $id = $this->db->insert( $this->jobs_table, $data );
+        $id = $this->db->insert( $this->jobs_table->table(), $data );
 
         if ( $id === false ) {
             throw new RuntimeException(
@@ -90,7 +92,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
 
             // Build queue filter.
             $queue_sql    = $this->query()
-                ->select( '*' )->from( $this->jobs_table )
+                ->select( '*' )->from( $this->jobs_table->table() )
                 ->where_in( 'status', [ JobDTO::STATUS_PENDING, JobDTO::STATUS_RETRYING] )
                 ->where( 'available_at', '<=', $now );
 
@@ -122,7 +124,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
 
             // Atomically mark as running.
             $affected = $this->db->update(
-                $this->jobs_table,
+                $this->jobs_table->table(),
                 [
                     'status'     => JobDTO::STATUS_RUNNING,
                     'started_at' => $now,
@@ -168,7 +170,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
         unset( $data['id'], $data['created_at'] ); // Never overwrite immutable fields.
 
         $this->db->update(
-            $this->jobs_table,
+            $this->jobs_table->table(),
             $data,
             [ 'id' => $id ]
         );
@@ -186,7 +188,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             return false;
         }
 
-        $affected = $this->db->delete( $this->jobs_table, [ 'id' => $id ] );
+        $affected = $this->db->delete( $this->jobs_table->table(), [ 'id' => $id ] );
 
         return false !== $affected;
     }
@@ -213,7 +215,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
         try {
             $this->db->begin_transaction();
 
-            $archived = $this->db->insert( $this->failed_job_table, [
+            $archived = $this->db->insert( $this->failed_job_table->table(), [
                 'job_id'        => $id,
                 'job_class'     => $row['job_class'],
                 'queue'         => $row['queue'],
@@ -234,7 +236,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
                 return false;
             }
 
-            $removed = $this->db->delete( $this->jobs_table, [ 'id' => $id ] );
+            $removed = $this->db->delete( $this->jobs_table->table(), [ 'id' => $id ] );
 
             if ( $removed === false ) {
                 $this->db->rollback();
@@ -261,7 +263,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      */
     public function get_job_by_id( int $id ): ?JobDTO {
         $sql    = $this->query()
-            ->select( '*' )->from( $this->jobs_table )
+            ->select( '*' )->from( $this->jobs_table->table() )
             ->where( 'id', '=', $id )
             ->limit( 1 );
         $row = $this->db->get_row( $sql->build(), $sql->get_bindings() );
@@ -280,7 +282,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      */
     public function get_jobs_by_status( int $page, int $limit, string $status, ?string $queue = null ): array {
         $sql = $this->query()
-            ->select( '*' )->from( $this->jobs_table )
+            ->select( '*' )->from( $this->jobs_table->table() )
             ->where( 'status', '=', $status );
 
         if ( null !== $queue ) {
@@ -301,7 +303,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      */
     public function get_jobs( int $page, int $limit, ?string $queue = null, ?string $status = null, ?string $job_class = null ): array {
         $sql = $this->query()
-            ->select( '*' )->from( $this->jobs_table );
+            ->select( '*' )->from( $this->jobs_table->table() );
 
         if ( null !== $queue ) {
             $sql->where( 'queue', '=', $queue );
@@ -331,7 +333,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      */
     public function get_failed_jobs( int $page, int $limit, ?string $queue = null, ?string $job_class = null ): array {
         $sql = $this->query()
-            ->select( '*' )->from( $this->failed_job_table );
+            ->select( '*' )->from( $this->failed_job_table->table() );
 
         if ( null !== $queue ) {
             $sql->where( 'queue', '=', $queue );
@@ -361,7 +363,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      */
     public function count_jobs_by_status( string $status, ?string $queue = null ): int {
         $sql = $this->query()
-            ->select( 'COUNT(*)' )->from( $this->jobs_table )
+            ->select( 'COUNT(*)' )->from( $this->jobs_table->table() )
             ->where( 'status', '=', $status );
 
         if ( null !== $queue ) {
@@ -376,7 +378,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      */
     public function count_jobs( ?string $queue = null, ?string $status = null, ?string $job_class = null ): int {
         $sql = $this->query()
-            ->select( 'COUNT(*)' )->from( $this->jobs_table );
+            ->select( 'COUNT(*)' )->from( $this->jobs_table->table() );
 
         if ( null !== $queue ) {
             $sql->where( 'queue', '=', $queue );
@@ -398,7 +400,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
      */
     public function count_failed_jobs( ?string $queue = null, ?string $job_class = null ): int {
         $sql = $this->query()
-            ->select( 'COUNT(*)' )->from( $this->failed_job_table );
+            ->select( 'COUNT(*)' )->from( $this->failed_job_table->table() );
 
         if ( null !== $queue ) {
             $sql->where( 'queue', '=', $queue );
@@ -430,7 +432,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             ->format( 'Y-m-d H:i:s' );
 
         $sql = $this->query()
-            ->select( '*' )->from( $this->jobs_table )
+            ->select( '*' )->from( $this->jobs_table->table() )
             ->where( 'status', '=', JobDTO::STATUS_RUNNING )
             ->where( 'started_at', '<=', $cutoff );
 
@@ -453,7 +455,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             } else {
                 // Otherwise return it to the queue for retry.
                 $this->db->update(
-                    $this->jobs_table,
+                    $this->jobs_table->table(),
                     [ 'status' => JobDTO::STATUS_RETRYING ],
                     [ 'id'     => $row['id'] ]
                 );
@@ -474,7 +476,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             ->format( 'Y-m-d H:i:s' );
 
         $sql = $this->query()
-            ->delete( $this->jobs_table )
+            ->delete( $this->jobs_table->table() )
             ->where( 'status', '=', JobDTO::STATUS_COMPLETED )
             ->where( 'completed_at', '<=', $cutoff );
 
@@ -492,7 +494,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
             ->format( 'Y-m-d H:i:s' );
 
         $sql = $this->query()
-            ->delete( $this->failed_job_table )
+            ->delete( $this->failed_job_table->table() )
             ->where( 'failed_at', '<=', $cutoff );
 
         $deleted = $this->db->execute( $sql->build(), $sql->get_bindings() );

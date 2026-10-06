@@ -74,10 +74,10 @@ class SchemaRegistry extends AbstractRegistry {
      * names resolved afterwards use the new prefix in the same process.
      *
      * @param string $prefix Letters, digits and underscores; may be empty.
-     * @return static
+     * @return void
      * @throws InvalidArgumentException When the prefix contains other characters.
      */
-    public function set_prefix( string $prefix ) : static {
+    public function set_prefix( string $prefix ) : void {
         if ( 1 !== preg_match( '/^[A-Za-z0-9_]*$/', $prefix ) ) {
             throw new InvalidArgumentException(
                 sprintf( 'SchemaRegistry: invalid table prefix "%s". Use letters, digits and underscores only.', $prefix )
@@ -85,7 +85,6 @@ class SchemaRegistry extends AbstractRegistry {
         }
 
         $this->prefix = $prefix;
-        return $this;
     }
 
     /**
@@ -263,12 +262,42 @@ class SchemaRegistry extends AbstractRegistry {
 
         foreach ( $schemas as $schema ) {
             // Indexed by logical (unprefixed) name; the prefix is added when a name is resolved.
-            $name = $schema::get_table_name();
-
-            $this->core[ $name instanceof TableName ? $name->value : $name ] = $schema;
+            $this->core[ $this->schema_table_name( $schema ) ] = $schema;
         }
 
         $this->core_loaded = true;
+    }
+
+    /**
+     * The logical (unprefixed) table name a core schema declares.
+     *
+     * Core schemas must return a TableName value (TableName::X->value) or the
+     * case itself. Anything else, typically a prefixed name from
+     * TableName::X->table(), would be prefixed a second time when resolved
+     * and point at a table that does not exist, so it is rejected here.
+     *
+     * @param class-string<DatabaseSchemaInterface> $schema
+     * @return string
+     * @throws \LogicException When the schema does not return a TableName value.
+     */
+    protected function schema_table_name( string $schema ) : string {
+        $name = $schema::get_table_name();
+
+        if ( $name instanceof TableName ) {
+            return $name->value;
+        }
+
+        if ( null === TableName::tryFrom( (string) $name ) ) {
+            throw new \LogicException(
+                sprintf(
+                    'SchemaRegistry: %s::get_table_name() returned "%s", which is not a TableName value. Return the logical name without the prefix, e.g. TableName::USERS->value.',
+                    $schema,
+                    $name
+                )
+            );
+        }
+
+        return (string) $name;
     }
 
     /**

@@ -109,6 +109,10 @@ final class DatabaseSettings {
 			throw new \InvalidArgumentException( 'Enter the database name.' );
 		}
 
+		if ( ! preg_match( '/^[A-Za-z0-9_]{0,32}$/', $values['prefix'] ) ) {
+			throw new \InvalidArgumentException( 'The table prefix can only contain letters, numbers and "_" (at most 32 characters). Leave it empty to keep the current one.' );
+		}
+
 		if ( 'sqlite' === $driver ) {
 			$values['host']    = '';
 			$values['port']    = '';

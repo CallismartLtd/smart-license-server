@@ -26,7 +26,7 @@ use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
- * Deletes raw analytics log entries from SMLISER_ANALYTICS_LOGS_TABLE
+ * Deletes raw analytics log entries from `analytics_logs` table
  * that are older than the configured retention period.
  *
  * This prevents the table from growing unbounded on high-traffic

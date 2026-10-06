@@ -17,7 +17,7 @@ use SmartLicenseServer\Security\Actors\User;
 /**
  * Provides abstract implementation and shared method for identity provision.
  * 
- * @uses \SMLISER_IDENTITY_FEDERATION_TABLE to store known identities, providers.
+ * @uses the `identity_federation_table` to store known identities, providers.
  */
 abstract class AbstractIdentityProvider extends DataStore implements IdentityProviderInterface {
 

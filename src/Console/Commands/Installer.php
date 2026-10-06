@@ -216,7 +216,13 @@ class Installer extends AbstractCommand {
             $this->output->newline();
             $this->output->info( sprintf( 'Step %d/%d: %s', $number, count( $steps ), $title ) );
 
-            $code = $step();
+            try {
+                $code = $step();
+            } catch ( \Throwable $e ) {
+                // Anything a step did not handle itself still gets explained and logged.
+                $this->report_failure( sprintf( 'Step %d (%s) failed', $number, $title ), $e );
+                $code = 1;
+            }
 
             if ( 0 !== $code ) {
                 $this->output->newline();
@@ -1067,10 +1073,44 @@ class Installer extends AbstractCommand {
             );
 
             return 0;
-        } catch ( \InvalidArgumentException|DatabaseException $e ) {
-            $this->output->error( $e->getMessage() );
+        } catch ( \Throwable $e ) {
+            $this->report_failure( 'The administrator account could not be created', $e );
             return 1;
         }
+    }
+
+    /**
+     * Explain a failure on screen and write the full details to the error log.
+     *
+     * The screen gets the cause in one line, plus where it happened when
+     * that is not obvious; the log gets the exception class, location and
+     * stack trace, so a failure can be investigated after the session ends.
+     *
+     * @param string     $what What was being done, e.g. "The administrator account could not be created".
+     * @param \Throwable $e    The failure.
+     * @return void
+     */
+    protected function report_failure( string $what, \Throwable $e ) : void {
+        $this->output->error( sprintf( '%s: %s', $what, $e->getMessage() ) );
+
+        $where = sprintf( '%s:%d', $e->getFile(), $e->getLine() );
+
+        // Expected failures carry a complete message; anything else also gets its location.
+        if ( ! $e instanceof DatabaseException && ! $e instanceof \InvalidArgumentException ) {
+            $this->output->writeln( sprintf( '   %s in %s', get_class( $e ), $where ) );
+        }
+
+        \smliser_log_error(
+            sprintf( "[installer] %s: %s (%s in %s)\n%s", $what, $e->getMessage(), get_class( $e ), $where, $e->getTraceAsString() )
+        );
+
+        $log = (string) ini_get( 'error_log' );
+
+        $this->output->writeln(
+            '' !== $log
+                ? sprintf( '   The full details were written to %s', $log )
+                : '   The full details were written to the PHP error log.'
+        );
     }
 
     /**

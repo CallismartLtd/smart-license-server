@@ -803,11 +803,18 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	/**
 	 * Build an error notice.
 	 *
+	 * Errors with a technical detail are also written to the error log.
+	 *
 	 * @param string      $message Plain-language message.
 	 * @param string|null $detail  Technical detail, shown collapsed.
 	 * @return array{type: string, message: string, detail: ?string}
 	 */
 	private function error( string $message, ?string $detail = null ) : array {
+		// Failures with technical detail are also logged, so they can be investigated later.
+		if ( null !== $detail && '' !== $detail ) {
+			\smliser_log_error( sprintf( '[WebInstaller] %s %s', $message, $detail ) );
+		}
+
 		return array(
 			'type'    => 'error',
 			'message' => $message,

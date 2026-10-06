@@ -269,8 +269,8 @@ abstract class Environment {
             fn ( Container $c ) : DatabaseJobStorageAdapter =>
                 new DatabaseJobStorageAdapter(
                     $c->get( Database::class ),
-                    TableName::BACKGROUND_JOBS->table(),
-                    TableName::FAILED_JOBS->table()
+                    TableName::BACKGROUND_JOBS,
+                    TableName::FAILED_JOBS
                 )
         );
 

@@ -30,13 +30,13 @@ class BulkMessageService extends DataStore {
     /**
      * Constructor.
      * 
-     * @param string $db_table The database table name.
+     * @param TableName $db_table The database table name.
+     * @param TableName $apps_table The database table name for message-app associations.
      * @param BulkMessage $message The message model state entity.
-     * @param string $apps_table The database table name for message-app associations.
      */
     public function __construct( 
-        private string $db_table        = SMLISER_BULK_MESSAGES_TABLE,
-        private string $apps_table      = SMLISER_BULK_MESSAGES_APPS_TABLE,
+        private TableName $db_table        = TableName::BULK_MESSAGES,
+        private TableName $apps_table      = TableName::BULK_MESSAGES_APPS,
         private ?BulkMessage $message   = null,
     ) {}
 
@@ -70,10 +70,10 @@ class BulkMessageService extends DataStore {
             ];
 
             if ( $this->message->get_id() > 0 ) {
-                $result = $db->update( $this->db_table, $data, [ 'id' => $this->message->get_id() ] );
+                $result = $db->update( $this->db_table->table(), $data, [ 'id' => $this->message->get_id() ] );
             } else {
                 $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
-                $result = $db->insert( $this->db_table, $data );
+                $result = $db->insert( $this->db_table->table(), $data );
                 
                 if ( $result ) {
                     $this->message->set_id( (int) $db->get_insert_id() );
@@ -105,7 +105,7 @@ class BulkMessageService extends DataStore {
         }
 
         // Strip previous associations cleanly using baseline keys.
-        $db->delete( $this->apps_table, [ 'message_id' => $this->message->get_message_id() ] );
+        $db->delete( $this->apps_table->table(), [ 'message_id' => $this->message->get_message_id() ] );
         
         if ( empty( $this->message->get_associated_apps() ) ) {
             return;
@@ -125,7 +125,7 @@ class BulkMessageService extends DataStore {
         }
 
         $multi_insert_sql   = $this->query()
-            ->insert( $this->apps_table )
+            ->insert( $this->apps_table->table() )
             ->multi_values( $bulk_rows );
 
         if ( ! empty( $bulk_rows ) ) {
@@ -178,7 +178,7 @@ class BulkMessageService extends DataStore {
         // Utilize query builder layout logic with grouped fallback criteria
         $query = $this->query()
             ->select( '*' )
-            ->from( $this->db_table )
+            ->from( $this->db_table->table() )
             ->where_group( function ( $q ) use ( $id_or_message_id ) {
                 $q->where( 'id', '=', $id_or_message_id )
                   ->or_where( 'message_id', '=', $id_or_message_id );

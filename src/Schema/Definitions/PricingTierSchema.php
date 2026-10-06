@@ -82,7 +82,7 @@ class PricingTierSchema implements DatabaseSchemaInterface {
             Constraint::index( "{$prefx}monetization_id_index" )->on( 'monetization_id' ),
             Constraint::foreign_key( "{$prefx}monetization_fk" )
                 ->on( 'monetization_id' )
-                ->references( TableName::MONETIZATION->value, 'id' )
+                ->references( TableName::MONETIZATION->table(), 'id' )
                 ->on_delete( 'CASCADE' )
         ];
     }

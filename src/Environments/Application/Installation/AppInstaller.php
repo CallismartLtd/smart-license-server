@@ -119,6 +119,7 @@ class AppInstaller {
      * @param JobQueue                $job_queue Background job queue.
      * @param InstallationState       $state     The installation state file.
      * @param MaintenanceFlag         $flag      The maintenance flag file.
+     * @param SchemaRegistry          $schema    The schema registry; holds the table prefix.
      */
     public function __construct(
         protected Database $db,
@@ -126,7 +127,8 @@ class AppInstaller {
         protected FileSystem $fs,
         protected JobQueue $job_queue,
         protected InstallationState $state,
-        protected MaintenanceFlag $flag
+        protected MaintenanceFlag $flag,
+        protected SchemaRegistry $schema
     ) {}
 
     /**
@@ -816,10 +818,9 @@ class AppInstaller {
         ) : void{
         $this->assert_database_connection();
 
-        $schema     = SchemaRegistry::instance();
         $inspector  = new Inspector( $this->db );
 
-        foreach ( $schema->get_all_tables() as $table ) {
+        foreach ( $this->schema->get_all_tables() as $table ) {
             if ( $inspector->table_exists( $table->get_name() ) ) {
                 $failure_callback && $failure_callback( $table->get_name(), 'Exists' );
                 continue;
@@ -936,13 +937,13 @@ class AppInstaller {
     public function has_users() : bool {
         $this->assert_database_connection();
 
-        if ( ! ( new Inspector( $this->db ) )->table_exists( TableName::USERS->table() ) ) {
+        if ( ! ( new Inspector( $this->db ) )->table_exists( $this->schema->table_name( TableName::USERS ) ) ) {
             return false;
         }
 
         $sql   = \smliserQueryBuilder( $this->db->get_driver() )
             ->select( 'COUNT(*)' )
-            ->from( TableName::USERS->table() );
+            ->from( $this->schema->table_name( TableName::USERS ) );
         $count = $this->db->get_var( $sql->build(), $sql->get_bindings() );
 
         if ( null === $count && $this->db->get_last_error() ) {
@@ -1044,11 +1045,16 @@ class AppInstaller {
      *
      * Swaps the adapter on the shared Database instance, so every service
      * already holding it (models, job queue, this installer) uses the new
-     * connection from its next query onward.
+     * connection from its next query onward. The connection's table prefix
+     * is applied to the schema registry at the same time, so table names
+     * resolved afterwards (TableName::X->table(), SchemaRegistry::table_name())
+     * match the database in use. A configuration without a prefix leaves the
+     * current one: the .env value is then unchanged too.
      *
      * @param DatabaseAdapterInterface $adapter A connected adapter, typically from test_db_connection().
      * @return void
-     * @throws DatabaseException When the adapter is not connected.
+     * @throws DatabaseException         When the adapter is not connected.
+     * @throws \InvalidArgumentException When the configured prefix is not a valid table prefix.
      */
     public function use_connection( DatabaseAdapterInterface $adapter ) : void {
         if ( ! $adapter->is_connected() ) {
@@ -1056,6 +1062,12 @@ class AppInstaller {
                 'database_connect_error',
                 'Only a connected database adapter can be activated.'
             );
+        }
+
+        $prefix = $adapter->get_config()->prefix;
+
+        if ( null !== $prefix ) {
+            $this->schema->set_prefix( (string) $prefix );
         }
 
         $this->db->set_adapter( $adapter );
@@ -1116,7 +1128,7 @@ class AppInstaller {
         $inspector      = new Inspector( $this->db );
         $missing_tables = false;
 
-        foreach ( SchemaRegistry::instance()->get_all_tables() as $table ) {
+        foreach ( $this->schema->get_all_tables() as $table ) {
             if ( ! $inspector->table_exists( $table->get_name() ) ) {
                 $issues[]       = sprintf( 'Missing table: %s', $table->get_name() );
                 $missing_tables = true;
@@ -1241,7 +1253,7 @@ class AppInstaller {
     protected function installed_role_slugs() : array {
         $sql   = \smliserQueryBuilder( $this->db->get_driver() )
             ->select( 'slug' )
-            ->from( TableName::ROLES->table() );
+            ->from( $this->schema->table_name( TableName::ROLES ) );
         return array_map( 'strval', $this->db->get_col( $sql->build(), $sql->get_bindings() ) );
     }
 
