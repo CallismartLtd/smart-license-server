@@ -8,8 +8,16 @@
  * Targets:
  *   standalone          Standalone PHP application.
  *
+ * Every build writes the application folder and the release artifacts:
+ *   <out>/                                   The built application, with server/ (nginx,
+ *                                            Caddy, Apache configs) and manifest.json.
+ *   <out>/../release/<name>-<version>-<target>.zip
+ *                    <name>-<version>-<target>.tar.gz
+ *                    <name>-<version>-<target>-setup.php   Single-file installer.
+ *                    <name>-<version>-<target>.sha256      Checksums of the above.
+ * <name> comes from composer.json, <version> from SMLISER_VER under src/.
+ *
  * Options:
- *   --core-dir=<name>   Directory name for the copied src/. Default: smliser
  *   --out=<dir>         Output directory. Default: <repo>/dist/<target>
  *   --composer=<path>   Composer binary. Default: composer
  *   --npm=<path>        npm binary, used once to install esbuild. Default: npm
@@ -27,6 +35,7 @@ use SmartLicenseServer\Build\BuildConsole;
 use SmartLicenseServer\Build\BuildContext;
 use SmartLicenseServer\Build\BuildException;
 use SmartLicenseServer\Build\Builder;
+use SmartLicenseServer\Build\ProjectInfo;
 use SmartLicenseServer\Build\Targets\StandaloneTarget;
 
 if ( 'cli' !== PHP_SAPI ) {
@@ -72,7 +81,7 @@ $console = new BuildConsole();
 try {
 	// getopt() stops at the first positional argument, so parse by hand to
 	// allow options on either side of the target name.
-	$allowed = array( 'core-dir' => true, 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'help' => false );
+	$allowed = array( 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'help' => false );
 	$options = array();
 	$name    = null;
 
@@ -108,11 +117,6 @@ try {
 		throw new BuildException( "Unknown target \"{$name}\". Available: " . implode( ', ', array_keys( $targets ) ) );
 	}
 
-	$core_dir = (string) ( $options['core-dir'] ?? 'smliser' );
-	if ( 1 !== preg_match( '/^[A-Za-z0-9_-]+$/', $core_dir ) ) {
-		throw new BuildException( '--core-dir must be a single directory name (letters, digits, "_" or "-").' );
-	}
-
 	$repo_root = dirname( __DIR__, 2 );
 	$out_dir   = (string) ( $options['out'] ?? $repo_root . '/dist/' . $name );
 
@@ -120,10 +124,20 @@ try {
 		$out_dir = getcwd() . '/' . $out_dir;
 	}
 
+	$out_dir = rtrim( $out_dir, '/\\' );
+
+	// Resolve "..", so messages and the release directory show a clean path.
+	$parent = realpath( dirname( $out_dir ) );
+
+	if ( false !== $parent ) {
+		$out_dir = $parent . '/' . basename( $out_dir );
+	}
+
 	$context = new BuildContext(
 		$repo_root,
-		rtrim( $out_dir, '/\\' ),
-		$core_dir,
+		$out_dir,
+		dirname( $out_dir ) . '/release',
+		ProjectInfo::from_repo( $repo_root ),
 		(string) ( $options['composer'] ?? 'composer' ),
 		(string) ( $options['npm'] ?? 'npm' ),
 		! isset( $options['no-minify'] ),

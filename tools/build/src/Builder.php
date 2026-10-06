@@ -50,7 +50,7 @@ final class Builder {
 		$started = microtime( true );
 
 		$this->console->write(
-			sprintf( 'Building %s (core: %s)', $target->name(), $target->core_path( $this->context ) )
+			sprintf( 'Building %s %s for %s (core: %s)', $this->context->project->name, $this->context->project->version, $target->name(), $target->core_path() )
 		);
 
 		$this->validate( $target );
@@ -68,6 +68,14 @@ final class Builder {
 
 		$this->write_generated_files( $target );
 		$target->after_build( $this->context, $this->console );
+
+		// One timestamp for the manifest and every zip entry. SOURCE_DATE_EPOCH
+		// (reproducible-builds.org) pins it, so rebuilding the same source can
+		// give an identical zip.
+		$time = false !== getenv( 'SOURCE_DATE_EPOCH' ) ? (int) getenv( 'SOURCE_DATE_EPOCH' ) : time();
+
+		( new ReleaseManifest( $this->context, $this->console ) )->write( $target, $time );
+		( new ReleasePackager( $this->context, $this->console ) )->run( $target, $time );
 
 		$this->console->write(
 			sprintf( '%sDone in %.1fs → %s', PHP_EOL, microtime( true ) - $started, $this->context->out_dir )
@@ -168,7 +176,7 @@ final class Builder {
 		$this->console->step( 'Copying sources' );
 
 		$destinations = array(
-			'src'       => $target->core_path( $this->context ),
+			'src'       => $target->core_path(),
 			'templates' => $target->templates_path(),
 			'assets'    => $target->assets_path(),
 		);
@@ -293,7 +301,7 @@ final class Builder {
 			throw new BuildException( 'composer.json is not valid JSON: ' . $e->getMessage() );
 		}
 
-		$core = $this->context->core_dir;
+		$core = AbstractTarget::CORE_DIR;
 
 		if ( 'src' !== $core && isset( $data->autoload->{'psr-4'} ) ) {
 			$remap = static fn ( string $path ): string => ( 'src' === rtrim( $path, '/' ) || str_starts_with( $path, 'src/' ) )
@@ -316,13 +324,13 @@ final class Builder {
 	*/
 
 	/**
-	 * Write the target's generated entry files.
+	 * Write the target's generated files (entry points, server configurations).
 	 *
 	 * @param AbstractTarget $target Target.
 	 * @throws BuildException When a file cannot be written.
 	 */
 	private function write_generated_files( AbstractTarget $target ): void {
-		$this->console->step( 'Generating entry files' );
+		$this->console->step( 'Generating files' );
 
 		foreach ( $target->generated_files( $this->context ) as $relative => $file ) {
 			$path = $this->context->target( $relative );

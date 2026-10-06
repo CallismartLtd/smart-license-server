@@ -14,7 +14,9 @@ namespace SmartLicenseServer\Build;
  * Writes minified copies of the JavaScript and CSS files in a build.
  *
  * Every `name.js` / `name.css` gets a `name.min.js` / `name.min.css` next to
- * it; the original is kept. Files already named `*.min.*` are skipped.
+ * it; the original is kept. Files already named `*.min.*` are never minified
+ * again, and a `name.min.js` / `name.min.css` that already exists is kept as
+ * it is (libraries such as TinyMCE ship their own).
  *
  * Minification uses esbuild, pinned in tools/build/package.json. It is a
  * build-time tool only and never ships with the application. esbuild is run
@@ -222,29 +224,48 @@ final class AssetMinifier {
 	*/
 
 	/**
-	 * JavaScript and CSS files under a directory, relative to it, excluding *.min.*.
+	 * JavaScript and CSS files under a directory that need a minified copy.
+	 *
+	 * Skipped:
+	 *  - files already named *.min.js / *.min.css;
+	 *  - files whose *.min.* sibling already exists, i.e. libraries that ship
+	 *    their own minified build (TinyMCE, for example). That copy is kept
+	 *    as shipped instead of being overwritten.
 	 *
 	 * @param string $dir Directory.
 	 * @return string[] Sorted relative paths with forward slashes.
 	 */
 	private function find_files( string $dir ): array {
-		$files    = array();
+		$all      = array();
 		$iterator = new \RecursiveIteratorIterator(
 			new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS )
 		);
 
 		foreach ( $iterator as $file ) {
 			/** @var \SplFileInfo $file */
-			$name = $file->getFilename();
+			if ( $file->isFile() && in_array( strtolower( $file->getExtension() ), self::EXTENSIONS, true ) ) {
+				$all[ str_replace( '\\', '/', substr( $file->getPathname(), strlen( $dir ) + 1 ) ) ] = true;
+			}
+		}
 
-			if ( ! $file->isFile()
-				|| ! in_array( strtolower( $file->getExtension() ), self::EXTENSIONS, true )
-				|| 1 === preg_match( '/\.min\.[^.]+$/i', $name )
-			) {
+		$files   = array();
+		$shipped = 0;
+
+		foreach ( array_keys( $all ) as $file ) {
+			if ( 1 === preg_match( '/\.min\.[^.\/]+$/i', $file ) ) {
 				continue;
 			}
 
-			$files[] = str_replace( '\\', '/', substr( $file->getPathname(), strlen( $dir ) + 1 ) );
+			if ( isset( $all[ (string) preg_replace( '/\.(js|css)$/i', '.min.$1', $file ) ] ) ) {
+				++$shipped;
+				continue;
+			}
+
+			$files[] = $file;
+		}
+
+		if ( $shipped > 0 ) {
+			$this->console->info( sprintf( 'Kept %d minified file(s) that came with their source.', $shipped ) );
 		}
 
 		sort( $files );

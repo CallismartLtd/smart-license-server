@@ -18,18 +18,20 @@ final class BuildContext {
 	/**
 	 * Constructor.
 	 *
-	 * @param string $repo_root Absolute path to the repository root.
-	 * @param string $out_dir   Absolute path to the build output directory.
-	 * @param string $core_dir  Directory name the repository `src/` is copied to.
-	 * @param string $composer  Composer binary.
-	 * @param string $npm       npm binary, used to install the build's Node tools.
-	 * @param string $node      Node.js binary, used to run esbuild.
-	 * @param bool   $minify    Whether to minify assets (targets can still opt out).
+	 * @param string      $repo_root   Absolute path to the repository root.
+	 * @param string      $out_dir     Absolute path to the build output directory.
+	 * @param string      $release_dir Absolute path to the directory the release artifacts are written to.
+	 * @param ProjectInfo $project     Name, version and requirements read from the repository.
+	 * @param string      $composer    Composer binary.
+	 * @param string      $npm         npm binary, used to install the build's Node tools.
+	 * @param bool        $minify      Whether to minify assets (targets can still opt out).
+	 * @param string      $node        Node.js binary, used to run esbuild.
 	 */
 	public function __construct(
 		public readonly string $repo_root,
 		public readonly string $out_dir,
-		public readonly string $core_dir,
+		public readonly string $release_dir,
+		public readonly ProjectInfo $project,
 		public readonly string $composer,
 		public readonly string $npm = 'npm',
 		public readonly bool $minify = true,

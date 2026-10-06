@@ -1,0 +1,32 @@
+# Smart License Server — Caddy site.
+#
+# 1. Replace /var/www/smart-license-server with the folder this release was
+#    extracted to, and licenses.example.com with your domain. Caddy obtains
+#    the HTTPS certificate itself.
+# 2. Match php_fastcgi to your PHP-FPM socket ({{PHP_REQUIREMENT}}).
+# 3. Add to /etc/caddy/Caddyfile, then: caddy reload --config /etc/caddy/Caddyfile
+#
+# Only public/ is served. Everything else (system/, storage/, .env) stays
+# outside the web root.
+
+licenses.example.com {
+    root * /var/www/smart-license-server/public
+    encode zstd gzip
+
+    # Largest upload accepted (plugin, theme and software packages).
+    # Keep in line with PHP's upload_max_filesize and post_max_size.
+    request_body {
+        max_size 64MB
+    }
+
+    # Hidden files (.htaccess, .env copies, VCS folders), except ACME challenges.
+    @hidden {
+        path */.*
+        not path /.well-known/*
+    }
+    respond @hidden 404
+
+    # Static files when they exist, otherwise index.php.
+    php_fastcgi unix/{{PHP_FPM_SOCKET}}
+    file_server
+}

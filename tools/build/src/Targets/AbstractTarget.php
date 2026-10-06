@@ -28,6 +28,14 @@ use SmartLicenseServer\Build\BuildContext;
 abstract class AbstractTarget {
 
 	/**
+	 * Directory name the repository src/ is copied to, inside runtime_path().
+	 *
+	 * Fixed for every target and release: installations and updates locate
+	 * the core by this name, so it must never vary between builds.
+	 */
+	public const CORE_DIR = 'smliser';
+
+	/**
 	 * Target name used on the command line.
 	 *
 	 * @return string
@@ -100,11 +108,10 @@ abstract class AbstractTarget {
 	/**
 	 * Build-relative core directory.
 	 *
-	 * @param BuildContext $context Build context.
 	 * @return string
 	 */
-	final public function core_path( BuildContext $context ): string {
-		return BuildContext::join( $this->runtime_path(), $context->core_dir );
+	final public function core_path(): string {
+		return BuildContext::join( $this->runtime_path(), self::CORE_DIR );
 	}
 
 	/**

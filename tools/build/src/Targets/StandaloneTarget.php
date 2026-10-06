@@ -11,13 +11,16 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Build\Targets;
 
 use SmartLicenseServer\Build\BuildContext;
+use SmartLicenseServer\Build\BuildException;
 
 /**
  * Builds Smart License Server as a standalone PHP application.
  *
  * Layout:
  *   bootstrap.php, smliser, public/index.php  (generated)
- *   system/<core>/, system/templates/, system/assets/, system/vendor/
+ *   server/nginx.conf, server/Caddyfile, server/apache.conf  (generated)
+ *   manifest.json                             (written last, by the builder)
+ *   system/smliser/, system/templates/, system/assets/, system/vendor/
  *
  * storage/, .env, public/.htaccess and the public/assets symlink are
  * created by the application at install, update or upgrade time.
@@ -63,7 +66,7 @@ class StandaloneTarget extends AbstractTarget {
 	 * {@inheritdoc}
 	 */
 	public function generated_files( BuildContext $context ): array {
-		$core = '/' . $this->core_path( $context );
+		$core = '/' . $this->core_path();
 
 		return array(
 			'bootstrap.php'    => array(
@@ -78,7 +81,42 @@ class StandaloneTarget extends AbstractTarget {
 				'contents' => self::WEB_ENTRY,
 				'mode'     => 0644,
 			),
+		) + $this->server_configs( $context );
+	}
+
+	/**
+	 * Web server configurations for servers that do not read .htaccess.
+	 *
+	 * Written to server/ in the build: nginx, Caddy, and an Apache virtual
+	 * host. The PHP-FPM socket and the PHP requirement are filled in from
+	 * composer.json, so they match the release.
+	 *
+	 * @param BuildContext $context Build context.
+	 * @return array<string, array{contents: string, mode: int}>
+	 * @throws BuildException When a configuration template is missing.
+	 */
+	private function server_configs( BuildContext $context ): array {
+		$minor = $context->project->php_minor();
+		$vars  = array(
+			'{{PHP_FPM_SOCKET}}'  => null === $minor ? '/run/php/php-fpm.sock' : "/run/php/php{$minor}-fpm.sock",
+			'{{PHP_REQUIREMENT}}' => null === $minor ? 'a supported PHP version' : "PHP {$minor} or newer",
 		);
+		$files = array();
+
+		foreach ( array( 'nginx.conf', 'Caddyfile', 'apache.conf' ) as $name ) {
+			$template = dirname( __DIR__, 2 ) . '/stubs/standalone/server/' . $name;
+
+			if ( ! is_file( $template ) ) {
+				throw new BuildException( "Server configuration template {$name} not found in tools/build/stubs/standalone/server/." );
+			}
+
+			$files[ 'server/' . $name ] = array(
+				'contents' => strtr( (string) file_get_contents( $template ), $vars ),
+				'mode'     => 0644,
+			);
+		}
+
+		return $files;
 	}
 
 	/*
