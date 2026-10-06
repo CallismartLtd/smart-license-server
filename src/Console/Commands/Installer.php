@@ -427,9 +427,18 @@ class Installer extends AbstractCommand {
 
         $values['driver'] = $driver;
 
+        $prefix = $values['prefix'] ?? '' ?: 'smliser_';
+
         if ( 'sqlite' === $driver ) {
             $values['dbname'] = $this->ask( 'Database file name', $values['dbname'] ?? '' ?: 'smliser' );
             $values['path']   = $this->ask( 'Folder for the database file', $values['path'] ?? '' ?: DatabaseSettings::default_sqlite_dir() );
+
+            // SQLite has no character set; the prefix is the only advanced setting.
+            if ( $this->io->confirm( sprintf( 'Change the table prefix (%s)? Most sites keep it.', $prefix ), false ) ) {
+                $prefix = $this->ask( 'Table prefix', $prefix );
+            }
+
+            $values['prefix'] = $prefix;
 
             return $values;
         }
@@ -441,7 +450,6 @@ class Installer extends AbstractCommand {
         $values['username'] = $this->ask( 'Username', $values['username'] ?? '' );
         $values['password'] = $this->io->secret( $password_saved ? 'Password (press Enter to keep the saved one): ' : 'Password: ' );
 
-        $prefix  = $values['prefix'] ?? '' ?: 'smliser_';
         $charset = $values['charset'] ?? '' ?: (string) DatabaseSettings::DRIVERS[ $driver ]['charset'];
 
         if ( $this->io->confirm( sprintf( 'Change the table prefix (%s) or character set (%s)? Most sites keep them.', $prefix, $charset ), false ) ) {
@@ -978,6 +986,7 @@ class Installer extends AbstractCommand {
         $name     = $this->string_option( $input, 'admin-name' );
         $email    = $this->string_option( $input, 'admin-email' );
         $password = $this->string_option( $input, 'admin-password', false );
+        $mail_checked = array(); // Domain => result of the mail server check.
 
         for ( $attempt = 1; ; $attempt++ ) {
             if ( $attempt > self::MAX_ATTEMPTS ) {
@@ -1036,14 +1045,35 @@ class Installer extends AbstractCommand {
                 continue;
             }
 
-            // DNS lookup: the address may not be able to receive mail.
-            if ( ! is_email( $email, true ) ) {
-                $this->output->warning( sprintf( 'No mail server was found for %s, so it may not receive email.', $email ) );
+            // DNS lookup: the address may not be able to receive mail. It can
+            // take several seconds (longer when offline), so say what is happening
+            // and always report the result. Checked once per address per run.
+            $domain = strtolower( (string) substr( strrchr( $email, '@' ), 1 ) );
+
+            if ( ! isset( $mail_checked[ $domain ] ) ) {
+                $this->output->writeln( sprintf( 'Checking that %s can receive email...', $domain ) );
+                $mail_checked[ $domain ] = is_email( $email, true );
+
+                if ( $mail_checked[ $domain ] ) {
+                    $this->output->success( sprintf( '%s can receive email.', $domain ) );
+                }
+            }
+
+            if ( ! $mail_checked[ $domain ] ) {
+                $this->output->warning(
+                    sprintf(
+                        'Could not confirm that %s can receive email: no mail server was found, or this server could not look it up (for example, it is offline). Welcome and password reset emails may not arrive.',
+                        $domain
+                    )
+                );
 
                 if ( ! $this->io->confirm( 'Use this email address anyway?', false ) ) {
                     $email = '';
                     continue;
                 }
+
+                // Accepted: do not ask again for this domain if other answers need correcting.
+                $mail_checked[ $domain ] = true;
             }
 
             break;

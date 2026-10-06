@@ -68,13 +68,13 @@ if ( ! function_exists( 'is_base64_encoded' ) ) {
  * @param mixed $value The value to check.
  * @return bool True if the value is an instance of a known error class, false otherwise.
  * 
- * @phpstan-assert-if-true Exception|\WP_Error $value
- * @psalm-assert-if-true Exception|\WP_Error $value
+ * @phpstan-assert-if-true Exception|WP_Error $value
+ * @psalm-assert-if-true Exception|WP_Error $value
  */
 function is_smliser_error( $value ): bool {
     if ( function_exists( 'is_wp_error' ) && is_wp_error( $value ) ) {
         return true;
-    } elseif ( class_exists( \WP_Error::class ) && $value instanceof \WP_Error ) {
+    } elseif ( class_exists( WP_Error::class ) && $value instanceof \WP_Error ) {
         return true;
     }
 
