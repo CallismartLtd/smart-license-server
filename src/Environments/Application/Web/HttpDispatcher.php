@@ -30,6 +30,7 @@ use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminDownloadMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddleware;
+use SmartLicenseServer\Environments\Application\Middlewares\CSRFMiddleware;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
@@ -113,10 +114,9 @@ final class HttpDispatcher {
 
 		if ( '' !== $namespace ) {
 			$this->router->group( $namespace, $register );
-			return;
-		}
-
-		$register( $this->router );
+		} else {
+            $register( $this->router );
+        }
 	}
 
     /**
@@ -169,22 +169,34 @@ final class HttpDispatcher {
                     handler: [AuthController::class, 'handle_forgot_password']
                 );
             },
-            middleware: []
+            // Guest forms: the POSTs need the guest CSRF token; the GETs pass through.
+            middleware: [
+                CSRFMiddleware::class
+            ]
         );
  
 		/*
-		|-------------------
-		| Logout route.
-		|-------------------
+		|----------------
+		| Logout routes.
+		|----------------
 		*/
-        $this->router->get(
-            pattern: $urlmanager->logout_url_prefix(),
-            handler: [AuthController::class, 'handle_logout']
-        );
+        $this->router->group( $urlmanager->logout_url_prefix(),
+            function() {
+                // This device only.
+                $this->router->get(
+                    pattern: '/',
+                    handler: [AuthController::class, 'handle_logout']
+                );
 
-        $this->router->post(
-            pattern: $urlmanager->logout_url_prefix() . '/everywhere',
-            handler: [AuthController::class, 'handle_logout_everywhere']
+                // Every device: POST only, so it needs a CSRF token.
+                $this->router->post(
+                    pattern: 'everywhere',
+                    handler: [AuthController::class, 'handle_logout_everywhere']
+                );
+            },
+            middleware: [
+                CSRFMiddleware::class
+            ]
         );
 
 		/*
@@ -422,7 +434,8 @@ final class HttpDispatcher {
             },
 
             middleware: [
-                AdminAccessMiddleware::class
+                AdminAccessMiddleware::class,
+                CSRFMiddleware::class
             ]
         );
 
@@ -562,14 +575,16 @@ final class HttpDispatcher {
 	 * proceeds.
 	 */
 	private static function guardAsMiddleware( callable $guard ): callable {
-		return static function ( $request, array $params, callable $next ) use ( $guard ): mixed {
-			$result = $guard( $request, $params );
+		// MiddlewarePipeline calls middleware as ( $request, $next ); the route
+		// params are already on the request (see dispatch()).
+		return static function ( Request $request, callable $next ) use ( $guard ): mixed {
+			$result = $guard( $request, $request->route_param() );
 
 			if ( false === $result || null === $result ) {
 				return $result;
 			}
 
-			return $next( $request, $params );
+			return $next( $request );
 		};
 	}
 

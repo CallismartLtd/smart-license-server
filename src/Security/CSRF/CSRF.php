@@ -14,7 +14,9 @@ namespace SmartLicenseServer\Security\CSRF;
 use InvalidArgumentException;
 use RuntimeException;
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Security\Authentication\Session\SessionManager;
+use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
 /**
  * Stateless CSRF tokens.
@@ -41,6 +43,7 @@ use SmartLicenseServer\Security\Authentication\Session\SessionManager;
  *   $csrf->same_origin( $request, $app_url );  // origin check, before the token check
  */
 final class CSRF {
+	use TokenDeliveryTrait;
 
 	/**
 	 * Form field and JSON body key carrying the token.
@@ -57,7 +60,14 @@ final class CSRF {
 	public const HEADER = 'X-CSRF-Token';
 
 	/**
-	 * HMAC key, derived from the application secret.
+	 * Default query parameter carrying a URL token (see url()).
+	 *
+	 * @var string
+	 */
+	public const PARAM = '_csrf';
+
+	/**
+	 * HMAC key, derived from the application secret and salt for this purpose only.
 	 *
 	 * @var string
 	 */
@@ -65,6 +75,7 @@ final class CSRF {
 
 	/**
 	 * @param string         $secret       Application secret.
+	 * @param string         $salt         Application salt.
 	 * @param SessionManager $sessions     The application session manager.
 	 * @param bool           $secure       Whether the guest cookie requires HTTPS.
 	 * @param string         $same_site    SameSite policy of the guest cookie.
@@ -73,16 +84,13 @@ final class CSRF {
 	 * @throws InvalidArgumentException If configuration is invalid.
 	 */
 	public function __construct(
-		string $secret,
+		#[\SensitiveParameter] string $secret,
+		#[\SensitiveParameter] string $salt,
 		private SessionManager $sessions,
 		private bool $secure = true,
 		private string $same_site = 'Lax',
 		private string $guest_cookie = '__Host-csrf'
 	) {
-		if ( '' === trim( $secret ) ) {
-			throw new InvalidArgumentException( 'CSRF secret cannot be empty.' );
-		}
-
 		if ( ! in_array( $same_site, [ 'Strict', 'Lax' ], true ) ) {
 			throw new InvalidArgumentException( 'Invalid SameSite policy for the CSRF cookie. Expected Strict or Lax.' );
 		}
@@ -91,8 +99,11 @@ final class CSRF {
 			throw new InvalidArgumentException( '__Host- cookies must use the Secure attribute.' );
 		}
 
-		// A different label from the session key, so neither key reveals the other.
-		$this->key = hash( 'sha256', 'csrf:' . $secret, true );
+		$this->secret = $secret;
+		$this->salt   = $salt;
+
+		// Its own HKDF context, so this key reveals nothing about keys derived for other purposes.
+		$this->key = $this->derive_key( 'csrf' );
 	}
 
 	/*
@@ -170,6 +181,64 @@ final class CSRF {
 	}
 
 	/*
+	|-------------
+	| URL tokens
+	|-------------
+	*/
+
+	/**
+	 * Add a token for an action to a URL, for links that perform that action.
+	 *
+	 * URLs end up in server logs, browser history and Referer headers, so a
+	 * URL token is always limited to one action: a leaked logout link can
+	 * sign the user out and do nothing else. Without an explicit action the
+	 * URL's path is the action, so the token is valid for that path only.
+	 * The general token that forms share is never put in a URL.
+	 *
+	 * @param URL|string $url    The link.
+	 * @param string     $action Action the link performs, e.g. "logout"; "" binds the token to the URL's path.
+	 * @param string     $param  Query parameter that carries the token.
+	 * @return URL A new URL with the token added; the given URL is unchanged.
+	 *
+	 * @throws RuntimeException When a guest cookie is needed but headers are already sent.
+	 */
+	public function url( URL|string $url, string $action = '', string $param = self::PARAM ): URL {
+		$url = is_string( $url ) ? URL::from( $url ) : $url;
+
+		return $url->add_query_param( $param, $this->token( $this->url_action( $action, (string) $url->get_path() ) ) );
+	}
+
+	/**
+	 * Whether the request URL carries a valid token for an action.
+	 *
+	 * The counterpart of url(), with the same action and parameter. Used by
+	 * URLCSRFMiddleware; CSRFMiddleware does not check GET requests.
+	 *
+	 * @param Request $request The request.
+	 * @param string  $action  Action the token must have been made for; "" means the request path.
+	 * @param string  $param   Query parameter that carries the token.
+	 * @return bool
+	 */
+	public function verify_url( Request $request, string $action = '', string $param = self::PARAM ): bool {
+		$token = $request->query( $param );
+
+		return is_string( $token ) && $this->verify( $token, $this->url_action( $action, $request->path() ) );
+	}
+
+	/**
+	 * The action a URL token is limited to.
+	 *
+	 * Path-bound actions get their own prefix, so they never equal a named action.
+	 *
+	 * @param string $action Named action, or "".
+	 * @param string $path   URL path, used when no action is named.
+	 * @return string
+	 */
+	private function url_action( string $action, string $path ): string {
+		return '' !== $action ? $action : 'path:' . '/' . trim( $path, '/' );
+	}
+
+	/*
 	|----------------
 	| Origin check
 	|----------------
@@ -195,16 +264,13 @@ final class CSRF {
 		}
 
 		$expected = $this->origin_of( $app_url );
-		$origin   = $request->get_header( 'Origin' );
 
-		if ( '' !== $origin ) {
-			return null !== $expected && $this->origin_of( $origin ) === $expected;
-		}
+		foreach ( [ 'Origin', 'Referer' ] as $header ) {
+			$value = $request->get_header( $header );
 
-		$referer = $request->get_header( 'Referer' );
-
-		if ( '' !== $referer ) {
-			return null !== $expected && $this->origin_of( $referer ) === $expected;
+			if ( '' !== $value ) {
+				return null !== $expected && $this->origin_of( $value ) === $expected;
+			}
 		}
 
 		return true;
@@ -304,34 +370,32 @@ final class CSRF {
 	 *
 	 * @param string $binding Value from binding().
 	 * @param string $action  Action, or "".
-	 * @return string URL-safe Base64 HMAC.
+	 * @return string Hex HMAC-SHA256.
 	 */
 	private function sign( string $binding, string $action ): string {
-		$mac = hash_hmac( 'sha256', $binding . "\n" . $action, $this->key, true );
-
-		return rtrim( strtr( base64_encode( $mac ), '+/', '-_' ), '=' );
+		return static::hmac_hash( $binding . "\n" . $action, $this->key );
 	}
 
 	/**
-	 * Normalized origin of a URL: scheme://host[:port], default ports dropped.
+	 * Origin of a URL for comparison: URL::get_origin(), lower-cased, with the
+	 * scheme's default port dropped (browsers never send it).
 	 *
 	 * @param string $url URL or origin.
-	 * @return string|null Null when the URL has no scheme and host (including the literal "null" origin).
+	 * @return string|null Null when the URL has no host, including the literal "null" origin.
 	 */
 	private function origin_of( string $url ): ?string {
-		$parts = parse_url( trim( $url ) );
+		$url = URL::from( $url );
 
-		if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+		if ( null === $url->get_host() || ! $url->has_scheme() ) {
 			return null;
 		}
 
-		$scheme = strtolower( $parts['scheme'] );
-		$port   = $parts['port'] ?? null;
+		$default = [ 'http' => 80, 'https' => 443 ][ strtolower( (string) $url->get_scheme() ) ] ?? null;
 
-		if ( ( 'https' === $scheme && 443 === $port ) || ( 'http' === $scheme && 80 === $port ) ) {
-			$port = null;
+		if ( null !== $default && $default === $url->get_port() ) {
+			$url = $url->remove_port();
 		}
 
-		return $scheme . '://' . strtolower( $parts['host'] ) . ( null === $port ? '' : ':' . $port );
+		return strtolower( (string) $url->get_origin() );
 	}
 }

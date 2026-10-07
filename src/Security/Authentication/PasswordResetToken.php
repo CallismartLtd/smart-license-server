@@ -35,11 +35,18 @@ final class PasswordResetToken {
 	public const TTL_MINUTES = 15;
 
 	/**
-	 * @param Cache $cache The application cache.
+	 * @param string $secret Application secret.
+	 * @param string $salt   Application salt.
+	 * @param Cache  $cache  The application cache.
 	 */
 	public function __construct(
+		#[\SensitiveParameter] string $secret,
+		#[\SensitiveParameter] string $salt,
 		private Cache $cache
-	) {}
+	) {
+		$this->secret = $secret;
+		$this->salt   = $salt;
+	}
 
 	/**
 	 * Create a token for the user, replacing any earlier one.
@@ -56,7 +63,7 @@ final class PasswordResetToken {
 			]
 		);
 
-		$signature = static::hmac_hash( $payload, static::derive_key(), 'sha256' );
+		$signature = static::hmac_hash( $payload, $this->derive_key(), 'sha256' );
 		$token     = static::base64url_encode( sprintf( '%s.%s', $payload, $signature ) );
 
 		$this->cache->set( $this->key( (int) $user->get_id() ), hash( 'sha256', $token ), self::TTL_MINUTES * 60 );
@@ -79,7 +86,7 @@ final class PasswordResetToken {
 
 		[ $payload, $signature ] = explode( '.', $decoded, 2 );
 
-		if ( ! hash_equals( static::hmac_hash( $payload, static::derive_key(), 'sha256' ), $signature ) ) {
+		if ( ! hash_equals( static::hmac_hash( $payload, $this->derive_key(), 'sha256' ), $signature ) ) {
 			return [ 'valid' => false, 'reason' => 'Invalid signature' ];
 		}
 

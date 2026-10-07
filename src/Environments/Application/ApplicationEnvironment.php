@@ -36,6 +36,9 @@ use SmartLicenseServer\Environments\Application\Boot\WebBootstrapper;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
+use SmartLicenseServer\Security\Authentication\PasswordResetToken;
+use SmartLicenseServer\Security\Authentication\Session\SessionManager;
+use SmartLicenseServer\Security\CSRF\CSRF;
 use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
@@ -91,6 +94,24 @@ class ApplicationEnvironment extends Environment {
                 app_url: url(),
                 admin_base_url: url(),
                 assets_url: url( '/assets/' ),
+            )
+        );
+
+        $this->container->singleton(
+            CSRF::class,
+            fn ( Container $c ) : CSRF => new CSRF(
+                $this->runtime->secret,
+                $this->runtime->salt,
+                $c->get( SessionManager::class )
+            )
+        );
+
+        $this->container->singleton(
+            PasswordResetToken::class,
+            fn ( Container $c ) : PasswordResetToken => new PasswordResetToken(
+                $this->runtime->secret,
+                $this->runtime->salt,
+                $c->get( Cache::class )
             )
         );
 
