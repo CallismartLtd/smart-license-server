@@ -20,10 +20,9 @@
     const wrap = document.querySelector( '.smlcd-wrap' );
     if ( ! wrap ) return;
 
-    function ajaxUrl( slug, nonce ) {
+    function ajaxUrl( slug ) {
         const url = new URL( smliser_var.ajaxURL, window.location.origin );
         url.pathname    += `/options-form/${slug}/`;
-        url.searchParams.set( 'security', nonce  );
         return url;
     }
 
@@ -85,7 +84,7 @@
         cards.classList.add( 'smlcd-cards--loading' );
 
         try {
-            const url    = ajaxUrl( 'cache-stats-fetch', smliser_var.csrf_token );
+            const url    = ajaxUrl( 'cache-stats-fetch' );
             const result = await smliserFetchJSON( url, { method: 'POST' } );
 
             if ( result.success && result.data?.stats ) {

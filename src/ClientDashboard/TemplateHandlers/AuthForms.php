@@ -36,9 +36,13 @@ class AuthForms {
         protected TemplateLocator $locator,
         protected URLManager $urlmanager,
         protected Settings $settings,
-        protected AssetsManager $assets_manager
+        protected AssetsManager $assets_manager,
         
-    ) {}
+    ) {
+
+        $assets_manager->set_script_category( 'client-auth', AssetsManager::CATEGORY_CLIENT_DASHBOARD );
+        $assets_manager->set_style_category( 'client-auth', AssetsManager::CATEGORY_CLIENT_DASHBOARD );
+    }
 
     /**
      * Renders the full login form page.

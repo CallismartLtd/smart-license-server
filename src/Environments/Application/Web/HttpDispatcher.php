@@ -130,9 +130,9 @@ final class HttpDispatcher {
         $urlmanager = $this->container->get( URLManager::class );
 
 		/*
-		|-------------------
+		|--------------------------
 		| Authentication routes.
-		|-------------------
+		|--------------------------
 		*/
         $this->router->group( $urlmanager->login_url_prefix(),
             function() {                

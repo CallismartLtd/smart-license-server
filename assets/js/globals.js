@@ -70,14 +70,17 @@
 	 * The slug is appended to the base path as `/<slug>/`. Pass an empty slug
 	 * for legacy `?action=` style endpoints.
 	 *
+	 * The CSRF token is never put in the URL (URLs end up in logs and browser
+	 * history); smliserFetch() sends it in a header instead.
+	 *
 	 * @param {string} [slug=''] - Route slug. Surrounding slashes are trimmed.
 	 * @param {Object<string, string|number|boolean|null|undefined>} [params={}] - Query parameters. Null and undefined values are skipped.
 	 * @param {Object} [options={}]
-	 * @param {boolean} [options.nonce=false] - Append `smliser_var.csrf_token` as the `security` parameter.
+	 * @param {boolean} [options.nonce=false] - Deprecated and ignored: smliserFetch() sends the CSRF token in a header.
 	 * @param {string} [options.base] - Base URL. Defaults to `smliser_var.ajaxURL`.
 	 * @return {URL}
 	 */
-	function smliserAjaxUrl( slug = '', params = {}, { nonce = false, base = smliser_var.ajaxURL } = {} ) {
+	function smliserAjaxUrl( slug = '', params = {}, { base = smliser_var.ajaxURL } = {} ) {
 		const url  = new URL( base, window.location.origin );
 		const path = String( slug ).replace( /^\/+|\/+$/g, '' );
 
@@ -91,11 +94,72 @@
 			}
 		}
 
-		if ( nonce ) {
-			url.searchParams.set( 'security', smliser_var.csrf_token );
+		return url;
+	}
+
+	/*
+	|----
+	|CSRF
+	|----
+	*/
+
+	/**
+	 * Methods that never change state, so never carry the CSRF token.
+	 *
+	 * @type {string[]}
+	 */
+	const CSRF_SAFE_METHODS = [ 'GET', 'HEAD', 'OPTIONS' ];
+
+	/**
+	 * The CSRF header as a plain object, for requests made without smliserFetch().
+	 *
+	 * @return {Object<string, string>} `{ 'X-CSRF-Token': token }`, or `{}` when no token is available.
+	 */
+	function smliserCsrfHeader() {
+		const token = smliser_var?.csrf_token;
+
+		return token ? { [ smliser_var.csrf_header || 'X-CSRF-Token' ]: token } : {};
+	}
+
+	/**
+	 * Add the CSRF header to a request that changes state on this site.
+	 *
+	 * Safe methods and requests to other origins are left alone, so the token
+	 * is never sent anywhere but this application.
+	 *
+	 * @param {URL|RequestInfo} url
+	 * @param {RequestInit} init
+	 * @return {RequestInit}
+	 */
+	function withCsrfHeader( url, init ) {
+		const request = url instanceof Request ? url : null;
+		const method  = String( init.method || request?.method || 'GET' ).toUpperCase();
+
+		if ( CSRF_SAFE_METHODS.includes( method ) ) {
+			return init;
 		}
 
-		return url;
+		let target;
+
+		try {
+			target = new URL( request ? request.url : String( url ), window.location.href );
+		} catch {
+			return init;
+		}
+
+		if ( target.origin !== window.location.origin ) {
+			return init;
+		}
+
+		const headers = new Headers( init.headers ?? request?.headers );
+
+		for ( const [ name, value ] of Object.entries( smliserCsrfHeader() ) ) {
+			if ( ! headers.has( name ) ) {
+				headers.set( name, value );
+			}
+		}
+
+		return { ...init, headers };
 	}
 
 	/*
@@ -147,7 +211,7 @@
 		let response;
 
 		try {
-			response = await fetch( url, init );
+			response = await fetch( url, withCsrfHeader( url, init ) );
 		} catch ( error ) {
 			throw toNetworkError( error );
 		}
@@ -853,6 +917,7 @@
 		showSpinner,
 		removeSpinner,
 		smliserAjaxUrl,
+		smliserCsrfHeader,
 		SmliserFetchError,
 		smliserFetch,
 		smliserFetchJSON,

@@ -38,16 +38,6 @@ $repo_name      = (string) $settings->get( 'smliser_repository_name', SMLISER_AP
 $theme    = 'dark';
 $collapsed = false;
 
-/*
-|--------------------------------------------------
-| DYNAMIC ASSET LOADING
-|--------------------------------------------------
-*/
-$styles  = [ 'client-dashboard' ];
-$scripts = [ 'client-dashboard' ];
-
-$styles     = ['client-auth', 'client-dashboard'];
-$scripts    = ['client-auth'];
 
 /*
 |--------------------------------------------------
@@ -66,7 +56,6 @@ $this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
     'menu'              => $menu,
     'rest_base'         => $rest_base,
     'active_slug'       => $active_slug,
-    'styles'            => $styles,
     'title'             => $title,
     'repo_name'         => $repo_name,
     'theme'             => $theme,
@@ -96,6 +85,5 @@ $this->render( AuthForms::INDEX_CONTENT_TEMPLATE, [
 |--------------------------------------------------
 */
 $this->render( ClientDashboardRenderer::FOOTER_TEMPLATE, [
-    'scripts'           => $scripts,
     'assets_manager'    => $assets_manager
 ] );

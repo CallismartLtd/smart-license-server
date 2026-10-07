@@ -16,6 +16,7 @@ namespace SmartLicenseServer\Assets;
 use InvalidArgumentException;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\Security\CSRF\CSRF;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Permission\Capability;
 use SmartLicenseServer\Security\Permission\Role;
@@ -96,14 +97,13 @@ final class AssetsManager {
 
 	/**
 	 * Construct the manager and register the default assets.
-	 *
-	 * Private: use instance() to obtain the singleton.
 	 */
 	public function __construct(
 		protected Guard $guard,
 		protected URLManager $urlmanager,
 		protected CSS $css,
 		protected JS $js,
+		protected CSRF $csrf,
 	) {
         $this->register_default_js_constants();
 		$this->register_default_styles();
@@ -903,7 +903,9 @@ final class AssetsManager {
 	private function register_default_js_constants() : void {
 		$consts = [
             'ajaxURL'           => $this->urlmanager->admin_url( 'admin/json' )->url(),
-            'csrf_token'        => '',
+            'csrf_token'        => $this->csrf_token(),
+            'csrf_header'       => CSRF::HEADER,
+            'csrf_field'        => CSRF::FIELD,
             'spinner_gif'       => $this->urlmanager->assets_url( 'images/spinner.gif' )->url(),
             'spinner_gif_2x'    => $this->urlmanager->assets_url( 'images/spinner-2x.gif' )->url(),
 			'theme_storage_key'	=> 'dashboard-theme',
@@ -924,6 +926,24 @@ final class AssetsManager {
 		}
 
 		$this->register_js_constant( 'smliser_var', $consts );
+	}
+
+	/**
+	 * The CSRF token for this browser, for scripts to send with requests that change state.
+	 *
+	 * For a guest this sets the guest CSRF cookie, which needs headers not
+	 * yet sent. If they are, the token is left empty: the page still
+	 * renders, and its first state-changing request is rejected with a
+	 * "reload the page" message instead of the page failing to load.
+	 *
+	 * @return string
+	 */
+	private function csrf_token() : string {
+		try {
+			return $this->csrf->token();
+		} catch ( \RuntimeException ) {
+			return '';
+		}
 	}
 
 	/**

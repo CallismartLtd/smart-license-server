@@ -942,7 +942,8 @@ class AppUploader {
             const response      = await fetch( endpoint.href, {
                 method: 'POST',
                 headers: {
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    ...smliserCsrfHeader(),
                 },
                 body: payLoad
             });
@@ -1151,7 +1152,6 @@ class AppUploader {
             const url = new URL( smliser_var.ajaxURL );
             url.pathname += '/upload-app-assets/';
             url.searchParams.set( 'action',   'smliser_app_asset_upload' );
-            url.searchParams.set( 'security', smliser_var.csrf_token );
 
             const payLoad = new FormData();
             payLoad.set( 'app_slug',   this.currentConfig.get( 'app_slug' ) );

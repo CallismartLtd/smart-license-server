@@ -16,10 +16,11 @@
  * @var string $title
  * @var string $repo_name
  * @var \SmartLicenseServer\Security\Context\Principal|null $principal
- * @var array $styles
  * @var array $allowed_slugs
  * @var \SmartLicenseServer\Assets\AssetsManager $assets_manager
  */
+
+use SmartLicenseServer\Assets\AssetsManager;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
@@ -34,15 +35,17 @@ defined( 'SMLISER_ROOT' ) || exit;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo escHtml( $title ); ?></title>
-
-    <?php $assets_manager->print_styles( ...$styles ); ?>
-
     <meta name="smliser-rest-base" content="<?php echo escAttr( $rest_base ); ?>">
     <meta name="smliser-active-slug" content="<?php echo escAttr( $active_slug ); ?>">
     <meta name="smliser-allowed-slugs" content="<?php echo escAttr( implode( '|', $allowed_slugs ) ); ?>">
     <meta name="smliser-repo-name" content="<?php echo escAttr( $repo_name ); ?>">
+    <title><?php echo escHtml( $title ); ?></title>
 
+    <?php $assets_manager->print_js_constants(); ?>
+
+	<?php $assets_manager->print_category_styles( AssetsManager::CATEGORY_CLIENT_DASHBOARD ); ?>
+	<?php $assets_manager->print_category_scripts( AssetsManager::CATEGORY_CLIENT_DASHBOARD, false ); ?>
+    
 </head>
 <body class="smlcd-body">
 

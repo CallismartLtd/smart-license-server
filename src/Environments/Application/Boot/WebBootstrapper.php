@@ -31,6 +31,7 @@ use SmartLicenseServer\Routing\Router;
 use SmartLicenseServer\RuntimeConfig;
 use SmartLicenseServer\Security\Authentication\Session\SessionManager;
 use SmartLicenseServer\Security\Context\Guard;
+use SmartLicenseServer\Security\CSRF\CSRF;
 use SmartLicenseServer\SettingsAPI\UserSettings;
 use SmartLicenseServer\Templates\TemplateDiscovery;
 
@@ -97,7 +98,8 @@ class WebBootstrapper implements BootstrapperInterface {
                 $c->get( Guard::class ),
                 $c->get( URLManager::class ),
                 $c->get( CSS::class ),
-                $c->get( JS::class )
+                $c->get( JS::class ),
+                $c->get( CSRF::class )
             )
         );
 
