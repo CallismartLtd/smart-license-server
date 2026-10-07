@@ -20,9 +20,6 @@ use SmartLicenseServer\Background\Jobs\Accounts\PasswordResetJob;
 use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
-use SmartLicenseServer\Cache\Cache;
-use SmartLicenseServer\Core\Dates\DateDuration;
-use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
@@ -31,13 +28,13 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
+use SmartLicenseServer\Security\Authentication\PasswordResetToken;
+use SmartLicenseServer\Security\Authentication\UserAccounts;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\Settings;
-use SmartLicenseServer\SettingsAPI\UserSettings;
-use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
 class AuthController {
-    use QueueAwareTrait, TokenDeliveryTrait;
+    use QueueAwareTrait;
 
     /**
      * Class constructor.
@@ -47,7 +44,8 @@ class AuthController {
         protected PasswordIdentityProviderInterface $id_provider,
         protected URLManager $urlmanager,
         protected Settings $settings,
-        protected Cache $cache,
+        protected PasswordResetToken $reset_tokens,
+        protected UserAccounts $accounts,
         JobQueue $job_queue
     ) {
         $this->job_queue = $job_queue;
@@ -125,6 +123,38 @@ class AuthController {
 
             $actor_name = $principal->get_display_name();
             $data   = [ 'success' => true, 'message' => sprintf( 'Good bye %s', $actor_name ) ];            
+        }
+
+        if ( $request->wantsJson() ) {
+            return Response::json( $data, 200 );
+        }
+
+        return Response::make(
+            $this->logout_document( $data['message'], $this->urlmanager->url()->url(), $data['success'] ),
+            200
+        )
+        ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+    }
+
+    /**
+     * Handle "Sign out everywhere".
+     *
+     * Ends every session of the current user, on all devices, this one
+     * included. Register it as a POST route behind the CSRF middleware: a
+     * link or GET route would let any page sign the user out.
+     *
+     * @param Request $request
+     * @return Response JSON response or HTML page
+     */
+    public function handle_logout_everywhere( Request $request ): Response {
+        $principal  = $this->guard->get_principal();
+
+        if ( ! $principal ) {
+            $data   = ['success' => false, 'message' => 'Already logged out'];
+        } else {
+            $this->id_provider->logout_everywhere();
+
+            $data   = [ 'success' => true, 'message' => sprintf( 'Good bye %s, you are signed out on every device', $principal->get_display_name() ) ];
         }
 
         if ( $request->wantsJson() ) {
@@ -439,7 +469,10 @@ class AuthController {
     /**
      * Handle forgot password form submission.
      *
-     * Sends password reset email if the requesting user exists.
+     * Only queues the reset job with the submitted address and answers the
+     * same way for every valid address. Whether an account exists is decided
+     * in the job (see PasswordResetJob), so neither the response nor its
+     * timing tells the requester which addresses are registered.
      *
      * @param Request $request
      * @return Response JSON response
@@ -456,16 +489,22 @@ class AuthController {
             );
         }
 
-        $response_data  = [
-            'success' => true,
-            'message' => 'If an account exists for this email, you will receive a password reset link shortly.',
-        ];
+        $this->dispatch_job(
+            PasswordResetJob::class,
+            [
+                'email'      => $email,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]
+        );
 
-        $user   = User::get_by_email( $email );
-
-        $this->password_recovery( $user, $request );
-
-        return static::success_response( 200, $response_data );
+        return static::success_response(
+            200,
+            [
+                'success' => true,
+                'message' => 'If an account exists for this email, you will receive a password reset link shortly.',
+            ]
+        );
     }
 
     /**
@@ -475,126 +514,43 @@ class AuthController {
      * @return Response
      */
     public function handle_reset_password( Request $request ) : Response {
-        $token  = $request->get( 'token' );
-
-        $check  = static::verify_password_reset_token( $token );
+        $check  = $this->reset_tokens->verify( (string) $request->get( 'token', '', false ) );
 
         if ( ! $check['valid'] ) {
             return static::error_response( 401, 'token_error', $check['reason'] );
         }
 
-        $user   = User::get_by_email( $check['email'] ?? '' );
+        $user       = $check['user'];
+        $password_1 = (string) $request->get( 'password_1', '', false );
+        $problem    = $this->accounts->validate_password( $password_1, (string) $request->get( 'password_2', '', false ) );
 
-        if ( ! $user ) {
-            return static::error_response(
-                401,
-                'invalid_user',
-                'Unknown email address.'
-            );
+        if ( null !== $problem ) {
+            return static::error_response( 400, $problem->get_error_code(), $problem->get_error_message() );
         }
 
-        $password_1 = $request->get( 'password_1', '' );
-        $password_2 = $request->get( 'password_2', '' );
-
-        if ( empty( $password_1 ) ) {
-            return static::error_response(
-                401,
-                'empty_password',
-                'Password must not be empty.'
-            );
-        }
-
-        if ( $password_1 !== $password_2 ) {
-            return static::error_response(
-                401,
-                'password_mismatch',
-                'Password missmatch, please check and try again.'
-            );
-        }
-
-        $cache_key = sprintf(
-            '%s_%d',
-            UserSettings::PWD_RESET_NAME,
-            $user->get_id()
-        );
-        
         try {
-            $this->id_provider->reset_password( $user, $password_1 );
+            $reset = $this->id_provider->reset_password( $user, $password_1 );
         } catch ( Exception $e ) {
             return static::error_response(
-                401,
+                400,
                 $e->get_error_code(),
                 $e->get_error_message()
             );
         }
 
-        $this->cache->delete( $cache_key );
-        
+        if ( ! $reset ) {
+            return static::error_response(
+                500,
+                'reset_failed',
+                'The password could not be changed. Please try again.'
+            );
+        }
+
+        $this->reset_tokens->consume( $user );
+
         return static::success_response(
             200,
             ['message' => 'Password has been reset successfully, please login.']
-        );
-        
-    }
-
-    /**
-     * Handle password recovery process.
-     * 
-     * Dispatches password reset email in the background.
-     *
-     * @param User|null $user
-     * @param Request $request
-     */
-    private function password_recovery( ?User $user, Request $request ) : void {
-
-        $raw_key = static::generate_secure_token();
-
-        $payload = [
-            'id'        => $user?->get_id() ?? null,
-            'timestamp' => time(),
-            'nonce'     => $raw_key,
-        ];
-
-        $encoded_payload = \smliser_safe_json_encode( $payload );
-
-        $secret = self::derive_key();
-
-        // Signature now includes full payload INCLUDING nonce.
-        $signature = self::hmac_hash( $encoded_payload, $secret, 'sha256' );
-
-        $token = self::base64url_encode(
-            sprintf( '%s.%s', $encoded_payload, $signature )
-        );
-
-        // Store hashed token for single-use protection.
-        $cache_key = sprintf(
-            '%s_%d',
-            UserSettings::PWD_RESET_NAME,
-            $user?->get_id() ?? null
-        );
-
-        $duration   = DateDuration::fromMinutes(15);
-
-        $this->cache->set(
-            $cache_key,
-            hash( 'sha256', $token ),
-            (int) $duration->toSeconds()
-        );
-
-        $reset_link = $this->urlmanager->client_dashboard_url( '', array( 'key' => $token ) )
-            ->set_hash( 'reset-password' );
-
-        // Enqueue to run in the background.
-        $this->dispatch_job(
-            PasswordResetJob::class,
-            array(
-                'user_id'       => $user?->get_id() ?? null,
-                'recipient'     => $user?->get_email() ?? null,
-                'reset_url'     => $reset_link,
-                'expires_in'    => (int) $duration->toMinutes(),
-                'ip_address'    => $request->ip(),
-                'user_agent'    => $request->userAgent(),
-            )
         );
     }
 
@@ -605,45 +561,15 @@ class AuthController {
      * @return array{valid: bool, email?: string, reason?: string}
      */
     public function verify_password_reset_token( #[\SensitiveParameter] string $token ) : array {
-        $decoded    = self::base64url_decode( $token );
+        $check = $this->reset_tokens->verify( $token );
 
-        if ( ! $decoded || ! str_contains( $decoded, '.' ) ) {
-            return ['valid' => false, 'reason' => 'Invalid token format'];
-        }
-
-        [ $encoded_payload, $signature ]    = explode( '.', $decoded, 2 );
-        $expected_signature                 = self::hmac_hash( $encoded_payload, self::derive_key(), 'sha256' );
-        
-        if ( ! hash_equals( $expected_signature, $signature ) ) {
-            return ['valid' => false, 'reason' => 'Invalid signature'];
-        }
-
-        $payload    = json_decode( $encoded_payload, true );
-        if ( ! is_array( $payload ) || empty( $payload['id'] ) ) {
-            return ['valid' => false, 'reason' => 'Invalid payload'];
-        }
-
-        $issuedAt   = TimestampValue::fromTimestamp( (int) $payload['timestamp'] );
-        if ( $issuedAt->addHours(1)->isPast() ) {
-            return ['valid' => false, 'reason' => 'Token expired'];
-        }
-
-        $cache_key      = sprintf( '%s_%d', UserSettings::PWD_RESET_NAME, $payload['id'] );
-        $stored_hash    = $this->cache->get( $cache_key );
-        $current_hash   = hash( 'sha256', $token );
-
-        if ( ! $stored_hash || ! hash_equals( $stored_hash, $current_hash ) ) {
-            return ['valid' => false, 'reason' => 'Token already used or invalidated'];
-        }
-
-        $user   = User::get_by_id( (int) $payload['id'] );
-        if ( ! $user ) {
-            return ['valid' => false, 'reason' => 'User no longer exists.'];
+        if ( ! $check['valid'] ) {
+            return [ 'valid' => false, 'reason' => $check['reason'] ];
         }
 
         return [
             'valid' => true,
-            'email' => $user->get_email(),
+            'email' => $check['user']->get_email(),
         ];
     }
 

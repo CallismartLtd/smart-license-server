@@ -1,458 +1,337 @@
 <?php
 /**
- * Portable CSRF Token Manager
+ * CSRF class file.
  *
- * A flexible, environment-agnostic CSRF protection class that works across
- * multiple contexts (forms, API endpoints, custom URLs) with:
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Security\CSRF
+ * @since 0.2.0
+ */
+
+declare( strict_types=1 );
+
+namespace SmartLicenseServer\Security\CSRF;
+
+use InvalidArgumentException;
+use RuntimeException;
+use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Security\Authentication\Session\SessionManager;
+
+/**
+ * Stateless CSRF tokens.
  *
- *   - Single-use tokens (invalidated after verification)
- *   - Token rotation (old token invalidated when new one generated)
- *   - Multiple output formats (form field, header, URL param)
- *   - Custom token storage backends
- *   - No expiration (session-based lifecycle only)
+ * A token is an HMAC of something only the user's browser holds, so it is
+ * recomputed to verify it and nothing is stored on the server:
+ *
+ *   - Signed in: the session id from the encrypted session cookie. The token
+ *     lives exactly as long as the session; it survives cookie renewals
+ *     (the id is kept) and dies on logout or a new sign-in.
+ *   - Guest (login, signup, password reset): a random value in a separate
+ *     cookie, set the first time a guest token is needed (double-submit).
+ *
+ * Tokens are not single-use, so any number of tabs and repeated fetch()
+ * calls on one page keep working. An optional action narrows a token to one
+ * form or endpoint: a token made for "delete-account" verifies only for
+ * "delete-account".
  *
  * Usage:
  *
- *   // Initialize
- *   $csrf = new CSRF( $storage );
- *
- *   // Generate token
- *   $token = $csrf->generate();
- *
- *   // Output in different contexts
- *   echo $csrf->field();           // <input type="hidden" ...>
- *   echo $csrf->header();          // X-CSRF-Token: ...
- *   $url = $csrf->addToUrl( $url ); // ?_token=...
- *
- *   // Verify token
- *   if ( $csrf->verify( $_POST['_token'] ) ) {
- *       // Safe to proceed
- *   }
- *
- * @package SmartLicenseServer
- * @since 1.0.0
+ *   echo $csrf->field();                       // in a form
+ *   echo $csrf->meta();                        // in <head>, for fetch()
+ *   $csrf->verify_request( $request );         // in middleware or a handler
+ *   $csrf->same_origin( $request, $app_url );  // origin check, before the token check
  */
-
-namespace SmartLicenseServer\Security;
-
-use SmartLicenseServer\Security\CSRF\Storage\CSRFStorage;
-
-/**
- * CSRF Token Manager
- *
- * Handles generation, storage, rotation, and verification of CSRF tokens
- * across multiple contexts.
- */
-class CSRF {
-
-    /**
-     * Token field name (used in forms, headers, URL params)
-     *
-     * @var string
-     */
-    private $field_name = '_token';
-
-    /**
-     * Header name for API requests
-     *
-     * @var string
-     */
-    private $header_name = 'X-CSRF-Token';
-
-    /**
-     * Token storage backend
-     *
-     * @var CSRFStorage
-     */
-    private $storage;
-
-    /**
-     * Current session/user identifier
-     *
-     * @var string|int
-     */
-    private $session_id;
-
-    /**
-     * Constructor
-     *
-     * @param CSRFStorage $storage    Storage backend for tokens
-     * @param string      $session_id Unique session/user identifier (defaults to session ID)
-     * @param string      $field_name Custom field name (default: '_token')
-     * @param string      $header_name Custom header name (default: 'X-CSRF-Token')
-     */
-    public function __construct(
-        CSRFStorage $storage,
-        $session_id     = null,
-        $field_name     = '_token',
-        $header_name    = 'X-CSRF-Token'
-    ) {
-        $this->storage      = $storage;
-        $this->session_id   = $session_id ?? $this->getDefaultSessionId();
-        $this->field_name   = $field_name;
-        $this->header_name  = $header_name;
-    }
-
-    /**
-     * Generate a new CSRF token
-     *
-     * - Invalidates the previous token (rotation)
-     * - Stores the new token in the backend
-     * - Returns the token string
-     *
-     * @return string New CSRF token
-     */
-    public function generate() {
-
-        // Invalidate old token (rotation)
-        $this->storage->remove( $this->session_id );
-
-        // Generate new token
-        $token = $this->createToken();
-
-        // Store new token
-        $this->storage->set( $this->session_id, $token );
-
-        return $token;
-    }
-
-    /**
-     * Get the current token without generating a new one
-     *
-     * If no token exists, generates one.
-     *
-     * @return string Current CSRF token
-     */
-    public function get() {
-
-        $token = $this->storage->get( $this->session_id );
-
-        if ( empty( $token ) ) {
-            $token = $this->generate();
-        }
-
-        return $token;
-    }
-
-    /**
-     * Verify a CSRF token
-     *
-     * - Checks if token matches the stored token for this session
-     * - Invalidates the token immediately (single-use)
-     * - Returns true only if token is valid and not already used
-     *
-     * @param string $token Token to verify
-     *
-     * @return bool True if token is valid, false otherwise
-     */
-    public function verify( $token ) {
-
-        // Token is required
-        if ( empty( $token ) ) {
-            return false;
-        }
-
-        // Get stored token
-        $stored = $this->storage->get( $this->session_id );
-
-        if ( empty( $stored ) ) {
-            return false;
-        }
-
-        // Verify token matches (constant-time comparison)
-        $is_valid = hash_equals( (string) $stored, (string) $token );
-
-        if ( $is_valid ) {
-            // Invalidate token (single-use)
-            $this->storage->remove( $this->session_id );
-        }
-
-        return $is_valid;
-    }
-
-    /**
-     * Output token as hidden form field
-     *
-     * @param string $id    Optional input ID attribute
-     * @param array  $attrs Optional additional attributes
-     *
-     * @return string HTML hidden input element
-     */
-    public function field( $id = '', $attrs = [] ) {
-
-        $token = $this->get();
-
-        $id_attr = ! empty( $id )
-            ? sprintf( ' id="%s"', escAttr( $id ) )
-            : '';
-
-        $extra_attrs = '';
-        if ( ! empty( $attrs ) ) {
-            foreach ( $attrs as $key => $value ) {
-                $extra_attrs .= sprintf( ' %s="%s"', escAttr( $key ), escAttr( $value ) );
-            }
-        }
-
-        return sprintf(
-            '<input type="hidden" name="%s" value="%s"%s%s />',
-            escAttr( $this->field_name ),
-            escAttr( $token ),
-            $id_attr,
-            $extra_attrs
-        );
-    }
-
-    /**
-     * Output token as HTTP header value
-     *
-     * Useful for JavaScript/AJAX requests.
-     *
-     * @return string Header value (token only, no "Header: " prefix)
-     */
-    public function header() {
-        return $this->get();
-    }
-
-    /**
-     * Output HTTP header line suitable for headers or meta tags
-     *
-     * @return string Full header line (e.g., "X-CSRF-Token: abc123")
-     */
-    public function headerLine() {
-        return sprintf(
-            '%s: %s',
-            $this->header_name,
-            $this->get()
-        );
-    }
-
-    /**
-     * Output meta tag for JavaScript access
-     *
-     * JavaScript can read token via: document.querySelector('meta[name="csrf-token"]').content
-     *
-     * @param string $meta_name Optional meta name (default: 'csrf-token')
-     *
-     * @return string HTML meta element
-     */
-    public function meta( $meta_name = 'csrf-token' ) {
-        return sprintf(
-            '<meta name="%s" content="%s" />',
-            escAttr( $meta_name ),
-            escAttr( $this->get() )
-        );
-    }
-
-    /**
-     * Add token to URL as query parameter
-     *
-     * @param string $url URL to add token to
-     *
-     * @return string URL with token parameter appended
-     */
-    public function addToUrl( $url ) {
-
-        $token = $this->get();
-
-        $separator = strpos( $url, '?' ) === false ? '?' : '&';
-
-        return $url . $separator . http_build_query( array(
-            $this->field_name => $token,
-        ) );
-    }
-
-    /**
-     * Get token from request
-     *
-     * Checks multiple sources in order:
-     *   1. POST/GET parameter
-     *   2. HTTP header
-     *   3. Custom callback
-     *
-     * @param callable $custom_getter Optional callback to retrieve token from custom source
-     *
-     * @return string|null Token if found, null otherwise
-     */
-    public function getFromRequest( callable $custom_getter ) {
-
-        // Check POST parameter
-        if ( ! empty( $_POST[ $this->field_name ] ) ) {
-            return $_POST[ $this->field_name ];
-        }
-
-        // Check GET parameter (for URL-based tokens)
-        if ( ! empty( $_GET[ $this->field_name ] ) ) {
-            return $_GET[ $this->field_name ];
-        }
-
-        // Check HTTP header
-        $header = $this->getHeader( $this->header_name );
-        if ( ! empty( $header ) ) {
-            return $header;
-        }
-
-        // Check custom source
-        return $custom_getter();
-    }
-
-    /**
-     * Verify token from current request
-     *
-     * Convenience method that retrieves token from request and verifies it.
-     *
-     * @param callable $custom_getter Optional callback for custom source
-     *
-     * @return bool True if token is valid, false otherwise
-     */
-    public function verifyFromRequest( callable $custom_getter ) {
-
-        $token = $this->getFromRequest( $custom_getter );
-
-        return $this->verify( $token );
-    }
-
-    /**
-     * Get field name
-     *
-     * @return string
-     */
-    public function getFieldName() {
-        return $this->field_name;
-    }
-
-    /**
-     * Get header name
-     *
-     * @return string
-     */
-    public function getHeaderName() {
-        return $this->header_name;
-    }
-
-    /**
-     * Get session ID
-     *
-     * @return string|int
-     */
-    public function getSessionId() {
-        return $this->session_id;
-    }
-
-    /**
-     * Set session ID (e.g., after switching users)
-     *
-     * @param string|int $session_id
-     *
-     * @return void
-     */
-    public function setSessionId( $session_id ) {
-        $this->session_id = $session_id;
-    }
-
-    /**
-     * Clear token for current session
-     *
-     * @return void
-     */
-    public function clear() {
-        $this->storage->remove( $this->session_id );
-    }
-
-    /**
-     * Create a cryptographically secure random token
-     *
-     * @return string
-     */
-    private function createToken() {
-        return bin2hex( random_bytes( 32 ) );
-    }
-
-    /**
-     * Get default session ID
-     *
-     * Tries to use PHP's session ID, falls back to a request-based hash.
-     *
-     * @return string
-     */
-    private function getDefaultSessionId() {
-
-        // Use PHP session ID if available
-        if ( ! empty( session_id() ) ) {
-            return session_id();
-        }
-
-        // Fallback: Use IP + User-Agent hash
-        $ip = $this->getClientIp();
-        $user_agent = isset( $_SERVER['HTTP_USER_AGENT'] )
-            ? $_SERVER['HTTP_USER_AGENT']
-            : '';
-
-        return hash( 'sha256', $ip . $user_agent );
-    }
-
-    /**
-     * Get client IP address
-     *
-     * Handles proxied requests, X-Forwarded-For headers, etc.
-     *
-     * @return string Client IP address
-     */
-    private function getClientIp() {
-
-        $ip = '';
-
-        if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-            $ip = $_SERVER['HTTP_CLIENT_IP'];
-        } elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-            // Handle multiple IPs in X-Forwarded-For
-            $ips = explode( ',', $_SERVER['HTTP_X_FORWARDED_FOR'] );
-            $ip = trim( $ips[0] );
-        } elseif ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-            $ip = $_SERVER['REMOTE_ADDR'];
-        }
-
-        // Validate IP format
-        if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) ) {
-            $ip = '127.0.0.1';
-        }
-
-        return $ip;
-    }
-
-    /**
-     * Get HTTP header value (server-agnostic)
-     *
-     * Works with Apache, Nginx, and CGI.
-     *
-     * @param string $header Header name (e.g., 'Content-Type')
-     *
-     * @return string|null Header value or null if not found
-     */
-    private function getHeader( $header ) {
-
-        $header = strtoupper( str_replace( '-', '_', $header ) );
-
-        // Try common header sources
-        if ( ! empty( $_SERVER[ 'HTTP_' . $header ] ) ) {
-            return $_SERVER[ 'HTTP_' . $header ];
-        }
-
-        if ( ! empty( $_SERVER[ $header ] ) ) {
-            return $_SERVER[ $header ];
-        }
-
-        // Try PHP's getallheaders() if available
-        if ( function_exists( 'getallheaders' ) ) {
-            $headers = getallheaders();
-            $header_name = strtolower( str_replace( '_', '-', $header ) );
-
-            foreach ( $headers as $key => $value ) {
-                if ( strtolower( $key ) === $header_name ) {
-                    return $value;
-                }
-            }
-        }
-
-        return null;
-    }
+final class CSRF {
+
+	/**
+	 * Form field and JSON body key carrying the token.
+	 *
+	 * @var string
+	 */
+	public const FIELD = '_token';
+
+	/**
+	 * Request header carrying the token.
+	 *
+	 * @var string
+	 */
+	public const HEADER = 'X-CSRF-Token';
+
+	/**
+	 * HMAC key, derived from the application secret.
+	 *
+	 * @var string
+	 */
+	private string $key;
+
+	/**
+	 * @param string         $secret       Application secret.
+	 * @param SessionManager $sessions     The application session manager.
+	 * @param bool           $secure       Whether the guest cookie requires HTTPS.
+	 * @param string         $same_site    SameSite policy of the guest cookie.
+	 * @param string         $guest_cookie Name of the guest cookie.
+	 *
+	 * @throws InvalidArgumentException If configuration is invalid.
+	 */
+	public function __construct(
+		string $secret,
+		private SessionManager $sessions,
+		private bool $secure = true,
+		private string $same_site = 'Lax',
+		private string $guest_cookie = '__Host-csrf'
+	) {
+		if ( '' === trim( $secret ) ) {
+			throw new InvalidArgumentException( 'CSRF secret cannot be empty.' );
+		}
+
+		if ( ! in_array( $same_site, [ 'Strict', 'Lax' ], true ) ) {
+			throw new InvalidArgumentException( 'Invalid SameSite policy for the CSRF cookie. Expected Strict or Lax.' );
+		}
+
+		if ( str_starts_with( $guest_cookie, '__Host-' ) && ! $secure ) {
+			throw new InvalidArgumentException( '__Host- cookies must use the Secure attribute.' );
+		}
+
+		// A different label from the session key, so neither key reveals the other.
+		$this->key = hash( 'sha256', 'csrf:' . $secret, true );
+	}
+
+	/*
+	|-----------
+	| Tokens
+	|-----------
+	*/
+
+	/**
+	 * The token for the current browser.
+	 *
+	 * For a guest, this sets the guest cookie when it is missing, so call it
+	 * before output starts.
+	 *
+	 * @param string $action Optional action the token is limited to.
+	 * @return string
+	 *
+	 * @throws RuntimeException When a guest cookie is needed but headers are already sent.
+	 */
+	public function token( string $action = '' ): string {
+		return $this->sign( (string) $this->binding( true ), $action );
+	}
+
+	/**
+	 * Whether a token is valid for the current browser.
+	 *
+	 * @param string|null $token  Token from the request.
+	 * @param string      $action Action the token must have been made for.
+	 * @return bool
+	 */
+	public function verify( ?string $token, string $action = '' ): bool {
+		$binding = $this->binding( false );
+
+		if ( null === $binding || null === $token || '' === $token ) {
+			return false;
+		}
+
+		return hash_equals( $this->sign( $binding, $action ), $token );
+	}
+
+	/**
+	 * The token sent with a request: the X-CSRF-Token header, else the
+	 * _token field of a form or JSON body.
+	 *
+	 * The query string is not read: URLs end up in logs and Referer headers.
+	 *
+	 * @param Request $request The request.
+	 * @return string|null
+	 */
+	public function token_from( Request $request ): ?string {
+		$header = $request->get_header( self::HEADER );
+
+		if ( '' !== $header ) {
+			return $header;
+		}
+
+		$token = $request->post( self::FIELD );
+
+		if ( ! is_string( $token ) || '' === $token ) {
+			$token = $request->json( self::FIELD );
+		}
+
+		return is_string( $token ) && '' !== $token ? $token : null;
+	}
+
+	/**
+	 * Whether the request carries a valid token.
+	 *
+	 * @param Request $request The request.
+	 * @param string  $action  Action the token must have been made for.
+	 * @return bool
+	 */
+	public function verify_request( Request $request, string $action = '' ): bool {
+		return $this->verify( $this->token_from( $request ), $action );
+	}
+
+	/*
+	|----------------
+	| Origin check
+	|----------------
+	*/
+
+	/**
+	 * Whether the browser says the request comes from the application itself.
+	 *
+	 * Uses Sec-Fetch-Site when the browser sends it, else Origin, else the
+	 * Referer. A request with none of them (old clients, some privacy
+	 * settings) passes; the token check still applies.
+	 *
+	 * @param Request $request The request.
+	 * @param string  $app_url The canonical application URL (SMLISER_APP_URL).
+	 * @return bool
+	 */
+	public function same_origin( Request $request, string $app_url ): bool {
+		$site = strtolower( $request->get_header( 'Sec-Fetch-Site' ) );
+
+		if ( '' !== $site ) {
+			// "same-site" includes sibling subdomains, which are not the application.
+			return 'same-origin' === $site || 'none' === $site;
+		}
+
+		$expected = $this->origin_of( $app_url );
+		$origin   = $request->get_header( 'Origin' );
+
+		if ( '' !== $origin ) {
+			return null !== $expected && $this->origin_of( $origin ) === $expected;
+		}
+
+		$referer = $request->get_header( 'Referer' );
+
+		if ( '' !== $referer ) {
+			return null !== $expected && $this->origin_of( $referer ) === $expected;
+		}
+
+		return true;
+	}
+
+	/*
+	|----------
+	| Output
+	|----------
+	*/
+
+	/**
+	 * A hidden form field with the token.
+	 *
+	 * @param string $action Optional action the token is limited to.
+	 * @return string
+	 */
+	public function field( string $action = '' ): string {
+		return sprintf(
+			'<input type="hidden" name="%s" value="%s">',
+			self::FIELD,
+			htmlspecialchars( $this->token( $action ), ENT_QUOTES, 'UTF-8' )
+		);
+	}
+
+	/**
+	 * A meta tag with the token, for scripts that send it in the X-CSRF-Token header.
+	 *
+	 * Scripts read it with document.querySelector( 'meta[name="csrf-token"]' ).content.
+	 *
+	 * @param string $action Optional action the token is limited to.
+	 * @return string
+	 */
+	public function meta( string $action = '' ): string {
+		return sprintf(
+			'<meta name="csrf-token" content="%s">',
+			htmlspecialchars( $this->token( $action ), ENT_QUOTES, 'UTF-8' )
+		);
+	}
+
+	/*
+	|------------
+	| Internals
+	|------------
+	*/
+
+	/**
+	 * What the token is bound to: the session id, else the guest cookie value.
+	 *
+	 * @param bool $create Whether to set the guest cookie when there is none.
+	 * @return string|null Null when there is nothing to bind to and $create is false.
+	 *
+	 * @throws RuntimeException When the guest cookie must be set but headers are already sent.
+	 */
+	private function binding( bool $create ): ?string {
+		$session = $this->sessions->resolve();
+
+		if ( null !== $session ) {
+			return 'session:' . $session->id;
+		}
+
+		$value = $_COOKIE[ $this->guest_cookie ] ?? null;
+
+		if ( is_string( $value ) && 1 === preg_match( '/^[a-f0-9]{64}$/', $value ) ) {
+			return 'guest:' . $value;
+		}
+
+		if ( ! $create ) {
+			return null;
+		}
+
+		if ( headers_sent() ) {
+			throw new RuntimeException( 'Cannot set the CSRF cookie because headers have already been sent.' );
+		}
+
+		$value = bin2hex( random_bytes( 32 ) );
+
+		setcookie(
+			$this->guest_cookie,
+			$value,
+			[
+				'expires'  => 0,
+				'path'     => '/',
+				'secure'   => $this->secure,
+				'httponly' => true,
+				'samesite' => $this->same_site,
+			]
+		);
+
+		$_COOKIE[ $this->guest_cookie ] = $value;
+
+		return 'guest:' . $value;
+	}
+
+	/**
+	 * The token for a binding and action.
+	 *
+	 * @param string $binding Value from binding().
+	 * @param string $action  Action, or "".
+	 * @return string URL-safe Base64 HMAC.
+	 */
+	private function sign( string $binding, string $action ): string {
+		$mac = hash_hmac( 'sha256', $binding . "\n" . $action, $this->key, true );
+
+		return rtrim( strtr( base64_encode( $mac ), '+/', '-_' ), '=' );
+	}
+
+	/**
+	 * Normalized origin of a URL: scheme://host[:port], default ports dropped.
+	 *
+	 * @param string $url URL or origin.
+	 * @return string|null Null when the URL has no scheme and host (including the literal "null" origin).
+	 */
+	private function origin_of( string $url ): ?string {
+		$parts = parse_url( trim( $url ) );
+
+		if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+			return null;
+		}
+
+		$scheme = strtolower( $parts['scheme'] );
+		$port   = $parts['port'] ?? null;
+
+		if ( ( 'https' === $scheme && 443 === $port ) || ( 'http' === $scheme && 80 === $port ) ) {
+			$port = null;
+		}
+
+		return $scheme . '://' . strtolower( $parts['host'] ) . ( null === $port ? '' : ':' . $port );
+	}
 }

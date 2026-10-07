@@ -182,6 +182,11 @@ final class HttpDispatcher {
             handler: [AuthController::class, 'handle_logout']
         );
 
+        $this->router->post(
+            pattern: $urlmanager->logout_url_prefix() . '/everywhere',
+            handler: [AuthController::class, 'handle_logout_everywhere']
+        );
+
 		/*
 		|------------------------------
 		| The admin dashboard routes.
@@ -616,7 +621,7 @@ final class HttpDispatcher {
 	 * since that's the handler's decision, not the router's.
 	 */
 	public function dispatch( Request $request ): Response {
-		$result = $this->router->dispatch( $request->method(), $request->path() );
+		$result = $this->router->dispatch( $request->method(), $this->app_path( $request->path() ) );
 
         $request->set_route_param( $result->params );
 
@@ -636,6 +641,29 @@ final class HttpDispatcher {
 		};
 
         return $this->ensure_response( $response );
+	}
+
+	/**
+	 * The request path relative to the application's base URL.
+	 *
+	 * Routes are registered relative to the application root ("admin/..."),
+	 * but an application served from a subdirectory, for example
+	 * https://example.com/licensing, receives paths like /licensing/admin.
+	 * The base path of the canonical app URL is removed, and only when the
+	 * request path starts with it as a whole segment, so /licensing-old is
+	 * left alone. At the domain root the base is empty and nothing changes.
+	 *
+	 * @param string $path Request path.
+	 * @return string Path relative to the application root, "/" for the root itself.
+	 */
+	private function app_path( string $path ) : string {
+		$base = rtrim( (string) $this->container->get( URLManager::class )->url()->get_path(), '/' );
+
+		if ( '' !== $base && ( $path === $base || str_starts_with( $path, $base . '/' ) ) ) {
+			$path = substr( $path, strlen( $base ) );
+		}
+
+		return '' === $path ? '/' : $path;
 	}
 
     /**

@@ -10,21 +10,32 @@ namespace SmartLicenseServer\Environments\WordPress;
 
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\RequestException;
-use SmartLicenseServer\Exceptions\SecurityException;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\AbstractIdentityProvider;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
+use SmartLicenseServer\Security\Authentication\UserAccounts;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Context\Principal;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Permission\Role;
+use SmartLicenseServer\SettingsAPI\Settings;
 use WP_Error;
+use WP_Session_Tokens;
 use WP_User;
 
 final class IdentityService extends AbstractIdentityProvider implements PasswordIdentityProviderInterface {
-    public function __construct( protected Guard $guard ) {}
+    /**
+     * @param Guard        $guard    The security guard.
+     * @param UserAccounts $accounts Shared account operations.
+     * @param Settings     $settings The settings API.
+     */
+    public function __construct(
+        protected Guard $guard,
+        protected UserAccounts $accounts,
+        protected Settings $settings
+    ) {}
     /*
     |------------------------------------------
     | PROVIDER IDENTITY
@@ -37,13 +48,13 @@ final class IdentityService extends AbstractIdentityProvider implements Password
      * @return string
      */
     protected function issuer() : string {
-        $settings = \smliser_settings();
+        /** @todo: Function does not exist, use contructor injection for settings API */
 
-        $inst_id = $settings->get( 'installation_uuid', false, true );
+        $inst_id = $this->settings->get( 'installation_uuid', false );
 
         if ( empty( $inst_id ) ) {
             $inst_id = \smliser_generate_uuid_v4();
-            $settings->set( 'installation_uuid', $inst_id, true );
+            $this->settings->set( 'installation_uuid', $inst_id );
         }
 
         return 'urn:smliser:wordpress:' . $inst_id;
@@ -229,7 +240,7 @@ final class IdentityService extends AbstractIdentityProvider implements Password
         }
 
         $user           = new User;
-        $password_hash  = password_hash( wp_generate_password(), PASSWORD_ARGON2ID );
+        $password_hash  = $this->accounts->hash_password( wp_generate_password() );
         $user->set_display_name( $wp_user->display_name )
             ->set_password_hash( $password_hash )
             ->set_status( User::STATUS_ACTIVE )
@@ -302,6 +313,11 @@ final class IdentityService extends AbstractIdentityProvider implements Password
         $actor = $this->find_actor( $issuer, $wp_user_id );
 
         if ( ! $actor ) {
+            return null;
+        }
+
+        // A suspended or disabled account loses access on its next request.
+        if ( $actor instanceof User && ! $actor->can_authenticate() ) {
             return null;
         }
         
@@ -481,10 +497,7 @@ final class IdentityService extends AbstractIdentityProvider implements Password
             );
         }
 
-        $fingerprint = md5( $this->issuer() . '_' . $email );
-        $cache_key = 'signup_lock_' . $fingerprint;
-
-        if ( \smliser_cache()->has( $cache_key ) ) {
+        if ( ! $this->accounts->acquire_signup_lock( $email ) ) {
             return new RequestException(
                 'signup_locked',
                 'Too many signup attempts, please try again later.',
@@ -492,24 +505,12 @@ final class IdentityService extends AbstractIdentityProvider implements Password
             );
         }
 
-        \smliser_cache()->set( $cache_key, time(), 300 );
-
         try {
-            if ( $request->isEmpty( 'password_1' ) ) {
-                throw new RequestException(
-                    'required_param',
-                    'Password is required.'
-                );
-            }
+            $password_1 = (string) $request->get( 'password_1', '', false );
+            $problem    = $this->accounts->validate_password( $password_1, (string) $request->get( 'password_2', '', false ) );
 
-            $password_1 = $request->get( 'password_1', '', false );
-            $password_2 = $request->get( 'password_2', '', false );
-
-            if ( $password_1 !== $password_2 ) {
-                throw new RequestException(
-                    'password_mismatch',
-                    'Passwords do not match.'
-                );
+            if ( null !== $problem ) {
+                throw $problem;
             }
 
             $display_name = $request->get( 'full_name', '' );
@@ -529,42 +530,11 @@ final class IdentityService extends AbstractIdentityProvider implements Password
                 throw $wp_user;
             }
 
-            if ( ! User::email_exists( $email ) ) {
-                $user   = new User();
-                $password_hash = password_hash( $password_1, PASSWORD_ARGON2ID );
-                $user->set_display_name( $display_name ?: $wp_user->display_name )
-                    ->set_password_hash( $password_hash )
-                    ->set_status( User::STATUS_ACTIVE )
-                    ->set_email( $email );
+            $user = User::email_exists( $email )
+                ? User::get_by_email( $email )
+                : $this->accounts->create_user( $email, $password_1, $display_name ?: $wp_user->display_name );
 
-                if ( ! $user->save() ) {
-                    throw new RequestException(
-                        'user_save_error',
-                        'Unable to save user, try again.',
-                        ['status' => 500 ]    
-                    );
-                }
-            } else {
-                $user = User::get_by_email( $email );
-            }
-
-            $account_type = $request->get( 'account_type', 'viewer' );
-
-            if ( 'resource_owner' !== $account_type ) {
-                $account_type = 'viewer';
-            }
-
-            $role = Role::get_by_slug( $account_type );
-
-            if ( ! $role || ! $role->exists() ) {
-                throw new RequestException(
-                    'invalid_account_type',
-                    'The selected account type is invalid.',
-                    ['status' => 400 ]    
-                );
-            }
-
-            ContextServiceProvider::save_actor_role( $user, $role );
+            $this->accounts->assign_signup_role( $user, (string) $request->get( 'account_type', 'viewer' ) );
 
             $this->sync_user( $wp_user->ID, $user );
             $this->set_current_user( $wp_user, true );
@@ -587,7 +557,7 @@ final class IdentityService extends AbstractIdentityProvider implements Password
                 ['status' => 500 ]
             );
         } finally {
-            \smliser_cache()->delete( $cache_key );
+            $this->accounts->release_signup_lock( $email );
         }
     }
 
@@ -600,23 +570,8 @@ final class IdentityService extends AbstractIdentityProvider implements Password
     /**
      * {@inheritdoc}
      */
-    public function reset_password( User $user, string $new_pwd ): bool {
-        if ( '' === $new_pwd ) {
-            throw new SecurityException(
-                'empty_password',
-                'New password cannot be empty.'
-            );
-        }
-
-        $password_hash = password_hash( $new_pwd, \PASSWORD_ARGON2ID );
-
-        if ( ! $user->set_password_hash( $password_hash )->save() ) {
-            throw new SecurityException(
-                'password_save_error',
-                'Unable to set new password',
-                ['status' => 500 ]    
-            );
-        }
+    public function reset_password( User $user, #[\SensitiveParameter] string $new_pwd ): bool {
+        $this->accounts->change_password( $user, $new_pwd );
 
         $wp_user_id = $this->find_external_id( $this->issuer(), $user->get_id() );
 
@@ -628,7 +583,10 @@ final class IdentityService extends AbstractIdentityProvider implements Password
         if ( $wp_user_id ) {
             wp_set_password( $new_pwd, (int) $wp_user_id );
 
-            $this->sync_user( $wp_user_id, $user );
+            // Whoever held the old password may hold a session: end them all.
+            WP_Session_Tokens::get_instance( (int) $wp_user_id )->destroy_all();
+
+            $this->sync_user( (int) $wp_user_id, $user );
         }
 
         return true;
@@ -644,6 +602,17 @@ final class IdentityService extends AbstractIdentityProvider implements Password
      * {@inheritdoc}
      */
     public function logout() : void {
+        wp_logout();
+        $this->guard->clear_principal();
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * Ends every WordPress session of the current user, then signs this browser out.
+     */
+    public function logout_everywhere() : void {
+        \wp_destroy_all_sessions();
         wp_logout();
         $this->guard->clear_principal();
     }

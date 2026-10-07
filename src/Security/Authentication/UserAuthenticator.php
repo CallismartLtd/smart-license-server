@@ -1,7 +1,7 @@
 <?php
 /**
  * User authentication class file.
- * 
+ *
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\Security\Authentication
  */
@@ -16,7 +16,7 @@ use SmartLicenseServer\Security\Context\ContextServiceProvider;
 
 /**
  * Handles a human user authentication flow.
- * 
+ *
  * A human user can authenticate, act for self or on behalf of another
  * resource owner within the capabilities of the role assigned to them.
  * @see \SmartLicenseServer\Security\Actors\User
@@ -25,7 +25,7 @@ class UserAuthenticator implements AuthenticatorInterface {
 
     /**
      * Class constructor
-     * 
+     *
      * @param string $email     The user email.
      * @param string $password  The user password.
      */
@@ -74,7 +74,7 @@ class UserAuthenticator implements AuthenticatorInterface {
         /**
          * @var \SmartLicenseServer\Security\Actors\User $user
          *
-         * User already fetched and cached by User::email_exists. 
+         * User already fetched and cached by User::email_exists.
          */
         $user = User::get_by_email( $this->email );
 
@@ -83,6 +83,15 @@ class UserAuthenticator implements AuthenticatorInterface {
                 AuthenticationResult::STATUS_INVALID_CREDENTIALS,
                 'incorrect_password',
                 'The password you entered is incorrect.'
+            );
+        }
+
+        // Checked after the password, so the account's status is only told to its owner.
+        if ( ! $user->can_authenticate() ) {
+            return AuthenticationResult::failure(
+                AuthenticationResult::STATUS_UNAUTHORIZED,
+                'account_inactive',
+                'This account is not active. Contact the site administrator.'
             );
         }
 

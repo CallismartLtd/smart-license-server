@@ -1,7 +1,7 @@
 <?php
 /**
  * Password identity provider interface file.
- * 
+ *
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer
  */
@@ -20,7 +20,7 @@ interface PasswordIdentityProviderInterface extends IdentityProviderInterface {
 
     /**
      * Logon a human user using email and password
-     * 
+     *
      * @param string $email     The user email.
      * @param string $pwd       The user password
      * @param bool   $remember  Optionally remember the user(default: false).
@@ -30,7 +30,7 @@ interface PasswordIdentityProviderInterface extends IdentityProviderInterface {
 
     /**
      * Signup the human user.
-     * 
+     *
      * @param Request $request
      * @return RequestException|Principal
      */
@@ -38,7 +38,7 @@ interface PasswordIdentityProviderInterface extends IdentityProviderInterface {
 
     /**
      * Reset user password
-     * 
+     *
      * @param User $user The user object
      * @param string $new_pwd The new user password
      * @return bool
@@ -46,9 +46,20 @@ interface PasswordIdentityProviderInterface extends IdentityProviderInterface {
     public function reset_password( User $user, string $new_pwd ) : bool;
 
     /**
-     * Logout the current actor.
-     * 
+     * Logout the current actor on this device only.
+     *
+     * Sessions on other devices stay valid.
+     *
      * @return void
      */
     public function logout() : void;
+
+    /**
+     * Logout the current actor on every device, this one included.
+     *
+     * Every session the actor started until now stops being accepted.
+     *
+     * @return void
+     */
+    public function logout_everywhere() : void;
 }

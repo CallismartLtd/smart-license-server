@@ -5,6 +5,12 @@
  * Provides cookie-based session management without PHP's native session
  * subsystem or server-side session storage.
  *
+ * Active sessions renew themselves: once a session is past half its
+ * lifetime, the next request re-issues the cookie with a fresh expiry, keeping
+ * the session id and the sign-in time. An idle session still expires after
+ * its lifetime, and no session outlives its maximum lifetime counted from
+ * sign-in. Revocation is delegated to an optional SessionRevocationCheck.
+ *
  * @author Callistus Nwachukwu
  */
 
@@ -68,6 +74,34 @@ final class SessionManager {
 	private string $path;
 
 	/**
+	 * Longest a session may last from sign-in, renewals included, in seconds.
+	 *
+	 * @var int
+	 */
+	private int $max_lifetime;
+
+	/**
+	 * Optional check for sessions revoked by the application.
+	 *
+	 * @var SessionRevocationCheck|null
+	 */
+	private ?SessionRevocationCheck $revocation_check;
+
+	/**
+	 * The session resolved for this request.
+	 *
+	 * @var Session|null
+	 */
+	private ?Session $current = null;
+
+	/**
+	 * The cookie value $current was resolved from.
+	 *
+	 * @var string|null
+	 */
+	private ?string $current_token = null;
+
+	/**
 	 * Create the session manager.
 	 *
 	 * @param string $secret Application secret used to derive the encryption key.
@@ -77,6 +111,8 @@ final class SessionManager {
 	 * @param bool $http_only Whether the cookie is inaccessible to JavaScript.
 	 * @param string $same_site SameSite policy.
 	 * @param string $path Cookie path.
+	 * @param int $max_lifetime Longest a session may last from sign-in, renewals included.
+	 * @param SessionRevocationCheck|null $revocation_check Optional check for revoked sessions.
 	 *
 	 * @throws InvalidArgumentException If configuration is invalid.
 	 */
@@ -87,7 +123,9 @@ final class SessionManager {
 		bool $secure		= true,
 		bool $http_only		= true,
 		string $same_site	= 'Lax',
-		string $path		= '/'
+		string $path		= '/',
+		int $max_lifetime	= 604800,
+		?SessionRevocationCheck $revocation_check = null
 	) {
 		if ( '' === trim( $secret ) ) {
 			throw new InvalidArgumentException( 'Session secret cannot be empty.' );
@@ -95,6 +133,10 @@ final class SessionManager {
 
 		if ( $lifetime < 1 ) {
 			throw new InvalidArgumentException( 'Session lifetime must be greater than zero.' );
+		}
+
+		if ( $max_lifetime < $lifetime ) {
+			throw new InvalidArgumentException( 'Maximum session lifetime cannot be shorter than the session lifetime.' );
 		}
 
 		if ( ! in_array( $same_site, [ 'Strict', 'Lax', 'None' ], true ) ) {
@@ -130,6 +172,8 @@ final class SessionManager {
 		$this->http_only   = $http_only;
 		$this->same_site   = $same_site;
 		$this->path        = $path;
+		$this->max_lifetime     = $max_lifetime;
+		$this->revocation_check = $revocation_check;
 	}
 
 	/**
@@ -155,12 +199,11 @@ final class SessionManager {
 			principal_id: $principal_id,
 			issued_at: $now,
 			expires_at: $now + $this->lifetime,
-			claims: $claims
+			claims: $claims,
+			authenticated_at: $now
 		);
 
-		$token = $this->encode( $session );
-
-		$this->set_cookie( $token, $session->expires_at );
+		$this->issue( $session );
 
 		return $session;
 	}
@@ -168,27 +211,44 @@ final class SessionManager {
 	/**
 	 * Resolve the current browser session.
 	 *
-	 * Returns null when the cookie does not exist, is malformed,
-	 * fails cryptographic verification, or has expired.
+	 * Returns null when the cookie does not exist, is malformed, fails
+	 * cryptographic verification, has expired, or was revoked. A revoked
+	 * session's cookie is removed.
+	 *
+	 * A session past half its lifetime is renewed here (see renew()). The
+	 * result is kept for the rest of the request, so calling this repeatedly
+	 * decrypts the cookie and asks the revocation check only once.
 	 *
 	 * @return Session|null
 	 */
 	public function resolve(): ?Session {
-		if ( ! isset( $_COOKIE[ $this->cookie_name ] ) ) {
-			return null;
-		}
-
-		$token = $_COOKIE[ $this->cookie_name ];
+		$token = $_COOKIE[ $this->cookie_name ] ?? null;
 
 		if ( ! is_string( $token ) || '' === $token ) {
 			return null;
 		}
 
+		if ( $token === $this->current_token ) {
+			return $this->current;
+		}
+
 		try {
-			return $this->decode( $token );
+			$session = $this->decode( $token );
 		} catch ( \Throwable ) {
 			return null;
 		}
+
+		if ( null !== $this->revocation_check && $this->revocation_check->revoked( $session ) ) {
+			$this->invalidate();
+			return null;
+		}
+
+		$session = $this->renew( $session );
+
+		$this->current       = $session;
+		$this->current_token = $_COOKIE[ $this->cookie_name ] ?? null;
+
+		return $session;
 	}
 
 	/**
@@ -233,6 +293,9 @@ final class SessionManager {
 		}
 
 		unset( $_COOKIE[ $this->cookie_name ] );
+
+		$this->current       = null;
+		$this->current_token = null;
 	}
 
 	/**
@@ -254,6 +317,67 @@ final class SessionManager {
 	}
 
 	/**
+	 * Re-issue a session that is past half its lifetime.
+	 *
+	 * The new cookie keeps the session id (so CSRF tokens bound to it stay
+	 * valid) and the sign-in time, and gets a fresh expiry, capped at the
+	 * maximum lifetime counted from sign-in. Nothing happens once headers
+	 * are sent, or when the cap leaves nothing to extend.
+	 *
+	 * @param Session $session Current session.
+	 *
+	 * @return Session The renewed session, or the given one.
+	 */
+	private function renew( Session $session ): Session {
+		$now = time();
+
+		if ( $session->expires_at - $now > intdiv( $this->lifetime, 2 ) || headers_sent() ) {
+			return $session;
+		}
+
+		$expires_at = min( $now + $this->lifetime, $session->authenticated_at + $this->max_lifetime );
+
+		if ( $expires_at <= $session->expires_at ) {
+			return $session;
+		}
+
+		$renewed = new Session(
+			id: $session->id,
+			principal_id: $session->principal_id,
+			issued_at: $now,
+			expires_at: $expires_at,
+			claims: $session->claims,
+			authenticated_at: $session->authenticated_at
+		);
+
+		try {
+			$this->issue( $renewed );
+		} catch ( \Throwable ) {
+			return $session;
+		}
+
+		return $renewed;
+	}
+
+	/**
+	 * Encode a session, write its cookie and remember it for this request.
+	 *
+	 * @param Session $session Session to issue.
+	 *
+	 * @return void
+	 *
+	 * @throws RuntimeException If the token cannot be created or headers are already sent.
+	 */
+	private function issue( Session $session ): void {
+		$token = $this->encode( $session );
+
+		$this->set_cookie( $token, $session->expires_at );
+
+		$this->current       = $session;
+		$this->current_token = $token;
+	}
+
+	/**
 	 * Encode a session into an opaque authenticated token.
 	 *
 	 * @param Session $session Session to encode.
@@ -266,12 +390,13 @@ final class SessionManager {
 		try {
 			$payload = json_encode(
 				[
-					'v'  => 1,
-					'sid' => $session->id,
-					'sub' => $session->principal_id,
-					'iat' => $session->issued_at,
-					'exp' => $session->expires_at,
-					'c'  => $session->claims,
+					'v'    => 2,
+					'sid'  => $session->id,
+					'sub'  => $session->principal_id,
+					'iat'  => $session->issued_at,
+					'exp'  => $session->expires_at,
+					'auth' => $session->authenticated_at,
+					'c'    => $session->claims,
 				],
 				JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES
 			);
@@ -352,7 +477,8 @@ final class SessionManager {
 			principal_id: $data['sub'],
 			issued_at: $data['iat'],
 			expires_at: $data['exp'],
-			claims: $data['c']
+			claims: $data['c'] ?? [],
+			authenticated_at: $data['auth'] ?? $data['iat']
 		);
 	}
 
@@ -368,7 +494,8 @@ final class SessionManager {
 			throw new RuntimeException( 'Invalid session payload.' );
 		}
 
-		if ( 1 !== ( $data['v'] ?? null ) ) {
+		// Version 1 cookies (issued before renewal existed) carry no sign-in time; it is their iat.
+		if ( ! in_array( $data['v'] ?? null, [ 1, 2 ], true ) ) {
 			throw new RuntimeException( 'Unsupported session version.' );
 		}
 
@@ -396,6 +523,13 @@ final class SessionManager {
 			! is_int( $data['exp'] )
 		) {
 			throw new RuntimeException( 'Invalid session timestamps.' );
+		}
+
+		if (
+			2 === $data['v'] &&
+			( ! isset( $data['auth'] ) || ! is_int( $data['auth'] ) || $data['auth'] > $data['iat'] )
+		) {
+			throw new RuntimeException( 'Invalid session sign-in time.' );
 		}
 
 		if ( $data['exp'] <= $data['iat'] ) {

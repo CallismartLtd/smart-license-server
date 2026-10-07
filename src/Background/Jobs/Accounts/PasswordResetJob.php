@@ -12,16 +12,25 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Background\Jobs\Accounts;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Email\Templates\Accounts\PasswordResetEmail;
 use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Security\Authentication\PasswordResetToken;
 
 /**
- * Asynchronously sends password reset emails.
+ * Asynchronously handles a password reset request.
+ *
+ * The web request only queues this job with the submitted email address, so
+ * it does the same work whether or not an account exists and cannot reveal
+ * which addresses are registered. The account lookup, the token and the
+ * email all happen here; an address without an account ends the job quietly.
  */
 class PasswordResetJob implements JobHandlerInterface {
     public function __construct(
-        protected Mailer $mailer
+        protected Mailer $mailer,
+        protected PasswordResetToken $tokens,
+        protected URLManager $urlmanager
     ) {}
 
     /*
@@ -34,55 +43,32 @@ class PasswordResetJob implements JobHandlerInterface {
      * {@inheritdoc}
      *
      * Expected payload keys:
-     *   - user_id  (int) The user requesting password reset.
-     *   - recipient (string) Recipient email address.
-     *   - reset_url (string) The password reset link.
-     *   - expires_in (string) Number of minutes until the reset link expires.
-     *   - ip_address (string) IP address of the requesting user.
+     *   - email      (string) The email address the reset was requested for.
+     *   - ip_address (string) IP address of the requesting client.
      *   - user_agent (string) User agent of the requesting client.
      *
      * @param array<string, mixed> $payload
      * @return bool|array.
      */
     public function handle( array $payload = [] ): mixed {
-        $user_id    = (int) $payload['user_id'] ?? 0;
-        $user       = User::get_by_id( $user_id );
+        $email  = (string) ( $payload['email'] ?? '' );
+        $user   = '' !== $email ? User::get_by_email( $email ) : null;
 
+        // No account for this address: nothing to send, and nothing to record.
         if ( ! $user ) {
-            return [
-                'Error' => sprintf(
-                    'The supplied user ID %s is not valid',
-                    $user_id
-                )
-            ];
+            return true;
         }
 
-        $recipient      = (string) $payload['recipient'] ?? '';
-        $reset_url      = (string) $payload['reset_url'] ?? '';
-
-        if ( ! $recipient ) {
-            return [
-                'Error' => 'No valid recipient email supplied.'
-            ];
-        }
-
-        if ( ! $reset_url ) {
-            return [
-                'Error' => 'No valid reset url supplied.'
-            ];
-        }
-
-        $expires_in     = (int) $payload['expires_in'] ?? 0;
-        $ip_address     = (string) $payload['ip_address'] ?? 'unknown';
-        $user_agent     = (string) $payload['user_agent'] ?? 'unknown';
+        $reset_url  = $this->urlmanager->client_dashboard_url( '', [ 'key' => $this->tokens->issue( $user ) ] )
+            ->set_hash( 'reset-password' );
 
         $reset_email    = new PasswordResetEmail(
-            $user, 
-            $recipient, 
-            $reset_url, 
-            $expires_in, 
-            $ip_address, 
-            $user_agent
+            $user,
+            $user->get_email(),
+            (string) $reset_url,
+            PasswordResetToken::TTL_MINUTES,
+            (string) ( $payload['ip_address'] ?? 'unknown' ),
+            (string) ( $payload['user_agent'] ?? 'unknown' )
         );
 
         $response   = $this->mailer->send( $reset_email->to_message() );
