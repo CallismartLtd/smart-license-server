@@ -18,7 +18,9 @@ use SmartLicenseServer\Build\BuildException;
  *
  * Layout:
  *   bootstrap.php, smliser, public/index.php  (generated)
- *   server/nginx.conf, server/Caddyfile, server/apache.conf  (generated)
+ *   .htaccess                                 (generated) Keeps everything but public/ unreachable
+ *                                             where the document root is this folder (Apache).
+ *   server/nginx.conf, server/Caddyfile, server/apache.conf, server/server.php  (generated)
  *   manifest.json                             (written last, by the builder)
  *   system/smliser/, system/templates/, system/assets/, system/vendor/
  *
@@ -81,15 +83,37 @@ class StandaloneTarget extends AbstractTarget {
 				'contents' => self::WEB_ENTRY,
 				'mode'     => 0644,
 			),
+			'.htaccess'        => array(
+				'contents' => $this->stub( 'root.htaccess' ),
+				'mode'     => 0644,
+			),
 		) + $this->server_configs( $context );
 	}
 
 	/**
-	 * Web server configurations for servers that do not read .htaccess.
+	 * Contents of a template in tools/build/stubs/standalone/.
 	 *
-	 * Written to server/ in the build: nginx, Caddy, and an Apache virtual
-	 * host. The PHP-FPM socket and the PHP requirement are filled in from
-	 * composer.json, so they match the release.
+	 * @param string $name Template path, relative to that folder.
+	 * @return string
+	 * @throws BuildException When the template is missing.
+	 */
+	private function stub( string $name ): string {
+		$path = dirname( __DIR__, 2 ) . '/stubs/standalone/' . $name;
+
+		if ( ! is_file( $path ) ) {
+			throw new BuildException( "Template {$name} not found in tools/build/stubs/standalone/." );
+		}
+
+		return (string) file_get_contents( $path );
+	}
+
+	/**
+	 * Web server configurations, written to server/ in the build.
+	 *
+	 * nginx, Caddy and an Apache virtual host for production, and server.php,
+	 * a router for PHP's built-in server for local development. The PHP-FPM
+	 * socket and the PHP requirement are filled in from composer.json, so they
+	 * match the release.
 	 *
 	 * @param BuildContext $context Build context.
 	 * @return array<string, array{contents: string, mode: int}>
@@ -103,15 +127,9 @@ class StandaloneTarget extends AbstractTarget {
 		);
 		$files = array();
 
-		foreach ( array( 'nginx.conf', 'Caddyfile', 'apache.conf' ) as $name ) {
-			$template = dirname( __DIR__, 2 ) . '/stubs/standalone/server/' . $name;
-
-			if ( ! is_file( $template ) ) {
-				throw new BuildException( "Server configuration template {$name} not found in tools/build/stubs/standalone/server/." );
-			}
-
+		foreach ( array( 'nginx.conf', 'Caddyfile', 'apache.conf', 'server.php' ) as $name ) {
 			$files[ 'server/' . $name ] = array(
-				'contents' => strtr( (string) file_get_contents( $template ), $vars ),
+				'contents' => strtr( $this->stub( 'server/' . $name ), $vars ),
 				'mode'     => 0644,
 			);
 		}

@@ -917,8 +917,23 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		}
 
 		$base = rtrim( str_replace( '\\', '/', dirname( $script ) ), '/.' );
+		$base = '' === $base ? '' : '/' . ltrim( $base, '/' );
 
-		return '' === $base ? '' : '/' . ltrim( $base, '/' );
+		/*
+		 * The root .htaccess fallback (document root = application folder)
+		 * rewrites /install to /public/index.php: the script is in public/,
+		 * but public/ is not part of the site's address.
+		 */
+		if ( str_ends_with( $base, '/public' ) ) {
+			$path   = (string) parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH );
+			$parent = substr( $base, 0, -strlen( '/public' ) );
+
+			if ( $path !== $base && ! str_starts_with( $path, $base . '/' ) ) {
+				return $parent;
+			}
+		}
+
+		return $base;
 	}
 
 	/**

@@ -629,7 +629,7 @@ class RepositoryPage implements AdminPageInterface {
 
                 array(
                     'label' => smliser_pluralize( $app?->get_type() ?? $app_type ),
-                    'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', ( $app?->get_type() ?? '' ) ),
+                    'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', ( $app?->get_type() ?? $request->get( 'type', '' ) ) ),
                     'icon'  => 'ti ti-folder-open'
                 ),
                 array(

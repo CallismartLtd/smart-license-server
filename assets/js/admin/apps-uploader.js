@@ -543,7 +543,7 @@ class AppUploader {
             SmliserToast.show( response?.data?.message ?? 'Saved', 6000 );
 
             setTimeout( () => {
-                window.location.href = data.data.redirect_url;
+                window.location.href = response.data.redirect_url;
             }, 6000 );
 
         } catch ( error ) {

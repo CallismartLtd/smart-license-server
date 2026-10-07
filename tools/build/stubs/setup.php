@@ -131,10 +131,22 @@ function setup_unpack( $dir ) {
 	$entries = array_diff( (array) scandir( $staging ), array( '.', '..' ) );
 
 	foreach ( $entries as $entry ) {
-		if ( file_exists( $dir . '/' . $entry ) ) {
+		// An existing .htaccess (hosts often add PHP version lines to it) is merged, not replaced.
+		if ( '.htaccess' !== $entry && file_exists( $dir . '/' . $entry ) ) {
 			setup_remove( $staging );
 			return sprintf( '"%s" already exists in this folder. Move it away, then try again.', $entry );
 		}
+	}
+
+	if ( in_array( '.htaccess', $entries, true ) && is_file( $dir . '/.htaccess' ) ) {
+		$error = setup_merge_htaccess( $staging . '/.htaccess', $dir . '/.htaccess' );
+
+		if ( true !== $error ) {
+			setup_remove( $staging );
+			return $error;
+		}
+
+		$entries = array_diff( $entries, array( '.htaccess' ) );
 	}
 
 	foreach ( $entries as $entry ) {
@@ -144,6 +156,38 @@ function setup_unpack( $dir ) {
 	}
 
 	@rmdir( $staging );
+
+	return true;
+}
+
+/**
+ * Put the application's rules at the top of an existing .htaccess, keeping the rest.
+ *
+ * Hosts commonly keep their own lines in this file (for example cPanel's PHP
+ * version handler); those must survive. The application's block comes first,
+ * so its rewrite rules apply before any older ones.
+ *
+ * @param string $ours     The application's .htaccess (from the archive).
+ * @param string $existing The .htaccess already in the folder.
+ * @return true|string
+ */
+function setup_merge_htaccess( $ours, $existing ) {
+	$current = @file_get_contents( $existing );
+	$rules   = @file_get_contents( $ours );
+
+	if ( false === $current || false === $rules ) {
+		return 'Could not read the existing .htaccess file in this folder. Check its permissions, then try again.';
+	}
+
+	if ( false !== strpos( $current, '# BEGIN Smart License Server' ) ) {
+		return true;
+	}
+
+	if ( false === @file_put_contents( $existing, rtrim( $rules ) . "\n\n" . $current ) ) {
+		return 'Could not update the existing .htaccess file in this folder. Check that it is writable, then try again.';
+	}
+
+	@unlink( $ours );
 
 	return true;
 }
@@ -343,18 +387,42 @@ function setup_start_html( $dir, $problems ) {
  * @return string
  */
 function setup_done_html( $dir, $self_deleted ) {
-	$html = '<p>' . setup_e( SETUP_TITLE . ' ' . SETUP_VERSION ) . ' was unpacked into <code>' . setup_e( $dir ) . '</code>.</p>'
-		. '<h2>Next: point your domain at the public folder</h2>'
-		. '<p>Only the <code>public</code> folder should be reachable from the web. In your hosting control panel, set your domain&rsquo;s document root (sometimes called &ldquo;web root&rdquo;) to:</p>'
-		. '<p><code>' . setup_e( $dir . '/public' ) . '</code></p>'
-		. '<p>Then open <code>https://your-domain/install</code> and follow the steps.</p>'
-		. '<p class="hint">Cannot change the document root? Continue here instead: <a href="public/?install">open the installer</a>.</p>';
+	$html = '<p>' . setup_e( SETUP_TITLE . ' ' . SETUP_VERSION ) . ' was unpacked into <code>' . setup_e( $dir ) . '</code>.</p>';
+
+	if ( setup_reads_htaccess() ) {
+		// The .htaccess shipped in this folder sends every request into public/,
+		// so the site works from here and nothing else in the folder is reachable.
+		$html .= '<h2>Next: run the installer</h2>'
+			. '<p><a href="./?install">Open the installer</a> and follow the steps.</p>'
+			. '<p class="hint">Recommended when you can: set your domain&rsquo;s document root to <code>' . setup_e( $dir . '/public' ) . '</code>. '
+			. 'Until then, the <code>.htaccess</code> file in this folder keeps everything outside <code>public</code> out of reach; do not delete it.</p>';
+	} else {
+		$html .= '<h2>Before you continue: change the document root</h2>'
+			. '<p class="warning">This web server does not read <code>.htaccess</code> files, so everything in this folder can be downloaded from the web, including the settings file the installer creates. Do not run the installer yet.</p>'
+			. '<p>Set your domain&rsquo;s document root to:</p>'
+			. '<p><code>' . setup_e( $dir . '/public' ) . '</code></p>'
+			. '<p>Then open <code>https://your-domain/install</code>. Ready-made configurations for nginx and Caddy are in the <code>server</code> folder.</p>';
+	}
 
 	if ( ! $self_deleted ) {
 		$html .= '<p class="warning">This file could not delete itself. Delete <code>' . setup_e( basename( __FILE__ ) ) . '</code> from the folder now.</p>';
 	}
 
 	return $html;
+}
+
+/**
+ * Whether the web server applies .htaccess files (Apache, LiteSpeed).
+ *
+ * Unknown servers count as not reading them, so the page never claims a
+ * protection that may not exist.
+ *
+ * @return bool
+ */
+function setup_reads_htaccess() {
+	$software = strtolower( isset( $_SERVER['SERVER_SOFTWARE'] ) ? (string) $_SERVER['SERVER_SOFTWARE'] : '' );
+
+	return false !== strpos( $software, 'apache' ) || false !== strpos( $software, 'litespeed' );
 }
 
 /**

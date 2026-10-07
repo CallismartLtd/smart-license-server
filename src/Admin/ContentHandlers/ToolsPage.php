@@ -493,6 +493,7 @@ class ToolsPage implements AdminPageInterface {
 			'Operating System'    => \PHP_OS_FAMILY,
 			'Server Architecture' => $this->format_architecture(),
 			'Web Server'          => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+			'Document Root'       => (string) ( $_SERVER['DOCUMENT_ROOT'] ?? '' ) ?: 'Unknown',
 			'Memory Limit'        => \ini_get( 'memory_limit' ) ?: 'Unknown',
 			'Max Execution Time'  => \ini_get( 'max_execution_time' ) . 's',
 			'Timezone'            => \date_default_timezone_get(),
@@ -756,6 +757,13 @@ class ToolsPage implements AdminPageInterface {
 			];
 		}
 
+		// Web server document root: only public/ should be reachable.
+		$document_root_check = $this->check_document_root();
+
+		if ( null !== $document_root_check ) {
+			$checks[] = $document_root_check;
+		}
+
 		// Database connectivity/version, via the Inspector.
 		try {
 			$info = $this->get_database_info();
@@ -827,5 +835,66 @@ class ToolsPage implements AdminPageInterface {
 		];
 
 		return $checks;
+	}
+
+	/**
+	 * Check that the web server serves the public/ folder, not the folder above it.
+	 *
+	 * Compares the request's document root with public/:
+	 *  - the same folder: pass;
+	 *  - a parent of public/ (the application folder, or a folder above it):
+	 *    every file in the application folder is inside the web root. The
+	 *    root .htaccess shipped with the application keeps them unreachable on
+	 *    Apache and LiteSpeed, so that is a warning; on other servers, or
+	 *    without that file, it is critical;
+	 *  - anything else (aliases, proxies, a CLI request): not reported, since
+	 *    the layout cannot be told from here.
+	 *
+	 * @return array{id: string, label: string, status: string, message: string, recommendation: ?string}|null
+	 */
+	private function check_document_root() : ?array {
+		$document_root = \realpath( (string) ( $_SERVER['DOCUMENT_ROOT'] ?? '' ) );
+		$public        = \realpath( \SMLISER_ROOT . 'public' );
+
+		if ( false === $document_root || false === $public || '' === (string) ( $_SERVER['DOCUMENT_ROOT'] ?? '' ) ) {
+			return null;
+		}
+
+		$check = [
+			'id'             => 'document_root',
+			'label'          => 'Web Server Document Root',
+			'status'         => 'pass',
+			'message'        => \sprintf( 'The web server serves %s, so only public files can be reached.', $public ),
+			'recommendation' => null,
+		];
+
+		if ( $document_root === $public ) {
+			return $check;
+		}
+
+		// The document root must be public/ itself or one of its parents to be judged here.
+		if ( ! \str_starts_with( $public . \DIRECTORY_SEPARATOR, \rtrim( $document_root, '/\\' ) . \DIRECTORY_SEPARATOR ) ) {
+			return null;
+		}
+
+		$software  = \strtolower( (string) ( $_SERVER['SERVER_SOFTWARE'] ?? '' ) );
+		$htaccess  = \SMLISER_ROOT . '.htaccess';
+		$protected = ( \str_contains( $software, 'apache' ) || \str_contains( $software, 'litespeed' ) )
+			&& $this->fs->is_file( $htaccess )
+			&& \str_contains( (string) $this->fs->get_contents( $htaccess ), '# BEGIN Smart License Server' );
+
+		$check['status']         = $protected ? 'warning' : 'critical';
+		$check['message']        = $protected
+			? \sprintf( 'The web server serves %s instead of its public folder. The .htaccess file in that folder keeps everything outside public unreachable, but the whole application folder depends on it.', $document_root )
+			: \sprintf( 'The web server serves %s instead of its public folder, and nothing stops visitors from downloading files outside public, such as .env with the database password and application secrets.', $document_root );
+		$check['recommendation'] = \sprintf(
+			'In your hosting control panel (or web server configuration), set the document root of this site to %s.%s',
+			$public,
+			$protected
+				? ' Until then, do not delete or edit the Smart License Server block in ' . $htaccess . '.'
+				: ' Do this now. Ready-made configurations are in ' . \SMLISER_ROOT . 'server/.'
+		);
+
+		return $check;
 	}
 }

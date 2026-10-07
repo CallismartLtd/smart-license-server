@@ -1,0 +1,43 @@
+# BEGIN Smart License Server
+# Fallback for hosts whose document root is this folder.
+#
+# Only the public/ folder should be reachable from the web. The best setup is
+# to point the domain's document root at public/; this file is then never read
+# and can be deleted.
+#
+# Where the document root cannot be changed, this file sends every request
+# into public/, so nothing else in this folder (.env, storage/, system/,
+# manifest.json) can be downloaded. Needs Apache or LiteSpeed with mod_rewrite.
+# Other web servers (nginx, Caddy) ignore this file: there, the document root
+# must point at public/. See server/ for their configurations.
+
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+
+	# Inside public/: existing files and folders are served as they are, and
+	# anything else goes to the application. Once the installer has written
+	# public/.htaccess, that file handles these requests instead.
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteCond %{REQUEST_FILENAME} !-d
+	RewriteRule ^public/ public/index.php [L]
+	RewriteRule ^public/ - [L]
+
+	# Domain validation files the host places here for SSL certificates
+	# (cPanel AutoSSL, Let's Encrypt) stay reachable.
+	RewriteRule ^\.well-known/ - [L]
+
+	# Everything else is looked up inside public/.
+	RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Without mod_rewrite nothing in this folder can be protected: refuse every request.
+<IfModule !mod_rewrite.c>
+	<IfModule mod_authz_core.c>
+		Require all denied
+	</IfModule>
+	<IfModule !mod_authz_core.c>
+		Order allow,deny
+		Deny from all
+	</IfModule>
+</IfModule>
+# END Smart License Server
