@@ -12,6 +12,7 @@ use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\ClientDashboard\AuthTemplateRegistry;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\Settings;
@@ -97,10 +98,15 @@ class AuthForms {
      * @return Response
      */
     public function render_json_signup_form( Request $request ) : Response {
+        $terms_url      = URL::from( $this->settings->get( Settings::TERMS_URL, '' ) );
+        $privacy_url    = URL::from( $this->settings->get( Settings::PRIVACY_POLICY_URL, '' ) );
         $html = $this->locator->render_to_string(
             static::SIGNUP_FORM_TEMPLATE, [
-                'guard'     => $this->guard,
-                'request'   => $request
+                'guard'         => $this->guard,
+                'request'       => $request,
+                'privacy_url'   => $privacy_url,
+                'terms_url'     => $terms_url
+                
             ]
         );
 

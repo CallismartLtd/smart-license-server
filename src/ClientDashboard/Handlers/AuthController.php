@@ -26,7 +26,6 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
-use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
 use SmartLicenseServer\Security\Authentication\PasswordResetToken;
 use SmartLicenseServer\Security\Authentication\UserAccounts;
