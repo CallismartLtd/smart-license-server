@@ -70,7 +70,7 @@ class Installer extends AbstractCommand {
 
         $commands = [
             'run'           => 'Installs step by step, asking only for what is missing. Safe to run again.',
-            'check'         => 'Performs environment sanity checks.',
+            'check'         => 'Checks the server and verifies the application files against the release manifest.',
             'test:db'       => 'Tests the database connection set in .env (or given options with --manual).',
             'make:dir'      => 'Creates all required directories.',
             'make:dotenv'   => 'Create a .env file if missing, generate empty application secrets and set the site URL.',
@@ -634,6 +634,10 @@ class Installer extends AbstractCommand {
             return 1;
         }
 
+        if ( 0 !== $this->check_release_files() ) {
+            return 1;
+        }
+
         if ( ! empty( $report['warnings'] ) ) {
             $this->output->warning(
                 sprintf( 'Environment check passed with %d warning(s). Review recommendations above for security and performance.', count( $report['warnings'] ) )
@@ -645,6 +649,41 @@ class Installer extends AbstractCommand {
         $this->output->success(
             sprintf( 'Completed in %fs', $this->stop_timer() )
         );
+
+        return 0;
+    }
+
+    /**
+     * Verify the application files against the release manifest.
+     *
+     * @return int 0 when the files match (or there is no manifest), 1 otherwise.
+     */
+    protected function check_release_files() : int {
+        $this->output->info( 'Checking the application files against the release manifest...' );
+
+        $result = $this->installer->verify_release_files(
+            function ( int $done, int $total ) : void {
+                $this->output->writeln( sprintf( '   %d/%d files checked', $done, $total ) );
+            }
+        );
+
+        foreach ( $result['warnings'] as $warning ) {
+            $this->output->warning( $warning );
+        }
+
+        if ( ! $result['passed'] ) {
+            foreach ( $result['errors'] as $error ) {
+                $this->output->error( $error );
+            }
+
+            return 1;
+        }
+
+        if ( empty( $result['warnings'] ) ) {
+            $this->output->success( 'Every application file matches the release.' );
+        }
+
+        $this->output->writeln( '' );
 
         return 0;
     }
