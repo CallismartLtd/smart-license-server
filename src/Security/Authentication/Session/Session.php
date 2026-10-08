@@ -33,6 +33,9 @@ final readonly class Session {
 	 * @param int                 $expires_at       When this cookie expires.
 	 * @param array<string,mixed> $claims           Additional claims.
 	 * @param int                 $authenticated_at When the principal signed in; 0 means $issued_at.
+	 * @param bool                $persistent       Whether the user chose "remember me": the cookie
+	 *                                              outlives the browser and the session lasts the
+	 *                                              remembered lifetime instead of sliding.
 	 */
 	public function __construct(
 		public string $id,
@@ -40,7 +43,8 @@ final readonly class Session {
 		public int $issued_at,
 		public int $expires_at,
 		public array $claims = [],
-		int $authenticated_at = 0
+		int $authenticated_at = 0,
+		public bool $persistent = false
 	) {
 		$this->authenticated_at = 0 === $authenticated_at ? $issued_at : $authenticated_at;
 	}

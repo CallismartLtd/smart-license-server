@@ -11,6 +11,10 @@
  * its lifetime, and no session outlives its maximum lifetime counted from
  * sign-in. Revocation is delegated to an optional SessionRevocationCheck.
  *
+ * A "remember me" (persistent) session is different: its cookie outlives the
+ * browser, and it lasts the remembered lifetime from sign-in without sliding.
+ * Any other session's cookie ends with the browser, as well as at its expiry.
+ *
  * @author Callistus Nwachukwu
  */
 
@@ -20,9 +24,12 @@ namespace SmartLicenseServer\Security\Authentication\Session;
 
 use InvalidArgumentException;
 use RuntimeException;
+use SmartLicenseServer\Utils\TokenDeliveryTrait;
 use SodiumException;
 
 final class SessionManager {
+
+	use TokenDeliveryTrait;
 
 	/**
 	 * Session cookie name.
@@ -88,6 +95,13 @@ final class SessionManager {
 	private ?SessionRevocationCheck $revocation_check;
 
 	/**
+	 * How long a "remember me" session lasts from sign-in, in seconds.
+	 *
+	 * @var int
+	 */
+	private int $remember_lifetime;
+
+	/**
 	 * The session resolved for this request.
 	 *
 	 * @var Session|null
@@ -104,7 +118,8 @@ final class SessionManager {
 	/**
 	 * Create the session manager.
 	 *
-	 * @param string $secret Application secret used to derive the encryption key.
+	 * @param string $secret Application secret the encryption key is derived from.
+	 * @param string $salt Application salt used in key derivation.
 	 * @param int $lifetime Session lifetime in seconds.
 	 * @param string $cookie_name Session cookie name.
 	 * @param bool $secure Whether the cookie must use HTTPS.
@@ -113,11 +128,13 @@ final class SessionManager {
 	 * @param string $path Cookie path.
 	 * @param int $max_lifetime Longest a session may last from sign-in, renewals included.
 	 * @param SessionRevocationCheck|null $revocation_check Optional check for revoked sessions.
+	 * @param int $remember_lifetime How long a "remember me" session lasts from sign-in.
 	 *
 	 * @throws InvalidArgumentException If configuration is invalid.
 	 */
 	public function __construct(
-		string $secret,
+		#[\SensitiveParameter] string $secret,
+		#[\SensitiveParameter] string $salt,
 		int $lifetime		= 7200,
 		string $cookie_name = '__Host-sid',
 		bool $secure		= true,
@@ -125,7 +142,8 @@ final class SessionManager {
 		string $same_site	= 'Lax',
 		string $path		= '/',
 		int $max_lifetime	= 604800,
-		?SessionRevocationCheck $revocation_check = null
+		?SessionRevocationCheck $revocation_check = null,
+		int $remember_lifetime	= 2592000
 	) {
 		if ( '' === trim( $secret ) ) {
 			throw new InvalidArgumentException( 'Session secret cannot be empty.' );
@@ -137,6 +155,10 @@ final class SessionManager {
 
 		if ( $max_lifetime < $lifetime ) {
 			throw new InvalidArgumentException( 'Maximum session lifetime cannot be shorter than the session lifetime.' );
+		}
+
+		if ( $remember_lifetime < $lifetime ) {
+			throw new InvalidArgumentException( 'The remembered session lifetime cannot be shorter than the session lifetime.' );
 		}
 
 		if ( ! in_array( $same_site, [ 'Strict', 'Lax', 'None' ], true ) ) {
@@ -166,14 +188,17 @@ final class SessionManager {
 		}
 
 		$this->cookie_name = $cookie_name;
-		$this->key         = $this->derive_key( $secret );
+		$this->secret      = $secret;
+		$this->salt        = $salt;
+		$this->key         = $this->derive_key( 'session' );
 		$this->lifetime    = $lifetime;
 		$this->secure      = $secure;
 		$this->http_only   = $http_only;
 		$this->same_site   = $same_site;
 		$this->path        = $path;
 		$this->max_lifetime     = $max_lifetime;
-		$this->revocation_check = $revocation_check;
+		$this->revocation_check  = $revocation_check;
+		$this->remember_lifetime = $remember_lifetime;
 	}
 
 	/**
@@ -183,6 +208,7 @@ final class SessionManager {
 	 *
 	 * @param string|int $principal_id Principal represented by the session.
 	 * @param array<string,mixed> $claims Additional session claims.
+	 * @param bool $persistent Whether the user chose "remember me".
 	 *
 	 * @return Session
 	 *
@@ -190,7 +216,8 @@ final class SessionManager {
 	 */
 	public function create(
 		string|int $principal_id,
-		array $claims = []
+		array $claims = [],
+		bool $persistent = false
 	): Session {
 		$now = time();
 
@@ -198,9 +225,10 @@ final class SessionManager {
 			id: $this->generate_session_id(),
 			principal_id: $principal_id,
 			issued_at: $now,
-			expires_at: $now + $this->lifetime,
+			expires_at: $now + ( $persistent ? $this->remember_lifetime : $this->lifetime ),
 			claims: $claims,
-			authenticated_at: $now
+			authenticated_at: $now,
+			persistent: $persistent
 		);
 
 		$this->issue( $session );
@@ -324,6 +352,9 @@ final class SessionManager {
 	 * maximum lifetime counted from sign-in. Nothing happens once headers
 	 * are sent, or when the cap leaves nothing to extend.
 	 *
+	 * Persistent sessions are issued with their full remembered lifetime,
+	 * so the cap always leaves them nothing to extend.
+	 *
 	 * @param Session $session Current session.
 	 *
 	 * @return Session The renewed session, or the given one.
@@ -331,7 +362,7 @@ final class SessionManager {
 	private function renew( Session $session ): Session {
 		$now = time();
 
-		if ( $session->expires_at - $now > intdiv( $this->lifetime, 2 ) || headers_sent() ) {
+		if ( $session->persistent || $session->expires_at - $now > intdiv( $this->lifetime, 2 ) || headers_sent() ) {
 			return $session;
 		}
 
@@ -347,7 +378,8 @@ final class SessionManager {
 			issued_at: $now,
 			expires_at: $expires_at,
 			claims: $session->claims,
-			authenticated_at: $session->authenticated_at
+			authenticated_at: $session->authenticated_at,
+			persistent: $session->persistent
 		);
 
 		try {
@@ -371,7 +403,8 @@ final class SessionManager {
 	private function issue( Session $session ): void {
 		$token = $this->encode( $session );
 
-		$this->set_cookie( $token, $session->expires_at );
+		// 0 makes a browser-session cookie; the token's own expiry still applies.
+		$this->set_cookie( $token, $session->persistent ? $session->expires_at : 0 );
 
 		$this->current       = $session;
 		$this->current_token = $token;
@@ -396,6 +429,7 @@ final class SessionManager {
 					'iat'  => $session->issued_at,
 					'exp'  => $session->expires_at,
 					'auth' => $session->authenticated_at,
+					'rem'  => $session->persistent,
 					'c'    => $session->claims,
 				],
 				JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES
@@ -412,7 +446,7 @@ final class SessionManager {
 				$this->key
 			);
 
-			return $this->base64url_encode( $nonce . $ciphertext );
+			return self::base64url_encode( $nonce . $ciphertext );
 		} catch ( SodiumException | \JsonException | \Throwable $e ) {
 			throw new RuntimeException(
 				'Unable to create session token.',
@@ -432,7 +466,7 @@ final class SessionManager {
 	 * @throws RuntimeException If the token is invalid.
 	 */
 	private function decode( string $token ): Session {
-		$binary = $this->base64url_decode( $token );
+		$binary = self::base64url_decode( $token );
 
 		$nonce_length = SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES;
 		$tag_length   = SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_ABYTES;
@@ -478,7 +512,8 @@ final class SessionManager {
 			issued_at: $data['iat'],
 			expires_at: $data['exp'],
 			claims: $data['c'] ?? [],
-			authenticated_at: $data['auth'] ?? $data['iat']
+			authenticated_at: $data['auth'] ?? $data['iat'],
+			persistent: true === ( $data['rem'] ?? false )
 		);
 	}
 
@@ -532,6 +567,10 @@ final class SessionManager {
 			throw new RuntimeException( 'Invalid session sign-in time.' );
 		}
 
+		if ( isset( $data['rem'] ) && ! is_bool( $data['rem'] ) ) {
+			throw new RuntimeException( 'Invalid session persistence flag.' );
+		}
+
 		if ( $data['exp'] <= $data['iat'] ) {
 			throw new RuntimeException( 'Invalid session lifetime.' );
 		}
@@ -552,7 +591,7 @@ final class SessionManager {
 	 * Write the session cookie.
 	 *
 	 * @param string $token Session token.
-	 * @param int $expires Expiration timestamp.
+	 * @param int $expires Expiration timestamp; 0 for a browser-session cookie.
 	 *
 	 * @return void
 	 */
@@ -582,73 +621,13 @@ final class SessionManager {
 	}
 
 	/**
-	 * Derive a fixed-length encryption key from the application secret.
-	 *
-	 * @param string $secret Application secret.
-	 *
-	 * @return string
-	 */
-	private function derive_key( string $secret ): string {
-		return hash(
-			'sha256',
-			'session:' . $secret,
-			true
-		);
-	}
-
-	/**
 	 * Generate a cryptographically random session identifier.
 	 *
 	 * @return string
 	 */
 	private function generate_session_id(): string {
-		return $this->base64url_encode(
+		return self::base64url_encode(
 			random_bytes( 32 )
 		);
-	}
-
-	/**
-	 * Encode binary data using URL-safe Base64.
-	 *
-	 * @param string $value Binary data.
-	 *
-	 * @return string
-	 */
-	private function base64url_encode( string $value ): string {
-		return rtrim(
-			strtr(
-				base64_encode( $value ),
-				'+/',
-				'-_'
-			),
-			'='
-		);
-	}
-
-	/**
-	 * Decode URL-safe Base64.
-	 *
-	 * @param string $value Encoded value.
-	 *
-	 * @return string
-	 *
-	 * @throws RuntimeException If decoding fails.
-	 */
-	private function base64url_decode( string $value ): string {
-		$value = strtr( $value, '-_', '+/' );
-
-		$padding = strlen( $value ) % 4;
-
-		if ( 0 !== $padding ) {
-			$value .= str_repeat( '=', 4 - $padding );
-		}
-
-		$decoded = base64_decode( $value, true );
-
-		if ( false === $decoded ) {
-			throw new RuntimeException( 'Invalid session encoding.' );
-		}
-
-		return $decoded;
 	}
 }
