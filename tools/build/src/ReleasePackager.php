@@ -73,6 +73,8 @@ final class ReleasePackager {
 
 		$this->checksums( "{$dir}/{$base}.sha256", $artifacts );
 
+		( new ReleaseSigner( $this->context, $this->console ) )->sign( "{$dir}/{$base}.sha256" );
+
 		$this->console->info( "Release artifacts in {$dir}" );
 	}
 
