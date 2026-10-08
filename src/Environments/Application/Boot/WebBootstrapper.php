@@ -30,6 +30,7 @@ use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\Routing\Router;
 use SmartLicenseServer\RuntimeConfig;
 use SmartLicenseServer\Security\Authentication\Session\SessionManager;
+use SmartLicenseServer\Security\Authentication\Session\UserSessionCutoff;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\CSRF\CSRF;
 use SmartLicenseServer\SettingsAPI\UserSettings;
@@ -103,10 +104,16 @@ class WebBootstrapper implements BootstrapperInterface {
             )
         );
 
+        $container->singleton( UserSessionCutoff::class,
+            fn() : UserSessionCutoff => new UserSessionCutoff()
+        );
+
         $container->singleton(
             SessionManager::class,
             fn( Container $c ) : SessionManager => new SessionManager(
-                $c->get( RuntimeConfig::class )->secret
+                secret: $c->get( RuntimeConfig::class )->secret,
+                salt: $c->get( RuntimeConfig::class )->salt,
+                revocation_check: $c->get( UserSessionCutoff::class )
             )
         );
     }

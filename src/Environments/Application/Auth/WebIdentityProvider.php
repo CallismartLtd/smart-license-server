@@ -112,7 +112,8 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 
 		$this->sessions->create(
 			$auth_result->actor->get_id(),
-			$claims
+			$claims,
+			$remember
 		);
 
 		$principal	= new Principal(
