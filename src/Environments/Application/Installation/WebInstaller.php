@@ -329,10 +329,63 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	/**
 	 * Render the owner's current step.
 	 *
+	 * The database step (the first one) starts with the preflight checks;
+	 * problems there stop the installer before anything is configured.
+	 *
 	 * @return Response
 	 */
 	private function owner_get() : Response {
-		return $this->render_step( $this->assess() );
+		$assessment = $this->assess();
+
+		if ( self::STEP_DATABASE === $assessment['step'] ) {
+			$problems = $this->preflight( $assessment );
+
+			if ( array() !== $problems ) {
+				return $this->respond( $this->page->not_ready( $problems ), 500 );
+			}
+		}
+
+		return $this->render_step( $assessment );
+	}
+
+	/**
+	 * Check the server and the uploaded files, the same checks `installer check` runs.
+	 *
+	 * Errors are returned and stop the installer; warnings are added to the
+	 * page's notices. Recommendations are left to the CLI and Site Health.
+	 *
+	 * @param array{step: string, issues: string[], notices: array, config: array<string, mixed>} $assessment Current state; receives the warnings.
+	 * @return string[] Blocking problems; empty when installation can go ahead.
+	 */
+	private function preflight( array &$assessment ) : array {
+		$server   = $this->installer->verify_environment_sanity();
+		$problems = array();
+
+		foreach ( $server['errors'] as $check => $message ) {
+			$problems[] = sprintf( '%s: %s', $check, $message );
+		}
+
+		$warnings = array_values( $server['warnings'] );
+
+		// Hashing the files is pointless on a server that cannot run the application.
+		if ( array() === $problems ) {
+			$files    = $this->installer->verify_release_files();
+			$problems = $files['errors'];
+			$warnings = array_merge( $warnings, $files['warnings'] );
+		}
+
+		if ( array() !== $problems ) {
+			\smliser_log_error( '[WebInstaller] Preflight failed: ' . implode( ' | ', $problems ) );
+		}
+
+		foreach ( $warnings as $warning ) {
+			$assessment['notices'][] = array(
+				'type'    => 'warning',
+				'message' => $warning,
+			);
+		}
+
+		return $problems;
 	}
 
 	/**
