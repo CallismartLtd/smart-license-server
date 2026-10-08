@@ -9,7 +9,7 @@
 namespace SmartLicenseServer\RESTAPI\Handlers;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
-use SmartLicenseServer\Cache\CacheAwareTrait;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
@@ -18,16 +18,18 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 /**
  * Handles REST API Requests for hosted themes.
  */
-class Themes {    
-    use CacheAwareTrait;
+class Themes extends DataStore {
 
+    public function __construct(
+        protected AppsAnalytics $apps_analytics
+    ) {}
     /**
      * Theme info endpoint permission callback.
      * 
      * @param Request $request The REST API request object.
      * @return RequestException|false Error object if permission is denied, false otherwise.
      */
-    public static function info_permission_callback( Request $request ) : bool|RequestException {
+    public function info_permission_callback( Request $request ) : bool|RequestException {
         /**
          * We handle the required parameters here.
          */
@@ -45,10 +47,10 @@ class Themes {
         $arg        = $theme_id ? $theme_id : $slug;
         $cache_key  =   static::make_cache_key( __METHOD__, [$arg] );
 
-        /** @var \SmartLicenseServer\Exceptions\RequestException|false|array $theme */
-        $theme      = static::cache_get( $cache_key );
+        /** @var \SmartLicenseServer\Exceptions\RequestException|false|array $data */
+        $data   = static::cache_get( $cache_key );
 
-        if ( false === $theme ) {
+        if ( false === $data ) {
             if ( $theme_id ) {
                 $theme = HostedApplicationService::get_app_by_id( 'theme', $theme_id );
             } else {
@@ -59,19 +61,28 @@ class Themes {
                 $message    = __( 'The theme does not exist.', 'smliser' );
                 $theme      = new RequestException( 'theme_not_found', $message, array( 'status' => 404 ) );
             } else {
-                AppsAnalytics::log_client_access( $theme, 'theme_info' ); 
-                $theme  = $theme->get_rest_response();
+                $this->apps_analytics->log_client_access(
+                    $theme,
+                    'theme_info',
+                    $request->ip(),
+                    $request->userAgent()
+                ); 
+
+                $data  = [
+                    'success'   => true,
+                    'theme'     => $theme->get_rest_response()
+                ];
             }
 
-            static::cache_set( $cache_key, $theme, static::default_ttl() );
+            static::cache_set( $cache_key, $data, static::default_ttl() );
 
         }
 
-        if ( $theme instanceof RequestException ) {
-            return $theme;
+        if ( $data instanceof RequestException ) {
+            return $data;
         }
 
-        $request->set( 'smliser_resource', $theme );
+        $request->set( 'smliser_resource', $data );
 
         return true;
 
@@ -83,12 +94,13 @@ class Themes {
      * @param Request $request The REST API request object.
      * @return Response The REST API response object.
      */
-    public static function theme_info_response( Request $request ) : Response {
-        /** @var array $theme */
-        $theme = $request->get( 'smliser_resource' );
+    public function theme_info_response( Request $request ) : Response {
+        $response_data  = $request->get( 'smliser_resource' );
 
-        $response = new Response( 200, [], $theme );
-        return $response;
+        return Response::json(
+            $response_data,
+            200
+        );
     }
 
 }

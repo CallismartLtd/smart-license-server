@@ -320,7 +320,7 @@ class HostedApps extends DataStore {
         $has_permission = match( $request->method() ) {
             'POST'      => $actor->can( 'hosted_apps.upload_assets' ),
             'DELETE'    => $actor->can( 'hosted_apps.delete_assets' ),
-            'PUT',      => true || $actor->can( 'hosted_apps.edit_assets' ),
+            'PUT',      => $actor->can( 'hosted_apps.edit_assets' ),
             default     => false,
         };
 
