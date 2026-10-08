@@ -9,7 +9,7 @@
 namespace SmartLicenseServer\RESTAPI\Handlers;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
-use SmartLicenseServer\Cache\CacheAwareTrait;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\UploadedFile;
@@ -18,15 +18,20 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\HostingController;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Dedicated REST API endpoint for perform CRUD operations on hosted apps. 
  */
-class HostedApps {
-    use CacheAwareTrait;
+class HostedApps extends DataStore {
 
-    public function __construct( protected Guard $guard, protected HostingController $hosting ) {}
+    public function __construct(
+        protected Guard $guard,
+        protected HostingController $hosting,
+        protected MonetizationRegistry $monetization,
+        protected AppsAnalytics $apps_analytics
+    ) {}
 
     /**
      * Guards the repository route against HTTP `Non-Safe Methods`.
@@ -119,16 +124,15 @@ class HostedApps {
             }
 
             $data = array(
-                'apps'       => $results['items'],
-                'pagination' => $results['pagination'],
+                'success'       => true,
+                'apps'          => $results['items'],
+                'pagination'    => $results['pagination'],
             );
 
             static::cache_set( $cache_key, $data, static::default_ttl() );
         }
 
-
-
-        return new Response( 200, [], $data );
+        return Response::json( $data, 200 );
     }
 
     /**
@@ -144,28 +148,37 @@ class HostedApps {
 
         $cache_key  = static::make_cache_key( __METHOD__, [$app_type, $app_slug] );
 
-        /** @var \SmartLicenseServer\Exceptions\RequestException|false|array $app */
-        $app        = static::cache_get( $cache_key );
+        /** @var \SmartLicenseServer\Exceptions\RequestException|false|array $data */
+        $data    = static::cache_get( $cache_key );
 
-        if ( false === $app ) {
+        if ( false === $data ) {
             $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
             if ( ! $app ) {
-                $app    = new RequestException( 'app_not_found', __( 'The requested app could not be found', 'smliser' ), ['status' => 404] );
+                $data    = new RequestException( 'app_not_found', __( 'The requested app could not be found', 'smliser' ), ['status' => 404] );
             } else {
-                AppsAnalytics::log_client_access( $app, \sprintf( '%s_info', $app->get_type() ) );
-                $app    = $app->get_rest_response();
+                $this->apps_analytics->log_client_access(
+                    $app,
+                    \sprintf( '%s_info', $app->get_type() ),
+                    $request->ip(),
+                    $request->userAgent()
+                );
+
+                $data    = [
+                    'success'           => true,
+                    $app->get_type()    => $app->get_rest_response()
+                ];
             }
 
-            static::cache_set( $cache_key, $app, static::default_ttl() );
+            static::cache_set( $cache_key, $data, static::default_ttl() );
             
         }
 
-        if ( $app instanceof RequestException ) {
-            return $app;
+        if ( $data instanceof RequestException ) {
+            return $data;
         }
         
-        return new Response( 200, [], $app );
+        return Response::json( $data, 200 );
     }
 
     /**
@@ -185,7 +198,7 @@ class HostedApps {
                 $response->set_status_code( 201 );
 
                 /** @var HostedAppsInterface $app */
-                $app            = $response->get_response_data()->get( 'smliser_resource' );
+                $app            = $response->get_request()->get( 'smliser_resource' );
                 $response_body  = $app->get_rest_response();
                 
                 $response->set_body( $response_body );
@@ -195,9 +208,8 @@ class HostedApps {
             
             return $response;
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
 
     }
@@ -238,9 +250,8 @@ class HostedApps {
 
             return $response;
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
 
@@ -276,9 +287,8 @@ class HostedApps {
 
             return $response;
         } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
 
@@ -339,9 +349,8 @@ class HostedApps {
 
             return $response;     
         } catch( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
 
@@ -370,9 +379,8 @@ class HostedApps {
 
             return $response;     
         } catch( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
 
@@ -402,9 +410,8 @@ class HostedApps {
 
             return $response;     
         } catch( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', \sprintf( 'application/json; charset=%s', \smliser_settings()->get( 'charset', 'UTF-8' ) ) );
+            return Response::error( $e )
+                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
         }
     }
 

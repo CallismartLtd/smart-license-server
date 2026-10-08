@@ -23,9 +23,10 @@ use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
 use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Environments\Application\Kernel\ExecutionHandlerInterface;
 use SmartLicenseServer\Environments\Application\Web\HttpExecutionHandler;
-use SmartLicenseServer\Environments\Application\RestAPIProvider;
+use SmartLicenseServer\Environments\Application\Web\RestAPIProvider;
 use SmartLicenseServer\Environments\Application\Web\HttpDispatcher;
 use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\RESTAPI\Versions\V1;
 use SmartLicenseServer\Routing\Router;
 use SmartLicenseServer\RuntimeConfig;
@@ -89,10 +90,14 @@ class WebBootstrapper implements BootstrapperInterface {
         $container->singleton(
             RestAPIProvider::class,
             fn ( Container $c ) : RestAPIProvider => RestAPIProvider::init(
-                $c->get( V1::class )
+                identity: $c->get( IdentityService::class ),
+                guard: $c->get( Guard::class ),
+                csrf: $c->get( CSRF::class ),
+                urls: $c->get( URLManager::class ),
+                versions: $c->get( V1::class )   
             )
         );
-
+        
         $container->singleton(
             AssetsManager::class,
             fn ( Container $c ) : AssetsManager => new AssetsManager(
@@ -134,12 +139,13 @@ class WebBootstrapper implements BootstrapperInterface {
         }
 
         $defaultPage  = $container->get( DefaultPage::class );
-        $routeManager = $container->get( HttpDispatcher::class )
+        
+        $container->get( HttpDispatcher::class )
             ->homeHandler( [ $defaultPage, 'home' ] )
             ->notFound( [ $defaultPage, 'not_found' ] )
-            ->methodNotAllowed( [ $defaultPage, 'method_not_allowed' ] );
-
-        $routeManager->registerCoreRoutes();
+            ->methodNotAllowed( [ $defaultPage, 'method_not_allowed' ] )
+            ->registerCoreRoutes()
+            ->registerProvider( $container->get( RESTProviderInterface::class ) );
         
         $container->get( TemplateDiscovery::class )
             ->discover( 'core', \SMLISER_RUNTIME_DIR . '/templates/', 0 );

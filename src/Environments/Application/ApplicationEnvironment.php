@@ -33,6 +33,8 @@ use SmartLicenseServer\Environment;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\Environments\Application\Boot\CLIBootstrapper;
 use SmartLicenseServer\Environments\Application\Boot\WebBootstrapper;
+use SmartLicenseServer\Environments\Application\Middlewares\CallableResolver;
+use SmartLicenseServer\Environments\Application\Web\RestAPIProvider;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
@@ -113,6 +115,11 @@ class ApplicationEnvironment extends Environment {
                 $this->runtime->salt,
                 $c->get( Cache::class )
             )
+        );
+
+        $this->container->singleton(
+            CallableResolver::class,
+            fn( Container $c ) : CallableResolver => new CallableResolver( $c )
         );
 
         $this->container->alias(

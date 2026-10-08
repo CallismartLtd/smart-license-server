@@ -1,7 +1,7 @@
 <?php
 /**
  * REST API Provider interface file.
- * 
+ *
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\RESTAPI
  */
@@ -13,8 +13,16 @@ namespace SmartLicenseServer\RESTAPI;
  */
 interface RESTProviderInterface {
     /**
+     * Path segment every REST namespace is mounted under, in every
+     * environment: version "v1" is served at <rest root>/smliser/v1.
+     *
+     * @var string
+     */
+    public const PREFIX = 'smliser';
+
+    /**
      * Enforce secure HTTPS/TLS connection.
-     * 
+     *
      * @param mixed ...$params
      * @return mixed
      */
@@ -27,14 +35,14 @@ interface RESTProviderInterface {
 
     /**
      * Get available rest API namespaces.
-     * 
+     *
      * @return string[]
      */
     public function namespaces() : array;
 
     /**
      * Get all available REST versions
-     * 
+     *
      * @return RESTVersionInterface[]
      */
     public function version_instances() : array;

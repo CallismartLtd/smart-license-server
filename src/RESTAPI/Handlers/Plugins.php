@@ -9,7 +9,7 @@
 namespace SmartLicenseServer\RESTAPI\Handlers;
 
 use SmartLicenseServer\Analytics\AppsAnalytics;
-use SmartLicenseServer\Cache\CacheAwareTrait;
+use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
@@ -18,8 +18,13 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 /**
  * Handles REST API Requests for hosted plugins.
  */
-class Plugins {
-    use CacheAwareTrait;
+class Plugins extends DataStore {
+
+    protected mixed $response_data = [];
+
+    public function __construct(
+        protected AppsAnalytics $apps_analytics
+    ) {}
 
     /**
      * Plugin info endpoint permission callback.
@@ -27,7 +32,7 @@ class Plugins {
      * @param Request $request The REST API request object.
      * @return RequestException|false Error object if permission is denied, false otherwise.
      */
-    public static function info_permission_callback( Request $request ) : RequestException|bool {
+    public function info_permission_callback( Request $request ) : RequestException|bool {
         /**
          * We handle the required parameters here.
          */
@@ -44,12 +49,12 @@ class Plugins {
 
         
         $arg    = $plugin_id ? $plugin_id : $slug;
-        $cache_key  =   static::make_cache_key( __METHOD__, [$arg] );
+        $cache_key  =   $this->make_cache_key( __METHOD__, [$arg] );
 
-        /** @var \SmartLicenseServer\Exceptions\RequestException|false|array $plugin */
-        $plugin     = static::cache_get( $cache_key );
+        /** @var \SmartLicenseServer\Exceptions\RequestException|false|array $data */
+        $data   = $this->cache_get( $cache_key );
 
-        if ( false === $plugin ) {
+        if ( false === $data ) {
             if ( $plugin_id ) {
                 $plugin = HostedApplicationService::get_app_by_id( 'plugin', $plugin_id );
             } else {
@@ -60,18 +65,27 @@ class Plugins {
                 $message    = __( 'The plugin does not exist, please check the typography or the plugin slug.', 'smliser' );
                 $plugin     = new RequestException( 'plugin_not_found', $message, array( 'status' => 404 ) );
             } else {
-                AppsAnalytics::log_client_access( $plugin, 'plugin_info' );
-                $plugin = $plugin->get_rest_response();
+                $this->apps_analytics->log_client_access(
+                    $plugin,
+                    'plugin_info',
+                    $request->ip(),
+                    $request->userAgent()
+                );
+
+                $data = [
+                    'success'   => true,
+                    'plugin'    => $plugin->get_rest_response()
+                ];
             }
 
-            static::cache_set( $cache_key, $plugin, static::default_ttl() );
+            $this->cache_set( $cache_key, $data, $this->default_ttl() );
         }
 
-        if ( $plugin instanceof RequestException ) {
-            return $plugin;
+        if ( $data instanceof RequestException ) {
+            return $data;
         }
         
-        $request->set( 'smliser_resource', $plugin );
+        $request->set( 'smliser_resource', $data );
         return true;
 
     }
@@ -83,12 +97,9 @@ class Plugins {
      * @return Response The REST API response object.
      */
     public static function plugin_info_response( Request $request ) {
-        /** @var array $plugin */
-        $plugin = $request->get( 'smliser_resource' );
+        $response_data = $request->get( 'smliser_resource' );
 
-        $response = new Response( 200, [], $plugin );
-        return $response;
-
+        return Response::json( $response_data, 200 );
     }
 
 }

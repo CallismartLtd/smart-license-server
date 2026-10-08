@@ -30,10 +30,10 @@ use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminDownloadMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddleware;
+use SmartLicenseServer\Environments\Application\Middlewares\CallableResolver;
 use SmartLicenseServer\Environments\Application\Middlewares\CSRFMiddleware;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
-use SmartLicenseServer\RESTAPI\RESTVersionInterface;
 use SmartLicenseServer\Routing\DispatchStatus;
 use SmartLicenseServer\Routing\Router as CoreRouter;
 use SmartLicenseServer\SettingsAPI\SettingsController;
@@ -77,54 +77,19 @@ final class HttpDispatcher {
     ) {}
 
 	/**
-	 * Direct access to the underlying core Router — group()/add()/get()/
+	 * Direct access to the underlying core Router - group()/add()/get()/
 	 * post()/etc. all work exactly as documented there.
 	 */
 	public function router(): CoreRouter {
 		return $this->router;
 	}
 
-	/**
-	 * Registers a RESTVersionInterface provider's routes onto the underlying core Router.
-     * 
-     * @return void
-	 */
-	public function registerProvider( RESTVersionInterface $provider ): void {
-		$config    = $provider->get_routes();
-		$namespace = $config['namespace'] ?? '';
-		$routes    = $config['routes'] ?? [];
-
-		$register = static function ( CoreRouter $router ) use ( $routes ): void {
-			foreach ( $routes as $route ) {
-				$middleware = [];
-
-				if ( isset( $route['guard'] ) ) {
-					$middleware[] = self::guardAsMiddleware( $route['guard'] );
-				}
-
-				$router->add(
-					$route['route'],
-					$route['methods'] ?? ['GET'],
-					$route['handler'],
-					true,
-					$middleware
-				);
-			}
-		};
-
-		if ( '' !== $namespace ) {
-			$this->router->group( $namespace, $register );
-		} else {
-            $register( $this->router );
-        }
-	}
-
     /**
      * Registers core routes onto the underlying core Router.
      * 
-     * @return void
+     * @return self Fluent
      */
-    public function registerCoreRoutes() : void {
+    public function registerCoreRoutes() : self {
         $this->router->any( '/', $this->defaultHomeHandler );
         
         $urlmanager = $this->container->get( URLManager::class );
@@ -565,27 +530,24 @@ final class HttpDispatcher {
             },
             middleware: [AdminDownloadMiddleware::class]
         );
+
+
+        return $this;
     }
 
 	/**
-	 * Wraps a guard callable — `($request, array $params): mixed`, WP-style
-	 * permission-callback convention — as middleware. A falsy or null result
-	 * rejects the request (that result is returned as-is, without ever
-	 * calling $next, i.e. without running the handler); anything else
-	 * proceeds.
+	 * Mount the REST API on the router.
+	 *
+	 * The provider owns everything REST: the /smliser/<version> prefix, the
+	 * HTTPS, authentication and JSON rules, and each route's guard.
+	 *
+	 * @param RestAPIProvider $rest_provider The standalone REST API provider.
+	 * @return self Fluent
 	 */
-	private static function guardAsMiddleware( callable $guard ): callable {
-		// MiddlewarePipeline calls middleware as ( $request, $next ); the route
-		// params are already on the request (see dispatch()).
-		return static function ( Request $request, callable $next ) use ( $guard ): mixed {
-			$result = $guard( $request, $request->route_param() );
+	public function registerProvider( RestAPIProvider $rest_provider ): self {
+		$rest_provider->register( $this->router, $this->container->get( CallableResolver::class ) );
 
-			if ( false === $result || null === $result ) {
-				return $result;
-			}
-
-			return $next( $request );
-		};
+		return $this;
 	}
 
 	/**
@@ -631,7 +593,7 @@ final class HttpDispatcher {
 	 * finally calls the handler; otherwise calls whichever of
 	 * notFound()/methodNotAllowed() applies, if set.
 	 *
-	 * Returns whatever the handler (or fallback) returns — this class makes
+	 * Returns whatever the handler (or fallback) returns - this class makes
 	 * no assumption about what that is (a Response object, void, anything),
 	 * since that's the handler's decision, not the router's.
 	 */
@@ -642,7 +604,7 @@ final class HttpDispatcher {
 
 		$response = match ( $result->status ) {
 			DispatchStatus::Found       => MiddlewarePipeline::run(
-                $this->container,
+                $this->container->get( CallableResolver::class ),
 				$result->middleware,
 				$result->handler,
 				$request,

@@ -17,6 +17,7 @@ namespace SmartLicenseServer\Environments\Application;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\RESTAPI\RouteCatalog;
 use SmartLicenseServer\Security\Context\Guard;
 
@@ -67,7 +68,7 @@ final class DefaultPage {
 
 	public function __construct(
 		private URLManager $urlmanager,
-		private RestAPIProvider $api_provider,
+		private RESTProviderInterface $api_provider,
 		private Guard $guard
 	) {}
 
