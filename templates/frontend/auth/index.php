@@ -17,6 +17,8 @@
 
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
 use SmartLicenseServer\ClientDashboard\TemplateHandlers\AuthForms;
+use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\SettingsAPI\Settings;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
@@ -28,6 +30,8 @@ defined( 'SMLISER_ROOT' ) || exit;
 $rest_base      = $rest_base   ?? '';
 $active_slug    = $active_slug ?? array_key_first( $menu ) ?? '';
 $repo_name      = (string) $settings->get( 'smliser_repository_name', SMLISER_APP_NAME );
+$terms_url      = URL::from( $settings->get( Settings::TERMS_URL, '' ) );
+$privacy_url    = URL::from( $settings->get( Settings::PRIVACY_POLICY_URL, '' ) );
 
 /*
 |--------------------------------------------------

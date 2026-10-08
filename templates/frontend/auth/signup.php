@@ -9,15 +9,12 @@
  * - Password strength meter
  * - Terms acceptance checkbox
  * - Form submission via AJAX to {rest_base}auth/signup
+ * 
+ * @var \SmartLicenseServer\Core\URL $terms_url
+ * @var \SmartLicenseServer\Core\URL $privacy_url
  */
 
-use SmartLicenseServer\SettingsAPI\Settings;
-
-defined( 'SMLISER_ROOT' ) || exit;
-
-$settings = smliser_settings();
-
-?>
+defined( 'SMLISER_ROOT' ) || exit; ?>
 <div class="smlag-header">
     <span class="smlag-subtitle">Create your account</span>
     <span class="smlag-description">Join us to get started managing your licenses</span>
@@ -126,10 +123,10 @@ $settings = smliser_settings();
 
         <label for="smlag-signup-terms">
             I agree to the
-            <a href="<?php echo escUrl( $settings->get( Settings::TERMS_URL, '/', true ) ); ?>" 
+            <a href="<?php echo escUrl( $terms_url->url() ); ?>" 
                 target="_blank">Terms of Service</a>
             and
-            <a href="<?php echo escUrl( $settings->get( Settings::PRIVACY_POLICY_URL, '/', true ) ); ?>"
+            <a href="<?php echo escUrl( $privacy_url->url() ); ?>"
                 target="_blank">Privacy Policy</a>
         </label>
     </div>

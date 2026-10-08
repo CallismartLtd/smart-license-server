@@ -4,6 +4,7 @@
  *
  * Usage:
  *   php tools/build/build.php <target> [options]
+ *   php tools/build/build.php --generate-key=<path>
  *
  * Targets:
  *   standalone          Standalone PHP application.
@@ -15,6 +16,7 @@
  *                    <name>-<version>-<target>.tar.gz
  *                    <name>-<version>-<target>-setup.php   Single-file installer.
  *                    <name>-<version>-<target>.sha256      Checksums of the above.
+ *                    <name>-<version>-<target>.sha256.sig  Signature of the checksums (signed builds).
  * <name> comes from composer.json, <version> from SMLISER_VER under src/.
  *
  * Options:
@@ -23,6 +25,12 @@
  *   --npm=<path>        npm binary, used once to install esbuild. Default: npm
  *   --node=<path>       Node.js binary, used to run esbuild. Default: node
  *   --no-minify         Skip writing minified *.min.js / *.min.css assets.
+ *   --sign-key=<path>   Ed25519 key that signs the .sha256 checksums. Default: the path in
+ *                       SMLISER_SIGNING_KEY. Without one the build is unsigned, and
+ *                       the updater refuses it.
+ *   --generate-key=<path>
+ *                       Create a signing key (no build). Keep it outside the repository,
+ *                       and put the printed public key in ReleaseSignature::PUBLIC_KEYS.
  *   --help              Show this help.
  *
  * @author  Callistus Nwachukwu
@@ -36,6 +44,7 @@ use SmartLicenseServer\Build\BuildContext;
 use SmartLicenseServer\Build\BuildException;
 use SmartLicenseServer\Build\Builder;
 use SmartLicenseServer\Build\ProjectInfo;
+use SmartLicenseServer\Build\ReleaseSigner;
 use SmartLicenseServer\Build\Targets\StandaloneTarget;
 
 if ( 'cli' !== PHP_SAPI ) {
@@ -81,7 +90,7 @@ $console = new BuildConsole();
 try {
 	// getopt() stops at the first positional argument, so parse by hand to
 	// allow options on either side of the target name.
-	$allowed = array( 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'help' => false );
+	$allowed = array( 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'help' => false, 'sign-key' => true, 'generate-key' => true );
 	$options = array();
 	$name    = null;
 
@@ -105,6 +114,15 @@ try {
 		}
 
 		$options[ $key ] = $allowed[ $key ] ? $value : true;
+	}
+
+	if ( isset( $options['generate-key'] ) ) {
+		$public = ReleaseSigner::generate_key( (string) $options['generate-key'] );
+
+		$console->success( sprintf( 'Signing key written to %s. Keep it secret and out of the repository.', $options['generate-key'] ) );
+		$console->write( 'Public key, for ReleaseSignature::PUBLIC_KEYS:' );
+		$console->write( $public );
+		exit( 0 );
 	}
 
 	if ( isset( $options['help'] ) || null === $name ) {
@@ -141,7 +159,8 @@ try {
 		(string) ( $options['composer'] ?? 'composer' ),
 		(string) ( $options['npm'] ?? 'npm' ),
 		! isset( $options['no-minify'] ),
-		(string) ( $options['node'] ?? 'node' )
+		(string) ( $options['node'] ?? 'node' ),
+		( $options['sign-key'] ?? getenv( 'SMLISER_SIGNING_KEY' ) ) ?: null
 	);
 
 	( new Builder( $context, $console ) )->run( new $targets[ $name ]() );
