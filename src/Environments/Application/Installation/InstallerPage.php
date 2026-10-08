@@ -399,6 +399,29 @@ class InstallerPage {
 	}
 
 	/**
+	 * The page shown when the server or the uploaded files are not ready for installation.
+	 *
+	 * @param string[] $problems Plain-language problems.
+	 * @return array{title: string, html: string}
+	 */
+	public function not_ready( array $problems ) : array {
+		$items = '';
+
+		foreach ( $problems as $problem ) {
+			$items .= '<li>' . $this->e( $problem ) . '</li>';
+		}
+
+		return $this->page(
+			'',
+			'This server is not ready yet',
+			'<p class="lead">Before setting anything up, the installer checked this server and the uploaded files. These problems would stop '
+				. $this->e( \SMLISER_APP_NAME ) . ' from working:</p>'
+				. '<ul class="issues">' . $items . '</ul>'
+				. '<p>Fix them, then reload this page.</p>'
+		);
+	}
+	
+	/**
 	 * Wrap a page in the full HTML document.
 	 *
 	 * @param array{title: string, html: string} $page  The page.

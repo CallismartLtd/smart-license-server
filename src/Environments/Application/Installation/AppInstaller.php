@@ -22,6 +22,7 @@ use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Environments\Application\Boot\InstallationState;
 use SmartLicenseServer\Environments\Application\Boot\MaintenanceFlag;
+use SmartLicenseServer\Environments\Application\Release\ReleaseManifest;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
@@ -1200,6 +1201,44 @@ class AppInstaller {
         if ( $this->flag->is_installation() ) {
             $this->flag->clear();
         }
+    }
+
+    /**
+     * Check the application files against the release manifest.
+     *
+     * A missing manifest is only a warning: source checkouts have none.
+     *
+     * @param callable(int $done, int $total)|null $progress Optional progress callback.
+     * @return array{passed: bool, errors: string[], warnings: string[]}
+     */
+    public function verify_release_files( ?callable $progress = null ) : array {
+        $result = array( 'passed' => true, 'errors' => array(), 'warnings' => array() );
+
+        try {
+            $manifest = ReleaseManifest::load( $this->fs, \SMLISER_ROOT );
+        } catch ( \RuntimeException $e ) {
+            return array( 'passed' => false, 'errors' => array( $e->getMessage() . ' Upload the release again.' ), 'warnings' => array() );
+        }
+
+        if ( null === $manifest ) {
+            $result['warnings'][] = 'There is no manifest.json, so the application files cannot be verified. This is expected for a source checkout.';
+            return $result;
+        }
+
+        if ( $manifest->version !== \SMLISER_VER ) {
+            $result['passed']   = false;
+            $result['errors'][] = sprintf( 'manifest.json is for version %s, but the code is version %s: files from two releases are mixed. Upload one release completely.', $manifest->version, \SMLISER_VER );
+        }
+
+        $check = $manifest->verify( $this->fs, \SMLISER_ROOT, $progress );
+
+        if ( ! $check->passed() ) {
+            $result['passed'] = false;
+            array_push( $result['errors'], ...$check->messages() );
+            $result['errors'][] = 'The upload is incomplete or damaged. Upload the release again (FTP clients should use binary mode).';
+        }
+
+        return $result;
     }
 
     /**
