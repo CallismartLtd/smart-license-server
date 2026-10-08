@@ -63,15 +63,21 @@ trait TokenDeliveryTrait {
     /**
      * Decode a URL-safe Base64 string.
      *
+     * Strict: input with characters outside the URL-safe alphabet is
+     * rejected rather than silently skipped.
+     *
      * @param string $data
-     * @return string
+     * @return string The decoded bytes, or '' when $data is not valid URL-safe Base64.
      */
     private static function base64url_decode( string $data ) : string {
         $padding = 4 - ( strlen( $data ) % 4 );
         if ( $padding < 4 ) {
             $data .= str_repeat( '=', $padding );
         }
-        return base64_decode( strtr( $data, '-_', '+/' ) );
+
+        $decoded = base64_decode( strtr( $data, '-_', '+/' ), true );
+
+        return false === $decoded ? '' : $decoded;
     }
 
     /**
