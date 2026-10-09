@@ -59,7 +59,7 @@ class PasswordResetJob implements JobHandlerInterface {
             return true;
         }
 
-        $reset_url  = $this->urlmanager->client_dashboard_url( '', [ 'key' => $this->tokens->issue( $user ) ] )
+        $reset_url  = $this->urlmanager->login_url( '', [ 'key' => $this->tokens->issue( $user ) ] )
             ->set_hash( 'reset-password' );
 
         $reset_email    = new PasswordResetEmail(

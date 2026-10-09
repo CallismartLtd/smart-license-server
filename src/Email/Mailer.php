@@ -66,36 +66,6 @@ class Mailer {
         $this->provider = $provider;
     }
 
-    /*
-    |-------------------
-    | PROVIDER CONTROL
-    |-------------------
-    */
-
-    /**
-     * Return a copy of the mailer using a specific provider.
-     *
-     * @param string|EmailProviderInterface $provider_id
-     * @return static
-     * @throws InvalidArgumentException If the provider is not registered.
-     */
-    public static function with_provider( string|EmailProviderInterface $provider_id ): static {
-        $provider = ( $provider_id instanceof EmailProviderInterface ) 
-            ? $provider_id
-            : smliser_emailProvidersRegistry()->get_provider_with_settings( $provider_id );
-
-        if ( $provider === null ) {
-            throw new InvalidArgumentException(
-                "Mailer: provider '{$provider_id}' is not registered."
-            );
-        }
-
-        $static           = new static( $provider );
-        $static->provider = $provider;
-
-        return $static;
-    }
-
     /**
      * Set the active provider directly.
      *
@@ -114,22 +84,10 @@ class Mailer {
      * Return the currently active provider, resolving from the collection
      * if none has been set explicitly.
      *
-     * @return EmailProviderInterface
+     * @return ?EmailProviderInterface
      * @throws RuntimeException If no provider is configured.
      */
-    public function get_provider(): EmailProviderInterface {
-        if ( $this->provider === null ) {
-            $this->provider = smliser_emailProvidersRegistry()
-                ->get_provider_with_settings();
-        }
-
-        if ( $this->provider === null ) {
-            throw new RuntimeException(
-                'Mailer: no email provider is configured. '
-                . 'Set a default provider via EmailProvidersRegistry::set_default_provider().'
-            );
-        }
-
+    public function get_provider(): ?EmailProviderInterface {
         return $this->provider;
     }
 
