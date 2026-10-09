@@ -1,0 +1,460 @@
+<?php
+/**
+ * UpdateService class file.
+ *
+ * @author Callistus Nwachukwu
+ * @package SmartLicenseServer\Environments\Application\Update
+ */
+
+declare( strict_types=1 );
+
+namespace SmartLicenseServer\Environments\Application\Update;
+
+use SmartLicenseServer\Environments\Application\Boot\InstallationState;
+use SmartLicenseServer\Environments\Application\Release\ReleaseManifest;
+use SmartLicenseServer\Environments\Application\Release\ReleaseSignature;
+use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\SettingsAPI\Settings;
+
+/**
+ * What the console, the admin page, the scheduler and the update job share:
+ * checking for updates, finding what blocks one, preparing a package, and
+ * the automatic-update policy.
+ *
+ * The last check is kept in state.json (update.check), so every interface
+ * shows the same result without asking the update server again; a dry run
+ * keeps its verified package (update.ready) for a later install of the same
+ * version.
+ */
+final class UpdateService {
+
+	/**
+	 * Automatic update modes.
+	 */
+	public const AUTO_OFF      = 'off';
+	public const AUTO_SECURITY = 'security';
+	public const AUTO_ALL      = 'all';
+
+	/**
+	 * Settings key of the automatic update mode.
+	 *
+	 * @var string
+	 */
+	public const SETTING_AUTO = 'smliser_auto_update';
+
+	/**
+	 * How long a check result is reused before the server is asked again, in seconds.
+	 *
+	 * @var int
+	 */
+	public const CHECK_TTL = 43200;
+
+	/**
+	 * How long a queued automatic update is left alone before queueing it again, in seconds.
+	 *
+	 * @var int
+	 */
+	public const QUEUED_TTL = 86400;
+
+	/**
+	 * Days a backup of the previous version is kept.
+	 *
+	 * @var int
+	 */
+	public const BACKUP_DAYS = 14;
+
+	/**
+	 * Free disk space an update needs, in bytes.
+	 *
+	 * @var int
+	 */
+	public const MIN_FREE_BYTES = 209715200;
+
+	/**
+	 * Application root, with a trailing slash.
+	 *
+	 * @var string
+	 */
+	private string $root;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param UpdateServer      $server    The update server.
+	 * @param Updater           $updater   Applies packages.
+	 * @param PackageVerifier   $verifier  Verifies packages.
+	 * @param ReleaseSignature  $signature Release signature keys.
+	 * @param InstallationState $state     The installation state.
+	 * @param Settings          $settings  Settings API.
+	 * @param FileSystem        $fs        Filesystem API.
+	 * @param string            $root      Application root.
+	 */
+	public function __construct(
+		private UpdateServer $server,
+		private Updater $updater,
+		private PackageVerifier $verifier,
+		private ReleaseSignature $signature,
+		private InstallationState $state,
+		private Settings $settings,
+		private FileSystem $fs,
+		string $root
+	) {
+		$this->root = rtrim( $root, '/\\' ) . '/';
+	}
+
+	/*
+	|----------
+	| Checking
+	|----------
+	*/
+
+	/**
+	 * The latest release, from the last check or a new one.
+	 *
+	 * A failed check is recorded too, keeping the last known release, so
+	 * the admin page can show both.
+	 *
+	 * @param bool $refresh Ask the server even when the last check is recent.
+	 * @return array{checked_at: string, latest: ?string, security: bool, error: ?string, available: bool}
+	 */
+	public function check( bool $refresh = false ) : array {
+		$last = $this->state->update_section( InstallationState::UPDATE_CHECK );
+
+		if ( ! $refresh && null !== $last && time() - strtotime( (string) ( $last['checked_at'] ?? '' ) ) < self::CHECK_TTL ) {
+			return $this->with_availability( $last );
+		}
+
+		try {
+			$latest = $this->server->latest();
+			$check  = array( 'latest' => $latest['version'], 'security' => $latest['security'], 'error' => null );
+		} catch ( UpdateException $e ) {
+			$check = array( 'latest' => $last['latest'] ?? null, 'security' => (bool) ( $last['security'] ?? false ), 'error' => $e->getMessage() );
+		}
+
+		$check = array( 'checked_at' => gmdate( DATE_ATOM ) ) + $check + array_intersect_key( (array) $last, array_flip( array( 'queued' ) ) );
+
+		try {
+			$this->state->set_update_section( InstallationState::UPDATE_CHECK, $check );
+		} catch ( \RuntimeException $e ) {
+			$check['error'] = trim( $check['error'] . ' The result could not be saved: ' . $e->getMessage() );
+		}
+
+		return $this->with_availability( $check );
+	}
+
+	/**
+	 * What prevents an update right now, found without contacting the server.
+	 *
+	 * @return array<string, string> Plain-language problems keyed by kind ("keys", "zip", "process",
+	 *                               "writable", "disk", "unfinished"); empty when nothing does.
+	 */
+	public function blockers() : array {
+		$problems = array();
+
+		if ( ! $this->signature->configured() ) {
+			$problems['keys'] = 'No release signing keys are configured, so no package can be verified.';
+		}
+
+		if ( ! class_exists( \ZipArchive::class ) ) {
+			$problems['zip'] = 'The zip PHP extension is not enabled.';
+		}
+
+		if ( ! function_exists( 'proc_open' ) ) {
+			$problems['process'] = 'PHP may not start a new process (proc_open is disabled), which finishing an update needs.';
+		}
+
+		foreach ( array( '', 'system', 'server' ) as $dir ) {
+			$path = $this->root . $dir;
+
+			if ( $this->fs->exists( $path ) && ! $this->fs->is_writable( $path ) ) {
+				$problems[ 'writable:' . ( '' === $dir ? '.' : $dir ) ] = sprintf( 'PHP cannot write to %s; the files are owned by another user.', '' === $dir ? 'the application folder' : $dir . '/' );
+			}
+		}
+
+		$free = @disk_free_space( $this->root );
+
+		if ( false !== $free && $free < self::MIN_FREE_BYTES ) {
+			$problems['disk'] = sprintf( 'Only %d MB of disk space is free; an update needs at least %d MB.', (int) ( $free / 1048576 ), (int) ( self::MIN_FREE_BYTES / 1048576 ) );
+		}
+
+		$stage = $this->updater->status()['stage'] ?? null;
+
+		if ( Updater::STAGE_APPLYING === $stage || Updater::STAGE_SWAPPED === $stage ) {
+			$problems['unfinished'] = 'A previous update is not finished. Finish it or roll it back first.';
+		}
+
+		return $problems;
+	}
+
+	/*
+	|-----------
+	| Preparing
+	|-----------
+	*/
+
+	/**
+	 * Get a verified, staged package ready for Updater::apply().
+	 *
+	 * From the update server, the latest release is used; a package a dry
+	 * run already downloaded for that version is reused after rechecking
+	 * its hash. A local package must carry its .sha256 (and .sha256.sig
+	 * unless trusted) beside it.
+	 *
+	 * @param string|null $package        Local package path; null to use the update server.
+	 * @param bool        $reinstall      Allow the installed version again.
+	 * @param bool        $trust_unsigned Accept a local package without a valid signature.
+	 * @return array{manifest: ReleaseManifest, warnings: string[]}|null Null when the installation is up to date.
+	 *
+	 * @throws UpdateException When something blocks the update or the package is unusable.
+	 */
+	public function prepare( ?string $package = null, bool $reinstall = false, bool $trust_unsigned = false ) : ?array {
+		$blockers = $this->blockers();
+
+		// A trusted local package does not need signing keys.
+		if ( null !== $package && $trust_unsigned ) {
+			unset( $blockers['keys'] );
+		}
+
+		if ( ! empty( $blockers ) ) {
+			throw new UpdateException( implode( ' ', $blockers ) );
+		}
+
+		if ( null !== $package ) {
+			$warnings = $this->verifier->verify( $package, $this->sibling( $package, '.sha256' ), $this->sibling( $package, '.sha256.sig' ), $trust_unsigned );
+
+			return array( 'manifest' => $this->updater->stage( $package, null, $reinstall ), 'warnings' => $warnings );
+		}
+
+		$check = $this->check( true );
+
+		if ( null !== $check['error'] ) {
+			throw new UpdateException( $check['error'] );
+		}
+
+		$compare = version_compare( (string) $check['latest'], \SMLISER_VER );
+
+		if ( $compare < 0 || ( 0 === $compare && ! $reinstall ) ) {
+			return null;
+		}
+
+		$zip      = $this->ready_package( (string) $check['latest'] );
+		$warnings = array();
+
+		if ( null === $zip ) {
+			$download = $this->server->download( (string) $check['latest'], $this->updater->downloads_dir() );
+			$zip      = $download['zip'];
+			$warnings = $download['warnings'];
+		}
+
+		try {
+			$manifest = $this->updater->stage( $zip, (string) $check['latest'], $reinstall );
+		} catch ( UpdateException $e ) {
+			$this->updater->discard_working_files();
+			throw $e;
+		}
+
+		$this->state->set_update_section(
+			InstallationState::UPDATE_READY,
+			array( 'version' => $manifest->version, 'zip' => $zip, 'sha256' => (string) hash_file( 'sha256', $zip ), 'prepared_at' => gmdate( DATE_ATOM ) )
+		);
+
+		return array( 'manifest' => $manifest, 'warnings' => $warnings );
+	}
+
+	/**
+	 * Everything an update would do, except installing.
+	 *
+	 * Checks, downloads, verifies and stages the latest release; the
+	 * verified package is kept so installing that version later does not
+	 * download it again.
+	 *
+	 * @return array{ok: bool, version: ?string, installed: string, blockers: array<string, string>, warnings: string[], error: ?string}
+	 */
+	public function dry_run() : array {
+		$result = array(
+			'ok'        => false,
+			'version'   => null,
+			'installed' => \SMLISER_VER,
+			'blockers'  => $this->blockers(),
+			'warnings'  => array(),
+			'error'     => null,
+		);
+
+		if ( ! empty( $result['blockers'] ) ) {
+			return $result;
+		}
+
+		try {
+			$prepared = $this->prepare();
+		} catch ( UpdateException $e ) {
+			$result['error'] = $e->getMessage();
+			return $result;
+		}
+
+		if ( null === $prepared ) {
+			$result['ok'] = true;
+			return $result;
+		}
+
+		$result['ok']       = true;
+		$result['version']  = $prepared['manifest']->version;
+		$result['warnings'] = $prepared['warnings'];
+
+		return $result;
+	}
+
+	/*
+	|--------------------
+	| Automatic updates
+	|--------------------
+	*/
+
+	/**
+	 * The automatic update mode.
+	 *
+	 * @return string One of the AUTO_* constants; security releases only by default.
+	 */
+	public function auto_mode() : string {
+		$mode = $this->settings->get( self::SETTING_AUTO, self::AUTO_SECURITY );
+
+		return in_array( $mode, array( self::AUTO_OFF, self::AUTO_SECURITY, self::AUTO_ALL ), true ) ? $mode : self::AUTO_SECURITY;
+	}
+
+	/**
+	 * Set the automatic update mode.
+	 *
+	 * @param string $mode One of the AUTO_* constants.
+	 * @return void
+	 * @throws UpdateException For an unknown mode.
+	 */
+	public function set_auto_mode( string $mode ) : void {
+		if ( ! in_array( $mode, array( self::AUTO_OFF, self::AUTO_SECURITY, self::AUTO_ALL ), true ) ) {
+			throw new UpdateException( sprintf( 'Unknown automatic update mode "%s"; use off, security or all.', $mode ) );
+		}
+
+		$this->settings->set( self::SETTING_AUTO, $mode );
+	}
+
+	/**
+	 * The scheduled check: refresh the check, remove an old backup, and say
+	 * whether an automatic update should be queued.
+	 *
+	 * Returns true at most once per version per QUEUED_TTL, so a stalled
+	 * queue does not collect duplicate update jobs.
+	 *
+	 * @return bool Whether to queue the automatic update.
+	 */
+	public function scheduled_check() : bool {
+		$check = $this->check( true );
+
+		$this->expire_backup();
+
+		$mode = $this->auto_mode();
+
+		if (
+			! $check['available']
+			|| self::AUTO_OFF === $mode
+			|| ( self::AUTO_SECURITY === $mode && ! $check['security'] )
+		) {
+			return false;
+		}
+
+		$queued = $check['queued'] ?? null;
+
+		if ( is_array( $queued ) && $check['latest'] === ( $queued['version'] ?? null ) && time() - strtotime( (string) ( $queued['at'] ?? '' ) ) < self::QUEUED_TTL ) {
+			return false;
+		}
+
+		$this->state->change(
+			static function ( array $state ) use ( $check ) : array {
+				$state['update']['check']['queued'] = array( 'version' => $check['latest'], 'at' => gmdate( DATE_ATOM ) );
+
+				return $state;
+			}
+		);
+
+		return true;
+	}
+
+	/**
+	 * Delete the backup once it is older than BACKUP_DAYS.
+	 *
+	 * @return bool Whether a backup was deleted.
+	 */
+	public function expire_backup() : bool {
+		$backup = $this->updater->backup();
+
+		if ( null === $backup || time() - strtotime( $backup['made_at'] ) < self::BACKUP_DAYS * 86400 ) {
+			return false;
+		}
+
+		try {
+			return $this->updater->delete_backup();
+		} catch ( UpdateException ) {
+			return false;
+		}
+	}
+
+	/*
+	|---------
+	| Helpers
+	|---------
+	*/
+
+	/**
+	 * A check result with "available" worked out against the installed version.
+	 *
+	 * @param array $check Stored check.
+	 * @return array
+	 */
+	private function with_availability( array $check ) : array {
+		$check += array( 'checked_at' => '', 'latest' => null, 'security' => false, 'error' => null );
+
+		$check['available'] = is_string( $check['latest'] ) && version_compare( $check['latest'], \SMLISER_VER, '>' );
+
+		return $check;
+	}
+
+	/**
+	 * A package a dry run already verified for this version, if it is still intact.
+	 *
+	 * @param string $version Version wanted.
+	 * @return string|null Its path.
+	 */
+	private function ready_package( string $version ) : ?string {
+		$ready = $this->state->update_section( InstallationState::UPDATE_READY );
+
+		if ( null === $ready || $version !== ( $ready['version'] ?? null ) ) {
+			return null;
+		}
+
+		$zip = (string) ( $ready['zip'] ?? '' );
+
+		if ( '' !== $zip && $this->fs->is_file( $zip ) && hash_equals( (string) ( $ready['sha256'] ?? '' ), (string) hash_file( 'sha256', $zip ) ) ) {
+			return $zip;
+		}
+
+		$this->updater->discard_working_files();
+
+		return null;
+	}
+
+	/**
+	 * Contents of a file beside a package, e.g. its .sha256.
+	 *
+	 * @param string $zip    Package path.
+	 * @param string $suffix Suffix replacing ".zip".
+	 * @return string|null
+	 */
+	private function sibling( string $zip, string $suffix ) : ?string {
+		$path = preg_replace( '/\.zip$/i', '', $zip ) . $suffix;
+
+		if ( ! $this->fs->is_file( $path ) ) {
+			return null;
+		}
+
+		$contents = $this->fs->get_contents( $path );
+
+		return is_string( $contents ) ? $contents : null;
+	}
+}

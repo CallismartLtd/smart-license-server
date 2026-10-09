@@ -46,6 +46,15 @@ final class MaintenanceFlag {
 	public const REASON_INSTALLATION = 'installation';
 
 	/**
+	 * An application update is being applied (see Update\Updater).
+	 *
+	 * Resolves to Maintenance like any reason other than installation.
+	 *
+	 * @var string
+	 */
+	public const REASON_UPDATE = 'update';
+
+	/**
 	 * Class constructor.
 	 *
 	 * @param FileSystem $fs   Filesystem API.
@@ -55,7 +64,7 @@ final class MaintenanceFlag {
 		FileSystem $fs,
 		private readonly string $file
 	) {
-		$this->fs	= $fs;
+		$this->fs = $fs;
 	}
 
 	/**

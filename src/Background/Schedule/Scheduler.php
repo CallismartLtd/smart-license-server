@@ -527,6 +527,15 @@ class Scheduler {
 			->every_minutes( 15 )
 			->label( 'Release Stale Running Jobs' );
 
+		// Check for updates twice a day; queues the automatic update when allowed.
+		// An interval rather than fixed times spreads installations' requests to the update server.
+		$this->call(
+			'update_check',
+			[ $this->core_schedules, 'checkForUpdates' ]
+		)
+			->every_hours( 12 )
+			->label( 'Check for Updates' );
+
 		// Purge completed jobs older than log retention days, nightly.
 		$this->call(
 			'purge_completed_jobs',

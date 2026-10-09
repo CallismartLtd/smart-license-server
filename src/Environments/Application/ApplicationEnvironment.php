@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Environments\Application;
 
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
+use Callismart\Http\HttpClient;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Contracts\URLManagerInterface;
 use SmartLicenseServer\Environments\Application\Boot\BootManager;
@@ -34,6 +35,11 @@ use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\Environments\Application\Boot\CLIBootstrapper;
 use SmartLicenseServer\Environments\Application\Boot\WebBootstrapper;
 use SmartLicenseServer\Environments\Application\Middlewares\CallableResolver;
+use SmartLicenseServer\Environments\Application\Release\ReleaseSignature;
+use SmartLicenseServer\Environments\Application\Update\PackageVerifier;
+use SmartLicenseServer\Environments\Application\Update\Updater;
+use SmartLicenseServer\Environments\Application\Update\UpdateServer;
+use SmartLicenseServer\Environments\Application\Update\UpdateService;
 use SmartLicenseServer\Environments\Application\Web\RestAPIProvider;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
@@ -122,6 +128,51 @@ class ApplicationEnvironment extends Environment {
             fn( Container $c ) : CallableResolver => new CallableResolver( $c )
         );
 
+        $this->container->singleton(
+            PackageVerifier::class,
+            fn( Container $c ) => 
+                new PackageVerifier(
+                    $c->get( FileSystem::class ),
+                    new ReleaseSignature()
+                )
+        );
+
+        $this->container->singleton(
+            UpdateServer::class,
+            fn( Container $c ) =>
+                new UpdateServer(
+                    $c->get( HttpClient::class ),
+                    $c->get( PackageVerifier::class ),
+                    $c->get( FileSystem::class )
+                )
+        );
+
+        $this->container->singleton(
+            Updater::class,
+            fn( Container $c ) =>
+                new Updater(
+                    $c->get( FileSystem::class ),
+                    InstallationState::from_runtime( $c->get( FileSystem::class ) ),
+                    MaintenanceFlag::from_runtime( $c->get( FileSystem::class ) ),
+                    SMLISER_ROOT
+                )
+        );
+
+        $this->container->singleton(
+            UpdateService::class,
+            fn( Container $c ) => 
+                new UpdateService(
+                    $c->get( UpdateServer::class ),
+                    $c->get( Updater::class ),
+                    $c->get( PackageVerifier::class ),
+                    new ReleaseSignature(),
+                    InstallationState::from_runtime( $c->get( FileSystem::class ) ),
+                    $c->get( Settings::class ),
+                    $c->get( FileSystem::class ),
+                    \SMLISER_ROOT
+                )
+        );
+        
         $this->container->alias(
             PasswordIdentityProviderInterface::class,
             IdentityService::class

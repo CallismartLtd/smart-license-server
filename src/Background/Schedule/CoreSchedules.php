@@ -15,8 +15,10 @@ use SmartLicenseServer\Background\Jobs\Licenses\ExpireLicensesJob;
 use SmartLicenseServer\Background\Jobs\Licenses\NotifyExpiringLicensesJob;
 use SmartLicenseServer\Background\Jobs\Licenses\PruneLicenseMetaJob;
 use SmartLicenseServer\Background\Jobs\Monetization\CleanExpiredTokensJob;
+use SmartLicenseServer\Background\Jobs\Updates\ApplyUpdateJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\Environments\Application\Update\UpdateService;
 use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
@@ -27,7 +29,8 @@ use SmartLicenseServer\SettingsAPI\Settings;
 final class CoreSchedules {
     public function __construct(
         protected JobQueue $job_queue,
-        protected Settings $settings
+        protected Settings $settings,
+        protected UpdateService $updates
     ) {}
 
     /**
@@ -157,5 +160,20 @@ final class CoreSchedules {
         $this->job_queue->purge_failed_jobs(
             (int) $this->settings->get( Settings::LOG_RETENTION_DAYS )
         );
+    }
+
+    /**
+     * Check for updates; queue the automatic update when the policy allows it.
+     */
+    public function checkForUpdates() : void {
+        if ( $this->updates->scheduled_check() ) {
+            $this->job_queue->dispatch(
+                JobDTO::make(
+                    job_class : ApplyUpdateJob::class,
+                    payload   : [],
+                    queue     : JobDTO::QUEUE_LOW,
+                )
+            );
+        }
     }
 }

@@ -48,6 +48,7 @@ use SmartLicenseServer\Console\Commands\QueueCommand;
 use SmartLicenseServer\Console\Commands\ScheduleCommand;
 use SmartLicenseServer\Console\Commands\SettingsCommand;
 use SmartLicenseServer\Console\Commands\TestCommand;
+use SmartLicenseServer\Console\Commands\Update;
 use SmartLicenseServer\Console\Commands\WhoAmI;
 use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
@@ -83,6 +84,7 @@ class CommandRegistry extends AbstractRegistry {
         SettingsCommand::class,
         TestCommand::class,
         QueueCommand::class,
+        Update::class
     ];
 
     /*
