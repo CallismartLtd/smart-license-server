@@ -161,7 +161,7 @@ class HostedApps extends DataStore {
                     $app,
                     \sprintf( '%s_info', $app->get_type() ),
                     $request->ip(),
-                    $request->userAgent()
+                    (string) $request->userAgent()
                 );
 
                 $data    = [

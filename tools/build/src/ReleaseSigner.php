@@ -51,7 +51,7 @@ final class ReleaseSigner {
 	 */
 	public function sign( string $path ): void {
 		if ( null === $this->context->sign_key ) {
-			$this->console->warn( 'No signing key given (--sign-key or SMLISER_SIGNING_KEY): this release is unsigned and the updater will refuse it.' );
+			$this->console->warn( 'Unsigned build (--allow-unsigned): installations will refuse it. Do not publish it.' );
 			return;
 		}
 
@@ -75,6 +75,24 @@ final class ReleaseSigner {
 		}
 
 		$this->console->success( sprintf( '%s (public key %s)', basename( $path . self::SUFFIX ), $public ) );
+	}
+
+	/**
+	 * The base64 public key of a signing key file.
+	 *
+	 * @param string $path Key file.
+	 * @return string
+	 * @throws BuildException When the file is missing or does not hold a key.
+	 */
+	public static function public_key( string $path ): string {
+		self::require_sodium();
+
+		$secret = self::read_key( $path );
+		$public = base64_encode( sodium_crypto_sign_publickey_from_secretkey( $secret ) );
+
+		sodium_memzero( $secret );
+
+		return $public;
 	}
 
 	/**

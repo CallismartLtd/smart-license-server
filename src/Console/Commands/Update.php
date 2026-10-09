@@ -120,7 +120,7 @@ class Update extends AbstractCommand {
 	 * @return int
 	 */
 	public function check( CommandInput $input ) : int {
-		$check = $this->updates->check( true );
+		$check = $this->updates->check( true, $this->progress() );
 
 		if ( null !== $check['error'] ) {
 			$this->output->error( $check['error'] );
@@ -145,7 +145,7 @@ class Update extends AbstractCommand {
 	public function dry_run( CommandInput $input ) : int {
 		$this->output->info( 'Checking, downloading and verifying without installing...' );
 
-		$result = $this->updates->dry_run();
+		$result = $this->updates->dry_run( $this->progress() );
 
 		foreach ( $result['blockers'] as $blocker ) {
 			$this->output->error( $blocker );
@@ -166,6 +166,7 @@ class Update extends AbstractCommand {
 		if ( null === $result['version'] ) {
 			$this->output->success( sprintf( '%s %s is up to date; nothing would be installed.', \SMLISER_APP_NAME, \SMLISER_VER ) );
 		} else {
+			$this->print_package( $result['package'] );
 			$this->output->success( sprintf( 'Version %s is downloaded, verified and ready. Run `%s` to install it.', $result['version'], $this->command_line( 'run' ) ) );
 		}
 
@@ -202,7 +203,7 @@ class Update extends AbstractCommand {
 
 			$this->output->info( null === $package ? 'Checking for the latest version...' : sprintf( 'Verifying %s...', basename( $package ) ) );
 
-			$prepared = $this->updates->prepare( $package, $reinstall, $trust_unsigned );
+			$prepared = $this->updates->prepare( $package, $reinstall, $trust_unsigned, $this->progress() );
 
 			if ( null === $prepared ) {
 				$this->output->success( sprintf( '%s %s is up to date.', \SMLISER_APP_NAME, \SMLISER_VER ) );
@@ -215,6 +216,7 @@ class Update extends AbstractCommand {
 
 			$manifest = $prepared['manifest'];
 
+			$this->print_package( $prepared['package'] );
 			$this->output->success( sprintf( 'Package verified: %s %s for %s.', $manifest->name, $manifest->version, $manifest->target ) );
 
 			if ( ! $yes && ! $this->io->confirm( sprintf( 'Update from %s to %s now? The site is unavailable for the few seconds it takes. Back up your database first.', \SMLISER_VER, $manifest->version ), false ) ) {
@@ -224,7 +226,7 @@ class Update extends AbstractCommand {
 
 			$this->output->info( 'Installing...' );
 
-			$this->updater->apply( $manifest );
+			$this->updater->apply( $manifest, $prepared['package'], $this->progress() );
 		} catch ( UpdateException $e ) {
 			$this->output->error( $e->getMessage() );
 			return 1;
@@ -243,7 +245,7 @@ class Update extends AbstractCommand {
 	 */
 	public function finish( ?CommandInput $input = null ) : int {
 		try {
-			$result = $this->updater->finish();
+			$result = $this->updater->finish( null, $this->progress() );
 		} catch ( UpdateException $e ) {
 			$this->output->error( $e->getMessage() );
 			return 1;
@@ -251,7 +253,15 @@ class Update extends AbstractCommand {
 
 		$this->relink_assets();
 
-		$this->output->success( sprintf( '%s was updated from %s to %s.', \SMLISER_APP_NAME, $result['from'], $result['to'] ) );
+		$this->output->success(
+			sprintf(
+				'%s was updated from %s to %s%s.',
+				\SMLISER_APP_NAME,
+				$result['from'],
+				$result['to'],
+				empty( $result['package']['source'] ) ? '' : sprintf( ' (package from %s)', $result['package']['source'] )
+			)
+		);
 
 		return 0;
 	}
@@ -277,7 +287,7 @@ class Update extends AbstractCommand {
 				return 1;
 			}
 
-			$version = $this->updater->rollback();
+			$version = $this->updater->rollback( $this->progress() );
 		} catch ( UpdateException $e ) {
 			$this->output->error( $e->getMessage() );
 			return 1;
@@ -322,11 +332,16 @@ class Update extends AbstractCommand {
 			return 0;
 		}
 
+		$package = is_array( $journal['package'] ?? null ) ? $journal['package'] : array();
+
 		$this->output->table(
 			array( 'Field', 'Value' ),
 			array(
 				array( 'From', (string) ( $journal['from'] ?? '' ) ),
 				array( 'To', (string) ( $journal['to'] ?? '' ) ),
+				array( 'Package source', (string) ( $package['source'] ?? 'not recorded' ) ),
+				array( 'Package SHA-256', (string) ( $package['sha256'] ?? '' ) ),
+				array( 'Signed by', (string) ( $package['signed_by'] ?? ( empty( $package ) ? '' : 'unsigned' ) ) ),
 				array( 'Stage', (string) ( $journal['stage'] ?? '' ) ),
 				array( 'Started', (string) ( $journal['started_at'] ?? '' ) ),
 				array( 'Finished', (string) ( $journal['finished_at'] ?? $journal['rolled_back_at'] ?? '' ) ),
@@ -399,6 +414,42 @@ class Update extends AbstractCommand {
 	| Helpers
 	|---------
 	*/
+
+	/**
+	 * A progress callback that prints each update step.
+	 *
+	 * Also what the queue worker records: ApplyUpdateJob keeps this
+	 * output as the attempt's message.
+	 *
+	 * @return callable( string $step, string $status, string $message ): void
+	 */
+	protected function progress() : callable {
+		return function ( string $step, string $status, string $message ) : void {
+			$line = sprintf( '[%s] %s', $step, $message );
+
+			match ( $status ) {
+				UpdateService::STATUS_OK      => $this->output->success( $line ),
+				UpdateService::STATUS_WARNING => $this->output->warning( $line ),
+				default                       => $this->output->info( $line ),
+			};
+		};
+	}
+
+	/**
+	 * Print where a verified package came from.
+	 *
+	 * @param array|null $package {source, sha256, signed_by} from UpdateService::prepare().
+	 * @return void
+	 */
+	protected function print_package( ?array $package ) : void {
+		if ( empty( $package ) ) {
+			return;
+		}
+
+		$this->output->info( sprintf( 'Source:    %s', $package['source'] ?? 'unknown' ) );
+		$this->output->info( sprintf( 'SHA-256:   %s', $package['sha256'] ?? '' ) );
+		$this->output->info( sprintf( 'Signed by: %s', $package['signed_by'] ?? 'nobody (unsigned)' ) );
+	}
 
 	/**
 	 * Run `update finish` in a new PHP process, so it loads the new code.

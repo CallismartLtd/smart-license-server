@@ -74,7 +74,7 @@ class FileRequestController {
                 [$this->apps_analytics, 'log_download'],
                 $app,
                 $request->ip(),
-                $request->userAgent()
+                (string) $request->userAgent()
             );
 
             $response->post_response_action(
@@ -82,7 +82,7 @@ class FileRequestController {
                 $app,
                 'download',
                 $request->ip(),
-                $request->userAgent()
+                (string) $request->userAgent()
             );
             
             return $response;
@@ -150,7 +150,7 @@ class FileRequestController {
                 [$this->apps_analytics, 'log_download'],
                 $app,
                 $request->ip(),
-                $request->userAgent()
+                (string) $request->userAgent()
             );
 
             $response->post_response_action(
@@ -158,7 +158,7 @@ class FileRequestController {
                 $app,
                 'download',
                 $request->ip(),
-                $request->userAgent()
+                (string) $request->userAgent()
             );
             
             return $response;
@@ -196,7 +196,7 @@ class FileRequestController {
                 [$this->apps_analytics, 'log_download'],
                 $app,
                 $request->ip(),
-                $request->userAgent()
+                (string) $request->userAgent()
             );
 
             return $response;

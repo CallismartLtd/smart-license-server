@@ -26,8 +26,11 @@
  *   --node=<path>       Node.js binary, used to run esbuild. Default: node
  *   --no-minify         Skip writing minified *.min.js / *.min.css assets.
  *   --sign-key=<path>   Ed25519 key that signs the .sha256 checksums. Default: the path in
- *                       SMLISER_SIGNING_KEY. Without one the build is unsigned, and
- *                       the updater refuses it.
+ *                       SMLISER_SIGNING_KEY. Required: the build stops unless its public
+ *                       key is listed in ReleaseSignature::PUBLIC_KEYS, so every release
+ *                       can verify the next one.
+ *   --allow-unsigned    Build without a signing key, for local testing only. PUBLIC_KEYS
+ *                       must still be filled in; installations refuse the build.
  *   --generate-key=<path>
  *                       Create a signing key (no build). Keep it outside the repository,
  *                       and put the printed public key in ReleaseSignature::PUBLIC_KEYS.
@@ -90,7 +93,7 @@ $console = new BuildConsole();
 try {
 	// getopt() stops at the first positional argument, so parse by hand to
 	// allow options on either side of the target name.
-	$allowed = array( 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'help' => false, 'sign-key' => true, 'generate-key' => true );
+	$allowed = array( 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'help' => false, 'sign-key' => true, 'generate-key' => true, 'allow-unsigned' => false );
 	$options = array();
 	$name    = null;
 
@@ -160,7 +163,8 @@ try {
 		(string) ( $options['npm'] ?? 'npm' ),
 		! isset( $options['no-minify'] ),
 		(string) ( $options['node'] ?? 'node' ),
-		( $options['sign-key'] ?? getenv( 'SMLISER_SIGNING_KEY' ) ) ?: null
+		( $options['sign-key'] ?? getenv( 'SMLISER_SIGNING_KEY' ) ) ?: null,
+		isset( $options['allow-unsigned'] )
 	);
 
 	( new Builder( $context, $console ) )->run( new $targets[ $name ]() );

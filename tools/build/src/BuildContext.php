@@ -26,7 +26,8 @@ final class BuildContext {
 	 * @param string      $npm         npm binary, used to install the build's Node tools.
 	 * @param bool        $minify      Whether to minify assets (targets can still opt out).
 	 * @param string      $node        Node.js binary, used to run esbuild.
-	 * @param string|null $sign_key    Ed25519 signing key file; null builds an unsigned release.
+	 * @param string|null $sign_key       Ed25519 signing key file; null builds an unsigned release.
+	 * @param bool        $allow_unsigned Allow a build without a signing key (local testing only).
 	 */
 	public function __construct(
 		public readonly string $repo_root,
@@ -37,7 +38,8 @@ final class BuildContext {
 		public readonly string $npm = 'npm',
 		public readonly bool $minify = true,
 		public readonly string $node = 'node',
-		public readonly ?string $sign_key = null
+		public readonly ?string $sign_key = null,
+		public readonly bool $allow_unsigned = false
 	) {}
 
 	/**

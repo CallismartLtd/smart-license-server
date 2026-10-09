@@ -74,6 +74,10 @@ final class Builder {
 		// give an identical zip.
 		$time = false !== getenv( 'SOURCE_DATE_EPOCH' ) ? (int) getenv( 'SOURCE_DATE_EPOCH' ) : time();
 
+		// Check again on what actually ships, after every step that writes files.
+		$this->console->step( 'Checking release keys' );
+		( new ReleaseKeyGuard( $this->context, $this->console ) )->check( $this->context->out_dir, 'Build' );
+
 		( new ReleaseManifest( $this->context, $this->console ) )->write( $target, $time );
 		( new ReleasePackager( $this->context, $this->console ) )->run( $target, $time );
 
@@ -119,6 +123,10 @@ final class Builder {
 		}
 
 		$this->guard_output_path();
+
+		// Fail before copying anything when the release would ship keys that
+		// cannot verify the next update.
+		( new ReleaseKeyGuard( $this->context, $this->console ) )->check( $this->context->source( 'src' ), 'Sources' );
 
 		$this->console->success( 'Sources and output path OK' );
 	}

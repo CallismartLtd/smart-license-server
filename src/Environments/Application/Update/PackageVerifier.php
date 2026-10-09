@@ -28,6 +28,8 @@ use SmartLicenseServer\FileSystem\FileSystem;
  */
 final class PackageVerifier {
 
+	use UpdateProgressTrait;
+
 	/**
 	 * Constructor.
 	 *
@@ -42,26 +44,41 @@ final class PackageVerifier {
 	/**
 	 * Verify a zip against checksums and, unless trusted, their signature.
 	 *
-	 * @param string      $zip            Path to the zip.
-	 * @param string|null $checksums      Contents of the .sha256 file; null when there is none.
-	 * @param string|null $signature      Contents of the .sha256.sig file; null when there is none.
-	 * @param bool        $trust_unsigned Accept a package without a valid signature (or checksums).
-	 * @return string[] Warnings about checks that were skipped because of $trust_unsigned.
+	 * @param string        $zip            Path to the zip.
+	 * @param string|null   $checksums      Contents of the .sha256 file; null when there is none.
+	 * @param string|null   $signature      Contents of the .sha256.sig file; null when there is none.
+	 * @param bool          $trust_unsigned Accept a package without a valid signature (or checksums).
+	 * @param callable|null $progress       Progress callback, see UpdateProgressTrait.
+	 * @return array{warnings: string[], signed_by: ?string, sha256: string}
+	 *         Warnings about checks skipped because of $trust_unsigned; the label of the key that
+	 *         signed the checksums (null when unsigned); the zip's SHA-256.
 	 *
 	 * @throws UpdateException When a check fails.
 	 */
-	public function verify( string $zip, ?string $checksums, ?string $signature, bool $trust_unsigned = false ) : array {
-		$warnings = array();
+	public function verify( string $zip, ?string $checksums, ?string $signature, bool $trust_unsigned = false, ?callable $progress = null ) : array {
+		$name   = basename( $zip );
+		$actual = $this->fs->is_file( $zip ) ? hash_file( 'sha256', $zip ) : false;
+
+		if ( false === $actual ) {
+			throw new UpdateException( sprintf( '%s could not be read for verification.', $name ) );
+		}
+
+		$result = array( 'warnings' => array(), 'signed_by' => null, 'sha256' => $actual );
 
 		if ( null === $checksums ) {
 			if ( ! $trust_unsigned ) {
-				throw new UpdateException( sprintf( 'No checksums file was found for %s, so the package cannot be verified.', basename( $zip ) ) );
+				throw new UpdateException( sprintf( 'No checksums file was found for %s, so the package cannot be verified.', $name ) );
 			}
 
-			return array( 'The package has no checksums file; only the file list inside it was checked.' );
+			$result['warnings'][] = 'The package has no checksums file; only the file list inside it was checked.';
+			$this->report( $progress, 'verify', self::STATUS_WARNING, sprintf( '%s has no checksums file (accepted: --trust-unsigned). SHA-256 %s.', $name, $actual ) );
+
+			return $result;
 		}
 
-		if ( ! $this->signed( $checksums, $signature ) ) {
+		$signer = null === $signature || ! $this->signature->configured() ? null : $this->signature->signer( $checksums, $signature );
+
+		if ( null === $signer ) {
 			if ( ! $trust_unsigned ) {
 				throw new UpdateException(
 					$this->signature->configured()
@@ -70,33 +87,36 @@ final class PackageVerifier {
 				);
 			}
 
-			$warnings[] = 'The package signature was not verified (--trust-unsigned).';
+			$result['warnings'][] = 'The package signature was not verified (--trust-unsigned).';
+			$this->report( $progress, 'verify', self::STATUS_WARNING, 'The checksums are not signed by a release key (accepted: --trust-unsigned).' );
+		} else {
+			$result['signed_by'] = $signer;
+			$this->report( $progress, 'verify', self::STATUS_OK, sprintf( 'Checksums signature is valid (signed by %s).', $this->describe_key( $signer ) ) );
 		}
 
-		$expected = self::parse( $checksums )[ basename( $zip ) ] ?? null;
+		$expected = self::parse( $checksums )[ $name ] ?? null;
 
 		if ( null === $expected ) {
-			throw new UpdateException( sprintf( 'The checksums file does not list %s.', basename( $zip ) ) );
+			throw new UpdateException( sprintf( 'The checksums file does not list %s.', $name ) );
 		}
 
-		$actual = $this->fs->is_file( $zip ) ? hash_file( 'sha256', $zip ) : false;
-
-		if ( false === $actual || ! hash_equals( $expected, $actual ) ) {
-			throw new UpdateException( sprintf( '%s does not match its published checksum; the download may be damaged. Nothing was changed.', basename( $zip ) ) );
+		if ( ! hash_equals( $expected, $actual ) ) {
+			throw new UpdateException( sprintf( '%s does not match its published checksum; the download may be damaged. Nothing was changed.', $name ) );
 		}
 
-		return $warnings;
+		$this->report( $progress, 'verify', self::STATUS_OK, sprintf( '%s matches its published SHA-256 %s.', $name, $actual ) );
+
+		return $result;
 	}
 
 	/**
-	 * Whether the checksums carry a valid signature.
+	 * How to name a signing key in a message.
 	 *
-	 * @param string      $checksums Checksums file contents.
-	 * @param string|null $signature Signature file contents.
-	 * @return bool
+	 * @param string $signer Key label, or the base64 key when unlabelled.
+	 * @return string
 	 */
-	private function signed( string $checksums, ?string $signature ) : bool {
-		return null !== $signature && $this->signature->configured() && $this->signature->verify( $checksums, $signature );
+	private function describe_key( string $signer ) : string {
+		return 44 === strlen( $signer ) && str_ends_with( $signer, '=' ) ? sprintf( 'key %s', $signer ) : sprintf( 'the "%s" key', $signer );
 	}
 
 	/**

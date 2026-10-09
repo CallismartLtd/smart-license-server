@@ -28,6 +28,8 @@ use SmartLicenseServer\SettingsAPI\Settings;
  */
 final class UpdateService {
 
+	use UpdateProgressTrait;
+
 	/**
 	 * Automatic update modes.
 	 */
@@ -114,18 +116,20 @@ final class UpdateService {
 	 * A failed check is recorded too, keeping the last known release, so
 	 * the admin page can show both.
 	 *
-	 * @param bool $refresh Ask the server even when the last check is recent.
+	 * @param bool          $refresh  Ask the server even when the last check is recent.
+	 * @param callable|null $progress Progress callback, see UpdateProgressTrait.
 	 * @return array{checked_at: string, latest: ?string, security: bool, error: ?string, available: bool}
 	 */
-	public function check( bool $refresh = false ) : array {
+	public function check( bool $refresh = false, ?callable $progress = null ) : array {
 		$last = $this->state->update_section( InstallationState::UPDATE_CHECK );
 
 		if ( ! $refresh && null !== $last && time() - strtotime( (string) ( $last['checked_at'] ?? '' ) ) < self::CHECK_TTL ) {
+			$this->report( $progress, 'check', self::STATUS_INFO, sprintf( 'Using the check made at %s.', $last['checked_at'] ?? '' ) );
 			return $this->with_availability( $last );
 		}
 
 		try {
-			$latest = $this->server->latest();
+			$latest = $this->server->latest( $progress );
 			$check  = array( 'latest' => $latest['version'], 'security' => $latest['security'], 'error' => null );
 		} catch ( UpdateException $e ) {
 			$check = array( 'latest' => $last['latest'] ?? null, 'security' => (bool) ( $last['security'] ?? false ), 'error' => $e->getMessage() );
@@ -200,14 +204,20 @@ final class UpdateService {
 	 * its hash. A local package must carry its .sha256 (and .sha256.sig
 	 * unless trusted) beside it.
 	 *
-	 * @param string|null $package        Local package path; null to use the update server.
-	 * @param bool        $reinstall      Allow the installed version again.
-	 * @param bool        $trust_unsigned Accept a local package without a valid signature.
-	 * @return array{manifest: ReleaseManifest, warnings: string[]}|null Null when the installation is up to date.
+	 * The returned "package" says where the package came from (the URL
+	 * it was downloaded from, or the local path), its SHA-256 and the key
+	 * that signed it; pass it to Updater::apply() so the update log keeps it.
+	 *
+	 * @param string|null   $package        Local package path; null to use the update server.
+	 * @param bool          $reinstall      Allow the installed version again.
+	 * @param bool          $trust_unsigned Accept a local package without a valid signature.
+	 * @param callable|null $progress       Progress callback, see UpdateProgressTrait.
+	 * @return array{manifest: ReleaseManifest, package: array{source: string, sha256: string, signed_by: ?string}, warnings: string[]}|null
+	 *         Null when the installation is up to date.
 	 *
 	 * @throws UpdateException When something blocks the update or the package is unusable.
 	 */
-	public function prepare( ?string $package = null, bool $reinstall = false, bool $trust_unsigned = false ) : ?array {
+	public function prepare( ?string $package = null, bool $reinstall = false, bool $trust_unsigned = false, ?callable $progress = null ) : ?array {
 		$blockers = $this->blockers();
 
 		// A trusted local package does not need signing keys.
@@ -220,12 +230,20 @@ final class UpdateService {
 		}
 
 		if ( null !== $package ) {
-			$warnings = $this->verifier->verify( $package, $this->sibling( $package, '.sha256' ), $this->sibling( $package, '.sha256.sig' ), $trust_unsigned );
+			$source = (string) ( realpath( $package ) ?: $package );
 
-			return array( 'manifest' => $this->updater->stage( $package, null, $reinstall ), 'warnings' => $warnings );
+			$this->report( $progress, 'download', self::STATUS_INFO, sprintf( 'Using the local package %s.', $source ) );
+
+			$verified = $this->verifier->verify( $package, $this->sibling( $package, '.sha256' ), $this->sibling( $package, '.sha256.sig' ), $trust_unsigned, $progress );
+
+			return array(
+				'manifest' => $this->updater->stage( $package, null, $reinstall, $progress ),
+				'package'  => array( 'source' => $source, 'sha256' => $verified['sha256'], 'signed_by' => $verified['signed_by'] ),
+				'warnings' => $verified['warnings'],
+			);
 		}
 
-		$check = $this->check( true );
+		$check = $this->check( true, $progress );
 
 		if ( null !== $check['error'] ) {
 			throw new UpdateException( $check['error'] );
@@ -237,17 +255,23 @@ final class UpdateService {
 			return null;
 		}
 
-		$zip      = $this->ready_package( (string) $check['latest'] );
+		$ready    = $this->ready_package( (string) $check['latest'] );
 		$warnings = array();
 
-		if ( null === $zip ) {
-			$download = $this->server->download( (string) $check['latest'], $this->updater->downloads_dir() );
+		if ( null !== $ready ) {
+			$zip    = (string) $ready['zip'];
+			$origin = array( 'source' => (string) ( $ready['source'] ?? '' ), 'sha256' => (string) $ready['sha256'], 'signed_by' => $ready['signed_by'] ?? null );
+
+			$this->report( $progress, 'download', self::STATUS_OK, sprintf( 'Reusing %s, verified by the dry run of %s (downloaded from %s).', $zip, $ready['prepared_at'] ?? '?', '' !== $origin['source'] ? $origin['source'] : 'the update server' ) );
+		} else {
+			$download = $this->server->download( (string) $check['latest'], $this->updater->downloads_dir(), false, $progress );
 			$zip      = $download['zip'];
 			$warnings = $download['warnings'];
+			$origin   = array( 'source' => $download['source'], 'sha256' => $download['sha256'], 'signed_by' => $download['signed_by'] );
 		}
 
 		try {
-			$manifest = $this->updater->stage( $zip, (string) $check['latest'], $reinstall );
+			$manifest = $this->updater->stage( $zip, (string) $check['latest'], $reinstall, $progress );
 		} catch ( UpdateException $e ) {
 			$this->updater->discard_working_files();
 			throw $e;
@@ -255,10 +279,10 @@ final class UpdateService {
 
 		$this->state->set_update_section(
 			InstallationState::UPDATE_READY,
-			array( 'version' => $manifest->version, 'zip' => $zip, 'sha256' => (string) hash_file( 'sha256', $zip ), 'prepared_at' => gmdate( DATE_ATOM ) )
+			array( 'version' => $manifest->version, 'zip' => $zip, 'prepared_at' => gmdate( DATE_ATOM ) ) + $origin
 		);
 
-		return array( 'manifest' => $manifest, 'warnings' => $warnings );
+		return array( 'manifest' => $manifest, 'package' => $origin, 'warnings' => $warnings );
 	}
 
 	/**
@@ -268,13 +292,15 @@ final class UpdateService {
 	 * verified package is kept so installing that version later does not
 	 * download it again.
 	 *
-	 * @return array{ok: bool, version: ?string, installed: string, blockers: array<string, string>, warnings: string[], error: ?string}
+	 * @param callable|null $progress Progress callback, see UpdateProgressTrait.
+	 * @return array{ok: bool, version: ?string, installed: string, package: ?array, blockers: array<string, string>, warnings: string[], error: ?string}
 	 */
-	public function dry_run() : array {
+	public function dry_run( ?callable $progress = null ) : array {
 		$result = array(
 			'ok'        => false,
 			'version'   => null,
 			'installed' => \SMLISER_VER,
+			'package'   => null,
 			'blockers'  => $this->blockers(),
 			'warnings'  => array(),
 			'error'     => null,
@@ -285,7 +311,7 @@ final class UpdateService {
 		}
 
 		try {
-			$prepared = $this->prepare();
+			$prepared = $this->prepare( null, false, false, $progress );
 		} catch ( UpdateException $e ) {
 			$result['error'] = $e->getMessage();
 			return $result;
@@ -298,6 +324,7 @@ final class UpdateService {
 
 		$result['ok']       = true;
 		$result['version']  = $prepared['manifest']->version;
+		$result['package']  = $prepared['package'];
 		$result['warnings'] = $prepared['warnings'];
 
 		return $result;
@@ -493,9 +520,9 @@ final class UpdateService {
 	 * A package a dry run already verified for this version, if it is still intact.
 	 *
 	 * @param string $version Version wanted.
-	 * @return string|null Its path.
+	 * @return array|null The update.ready record (zip, sha256, source, signed_by, prepared_at).
 	 */
-	private function ready_package( string $version ) : ?string {
+	private function ready_package( string $version ) : ?array {
 		$ready = $this->state->update_section( InstallationState::UPDATE_READY );
 
 		if ( null === $ready || $version !== ( $ready['version'] ?? null ) ) {
@@ -505,7 +532,7 @@ final class UpdateService {
 		$zip = (string) ( $ready['zip'] ?? '' );
 
 		if ( '' !== $zip && $this->fs->is_file( $zip ) && hash_equals( (string) ( $ready['sha256'] ?? '' ), (string) hash_file( 'sha256', $zip ) ) ) {
-			return $zip;
+			return $ready;
 		}
 
 		$this->updater->discard_working_files();

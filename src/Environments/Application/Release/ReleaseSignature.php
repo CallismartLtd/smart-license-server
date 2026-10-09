@@ -35,33 +35,40 @@ final class ReleaseSignature {
 	 * a key, add the new one, ship a release signed with the old key, then
 	 * sign with the new one and remove the old key in a later release.
 	 *
-	 * @var string[]
+	 * Keys may be labelled, so update logs name the key that signed a
+	 * package: array( 'release' => '...', 'recovery' => '...' ). Unlabelled
+	 * keys are reported by their base64 value.
+	 *
+	 * @var array<string|int, string>
 	 */
-	public const PUBLIC_KEYS = array();
+	public const PUBLIC_KEYS = array(
+		'release'  => 'gWdFBlGnnabdKn1QY0KswecDiLaKFPvQ31j9624B2eI=',
+		'recovery' => 'ckTouIv9PH6UNasGWnxiI2kK61tKF3+t+dBfQOwuEEc=',
+	);
 
 	/**
-	 * Decoded public keys.
+	 * Decoded public keys, keyed by label (or the base64 key when unlabelled).
 	 *
-	 * @var string[]
+	 * @var array<string, string>
 	 */
 	private array $keys = array();
 
 	/**
 	 * Constructor.
 	 *
-	 * @param string[] $public_keys Base64 public keys; defaults to PUBLIC_KEYS.
+	 * @param array<string|int, string> $public_keys Base64 public keys, optionally labelled; defaults to PUBLIC_KEYS.
 	 *
 	 * @throws \InvalidArgumentException When a key is not a base64 Ed25519 public key.
 	 */
 	public function __construct( array $public_keys = self::PUBLIC_KEYS ) {
-		foreach ( $public_keys as $encoded ) {
+		foreach ( $public_keys as $label => $encoded ) {
 			$key = is_string( $encoded ) ? base64_decode( $encoded, true ) : false;
 
 			if ( false === $key || SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES !== strlen( $key ) ) {
 				throw new \InvalidArgumentException( 'Invalid release public key.' );
 			}
 
-			$this->keys[] = $key;
+			$this->keys[ is_string( $label ) ? $label : $encoded ] = $key;
 		}
 	}
 
@@ -82,18 +89,29 @@ final class ReleaseSignature {
 	 * @return bool
 	 */
 	public function verify( string $data, string $signature ): bool {
+		return null !== $this->signer( $data, $signature );
+	}
+
+	/**
+	 * The key a signature was made with, among the configured ones.
+	 *
+	 * @param string $data      The signed file's exact contents.
+	 * @param string $signature Contents of its .sig file (base64; surrounding whitespace ignored).
+	 * @return string|null The key's label (or base64 value when unlabelled); null when no key matches.
+	 */
+	public function signer( string $data, string $signature ): ?string {
 		$signature = base64_decode( trim( $signature ), true );
 
 		if ( false === $signature || SODIUM_CRYPTO_SIGN_BYTES !== strlen( $signature ) ) {
-			return false;
+			return null;
 		}
 
-		foreach ( $this->keys as $key ) {
+		foreach ( $this->keys as $label => $key ) {
 			if ( sodium_crypto_sign_verify_detached( $signature, $data, $key ) ) {
-				return true;
+				return (string) $label;
 			}
 		}
 
-		return false;
+		return null;
 	}
 }

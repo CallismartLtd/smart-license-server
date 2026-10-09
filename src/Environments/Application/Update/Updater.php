@@ -51,6 +51,8 @@ use ZipArchive;
  */
 final class Updater {
 
+	use UpdateProgressTrait;
+
 	/**
 	 * Working directory, at the application root (same filesystem as system/, so swaps are renames).
 	 *
@@ -129,12 +131,13 @@ final class Updater {
 	 *
 	 * @param string      $zip              Path to a verified package zip.
 	 * @param string|null $expected_version Version the package must contain (from the update server); null for any.
-	 * @param bool        $reinstall        Allow the installed version again, to repair damaged files.
+	 * @param bool          $reinstall        Allow the installed version again, to repair damaged files.
+	 * @param callable|null $progress         Progress callback, see UpdateProgressTrait.
 	 * @return ReleaseManifest The staged release's manifest.
 	 *
 	 * @throws UpdateException When the package is unusable or the installation is mid-update.
 	 */
-	public function stage( string $zip, ?string $expected_version = null, bool $reinstall = false ) : ReleaseManifest {
+	public function stage( string $zip, ?string $expected_version = null, bool $reinstall = false, ?callable $progress = null ) : ReleaseManifest {
 		$this->assert_idle();
 
 		$staging = $this->path( 'staging' );
@@ -144,6 +147,7 @@ final class Updater {
 		$this->make_dir( $staging );
 
 		try {
+			$this->report( $progress, 'stage', self::STATUS_INFO, sprintf( 'Extracting %s to %s.', basename( $zip ), $this->relative( $staging ) ) );
 			$this->extract( $zip, $staging );
 
 			$root     = $this->staged_root();
@@ -182,6 +186,8 @@ final class Updater {
 			if ( ! $check->passed() ) {
 				throw new UpdateException( 'The package contents do not match its manifest: ' . implode( ' ', $check->messages( 5 ) ) );
 			}
+
+			$this->report( $progress, 'stage', self::STATUS_OK, sprintf( 'Staged %s %s for %s: requirements met, every file matches the package manifest.', $manifest->name, $manifest->version, $manifest->target ) );
 		} catch ( Throwable $e ) {
 			$this->remove( $staging );
 
@@ -204,10 +210,13 @@ final class Updater {
 	 * returns to what it was, then the error is rethrown.
 	 *
 	 * @param ReleaseManifest $manifest The staged release's manifest (from stage()).
+	 * @param array           $package  Where the package came from, kept in the journal:
+	 *                                  {source: URL or path, sha256: string, signed_by: ?string}.
+	 * @param callable|null   $progress Progress callback, see UpdateProgressTrait.
 	 * @return void
 	 * @throws UpdateException When the swap fails (after restoring).
 	 */
-	public function apply( ReleaseManifest $manifest ) : void {
+	public function apply( ReleaseManifest $manifest, array $package = array(), ?callable $progress = null ) : void {
 		$this->assert_idle();
 
 		$staged = $this->staged_root();
@@ -222,6 +231,7 @@ final class Updater {
 			'stage'         => self::STAGE_APPLYING,
 			'started_at'    => gmdate( DATE_ATOM ),
 			'previous_flag' => $this->flag->read(),
+			'package'       => array_intersect_key( $package, array_flip( array( 'source', 'sha256', 'signed_by' ) ) ),
 			'dirs'          => array(),
 			'replaced'      => array(),
 			'added'         => array(),
@@ -232,6 +242,8 @@ final class Updater {
 			sprintf( '%s is being updated. Please try again in a few minutes.', \SMLISER_APP_NAME ),
 			120
 		);
+
+		$this->report( $progress, 'apply', self::STATUS_INFO, 'Maintenance mode is on.' );
 
 		$this->write_journal( $journal );
 
@@ -252,6 +264,8 @@ final class Updater {
 				}
 
 				$this->rename( $staged . $dir, $live );
+
+				$this->report( $progress, 'apply', self::STATUS_OK, $had_live ? sprintf( 'Replaced %s/ (previous copy in %s/%s/).', $dir, $this->relative( $backup ), $dir ) : sprintf( 'Added %s/.', $dir ) );
 			}
 
 			foreach ( $this->root_files( $manifest ) as $relative ) {
@@ -280,9 +294,22 @@ final class Updater {
 				}
 			}
 
+			if ( ! empty( $journal['replaced'] ) || ! empty( $journal['added'] ) ) {
+				$this->report(
+					$progress,
+					'apply',
+					self::STATUS_OK,
+					trim(
+						( empty( $journal['replaced'] ) ? '' : sprintf( 'Replaced %s.', implode( ', ', $journal['replaced'] ) ) )
+						. ( empty( $journal['added'] ) ? '' : sprintf( ' Added %s.', implode( ', ', $journal['added'] ) ) )
+					)
+				);
+			}
+
 			$journal['stage'] = self::STAGE_SWAPPED;
 			$this->write_journal( $journal );
 		} catch ( Throwable $e ) {
+			$this->report( $progress, 'apply', self::STATUS_WARNING, sprintf( 'Failed (%s); restoring the previous files.', $e->getMessage() ) );
 			$this->restore( $journal );
 
 			throw new UpdateException(
@@ -305,12 +332,13 @@ final class Updater {
 	 * When the schema version changed and no migrator is given, the files
 	 * are rolled back rather than letting new code run on an old schema.
 	 *
-	 * @param callable( string $from, string $to ): void|null $migrate Migrates the database between schema versions.
-	 * @return array{from: string, to: string, schema_changed: bool}
+	 * @param callable( string $from, string $to ): void|null $migrate  Migrates the database between schema versions.
+	 * @param callable|null                                 $progress Progress callback, see UpdateProgressTrait.
+	 * @return array{from: string, to: string, schema_changed: bool, package: array}
 	 *
 	 * @throws UpdateException When there is nothing to finish, or migrating fails (the site stays in maintenance).
 	 */
-	public function finish( ?callable $migrate = null ) : array {
+	public function finish( ?callable $migrate = null, ?callable $progress = null ) : array {
 		$journal = $this->read_journal();
 
 		if ( null === $journal || self::STAGE_SWAPPED !== ( $journal['stage'] ?? null ) ) {
@@ -328,10 +356,13 @@ final class Updater {
 
 		if ( $changed ) {
 			if ( null === $migrate ) {
-				$this->rollback();
+				$this->report( $progress, 'finish', self::STATUS_WARNING, sprintf( 'The database schema changes (%s to %s) and no migration is available; restoring the previous version.', $schema_from, $schema_to ) );
+				$this->rollback( $progress );
 
 				throw new UpdateException( sprintf( 'Version %s changes the database (schema %s to %s), which this installation cannot migrate yet. The previous version was restored.', $journal['to'], $schema_from, $schema_to ) );
 			}
+
+			$this->report( $progress, 'finish', self::STATUS_INFO, sprintf( 'Migrating the database from schema %s to %s.', $schema_from, $schema_to ) );
 
 			try {
 				$migrate( $schema_from, $schema_to );
@@ -354,7 +385,14 @@ final class Updater {
 		$this->restore_flag( $journal['previous_flag'] ?? null );
 		$this->discard_working_files();
 
-		return array( 'from' => (string) $journal['from'], 'to' => (string) $journal['to'], 'schema_changed' => $changed );
+		$this->report( $progress, 'finish', self::STATUS_OK, sprintf( 'Recorded version %s (schema %s); maintenance mode is off.', \SMLISER_VER, $schema_to ) );
+
+		return array(
+			'from'           => (string) $journal['from'],
+			'to'             => (string) $journal['to'],
+			'schema_changed' => $changed,
+			'package'        => is_array( $journal['package'] ?? null ) ? $journal['package'] : array(),
+		);
 	}
 
 	/*
@@ -370,10 +408,11 @@ final class Updater {
 	 * without a database change. A finished update that migrated the database
 	 * cannot be rolled back here: the old code would run on the new schema.
 	 *
+	 * @param callable|null $progress Progress callback, see UpdateProgressTrait.
 	 * @return string The version restored.
 	 * @throws UpdateException When there is nothing to roll back, or it is not safe.
 	 */
-	public function rollback() : string {
+	public function rollback( ?callable $progress = null ) : string {
 		$journal = $this->read_journal();
 		$stage   = $journal['stage'] ?? null;
 
@@ -392,6 +431,8 @@ final class Updater {
 		}
 
 		$journal['previous_flag'] = $previous_flag;
+
+		$this->report( $progress, 'rollback', self::STATUS_INFO, sprintf( 'Restoring the files of %s from %s/.', $journal['from'], $this->relative( $this->path( 'backup' ) ) ) );
 		$this->restore( $journal );
 
 		if ( self::STAGE_FINISHED === $stage ) {
@@ -400,6 +441,8 @@ final class Updater {
 
 			$this->state->mark_installed( array( 'app' => (string) $journal['from'], 'schema' => $schema ) );
 		}
+
+		$this->report( $progress, 'rollback', self::STATUS_OK, sprintf( 'Version %s is back in place.', $journal['from'] ) );
 
 		return (string) $journal['from'];
 	}

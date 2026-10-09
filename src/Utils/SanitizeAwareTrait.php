@@ -405,7 +405,7 @@ trait SanitizeAwareTrait {
      * @return mixed Sanitized array (empty if input is not array).
      */
     protected static function sanitize_deep( $value ): mixed {
-        return Sanitizer::sanitize_deep( $value );
+        return Sanitizer::sanitize_deep( $value, fn ( $val ) => static::sanitize_auto( $val ) );
     }
 
     /**

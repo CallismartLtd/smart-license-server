@@ -116,7 +116,12 @@ class UpdateManagement {
 		return $this->ok(
 			null === $result['version']
 				? sprintf( '%s %s is up to date; nothing would be installed.', \SMLISER_APP_NAME, \SMLISER_VER )
-				: sprintf( 'Version %s is downloaded, verified and ready to install.', $result['version'] )
+				: sprintf(
+					'Version %s is downloaded from %s, verified%s and ready to install.',
+					$result['version'],
+					$result['package']['source'] ?? 'the update server',
+					empty( $result['package']['signed_by'] ) ? '' : sprintf( ' (signed by %s)', $result['package']['signed_by'] )
+				)
 		);
 	}
 

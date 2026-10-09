@@ -24,7 +24,8 @@ class SystemManagement implements SystemSettingsHandlerInterface {
 	/**
 	 * The update server this application receives updates from.
 	 */
-	const DEPENDENT_HOST = 'https://apiv1.callismart.com.ng';
+	// const DEPENDENT_HOST = 'https://apiv1.callismart.com.ng';
+	const DEPENDENT_HOST = 'https://smliser.local';
 
 	/**
 	 * Per-probe HTTP timeout in seconds, kept well under the site health

@@ -24,12 +24,15 @@ use Throwable;
  */
 final class UpdateServer {
 
+	use UpdateProgressTrait;
+
 	/**
 	 * The update server. Set by hand; point it at a mock server to test.
 	 *
 	 * @var string
 	 */
-	public const HOST = 'https://apiv1.callismart.com.ng';
+	// public const HOST = 'https://apiv1.callismart.com.ng';
+	public const HOST = 'https://smliser.local';
 
 	/**
 	 * Hosted app type of this application on the update server.
@@ -85,11 +88,14 @@ final class UpdateServer {
 	 * A release is a security release when its app.json (served as
 	 * "manifest") has "security": true.
 	 *
-	 * @return array{version: string, security: bool}
+	 * @param callable|null $progress Progress callback, see UpdateProgressTrait.
+	 * @return array{version: string, security: bool, source: string}
 	 * @throws UpdateException When the server cannot be reached or does not answer as expected.
 	 */
-	public function latest() : array {
+	public function latest( ?callable $progress = null ) : array {
 		$url = self::HOST . '/smliser/v1/repository/' . self::APP_TYPE . '/' . self::APP_SLUG;
+
+		$this->report( $progress, 'check', self::STATUS_INFO, sprintf( 'Asking %s for the latest version.', $url ) );
 
 		try {
 			$response = $this->http->get( $url, array( 'Accept' => 'application/json' ), array( 'timeout' => self::TIMEOUT ) );
@@ -112,9 +118,14 @@ final class UpdateServer {
 			throw new UpdateException( 'The update server did not report a valid version; try again later.' );
 		}
 
+		$security = true === ( $app['manifest']['security'] ?? false );
+
+		$this->report( $progress, 'check', self::STATUS_OK, sprintf( 'The update server publishes version %s%s.', $version, $security ? ' (security release)' : '' ) );
+
 		return array(
 			'version'  => $version,
-			'security' => true === ( $app['manifest']['security'] ?? false ),
+			'security' => $security,
+			'source'   => $url,
 		);
 	}
 
@@ -123,19 +134,24 @@ final class UpdateServer {
 	 *
 	 * @param string $version        Version to download.
 	 * @param string $dir            Existing, writable directory to download into.
-	 * @param bool   $trust_unsigned Accept a package without a valid signature.
-	 * @return array{zip: string, warnings: string[]}
+	 * @param bool          $trust_unsigned Accept a package without a valid signature.
+	 * @param callable|null $progress       Progress callback, see UpdateProgressTrait.
+	 * @return array{zip: string, source: string, sha256: string, signed_by: ?string, warnings: string[]}
+	 *         The verified zip, the URL it came from, its SHA-256, the key that signed it, and warnings.
 	 * @throws UpdateException When a download or a check fails; nothing downloaded is kept.
 	 */
-	public function download( string $version, string $dir, bool $trust_unsigned = false ) : array {
+	public function download( string $version, string $dir, bool $trust_unsigned = false, ?callable $progress = null ) : array {
 		$base = self::package_base( $version );
 		$zip  = rtrim( $dir, '/\\' ) . '/' . $base . '.zip';
+		$url  = $this->artifact_url( $base . '.zip' );
 
-		$checksums = $this->fetch( $base . '.sha256' );
-		$signature = $this->fetch( $base . '.sha256.sig', true );
+		$checksums = $this->fetch( $base . '.sha256', false, $progress );
+		$signature = $this->fetch( $base . '.sha256.sig', true, $progress );
+
+		$this->report( $progress, 'download', self::STATUS_INFO, sprintf( 'Downloading %s.', $url ) );
 
 		try {
-			$response = $this->http->download( $this->artifact_url( $base . '.zip' ), $zip, array(), array( 'timeout' => self::DOWNLOAD_TIMEOUT ) );
+			$response = $this->http->download( $url, $zip, array(), array( 'timeout' => self::DOWNLOAD_TIMEOUT ) );
 		} catch ( Throwable $e ) {
 			$this->discard( $zip );
 			throw new UpdateException( sprintf( 'The download of %s failed: %s', basename( $zip ), $e->getMessage() ), 0, $e );
@@ -146,14 +162,16 @@ final class UpdateServer {
 			throw new UpdateException( sprintf( 'The download of %s failed with HTTP %d.', basename( $zip ), $response->status_code ) );
 		}
 
+		$this->report( $progress, 'download', self::STATUS_OK, sprintf( 'Downloaded %s (%s) to %s.', basename( $zip ), $this->size( $zip ), $zip ) );
+
 		try {
-			$warnings = $this->verifier->verify( $zip, $checksums, $signature, $trust_unsigned );
+			$verified = $this->verifier->verify( $zip, $checksums, $signature, $trust_unsigned, $progress );
 		} catch ( UpdateException $e ) {
 			$this->discard( $zip );
 			throw $e;
 		}
 
-		return array( 'zip' => $zip, 'warnings' => $warnings );
+		return array( 'zip' => $zip, 'source' => $url ) + $verified;
 	}
 
 	/**
@@ -169,19 +187,25 @@ final class UpdateServer {
 	/**
 	 * Fetch a small artifact into memory.
 	 *
-	 * @param string $name     Artifact file name.
-	 * @param bool   $optional Return null instead of failing when it is not published.
+	 * @param string        $name     Artifact file name.
+	 * @param bool          $optional Return null instead of failing when it is not published.
+	 * @param callable|null $progress Progress callback, see UpdateProgressTrait.
 	 * @return string|null
 	 * @throws UpdateException When it cannot be fetched.
 	 */
-	private function fetch( string $name, bool $optional = false ) : ?string {
+	private function fetch( string $name, bool $optional = false, ?callable $progress = null ) : ?string {
+		$url = $this->artifact_url( $name );
+
+		$this->report( $progress, 'download', self::STATUS_INFO, sprintf( 'Fetching %s.', $url ) );
+
 		try {
-			$response = $this->http->get( $this->artifact_url( $name ), array(), array( 'timeout' => self::TIMEOUT ) );
+			$response = $this->http->get( $url, array(), array( 'timeout' => self::TIMEOUT ) );
 		} catch ( Throwable $e ) {
 			throw new UpdateException( sprintf( 'Could not download %s: %s', $name, $e->getMessage() ), 0, $e );
 		}
 
 		if ( $optional && 404 === $response->status_code ) {
+			$this->report( $progress, 'download', self::STATUS_WARNING, sprintf( '%s is not published.', $name ) );
 			return null;
 		}
 
@@ -200,6 +224,18 @@ final class UpdateServer {
 	 */
 	private function artifact_url( string $name ) : string {
 		return self::HOST . '/downloads/' . self::APP_TYPE . '/' . self::APP_SLUG . '/artifacts/' . rawurlencode( $name );
+	}
+
+	/**
+	 * A file's size for messages.
+	 *
+	 * @param string $path File path.
+	 * @return string E.g. "4.2 MB".
+	 */
+	private function size( string $path ) : string {
+		$bytes = (int) $this->fs->filesize( $path );
+
+		return $bytes >= 1048576 ? sprintf( '%.1f MB', $bytes / 1048576 ) : sprintf( '%d KB', (int) ceil( $bytes / 1024 ) );
 	}
 
 	/**

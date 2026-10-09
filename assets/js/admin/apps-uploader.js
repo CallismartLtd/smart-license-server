@@ -1530,7 +1530,7 @@ class AppUploader {
             modalBody.id        = Date.now().toString();
             modalBody.innerHTML = `
                 <label for="artifact-name" class="smliser-form-label-row">
-                    <span class="smliser-form-label">Artifact File Name: <i class="smliser-form-description ti ti-question-mark" title="This artifact file name will be sanitized and the uploaded file extension will be appended to it. e.g. &quot;my artifact.zip&quot; will be sanitized to &quot;my-artifact.zip&quot;"></i></span>
+                    <span class="smliser-form-label">Artifact File Name: <i class="smliser-form-description ti ti-question-mark" title="The artifact is saved under this exact name, extension included (e.g. &quot;my-app-1.0.0.zip.sha256&quot;). Leave it empty to use the uploaded file's name. Unsafe characters are sanitized, e.g. &quot;my artifact.zip&quot; becomes &quot;my-artifact.zip&quot;."></i></span>
                     <input type="text" class="smliser-form-input" style="font-size: 15px;" id="artifact-name" name="canonical_filename" required>
                     
                 </label>
@@ -1588,6 +1588,15 @@ class AppUploader {
         
         this.artifactFileInput.addEventListener( 'change', e => {
             this._handleZipFileChange( e, fileInfo, clearBtn, fileUploadBtn );
+
+            // Suggest the uploaded file's own name when none was typed.
+            // A typed name, or the existing name when editing, is kept.
+            const nameInput = this.artifactModal.getBody( '#artifact-name' );
+            const file      = e.target.files?.[0];
+
+            if ( file && nameInput && '' === nameInput.value.trim() ) {
+                nameInput.value = file.name;
+            }
         });
 
         clearBtn.addEventListener( 'click', () => {

@@ -601,11 +601,12 @@ class HostingController {
                 $artifact_file->set_new_name( $canonical_filename );
                 
                 $response_data = $repo_class->upload_artifact([
-                    'app_slug'  => $app->get_slug(),
-                    'file'      => $artifact_file,
-                    'filename'  => $current_filename,
-                    'overwrite' => $is_edit
-                ]);           
+                    'app_slug'      => $app->get_slug(),
+                    'file'          => $artifact_file,
+                    'new_filename'  => $canonical_filename,
+                    'filename'      => $current_filename,
+                    'overwrite'     => $is_edit
+                ]);
             }
 
             if ( $response_data instanceof Exception ) {

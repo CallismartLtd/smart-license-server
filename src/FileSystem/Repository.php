@@ -811,23 +811,26 @@ abstract class Repository {
     /**
      * Upload a new artifact or replace an existing one.
      *
-     * When replacing an existing artifact (`overwrite` is `true`), the existing
-     * artifact is first renamed to the developer-supplied filename before the
-     * uploaded file is moved into place. If the move operation fails, the rename
-     * is not rolled back.
+     * The artifact is stored under `new_filename` exactly as given; the
+     * file's detected type never changes its name. When replacing an
+     * existing artifact (`overwrite` is `true`), the upload is moved into
+     * place first and the old name is removed afterwards, so a failed move
+     * leaves the existing artifact as it was.
      *
      * @param array{
      *     app_slug: string,
      *     file: UploadedFile,
+     *     new_filename?: string,
      *     overwrite?: bool,
      *     filename?: string
      * } $data {
      *     Upload data.
      *
-     *     @type string       $app_slug  Application slug.
-     *     @type UploadedFile $file      Uploaded artifact file.
-     *     @type bool         $overwrite Optional. Whether to replace an existing artifact. Default false.
-     *     @type string       $filename  Optional. Existing artifact filename when replacing an artifact.
+     *     @type string       $app_slug     Application slug.
+     *     @type UploadedFile $file         Uploaded artifact file.
+     *     @type string       $new_filename Optional. Name to store the artifact under. Default the client filename.
+     *     @type bool         $overwrite    Optional. Whether to replace an existing artifact. Default false.
+     *     @type string       $filename     Optional. Existing artifact filename when replacing an artifact.
      * }
      *
      * @return array{
@@ -856,30 +859,15 @@ abstract class Repository {
                 throw new FileSystemException( $file->get_error_message() );
             }
 
-            $canonical_ext  = $file->get_canonical_extension();
-            $detected_mime  = $file->get_detected_mime();
-
-            if ( '' === $canonical_ext ) {
-                // We are dealing with possible Unsupported file, but because
-                // this is an artifact, we can fallback on the client supplied
-                // extension only if the file mime type is detected.
-
-                if ( ! $detected_mime || ! \str_starts_with( $detected_mime, 'application/' ) ) {
-                    throw new Exception(
-                        'unsupported_media_type',
-                        'Sorry, direct uploads of this file type are not supported. Please upload it as an archive instead.',
-                        ['status' => 415]
-                    );                    
-                }
-
-                // File is valid and servable, so we can proceed to use the
-                // client-supplied extension from file name to store this artifact.
-                $canonical_ext  = FileSystemHelper::get_extension( $file->get_client_name() );
-
-            }
+            // The artifact is stored under the name the admin chose, exactly.
+            // Detected MIME types and canonical extensions are not consulted:
+            // "app-1.2.0.zip.sha256" stays ".sha256", not ".txt".
+            $new_filename   = $this->validate_artifact_filename(
+                (string) ( $data['new_filename'] ?? $file->get_client_name() )
+            );
 
             // The name of the existing artifact filename if any.
-            $filename       = $data['filename'] ?? '';
+            $filename       = (string) ( $data['filename'] ?? '' );
 
             $overwrite      =  (bool) ( $data['overwrite'] ?? false );
             $path           = $this->enter_slug( $app_slug );
@@ -889,58 +877,41 @@ abstract class Repository {
                 throw new FileSystemException( 'Unable to created destination directory.' );
             }
 
-            $new_filename   = FileSystemHelper::sanitize_filename( $file->get_name( false ) );
-            $new_filename   = $new_filename . ( '' !== $canonical_ext ? ".$canonical_ext" : '' );
             $new_file_path  = FileSystemHelper::join_path( $artifacts_dir, $new_filename );
+            $old_file_path  = '';
 
             if ( $overwrite ) {
-                // We are dealing with file edit.
-                $old_file_path      = FileSystemHelper::join_path( $artifacts_dir, $filename );
+                // We are dealing with file edit: the upload replaces $filename,
+                // and may give it a new name at the same time.
+                $filename       = $this->validate_artifact_filename( $filename );
+                $old_file_path  = FileSystemHelper::join_path( $artifacts_dir, $filename );
 
-                if ( ! $this->exists( $old_file_path ) ) {
-                    throw new FileSystemException(
-                        sprintf( 'The target filename %s does not exist in the artifacts directory.', $filename )
-                    );
-                }
-
-                $mime_type  = FileSystemHelper::get_mime_type( $old_file_path );
-
-                if ( $mime_type !== $detected_mime ) {
-                    throw new Exception( 
-                        'mime_type_mismatch' ,
-                        sprintf(
-                            'Cannot safely replace the existing file type "%s" with the uploaded file type "%s".',
-                            $mime_type,
-                            $detected_mime
-                        )     
-                    );
-                }
-
-                if ( '' === $new_file_path ) {
-                    throw new FileSystemException(
-                        'The new file name contains invalid characters.'
-                    );
-                }
-
-                if ( ! $this->rename( $old_file_path, $new_file_path ) ) {
-                    throw new FileSystemException(
-                        sprintf(
-                            'Unable to rename artifact from "%s" to "%s".',
-                            $filename,
-                            $new_filename
-                        )
+                if ( ! $this->is_file( $old_file_path ) ) {
+                    throw new Exception(
+                        'resource_not_found',
+                        sprintf( 'The artifact "%s" does not exist.', $filename ),
+                        ['status' => 404]
                     );
                 }
             }
 
-            if ( ! $this->move( $file->get_tmp_path(), $new_file_path, $overwrite ) ) {
-                if ( $overwrite ) {
-                    $error_msg = 'The artifact was renamed successfully, but the uploaded file could not replace it.';
-                } else {
-                    $error_msg = 'Unable to move the uploaded file. The destination file may already exist.';
-                }
+            // Never replace a different artifact that already has the name.
+            if ( $new_file_path !== $old_file_path && $this->exists( $new_file_path ) ) {
+                throw new Exception(
+                    'artifact_exists',
+                    sprintf( 'An artifact named "%s" already exists. Edit that artifact to replace it, or choose another name.', $new_filename ),
+                    ['status' => 409]
+                );
+            }
 
-                throw new FileSystemException( $error_msg );
+            // Move first and remove the old name afterwards, so a failed move
+            // leaves the existing artifact untouched.
+            if ( ! $this->move( $file->get_tmp_path(), $new_file_path, $new_file_path === $old_file_path ) ) {
+                throw new FileSystemException( 'Unable to move the uploaded file into the artifacts directory.' );
+            }
+
+            if ( '' !== $old_file_path && $new_file_path !== $old_file_path ) {
+                $this->delete( $old_file_path );
             }
 
             $uploaded_filename  = basename( $new_file_path );
@@ -978,27 +949,29 @@ abstract class Repository {
                 );
             }
             
-            if ( '' === $new_filename ) {
+            // Only files in the artifacts directory; the app's main package
+            // is listed with the artifacts but is managed by upload_zip().
+            if ( 'main' === $artifact['slug'] && static::ARTIFACTS_DIR !== basename( dirname( $artifact['path'] ) ) ) {
                 throw new Exception(
                     'invalid_input',
-                    'New artifact file name must not be empty.',
+                    'The main application package cannot be renamed as an artifact.',
                     ['status' => 400]
                 );
             }
 
-            $new_artifact_filename  = FileSystemHelper::remove_extension( $new_filename );
-            $ext                    = FileSystemHelper::get_canonical_extension( $artifact['path'] );
-
-            if ( '' === $ext ) {
-                $ext    = FileSystemHelper::get_extension( $artifact['path'] );
-            }
-
-            $new_filename   = '' === $ext ? $new_artifact_filename : "{$new_artifact_filename}.{$ext}";
-
-            // Rebuild the artifact path with the new filename.
+            // The name is used exactly as given, extension included.
+            $new_filename   = $this->validate_artifact_filename( $new_filename );
             $new_file_path  = FileSystemHelper::join_path( dirname( $artifact['path'] ), $new_filename );
 
-            if ( ! $this->rename( $artifact['path'], $new_file_path ) ) {
+            if ( $new_file_path !== $artifact['path'] && $this->exists( $new_file_path ) ) {
+                throw new Exception(
+                    'artifact_exists',
+                    sprintf( 'An artifact named "%s" already exists.', $new_filename ),
+                    ['status' => 409]
+                );
+            }
+
+            if ( $new_file_path !== $artifact['path'] && ! $this->rename( $artifact['path'], $new_file_path ) ) {
                 throw new Exception(
                     'rename_failed',
                     sprintf( 'Failed to rename artifact from "%s" to "%s".', $artifact['path'], $new_file_path ),
@@ -1016,6 +989,50 @@ abstract class Repository {
         } catch( Exception $e ) {
             return $e;
         }
+    }
+
+    /**
+     * Check an admin-chosen artifact filename and return it unchanged.
+     *
+     * The name is never rewritten (no extension is added, removed or
+     * swapped), and any extension is accepted: the repository lives outside
+     * the web root (storage/ in standalone, outside ABSPATH in WordPress),
+     * so artifacts are only ever sent as downloads, never executed. A name
+     * is refused only when it is a path instead of a name, a dot file (an
+     * .htaccess or .user.ini could change how the server treats the
+     * directory), or contains control characters.
+     *
+     * @param string $filename The filename to check.
+     * @return string The same filename, trimmed of surrounding whitespace.
+     * @throws Exception 400 when the name is not acceptable.
+     */
+    protected function validate_artifact_filename( string $filename ) : string {
+        $filename   = trim( $filename );
+        $reject     = static function ( string $reason ) : never {
+            throw new Exception( 'invalid_input', $reason, ['status' => 400] );
+        };
+
+        if ( '' === $filename ) {
+            $reject( 'The artifact filename must not be empty.' );
+        }
+
+        if ( \strlen( $filename ) > 255 ) {
+            $reject( 'The artifact filename must not be longer than 255 characters.' );
+        }
+
+        if ( \str_contains( $filename, '/' ) || \str_contains( $filename, '\\' ) || \str_contains( $filename, '..' ) ) {
+            $reject( 'The artifact filename must be a name, not a path.' );
+        }
+
+        if ( \str_starts_with( $filename, '.' ) ) {
+            $reject( 'The artifact filename must not start with a dot.' );
+        }
+
+        if ( \preg_match( '/[\x00-\x1F\x7F]/', $filename ) ) {
+            $reject( 'The artifact filename contains invalid characters.' );
+        }
+
+        return $filename;
     }
 
     /**
@@ -1135,7 +1152,7 @@ abstract class Repository {
      * @return true|Exception True on success, Exception instance on failure.
      */
     public static function make_default_directories() {
-        $fs = smliser_filesystem();
+        $fs = FileSystem::instance();
 
         $directories = [
             'repository'    => SMLISER_REPO_DIR,
