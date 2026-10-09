@@ -365,13 +365,7 @@ final class UpdateService {
 			return false;
 		}
 
-		$this->state->change(
-			static function ( array $state ) use ( $check ) : array {
-				$state['update']['check']['queued'] = array( 'version' => $check['latest'], 'at' => gmdate( DATE_ATOM ) );
-
-				return $state;
-			}
-		);
+		$this->mark_queued( (string) $check['latest'], 'automatic' );
 
 		return true;
 	}
@@ -393,6 +387,86 @@ final class UpdateService {
 		} catch ( UpdateException ) {
 			return false;
 		}
+	}
+
+	/**
+	 * Record that an install was queued for the update job.
+	 *
+	 * @param string $version Version to be installed.
+	 * @param string $by      Who queued it: "automatic" or "admin".
+	 * @return void
+	 */
+	public function mark_queued( string $version, string $by ) : void {
+		$this->state->change(
+			static function ( array $state ) use ( $version, $by ) : array {
+				$state['update']['check']['queued'] = array( 'version' => $version, 'by' => $by, 'at' => gmdate( DATE_ATOM ) );
+
+				return $state;
+			}
+		);
+	}
+
+	/**
+	 * Record the outcome of a queued update attempt, and clear the queued marker.
+	 *
+	 * The update log (update.run) only exists once files are moved; this
+	 * also covers attempts that stopped earlier, e.g. a failed verification.
+	 *
+	 * @param string $action  "install" or "rollback".
+	 * @param bool   $ok      Whether it succeeded.
+	 * @param string $message What happened, in the console's words.
+	 * @return void
+	 */
+	public function record_attempt( string $action, bool $ok, string $message ) : void {
+		$this->state->change(
+			static function ( array $state ) use ( $action, $ok, $message ) : array {
+				unset( $state['update']['check']['queued'] );
+
+				$state['update']['attempt'] = array(
+					'action'  => $action,
+					'ok'      => $ok,
+					'message' => $message,
+					'at'      => gmdate( DATE_ATOM ),
+				);
+
+				return $state;
+			}
+		);
+	}
+
+	/**
+	 * Everything the admin page shows, read without contacting the update server.
+	 *
+	 * @return array{
+	 *     installed: string,
+	 *     check: array,
+	 *     blockers: string[],
+	 *     auto: string,
+	 *     backup: array{version: string, made_at: string}|null,
+	 *     ready: array|null,
+	 *     queued: array|null,
+	 *     attempt: array|null,
+	 *     run: array|null,
+	 *     in_progress: bool
+	 * }
+	 */
+	public function overview() : array {
+		$check = $this->check();
+		$run   = $this->updater->status();
+		$state = $this->state->read();
+
+		return array(
+			'installed'   => \SMLISER_VER,
+			'check'       => $check,
+			'blockers'    => array_values( $this->blockers() ),
+			'auto'        => $this->auto_mode(),
+			'backup'      => $this->updater->backup(),
+			'ready'       => $this->state->update_section( InstallationState::UPDATE_READY ),
+			'queued'      => is_array( $check['queued'] ?? null ) ? $check['queued'] : null,
+			'attempt'     => is_array( $state ) && is_array( $state['update']['attempt'] ?? null ) ? $state['update']['attempt'] : null,
+			'run'         => null === $run ? null : array_intersect_key( $run, array_flip( array( 'from', 'to', 'stage', 'started_at', 'finished_at', 'rolled_back_at' ) ) ),
+			'in_progress' => in_array( $run['stage'] ?? null, array( Updater::STAGE_APPLYING, Updater::STAGE_SWAPPED ), true ),
+		);
 	}
 
 	/*

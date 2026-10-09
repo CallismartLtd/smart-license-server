@@ -16,6 +16,7 @@ use SmartLicenseServer\Admin\ActionHandlers\AppManagement;
 use SmartLicenseServer\Admin\ActionHandlers\AppMonetization;
 use SmartLicenseServer\Admin\ActionHandlers\OtherFormsActions;
 use SmartLicenseServer\Admin\ActionHandlers\SystemManagement;
+use SmartLicenseServer\Admin\ActionHandlers\UpdateManagement;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\Cache\CacheRequestController;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
@@ -392,6 +393,37 @@ final class HttpDispatcher {
 					$this->router->get(
 						pattern: 'site-health-check/cache-verify',
 						handler: [ SystemManagement::class, 'handle_cache_verify' ]
+					);
+
+					/*
+					|-------------------------------
+					| UPDATES PAGE ACTIONS
+					|-------------------------------
+					*/
+					$this->router->group(
+						prefix: 'update',
+						callback: function() {
+							$this->router->get(
+								pattern: 'status',
+								handler: [ UpdateManagement::class, 'status' ]
+							);
+
+							$actions = [
+								'check'         => 'check',
+								'dry-run'       => 'dry_run',
+								'install'       => 'install',
+								'rollback'      => 'rollback',
+								'auto'          => 'auto',
+								'backup-delete' => 'delete_backup',
+							];
+
+							foreach ( $actions as $pattern => $method ) {
+								$this->router->post(
+									pattern: $pattern,
+									handler: [ UpdateManagement::class, $method ]
+								);
+							}
+						}
 					);
                     
                 });

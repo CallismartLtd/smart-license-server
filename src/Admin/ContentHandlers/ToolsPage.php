@@ -25,6 +25,7 @@ use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DatabaseInfoDTO;
 use Callismart\DBPrism\Inspection\Inspector;
 use SmartLicenseServer\Assets\AssetsManager;
+use SmartLicenseServer\Environments\Application\Update\UpdateService;
 
 /**
  * The admin system operations page handler.
@@ -76,7 +77,8 @@ class ToolsPage implements AdminPageInterface {
 		protected Database $db,
 		protected FileSystem $fs,
 		protected SchemaRegistry $schema,
-		protected AssetsManager $assets_manager
+		protected AssetsManager $assets_manager,
+		protected UpdateService $updates
 	) {
 		$this->register_assets();
 	}
@@ -84,6 +86,11 @@ class ToolsPage implements AdminPageInterface {
 	protected function register_assets() : void {
 		$this->assets_manager->set_script_category(
 			'site-health',
+			AssetsManager::CATEGORY_ADMIN_DASHBOARD
+		);
+
+		$this->assets_manager->set_script_category(
+			'updates',
 			AssetsManager::CATEGORY_ADMIN_DASHBOARD
 		);
 	}
@@ -175,6 +182,24 @@ class ToolsPage implements AdminPageInterface {
 		$this->locator->render( 'admin.contents.system.health', $vars );
 	}
 
+	/**
+	 * Render the updates page.
+	 *
+	 * Shows the last update check without contacting the update server;
+	 * update.js checks, runs dry runs and queues installs through
+	 * admin/json/update/*.
+	 *
+	 * @param Request $request
+	 * @return void
+	 */
+	public function updates_page( Request $request ) : void {
+		$overview     = $this->updates->overview();
+		$page_handler = $this;
+
+		$vars = \compact( 'overview', 'page_handler', 'request' );
+		$this->locator->render( 'admin.contents.system.updates', $vars );
+	}
+
 	/*
 	|--------------------
 	| MENU REGISTRATION
@@ -221,6 +246,12 @@ class ToolsPage implements AdminPageInterface {
 				'callback'      => [$this, 'site_health_page'],
 				'visibility'    => true
 			],
+			[
+				'title'         => 'Updates',
+				'slug'          => 'updates',
+				'callback'      => [$this, 'updates_page'],
+				'visibility'    => true
+			],
 		];
 	}
 
@@ -239,6 +270,7 @@ class ToolsPage implements AdminPageInterface {
 			'queues'        => 'Queue Monitor',
 			'diagnostics'   => 'System Diagnostics',
 			'health'        => 'Site Health',
+			'updates'       => 'Updates',
 			default         => ''
 		};
 

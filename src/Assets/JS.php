@@ -165,6 +165,13 @@ final class JS {
                 'dependencies'  => ['core-admin'],
                 'version'       => SMLISER_VER,
                 'footer'        => true,
+            ],
+
+            'updates'   => [
+                'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/updates%s.js', $suffix ) ),
+                'dependencies'  => ['core-admin'],
+                'version'       => SMLISER_VER,
+                'footer'        => true,
             ]
         ];
     }
