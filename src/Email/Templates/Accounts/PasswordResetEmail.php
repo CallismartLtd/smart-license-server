@@ -63,12 +63,12 @@ class PasswordResetEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars           = $this->variables();
-        $display_name   = htmlspecialchars( $vars['{{display_name}}'],  ENT_QUOTES, 'UTF-8' );
-        $reset_url      = htmlspecialchars( $vars['{{reset_url}}'],     ENT_QUOTES, 'UTF-8' );
-        $expires_in     = htmlspecialchars( $vars['{{expires_in}}'],    ENT_QUOTES, 'UTF-8' );
-        $support        = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
-        $ip_address     = htmlspecialchars( $vars['{{ip_address}}'], ENT_QUOTES, 'UTF-8' );
-        $user_agent     = htmlspecialchars( $vars['{{user_agent}}'], ENT_QUOTES, 'UTF-8' );
+        $display_name   = \escHtml( $vars['{{display_name}}'] );
+        $reset_url      = \escHtml( $vars['{{reset_url}}'] );
+        $expires_in     = \escHtml( $vars['{{expires_in}}'] );
+        $support        = \escHtml( $vars['{{support_email}}'] );
+        $ip_address     = \escHtml( $vars['{{ip_address}}'] );
+        $user_agent     = \escHtml( $vars['{{user_agent}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

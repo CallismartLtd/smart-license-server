@@ -435,11 +435,11 @@ function smliser_dump_url( ?string $url = null ) : void {
     
     // Full URL
     echo '<span style="color: #569cd6;">📌 FULL URL:</span> ' . "\n";
-    echo '   <span style="color: #ce9178;">' . htmlspecialchars( $dump['url']['full_url'] ) . '</span>' . "\n\n";
+    echo '   <span style="color: #ce9178;">' . \escHtml( $dump['url']['full_url'] ) . '</span>' . "\n\n";
     
     // Origin
     echo '<span style="color: #569cd6;">🌐 ORIGIN:</span> ' . "\n";
-    echo '   <span style="color: #ce9178;">' . htmlspecialchars( $dump['url']['origin'] ?? 'N/A' ) . '</span>' . "\n\n";
+    echo '   <span style="color: #ce9178;">' . \escHtml( $dump['url']['origin'] ?? 'N/A' ) . '</span>' . "\n\n";
     
     // Components
     echo '<span style="color: #569cd6;">🧩 COMPONENTS:</span>' . "\n";
@@ -462,13 +462,13 @@ function smliser_dump_url( ?string $url = null ) : void {
         foreach ( $dump['query_params'] as $key => $value ) {
             if ( is_array( $value ) ) {
                 echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: #ce9178;">[%s]</span>' . "\n",
-                    htmlspecialchars( $key ),
-                    htmlspecialchars( implode( ', ', $value ) )
+                    \escHtml( $key ),
+                    \escHtml( implode( ', ', $value ) )
                 );
             } else {
                 echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: #ce9178;">%s</span>' . "\n",
-                    htmlspecialchars( $key ),
-                    htmlspecialchars( (string) $value )
+                    \escHtml( $key ),
+                    \escHtml( (string) $value )
                 );
             }
         }
@@ -819,7 +819,7 @@ function dd( mixed ...$vars ): never {
 				echo \PHP_EOL . str_repeat( '-', 40 ) . \PHP_EOL;
 			}
 		} else {
-			echo htmlspecialchars( $output, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
+			echo \escHtml( $output, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
 		}
 	}
 
@@ -902,7 +902,7 @@ function render_top_menu_item( array $item ) : string {
 
 	$attr_string = '';
 	foreach ( $attributes as $name => $value ) {
-		$attr_string .= sprintf( ' %s="%s"', htmlspecialchars( $name ), htmlspecialchars( $value ) );
+		$attr_string .= sprintf( ' %s="%s"', \escHtml( $name ), \escHtml( $value ) );
 	}
 
     $icon_html = '';
@@ -911,15 +911,15 @@ function render_top_menu_item( array $item ) : string {
 		foreach ( $item['icons'] as $icon ) {
 			$icon_attr_string = '';
 			foreach ( $icon['attributes'] as $name => $value ) {
-				$icon_attr_string .= sprintf( ' %s="%s"', htmlspecialchars( $name ), htmlspecialchars( $value ) );
+				$icon_attr_string .= sprintf( ' %s="%s"', \escHtml( $name ), \escHtml( $value ) );
 			}
-			$icon_html .= sprintf( '<i class="%s"%s></i>', htmlspecialchars( $icon['class'] ), $icon_attr_string );
+			$icon_html .= sprintf( '<i class="%s"%s></i>', \escHtml( $icon['class'] ), $icon_attr_string );
 		}
 	} elseif ( $item['icon'] ) {
-		$icon_html = sprintf( '<i class="%s"></i>', htmlspecialchars( $item['icon'] ) );
+		$icon_html = sprintf( '<i class="%s"></i>', \escHtml( $item['icon'] ) );
 	}
 
-	$title = $item['title'] ? sprintf( '<span class="label">%s</span>', htmlspecialchars( $item['title'] ) ) : '';
+	$title = $item['title'] ? sprintf( '<span class="label">%s</span>', \escHtml( $item['title'] ) ) : '';
 
 	return sprintf( '<%1$s%2$s>%3$s%4$s</%1$s>', $tag, $attr_string, $icon_html, $title );
 }

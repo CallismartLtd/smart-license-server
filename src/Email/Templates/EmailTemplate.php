@@ -480,7 +480,7 @@ abstract class EmailTemplate {
      * @return string
      */
     protected function render_greeting_block( array $block ): string {
-        $content = htmlspecialchars( $block['content'] ?? '', ENT_QUOTES, 'UTF-8' );
+        $content = \escHtml( $block['content'] ?? '' );
         $color   = $this->styles['text_primary'];
 
         return <<<HTML
@@ -503,7 +503,7 @@ abstract class EmailTemplate {
      * @return string
      */
     protected function render_text_block( array $block ): string {
-        $content = htmlspecialchars( $block['content'] ?? '', ENT_QUOTES, 'UTF-8' );
+        $content = \escHtml( $block['content'] ?? '' );
         $color   = $this->styles['text_primary'];
 
         return <<<HTML
@@ -532,7 +532,7 @@ abstract class EmailTemplate {
      * @return string
      */
     protected function render_banner_block( array $block ): string {
-        $content = htmlspecialchars( $block['content'] ?? '', ENT_QUOTES, 'UTF-8' );
+        $content = \escHtml( $block['content'] ?? '' );
         $tone    = $block['tone'] ?? 'info';
 
         [ $bg, $border, $color, $icon ] = match( $tone ) {
@@ -589,8 +589,8 @@ abstract class EmailTemplate {
             $rows_html .= '<tr>';
 
             foreach ( $pair as $index => $row ) {
-                $label = htmlspecialchars( $row['label'] ?? '', ENT_QUOTES, 'UTF-8' );
-                $value = htmlspecialchars( $row['value'] ?? '', ENT_QUOTES, 'UTF-8' );
+                $label = \escHtml( $row['label'] ?? '' );
+                $value = \escHtml( $row['value'] ?? '' );
                 $pad   = $index === 0 && count( $pair ) === 2
                     ? 'padding:0 16px 16px 0;'
                     : 'padding:0 0 16px;';
@@ -646,8 +646,8 @@ abstract class EmailTemplate {
      * @return string
      */
     protected function render_button_block( array $block ): string {
-        $label  = htmlspecialchars( $block['label'] ?? 'Click Here', ENT_QUOTES, 'UTF-8' );
-        $url    = htmlspecialchars( $block['url']   ?? '#',           ENT_QUOTES, 'UTF-8' );
+        $label  = \escHtml( $block['label'] ?? 'Click Here' );
+        $url    = \escHtml( $block['url']   ?? '#' );
         $accent = $this->styles['accent'];
 
         return <<<HTML
@@ -688,12 +688,12 @@ abstract class EmailTemplate {
      * @return string
      */
     protected function render_closing_block( array $block ): string {
-        $content = htmlspecialchars( $block['content'] ?? '', ENT_QUOTES, 'UTF-8' );
+        $content = \escHtml( $block['content'] ?? '' );
         $color   = $this->styles['text_muted'];
         $accent  = $this->styles['accent'];
 
         $vars    = $this->variables();
-        $support = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $support = \escHtml( $vars['{{support_email}}'] );
 
         // Convert the support email token to a live mailto link.
         $content = str_replace(
@@ -733,8 +733,8 @@ abstract class EmailTemplate {
      * @return string               Complete HTML email document.
      */
     protected function skeleton( string $body_content ): string {
-        $subject   = htmlspecialchars( $this->subject(),    ENT_QUOTES, 'UTF-8' );
-        $preheader = htmlspecialchars( $this->preheader(),  ENT_QUOTES, 'UTF-8' );
+        $subject   = \escHtml( $this->subject() );
+        $preheader = \escHtml( $this->preheader() );
         $header    = $this->render_header();
         $footer    = $this->render_footer();
         $body_bg   = $this->styles['body_bg']    ?? '#f4f6f8';
@@ -828,7 +828,7 @@ abstract class EmailTemplate {
      */
     protected function render_header(): string {
         $vars     = $this->variables();
-        $app_name = htmlspecialchars( $vars['{{app_name}}'], ENT_QUOTES, 'UTF-8' );
+        $app_name = \escHtml( $vars['{{app_name}}'] );
         $bg       = $this->styles['header_bg']    ?? '#1a1a2e';
         $color    = $this->styles['header_color'] ?? '#ffffff';
 
@@ -867,9 +867,9 @@ abstract class EmailTemplate {
      */
     protected function render_footer(): string {
         $vars     = $this->variables();
-        $app_name = htmlspecialchars( $vars['{{app_name}}'],      ENT_QUOTES, 'UTF-8' );
-        $year     = htmlspecialchars( $vars['{{year}}'],          ENT_QUOTES, 'UTF-8' );
-        $support  = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $app_name = \escHtml( $vars['{{app_name}}'] );
+        $year     = \escHtml( $vars['{{year}}'] );
+        $support  = \escHtml( $vars['{{support_email}}'] );
         $bg       = $this->styles['footer_bg']     ?? '#f8fafc';
         $color    = $this->styles['footer_color']  ?? '#94a3b8';
         $border   = $this->styles['footer_border'] ?? '#e2e8f0';

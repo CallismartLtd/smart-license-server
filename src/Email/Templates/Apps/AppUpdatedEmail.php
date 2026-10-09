@@ -58,12 +58,12 @@ class AppUpdatedEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars        = $this->variables();
-        $app_name    = htmlspecialchars( $vars['{{app_name}}'],      ENT_QUOTES, 'UTF-8' );
-        $new_version = htmlspecialchars( $vars['{{new_version}}'],   ENT_QUOTES, 'UTF-8' );
-        $old_version = htmlspecialchars( $vars['{{old_version}}'],   ENT_QUOTES, 'UTF-8' );
-        $app_type    = htmlspecialchars( $vars['{{app_type}}'],      ENT_QUOTES, 'UTF-8' );
-        $app_slug    = htmlspecialchars( $vars['{{app_slug}}'],      ENT_QUOTES, 'UTF-8' );
-        $support     = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $app_name    = \escHtml( $vars['{{app_name}}'] );
+        $new_version = \escHtml( $vars['{{new_version}}'] );
+        $old_version = \escHtml( $vars['{{old_version}}'] );
+        $app_type    = \escHtml( $vars['{{app_type}}'] );
+        $app_slug    = \escHtml( $vars['{{app_slug}}'] );
+        $support     = \escHtml( $vars['{{support_email}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

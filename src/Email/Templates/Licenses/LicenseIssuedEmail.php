@@ -20,7 +20,7 @@ class LicenseIssuedEmail extends EmailTemplate {
 
     /**
      * @param License $license   The issued license.
-     * @param string  $recipient Recipient email address.
+     * @param string  $to Recipient email address.
      */
     public function __construct(
         private readonly License $license,
@@ -56,12 +56,12 @@ class LicenseIssuedEmail extends EmailTemplate {
     protected function body(): string {
         $vars = $this->variables();
 
-        $licensee_name    = htmlspecialchars( $vars['{{licensee_name}}'],    ENT_QUOTES, 'UTF-8' );
-        $license_key      = htmlspecialchars( $vars['{{license_key}}'],      ENT_QUOTES, 'UTF-8' );
-        $start_date       = htmlspecialchars( $vars['{{start_date}}'],       ENT_QUOTES, 'UTF-8' );
-        $end_date         = htmlspecialchars( $vars['{{end_date}}'],         ENT_QUOTES, 'UTF-8' );
-        $activation_limit = htmlspecialchars( $vars['{{activation_limit}}'], ENT_QUOTES, 'UTF-8' );
-        $support          = htmlspecialchars( $vars['{{support_email}}'],    ENT_QUOTES, 'UTF-8' );
+        $licensee_name    = \escHtml( $vars['{{licensee_name}}'] );
+        $license_key      = \escHtml( $vars['{{license_key}}'] );
+        $start_date       = \escHtml( $vars['{{start_date}}'] );
+        $end_date         = \escHtml( $vars['{{end_date}}'] );
+        $activation_limit = \escHtml( $vars['{{activation_limit}}'] );
+        $support          = \escHtml( $vars['{{support_email}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

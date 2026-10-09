@@ -83,7 +83,7 @@ class CSRFMiddleware implements MiddlewareInterface {
             );
         }
 
-        return Response::make( htmlspecialchars( $message, ENT_QUOTES, 'UTF-8' ), 403 )
+        return Response::make( \escHtml( $message ), 403 )
             ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
     }
 }

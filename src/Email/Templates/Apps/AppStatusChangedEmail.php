@@ -63,12 +63,12 @@ class AppStatusChangedEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars       = $this->variables();
-        $app_name   = htmlspecialchars( $vars['{{app_name}}'],      ENT_QUOTES, 'UTF-8' );
-        $app_type   = htmlspecialchars( $vars['{{app_type}}'],      ENT_QUOTES, 'UTF-8' );
-        $old_status = htmlspecialchars( $vars['{{old_status}}'],    ENT_QUOTES, 'UTF-8' );
-        $new_status = htmlspecialchars( $vars['{{new_status}}'],    ENT_QUOTES, 'UTF-8' );
-        $reason     = htmlspecialchars( $vars['{{reason}}'],        ENT_QUOTES, 'UTF-8' );
-        $support    = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $app_name   = \escHtml( $vars['{{app_name}}'] );
+        $app_type   = \escHtml( $vars['{{app_type}}'] );
+        $old_status = \escHtml( $vars['{{old_status}}'] );
+        $new_status = \escHtml( $vars['{{new_status}}'] );
+        $reason     = \escHtml( $vars['{{reason}}'] );
+        $support    = \escHtml( $vars['{{support_email}}'] );
 
         $is_negative = in_array(
             strtolower( $this->new_status ),

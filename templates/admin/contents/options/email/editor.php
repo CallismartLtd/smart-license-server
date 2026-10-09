@@ -33,12 +33,12 @@ $assets = $assets_manager->get_email_editor_assets();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars( $label, ENT_QUOTES, 'UTF-8' ); ?> — Email Editor</title>
+    <title><?php echo \escHtml( $label ); ?> — Email Editor</title>
 
     <?php foreach ( $assets['styles'] as $style ) : ?>
         <link rel="stylesheet"
-              href="<?php echo htmlspecialchars( $style['url'], ENT_QUOTES, 'UTF-8' ); ?>"
-              id="<?php echo htmlspecialchars( $style['handle'], ENT_QUOTES, 'UTF-8' ); ?>-css">
+              href="<?php echo \escHtml( $style['url'] ); ?>"
+              id="<?php echo \escHtml( $style['handle'] ); ?>-css">
     <?php endforeach; ?>
 
     <script>
@@ -78,7 +78,7 @@ $assets = $assets_manager->get_email_editor_assets();
         <!-- Left — back link + template name + status badges -->
         <div class="smliser-editor-toolbar__left">
 
-            <a href="<?php echo htmlspecialchars( $back_url->get_href(), ENT_QUOTES, 'UTF-8' ); ?>"
+            <a href="<?php echo \escHtml( $back_url->get_href() ); ?>"
                class="smliser-editor-back"
                id="smliser-editor-back"
                title="Back to Email Templates">
@@ -87,7 +87,7 @@ $assets = $assets_manager->get_email_editor_assets();
 
             <div class="smliser-editor-toolbar__meta">
                 <span class="smliser-editor-toolbar__name">
-                    <?php echo htmlspecialchars( $label, ENT_QUOTES, 'UTF-8' ); ?>
+                    <?php echo \escHtml( $label ); ?>
                 </span>
 
                 <span class="smliser-editor-badge <?php echo $is_enabled
@@ -122,7 +122,7 @@ $assets = $assets_manager->get_email_editor_assets();
             <button type="button"
                     class="smliser-editor-btn smliser-editor-btn--ghost"
                     id="smliser-toggle-btn"
-                    data-key="<?php echo htmlspecialchars( $key, ENT_QUOTES, 'UTF-8' ); ?>"
+                    data-key="<?php echo \escHtml( $key ); ?>"
                     data-enabled="<?php echo $is_enabled ? '1' : '0'; ?>">
                 <span class="ti <?php echo $is_enabled ? 'ti-eye-off' : 'ti-eye'; ?>"
                       id="smliser-toggle-icon"></span>
@@ -135,7 +135,7 @@ $assets = $assets_manager->get_email_editor_assets();
             <button type="button"
                     class="smliser-editor-btn smliser-editor-btn--danger"
                     id="smliser-reset-btn"
-                    data-key="<?php echo htmlspecialchars( $key, ENT_QUOTES, 'UTF-8' ); ?>"
+                    data-key="<?php echo \escHtml( $key ); ?>"
                     <?php echo ! $has_custom ? 'disabled' : ''; ?>>
                 <span class="ti ti-rotate"></span>
                 Reset
@@ -145,7 +145,7 @@ $assets = $assets_manager->get_email_editor_assets();
             <button type="button"
                     class="smliser-editor-btn smliser-editor-btn--primary"
                     id="smliser-save-btn"
-                    data-key="<?php echo htmlspecialchars( $key, ENT_QUOTES, 'UTF-8' ); ?>">
+                    data-key="<?php echo \escHtml( $key ); ?>">
                 <span class="ti ti-cloud-upload" id="smliser-save-icon"></span>
                 <span id="smliser-save-label">Save Template</span>
             </button>
@@ -470,7 +470,7 @@ $assets = $assets_manager->get_email_editor_assets();
                         <span class="smliser-preview-browser__dot smliser-preview-browser__dot--yellow"></span>
                         <span class="smliser-preview-browser__dot smliser-preview-browser__dot--green"></span>
                         <span class="smliser-preview-browser__bar">
-                            <?php echo htmlspecialchars( $label, ENT_QUOTES, 'UTF-8' ); ?> — Preview
+                            <?php echo \escHtml( $label ); ?> — Preview
                         </span>
                     </div>
                     <iframe id="smliser-preview-frame"
@@ -490,8 +490,8 @@ $assets = $assets_manager->get_email_editor_assets();
 <!-- /EMAIL EDITOR -->
 
 <?php foreach ( $assets['scripts'] as $script ) : ?>
-    <script src="<?php echo htmlspecialchars( $script['url'], ENT_QUOTES, 'UTF-8' ); ?>"
-            id="<?php echo htmlspecialchars( $script['handle'], ENT_QUOTES, 'UTF-8' ); ?>-js">
+    <script src="<?php echo \escHtml( $script['url'] ); ?>"
+            id="<?php echo \escHtml( $script['handle'] ); ?>-js">
     </script>
 <?php endforeach; ?>
 

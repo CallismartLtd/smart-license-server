@@ -55,8 +55,8 @@ class BulkMessageEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars           = $this->variables();
-        $recipient_name = htmlspecialchars( $vars['{{recipient_name}}'], ENT_QUOTES, 'UTF-8' );
-        $support        = htmlspecialchars( $vars['{{support_email}}'],  ENT_QUOTES, 'UTF-8' );
+        $recipient_name = \escHtml( $vars['{{recipient_name}}'] );
+        $support        = \escHtml( $vars['{{support_email}}'] );
 
         // message_body is admin-authored HTML — not escaped so formatting is preserved.
         $message_body = $vars['{{message_body}}'];

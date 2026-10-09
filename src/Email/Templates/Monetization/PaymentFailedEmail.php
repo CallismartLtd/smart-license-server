@@ -68,14 +68,14 @@ class PaymentFailedEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars           = $this->variables();
-        $recipient_name = htmlspecialchars( $vars['{{recipient_name}}'], ENT_QUOTES, 'UTF-8' );
-        $amount         = htmlspecialchars( $vars['{{amount}}'],         ENT_QUOTES, 'UTF-8' );
-        $currency       = htmlspecialchars( $vars['{{currency}}'],       ENT_QUOTES, 'UTF-8' );
-        $payment_date   = htmlspecialchars( $vars['{{payment_date}}'],   ENT_QUOTES, 'UTF-8' );
-        $description    = htmlspecialchars( $vars['{{description}}'],    ENT_QUOTES, 'UTF-8' );
-        $reason         = htmlspecialchars( $vars['{{reason}}'],         ENT_QUOTES, 'UTF-8' );
-        $retry_url      = htmlspecialchars( $vars['{{retry_url}}'],      ENT_QUOTES, 'UTF-8' );
-        $support        = htmlspecialchars( $vars['{{support_email}}'],  ENT_QUOTES, 'UTF-8' );
+        $recipient_name = \escHtml( $vars['{{recipient_name}}'] );
+        $amount         = \escHtml( $vars['{{amount}}'] );
+        $currency       = \escHtml( $vars['{{currency}}'] );
+        $payment_date   = \escHtml( $vars['{{payment_date}}'] );
+        $description    = \escHtml( $vars['{{description}}'] );
+        $reason         = \escHtml( $vars['{{reason}}'] );
+        $retry_url      = \escHtml( $vars['{{retry_url}}'] );
+        $support        = \escHtml( $vars['{{support_email}}'] );
 
         $retry_button = ! empty( $retry_url )
             ? <<<RETRY

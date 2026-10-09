@@ -71,13 +71,13 @@ class SystemAlertEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars        = $this->variables();
-        $alert_title = htmlspecialchars( $vars['{{alert_title}}'], ENT_QUOTES, 'UTF-8' );
-        $alert_body  = htmlspecialchars( $vars['{{alert_body}}'],  ENT_QUOTES, 'UTF-8' );
-        $severity    = htmlspecialchars( $vars['{{severity}}'],    ENT_QUOTES, 'UTF-8' );
-        $occurred_at = htmlspecialchars( $vars['{{occurred_at}}'], ENT_QUOTES, 'UTF-8' );
-        $context     = htmlspecialchars( $vars['{{context}}'],     ENT_QUOTES, 'UTF-8' );
-        $app_name    = htmlspecialchars( $vars['{{app_name}}'],    ENT_QUOTES, 'UTF-8' );
-        $support     = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $alert_title = \escHtml( $vars['{{alert_title}}'] );
+        $alert_body  = \escHtml( $vars['{{alert_body}}'] );
+        $severity    = \escHtml( $vars['{{severity}}'] );
+        $occurred_at = \escHtml( $vars['{{occurred_at}}'] );
+        $context     = \escHtml( $vars['{{context}}'] );
+        $app_name    = \escHtml( $vars['{{app_name}}'] );
+        $support     = \escHtml( $vars['{{support_email}}'] );
 
         [ $banner_bg, $banner_border, $banner_text_color, $banner_icon ] = match( $this->severity ) {
             self::SEVERITY_CRITICAL => [ '#fef2f2', '#fecaca', '#991b1b', '&#128683;' ],

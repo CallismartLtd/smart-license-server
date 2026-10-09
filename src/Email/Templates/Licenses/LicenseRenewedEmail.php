@@ -54,10 +54,10 @@ class LicenseRenewedEmail extends EmailTemplate {
     protected function body(): string {
         $vars = $this->variables();
 
-        $licensee_name = htmlspecialchars( $vars['{{licensee_name}}'], ENT_QUOTES, 'UTF-8' );
-        $license_key   = htmlspecialchars( $vars['{{license_key}}'],   ENT_QUOTES, 'UTF-8' );
-        $end_date      = htmlspecialchars( $vars['{{end_date}}'],      ENT_QUOTES, 'UTF-8' );
-        $support       = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $licensee_name = \escHtml( $vars['{{licensee_name}}'] );
+        $license_key   = \escHtml( $vars['{{license_key}}'] );
+        $end_date      = \escHtml( $vars['{{end_date}}'] );
+        $support       = \escHtml( $vars['{{support_email}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

@@ -134,7 +134,7 @@ class MDParser {
 		return preg_replace_callback(
 			'/`([^`]+)`/',
 			function( $matches ) {
-				return '<code>' . htmlspecialchars( $matches[1], ENT_QUOTES, 'UTF-8' ) . '</code>';
+				return '<code>' . \escHtml( $matches[1] ) . '</code>';
 			},
 			$text
 		);
@@ -155,10 +155,10 @@ class MDParser {
 				$code = $matches[2];
 				
 				// Add language class if specified
-				$class_attr = $lang ? ' class="language-' . htmlspecialchars( $lang, ENT_QUOTES, 'UTF-8' ) . '"' : '';
+				$class_attr = $lang ? ' class="language-' . \escHtml( $lang ) . '"' : '';
 				
 				// Escape HTML entities in code
-				$escaped_code = htmlspecialchars( $code, ENT_QUOTES, 'UTF-8' );
+				$escaped_code = \escHtml( $code );
 				
 				return "\n<pre><code{$class_attr}>" . $escaped_code . "</code></pre>\n";
 			},
@@ -170,7 +170,7 @@ class MDParser {
 			'/(?:^|\n)((?:(?:    |\t).+\n?)+)/m',
 			function( $matches ) {
 				$code = preg_replace( '/^(?:    |\t)/m', '', $matches[1] );
-				$escaped_code = htmlspecialchars( trim( $code ), ENT_QUOTES, 'UTF-8' );
+				$escaped_code = \escHtml( trim( $code ) );
 				return "\n<pre><code>" . $escaped_code . "</code></pre>\n";
 			},
 			$text
@@ -297,10 +297,10 @@ class MDParser {
 				if ( strpos( $link_text, '<' ) !== false ) {
 					$safe_text = $link_text;
 				} else {
-					$safe_text = htmlspecialchars( $link_text, ENT_QUOTES, 'UTF-8' );
+					$safe_text = \escHtml( $link_text );
 				}
 				
-				$safe_href = htmlspecialchars( $href, ENT_QUOTES, 'UTF-8' );
+				$safe_href = \escHtml( $href );
 				
 				return '<a href="' . $safe_href . '" target="_blank" rel="noopener noreferrer">' . $safe_text . '</a>';
 			},

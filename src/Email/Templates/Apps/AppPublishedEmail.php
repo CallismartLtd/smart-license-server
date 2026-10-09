@@ -55,11 +55,11 @@ class AppPublishedEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars        = $this->variables();
-        $app_name    = htmlspecialchars( $vars['{{app_name}}'],      ENT_QUOTES, 'UTF-8' );
-        $app_version = htmlspecialchars( $vars['{{app_version}}'],   ENT_QUOTES, 'UTF-8' );
-        $app_type    = htmlspecialchars( $vars['{{app_type}}'],      ENT_QUOTES, 'UTF-8' );
-        $app_slug    = htmlspecialchars( $vars['{{app_slug}}'],      ENT_QUOTES, 'UTF-8' );
-        $support     = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $app_name    = \escHtml( $vars['{{app_name}}'] );
+        $app_version = \escHtml( $vars['{{app_version}}'] );
+        $app_type    = \escHtml( $vars['{{app_type}}'] );
+        $app_slug    = \escHtml( $vars['{{app_slug}}'] );
+        $support     = \escHtml( $vars['{{support_email}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

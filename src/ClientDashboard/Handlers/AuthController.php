@@ -177,7 +177,7 @@ class AuthController {
      * @return string Complete HTML document.
      */
     private function logout_document( string $message, string $home_url, bool $session_ended ): string {
-        $safe_message  = htmlspecialchars( $message, ENT_QUOTES, 'UTF-8' );
+        $safe_message  = \escHtml( $message );
         $safe_home_url = escUrl( $home_url );
 
         $accent         = $session_ended ? '#15803d' : '#475569';

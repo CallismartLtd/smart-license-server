@@ -54,9 +54,9 @@ class OrganizationMemberRemovedEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars              = $this->variables();
-        $member_name       = htmlspecialchars( $vars['{{member_name}}'],       ENT_QUOTES, 'UTF-8' );
-        $organization_name = htmlspecialchars( $vars['{{organization_name}}'], ENT_QUOTES, 'UTF-8' );
-        $support           = htmlspecialchars( $vars['{{support_email}}'],     ENT_QUOTES, 'UTF-8' );
+        $member_name       = \escHtml( $vars['{{member_name}}'] );
+        $organization_name = \escHtml( $vars['{{organization_name}}'] );
+        $support           = \escHtml( $vars['{{support_email}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

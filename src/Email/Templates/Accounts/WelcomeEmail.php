@@ -52,10 +52,10 @@ class WelcomeEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars         = $this->variables();
-        $display_name = htmlspecialchars( $vars['{{display_name}}'],  ENT_QUOTES, 'UTF-8' );
-        $email        = htmlspecialchars( $vars['{{email}}'],         ENT_QUOTES, 'UTF-8' );
-        $app_name     = htmlspecialchars( $vars['{{app_name}}'],      ENT_QUOTES, 'UTF-8' );
-        $support      = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $display_name = \escHtml( $vars['{{display_name}}'] );
+        $email        = \escHtml( $vars['{{email}}'] );
+        $app_name     = \escHtml( $vars['{{app_name}}'] );
+        $support      = \escHtml( $vars['{{support_email}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

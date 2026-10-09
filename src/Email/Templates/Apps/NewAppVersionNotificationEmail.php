@@ -60,12 +60,12 @@ class NewAppVersionNotificationEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars          = $this->variables();
-        $licensee_name = htmlspecialchars( $vars['{{licensee_name}}'], ENT_QUOTES, 'UTF-8' );
-        $app_name      = htmlspecialchars( $vars['{{app_name}}'],      ENT_QUOTES, 'UTF-8' );
-        $app_version   = htmlspecialchars( $vars['{{app_version}}'],   ENT_QUOTES, 'UTF-8' );
-        $app_type      = htmlspecialchars( $vars['{{app_type}}'],      ENT_QUOTES, 'UTF-8' );
-        $license_key   = htmlspecialchars( $vars['{{license_key}}'],   ENT_QUOTES, 'UTF-8' );
-        $support       = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $licensee_name = \escHtml( $vars['{{licensee_name}}'] );
+        $app_name      = \escHtml( $vars['{{app_name}}'] );
+        $app_version   = \escHtml( $vars['{{app_version}}'] );
+        $app_type      = \escHtml( $vars['{{app_type}}'] );
+        $license_key   = \escHtml( $vars['{{license_key}}'] );
+        $support       = \escHtml( $vars['{{support_email}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

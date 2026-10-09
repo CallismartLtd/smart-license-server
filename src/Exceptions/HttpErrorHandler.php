@@ -276,27 +276,27 @@ class HttpErrorHandler extends AbstractErrorHandler {
         $html    = '';
         $charset = $this->getCharset();
 
-        $html .= "\n\t<meta charset=\"" . htmlspecialchars( $charset, ENT_QUOTES, 'UTF-8' ) . '">' . "\n";
+        $html .= "\n\t<meta charset=\"" . \escHtml( $charset ) . '">' . "\n";
         $html .= "\t<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
 
         foreach ( $this->head_content as $item ) {
             if ( $item['type'] === 'meta' ) {
                 $html .= "\t<meta";
                 foreach ( $item['data'] as $key => $value ) {
-                    $html .= ' ' . htmlspecialchars( $key, ENT_QUOTES, 'UTF-8' ) . '="' . htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) . '"';
+                    $html .= ' ' . \escHtml( $key ) . '="' . \escHtml( $value ) . '"';
                 }
                 $html .= ">\n";
             }
         }
 
-        $html .= "\t<title>" . htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . "</title>\n";
+        $html .= "\t<title>" . \escHtml( $this->getTitle() ) . "</title>\n";
         $html .= $this->renderStyles();
 
         foreach ( $this->head_content as $item ) {
             if ( $item['type'] === 'link' ) {
                 $html .= "\t<link";
                 foreach ( $item['data'] as $key => $value ) {
-                    $html .= ' ' . htmlspecialchars( $key, ENT_QUOTES, 'UTF-8' ) . '="' . htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) . '"';
+                    $html .= ' ' . \escHtml( $key ) . '="' . \escHtml( $value ) . '"';
                 }
                 $html .= ">\n";
             }
@@ -387,7 +387,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
             if ( is_array( $value ) ) {
                 $value = implode( ' ', $value );
             }
-            $html .= ' ' . htmlspecialchars( $key, ENT_QUOTES, 'UTF-8' ) . '="' . htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' ) . '"';
+            $html .= ' ' . \escHtml( $key ) . '="' . \escHtml( $value ) . '"';
         }
         return $html;
     }
@@ -401,15 +401,15 @@ class HttpErrorHandler extends AbstractErrorHandler {
         $html = '';
 
         if ( ! empty( $this->config['link_url'] ) && ! empty( $this->config['link_text'] ) ) {
-            $html .= '<p><a href="' . htmlspecialchars( $this->config['link_url'], ENT_QUOTES, 'UTF-8' ) . '">';
-            $html .= htmlspecialchars( $this->config['link_text'], ENT_QUOTES, 'UTF-8' );
+            $html .= '<p><a href="' . \escHtml( $this->config['link_url'] ) . '">';
+            $html .= \escHtml( $this->config['link_text'] );
             $html .= '</a></p>' . "\n";
         }
 
         if ( $this->config['back_link'] && isset( $_SERVER['HTTP_REFERER'] ) ) {
             $referer = filter_var( $_SERVER['HTTP_REFERER'], FILTER_SANITIZE_URL );
             if ( $referer ) {
-                $html .= '<p><a href="' . htmlspecialchars( $referer, ENT_QUOTES, 'UTF-8' ) . '">&larr; Go Back</a></p>' . "\n";
+                $html .= '<p><a href="' . \escHtml( $referer ) . '">&larr; Go Back</a></p>' . "\n";
             }
         }
 
@@ -433,7 +433,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
         $html .= "</head>\n";
         $html .= "<body" . $body_attrs . ">\n";
         $html .= "\t<div class=\"error-container\">\n";
-        $html .= "\t\t<h1>" . htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . "</h1>\n";
+        $html .= "\t\t<h1>" . \escHtml( $this->getTitle() ) . "</h1>\n";
         $html .= "\t\t<div class=\"error-message\">\n";
         $html .= "\t\t\t" . $content . "\n";
         $html .= "\t\t</div>\n";
@@ -462,25 +462,25 @@ class HttpErrorHandler extends AbstractErrorHandler {
         $message = $this->getMessage();
 
         if ( ! $this->isDebug() ) {
-            return $this->wrapInHtml( '<p>' . htmlspecialchars( $message, ENT_QUOTES, 'UTF-8' ) . '</p>' );
+            return $this->wrapInHtml( '<p>' . \escHtml( $message ) . '</p>' );
         }
 
         $class = get_class( $this->error_object );
         $file  = $this->error_object->getFile();
         $line  = $this->error_object->getLine();
 
-        $out  = htmlspecialchars( $class, ENT_QUOTES, 'UTF-8' ) . ': ';
-        $out .= htmlspecialchars( $message, ENT_QUOTES, 'UTF-8' ) . $nl . $nl;
-        $out .= 'File: ' . htmlspecialchars( $file, ENT_QUOTES, 'UTF-8' ) . $nl;
+        $out  = \escHtml( $class ) . ': ';
+        $out .= \escHtml( $message ) . $nl . $nl;
+        $out .= 'File: ' . \escHtml( $file ) . $nl;
         $out .= 'Line: ' . $line . $nl;
         $out .= $nl . 'Stack Trace:' . $nl;
-        $out .= htmlspecialchars( $this->error_object->getTraceAsString(), ENT_QUOTES, 'UTF-8' ) . $nl;
+        $out .= \escHtml( $this->error_object->getTraceAsString() ) . $nl;
 
         $previous = $this->error_object->getPrevious();
         if ( $previous ) {
             $out .= $nl . 'Caused by: ' . get_class( $previous ) . $nl;
-            $out .= htmlspecialchars( $previous->getMessage(), ENT_QUOTES, 'UTF-8' ) . $nl;
-            $out .= htmlspecialchars( $previous->getTraceAsString(), ENT_QUOTES, 'UTF-8' ) . $nl;
+            $out .= \escHtml( $previous->getMessage() ) . $nl;
+            $out .= \escHtml( $previous->getTraceAsString() ) . $nl;
         }
 
         return $this->wrapInHtml( '<pre>' . $out . '</pre>' );
@@ -506,7 +506,7 @@ class HttpErrorHandler extends AbstractErrorHandler {
             return $this->renderThrowableInHtml();
         }
 
-        return $this->wrapInHtml( '<p>' . htmlspecialchars( $this->getMessage(), ENT_QUOTES, 'UTF-8' ) . '</p>' );
+        return $this->wrapInHtml( '<p>' . \escHtml( $this->getMessage() ) . '</p>' );
     }
 
     /**
@@ -525,12 +525,12 @@ class HttpErrorHandler extends AbstractErrorHandler {
         }
 
         $html  = '<div style="background:#fff3cd;border:1px solid #ffc107;color:#664d03;padding:12px 16px;margin:12px 0;border-radius:4px;font-family:sans-serif;font-size:14px;">' . PHP_EOL;
-        $html .= '<strong>' . htmlspecialchars( $this->getTitle(), ENT_QUOTES, 'UTF-8' ) . ':</strong> ';
-        $html .= htmlspecialchars( $this->getMessage(), ENT_QUOTES, 'UTF-8' );
+        $html .= '<strong>' . \escHtml( $this->getTitle() ) . ':</strong> ';
+        $html .= \escHtml( $this->getMessage() );
 
         if ( $this->isDebug() && $this->error_object instanceof \Throwable ) {
             $html .= '<br><small style="opacity:0.8;font-family:monospace;">';
-            $html .= htmlspecialchars( $this->error_object->getFile(), ENT_QUOTES, 'UTF-8' );
+            $html .= \escHtml( $this->error_object->getFile() );
             $html .= ':' . $this->error_object->getLine();
             $html .= '</small>';
         }

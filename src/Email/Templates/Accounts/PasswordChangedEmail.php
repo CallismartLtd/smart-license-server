@@ -52,9 +52,9 @@ class PasswordChangedEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars         = $this->variables();
-        $display_name = htmlspecialchars( $vars['{{display_name}}'],  ENT_QUOTES, 'UTF-8' );
-        $changed_at   = htmlspecialchars( $vars['{{changed_at}}'],    ENT_QUOTES, 'UTF-8' );
-        $support      = htmlspecialchars( $vars['{{support_email}}'], ENT_QUOTES, 'UTF-8' );
+        $display_name = \escHtml( $vars['{{display_name}}'] );
+        $changed_at   = \escHtml( $vars['{{changed_at}}'] );
+        $support      = \escHtml( $vars['{{support_email}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

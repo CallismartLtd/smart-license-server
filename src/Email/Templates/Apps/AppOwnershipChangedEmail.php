@@ -71,13 +71,13 @@ class AppOwnershipChangedEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars           = $this->variables();
-        $recipient_name = htmlspecialchars( $vars['{{recipient_name}}'], ENT_QUOTES, 'UTF-8' );
-        $app_name       = htmlspecialchars( $vars['{{app_name}}'],       ENT_QUOTES, 'UTF-8' );
-        $app_type       = htmlspecialchars( $vars['{{app_type}}'],       ENT_QUOTES, 'UTF-8' );
-        $app_slug       = htmlspecialchars( $vars['{{app_slug}}'],       ENT_QUOTES, 'UTF-8' );
-        $previous_owner = htmlspecialchars( $vars['{{previous_owner}}'], ENT_QUOTES, 'UTF-8' );
-        $new_owner      = htmlspecialchars( $vars['{{new_owner}}'],      ENT_QUOTES, 'UTF-8' );
-        $support        = htmlspecialchars( $vars['{{support_email}}'],  ENT_QUOTES, 'UTF-8' );
+        $recipient_name = \escHtml( $vars['{{recipient_name}}'] );
+        $app_name       = \escHtml( $vars['{{app_name}}'] );
+        $app_type       = \escHtml( $vars['{{app_type}}'] );
+        $app_slug       = \escHtml( $vars['{{app_slug}}'] );
+        $previous_owner = \escHtml( $vars['{{previous_owner}}'] );
+        $new_owner      = \escHtml( $vars['{{new_owner}}'] );
+        $support        = \escHtml( $vars['{{support_email}}'] );
 
         [ $banner_bg, $banner_border, $banner_text_color, $banner_icon, $banner_message ] =
             $this->is_new_owner

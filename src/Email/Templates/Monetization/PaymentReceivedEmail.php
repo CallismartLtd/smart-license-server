@@ -65,13 +65,13 @@ class PaymentReceivedEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars           = $this->variables();
-        $recipient_name = htmlspecialchars( $vars['{{recipient_name}}'], ENT_QUOTES, 'UTF-8' );
-        $amount         = htmlspecialchars( $vars['{{amount}}'],         ENT_QUOTES, 'UTF-8' );
-        $currency       = htmlspecialchars( $vars['{{currency}}'],       ENT_QUOTES, 'UTF-8' );
-        $transaction_id = htmlspecialchars( $vars['{{transaction_id}}'], ENT_QUOTES, 'UTF-8' );
-        $payment_date   = htmlspecialchars( $vars['{{payment_date}}'],   ENT_QUOTES, 'UTF-8' );
-        $description    = htmlspecialchars( $vars['{{description}}'],    ENT_QUOTES, 'UTF-8' );
-        $support        = htmlspecialchars( $vars['{{support_email}}'],  ENT_QUOTES, 'UTF-8' );
+        $recipient_name = \escHtml( $vars['{{recipient_name}}'] );
+        $amount         = \escHtml( $vars['{{amount}}'] );
+        $currency       = \escHtml( $vars['{{currency}}'] );
+        $transaction_id = \escHtml( $vars['{{transaction_id}}'] );
+        $payment_date   = \escHtml( $vars['{{payment_date}}'] );
+        $description    = \escHtml( $vars['{{description}}'] );
+        $support        = \escHtml( $vars['{{support_email}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

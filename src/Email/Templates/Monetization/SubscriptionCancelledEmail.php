@@ -65,12 +65,12 @@ class SubscriptionCancelledEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars           = $this->variables();
-        $recipient_name = htmlspecialchars( $vars['{{recipient_name}}'], ENT_QUOTES, 'UTF-8' );
-        $plan_name      = htmlspecialchars( $vars['{{plan_name}}'],      ENT_QUOTES, 'UTF-8' );
-        $cancelled_on   = htmlspecialchars( $vars['{{cancelled_on}}'],   ENT_QUOTES, 'UTF-8' );
-        $access_until   = htmlspecialchars( $vars['{{access_until}}'],   ENT_QUOTES, 'UTF-8' );
-        $reason         = htmlspecialchars( $vars['{{reason}}'],         ENT_QUOTES, 'UTF-8' );
-        $support        = htmlspecialchars( $vars['{{support_email}}'],  ENT_QUOTES, 'UTF-8' );
+        $recipient_name = \escHtml( $vars['{{recipient_name}}'] );
+        $plan_name      = \escHtml( $vars['{{plan_name}}'] );
+        $cancelled_on   = \escHtml( $vars['{{cancelled_on}}'] );
+        $access_until   = \escHtml( $vars['{{access_until}}'] );
+        $reason         = \escHtml( $vars['{{reason}}'] );
+        $support        = \escHtml( $vars['{{support_email}}'] );
 
         $cancelled_by = $this->self_cancelled
             ? 'You have cancelled your subscription.'

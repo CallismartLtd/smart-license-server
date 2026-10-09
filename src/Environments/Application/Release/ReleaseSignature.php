@@ -35,10 +35,6 @@ final class ReleaseSignature {
 	 * a key, add the new one, ship a release signed with the old key, then
 	 * sign with the new one and remove the old key in a later release.
 	 *
-	 * Keys may be labelled, so update logs name the key that signed a
-	 * package: array( 'release' => '...', 'recovery' => '...' ). Unlabelled
-	 * keys are reported by their base64 value.
-	 *
 	 * @var array<string|int, string>
 	 */
 	public const PUBLIC_KEYS = array(

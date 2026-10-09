@@ -292,7 +292,7 @@ final class CSRF {
 		return sprintf(
 			'<input type="hidden" name="%s" value="%s">',
 			self::FIELD,
-			htmlspecialchars( $this->token( $action ), ENT_QUOTES, 'UTF-8' )
+			\escHtml( $this->token( $action ) )
 		);
 	}
 
@@ -307,7 +307,7 @@ final class CSRF {
 	public function meta( string $action = '' ): string {
 		return sprintf(
 			'<meta name="csrf-token" content="%s">',
-			htmlspecialchars( $this->token( $action ), ENT_QUOTES, 'UTF-8' )
+			\escHtml( $this->token( $action ) )
 		);
 	}
 

@@ -607,7 +607,7 @@ final class DefaultPage {
 					}
 				</style>
 			</head>',
-			htmlspecialchars( $this->title, ENT_QUOTES, 'UTF-8' )
+			\escHtml( $this->title )
 		);
 	}
 
@@ -717,8 +717,8 @@ final class DefaultPage {
 
 				<p>%s</p>
 			</header>',
-			htmlspecialchars( $this->heading, ENT_QUOTES, 'UTF-8' ),
-			htmlspecialchars( $this->description, ENT_QUOTES, 'UTF-8' )
+			\escHtml( $this->heading ),
+			\escHtml( $this->description )
 		);
 	}
 
@@ -806,7 +806,7 @@ final class DefaultPage {
 					</div>
 				</div>
 			</div>',
-			htmlspecialchars( $php_version, ENT_QUOTES, 'UTF-8' )
+			\escHtml( $php_version )
 		);
 
 
@@ -963,7 +963,7 @@ final class DefaultPage {
 
 		return sprintf(
 			'<nav class="api-breadcrumb"><a href="/documentation/">Documentation</a><span class="api-breadcrumb-sep">/</span><span>%s</span></nav>',
-			htmlspecialchars( $this->humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
+			\escHtml( $this->humanize_category( $category ) )
 		);
 	}
 
@@ -1005,7 +1005,7 @@ final class DefaultPage {
 				'<a href="/documentation/%s/"%s>%s</a>',
 				rawurlencode( $category ),
 				$category === $active ? ' class="active"' : '',
-				htmlspecialchars( $this->humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
+				\escHtml( $this->humanize_category( $category ) )
 			);
 		}
 
@@ -1036,7 +1036,7 @@ final class DefaultPage {
 		return null !== $category
 			? sprintf(
 				'<div class="api-empty-state">No routes found in category "%s".</div>',
-				htmlspecialchars( $this->humanize_category( $category ), ENT_QUOTES, 'UTF-8' )
+				\escHtml( $this->humanize_category( $category ) )
 			)
 			: '<div class="api-empty-state">No routes are currently registered.</div>';
 	}
@@ -1077,7 +1077,7 @@ final class DefaultPage {
 				<h2>%s</h2>
 				%s
 			</section>',
-			htmlspecialchars( strtoupper( $namespace ), ENT_QUOTES, 'UTF-8' ),
+			\escHtml( strtoupper( $namespace ) ),
 			$category_sections
 		);
 	}
@@ -1098,7 +1098,7 @@ final class DefaultPage {
 				<h3>%s</h3>
 				<div class="grid">%s</div>
 			</div>',
-			htmlspecialchars( $this->humanize_category( $category ), ENT_QUOTES, 'UTF-8' ),
+			\escHtml( $this->humanize_category( $category ) ),
 			$route_cards
 		);
 	}
@@ -1125,7 +1125,7 @@ final class DefaultPage {
 				</div>
 				%s
 			</div>',
-			htmlspecialchars( $route['humanized_route'], ENT_QUOTES, 'UTF-8' ),
+			\escHtml( $route['humanized_route'] ),
 			$this->esc_js( $route['humanized_route'] ),
 			$method_blocks
 		);
@@ -1156,8 +1156,8 @@ final class DefaultPage {
 				%s
 			</div>',
 			strtolower( $method ),
-			htmlspecialchars( $method, ENT_QUOTES, 'UTF-8' ),
-			htmlspecialchars( $method_data['name'], ENT_QUOTES, 'UTF-8' ),
+			\escHtml( $method ),
+			\escHtml( $method_data['name'] ),
 			$args_html
 		);
 	}
@@ -1177,7 +1177,7 @@ final class DefaultPage {
 		$default_badge = null !== $arg['default']
 			? sprintf(
 				'<span class="api-argument-default">Default: %s</span>',
-				htmlspecialchars( (string) $arg['default'], ENT_QUOTES, 'UTF-8' )
+				\escHtml( (string) $arg['default'] )
 			)
 			: '';
 
@@ -1191,11 +1191,11 @@ final class DefaultPage {
 				</div>
 				<p class="api-argument-description">%s</p>
 			</div>',
-			htmlspecialchars( $arg['name'], ENT_QUOTES, 'UTF-8' ),
-			htmlspecialchars( $arg['type'], ENT_QUOTES, 'UTF-8' ),
+			\escHtml( $arg['name'] ),
+			\escHtml( $arg['type'] ),
 			$required_badge,
 			$default_badge,
-			htmlspecialchars( $arg['description'], ENT_QUOTES, 'UTF-8' )
+			\escHtml( $arg['description'] )
 		);
 	}
 

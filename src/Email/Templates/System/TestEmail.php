@@ -52,10 +52,10 @@ class TestEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars          = $this->variables();
-        $provider_name = htmlspecialchars( $vars['{{provider_name}}'],  ENT_QUOTES, 'UTF-8' );
-        $sent_at       = htmlspecialchars( $vars['{{sent_at}}'],        ENT_QUOTES, 'UTF-8' );
-        $app_name      = htmlspecialchars( $vars['{{app_name}}'],       ENT_QUOTES, 'UTF-8' );
-        $support       = htmlspecialchars( $vars['{{support_email}}'],  ENT_QUOTES, 'UTF-8' );
+        $provider_name = \escHtml( $vars['{{provider_name}}'] );
+        $sent_at       = \escHtml( $vars['{{sent_at}}'] );
+        $app_name      = \escHtml( $vars['{{app_name}}'] );
+        $support       = \escHtml( $vars['{{support_email}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

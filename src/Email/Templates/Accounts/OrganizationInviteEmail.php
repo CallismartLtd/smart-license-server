@@ -63,12 +63,12 @@ class OrganizationInviteEmail extends EmailTemplate {
 
     protected function body(): string {
         $vars              = $this->variables();
-        $invitee_name      = htmlspecialchars( $vars['{{invitee_name}}'],      ENT_QUOTES, 'UTF-8' );
-        $inviter_name      = htmlspecialchars( $vars['{{inviter_name}}'],      ENT_QUOTES, 'UTF-8' );
-        $organization_name = htmlspecialchars( $vars['{{organization_name}}'], ENT_QUOTES, 'UTF-8' );
-        $invite_url        = htmlspecialchars( $vars['{{invite_url}}'],        ENT_QUOTES, 'UTF-8' );
-        $expires_in        = htmlspecialchars( $vars['{{expires_in}}'],        ENT_QUOTES, 'UTF-8' );
-        $support           = htmlspecialchars( $vars['{{support_email}}'],     ENT_QUOTES, 'UTF-8' );
+        $invitee_name      = \escHtml( $vars['{{invitee_name}}'] );
+        $inviter_name      = \escHtml( $vars['{{inviter_name}}'] );
+        $organization_name = \escHtml( $vars['{{organization_name}}'] );
+        $invite_url        = \escHtml( $vars['{{invite_url}}'] );
+        $expires_in        = \escHtml( $vars['{{expires_in}}'] );
+        $support           = \escHtml( $vars['{{support_email}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

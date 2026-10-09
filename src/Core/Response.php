@@ -772,9 +772,9 @@ class Response {
 	protected function http_error_document( string $message, string $nonce ): string {
 		$code         = $this->get_status_code();
 		$reason       = $this->get_reason_phrase();
-		$safe_reason  = htmlspecialchars( $reason, ENT_QUOTES, 'UTF-8' );
-		$safe_message = htmlspecialchars( $message, ENT_QUOTES, 'UTF-8' );
-		$safe_nonce   = htmlspecialchars( $nonce, ENT_QUOTES, 'UTF-8' );
+		$safe_reason  = \escHtml( $reason );
+		$safe_message = \escHtml( $message );
+		$safe_nonce   = \escHtml( $nonce );
 
 		$is_server_error = $code >= 500;
 

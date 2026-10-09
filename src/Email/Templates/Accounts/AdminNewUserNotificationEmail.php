@@ -45,12 +45,12 @@ class AdminNewUserNotificationEmail extends EmailTemplate {
     protected function body(): string {
         $vars = $this->variables();
 
-        $display_name = htmlspecialchars( $vars['{{display_name}}'], ENT_QUOTES, 'UTF-8' );
-        $email        = htmlspecialchars( $vars['{{email}}'],        ENT_QUOTES, 'UTF-8' );
-        $ip           = htmlspecialchars( $vars['{{ip_address}}'],   ENT_QUOTES, 'UTF-8' );
-        $type         = htmlspecialchars( $vars['{{account_type}}'], ENT_QUOTES, 'UTF-8' );
-        $time         = htmlspecialchars( $vars['{{signup_time}}'],  ENT_QUOTES, 'UTF-8' );
-        $app_name     = htmlspecialchars( $vars['{{app_name}}'],     ENT_QUOTES, 'UTF-8' );
+        $display_name = \escHtml( $vars['{{display_name}}']  );
+        $email        = \escHtml( $vars['{{email}}'] );
+        $ip           = \escHtml( $vars['{{ip_address}}'] );
+        $type         = \escHtml( $vars['{{account_type}}'] );
+        $time         = \escHtml( $vars['{{signup_time}}'] );
+        $app_name     = \escHtml( $vars['{{app_name}}'] );
 
         return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
