@@ -31,6 +31,7 @@ use SmartLicenseServer\Environments\Application\Boot\InstallationState;
 use SmartLicenseServer\Environments\Application\Boot\MaintenanceFlag;
 use SmartLicenseServer\Background\Workers\CodeChangeDetector;
 use SmartLicenseServer\Background\Queue\JobDTO;
+use SmartLicenseServer\Background\BackgroundSetup;
 
 /**
  * The admin system operations page handler.
@@ -117,7 +118,8 @@ class ToolsPage implements AdminPageInterface {
 		protected UpdateService $updates,
 		protected InstallationState $state,
 		protected MaintenanceFlag $maintenance,
-		protected CodeChangeDetector $code_changes
+		protected CodeChangeDetector $code_changes,
+		protected BackgroundSetup $background
 	) {
 		$this->register_assets();
 	}
@@ -140,6 +142,11 @@ class ToolsPage implements AdminPageInterface {
 
 		$this->assets_manager->set_script_category(
 			'support-report',
+			AssetsManager::CATEGORY_ADMIN_DASHBOARD
+		);
+
+		$this->assets_manager->set_script_category(
+			'background-setup',
 			AssetsManager::CATEGORY_ADMIN_DASHBOARD
 		);
 	}
@@ -251,6 +258,36 @@ class ToolsPage implements AdminPageInterface {
 		$this->locator->render( 'admin.contents.system.updates', $vars );
 	}
 
+	/**
+	 * Render the background processing page.
+	 *
+	 * Shows what runs scheduled tasks and queued jobs now (from the
+	 * heartbeats), and the configuration of each way to run them, written
+	 * for this server. The mode picker only switches what is shown: which
+	 * mode runs is whatever actually calls the application.
+	 *
+	 * @param Request $request
+	 * @return void
+	 */
+	public function background_page( Request $request ) : void {
+		$modes    = $this->background->modes();
+		$detected = $this->background->detect();
+		$selected = (string) $request->get( 'mode', $this->background->suggested_mode() );
+		$selected = isset( $modes[ $selected ] ) ? $selected : $this->background->suggested_mode();
+		$configs  = [];
+
+		foreach ( \array_keys( $modes ) as $mode ) {
+			$configs[ $mode ] = $this->background->config( $mode );
+		}
+
+		$runners      = $this->background->runners();
+		$overview     = $this->background->overview( $detected );
+		$page_handler = $this;
+
+		$vars = \compact( 'modes', 'detected', 'selected', 'configs', 'runners', 'overview', 'page_handler', 'request' );
+		$this->locator->render( 'admin.contents.system.background', $vars );
+	}
+
 	/*
 	|--------------------
 	| MENU REGISTRATION
@@ -283,6 +320,12 @@ class ToolsPage implements AdminPageInterface {
 				'title'         => 'Queue Monitor',
 				'slug'          => 'queues',
 				'callback'      => [$this, 'queues_page'],
+				'visibility'    => true
+			],
+			[
+				'title'         => 'Background Processing',
+				'slug'          => 'background',
+				'callback'      => [$this, 'background_page'],
 				'visibility'    => true
 			],
 			[
@@ -319,6 +362,7 @@ class ToolsPage implements AdminPageInterface {
 		$tab    = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
 		$title  = match( $tab ) {
 			'queues'        => 'Queue Monitor',
+			'background'    => 'Background Processing',
 			'diagnostics'   => 'System Diagnostics',
 			'health'        => 'Site Health',
 			'updates'       => 'Updates',
@@ -1131,7 +1175,7 @@ class ToolsPage implements AdminPageInterface {
 	 * @return array<int, array{id: string, label: string, status: string, message: string, recommendation: ?string}>
 	 */
 	private function background_health_checks() : array {
-		$checks  = [];
+		$checks  = $this->background_setup_checks();
 		$delayed = $this->delayed_jobs( self::JOB_DELAY_WARNING_MINUTES );
 
 		if ( 0 === $delayed['count'] ) {
@@ -1147,7 +1191,7 @@ class ToolsPage implements AdminPageInterface {
 					$delayed['count'],
 					$this->format_time( $delayed['oldest'] )
 				),
-				'Check that the queue worker (`smliser queue work`) is running under a process supervisor such as systemd or supervisord. To clear the backlog now, use "Process queue" on the Queue Monitor page.'
+				'Tools > Background Processing shows what runs jobs on this site and how to set it up. To clear the backlog now, use "Process queue" on the Queue Monitor page.'
 			);
 		}
 
@@ -1176,12 +1220,98 @@ class ToolsPage implements AdminPageInterface {
 						\implode( ', ', \array_map( static fn( array $task ) : string => $task['label'], $overdue ) )
 					),
 				$all
-					? 'Add a cron entry that runs the scheduler every minute: `* * * * * cd ' . \rtrim( \SMLISER_ROOT, '/' ) . ' && php smliser schedule run >> /dev/null 2>&1`. To run the due tasks now, use "Run due tasks" on the Schedules page.'
+					? 'Set up background processing in Tools > Background Processing. To run the due tasks now, use "Run due tasks" on the Schedules page.'
 					: 'Open the Schedules page: a task that keeps failing or running too long can hold the others back. "Run due tasks" runs them now.'
 			);
 		}
 
 		return $checks;
+	}
+
+	/**
+	 * Whether anything runs background work, from the heartbeats, and a
+	 * recommendation when it runs from the cron URL.
+	 *
+	 * @return array<int, array{id: string, label: string, status: string, message: string, recommendation: ?string}>
+	 */
+	private function background_setup_checks() : array {
+		$detected = $this->background->detect();
+		$last     = $detected['last'];
+		$page     = 'Tools > Background Processing';
+
+		if ( null === $detected['mode'] ) {
+			if ( null === $last ) {
+				return [ $this->make_check(
+					'background_processing',
+					'Background Processing',
+					'critical',
+					'Background processing has never run on this site. Update checks, security updates, license expiry, emails and clean-up wait until an administrator runs them.',
+					\sprintf( 'Set it up in %s. On hosting without cron jobs, an external cron service calling the cron URL every 5 minutes is enough.', $page )
+				) ];
+			}
+
+			if ( $detected['worker'] ) {
+				return [ $this->make_check(
+					'background_processing',
+					'Background Processing',
+					'warning',
+					'The queue worker is running, but nothing runs the scheduled tasks, so update checks, license expiry and clean-up do not happen.',
+					\sprintf( 'Add the scheduler cron job shown in %s under "Server cron and queue worker".', $page )
+				) ];
+			}
+
+			return [ $this->make_check(
+				'background_processing',
+				'Background Processing',
+				'critical',
+				\sprintf(
+					'Background processing stopped: it last ran %s ago (%s). Scheduled tasks and queued jobs are waiting.',
+					BackgroundSetup::describe_age( $last['age'] ),
+					$this->runner_label( $last['source'] )
+				),
+				\sprintf( 'Check that the cron job or external service still runs. %s shows each runner\'s last run and the configuration for this server.', $page )
+			) ];
+		}
+
+		$source = $this->runner_label( $last['source'] ?? '' );
+		$checks = [ $this->make_check(
+			'background_processing',
+			'Background Processing',
+			'pass',
+			\sprintf(
+				'%s runs background work; it last ran %s ago.',
+				$this->background->modes()[ $detected['mode'] ]['label'] ?? $source,
+				BackgroundSetup::describe_age( (int) ( $last['age'] ?? 0 ) )
+			)
+		) ];
+
+		if ( BackgroundSetup::MODE_URL === $detected['mode'] ) {
+			$checks[] = $this->make_check(
+				'background_alternative',
+				'Background Processing Reliability',
+				'info',
+				'Background work runs only when the external cron service calls the cron URL. If that service stops, so do updates and emails, and each call is limited like any web request.',
+				\sprintf( 'If your hosting offers cron jobs, use the hosting panel cron job in %s instead; on a VPS, use cron with a queue worker.', $page )
+			);
+		}
+
+		return $checks;
+	}
+
+	/**
+	 * A readable name for a heartbeat source.
+	 *
+	 * @param string $source One of BackgroundStatus::SOURCE_*.
+	 * @return string
+	 */
+	private function runner_label( string $source ) : string {
+		foreach ( $this->background->runners() as $runner ) {
+			if ( $runner['source'] === $source ) {
+				return $runner['label'];
+			}
+		}
+
+		return $source;
 	}
 
 	/**
@@ -1292,6 +1422,30 @@ class ToolsPage implements AdminPageInterface {
 	 */
 	public function diagnostics_data( Request $request ) : Response {
 		return Response::json( data: [ 'diagnostics' => $this->collect_diagnostics() ], status_code: 200 );
+	}
+
+	/**
+	 * GET background/status
+	 *
+	 * What runs background work now, for the Background Processing page's
+	 * live verification (background-setup.js polls it).
+	 *
+	 * Response: { mode, overview: { tone, icon, title, message }, runners: [ runner ] }
+	 *
+	 * @param Request $request
+	 * @return Response
+	 */
+	public function background_status_data( Request $request ) : Response {
+		$detected = $this->background->detect();
+
+		return Response::json(
+			data: [
+				'mode'     => $detected['mode'],
+				'overview' => $this->background->overview( $detected ),
+				'runners'  => $this->background->runners(),
+			],
+			status_code: 200
+		);
 	}
 
 	/**

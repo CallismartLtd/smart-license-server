@@ -377,7 +377,7 @@ final class UpdateRunner {
 			return array( 'exit_code' => -1, 'output' => 'The finish process could not be started.' );
 		}
 
-		fclose( $pipes[0] );
+		isset( $pipes[0] ) && fclose( $pipes[0] );
 
 		$output = '';
 

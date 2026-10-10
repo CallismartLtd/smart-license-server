@@ -20,6 +20,7 @@ use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\SignalInfo;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Queue\JobDTO;
+use SmartLicenseServer\Background\BackgroundStatus;
 use SmartLicenseServer\Background\Workers\CodeChangeDetector;
 use SmartLicenseServer\Background\Workers\QueueWorker;
 
@@ -48,6 +49,13 @@ class QueueCommand extends AbstractCommand {
     private const UPDATE_POLL_SECONDS = 2;
 
     /**
+     * Seconds between two worker heartbeats.
+     *
+     * @var int
+     */
+    private const HEARTBEAT_SECONDS = 60;
+
+    /**
      * Set by the signal handler, so a wait for an update can be interrupted too.
      *
      * @var bool
@@ -61,6 +69,7 @@ class QueueCommand extends AbstractCommand {
      * @param QueueWorker        $worker         Queue worker engine instance.
      * @param SignalManager      $signal_manager Process OS signal coordinator.
      * @param CodeChangeDetector $code_changes   Tells the worker when the application is updated.
+     * @param BackgroundStatus   $status         Records that the worker is alive.
      * @param InputInterface     $io             CLI input interface stream.
      * @param OutputInterface    $output         CLI output interface stream.
      * @param ScriptName         $script_name    Executable binary alias context.
@@ -70,6 +79,7 @@ class QueueCommand extends AbstractCommand {
         protected QueueWorker $worker,
         protected SignalManager $signal_manager,
         protected CodeChangeDetector $code_changes,
+        protected BackgroundStatus $status,
         InputInterface $io,
         OutputInterface $output,
         ScriptName $script_name
@@ -230,10 +240,17 @@ class QueueCommand extends AbstractCommand {
             $this->signal_manager->on( 'SIGHUP', $stop_handler );
         }
 
-        // Checked between jobs and every second while idle.
-        $reason = null;
+        // Checked between jobs and every second while idle; also the
+        // worker's heartbeat, at most once a minute.
+        $reason    = null;
+        $last_beat = 0;
         $this->worker->set_stop_checker(
-            function () use ( &$reason ): bool {
+            function () use ( &$reason, &$last_beat, $time_budget ): bool {
+                if ( null === $time_budget && time() - $last_beat >= self::HEARTBEAT_SECONDS ) {
+                    $last_beat = time();
+                    $this->status->record( BackgroundStatus::SOURCE_WORKER, [ 'pid' => getmypid() ] );
+                }
+
                 $reason = $this->code_changes->reason();
 
                 return null !== $reason;

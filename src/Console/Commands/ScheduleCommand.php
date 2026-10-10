@@ -16,6 +16,7 @@ use SmartLicenseServer\Console\Commands\AbstractCommand;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\ScriptName;
+use SmartLicenseServer\Background\BackgroundStatus;
 use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Background\Workers\CodeChangeDetector;
 
@@ -29,6 +30,7 @@ class ScheduleCommand extends AbstractCommand {
      *
      * @param Scheduler          $scheduler    The task scheduler.
      * @param CodeChangeDetector $code_changes Tells when the application is being updated.
+     * @param BackgroundStatus   $status       Records that the scheduler ran.
      * @param InputInterface     $io           CLI input interface stream.
      * @param OutputInterface    $output       CLI output interface stream.
      * @param ScriptName         $script_name  Executable binary alias context.
@@ -36,6 +38,7 @@ class ScheduleCommand extends AbstractCommand {
     public function __construct(
         protected Scheduler $scheduler,
         protected CodeChangeDetector $code_changes,
+        protected BackgroundStatus $status,
         InputInterface $io,
         OutputInterface $output,
         ScriptName $script_name
@@ -118,6 +121,7 @@ class ScheduleCommand extends AbstractCommand {
         }
 
         if ( empty( $tasks_to_run ) ) {
+            $this->status->record( BackgroundStatus::SOURCE_SCHEDULE_RUN, [ 'tasks' => 0, 'failed' => 0 ] );
             $this->output->warning( 'No tasks were due for execution.' );
             return 0;
         }
@@ -138,6 +142,10 @@ class ScheduleCommand extends AbstractCommand {
 
             $run_count++;
         }
+
+        $failed = count( array_filter( $rows, static fn( array $row ) : bool => 'FAILED' === $row[2] ) );
+
+        $this->status->record( BackgroundStatus::SOURCE_SCHEDULE_RUN, [ 'tasks' => count( $rows ), 'failed' => $failed ] );
 
         if ( empty( $rows ) ) {
             return 0;

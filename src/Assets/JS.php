@@ -180,6 +180,13 @@ final class JS {
                 'version'       => SMLISER_VER,
                 'footer'        => true,
             ],
+
+            'background-setup'   => [
+                'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/background-setup%s.js', $suffix ) ),
+                'dependencies'  => ['core-admin'],
+                'version'       => SMLISER_VER,
+                'footer'        => true,
+            ],
             'support-report'   => [
                 'url'           => $this->urlmanager->assets_url( sprintf( 'js/admin/support-report%s.js', $suffix ) ),
                 'dependencies'  => ['core-admin'],

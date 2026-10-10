@@ -2454,3 +2454,67 @@ input.smliser_toggle-switch-input {
         flex: 1 1 40%;
     }
 }
+
+/*
+|-------------------------------
+| Background Processing page
+|-------------------------------
+| Append to the admin stylesheet.
+*/
+
+/* Panels and badges keep their display rule otherwise, which overrides [hidden]. */
+#smliser-background-setup [data-mode-config][hidden],
+#smliser-background-setup .smliser-bg-badge[hidden] {
+	display: none !important;
+}
+
+#smliser-background-setup .smliser-health-check-header {
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.smliser-bg-badge {
+	display: inline-block;
+	padding: 1px 8px;
+	border-radius: 999px;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 18px;
+	background: rgba( 127, 127, 127, 0.15 );
+	opacity: 0.85;
+}
+
+.smliser-bg-badge--running {
+	background: rgba( 34, 160, 90, 0.18 );
+	color: #1b8a4c;
+	opacity: 1;
+}
+
+.smliser-bg-steps {
+	list-style: decimal;
+	padding-left: 20px;
+}
+
+.smliser-bg-snippet {
+	position: relative;
+	margin: 6px 0;
+}
+
+.smliser-bg-snippet pre {
+	margin: 0;
+	padding: 10px 48px 10px 12px;
+	border-radius: 6px;
+	background: rgba( 127, 127, 127, 0.1 );
+	font-size: 12px;
+	line-height: 1.6;
+	white-space: pre-wrap;
+	word-break: break-all;
+	overflow-x: auto;
+}
+
+.smliser-bg-snippet [data-copy-snippet] {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	padding: 4px 8px;
+}

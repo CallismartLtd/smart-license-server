@@ -14,7 +14,12 @@ namespace SmartLicenseServer\Environments\Application;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
 use Callismart\Http\HttpClient;
+use SmartLicenseServer\Background\BackgroundRunner;
+use SmartLicenseServer\Background\BackgroundSetup;
+use SmartLicenseServer\Background\BackgroundStatus;
 use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\Background\Schedule\Scheduler;
+use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Background\Workers\CodeChangeDetector;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Contracts\URLManagerInterface;
@@ -35,6 +40,8 @@ use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\Environments\Application\Boot\CLIBootstrapper;
+use SmartLicenseServer\Environments\Application\Boot\CronBootstrapper;
+use SmartLicenseServer\Environments\Application\Web\CronExecutionHandler;
 use SmartLicenseServer\Environments\Application\Boot\WebBootstrapper;
 use SmartLicenseServer\Environments\Application\Middlewares\CallableResolver;
 use SmartLicenseServer\Environments\Application\Release\ReleaseSignature;
@@ -77,6 +84,13 @@ class ApplicationEnvironment extends Environment {
      * @var BootModeResolver
      */
     protected BootModeResolver $bootModeResolver;
+
+    /**
+     * Whether this request is for the public cron URL.
+     *
+     * @var bool
+     */
+    protected bool $cronRequest = false;
 
     /**
      * {@inheritdoc}
@@ -199,6 +213,33 @@ class ApplicationEnvironment extends Environment {
                 )
         );
 
+        $this->container->singleton(
+            BackgroundStatus::class,
+            fn ( Container $c ) : BackgroundStatus => BackgroundStatus::from_runtime( $c->get( FileSystem::class ) )
+        );
+
+        $this->container->singleton(
+            BackgroundRunner::class,
+            fn ( Container $c ) : BackgroundRunner =>
+                new BackgroundRunner(
+                    $c->get( Scheduler::class ),
+                    $c->get( QueueWorker::class ),
+                    $c->get( CodeChangeDetector::class ),
+                    $c->get( BackgroundStatus::class ),
+                    rtrim( \SMLISER_STORAGE_DIR, '/\\' ) . '/background.lock'
+                )
+        );
+
+        $this->container->singleton(
+            BackgroundSetup::class,
+            fn ( Container $c ) : BackgroundSetup =>
+                new BackgroundSetup(
+                    $c->get( BackgroundStatus::class ),
+                    \SMLISER_ROOT,
+                    \url()->append_path( CronExecutionHandler::PATH )
+                )
+        );
+
         $this->finishPendingUpdate();
         
         $this->container->alias(
@@ -214,14 +255,18 @@ class ApplicationEnvironment extends Environment {
         /*
          * Initialize BootManager and attach context bootstrappers.
          *
-         * During downtime the web bootstrapper is replaced, so downtime
+         * The cron URL and downtime replace the web bootstrapper, so those
          * requests set up no routes, sessions or identity services.
          * The CLI bootstrapper is always attached.
          */
         $this->bootManager = new BootManager( $this->container );
         $this->bootManager->add( new CLIBootstrapper() );
 
-        if ( $this->bootMode()->blocks_web() ) {
+        $this->cronRequest = ! \is_cli() && CronExecutionHandler::matches( url() );
+
+        if ( $this->cronRequest ) {
+            $this->bootManager->add( new CronBootstrapper( $this->bootModeResolver ) );
+        } elseif ( $this->bootMode()->blocks_web() ) {
             $this->bootManager->add( new DowntimeBootstrapper( $this->bootModeResolver ) );
         } else {
             $this->bootManager->add( new WebBootstrapper() );
@@ -366,9 +411,12 @@ class ApplicationEnvironment extends Environment {
         $this->bootManager->bootAll();
 
         /*
-         * Trigger context identity authentication.
+         * Trigger context identity authentication. The cron URL has no
+         * identity: it is public and only runs work that is due.
          */
-        $this->container->get( IdentityService::class )->authenticate();
+        if ( ! $this->cronRequest ) {
+            $this->container->get( IdentityService::class )->authenticate();
+        }
     }
 
     /**

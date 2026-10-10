@@ -42,6 +42,7 @@ use SmartLicenseServer\Console\Commands\Apps\PluginCommand;
 use SmartLicenseServer\Console\Commands\Apps\SoftwareCommand;
 use SmartLicenseServer\Console\Commands\Apps\ThemeCommand;
 use SmartLicenseServer\Console\Commands\CacheCommand;
+use SmartLicenseServer\Console\Commands\CronCommand;
 use SmartLicenseServer\Console\Commands\Installer;
 use SmartLicenseServer\Console\Commands\MigrateCommand;
 use SmartLicenseServer\Console\Commands\QueueCommand;
@@ -50,7 +51,6 @@ use SmartLicenseServer\Console\Commands\SettingsCommand;
 use SmartLicenseServer\Console\Commands\TestCommand;
 use SmartLicenseServer\Console\Commands\Update;
 use SmartLicenseServer\Console\Commands\WhoAmI;
-use SmartLicenseServer\Console\Commands\WorkScheduleCommand;
 use SmartLicenseServer\Console\Contracts\CommandInterface;
 use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Core\Container\Container;
@@ -73,7 +73,6 @@ class CommandRegistry extends AbstractRegistry {
     private array $core_commands  = [
         WhoAmI::class,
         ScheduleCommand::class,
-        WorkScheduleCommand::class,
         MigrateCommand::class,
         Installer::class,
         CacheCommand::class,
@@ -84,7 +83,8 @@ class CommandRegistry extends AbstractRegistry {
         SettingsCommand::class,
         TestCommand::class,
         QueueCommand::class,
-        Update::class
+        Update::class,
+        CronCommand::class
     ];
 
     /*

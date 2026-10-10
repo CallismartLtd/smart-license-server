@@ -460,6 +460,11 @@ final class HttpDispatcher {
 									handler: [ BackgroundManagement::class, $method ]
 								);
 							}
+
+							$this->router->get(
+								pattern: 'status',
+								handler: [ ToolsPage::class, 'background_status_data' ]
+							);
 						}
 					);
                     
