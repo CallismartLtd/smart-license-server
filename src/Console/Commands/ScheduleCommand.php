@@ -16,17 +16,26 @@ use SmartLicenseServer\Console\Commands\AbstractCommand;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\ScriptName;
-use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
 use SmartLicenseServer\Background\Schedule\Scheduler;
+use SmartLicenseServer\Background\Workers\CodeChangeDetector;
 
 /**
  * Manage and execute scheduled tasks from the CLI.
  */
 class ScheduleCommand extends AbstractCommand {
-    use CLIUtilsTrait;
 
+    /**
+     * Constructor.
+     *
+     * @param Scheduler          $scheduler    The task scheduler.
+     * @param CodeChangeDetector $code_changes Tells when the application is being updated.
+     * @param InputInterface     $io           CLI input interface stream.
+     * @param OutputInterface    $output       CLI output interface stream.
+     * @param ScriptName         $script_name  Executable binary alias context.
+     */
     public function __construct(
         protected Scheduler $scheduler,
+        protected CodeChangeDetector $code_changes,
         InputInterface $io,
         OutputInterface $output,
         ScriptName $script_name
@@ -52,6 +61,9 @@ class ScheduleCommand extends AbstractCommand {
             '',
             'Options:',
             '  --force           Force run all registered tasks immediately regardless of schedule.',
+            '',
+            'Nothing runs while the application is being updated, or while an update',
+            'waits for its finish step; due tasks stay due and run on the next call.',
             '',
             'Examples:',
             "  {$script_name} schedule run",
@@ -79,11 +91,22 @@ class ScheduleCommand extends AbstractCommand {
     /**
      * Evaluate and execute tasks that are due (or forced).
      *
+     * Runs nothing while an update swaps files (the code on disk is half
+     * replaced) or waits for its finish step (the database may not match
+     * the code yet). The check is repeated before every task, so a run
+     * that overlaps the start of an update stops there. Skipped tasks are
+     * not recorded as run, so they stay due for the next call.
+     *
      * @param CommandInput $input
      * @return int
      */
     public function handle_run( CommandInput $input ): int {
         $force = (bool) $input->get_option( 'force', false );
+
+        if ( null !== ( $reason = $this->code_changes->reason() ) ) {
+            $this->output->warning( $this->skip_message( $reason, 'No scheduled tasks were run.' ) );
+            return 0;
+        }
 
         $this->start_timer();
         $this->output->info( 'Evaluating scheduled tasks...' );
@@ -103,19 +126,21 @@ class ScheduleCommand extends AbstractCommand {
         $run_count = 0;
 
         foreach ( $tasks_to_run as $id => $task ) {
-            try {
-
-                $task->execute();
-                $rows[] = [ $id, $task->get_label(), 'PASSED', '—' ];
-
-                $this->scheduler->record_task_ran( $id, $task );
-
-            } catch ( \Throwable $e ) {
-                $rows[] = [ $id, $task->get_label(), 'FAILED', $e->getMessage() ];
-                $this->scheduler->record_task_failed( $id, $e->getMessage() );
+            if ( null !== ( $reason = $this->code_changes->reason() ) ) {
+                $this->output->warning( $this->skip_message( $reason, 'The remaining tasks stay due for the next run.' ) );
+                break;
             }
 
+            $error  = $this->scheduler->run_task( $id );
+            $rows[] = null === $error
+                ? [ $id, $task->get_label(), 'PASSED', '—' ]
+                : [ $id, $task->get_label(), 'FAILED', $error ];
+
             $run_count++;
+        }
+
+        if ( empty( $rows ) ) {
+            return 0;
         }
 
         $this->output->newline();
@@ -127,6 +152,25 @@ class ScheduleCommand extends AbstractCommand {
         );
 
         return 0;
+    }
+
+    /**
+     * Why tasks are not run while the application is updated.
+     *
+     * @param string $reason One of the CodeChangeDetector::REASON_* constants.
+     * @param string $then   What happens to the tasks.
+     * @return string
+     */
+    private function skip_message( string $reason, string $then ): string {
+        return CodeChangeDetector::REASON_UPDATING === $reason
+            ? sprintf( 'The application is being updated. %s', $then )
+            : sprintf(
+                'This process runs version %s but state.json records %s: an update has not finished. Run `%s update finish` (or roll back). %s',
+                $this->code_changes->running_version(),
+                $this->code_changes->installed_version() ?? 'another version',
+                $this->script_name,
+                $then
+            );
     }
 
     /**

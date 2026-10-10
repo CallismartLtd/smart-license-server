@@ -22,8 +22,9 @@
 	const SEVERITY    = { pass: 0, info: 1, warning: 2, critical: 3 };
 
 	/**
-	 * IDs and labels must match SystemManagement's check constants — they
-	 * are used for the row shown when a task's request fails outright.
+	 * IDs and labels must match the server's checks (SystemManagement's
+	 * constants, ToolsPage::database_check_data()) — they are used for the
+	 * row shown when a task's request fails outright.
 	 */
 	const TASKS = [
 		{
@@ -35,6 +36,11 @@
 			id: 'cache_persistence',
 			label: 'Cache Persistence',
 			run: runCachePersistence,
+		},
+		{
+			id: 'database_connection',
+			label: 'Database Connection',
+			run: () => requestChecks( 'database' ),
 		},
 	];
 

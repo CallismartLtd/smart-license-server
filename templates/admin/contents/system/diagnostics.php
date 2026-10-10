@@ -4,6 +4,7 @@
  *
  * @author Callistus Nwachukwu
  * @var array<string, array<string, string>> $diagnostics
+ * @var array{product: string, version: string, schema: string, site: string} $report_meta Support report header.
  * @var SmartLicenseServer\Admin\ContentHandlers\ToolsPage $page_handler
  * @var SmartLicenseServer\Core\Request $request
  */
@@ -13,10 +14,14 @@ use SmartLicenseServer\Utils\Format;
 $menu_args = $page_handler->get_top_menu_args( $request );
 
 $section_icons = [
-    'Server'             => 'ti ti-server-2',
-    'Database'                => 'ti ti-database',
-    'Directories'             => 'ti ti-folder',
-    'Background Processing'   => 'ti ti-list-check',
+    'Server'                => 'ti ti-server-2',
+    'Installation'          => 'ti ti-package',
+    'Updates'               => 'ti ti-refresh',
+    'Required Extensions'   => 'ti ti-puzzle',
+    'Loaded Extensions'     => 'ti ti-plug',
+    'Database'              => 'ti ti-database',
+    'Directories'           => 'ti ti-folder',
+    'Background Processing' => 'ti ti-list-check',
 ];
 ?>
 <div class="smliser-admin-page">
@@ -27,6 +32,19 @@ $section_icons = [
             <p>No diagnostic data available.</p>
         </div>
     <?php else : ?>
+        <div class="smliser-tools-actions">
+            <button
+                type="button"
+                class="smliser-btn smliser-btn-glass"
+                data-support-report="diagnostics"
+                data-report-meta="<?php echo escAttr( (string) \json_encode( $report_meta ) ); ?>"
+            ><i class="ti ti-clipboard-copy"></i> Copy diagnostics</button>
+            <span class="smliser-section-description">
+                <i class="ti ti-info-circle"></i>
+                Copies everything on this page as plain text, for a support request. It contains no passwords or keys.
+            </span>
+        </div>
+
         <div class="smliser-diagnostics-grid" id="smliser-diagnostics-grid">
             <?php foreach ( $diagnostics as $section_title => $rows ) : ?>
                 <details class="smliser-diagnostics-panel" id="<?php echo escAttr( Format::slugify( $section_title ) ); ?>">
@@ -58,4 +76,4 @@ $section_icons = [
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
-</div
+</div>

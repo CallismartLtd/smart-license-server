@@ -2,9 +2,11 @@
  * Updates page: actions and progress.
  *
  * Buttons with data-update-action POST to admin/json/update/<action>; the
- * automatic updates form posts to update/auto. After an action the page is
- * reloaded, so the server-rendered template stays the single source of what
- * is shown.
+ * automatic updates form posts to update/auto. Install and rollback run in
+ * the request. After an action the page is reloaded, so the
+ * server-rendered template stays the single source of what is shown; that
+ * reload also finishes an installed update on servers that cannot finish
+ * it in a new process.
  *
  * While an install or rollback is queued or running (data-busy="1"), the
  * page polls update/status and reloads when it has ended. During the swap
@@ -18,6 +20,7 @@
 	const POLL_GIVE_UP_MS = 20 * 60 * 1000;
 	const TIMEOUT_MS      = 60000;
 	const DRY_RUN_MS      = 5 * 60 * 1000;
+	const LONG_ACTIONS    = [ 'dry-run', 'install', 'rollback' ]; // Run in the request; may download.
 	const SPINNER         = 'ti ti-loader-2 smliser-health-spin';
 
 	document.addEventListener( 'DOMContentLoaded', () => {
@@ -70,12 +73,12 @@
 		const restore = setBusy( root, button );
 
 		try {
-			const response = await post( action, body, 'dry-run' === action ? DRY_RUN_MS : TIMEOUT_MS );
+			const response = await post( action, body, LONG_ACTIONS.includes( action ) ? DRY_RUN_MS : TIMEOUT_MS );
 
 			done( response?.data?.message || 'Done.', 'success' );
 		} catch ( error ) {
 			restore();
-			await SmliserModal.error( error?.message || 'The request failed.', 'Error');
+			SmliserToast.show( error?.message || 'The request failed.', { type: 'error' } );
 		}
 	}
 
@@ -94,10 +97,10 @@
 			const response = await post( 'auto', new FormData( form ), TIMEOUT_MS );
 
 			restore();
-			await SmliserModal.success( response?.data?.message || 'Saved.' );
+			SmliserToast.show( response?.data?.message || 'Saved.', { type: 'success' } );
 		} catch ( error ) {
 			restore();
-			await SmliserModal.error( error?.message || 'The setting could not be saved.', 'Error' );
+			SmliserToast.show( error?.message || 'The setting could not be saved.', { type: 'error' } );
 		}
 	}
 
@@ -107,9 +110,9 @@
 	 * @param {string} message
 	 * @param {string} type
 	 */
-	async function done( message, type ) {
-		await SmliserModal.info( message, type );
-		window.location.reload();
+	function done( message, type ) {
+		SmliserToast.show( message, { type } );
+		setTimeout( () => window.location.reload(), 1500 );
 	}
 
 	/*
@@ -126,7 +129,7 @@
 	 */
 	async function poll( started ) {
 		if ( Date.now() - started > POLL_GIVE_UP_MS ) {
-			await SmliserModal.warning( 'The update has not finished after 20 minutes. Check that the queue worker is running, or run `smliser update status` from the console.' );
+			SmliserToast.show( 'The update has not finished after 20 minutes. Check that the queue worker is running, or run `smliser update status` from the console.', { type: 'warning' } );
 			return;
 		}
 

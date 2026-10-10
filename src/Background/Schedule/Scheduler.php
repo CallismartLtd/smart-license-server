@@ -186,24 +186,41 @@ class Scheduler {
 	public function run_due_tasks(): array {
 		$results = [];
 
-		foreach ( $this->tasks as $id => $task ) {
-			$state = $this->get_task_state( $id );
-
-			if ( ! $task->is_due( $state['last_ran_at'] ) ) {
-				continue;
-			}
-
-			try {
-				$task->execute();
-				$this->record_task_ran( $id, $task );
-				$results[ $id ] = true;
-			} catch ( \Throwable $e ) {
-				$this->record_task_failed( $id, $e->getMessage() );
-				$results[ $id ] = false;
-			}
+		foreach ( $this->get_due_tasks() as $id => $task ) {
+			$results[ $id ] = null === $this->run_task( $id );
 		}
 
 		return $results;
+	}
+
+	/**
+	 * Run one registered task now, whether or not it is due, and record the outcome.
+	 *
+	 * Shared by run_due_tasks(), the `schedule run` command and the admin
+	 * Schedules page, so a task runs and is recorded the same way everywhere.
+	 *
+	 * @param string $task_id
+	 * @return string|null Null on success; the error message on failure.
+	 * @throws \InvalidArgumentException When no task has this ID.
+	 */
+	public function run_task( string $task_id ): ?string {
+		$task = $this->get_task( $task_id );
+
+		if ( null === $task ) {
+			throw new \InvalidArgumentException( sprintf( 'No scheduled task "%s" is registered.', $task_id ) );
+		}
+
+		try {
+			$task->execute();
+		} catch ( \Throwable $e ) {
+			$this->record_task_failed( $task_id, $e->getMessage() );
+
+			return $e->getMessage();
+		}
+
+		$this->record_task_ran( $task_id, $task );
+
+		return null;
 	}
 
 	/*

@@ -61,6 +61,42 @@ if ( 'failed' === $request->query( 'section' ) ) {
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>
 
+    <div class="smliser-tools-actions" id="smliser-background-actions">
+        <?php if ( ! $is_failed ) : ?>
+            <button
+                type="button"
+                class="smliser-btn smliser-btn-glass"
+                data-bg-action="queue/process"
+                data-confirm="Process queued jobs now, for up to 20 seconds, in this request?"
+            ><i class="ti ti-player-play"></i> Process queue</button>
+            <button
+                type="button"
+                class="smliser-btn smliser-btn-glass"
+                data-bg-action="queue/release-stale"
+                data-confirm="Put jobs that have been running for more than 5 minutes back in the queue? Only do this if no worker is still running them."
+            ><i class="ti ti-refresh-alert"></i> Release stale jobs</button>
+            <button
+                type="button"
+                class="smliser-btn smliser-btn-glass"
+                data-bg-action="queue/purge"
+                data-days="7"
+                data-confirm="Delete completed jobs older than 7 days?"
+            ><i class="ti ti-trash"></i> Purge completed</button>
+        <?php else : ?>
+            <button
+                type="button"
+                class="smliser-btn smliser-btn-glass"
+                data-bg-action="queue/purge-failed"
+                data-days="<?php echo escAttr( (string) $log_rentention ); ?>"
+                data-confirm="<?php echo escAttr( sprintf( 'Delete failed job records older than %d days? They are the audit trail of past failures.', $log_rentention ) ); ?>"
+            ><i class="ti ti-trash"></i> Purge failed records</button>
+        <?php endif; ?>
+        <span class="smliser-section-description">
+            <i class="ti ti-info-circle"></i>
+            Jobs normally run in the queue worker (`queue work`). "Process queue" runs them in this request; it is refused while an update is queued or being installed.
+        </span>
+    </div>
+
     <div class="smliser-table-wrapper">
         <?php if( ! $is_failed ) : ?>
             <ul class="subsubsub smliser-status-filter">

@@ -727,7 +727,7 @@ final class AssetsManager {
 		if ( ! isset( $this->scripts[ $handle ] ) ) {
 			throw new InvalidArgumentException(
 				\sprintf(
-					'The JavaScript asset %s has not been registered',
+					'The JavaScript asset "%s" has not been registered',
 					$handle
 				)
 			);

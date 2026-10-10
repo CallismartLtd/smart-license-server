@@ -7,6 +7,7 @@
  *
  * @author Callistus Nwachukwu
  * @var array<int, array{id: string, label: string, status: string, message: string, recommendation: ?string}> $checks
+ * @var array{product: string, version: string, schema: string, site: string} $report_meta Support report header.
  * @var SmartLicenseServer\Admin\ContentHandlers\ToolsPage $page_handler
  * @var SmartLicenseServer\Core\Request $request
  */
@@ -116,6 +117,19 @@ $async_config = [
 			<p>No health checks available.</p>
 		</div>
 	<?php else : ?>
+		<div class="smliser-tools-actions">
+			<button
+				type="button"
+				class="smliser-btn smliser-btn-glass"
+				data-support-report="health"
+				data-report-meta="<?php echo escAttr( (string) \json_encode( $report_meta ) ); ?>"
+			><i class="ti ti-clipboard-copy"></i> Copy report for support</button>
+			<span class="smliser-section-description">
+				<i class="ti ti-info-circle"></i>
+				Copies these checks and the System Diagnostics as plain text to paste into a support request. It contains no passwords or keys.
+			</span>
+		</div>
+
 		<div class="smliser-health-overview smliser-health-tone--<?php echo escAttr( $overall_status ); ?>" id="smliser-health-overview">
 			<span class="smliser-health-overview-icon">
 				<i class="<?php echo escAttr( $overall['icon'] ); ?>"></i>

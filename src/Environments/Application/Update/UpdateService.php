@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Environments\Application\Update;
 use SmartLicenseServer\Background\Jobs\Updates\UpdateNotificationJob;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
+use SmartLicenseServer\Core\PhpRuntime;
 use SmartLicenseServer\Environments\Application\Boot\InstallationState;
 use SmartLicenseServer\Environments\Application\Release\ReleaseManifest;
 use SmartLicenseServer\Environments\Application\Release\ReleaseSignature;
@@ -75,6 +76,20 @@ final class UpdateService {
 	 * @var int
 	 */
 	public const MIN_FREE_BYTES = 209715200;
+
+	/**
+	 * Seconds a web request must be allowed to run to update (download, verify, extract).
+	 *
+	 * @var int
+	 */
+	public const MIN_WEB_SECONDS = 120;
+
+	/**
+	 * Memory a web request must be allowed to update, in bytes.
+	 *
+	 * @var int
+	 */
+	public const MIN_WEB_MEMORY = 134217728;
 
 	/**
 	 * Most characters of update output kept in a failure email (the end is kept).
@@ -161,10 +176,26 @@ final class UpdateService {
 	}
 
 	/**
+	 * The last recorded check, without contacting the update server.
+	 *
+	 * For pages and status output: never waits on the network, however old
+	 * the check is. check() refreshes it; the scheduler does so every
+	 * CHECK_TTL.
+	 *
+	 * @return array{checked_at: string, latest: ?string, security: bool, error: ?string, available: bool}
+	 */
+	public function last_check() : array {
+		return $this->with_availability( $this->state->update_section( InstallationState::UPDATE_CHECK ) ?? array() );
+	}
+
+	/**
 	 * What prevents an update right now, found without contacting the server.
 	 *
-	 * @return array<string, string> Plain-language problems keyed by kind ("keys", "zip", "process",
-	 *                               "writable", "disk", "unfinished"); empty when nothing does.
+	 * Blockers are about this process: a web request also needs enough
+	 * time and memory, which the console and the queue worker do not.
+	 *
+	 * @return array<string, string> Plain-language problems keyed by kind ("keys", "zip", "time",
+	 *                               "memory", "writable", "disk", "unfinished"); empty when nothing does.
 	 */
 	public function blockers() : array {
 		$problems = array();
@@ -177,8 +208,8 @@ final class UpdateService {
 			$problems['zip'] = 'The zip PHP extension is not enabled.';
 		}
 
-		if ( ! function_exists( 'proc_open' ) ) {
-			$problems['process'] = 'PHP may not start a new process (proc_open is disabled), which finishing an update needs.';
+		if ( ! \is_cli() ) {
+			$problems += $this->web_limits();
 		}
 
 		foreach ( array( '', 'system', 'server' ) as $dir ) {
@@ -202,6 +233,74 @@ final class UpdateService {
 		}
 
 		return $problems;
+	}
+
+	/**
+	 * Time and memory limits that keep a web request from updating.
+	 *
+	 * Tries to raise each limit first; reports it only when it cannot be
+	 * raised. The host can still stop a long request on its own (PHP-FPM's
+	 * request_terminate_timeout), which PHP cannot see: preparing (the slow
+	 * part) and applying are separate steps for that reason.
+	 *
+	 * @return array<string, string>
+	 */
+	private function web_limits() : array {
+		$problems = array();
+		$seconds  = (int) ini_get( 'max_execution_time' );
+
+		if ( $seconds > 0 && $seconds < self::MIN_WEB_SECONDS ) {
+			PhpRuntime::set_time_limit( self::MIN_WEB_SECONDS );
+			$seconds = (int) ini_get( 'max_execution_time' );
+
+			if ( $seconds > 0 && $seconds < self::MIN_WEB_SECONDS ) {
+				$problems['time'] = sprintf(
+					'Web requests may only run for %d seconds (max_execution_time) and the limit cannot be raised; updating from the web needs %d. Update from the console or the queue worker, or raise the limit.',
+					$seconds,
+					self::MIN_WEB_SECONDS
+				);
+			}
+		}
+
+		$memory = self::bytes( (string) ini_get( 'memory_limit' ) );
+
+		if ( $memory > 0 && $memory < self::MIN_WEB_MEMORY ) {
+			PhpRuntime::ini_set( 'memory_limit', (string) self::MIN_WEB_MEMORY );
+			$memory = self::bytes( (string) ini_get( 'memory_limit' ) );
+
+			if ( $memory > 0 && $memory < self::MIN_WEB_MEMORY ) {
+				$problems['memory'] = sprintf(
+					'Web requests may only use %d MB of memory (memory_limit) and the limit cannot be raised; updating from the web needs %d MB.',
+					(int) ( $memory / 1048576 ),
+					(int) ( self::MIN_WEB_MEMORY / 1048576 )
+				);
+			}
+		}
+
+		return $problems;
+	}
+
+	/**
+	 * Convert a php.ini size ("128M", "1G", "-1") to bytes.
+	 *
+	 * @param string $value
+	 * @return int Bytes; -1 for no limit.
+	 */
+	private static function bytes( string $value ) : int {
+		$value = trim( $value );
+
+		if ( '' === $value || '-1' === $value ) {
+			return -1;
+		}
+
+		$number = (int) $value;
+
+		return match ( strtolower( substr( $value, -1 ) ) ) {
+			'g'     => $number * 1073741824,
+			'm'     => $number * 1048576,
+			'k'     => $number * 1024,
+			default => $number,
+		};
 	}
 
 	/*
@@ -407,6 +506,24 @@ final class UpdateService {
 			return false;
 		}
 
+		// Queueing an update this server cannot install would only fail
+		// again every day; say once what stops it instead.
+		$blockers = $this->blockers();
+
+		if ( ! empty( $blockers ) ) {
+			$this->quietly(
+				fn() => $this->notify_failed(
+					'install',
+					"Automatic updates cannot install this release on this server:\n" . implode( "\n", $blockers ),
+					array( 'version' => $check['latest'] ),
+					$check,
+					'blocked:' . implode( ',', array_keys( $blockers ) )
+				)
+			);
+
+			return false;
+		}
+
 		$this->mark_queued( (string) $check['latest'], 'automatic' );
 
 		return true;
@@ -454,21 +571,28 @@ final class UpdateService {
 	 * The update log (update.run) only exists once files are moved; this
 	 * also covers attempts that stopped earlier, e.g. a failed verification.
 	 *
+	 * An update installed but still finishing keeps the queued marker:
+	 * the finish step reads it to send the "installed" email, and clears it
+	 * (see clear_queued()).
+	 *
 	 * @param string $action  "install" or "rollback".
 	 * @param bool   $ok      Whether it succeeded.
 	 * @param string $message What happened, in the console's words.
 	 * @return void
 	 */
 	public function record_attempt( string $action, bool $ok, string $message ) : void {
-		$queued = null;
-		$check  = null;
+		$queued    = null;
+		$check     = null;
+		$finishing = $ok && Updater::STAGE_SWAPPED === ( $this->updater->status()['stage'] ?? null );
 
 		$this->state->change(
-			static function ( array $state ) use ( $action, $ok, $message, &$queued, &$check ) : array {
+			static function ( array $state ) use ( $action, $ok, $message, $finishing, &$queued, &$check ) : array {
 				$queued = is_array( $state['update']['check']['queued'] ?? null ) ? $state['update']['check']['queued'] : null;
 				$check  = is_array( $state['update']['check'] ?? null ) ? $state['update']['check'] : array();
 
-				unset( $state['update']['check']['queued'] );
+				if ( ! $finishing ) {
+					unset( $state['update']['check']['queued'] );
+				}
 
 				$state['update']['attempt'] = array(
 					'action'  => $action,
@@ -576,17 +700,46 @@ final class UpdateService {
 	}
 
 	/**
-	 * Email the administration address about a queued update or rollback that failed.
+	 * Clear the queued marker once the update it was for has finished.
 	 *
-	 * @param string     $action  "install" or "rollback".
-	 * @param string     $message The update's output.
-	 * @param array|null $queued  The queued marker of the attempt ({version, by, at}).
-	 * @param array      $check   The stored check.
+	 * @param string $version The version just installed.
 	 * @return void
 	 */
-	private function notify_failed( string $action, string $message, ?array $queued, array $check ) : void {
-		$version = (string) ( $queued['version'] ?? $check['latest'] ?? '' );
-		$output  = trim( $message );
+	public function clear_queued( string $version ) : void {
+		$this->state->change(
+			static function ( array $state ) use ( $version ) : array {
+				if ( $version === ( $state['update']['check']['queued']['version'] ?? null ) ) {
+					unset( $state['update']['check']['queued'] );
+				}
+
+				return $state;
+			}
+		);
+	}
+
+	/**
+	 * Email the administration address about an update that failed or cannot run.
+	 *
+	 * Once per version and reason: a failure that repeats the same way is
+	 * not emailed again; a new reason, or a new version, is.
+	 *
+	 * @param string      $action  "install" or "rollback".
+	 * @param string      $message The update's output.
+	 * @param array|null  $queued  The queued marker of the attempt ({version, by, at}).
+	 * @param array       $check   The stored check.
+	 * @param string|null $reason  What makes two failures the same; defaults to the last line of the output.
+	 * @return void
+	 */
+	private function notify_failed( string $action, string $message, ?array $queued, array $check, ?string $reason = null ) : void {
+		$version  = (string) ( $queued['version'] ?? $check['latest'] ?? '' );
+		$output   = trim( $message );
+		$lines    = preg_split( '/\R/', $output ) ?: array();
+		$key      = $action . '|' . $version . '|' . md5( $reason ?? (string) end( $lines ) );
+		$notified = $this->state->update_section( InstallationState::UPDATE_NOTIFIED ) ?? array();
+
+		if ( $key === ( $notified['failed'] ?? null ) ) {
+			return;
+		}
 
 		if ( strlen( $output ) > self::NOTICE_OUTPUT_LIMIT ) {
 			$output = '…' . substr( $output, -self::NOTICE_OUTPUT_LIMIT );
@@ -602,6 +755,11 @@ final class UpdateService {
 				'security'        => $version === ( $check['latest'] ?? null ) && ! empty( $check['security'] ),
 				'detail'          => '' !== $output ? $output : 'The update ended without output.',
 			)
+		);
+
+		$this->state->set_update_section(
+			InstallationState::UPDATE_NOTIFIED,
+			array( 'failed' => $key, 'failed_at' => gmdate( DATE_ATOM ) ) + $notified
 		);
 	}
 
@@ -622,7 +780,7 @@ final class UpdateService {
 	 * }
 	 */
 	public function overview() : array {
-		$check = $this->check();
+		$check = $this->last_check();
 		$run   = $this->updater->status();
 		$state = $this->state->read();
 

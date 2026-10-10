@@ -12,6 +12,7 @@ use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Templates\TemplateLocator;
@@ -26,6 +27,10 @@ use Callismart\DBPrism\DatabaseInfoDTO;
 use Callismart\DBPrism\Inspection\Inspector;
 use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Environments\Application\Update\UpdateService;
+use SmartLicenseServer\Environments\Application\Boot\InstallationState;
+use SmartLicenseServer\Environments\Application\Boot\MaintenanceFlag;
+use SmartLicenseServer\Background\Workers\CodeChangeDetector;
+use SmartLicenseServer\Background\Queue\JobDTO;
 
 /**
  * The admin system operations page handler.
@@ -67,6 +72,37 @@ class ToolsPage implements AdminPageInterface {
 	 */
 	private ?\Throwable $database_info_error = null;
 
+	/**
+	 * Minutes a job may wait past its available time before it counts as delayed.
+	 *
+	 * @var int
+	 */
+	private const JOB_DELAY_WARNING_MINUTES = 10;
+
+	/**
+	 * Minutes past which a delayed job makes the check critical.
+	 *
+	 * @var int
+	 */
+	private const JOB_DELAY_CRITICAL_MINUTES = 60;
+
+	/**
+	 * Minutes a scheduled task may run late before it counts as overdue.
+	 *
+	 * Cron calls the scheduler every minute; this leaves room for a slow
+	 * run without reporting a working setup.
+	 *
+	 * @var int
+	 */
+	private const TASK_OVERDUE_MINUTES = 15;
+
+	/**
+	 * Hours after which an update check counts as stale (it runs every 12 hours).
+	 *
+	 * @var int
+	 */
+	private const UPDATE_CHECK_STALE_HOURS = 48;
+
 	public function __construct(
 		protected Scheduler $scheduler,
 		protected JobQueue $job_queue,
@@ -78,7 +114,10 @@ class ToolsPage implements AdminPageInterface {
 		protected FileSystem $fs,
 		protected SchemaRegistry $schema,
 		protected AssetsManager $assets_manager,
-		protected UpdateService $updates
+		protected UpdateService $updates,
+		protected InstallationState $state,
+		protected MaintenanceFlag $maintenance,
+		protected CodeChangeDetector $code_changes
 	) {
 		$this->register_assets();
 	}
@@ -91,6 +130,16 @@ class ToolsPage implements AdminPageInterface {
 
 		$this->assets_manager->set_script_category(
 			'updates',
+			AssetsManager::CATEGORY_ADMIN_DASHBOARD
+		);
+
+		$this->assets_manager->set_script_category(
+			'background',
+			AssetsManager::CATEGORY_ADMIN_DASHBOARD
+		);
+
+		$this->assets_manager->set_script_category(
+			'support-report',
 			AssetsManager::CATEGORY_ADMIN_DASHBOARD
 		);
 	}
@@ -159,9 +208,10 @@ class ToolsPage implements AdminPageInterface {
 	 */
 	public function system_diagnostics_page( Request $request ) : void {
 		$diagnostics    = $this->collect_diagnostics();
+		$report_meta    = $this->report_meta();
 		$page_handler   = $this;
 
-		$vars = \compact( 'diagnostics', 'page_handler', 'request' );
+		$vars = \compact( 'diagnostics', 'report_meta', 'page_handler', 'request' );
 		$this->locator->render( 'admin.contents.system.diagnostics', $vars );
 	}
 
@@ -177,8 +227,9 @@ class ToolsPage implements AdminPageInterface {
 	 */
 	public function site_health_page( Request $request ) : void {
 		$checks            = $this->run_health_checks();
+		$report_meta       = $this->report_meta();
 		$page_handler      = $this;
-		$vars = \compact( 'checks', 'page_handler', 'request' );
+		$vars = \compact( 'checks', 'report_meta', 'page_handler', 'request' );
 		$this->locator->render( 'admin.contents.system.health', $vars );
 	}
 
@@ -364,11 +415,14 @@ class ToolsPage implements AdminPageInterface {
 			$queue_stats[ $status ] = $this->job_queue->count_jobs_by_status( $status );
 		}
 
-		$tasks = $this->scheduler->get_tasks_with_state();
+		$tasks   = $this->scheduler->get_tasks_with_state();
+		$waiting = $this->delayed_jobs( 0 );
+		$overdue = $this->overdue_tasks();
 
 		return [
 			'Server'                    => $this->collect_server_diagnostics(),
 			'Installation'              => $this->collect_installation_diagnostics(),
+			'Updates'                   => $this->collect_update_diagnostics(),
 			'Required Extensions'       => $this->collect_required_extension_diagnostics(),
 			'Loaded Extensions'         => $this->collect_loaded_extension_diagnostics(),
 			'Database'                  => $this->collect_database_diagnostics(),
@@ -378,7 +432,14 @@ class ToolsPage implements AdminPageInterface {
 				'Running Jobs'      => (string) $queue_stats['running'],
 				'Failed Jobs'       => (string) $queue_stats['failed'],
 				'Completed Jobs'    => (string) $queue_stats['completed'],
+				'Waiting Since'     => null === $waiting['oldest']
+					? 'No job is waiting'
+					: \sprintf( '%d job(s) ready to run; the oldest since %s', $waiting['count'], $this->format_time( $waiting['oldest'] ) ),
 				'Scheduled Tasks'   => (string) \count( $tasks ),
+				'Overdue Tasks'     => empty( $overdue )
+					? 'None'
+					: \implode( ', ', \array_map( static fn( array $task ) : string => $task['label'], $overdue ) ),
+				'Last Task Run'     => $this->format_time( $this->last_task_run() ) ?: 'Never',
 				'Log Retention'     => (string) $this->settings->get( Settings::LOG_RETENTION_DAYS, 30 ) . ' days',
 			],
 		];
@@ -391,7 +452,24 @@ class ToolsPage implements AdminPageInterface {
 	 * @return array<string, string>
 	 */
 	private function collect_installation_diagnostics() : array {
+		$state    = $this->state->read();
+		$versions = \is_array( $state ) && \is_array( $state['versions'] ?? null ) ? $state['versions'] : [];
+		$flag     = $this->maintenance->read();
+
 		$rows = [
+			'State File'                   => match ( true ) {
+				false === $state => 'Damaged or unreadable (' . $this->state->path() . ')',
+				null === $state  => 'Missing (' . $this->state->path() . ')',
+				default          => 'OK',
+			},
+			'Installed'                    => \is_array( $state ) && ! empty( $state['installed_at'] ) ? (string) $state['installed_at'] : 'No',
+			'Running Code Version'         => \SMLISER_VER,
+			'Recorded App Version'         => (string) ( $versions['app'] ?? 'Not recorded' ),
+			'Code Schema Version'          => \SMLISER_DB_VER,
+			'Recorded Schema Version'      => (string) ( $versions['schema'] ?? 'Not recorded' ),
+			'Maintenance Mode'             => null === $flag
+				? 'Off'
+				: \sprintf( 'On (%s%s)', $this->maintenance->reason(), empty( $flag['since'] ) ? '' : ', since ' . $flag['since'] ),
 			'.env File'                    => Format::yes_no( \file_exists( \SMLISER_ROOT . '.env' ) ),
 			'.htaccess File (Apache only)' => Format::yes_no( \file_exists( \SMLISER_ROOT . 'public/.htaccess' ) ),
 		];
@@ -428,6 +506,142 @@ class ToolsPage implements AdminPageInterface {
 			: \sprintf( '%d of %d missing (%s)', \count( $missing_roles ), \count( $roles ), \implode( ', ', $missing_roles ) );
 
 		return $rows;
+	}
+
+	/**
+	 * Report the update status recorded in state.json, without contacting the update server.
+	 *
+	 * @return array<string, string>
+	 */
+	private function collect_update_diagnostics() : array {
+		$overview = $this->updates->overview();
+		$check    = $overview['check'];
+		$run      = $overview['run'];
+		$attempt  = $overview['attempt'];
+		$backup   = $overview['backup'];
+		$ready    = $overview['ready'];
+
+		return [
+			'Automatic Updates' => match ( $overview['auto'] ) {
+				UpdateService::AUTO_OFF => 'Off',
+				UpdateService::AUTO_ALL => 'All releases',
+				default                 => 'Security releases only',
+			},
+			'Last Check'        => '' === (string) $check['checked_at'] ? 'Never' : (string) $check['checked_at'],
+			'Latest Release'    => null === $check['latest']
+				? 'Unknown'
+				: $check['latest'] . ( $check['security'] ? ' (security release)' : '' ) . ( $check['available'] ? ' (available)' : ' (installed)' ),
+			'Last Check Error'  => (string) ( $check['error'] ?? '' ) ?: 'None',
+			'Update Blockers'   => empty( $overview['blockers'] ) ? 'None' : \implode( ' ', $overview['blockers'] ),
+			'Queued Install'    => null === $overview['queued']
+				? 'None'
+				: \sprintf( '%s, by %s at %s', $overview['queued']['version'] ?? '?', $overview['queued']['by'] ?? '?', $overview['queued']['at'] ?? '?' ),
+			'Verified Package'  => null === $ready ? 'None' : \sprintf( '%s, prepared %s', $ready['version'] ?? '?', $ready['prepared_at'] ?? '?' ),
+			'Last Update'       => null === $run
+				? 'None'
+				: \sprintf( '%s to %s: %s (started %s)', $run['from'] ?? '?', $run['to'] ?? '?', $run['stage'] ?? '?', $run['started_at'] ?? '?' ),
+			'Last Queued Attempt' => null === $attempt
+				? 'None'
+				: \sprintf( '%s %s at %s', $attempt['action'] ?? '?', ! empty( $attempt['ok'] ) ? 'succeeded' : 'failed', $attempt['at'] ?? '?' ),
+			'Backup'            => null === $backup ? 'None' : \sprintf( 'Version %s, made %s', $backup['version'], $backup['made_at'] ),
+		];
+	}
+
+	/**
+	 * Jobs ready to run that have waited longer than a number of minutes.
+	 *
+	 * A ready job that keeps waiting means no worker is taking jobs. Looks
+	 * at the first 100 pending and retrying jobs, which is enough to tell.
+	 *
+	 * @param int $minutes Minutes past the job's available time.
+	 * @return array{count: int, oldest: ?\DateTimeImmutable}
+	 */
+	private function delayed_jobs( int $minutes ) : array {
+		$cutoff = \time() - $minutes * 60;
+		$count  = 0;
+		$oldest = null;
+
+		foreach ( [ 'pending', JobDTO::STATUS_RETRYING ] as $status ) {
+			foreach ( $this->job_queue->get_jobs_by_status( 1, 100, $status ) as $job ) {
+				$available = $job->get( JobDTO::KEY_AVAILABLE_AT );
+
+				if ( ! $available instanceof \DateTimeInterface || $available->getTimestamp() > $cutoff ) {
+					continue;
+				}
+
+				++$count;
+
+				if ( null === $oldest || $available < $oldest ) {
+					$oldest = \DateTimeImmutable::createFromInterface( $available );
+				}
+			}
+		}
+
+		return [ 'count' => $count, 'oldest' => $oldest ];
+	}
+
+	/**
+	 * Scheduled tasks that should have run more than TASK_OVERDUE_MINUTES ago.
+	 *
+	 * A task that has never run counts once the installation is older than
+	 * that grace period too.
+	 *
+	 * @return array<int, array{id: string, label: string, due_at: ?\DateTimeImmutable}>
+	 */
+	private function overdue_tasks() : array {
+		$cutoff    = \time() - self::TASK_OVERDUE_MINUTES * 60;
+		$state     = $this->state->read();
+		$installed = \is_array( $state ) && ! empty( $state['installed_at'] ) ? \strtotime( (string) $state['installed_at'] ) : false;
+		$overdue   = [];
+
+		foreach ( $this->scheduler->get_tasks_with_state() as $id => $data ) {
+			$next = $data['state']['next_run_at'];
+
+			$late = null !== $next
+				? $next->getTimestamp() < $cutoff
+				: null === $data['state']['last_ran_at'] && false !== $installed && $installed < $cutoff;
+
+			if ( $late ) {
+				$overdue[] = [ 'id' => (string) $id, 'label' => $data['task']->get_label(), 'due_at' => $next ];
+			}
+		}
+
+		return $overdue;
+	}
+
+	/**
+	 * When any scheduled task last ran.
+	 *
+	 * @return \DateTimeImmutable|null
+	 */
+	private function last_task_run() : ?\DateTimeImmutable {
+		$latest = null;
+
+		foreach ( $this->scheduler->get_tasks_with_state() as $data ) {
+			$ran = $data['state']['last_ran_at'];
+
+			if ( null !== $ran && ( null === $latest || $ran > $latest ) ) {
+				$latest = $ran;
+			}
+		}
+
+		return $latest;
+	}
+
+	/**
+	 * Format a time for display, in the site's date format (UTC times are converted).
+	 *
+	 * @param \DateTimeInterface|null $time
+	 * @return string Empty for null.
+	 */
+	private function format_time( ?\DateTimeInterface $time ) : string {
+		if ( null === $time ) {
+			return '';
+		}
+
+		return \DateTimeImmutable::createFromInterface( $time )
+			->setTimezone( new \DateTimeZone( \date_default_timezone_get() ) )
+			->format( \smliser_datetime_format() );
 	}
 
 	/**
@@ -731,6 +945,11 @@ class ToolsPage implements AdminPageInterface {
 	 * Run a set of pass/warning/critical checks against the running
 	 * environment.
 	 *
+	 * Only checks that are quick: these run on every page load. Anything
+	 * that queries the database heavily or contacts another server runs
+	 * from health.js as an additional check (see database_check_data() and
+	 * SystemManagement).
+	 *
 	 * Reuses AppInstaller::verify_environment_sanity() for PHP version,
 	 * required extensions, database driver availability, and persistent
 	 * cache — the same logic the installer itself relies on — so this
@@ -796,29 +1015,8 @@ class ToolsPage implements AdminPageInterface {
 			$checks[] = $document_root_check;
 		}
 
-		// Database connectivity/version, via the Inspector.
-		try {
-			$info = $this->get_database_info();
-			$checks[] = [
-				'id'             => 'database_connection',
-				'label'          => 'Database Connection',
-				'status'         => 'pass',
-				'message'        => \sprintf(
-					'Connected to %s%s.',
-					$info->product ?? $info->engine,
-					$info->version ? " {$info->version}" : ''
-				),
-				'recommendation' => null,
-			];
-		} catch ( \Throwable $e ) {
-			$checks[] = [
-				'id'             => 'database_connection',
-				'label'          => 'Database Connection',
-				'status'         => 'critical',
-				'message'        => 'Unable to inspect the active database connection.',
-				'recommendation' => $e->getMessage(),
-			];
-		}
+		// Database Connection runs with the additional checks (database_check_data()):
+		// inspecting the connection also measures the database size, which can be slow.
 
 		// Failed/stuck jobs.
 		$failed_count = $this->job_queue->count_jobs_by_status( 'failed' );
@@ -866,7 +1064,298 @@ class ToolsPage implements AdminPageInterface {
 				: 'Open the Schedules tab and review the error detail for each affected task.',
 		];
 
+		return \array_merge(
+			$checks,
+			$this->installation_state_checks(),
+			$this->background_health_checks(),
+			$this->update_health_checks()
+		);
+	}
+
+	/**
+	 * Installation state checks: the state file, maintenance mode, and an
+	 * update whose finish step has not run.
+	 *
+	 * @return array<int, array{id: string, label: string, status: string, message: string, recommendation: ?string}>
+	 */
+	private function installation_state_checks() : array {
+		$checks = [];
+		$state  = $this->state->read();
+
+		if ( false === $state ) {
+			$checks[] = $this->make_check(
+				'installation_state',
+				'Installation State',
+				'critical',
+				\sprintf( '%s is damaged or unreadable. Updates and the installer refuse to change it.', $this->state->path() ),
+				'Restore the file from a backup, or check its permissions. Do not delete it: it records that this site is installed.'
+			);
+		}
+
+		$reason = $this->maintenance->reason();
+
+		if ( null !== $reason ) {
+			$checks[] = $this->make_check(
+				'maintenance_mode',
+				'Maintenance Mode',
+				MaintenanceFlag::REASON_UPDATE === $reason ? 'critical' : 'warning',
+				MaintenanceFlag::REASON_UPDATE === $reason
+					? 'The site is in maintenance because an update is being installed or did not finish. Visitors cannot use the site.'
+					: \sprintf( 'The site is in maintenance mode (%s). Visitors cannot use the site.', $reason ),
+				MaintenanceFlag::REASON_UPDATE === $reason
+					? 'If no update is running, open the Updates page, or run `smliser update status` to finish or roll it back.'
+					: 'Turn maintenance mode off once the work is done.'
+			);
+		}
+
+		if ( CodeChangeDetector::REASON_CHANGED === $this->code_changes->reason() ) {
+			$checks[] = $this->make_check(
+				'unfinished_update',
+				'Unfinished Update',
+				'critical',
+				\sprintf(
+					'The code on disk is version %s, but state.json records %s: an update was installed but its finish step has not run. Scheduled tasks and queued jobs are paused until it has.',
+					\SMLISER_VER,
+					$this->code_changes->installed_version() ?? 'another version'
+				),
+				'Run `smliser update finish` from the console, or roll the update back.'
+			);
+		}
+
 		return $checks;
+	}
+
+	/**
+	 * Background processing checks: delayed queue jobs and overdue scheduled tasks.
+	 *
+	 * @return array<int, array{id: string, label: string, status: string, message: string, recommendation: ?string}>
+	 */
+	private function background_health_checks() : array {
+		$checks  = [];
+		$delayed = $this->delayed_jobs( self::JOB_DELAY_WARNING_MINUTES );
+
+		if ( 0 === $delayed['count'] ) {
+			$checks[] = $this->make_check( 'delayed_jobs', 'Queue Worker', 'pass', 'No job has been waiting to run for more than ' . self::JOB_DELAY_WARNING_MINUTES . ' minutes.' );
+		} else {
+			$critical = $delayed['oldest']->getTimestamp() < \time() - self::JOB_DELAY_CRITICAL_MINUTES * 60;
+			$checks[] = $this->make_check(
+				'delayed_jobs',
+				'Queue Worker',
+				$critical ? 'critical' : 'warning',
+				\sprintf(
+					'%d job(s) are ready to run but have not been picked up; the oldest has waited since %s. Emails, notifications and updates are delayed until a worker takes them.',
+					$delayed['count'],
+					$this->format_time( $delayed['oldest'] )
+				),
+				'Check that the queue worker (`smliser queue work`) is running under a process supervisor such as systemd or supervisord. To clear the backlog now, use "Process queue" on the Queue Monitor page.'
+			);
+		}
+
+		$overdue = $this->overdue_tasks();
+		$total   = \count( $this->scheduler->get_tasks() );
+
+		if ( empty( $overdue ) ) {
+			$checks[] = $this->make_check( 'overdue_tasks', 'Scheduler', 'pass', 'Every scheduled task ran on time.' );
+		} else {
+			$all      = \count( $overdue ) === $total;
+			$last_run = $this->last_task_run();
+			$checks[] = $this->make_check(
+				'overdue_tasks',
+				'Scheduler',
+				$all ? 'critical' : 'warning',
+				$all
+					? \sprintf(
+						'No scheduled task is running on time%s, so the scheduler is not being called. Update checks, license expiry and clean-up tasks are not running.',
+						null === $last_run ? ' (none has ever run)' : ' (the last ran ' . $this->format_time( $last_run ) . ')'
+					)
+					: \sprintf(
+						'%d of %d scheduled tasks are more than %d minutes overdue: %s.',
+						\count( $overdue ),
+						$total,
+						self::TASK_OVERDUE_MINUTES,
+						\implode( ', ', \array_map( static fn( array $task ) : string => $task['label'], $overdue ) )
+					),
+				$all
+					? 'Add a cron entry that runs the scheduler every minute: `* * * * * cd ' . \rtrim( \SMLISER_ROOT, '/' ) . ' && php smliser schedule run >> /dev/null 2>&1`. To run the due tasks now, use "Run due tasks" on the Schedules page.'
+					: 'Open the Schedules page: a task that keeps failing or running too long can hold the others back. "Run due tasks" runs them now.'
+			);
+		}
+
+		return $checks;
+	}
+
+	/**
+	 * Update checks, from the last recorded check (the update server is not contacted).
+	 *
+	 * @return array<int, array{id: string, label: string, status: string, message: string, recommendation: ?string}>
+	 */
+	private function update_health_checks() : array {
+		$overview = $this->updates->overview();
+		$check    = $overview['check'];
+		$checks   = [];
+
+		// What prevents updating; an unfinished update is reported above.
+		$blockers = \array_values( \array_diff_key( $this->updates->blockers(), [ 'unfinished' => true ] ) );
+
+		$checks[] = empty( $blockers )
+			? $this->make_check( 'update_readiness', 'Update Readiness', 'pass', 'Nothing prevents installing updates.' )
+			: $this->make_check(
+				'update_readiness',
+				'Update Readiness',
+				'critical',
+				'Updates cannot be installed: ' . \implode( ' ', $blockers ),
+				'Fix the problems listed; security releases cannot be installed until then. The Updates page shows the same list.'
+			);
+
+		$checked_at = \strtotime( (string) $check['checked_at'] );
+
+		if ( null !== $check['error'] ) {
+			$checks[] = $this->make_check(
+				'update_check',
+				'Update Check',
+				'warning',
+				'The last check for updates failed: ' . $check['error'],
+				'Check outbound HTTPS access to the update server (see "Update Server Connection"), then use "Check now" on the Updates page.'
+			);
+		} elseif ( false === $checked_at || $checked_at < \time() - self::UPDATE_CHECK_STALE_HOURS * 3600 ) {
+			$checks[] = $this->make_check(
+				'update_check',
+				'Update Check',
+				'warning',
+				false === $checked_at
+					? 'This site has never checked for updates.'
+					: \sprintf( 'The last check for updates was on %s; the scheduler checks every 12 hours.', $check['checked_at'] ),
+				'Make sure the scheduler runs (see "Scheduler"), or use "Check now" on the Updates page.'
+			);
+		} elseif ( $check['available'] ) {
+			$checks[] = $this->make_check(
+				'update_check',
+				'Update Check',
+				$check['security'] ? 'critical' : 'warning',
+				\sprintf(
+					'Version %s is available%s; this site runs %s.',
+					$check['latest'],
+					$check['security'] ? ' and fixes a security issue' : '',
+					\SMLISER_VER
+				),
+				null !== $overview['queued']
+					? 'An install is queued; make sure the queue worker is running.'
+					: 'Install it from the Updates page.'
+			);
+		} else {
+			$checks[] = $this->make_check( 'update_check', 'Update Check', 'pass', \sprintf( '%s %s is the latest version (checked %s).', \SMLISER_APP_NAME, \SMLISER_VER, $check['checked_at'] ) );
+		}
+
+		$attempt = $overview['attempt'];
+
+		if ( null !== $attempt && empty( $attempt['ok'] ) && null === $overview['queued'] ) {
+			$checks[] = $this->make_check(
+				'update_attempt',
+				'Last Update Attempt',
+				'warning',
+				\sprintf( 'The last queued %s, at %s, failed.', 'rollback' === ( $attempt['action'] ?? '' ) ? 'rollback' : 'update', $attempt['at'] ?? '?' ),
+				'The Updates page shows its output under History.'
+			);
+		}
+
+		if ( UpdateService::AUTO_OFF === $overview['auto'] ) {
+			$checks[] = $this->make_check(
+				'automatic_updates',
+				'Automatic Updates',
+				'info',
+				'Automatic updates are off, so security releases are only installed when an administrator does it.',
+				'Consider installing security releases automatically (Updates page).'
+			);
+		}
+
+		return $checks;
+	}
+
+	/*
+	|----------------
+	| SUPPORT REPORT
+	|----------------
+	*/
+
+	/**
+	 * GET site-health-check/diagnostics
+	 *
+	 * The System Diagnostics as data, for the site health page's support
+	 * report. Fetched only when the report is copied: collecting them walks
+	 * the installation folder for its size, which is too slow for every
+	 * page load.
+	 *
+	 * Response: { diagnostics: { section: { label: value } } }
+	 *
+	 * @param Request $request
+	 * @return Response
+	 */
+	public function diagnostics_data( Request $request ) : Response {
+		return Response::json( data: [ 'diagnostics' => $this->collect_diagnostics() ], status_code: 200 );
+	}
+
+	/**
+	 * GET site-health-check/database
+	 *
+	 * The database connection check, run by health.js with the other
+	 * additional checks rather than during page load.
+	 *
+	 * Response: { checks: [ check ] }
+	 *
+	 * @param Request $request
+	 * @return Response
+	 */
+	public function database_check_data( Request $request ) : Response {
+		try {
+			$info  = $this->get_database_info();
+			$check = $this->make_check(
+				'database_connection',
+				'Database Connection',
+				'pass',
+				\sprintf( 'Connected to %s%s.', $info->product ?? $info->engine, $info->version ? " {$info->version}" : '' )
+			);
+		} catch ( \Throwable $e ) {
+			$check = $this->make_check(
+				'database_connection',
+				'Database Connection',
+				'critical',
+				'Unable to inspect the active database connection.',
+				$e->getMessage()
+			);
+		}
+
+		return Response::json( data: [ 'checks' => [ $check ] ], status_code: 200 );
+	}
+
+	/**
+	 * The header of a support report: what is installed, where, and when.
+	 *
+	 * Rendered into the copy buttons; support-report.js formats the rest
+	 * from what the page shows.
+	 *
+	 * @return array{product: string, version: string, schema: string, site: string}
+	 */
+	public function report_meta() : array {
+		return [
+			'product' => \SMLISER_APP_NAME,
+			'version' => \SMLISER_VER,
+			'schema'  => \SMLISER_DB_VER,
+			'site'    => (string) $this->urlmanager->url(),
+		];
+	}
+
+	/**
+	 * Build one check entry.
+	 *
+	 * @param string      $id             Unique check ID.
+	 * @param string      $label          Check name.
+	 * @param string      $status         pass, info, warning or critical.
+	 * @param string      $message        What was found.
+	 * @param string|null $recommendation What to do about it.
+	 * @return array{id: string, label: string, status: string, message: string, recommendation: ?string}
+	 */
+	private function make_check( string $id, string $label, string $status, string $message, ?string $recommendation = null ) : array {
+		return \compact( 'id', 'label', 'status', 'message', 'recommendation' );
 	}
 
 	/**

@@ -15,6 +15,7 @@ use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
 use Callismart\Http\HttpClient;
 use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\Background\Workers\CodeChangeDetector;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Contracts\URLManagerInterface;
 use SmartLicenseServer\Environments\Application\Boot\BootManager;
@@ -40,6 +41,7 @@ use SmartLicenseServer\Environments\Application\Release\ReleaseSignature;
 use SmartLicenseServer\Environments\Application\Update\PackageVerifier;
 use SmartLicenseServer\Environments\Application\Update\Updater;
 use SmartLicenseServer\Environments\Application\Update\UpdateServer;
+use SmartLicenseServer\Environments\Application\Update\UpdateRunner;
 use SmartLicenseServer\Environments\Application\Update\UpdateService;
 use SmartLicenseServer\Environments\Application\Web\RestAPIProvider;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
@@ -174,6 +176,30 @@ class ApplicationEnvironment extends Environment {
                     job_queue: $c->get( JobQueue::class )
                 )
         );
+
+        $this->container->factory(
+            CodeChangeDetector::class,
+            fn ( Container $c ) : CodeChangeDetector =>
+                new CodeChangeDetector(
+                    $c->get( InstallationState::class ),
+                    $c->get( MaintenanceFlag::class ),
+                    SMLISER_VER
+                )
+        );
+
+        $this->container->singleton(
+            UpdateRunner::class,
+            fn ( Container $c ) : UpdateRunner =>
+                new UpdateRunner(
+                    $c->get( UpdateService::class ),
+                    $c->get( Updater::class ),
+                    $c->get( AppInstaller::class ),
+                    $c->get( FileSystem::class ),
+                    \SMLISER_ROOT
+                )
+        );
+
+        $this->finishPendingUpdate();
         
         $this->container->alias(
             PasswordIdentityProviderInterface::class,
@@ -244,6 +270,31 @@ class ApplicationEnvironment extends Environment {
             $resolver->refresh();
         } catch ( \Throwable $e ) {
             $resolver->fail_closed( 'Could not verify an existing installation: ' . $e->getMessage() );
+        }
+    }
+
+    /**
+     * Finish an update whose files were swapped in by an earlier process.
+     *
+     * An update must finish on its new code, so in a process started after
+     * the swap. When the process that applied it could not start one (no
+     * proc_open, no PHP CLI binary), the first process that boots on the
+     * new code finishes it here: a web request, a console command, or the
+     * restarted queue worker. Runs before the bootstrappers are chosen, so
+     * a request that finishes the update is then served normally.
+     *
+     * Costs one file check on every other boot: nothing happens unless the
+     * maintenance flag's reason is "update".
+     *
+     * @return void
+     */
+    protected function finishPendingUpdate() : void {
+        if ( MaintenanceFlag::REASON_UPDATE !== $this->bootModeResolver->flag()->reason() ) {
+            return;
+        }
+
+        if ( $this->container->get( UpdateRunner::class )->finish_at_boot() ) {
+            $this->bootModeResolver->refresh();
         }
     }
 

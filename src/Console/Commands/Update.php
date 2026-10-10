@@ -12,23 +12,23 @@ use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\ScriptName;
-use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
 use SmartLicenseServer\Environments\Application\Update\UpdateException;
 use SmartLicenseServer\Environments\Application\Update\Updater;
+use SmartLicenseServer\Environments\Application\Update\UpdateRunner;
 use SmartLicenseServer\Environments\Application\Update\UpdateService;
-use SmartLicenseServer\FileSystem\FileSystem;
-use Throwable;
 
 /**
  * Updates the application from the update server or a local package.
+ *
+ * A console front end to UpdateRunner, the same update API the admin page
+ * and the queue worker use.
  */
 class Update extends AbstractCommand {
 
 	public function __construct(
 		protected UpdateService $updates,
+		protected UpdateRunner $runner,
 		protected Updater $updater,
-		protected AppInstaller $installer,
-		protected FileSystem $fs,
 		InputInterface $io,
 		OutputInterface $output,
 		ScriptName $script_name
@@ -55,7 +55,7 @@ class Update extends AbstractCommand {
 			'check'         => 'Asks the update server for the latest version.',
 			'dry-run'       => 'Downloads, verifies and checks the latest version without installing it, and lists anything blocking an update.',
 			'run'           => 'Installs the latest version (or --package).',
-			'finish'        => 'Completes an installed update (run automatically by `run`).',
+			'finish'        => 'Completes an installed update. Runs automatically after `run`, or on the next request to the site.',
 			'rollback'      => 'Restores the previous version, when no database migration has run.',
 			'status'        => 'Shows the last check, the last update and the backup.',
 			'auto'          => 'Shows or sets automatic updates: --mode=off|security|all.',
@@ -145,7 +145,12 @@ class Update extends AbstractCommand {
 	public function dry_run( CommandInput $input ) : int {
 		$this->output->info( 'Checking, downloading and verifying without installing...' );
 
-		$result = $this->updates->dry_run( $this->progress() );
+		try {
+			$result = $this->runner->dry_run( $this->progress() );
+		} catch ( UpdateException $e ) {
+			$this->output->error( $e->getMessage() );
+			return 1;
+		}
 
 		foreach ( $result['blockers'] as $blocker ) {
 			$this->output->error( $blocker );
@@ -174,7 +179,7 @@ class Update extends AbstractCommand {
 	}
 
 	/**
-	 * Download (or take a local package), verify, install, then finish in a new process.
+	 * Download (or take a local package), verify, install, then finish.
 	 *
 	 * @param CommandInput $input
 	 * @return int
@@ -191,25 +196,13 @@ class Update extends AbstractCommand {
 			return 1;
 		}
 
-		try {
-			if ( ! $this->updater->lock() ) {
-				$this->output->error( 'Another update is running.' );
-				return 1;
-			}
+		if ( $trust_unsigned ) {
+			$this->output->warning( '--trust-unsigned: a package without a valid signature will be accepted. Use this only for a package you built or received directly.' );
+		}
 
-			if ( $trust_unsigned ) {
-				$this->output->warning( '--trust-unsigned: a package without a valid signature will be accepted. Use this only for a package you built or received directly.' );
-			}
+		$this->output->info( null === $package ? 'Checking for the latest version...' : sprintf( 'Verifying %s...', basename( $package ) ) );
 
-			$this->output->info( null === $package ? 'Checking for the latest version...' : sprintf( 'Verifying %s...', basename( $package ) ) );
-
-			$prepared = $this->updates->prepare( $package, $reinstall, $trust_unsigned, $this->progress() );
-
-			if ( null === $prepared ) {
-				$this->output->success( sprintf( '%s %s is up to date.', \SMLISER_APP_NAME, \SMLISER_VER ) );
-				return 0;
-			}
-
+		$confirm = function ( array $prepared ) use ( $yes ) : bool {
 			foreach ( $prepared['warnings'] as $warning ) {
 				$this->output->warning( $warning );
 			}
@@ -220,47 +213,56 @@ class Update extends AbstractCommand {
 			$this->output->success( sprintf( 'Package verified: %s %s for %s.', $manifest->name, $manifest->version, $manifest->target ) );
 
 			if ( ! $yes && ! $this->io->confirm( sprintf( 'Update from %s to %s now? The site is unavailable for the few seconds it takes. Back up your database first.', \SMLISER_VER, $manifest->version ), false ) ) {
-				$this->output->info( sprintf( 'Update cancelled; nothing was changed. The verified package is kept for `%s`.', $this->command_line( 'run' ) ) );
-				return 0;
+				return false;
 			}
 
 			$this->output->info( 'Installing...' );
 
-			$this->updater->apply( $manifest, $prepared['package'], $this->progress() );
+			return true;
+		};
+
+		try {
+			$result = $this->runner->install( $package, $reinstall, $trust_unsigned, $this->progress(), $confirm, true );
 		} catch ( UpdateException $e ) {
 			$this->output->error( $e->getMessage() );
 			return 1;
 		}
 
-		$this->output->success( 'Files installed. Finishing with the new version...' );
-
-		return $this->finish_in_new_process();
+		return match ( $result['status'] ) {
+			UpdateRunner::UP_TO_DATE => $this->done( sprintf( '%s %s is up to date.', \SMLISER_APP_NAME, \SMLISER_VER ) ),
+			UpdateRunner::CANCELLED  => $this->done( sprintf( 'Update cancelled; nothing was changed. The verified package is kept for `%s`.', $this->command_line( 'run' ) ), false ),
+			UpdateRunner::PENDING    => $this->pending( $result['finish'] ?? array() ),
+			default                  => (int) ( $result['finish']['exit_code'] ?? 0 ),
+		};
 	}
 
 	/**
 	 * Complete an installed update. Runs with the new code.
+	 *
+	 * This process's own boot may already have finished it (see
+	 * ApplicationEnvironment); that is reported the same way.
 	 *
 	 * @param CommandInput|null $input
 	 * @return int
 	 */
 	public function finish( ?CommandInput $input = null ) : int {
 		try {
-			$result = $this->updater->finish( null, $this->progress() );
+			$result = $this->runner->finish_pending( $this->progress() ) ?? $this->runner->finished_at_boot();
 		} catch ( UpdateException $e ) {
 			$this->output->error( $e->getMessage() );
 			return 1;
 		}
 
-		$this->relink_assets();
+		if ( null === $result ) {
+			$journal = $this->updater->status();
 
-		// After an automatic update, email the administration address. A
-		// problem queueing it must not turn a finished update into a failure.
-		try {
-			if ( $this->updates->notify_installed( $result ) ) {
-				$this->output->info( 'The site administration email will be notified.' );
+			if ( Updater::STAGE_SWAPPED === ( $journal['stage'] ?? null ) && \SMLISER_VER !== ( $journal['to'] ?? null ) ) {
+				$this->output->error( sprintf( 'This process runs version %s, not the new %s. Run `%s` again; a new process loads the new code.', \SMLISER_VER, $journal['to'] ?? '?', $this->command_line( 'finish' ) ) );
+				return 1;
 			}
-		} catch ( Throwable $e ) {
-			$this->output->warning( sprintf( 'The update notification could not be queued: %s', $e->getMessage() ) );
+
+			$this->output->info( 'There is no update waiting to be finished.' );
+			return 0;
 		}
 
 		$this->output->success(
@@ -292,18 +294,11 @@ class Update extends AbstractCommand {
 		}
 
 		try {
-			if ( ! $this->updater->lock() ) {
-				$this->output->error( 'An update is running; roll back once it has ended.' );
-				return 1;
-			}
-
-			$version = $this->updater->rollback( $this->progress() );
+			$version = $this->runner->rollback( $this->progress() );
 		} catch ( UpdateException $e ) {
 			$this->output->error( $e->getMessage() );
 			return 1;
 		}
-
-		$this->relink_assets();
 
 		$this->output->success( sprintf( 'Version %s was restored.', $version ) );
 
@@ -317,7 +312,7 @@ class Update extends AbstractCommand {
 	 * @return int
 	 */
 	public function status( CommandInput $input ) : int {
-		$check  = $this->updates->check();
+		$check  = $this->updates->last_check();
 		$backup = $this->updater->backup();
 
 		$this->output->table(
@@ -462,58 +457,33 @@ class Update extends AbstractCommand {
 	}
 
 	/**
-	 * Run `update finish` in a new PHP process, so it loads the new code.
+	 * Print a final message and return the exit code.
 	 *
-	 * @return int The finish step's exit code.
+	 * @param string $message
+	 * @param bool   $success Print as success (otherwise as information).
+	 * @return int
 	 */
-	protected function finish_in_new_process() : int {
-		$manual = sprintf( 'Run `%s` to complete it; the site stays in maintenance until then.', $this->command_line( 'finish' ) );
+	protected function done( string $message, bool $success = true ) : int {
+		$success ? $this->output->success( $message ) : $this->output->info( $message );
 
-		if ( ! function_exists( 'proc_open' ) ) {
-			$this->output->warning( 'This server does not allow starting a new PHP process. ' . $manual );
-			return 1;
-		}
-
-		try {
-			$process = proc_open(
-				array( PHP_BINARY, \SMLISER_ROOT . 'smliser', static::name(), 'finish' ),
-				array( 0 => STDIN, 1 => STDOUT, 2 => STDERR ),
-				$pipes,
-				\SMLISER_ROOT
-			);
-		} catch ( Throwable ) {
-			$process = false;
-		}
-
-		if ( ! is_resource( $process ) ) {
-			$this->output->warning( 'Could not start the finish step. ' . $manual );
-			return 1;
-		}
-
-		$code = proc_close( $process );
-
-		if ( 0 !== $code ) {
-			$this->output->warning( sprintf( 'The finish step did not complete. Check the messages above; `%s` shows where the update stands.', $this->command_line( 'status' ) ) );
-		}
-
-		return $code;
+		return 0;
 	}
 
 	/**
-	 * Republish the public assets from the new system/assets.
+	 * Explain an installed update that finishes later.
 	 *
-	 * A symlink keeps working on its own; a copy (where symlinks are not
-	 * available) is refreshed.
-	 *
-	 * @return void
+	 * @param array $finish UpdateRunner finish details.
+	 * @return int
 	 */
-	protected function relink_assets() : void {
-		try {
-			$copied = $this->fs->is_file( rtrim( $this->installer->assets_public_dir(), '/\\' ) . '/' . AppInstaller::ASSETS_COPY_MARKER );
-			$this->installer->link_public_assets( $copied );
-		} catch ( Throwable $e ) {
-			$this->output->warning( sprintf( 'The public assets could not be republished: %s Run `%s link:assets --force`.', $e->getMessage(), Installer::name() ) );
+	protected function pending( array $finish ) : int {
+		if ( 'process' === ( $finish['method'] ?? '' ) ) {
+			$this->output->warning( sprintf( 'The finish step did not complete. Run `%s`, or open the site: the next request finishes it.', $this->command_line( 'finish' ) ) );
+			return 1;
 		}
+
+		$this->output->success( sprintf( 'Files installed. Run `%s` (or open the site) to finish; the site stays in maintenance until then.', $this->command_line( 'finish' ) ) );
+
+		return 0;
 	}
 
 	/**

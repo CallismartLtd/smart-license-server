@@ -8,25 +8,25 @@
 
 namespace SmartLicenseServer\Admin\ActionHandlers;
 
-use SmartLicenseServer\Background\Jobs\Updates\ApplyUpdateJob;
-use SmartLicenseServer\Background\Queue\JobDTO;
-use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\PhpRuntime;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Environments\Application\Update\UpdateException;
 use SmartLicenseServer\Environments\Application\Update\Updater;
+use SmartLicenseServer\Environments\Application\Update\UpdateRunner;
 use SmartLicenseServer\Environments\Application\Update\UpdateService;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * Handles the update page's actions (admin/json/update/*).
  *
- * Installing and rolling back never run in the web request: they are
- * queued for ApplyUpdateJob, which runs the console command in a separate
- * process. A web request must not replace the code it is running, and a
- * closed tab or a PHP-FPM timeout must not be able to stop an update
- * halfway. Checking and dry runs change nothing on the live site, so they
- * run here.
+ * Everything runs in the request, through UpdateRunner, the same update
+ * API the console and the queue worker use. Installing swaps the files
+ * in and finishes the update in a new PHP process when the server
+ * allows; otherwise the page's next request (it reloads) boots on the new
+ * code and finishes it. A closed tab cannot stop an update halfway
+ * (ignore_user_abort), and the slow part (download, verify, extract) is
+ * the dry run's, so after a dry run installing takes seconds.
  *
  * Every action is for system administrators only.
  *
@@ -44,8 +44,8 @@ class UpdateManagement {
 
 	public function __construct(
 		protected UpdateService $updates,
+		protected UpdateRunner $runner,
 		protected Updater $updater,
-		protected JobQueue $job_queue,
 		protected Guard $guard
 	) {}
 
@@ -98,10 +98,13 @@ class UpdateManagement {
 
 		// Downloading may outlast the default limit; an interrupted dry run
 		// leaves nothing on the live site, and the next attempt cleans up.
-		@set_time_limit( self::DRY_RUN_TIME_LIMIT );
-		ignore_user_abort( true );
+		$this->allow_time();
 
-		$result = $this->updates->dry_run();
+		try {
+			$result = $this->runner->dry_run();
+		} catch ( UpdateException $e ) {
+			return $this->fail( $e->getMessage(), 409 );
+		}
 
 		if ( ! $result['ok'] ) {
 			$problems = array_values( $result['blockers'] );
@@ -141,26 +144,29 @@ class UpdateManagement {
 		$reinstall = (bool) filter_var( $request->get( 'reinstall', false ), FILTER_VALIDATE_BOOLEAN );
 		$overview  = $this->updates->overview();
 
-		if ( $busy = $this->busy( $overview ) ) {
-			return $busy;
+		if ( $overview['in_progress'] ) {
+			return $this->fail( 'An update is being installed.', 409 );
 		}
 
-		if ( ! empty( $overview['blockers'] ) ) {
-			return $this->fail( implode( ' ', $overview['blockers'] ), 409 );
-		}
-
-		$check = $overview['check'];
-
-		if ( ! $reinstall && ! $check['available'] ) {
+		if ( ! $reinstall && ! $overview['check']['available'] ) {
 			return $this->fail( sprintf( '%s %s is up to date. Check for updates first, or reinstall.', \SMLISER_APP_NAME, \SMLISER_VER ), 409 );
 		}
 
-		$version = $reinstall ? \SMLISER_VER : (string) $check['latest'];
+		$this->allow_time();
 
-		$this->dispatch( array( 'action' => 'install', 'reinstall' => $reinstall ) );
-		$this->updates->mark_queued( $version, 'admin' );
+		try {
+			$result = $this->runner->install( null, $reinstall );
+		} catch ( UpdateException $e ) {
+			return $this->fail( $e->getMessage(), 409 );
+		}
 
-		return $this->ok( sprintf( 'Version %s will be installed by the queue worker shortly. This page follows its progress.', $version ) );
+		$version = isset( $result['prepared'] ) ? $result['prepared']['manifest']->version : \SMLISER_VER;
+
+		return match ( $result['status'] ) {
+			UpdateRunner::UP_TO_DATE => $this->ok( sprintf( '%s %s is up to date.', \SMLISER_APP_NAME, \SMLISER_VER ) ),
+			UpdateRunner::PENDING    => $this->ok( sprintf( 'Version %s is installed. It finishes as this page reloads.', $version ) ),
+			default                  => $this->ok( sprintf( 'Version %s was installed.', $version ) ),
+		};
 	}
 
 	/**
@@ -174,22 +180,19 @@ class UpdateManagement {
 			return $denied;
 		}
 
-		$overview = $this->updates->overview();
-
-		if ( $busy = $this->busy( $overview ) ) {
-			return $busy;
-		}
-
-		$backup = $overview['backup'];
-
-		if ( null === $backup ) {
+		if ( null === $this->updater->backup() ) {
 			return $this->fail( 'There is no backup to restore.', 409 );
 		}
 
-		$this->dispatch( array( 'action' => 'rollback' ) );
-		$this->updates->mark_queued( $backup['version'], 'admin' );
+		$this->allow_time();
 
-		return $this->ok( sprintf( 'Version %s will be restored by the queue worker shortly.', $backup['version'] ) );
+		try {
+			$version = $this->runner->rollback();
+		} catch ( UpdateException $e ) {
+			return $this->fail( $e->getMessage(), 409 );
+		}
+
+		return $this->ok( sprintf( 'Version %s was restored.', $version ) );
 	}
 
 	/**
@@ -256,37 +259,12 @@ class UpdateManagement {
 	}
 
 	/**
-	 * Refuse while an update is queued or running.
+	 * Give a request that downloads or installs room to finish, even if the tab closes.
 	 *
-	 * @param array $overview UpdateService::overview().
-	 * @return Response|null
-	 */
-	private function busy( array $overview ) : ?Response {
-		if ( $overview['in_progress'] ) {
-			return $this->fail( 'An update is being installed.', 409 );
-		}
-
-		if ( null !== $overview['queued'] ) {
-			return $this->fail( sprintf( 'An update to %s is already queued.', $overview['queued']['version'] ?? '' ), 409 );
-		}
-
-		return null;
-	}
-
-	/**
-	 * Queue the update job.
-	 *
-	 * @param array $payload ApplyUpdateJob payload.
 	 * @return void
 	 */
-	private function dispatch( array $payload ) : void {
-		$this->job_queue->dispatch(
-			JobDTO::make(
-				job_class : ApplyUpdateJob::class,
-				payload   : $payload,
-				queue     : JobDTO::QUEUE_LOW,
-			)
-		);
+	private function allow_time() : void {
+		PhpRuntime::allow_long_work( self::DRY_RUN_TIME_LIMIT );
 	}
 
 	/**

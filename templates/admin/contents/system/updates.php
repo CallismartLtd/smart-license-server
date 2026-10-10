@@ -54,7 +54,7 @@ $busy = $overview['in_progress'] || null !== $queued;
 		'pending',
 		'ti ti-loader-2 smliser-health-spin',
 		'Update queued',
-		sprintf( 'Version %s was queued %s; the queue worker will process it shortly.', $queued['version'] ?? '', $when( $queued['at'] ?? null ) ),
+		sprintf( 'Automatic update to %s queued %s; background processing installs it at its next run.', $queued['version'] ?? '', $when( $queued['at'] ?? null ) ),
 	),
 	! empty( $blockers ) => array(
 		'critical',
@@ -214,7 +214,7 @@ $chevron = '<svg class="smliser-diagnostics-panel-chevron" viewBox="0 0 24 24" w
 				</ul>
 				<p class="smliser-health-check-recommendation">
 					<i class="ti ti-bulb"></i>
-					<span>These are checked as the web server's PHP user. Updates run in the queue worker; if it runs as another user, check from the console with <code>smliser update status</code>.</span>
+					<span>These are checked for this web request. Installing from this page runs as the web server's PHP user; automatic updates run wherever background processing runs, which may be another user or PHP. Check there with <code>smliser update status</code>.</span>
 				</p>
 			</div>
 		</details>
@@ -244,7 +244,7 @@ $chevron = '<svg class="smliser-diagnostics-panel-chevron" viewBox="0 0 24 24" w
 						<?php endforeach; ?>
 					</ul>
 					<div class="smliser-health-async-footer">
-						<span class="smliser-health-async-time">Checked twice a day by the scheduler; installed by the queue worker.</span>
+						<span class="smliser-health-async-time">Checked twice a day by the scheduler; installed by background processing.</span>
 						<button type="submit" class="smliser-btn smliser-btn-glass"><i class="ti ti-device-floppy"></i> Save</button>
 					</div>
 				</form>

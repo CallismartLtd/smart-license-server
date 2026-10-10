@@ -18,31 +18,58 @@ use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\SignalInfo;
-use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Queue\JobDTO;
+use SmartLicenseServer\Background\Workers\CodeChangeDetector;
 use SmartLicenseServer\Background\Workers\QueueWorker;
 
 /**
  * Manage and process background job queues from the CLI interface.
  */
 class QueueCommand extends AbstractCommand {
-    use CLIUtilsTrait;
+
+    /**
+     * Exit code of a worker that stopped because the application was updated.
+     *
+     * Non-zero on purpose (75, EX_TEMPFAIL: "try again"), so every common
+     * supervisor configuration starts it again on the new code: systemd
+     * Restart=on-failure or Restart=always, and supervisord's default
+     * autorestart=unexpected with exitcodes=0.
+     *
+     * @var int
+     */
+    public const EXIT_CODE_UPDATED = 75;
+
+    /**
+     * Seconds between checks while waiting for an update to end.
+     *
+     * @var int
+     */
+    private const UPDATE_POLL_SECONDS = 2;
+
+    /**
+     * Set by the signal handler, so a wait for an update can be interrupted too.
+     *
+     * @var bool
+     */
+    private bool $interrupted = false;
 
     /**
      * Constructor.
      *
-     * @param JobQueue      $queue          Job queue repository instance.
-     * @param QueueWorker   $worker         Queue worker engine instance.
-     * @param SignalManager $signal_manager Process OS signal coordinator.
-     * @param InputInterface  $io           CLI input interface stream.
-     * @param OutputInterface $output       CLI output interface stream.
-     * @param ScriptName    $script_name    Executable binary alias context.
+     * @param JobQueue           $queue          Job queue repository instance.
+     * @param QueueWorker        $worker         Queue worker engine instance.
+     * @param SignalManager      $signal_manager Process OS signal coordinator.
+     * @param CodeChangeDetector $code_changes   Tells the worker when the application is updated.
+     * @param InputInterface     $io             CLI input interface stream.
+     * @param OutputInterface    $output         CLI output interface stream.
+     * @param ScriptName         $script_name    Executable binary alias context.
      */
     public function __construct(
         protected JobQueue $queue,
         protected QueueWorker $worker,
         protected SignalManager $signal_manager,
+        protected CodeChangeDetector $code_changes,
         InputInterface $io,
         OutputInterface $output,
         ScriptName $script_name
@@ -83,6 +110,10 @@ class QueueCommand extends AbstractCommand {
             'Options for work:',
             '  --queue=<name>    Target queue channel. Default: all queues.',
             '  --timeout=<sec>   Maximum execution time budget in seconds.',
+            '',
+            '  The worker stops taking jobs while the application is being updated, and',
+            '  exits with code ' . self::EXIT_CODE_UPDATED . ' once a new version is installed, so the',
+            '  process supervisor starts it again on the new code.',
             '',
             'Options for list:',
             '  --page=<n>        Page number (1-indexed). Default: 1.',
@@ -151,6 +182,18 @@ class QueueCommand extends AbstractCommand {
     /**
      * Start worker execution daemon with OS signal monitoring and systemd journal output streaming.
      *
+     * The worker loads its code once, so it must not outlive an update:
+     *
+     *  - while an update swaps files, it takes no jobs and waits;
+     *  - once state.json records a new version, it exits with
+     *    EXIT_CODE_UPDATED and the supervisor starts it on the new code;
+     *  - an update that ended without a new version (failed, rolled
+     *    back) lets it carry on.
+     *
+     * A worker started while state.json and the code on disk disagree (an
+     * update whose finish step has not run) waits instead of exiting, so
+     * the supervisor does not restart it in a loop.
+     *
      * @param CommandInput $input
      * @return int Execution exit status code.
      */
@@ -161,11 +204,10 @@ class QueueCommand extends AbstractCommand {
         $queue_channel  = is_string( $queue ) ?$queue : null;
         $time_budget    = $timeout !== null ? (int) $timeout : null;
 
+        $this->interrupted = false;
+
         // Stream real-time log entries to standard output for journald capture.
-        $this->worker->set_logger( function( string $message ) {
-            $timestamp  = ( new \DateTimeImmutable() )->format( 'Y-m-d H:i:s' );
-            $this->output->writeln( sprintf( '[%s] %s', $timestamp, $message ) );
-        });
+        $this->worker->set_logger( fn( string $message ) => $this->log( $message ) );
 
         // Attach SignalManager listeners to handle graceful termination signals
         if ( $this->signal_manager->is_supported() ) {
@@ -179,6 +221,7 @@ class QueueCommand extends AbstractCommand {
                     )
                 );
 
+                $this->interrupted = true;
                 $this->worker->request_stop();
             };
 
@@ -187,13 +230,147 @@ class QueueCommand extends AbstractCommand {
             $this->signal_manager->on( 'SIGHUP', $stop_handler );
         }
 
-        if ( $time_budget !== null ) {
-            $this->worker->process_within_time_budget( $time_budget, $queue_channel );
-        } else {
-            $this->worker->start_processing( $queue_channel );
+        // Checked between jobs and every second while idle.
+        $reason = null;
+        $this->worker->set_stop_checker(
+            function () use ( &$reason ): bool {
+                $reason = $this->code_changes->reason();
+
+                return null !== $reason;
+            }
+        );
+
+        try {
+            if ( $time_budget !== null ) {
+                return $this->work_within_budget( $time_budget, $queue_channel );
+            }
+
+            return $this->work_until_stopped( $queue_channel, $reason );
+        } finally {
+            $this->worker->set_stop_checker( null );
+        }
+    }
+
+    /**
+     * Process for a time budget (cron-style runs, a fresh process each time).
+     *
+     * A run that starts during an update does nothing; the next one picks up.
+     *
+     * @param int         $time_budget   Seconds.
+     * @param string|null $queue_channel Queue, or null for all.
+     * @return int Exit code.
+     */
+    private function work_within_budget( int $time_budget, ?string $queue_channel ): int {
+        if ( null !== $this->code_changes->reason() ) {
+            $this->log( 'The application is being updated, or its update has not finished; no jobs taken in this run.' );
+            return 0;
         }
 
+        $this->worker->process_within_time_budget( $time_budget, $queue_channel );
+
         return 0;
+    }
+
+    /**
+     * Process until a signal, a worker limit, or an application update.
+     *
+     * @param string|null $queue_channel Queue, or null for all.
+     * @param string|null $reason        Set by the stop checker: why the worker stopped.
+     * @return int Exit code.
+     */
+    private function work_until_stopped( ?string $queue_channel, ?string &$reason ): int {
+        // Started on code that state.json does not record yet: wait for the
+        // update to be finished (or rolled back) rather than exit and be
+        // restarted in a loop.
+        if ( CodeChangeDetector::REASON_CHANGED === $this->code_changes->reason() ) {
+            $this->log(
+                sprintf(
+                    'This worker runs version %s but state.json records %s; an update has not finished. Waiting for `%s update finish` (or a rollback)...',
+                    $this->code_changes->running_version(),
+                    $this->code_changes->installed_version() ?? 'unknown',
+                    $this->script_name
+                )
+            );
+
+            if ( ! $this->wait_while( fn() => null !== $this->code_changes->reason() ) ) {
+                return 0;
+            }
+        }
+
+        while ( true ) {
+            $reason = null;
+
+            $this->worker->start_processing( $queue_channel );
+
+            // A signal, the memory ceiling or the job limit: a normal stop.
+            if ( $this->interrupted || null === $reason ) {
+                return 0;
+            }
+
+            if ( CodeChangeDetector::REASON_CHANGED === $reason ) {
+                return $this->exit_for_update();
+            }
+
+            // REASON_UPDATING: take no jobs until the update has ended.
+            $this->log( 'The application is being updated. No jobs are taken until it ends.' );
+
+            if ( ! $this->wait_while( fn() => CodeChangeDetector::REASON_UPDATING === $this->code_changes->reason() ) ) {
+                return 0;
+            }
+
+            if ( CodeChangeDetector::REASON_CHANGED === $this->code_changes->reason() ) {
+                return $this->exit_for_update();
+            }
+
+            $this->log( 'The update ended without a new version; resuming.' );
+        }
+    }
+
+    /**
+     * Log why the worker exits after an update, and return the restart exit code.
+     *
+     * @return int
+     */
+    private function exit_for_update(): int {
+        $this->log(
+            sprintf(
+                'The application was updated from %s to %s. Exiting with code %d so the process supervisor starts the worker on the new code.',
+                $this->code_changes->running_version(),
+                $this->code_changes->installed_version() ?? 'a new version',
+                self::EXIT_CODE_UPDATED
+            )
+        );
+
+        return self::EXIT_CODE_UPDATED;
+    }
+
+    /**
+     * Sleep while a condition holds, until it clears or a signal arrives.
+     *
+     * @param callable(): bool $condition Keep waiting while this returns true.
+     * @return bool True when the condition cleared, false when interrupted.
+     */
+    private function wait_while( callable $condition ): bool {
+        while ( $condition() ) {
+            if ( $this->interrupted ) {
+                return false;
+            }
+
+            sleep( self::UPDATE_POLL_SECONDS );
+        }
+
+        return ! $this->interrupted;
+    }
+
+    /**
+     * Write a timestamped worker log line.
+     *
+     * @param string $message
+     * @return void
+     */
+    private function log( string $message ): void {
+        $timestamp  = ( new \DateTimeImmutable() )->format( 'Y-m-d H:i:s' );
+        $this->output->writeln( sprintf( '[%s] %s', $timestamp, $message ) );
     }
 
     /**

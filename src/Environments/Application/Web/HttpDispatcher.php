@@ -17,6 +17,8 @@ use SmartLicenseServer\Admin\ActionHandlers\AppMonetization;
 use SmartLicenseServer\Admin\ActionHandlers\OtherFormsActions;
 use SmartLicenseServer\Admin\ActionHandlers\SystemManagement;
 use SmartLicenseServer\Admin\ActionHandlers\UpdateManagement;
+use SmartLicenseServer\Admin\ActionHandlers\BackgroundManagement;
+use SmartLicenseServer\Admin\ContentHandlers\ToolsPage;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\Cache\CacheRequestController;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
@@ -395,6 +397,16 @@ final class HttpDispatcher {
 						handler: [ SystemManagement::class, 'handle_cache_verify' ]
 					);
 
+					$this->router->get(
+						pattern: 'site-health-check/database',
+						handler: [ ToolsPage::class, 'database_check_data' ]
+					);
+
+					$this->router->get(
+						pattern: 'site-health-check/diagnostics',
+						handler: [ ToolsPage::class, 'diagnostics_data' ]
+					);
+
 					/*
 					|-------------------------------
 					| UPDATES PAGE ACTIONS
@@ -421,6 +433,31 @@ final class HttpDispatcher {
 								$this->router->post(
 									pattern: $pattern,
 									handler: [ UpdateManagement::class, $method ]
+								);
+							}
+						}
+					);
+
+					/*
+					|------------------------------------------
+					| SCHEDULES AND QUEUE MONITOR ACTIONS
+					|------------------------------------------
+					*/
+					$this->router->group(
+						prefix: 'background',
+						callback: function() {
+							$actions = [
+								'schedule/run'        => 'run_schedule',
+								'queue/process'       => 'process_queue',
+								'queue/release-stale' => 'release_stale',
+								'queue/purge'         => 'purge_completed',
+								'queue/purge-failed'  => 'purge_failed',
+							];
+
+							foreach ( $actions as $pattern => $method ) {
+								$this->router->post(
+									pattern: $pattern,
+									handler: [ BackgroundManagement::class, $method ]
 								);
 							}
 						}

@@ -794,7 +794,16 @@ final class Updater {
 	}
 
 	/**
-	 * Release the update lock.
+	 * Whether this process holds the update lock.
+	 *
+	 * @return bool
+	 */
+	public function holds_lock() : bool {
+		return null !== $this->lock;
+	}
+
+	/**
+	 * Release the update lock held by this process, if any.
 	 *
 	 * @return void
 	 */
