@@ -38,6 +38,9 @@ use SmartLicenseServer\Email\Templates\Monetization\SubscriptionCancelledEmail;
 use SmartLicenseServer\Email\Templates\System\BulkMessageEmail;
 use SmartLicenseServer\Email\Templates\System\SystemAlertEmail;
 use SmartLicenseServer\Email\Templates\System\TestEmail;
+use SmartLicenseServer\Email\Templates\System\UpdateAvailableEmail;
+use SmartLicenseServer\Email\Templates\System\UpdateFailedEmail;
+use SmartLicenseServer\Email\Templates\System\UpdateInstalledEmail;
 
 class EmailTemplateRegistry {
 
@@ -129,6 +132,11 @@ class EmailTemplateRegistry {
             BulkMessageEmail::class,
             TestEmail::class,
             SystemAlertEmail::class,
+
+            // Software updates
+            UpdateAvailableEmail::class,
+            UpdateInstalledEmail::class,
+            UpdateFailedEmail::class,
         ];
 
         foreach ( $built_in as $class ) {

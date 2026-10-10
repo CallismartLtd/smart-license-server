@@ -75,7 +75,7 @@
 			done( response?.data?.message || 'Done.', 'success' );
 		} catch ( error ) {
 			restore();
-			SmliserToast.show( error?.message || 'The request failed.', { type: 'error' } );
+			await SmliserModal.error( error?.message || 'The request failed.', 'Error');
 		}
 	}
 
@@ -94,10 +94,10 @@
 			const response = await post( 'auto', new FormData( form ), TIMEOUT_MS );
 
 			restore();
-			SmliserToast.show( response?.data?.message || 'Saved.', { type: 'success' } );
+			await SmliserModal.success( response?.data?.message || 'Saved.' );
 		} catch ( error ) {
 			restore();
-			SmliserToast.show( error?.message || 'The setting could not be saved.', { type: 'error' } );
+			await SmliserModal.error( error?.message || 'The setting could not be saved.', 'Error' );
 		}
 	}
 
@@ -107,9 +107,9 @@
 	 * @param {string} message
 	 * @param {string} type
 	 */
-	function done( message, type ) {
-		SmliserToast.show( message, { type } );
-		setTimeout( () => window.location.reload(), 1500 );
+	async function done( message, type ) {
+		await SmliserModal.info( message, type );
+		window.location.reload();
 	}
 
 	/*
@@ -126,7 +126,7 @@
 	 */
 	async function poll( started ) {
 		if ( Date.now() - started > POLL_GIVE_UP_MS ) {
-			SmliserToast.show( 'The update has not finished after 20 minutes. Check that the queue worker is running, or run `smliser update status` from the console.', { type: 'warning' } );
+			await SmliserModal.warning( 'The update has not finished after 20 minutes. Check that the queue worker is running, or run `smliser update status` from the console.' );
 			return;
 		}
 

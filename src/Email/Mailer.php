@@ -66,6 +66,26 @@ class Mailer {
         $this->provider = $provider;
     }
 
+    /*
+    |-------------------
+    | PROVIDER CONTROL
+    |-------------------
+    */
+
+    /**
+     * Return a copy of the mailer using a specific provider.
+     *
+     * @param EmailProviderInterface $provider
+     * @return static
+     * @throws InvalidArgumentException If the provider is not registered.
+     */
+    public static function with_provider( EmailProviderInterface $provider ): static {
+        $static           = new static( $provider );
+        $static->provider = $provider;
+
+        return $static;
+    }
+
     /**
      * Set the active provider directly.
      *

@@ -49,9 +49,10 @@ final class InstallationState {
 	/**
 	 * Sections of the "update" entry.
 	 */
-	public const UPDATE_CHECK = 'check';
-	public const UPDATE_READY = 'ready';
-	public const UPDATE_RUN   = 'run';
+	public const UPDATE_CHECK    = 'check';
+	public const UPDATE_READY    = 'ready';
+	public const UPDATE_RUN      = 'run';
+	public const UPDATE_NOTIFIED = 'notified';
 
 	/**
 	 * Class constructor.

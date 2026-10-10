@@ -10,6 +10,9 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Update;
 
+use SmartLicenseServer\Background\Jobs\Updates\UpdateNotificationJob;
+use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Environments\Application\Boot\InstallationState;
 use SmartLicenseServer\Environments\Application\Release\ReleaseManifest;
 use SmartLicenseServer\Environments\Application\Release\ReleaseSignature;
@@ -29,6 +32,7 @@ use SmartLicenseServer\SettingsAPI\Settings;
 final class UpdateService {
 
 	use UpdateProgressTrait;
+	use QueueAwareTrait;
 
 	/**
 	 * Automatic update modes.
@@ -73,6 +77,13 @@ final class UpdateService {
 	public const MIN_FREE_BYTES = 209715200;
 
 	/**
+	 * Most characters of update output kept in a failure email (the end is kept).
+	 *
+	 * @var int
+	 */
+	private const NOTICE_OUTPUT_LIMIT = 2000;
+
+	/**
 	 * Application root, with a trailing slash.
 	 *
 	 * @var string
@@ -90,6 +101,7 @@ final class UpdateService {
 	 * @param Settings          $settings  Settings API.
 	 * @param FileSystem        $fs        Filesystem API.
 	 * @param string            $root      Application root.
+	 * @param JobQueue          $job_queue Queues the update emails.
 	 */
 	public function __construct(
 		private UpdateServer $server,
@@ -99,9 +111,11 @@ final class UpdateService {
 		private InstallationState $state,
 		private Settings $settings,
 		private FileSystem $fs,
-		string $root
+		string $root,
+		JobQueue $job_queue
 	) {
-		$this->root = rtrim( $root, '/\\' ) . '/';
+		$this->root      = rtrim( $root, '/\\' ) . '/';
+		$this->job_queue = $job_queue;
 	}
 
 	/*
@@ -375,6 +389,7 @@ final class UpdateService {
 		$check = $this->check( true );
 
 		$this->expire_backup();
+		$this->quietly( fn() => $this->notify_available( $check ) );
 
 		$mode = $this->auto_mode();
 
@@ -445,8 +460,14 @@ final class UpdateService {
 	 * @return void
 	 */
 	public function record_attempt( string $action, bool $ok, string $message ) : void {
+		$queued = null;
+		$check  = null;
+
 		$this->state->change(
-			static function ( array $state ) use ( $action, $ok, $message ) : array {
+			static function ( array $state ) use ( $action, $ok, $message, &$queued, &$check ) : array {
+				$queued = is_array( $state['update']['check']['queued'] ?? null ) ? $state['update']['check']['queued'] : null;
+				$check  = is_array( $state['update']['check'] ?? null ) ? $state['update']['check'] : array();
+
 				unset( $state['update']['check']['queued'] );
 
 				$state['update']['attempt'] = array(
@@ -458,6 +479,129 @@ final class UpdateService {
 
 				return $state;
 			}
+		);
+
+		if ( ! $ok ) {
+			$this->quietly( fn() => $this->notify_failed( $action, $message, $queued, (array) $check ) );
+		}
+	}
+
+	/*
+	|---------------
+	| Notifications
+	|---------------
+	*/
+
+	/**
+	 * Email the administration address about a release automatic updates will not install.
+	 *
+	 * Sent once per version: when automatic updates are off, or set to
+	 * security releases only and this is a regular release. Releases that
+	 * will be installed automatically are reported when they are installed
+	 * (or fail) instead.
+	 *
+	 * @param array $check A check result (see check()).
+	 * @return bool Whether an email was queued.
+	 */
+	public function notify_available( array $check ) : bool {
+		if ( empty( $check['available'] ) || ! is_string( $check['latest'] ?? null ) ) {
+			return false;
+		}
+
+		$mode     = $this->auto_mode();
+		$security = ! empty( $check['security'] );
+
+		if ( self::AUTO_ALL === $mode || ( self::AUTO_SECURITY === $mode && $security ) ) {
+			return false;
+		}
+
+		$version  = $check['latest'];
+		$notified = $this->state->update_section( InstallationState::UPDATE_NOTIFIED );
+
+		if ( $version === ( $notified['available'] ?? null ) ) {
+			return false;
+		}
+
+		$this->dispatch_job(
+			UpdateNotificationJob::class,
+			array(
+				'event'           => UpdateNotificationJob::EVENT_AVAILABLE,
+				'current_version' => \SMLISER_VER,
+				'new_version'     => $version,
+				'security'        => $security,
+				'detail'          => self::AUTO_OFF === $mode
+					? 'Automatic updates are off on this site, so it will not be installed automatically.'
+					: 'Automatic updates on this site install security releases only, so this release will not be installed automatically.',
+			)
+		);
+
+		$this->state->set_update_section(
+			InstallationState::UPDATE_NOTIFIED,
+			array( 'available' => $version, 'at' => gmdate( DATE_ATOM ) ) + (array) $notified
+		);
+
+		return true;
+	}
+
+	/**
+	 * Email the administration address after an automatic update was installed.
+	 *
+	 * Called by the finish step, which runs on the new code. Updates an
+	 * administrator started (from the Updates page or the console) send
+	 * nothing on success: they were watched as they happened.
+	 *
+	 * @param array $result Updater::finish() result: {from, to, package}.
+	 * @return bool Whether an email was queued.
+	 */
+	public function notify_installed( array $result ) : bool {
+		$check  = (array) $this->state->update_section( InstallationState::UPDATE_CHECK );
+		$queued = is_array( $check['queued'] ?? null ) ? $check['queued'] : null;
+
+		if ( null === $queued || 'automatic' !== ( $queued['by'] ?? null ) || ( $result['to'] ?? null ) !== ( $queued['version'] ?? null ) ) {
+			return false;
+		}
+
+		$this->dispatch_job(
+			UpdateNotificationJob::class,
+			array(
+				'event'           => UpdateNotificationJob::EVENT_INSTALLED,
+				'current_version' => (string) ( $result['from'] ?? '' ),
+				'new_version'     => (string) $result['to'],
+				'security'        => $result['to'] === ( $check['latest'] ?? null ) && ! empty( $check['security'] ),
+				'package'         => (array) ( $result['package'] ?? array() ),
+			)
+		);
+
+		return true;
+	}
+
+	/**
+	 * Email the administration address about a queued update or rollback that failed.
+	 *
+	 * @param string     $action  "install" or "rollback".
+	 * @param string     $message The update's output.
+	 * @param array|null $queued  The queued marker of the attempt ({version, by, at}).
+	 * @param array      $check   The stored check.
+	 * @return void
+	 */
+	private function notify_failed( string $action, string $message, ?array $queued, array $check ) : void {
+		$version = (string) ( $queued['version'] ?? $check['latest'] ?? '' );
+		$output  = trim( $message );
+
+		if ( strlen( $output ) > self::NOTICE_OUTPUT_LIMIT ) {
+			$output = '…' . substr( $output, -self::NOTICE_OUTPUT_LIMIT );
+		}
+
+		$this->dispatch_job(
+			UpdateNotificationJob::class,
+			array(
+				'event'           => UpdateNotificationJob::EVENT_FAILED,
+				'action'          => $action,
+				'current_version' => \SMLISER_VER,
+				'new_version'     => $version,
+				'security'        => $version === ( $check['latest'] ?? null ) && ! empty( $check['security'] ),
+				'detail'          => '' !== $output ? $output : 'The update ended without output.',
+			)
 		);
 	}
 
@@ -501,6 +645,20 @@ final class UpdateService {
 	| Helpers
 	|---------
 	*/
+
+	/**
+	 * Run a notification step; an email that cannot be queued must never stop an update.
+	 *
+	 * @param callable $step The step.
+	 * @return void
+	 */
+	private function quietly( callable $step ) : void {
+		try {
+			$step();
+		} catch ( \Throwable $e ) {
+			\smliser_log_error( sprintf( '[UpdateService] Update notification not queued: %s', $e->getMessage() ) );
+		}
+	}
 
 	/**
 	 * A check result with "available" worked out against the installed version.

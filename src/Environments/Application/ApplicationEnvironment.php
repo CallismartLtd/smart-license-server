@@ -14,6 +14,7 @@ namespace SmartLicenseServer\Environments\Application;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
 use Callismart\Http\HttpClient;
+use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Contracts\URLManagerInterface;
 use SmartLicenseServer\Environments\Application\Boot\BootManager;
@@ -162,14 +163,15 @@ class ApplicationEnvironment extends Environment {
             UpdateService::class,
             fn( Container $c ) => 
                 new UpdateService(
-                    $c->get( UpdateServer::class ),
-                    $c->get( Updater::class ),
-                    $c->get( PackageVerifier::class ),
-                    new ReleaseSignature(),
-                    InstallationState::from_runtime( $c->get( FileSystem::class ) ),
-                    $c->get( Settings::class ),
-                    $c->get( FileSystem::class ),
-                    \SMLISER_ROOT
+                    server: $c->get( UpdateServer::class ),
+                    updater: $c->get( Updater::class ),
+                    verifier: $c->get( PackageVerifier::class ),
+                    signature: new ReleaseSignature(),
+                    state: InstallationState::from_runtime( $c->get( FileSystem::class ) ),
+                    settings: $c->get( Settings::class ),
+                    fs: $c->get( FileSystem::class ),
+                    root: \SMLISER_ROOT,
+                    job_queue: $c->get( JobQueue::class )
                 )
         );
         

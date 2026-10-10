@@ -253,6 +253,16 @@ class Update extends AbstractCommand {
 
 		$this->relink_assets();
 
+		// After an automatic update, email the administration address. A
+		// problem queueing it must not turn a finished update into a failure.
+		try {
+			if ( $this->updates->notify_installed( $result ) ) {
+				$this->output->info( 'The site administration email will be notified.' );
+			}
+		} catch ( Throwable $e ) {
+			$this->output->warning( sprintf( 'The update notification could not be queued: %s', $e->getMessage() ) );
+		}
+
 		$this->output->success(
 			sprintf(
 				'%s was updated from %s to %s%s.',

@@ -15,6 +15,7 @@ use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Contracts\AdminRequests\SystemSettingsHandlerInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Environments\Application\Update\UpdateServer;
 
 /**
  * Handles systems administration actions and form requests.
@@ -24,8 +25,7 @@ class SystemManagement implements SystemSettingsHandlerInterface {
 	/**
 	 * The update server this application receives updates from.
 	 */
-	// const DEPENDENT_HOST = 'https://apiv1.callismart.com.ng';
-	const DEPENDENT_HOST = 'https://smliser.local';
+	const DEPENDENT_HOST = UpdateServer::HOST;
 
 	/**
 	 * Per-probe HTTP timeout in seconds, kept well under the site health

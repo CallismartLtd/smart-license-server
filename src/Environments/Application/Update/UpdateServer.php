@@ -31,8 +31,7 @@ final class UpdateServer {
 	 *
 	 * @var string
 	 */
-	// public const HOST = 'https://apiv1.callismart.com.ng';
-	public const HOST = 'https://smliser.local';
+	public const HOST = 'https://apiv1.callismart.com.ng';
 
 	/**
 	 * Hosted app type of this application on the update server.
