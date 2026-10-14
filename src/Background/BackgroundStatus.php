@@ -79,7 +79,8 @@ final class BackgroundStatus {
 			'sapi' => PHP_SAPI,
 		) + $data;
 
-		$lock = @fopen( $this->file . '.lock', 'c' );
+		$lock_file	= $this->file . '.lock';
+		$lock		= @fopen( $lock_file, 'c' );
 
 		if ( false === $lock || ! flock( $lock, LOCK_EX ) ) {
 			return;
@@ -93,6 +94,7 @@ final class BackgroundStatus {
 		} finally {
 			flock( $lock, LOCK_UN );
 			fclose( $lock );
+			$this->fs->delete( $lock_file );
 		}
 	}
 

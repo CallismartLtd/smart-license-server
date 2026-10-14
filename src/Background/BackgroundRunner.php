@@ -116,6 +116,7 @@ final class BackgroundRunner {
 		} finally {
 			flock( $lock, LOCK_UN );
 			fclose( $lock );
+			@unlink( $this->lock_file );
 		}
 	}
 
