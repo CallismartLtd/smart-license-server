@@ -30,8 +30,8 @@ defined( 'SMLISER_ROOT' ) || exit;
 | VARIABLES & DEFAULTS
 |--------------------------------------------------
 */
-$menu        = $menu        ?? [];
-$rest_base   = $rest_base   ?? '';
+$menu        = $menu ?? [];
+$rest_base   = $rest_base ?? '';
 $active_slug = $active_slug ?? array_key_first( $menu ) ?? '';
 $repo_name   = (string) smliser_settings()->get( 'smliser_repository_name', SMLISER_APP_NAME );
 
@@ -42,7 +42,7 @@ $repo_name   = (string) smliser_settings()->get( 'smliser_repository_name', SMLI
 */
 $principal = $guard->get_principal();
 
-$theme    = 'dark';
+$theme     = 'dark';
 $collapsed = false;
 
 /*
@@ -54,12 +54,12 @@ $styles  = [ 'client-dashboard' ];
 $scripts = [ 'client-dashboard' ];
 
 if ( $principal ) {
-    $settings  = UserSettings::for( $principal->get_actor() );
-    $theme     = (string) $settings->get( 'theme', 'dark' );
-    $collapsed = (bool) $settings->get( 'sidebar_collapsed', false );
+	$settings  = UserSettings::for( $principal->get_actor() );
+	$theme     = (string) $settings->get( 'theme', 'dark' );
+	$collapsed = (bool) $settings->get( 'sidebar_collapsed', false );
 } else {
-    $styles     = ['client-auth', 'client-dashboard'];
-    $scripts    = ['client-auth'];
+	$styles  = ['client-auth', 'client-dashboard'];
+	$scripts = ['client-auth'];
 }
 
 /*
@@ -69,24 +69,24 @@ if ( $principal ) {
 |    opens <div class="smlcd-layout" id="smlcd-layout">
 |--------------------------------------------------
 */
-$title  = $repo_name;
-$title  = ! empty( $menu )
-    ? sprintf( '%s — %s', $menu[$active_slug]['title'], $title ) ?? $title
-    : $title;
+$title = $repo_name;
+$title = ! empty( $menu )
+	? sprintf( '%s — %s', $menu[$active_slug]['title'], $title ) ?? $title
+	: $title;
 
-$template   = $guard->has_principal() ? clientDashboardRegistry() : authTemplateRegistry();
+$template = $guard->has_principal() ? clientDashboardRegistry() : authTemplateRegistry();
 
 $this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
-    'menu'          => $menu,
-    'rest_base'     => $rest_base,
-    'active_slug'   => $active_slug,
-    'principal'     => $principal,
-    'styles'        => $styles,
-    'title'         => $title,
-    'repo_name'     => $repo_name,
-    'theme'         => $theme,
-    'collapsed'     => $collapsed,
-    'allowed_slugs' => $template->slugs()
+	'menu'          => $menu,
+	'rest_base'     => $rest_base,
+	'active_slug'   => $active_slug,
+	'principal'     => $principal,
+	'styles'        => $styles,
+	'title'         => $title,
+	'repo_name'     => $repo_name,
+	'theme'         => $theme,
+	'collapsed'     => $collapsed,
+	'allowed_slugs' => $template->slugs()
 ] );
 
 /*
@@ -97,12 +97,12 @@ $this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
 |--------------------------------------------------
 */
 if ( $principal ) {
-    $this->render( ClientDashboardRenderer::MENU_TEMPLATE, [
-        'menu'        => $menu,
-        'active_slug' => $active_slug,
-        'principal'   => $principal,
-        'repo_name'   => $repo_name,
-    ] );
+	$this->render( ClientDashboardRenderer::MENU_TEMPLATE, [
+		'menu'        => $menu,
+		'active_slug' => $active_slug,
+		'principal'   => $principal,
+		'repo_name'   => $repo_name,
+	] );
 }
 
 /*
@@ -113,15 +113,15 @@ if ( $principal ) {
 |--------------------------------------------------
 */
 $content_template = $principal
-    ? ClientDashboardRenderer::CONTENT_TEMPLATE
-    : ClientDashboardRenderer::AUTH_INDEX_TEMPLATE;
+	? ClientDashboardRenderer::CONTENT_TEMPLATE
+	: ClientDashboardRenderer::AUTH_INDEX_TEMPLATE;
 
 $this->render( $content_template, [
-    'principal'     => $principal,
-    'rest_base'     => $rest_base,
-    'active_slug'   => $active_slug,
-    'repo_name'     => $repo_name,
-    'request'       => $request
+	'principal'   => $principal,
+	'rest_base'   => $rest_base,
+	'active_slug' => $active_slug,
+	'repo_name'   => $repo_name,
+	'request'     => $request
 ] );
 
 /*
@@ -131,5 +131,5 @@ $this->render( $content_template, [
 |--------------------------------------------------
 */
 $this->render( ClientDashboardRenderer::FOOTER_TEMPLATE, [
-    'scripts' => $scripts,
+	'scripts' => $scripts,
 ] );

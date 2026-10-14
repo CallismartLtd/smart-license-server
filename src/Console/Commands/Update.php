@@ -51,7 +51,7 @@ class Update extends AbstractCommand {
 	}
 
 	public function help() : string {
-		$lines = array(
+		$lines = [
 			'check'         => 'Asks the update server for the latest version.',
 			'dry-run'       => 'Downloads, verifies and checks the latest version without installing it, and lists anything blocking an update.',
 			'run'           => 'Installs the latest version (or --package).',
@@ -60,7 +60,7 @@ class Update extends AbstractCommand {
 			'status'        => 'Shows the last check, the last update and the backup.',
 			'auto'          => 'Shows or sets automatic updates: --mode=off|security|all.',
 			'backup:delete' => 'Deletes the backup of the previous version (rollback is no longer possible).',
-		);
+		];
 
 		$out = sprintf( "Usage: %s <subcommand> [options]\n\nSubcommands:\n", $this->command_line( '' ) );
 
@@ -70,7 +70,7 @@ class Update extends AbstractCommand {
 
 		return $out . implode(
 			"\n",
-			array(
+			[
 				'',
 				'Options for run:',
 				'  --package=<zip>    Install this package instead of downloading. Its .sha256',
@@ -82,22 +82,22 @@ class Update extends AbstractCommand {
 				'',
 				'Options for auto:',
 				'  --mode=<mode>      off, security (security releases only) or all.',
-			)
+			]
 		);
 	}
 
 	public function get_subcommands() : array {
-		return array(
-			'check'         => array( $this, 'check' ),
-			'dry-run'       => array( $this, 'dry_run' ),
-			'run'           => array( $this, 'run_update' ),
-			'finish'        => array( $this, 'finish' ),
-			'rollback'      => array( $this, 'rollback' ),
-			'status'        => array( $this, 'status' ),
-			'auto'          => array( $this, 'auto' ),
-			'backup:delete' => array( $this, 'delete_backup' ),
-			'help'          => array( $this, 'handle_help' ),
-		);
+		return [
+			'check'         => [ $this, 'check' ],
+			'dry-run'       => [ $this, 'dry_run' ],
+			'run'           => [ $this, 'run_update' ],
+			'finish'        => [ $this, 'finish' ],
+			'rollback'      => [ $this, 'rollback' ],
+			'status'        => [ $this, 'status' ],
+			'auto'          => [ $this, 'auto' ],
+			'backup:delete' => [ $this, 'delete_backup' ],
+			'help'          => [ $this, 'handle_help' ],
+		];
 	}
 
 	public function run( CommandInput $input ) : int {
@@ -231,7 +231,7 @@ class Update extends AbstractCommand {
 		return match ( $result['status'] ) {
 			UpdateRunner::UP_TO_DATE => $this->done( sprintf( '%s %s is up to date.', \SMLISER_APP_NAME, \SMLISER_VER ) ),
 			UpdateRunner::CANCELLED  => $this->done( sprintf( 'Update cancelled; nothing was changed. The verified package is kept for `%s`.', $this->command_line( 'run' ) ), false ),
-			UpdateRunner::PENDING    => $this->pending( $result['finish'] ?? array() ),
+			UpdateRunner::PENDING    => $this->pending( $result['finish'] ?? [] ),
 			default                  => (int) ( $result['finish']['exit_code'] ?? 0 ),
 		};
 	}
@@ -316,15 +316,15 @@ class Update extends AbstractCommand {
 		$backup = $this->updater->backup();
 
 		$this->output->table(
-			array( 'Field', 'Value' ),
-			array(
-				array( 'Installed', \SMLISER_VER ),
-				array( 'Latest', (string) ( $check['latest'] ?? 'unknown' ) . ( $check['security'] ? ' (security)' : '' ) ),
-				array( 'Last checked', (string) $check['checked_at'] ),
-				array( 'Check error', (string) ( $check['error'] ?? '' ) ),
-				array( 'Automatic updates', $this->updates->auto_mode() ),
-				array( 'Backup', null === $backup ? 'none' : sprintf( '%s, made %s', $backup['version'], $backup['made_at'] ) ),
-			)
+			[ 'Field', 'Value' ],
+			[
+				[ 'Installed', \SMLISER_VER ],
+				[ 'Latest', (string) ( $check['latest'] ?? 'unknown' ) . ( $check['security'] ? ' (security)' : '' ) ],
+				[ 'Last checked', (string) $check['checked_at'] ],
+				[ 'Check error', (string) ( $check['error'] ?? '' ) ],
+				[ 'Automatic updates', $this->updates->auto_mode() ],
+				[ 'Backup', null === $backup ? 'none' : sprintf( '%s, made %s', $backup['version'], $backup['made_at'] ) ],
+			]
 		);
 
 		foreach ( $this->updates->blockers() as $blocker ) {
@@ -337,20 +337,20 @@ class Update extends AbstractCommand {
 			return 0;
 		}
 
-		$package = is_array( $journal['package'] ?? null ) ? $journal['package'] : array();
+		$package = is_array( $journal['package'] ?? null ) ? $journal['package'] : [];
 
 		$this->output->table(
-			array( 'Field', 'Value' ),
-			array(
-				array( 'From', (string) ( $journal['from'] ?? '' ) ),
-				array( 'To', (string) ( $journal['to'] ?? '' ) ),
-				array( 'Package source', (string) ( $package['source'] ?? 'not recorded' ) ),
-				array( 'Package SHA-256', (string) ( $package['sha256'] ?? '' ) ),
-				array( 'Signed by', (string) ( $package['signed_by'] ?? ( empty( $package ) ? '' : 'unsigned' ) ) ),
-				array( 'Stage', (string) ( $journal['stage'] ?? '' ) ),
-				array( 'Started', (string) ( $journal['started_at'] ?? '' ) ),
-				array( 'Finished', (string) ( $journal['finished_at'] ?? $journal['rolled_back_at'] ?? '' ) ),
-			)
+			[ 'Field', 'Value' ],
+			[
+				[ 'From', (string) ( $journal['from'] ?? '' ) ],
+				[ 'To', (string) ( $journal['to'] ?? '' ) ],
+				[ 'Package source', (string) ( $package['source'] ?? 'not recorded' ) ],
+				[ 'Package SHA-256', (string) ( $package['sha256'] ?? '' ) ],
+				[ 'Signed by', (string) ( $package['signed_by'] ?? ( empty( $package ) ? '' : 'unsigned' ) ) ],
+				[ 'Stage', (string) ( $journal['stage'] ?? '' ) ],
+				[ 'Started', (string) ( $journal['started_at'] ?? '' ) ],
+				[ 'Finished', (string) ( $journal['finished_at'] ?? $journal['rolled_back_at'] ?? '' ) ],
+			]
 		);
 
 		if ( Updater::STAGE_SWAPPED === ( $journal['stage'] ?? null ) ) {

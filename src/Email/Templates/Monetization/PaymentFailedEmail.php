@@ -17,68 +17,68 @@ use SmartLicenseServer\Email\Templates\EmailTemplate;
 
 class PaymentFailedEmail extends EmailTemplate {
 
-    /**
-     * @param string      $to             Recipient email address.
-     * @param string      $recipient_name Name of the recipient.
-     * @param string      $amount         Formatted payment amount (e.g. "$49.00").
-     * @param string      $currency       Currency code (e.g. "USD").
-     * @param string      $payment_date   The date the payment was attempted.
-     * @param string      $description    Description of what the payment was for.
-     * @param string|null $reason         Optional reason for the failure.
-     * @param string|null $retry_url      Optional URL for the user to retry payment.
-     */
-    public function __construct(
-        private readonly string  $to,
-        private readonly string  $recipient_name,
-        private readonly string  $amount,
-        private readonly string  $currency,
-        private readonly string  $payment_date,
-        private readonly string  $description,
-        private readonly ?string $reason    = null,
-        private readonly ?string $retry_url = null
-    ) {}
+	/**
+	 * @param string      $to             Recipient email address.
+	 * @param string      $recipient_name Name of the recipient.
+	 * @param string      $amount         Formatted payment amount (e.g. "$49.00").
+	 * @param string      $currency       Currency code (e.g. "USD").
+	 * @param string      $payment_date   The date the payment was attempted.
+	 * @param string      $description    Description of what the payment was for.
+	 * @param string|null $reason         Optional reason for the failure.
+	 * @param string|null $retry_url      Optional URL for the user to retry payment.
+	 */
+	public function __construct(
+		private readonly string  $to,
+		private readonly string  $recipient_name,
+		private readonly string  $amount,
+		private readonly string  $currency,
+		private readonly string  $payment_date,
+		private readonly string  $description,
+		private readonly ?string $reason = null,
+		private readonly ?string $retry_url = null
+	) {}
 
-    static public function template_key(): string {
-        return 'payment_failed';
-    }
+	static public function template_key() : string {
+		return 'payment_failed';
+	}
 
-    protected function subject(): string {
-        return 'Payment Failed — Action Required';
-    }
+	protected function subject() : string {
+		return 'Payment Failed — Action Required';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "Your payment of {$this->amount} {$this->currency} could not be processed. Please review and try again.";
-    }
+	protected function preheader() : string {
+		return "Your payment of {$this->amount} {$this->currency} could not be processed. Please review and try again.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{recipient_name}}' => $this->recipient_name,
-            '{{amount}}'         => $this->amount,
-            '{{currency}}'       => $this->currency,
-            '{{payment_date}}'   => $this->payment_date,
-            '{{description}}'    => $this->description,
-            '{{reason}}'         => $this->reason ?? 'No additional details available.',
-            '{{retry_url}}'      => $this->retry_url ?? '',
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{recipient_name}}' => $this->recipient_name,
+			'{{amount}}'         => $this->amount,
+			'{{currency}}'       => $this->currency,
+			'{{payment_date}}'   => $this->payment_date,
+			'{{description}}'    => $this->description,
+			'{{reason}}'         => $this->reason ?? 'No additional details available.',
+			'{{retry_url}}'      => $this->retry_url ?? '',
+		] );
+	}
 
-    protected function body(): string {
-        $vars           = $this->variables();
-        $recipient_name = \escHtml( $vars['{{recipient_name}}'] );
-        $amount         = \escHtml( $vars['{{amount}}'] );
-        $currency       = \escHtml( $vars['{{currency}}'] );
-        $payment_date   = \escHtml( $vars['{{payment_date}}'] );
-        $description    = \escHtml( $vars['{{description}}'] );
-        $reason         = \escHtml( $vars['{{reason}}'] );
-        $retry_url      = \escHtml( $vars['{{retry_url}}'] );
-        $support        = \escHtml( $vars['{{support_email}}'] );
+	protected function body() : string {
+		$vars           = $this->variables();
+		$recipient_name = \escHtml( $vars['{{recipient_name}}'] );
+		$amount         = \escHtml( $vars['{{amount}}'] );
+		$currency       = \escHtml( $vars['{{currency}}'] );
+		$payment_date   = \escHtml( $vars['{{payment_date}}'] );
+		$description    = \escHtml( $vars['{{description}}'] );
+		$reason         = \escHtml( $vars['{{reason}}'] );
+		$retry_url      = \escHtml( $vars['{{retry_url}}'] );
+		$support        = \escHtml( $vars['{{support_email}}'] );
 
-        $retry_button = ! empty( $retry_url )
-            ? <<<RETRY
+		$retry_button = ! empty( $retry_url )
+			? <<<RETRY
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
                    style="margin:0 0 24px;">
                 <tr>
@@ -93,9 +93,9 @@ class PaymentFailedEmail extends EmailTemplate {
                 </tr>
             </table>
             RETRY
-            : '';
+			: '';
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$recipient_name},
         </p>
@@ -177,71 +177,71 @@ class PaymentFailedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Payment Failed';
-    }
-    public function description(): string {
-        return 'Sent when a payment attempt fails.';
-    }
-    public static function preview(): static {
-        return new static(
-            'preview@example.com',
-            'Jane Doe',
-            '$49.00',
-            'USD',
-            gmdate( 'D, d M Y' ),
-            'License renewal — My Awesome Plugin (Pro)',
-            'Your card was declined. Please check your payment details.',
-            'https://example.com/billing/retry'
-        );
-    }
+	public function label() : string {
+		return 'Payment Failed';
+	}
+	public function description() : string {
+		return 'Sent when a payment attempt fails.';
+	}
+	public static function preview() : static {
+		return new static(
+			'preview@example.com',
+			'Jane Doe',
+			'$49.00',
+			'USD',
+			gmdate( 'D, d M Y' ),
+			'License renewal — My Awesome Plugin (Pro)',
+			'Your card was declined. Please check your payment details.',
+			'https://example.com/billing/retry'
+		);
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{recipient_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'error',
-                'content'   => 'Your payment of {{amount}} {{currency}} on {{payment_date}} could not be processed. Please review your payment details and try again.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Amount',         'value' => '{{amount}} {{currency}}' ],
-                    [ 'label' => 'Date Attempted', 'value' => '{{payment_date}}' ],
-                    [ 'label' => 'Description',    'value' => '{{description}}' ],
-                    [ 'label' => 'Reason',         'value' => '{{reason}}' ],
-                ],
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'button',
-                'type'      => 'button',
-                'label'     => 'Retry Payment',
-                'url'       => '{{retry_url}}',
-                'editable'  => true,
-                'removable' => true,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you continue to experience issues or need assistance, please contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{recipient_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'error',
+				'content'   => 'Your payment of {{amount}} {{currency}} on {{payment_date}} could not be processed. Please review your payment details and try again.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Amount',         'value' => '{{amount}} {{currency}}' ],
+					[ 'label' => 'Date Attempted', 'value' => '{{payment_date}}' ],
+					[ 'label' => 'Description',    'value' => '{{description}}' ],
+					[ 'label' => 'Reason',         'value' => '{{reason}}' ],
+				],
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'button',
+				'type'      => 'button',
+				'label'     => 'Retry Payment',
+				'url'       => '{{retry_url}}',
+				'editable'  => true,
+				'removable' => true,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you continue to experience issues or need assistance, please contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

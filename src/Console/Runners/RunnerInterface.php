@@ -18,11 +18,11 @@ namespace SmartLicenseServer\Console\Runners;
  */
 interface RunnerInterface {
 
-    /**
-     * Run the CLI session to completion.
-     *
-     * @return int Process exit code — 0 for success, non-zero for
-     *             failure.
-     */
-    public function init(): int;
+	/**
+	 * Run the CLI session to completion.
+	 *
+	 * @return int Process exit code — 0 for success, non-zero for
+	 *             failure.
+	 */
+	public function init() : int;
 }

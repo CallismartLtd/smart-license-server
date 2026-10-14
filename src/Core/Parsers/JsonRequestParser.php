@@ -20,7 +20,7 @@ class JsonRequestParser extends AbstractRawBodyParser {
 	 * @inheritDoc
 	 * @throws Exception
 	 */
-	public function parse(): array {
+	public function parse() : array {
 		$raw = $this->read_raw_body();
 
 		if ( '' === trim( $raw ) ) {

@@ -37,188 +37,192 @@ use SmartLicenseServer\Security\OwnerSubjects\Organization;
  * Sends AppOwnershipChangedEmail to both the previous and new owner.
  */
 class SendAppOwnershipChangedEmailJob implements JobHandlerInterface {
-    use OwnerEmailResolverTrait;
+	use OwnerEmailResolverTrait;
 
-    public function __construct(
-        protected Mailer $mailer
-    ) {}
+	public function __construct(
+		protected Mailer $mailer
+	) {}
 
-    public static function get_job_name(): string {
-        return 'send_app_ownership_changed_email';
-    }
+	public static function get_job_name() : string {
+		return 'send_app_ownership_changed_email';
+	}
 
-    public static function get_job_description(): string {
-        return 'Notifies both the previous and new app owner when ownership is transferred.';
-    }
+	public static function get_job_description() : string {
+		return 'Notifies both the previous and new app owner when ownership is transferred.';
+	}
 
-    /**
-     * @param array $payload {
-     *     @type string $app_type          App type e.g. 'plugin'.
-     *     @type string $app_slug          App slug.
-     *     @type int    $previous_owner_id Previous owner ID.
-     *     @type int    $new_owner_id      New owner ID.
-     * }
-     * @return array{sent: int, skipped: int}
-     */
-    public function handle( array $payload = [] ): mixed {
-        $app_type          = (string) $payload['app_type'] ?? '';
-        $app_slug          = (string) $payload['app_slug'] ?? '';
-        $previous_owner_id = (int) ( $payload['previous_owner_id'] ?? 0 );
-        $new_owner_id      = (int) ( $payload['new_owner_id']      ?? 0 );
+	/**
+	 * @param array $payload {
+	 *     @type string $app_type          App type e.g. 'plugin'.
+	 *     @type string $app_slug          App slug.
+	 *     @type int    $previous_owner_id Previous owner ID.
+	 *     @type int    $new_owner_id      New owner ID.
+	 * }
+	 * @return array{sent: int, skipped: int}
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$app_type          = (string) $payload['app_type'] ?? '';
+		$app_slug          = (string) $payload['app_slug'] ?? '';
+		$previous_owner_id = (int) ( $payload['previous_owner_id'] ?? 0 );
+		$new_owner_id      = (int) ( $payload['new_owner_id'] ?? 0 );
 
-        $sent    = 0;
-        $skipped = 0;
+		$sent    = 0;
+		$skipped = 0;
 
-        $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+		$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
-        if ( ! $app ) {
-            return compact( 'sent', 'skipped' );
-        }
+		if ( ! $app ) {
+			return compact( 'sent', 'skipped' );
+		}
 
-        $previous_owner_name = $this->resolve_owner_name( $previous_owner_id );
-        $new_owner_name      = $this->resolve_owner_name( $new_owner_id );
+		$previous_owner_name = $this->resolve_owner_name( $previous_owner_id );
+		$new_owner_name      = $this->resolve_owner_name( $new_owner_id );
 
-        // Notify previous owner(s).
-        foreach ( $this->resolve_owner_recipients( $previous_owner_id ) as [ 'email' => $email, 'name' => $name ] ) {
-            $message = ( new AppOwnershipChangedEmail(
-                $app,
-                $email,
-                $name,
-                $previous_owner_name,
-                $new_owner_name,
-                false   // is_new_owner = false
-            ) )->to_message();
+		// Notify previous owner(s).
+		foreach ( $this->resolve_owner_recipients( $previous_owner_id ) as [ 'email' => $email, 'name' => $name ] ) {
+			$message = ( new AppOwnershipChangedEmail(
+				$app,
+				$email,
+				$name,
+				$previous_owner_name,
+				$new_owner_name,
+				false   // is_new_owner = false
+			) )->to_message();
 
-            if ( $message === null ) { $skipped++; continue; }
+			if ( null === $message ) {
+			$skipped++; continue;
+			}
 
-            try {
-                $this->mailer->send( $message );
-                $sent++;
-            } catch ( \Throwable ) {
-                $skipped++;
-            }
-        }
+			try {
+				$this->mailer->send( $message );
+				$sent++;
+			} catch ( \Throwable ) {
+				$skipped++;
+			}
+		}
 
-        // Notify new owner(s).
-        foreach ( $this->resolve_owner_recipients( $new_owner_id ) as [ 'email' => $email, 'name' => $name ] ) {
-            $message = ( new AppOwnershipChangedEmail(
-                $app,
-                $email,
-                $name,
-                $previous_owner_name,
-                $new_owner_name,
-                true    // is_new_owner = true
-            ) )->to_message();
+		// Notify new owner(s).
+		foreach ( $this->resolve_owner_recipients( $new_owner_id ) as [ 'email' => $email, 'name' => $name ] ) {
+			$message = ( new AppOwnershipChangedEmail(
+				$app,
+				$email,
+				$name,
+				$previous_owner_name,
+				$new_owner_name,
+				true    // is_new_owner = true
+			) )->to_message();
 
-            if ( $message === null ) { $skipped++; continue; }
+			if ( null === $message ) {
+			$skipped++; continue;
+			}
 
-            try {
-                $this->mailer->send( $message );
-                $sent++;
-            } catch ( \Throwable ) {
-                $skipped++;
-            }
-        }
+			try {
+				$this->mailer->send( $message );
+				$sent++;
+			} catch ( \Throwable ) {
+				$skipped++;
+			}
+		}
 
-        return compact( 'sent', 'skipped' );
-    }
+		return compact( 'sent', 'skipped' );
+	}
 
-    /*
-    |--------------------------------------------
-    | PRIVATE HELPERS
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| PRIVATE HELPERS
+	|--------------------------------------------
+	*/
 
-    /**
-     * Resolve all recipients (email + display name) for an owner.
-     *
-     * Individual owners → one entry.
-     * Organisation owners → one entry per resource_owner member.
-     *
-     * @param int $owner_id
-     * @return array<int, array{email: string, name: string}>
-     */
-    private function resolve_owner_recipients( int $owner_id ): array {
-        if ( $owner_id <= 0 ) {
-            return [];
-        }
+	/**
+	 * Resolve all recipients (email + display name) for an owner.
+	 *
+	 * Individual owners → one entry.
+	 * Organisation owners → one entry per resource_owner member.
+	 *
+	 * @param int $owner_id
+	 * @return array<int, array{email: string, name: string}>
+	 */
+	private function resolve_owner_recipients( int $owner_id ) : array {
+		if ( $owner_id <= 0 ) {
+			return [];
+		}
 
-        $owner = Owner::get_by_id( $owner_id );
+		$owner = Owner::get_by_id( $owner_id );
 
-        if ( ! $owner || ! $owner->exists() ) {
-            return [];
-        }
+		if ( ! $owner || ! $owner->exists() ) {
+			return [];
+		}
 
-        if ( $owner->is_individual() ) {
-            $user  = User::get_by_id( $owner->get_subject_id() );
-            $email = $user?->get_email() ?? '';
-            $name  = $user?->get_display_name() ?? '';
+		if ( $owner->is_individual() ) {
+			$user  = User::get_by_id( $owner->get_subject_id() );
+			$email = $user?->get_email() ?? '';
+			$name  = $user?->get_display_name() ?? '';
 
-            return filter_var( $email, FILTER_VALIDATE_EMAIL )
-                ? [ [ 'email' => $email, 'name' => $name ] ]
-                : [];
-        }
+			return filter_var( $email, FILTER_VALIDATE_EMAIL )
+				? [ [ 'email' => $email, 'name' => $name ] ]
+				: [];
+		}
 
-        if ( $owner->is_organization() ) {
-            $org        = Organization::get_by_id( $owner->get_subject_id() );
-            $members    = $org?->get_members();
-            $recipients = [];
+		if ( $owner->is_organization() ) {
+			$org        = Organization::get_by_id( $owner->get_subject_id() );
+			$members    = $org?->get_members();
+			$recipients = [];
 
-            if ( ! $members ) {
-                return [];
-            }
+			if ( ! $members ) {
+				return [];
+			}
 
-            foreach ( $members as $member ) {
-                if ( $member->get_role()?->get_slug() !== 'resource_owner' ) {
-                    continue;
-                }
+			foreach ( $members as $member ) {
+				if ( 'resource_owner' !== $member->get_role()?->get_slug() ) {
+					continue;
+				}
 
-                $email = $member->get_user()->get_email();
-                $name  = $member->get_user()->get_display_name();
+				$email = $member->get_user()->get_email();
+				$name  = $member->get_user()->get_display_name();
 
-                if ( filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
-                    $recipients[] = [ 'email' => $email, 'name' => $name ];
-                }
-            }
+				if ( filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
+					$recipients[] = [ 'email' => $email, 'name' => $name ];
+				}
+			}
 
-            return $recipients;
-        }
+			return $recipients;
+		}
 
-        return [];
-    }
+		return [];
+	}
 
-    /**
-     * Resolve the display name for an owner — used as the owner label
-     * in the email body shared across all recipients.
-     *
-     * Individual → user display name.
-     * Organisation → organisation display name.
-     * Platform / unknown → 'System'.
-     *
-     * @param int $owner_id
-     * @return string
-     */
-    private function resolve_owner_name( int $owner_id ): string {
-        if ( $owner_id <= 0 ) {
-            return 'Unknown';
-        }
+	/**
+	 * Resolve the display name for an owner — used as the owner label
+	 * in the email body shared across all recipients.
+	 *
+	 * Individual → user display name.
+	 * Organisation → organisation display name.
+	 * Platform / unknown → 'System'.
+	 *
+	 * @param int $owner_id
+	 * @return string
+	 */
+	private function resolve_owner_name( int $owner_id ) : string {
+		if ( $owner_id <= 0 ) {
+			return 'Unknown';
+		}
 
-        $owner = Owner::get_by_id( $owner_id );
+		$owner = Owner::get_by_id( $owner_id );
 
-        if ( ! $owner || ! $owner->exists() ) {
-            return 'Unknown';
-        }
+		if ( ! $owner || ! $owner->exists() ) {
+			return 'Unknown';
+		}
 
-        if ( $owner->is_individual() ) {
-            $user = User::get_by_id( $owner->get_subject_id() );
-            return $user?->get_display_name() ?: 'Unknown';
-        }
+		if ( $owner->is_individual() ) {
+			$user = User::get_by_id( $owner->get_subject_id() );
+			return $user?->get_display_name() ?: 'Unknown';
+		}
 
-        if ( $owner->is_organization() ) {
-            $org = Organization::get_by_id( $owner->get_subject_id() );
-            return $org?->get_display_name() ?: 'Unknown';
-        }
+		if ( $owner->is_organization() ) {
+			$org = Organization::get_by_id( $owner->get_subject_id() );
+			return $org?->get_display_name() ?: 'Unknown';
+		}
 
-        return 'System';
-    }
+		return 'System';
+	}
 }

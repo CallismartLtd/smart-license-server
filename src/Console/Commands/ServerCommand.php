@@ -135,7 +135,7 @@ final class ServerCommand extends AbstractCommand {
 	 *
 	 * @var string[]
 	 */
-	private const STOP_SIGNALS = array( 'SIGINT', 'SIGTERM', 'SIGHUP' );
+	private const STOP_SIGNALS = [ 'SIGINT', 'SIGTERM', 'SIGHUP' ];
 
 	/**
 	 * Matches the "[date] " prefix of a server line.
@@ -163,7 +163,7 @@ final class ServerCommand extends AbstractCommand {
 	 *
 	 * @var string[]
 	 */
-	private array $tail = array();
+	private array $tail = [];
 
 	/**
 	 * @param InputInterface  $io
@@ -185,24 +185,24 @@ final class ServerCommand extends AbstractCommand {
 	/**
 	 * {@inheritdoc}
 	 */
-	public static function name(): string {
+	public static function name() : string {
 		return 'server';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function description(): string {
+	public function description() : string {
 		return 'Run the application on PHP\'s built-in web server (local development only).';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function help(): string {
+	public function help() : string {
 		return implode(
 			PHP_EOL,
-			array(
+			[
 				'',
 				'Options:',
 				sprintf( '  --host=<host>      Address to listen on. Default: %s. Use 0.0.0.0 to accept other machines.', self::DEFAULT_HOST ),
@@ -214,14 +214,14 @@ final class ServerCommand extends AbstractCommand {
 				'',
 				'SMLISER_APP_URL is set for the server process only; .env is not changed.',
 				'Never use PHP\'s built-in server in production.',
-			)
+			]
 		);
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function run( CommandInput $input ): int {
+	public function run( CommandInput $input ) : int {
 		try {
 			$host  = $this->read_value( $input, 'host' );
 			$port  = $this->read_value( $input, 'port', 'p' );
@@ -275,11 +275,11 @@ final class ServerCommand extends AbstractCommand {
 	 * @param bool   $force      Whether to take an alternative without asking.
 	 * @return array{0: string, 1: int}|null Host and port, or null when the server should not start.
 	 */
-	private function resolve_address( string $host, int $port, bool $host_given, bool $port_given, bool $force ): ?array {
+	private function resolve_address( string $host, int $port, bool $host_given, bool $port_given, bool $force ) : ?array {
 		$status = $this->probe( $host, $port );
 
 		if ( self::ADDRESS_FREE === $status ) {
-			return array( $host, $port );
+			return [ $host, $port ];
 		}
 
 		$alt_host   = $host;
@@ -311,12 +311,12 @@ final class ServerCommand extends AbstractCommand {
 
 		if ( ! $overrides ) {
 			$this->output->warning( sprintf( '%s; using %s instead.', $reason, $alternative ) );
-			return array( $alt_host, $alt_port );
+			return [ $alt_host, $alt_port ];
 		}
 
 		if ( $force ) {
 			$this->output->warning( sprintf( '%s; using %s instead (--force).', $reason, $alternative ) );
-			return array( $alt_host, $alt_port );
+			return [ $alt_host, $alt_port ];
 		}
 
 		if ( ! $this->io->confirm( sprintf( '%s. Use %s instead?', $reason, $alternative ), false ) ) {
@@ -324,7 +324,7 @@ final class ServerCommand extends AbstractCommand {
 			return null;
 		}
 
-		return array( $alt_host, $alt_port );
+		return [ $alt_host, $alt_port ];
 	}
 
 	/**
@@ -334,7 +334,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param int    $from
 	 * @return int|null
 	 */
-	private function find_free_port( string $host, int $from ): ?int {
+	private function find_free_port( string $host, int $from ) : ?int {
 		$last = min( 65535, $from + self::PORT_SEARCH_LIMIT - 1 );
 
 		for ( $candidate = $from; $candidate <= $last; $candidate++ ) {
@@ -358,7 +358,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param int    $port
 	 * @return string One of the ADDRESS_FREE, PORT_IN_USE or HOST_UNAVAILABLE constants.
 	 */
-	private function probe( string $host, int $port ): string {
+	private function probe( string $host, int $port ) : string {
 		$socket = @stream_socket_server( 'tcp://' . $this->authority( $host, $port ), $errno, $errstr );
 
 		if ( false !== $socket ) {
@@ -391,7 +391,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param int    $port
 	 * @return int Exit code.
 	 */
-	private function serve( string $php, string $host, int $port ): int {
+	private function serve( string $php, string $host, int $port ) : int {
 		PhpRuntime::set_time_limit( 0 );
 
 		$url = $this->url( $host, $port );
@@ -399,20 +399,20 @@ final class ServerCommand extends AbstractCommand {
 
 		$env['SMLISER_APP_URL'] = $url;
 
-		$command = array(
+		$command = [
 			$php,
 			'-S',
 			$this->authority( $host, $port ),
 			'-t',
 			SMLISER_ROOT . 'public',
 			SMLISER_ROOT . 'server/server.php',
-		);
+		];
 
-		$descriptors = array(
-			0 => array( 'pipe', 'r' ),
-			1 => array( 'socket' ),
-			2 => array( 'socket' ),
-		);
+		$descriptors = [
+			0 => [ 'pipe', 'r' ],
+			1 => [ 'socket' ],
+			2 => [ 'socket' ],
+		];
 
 		$process = proc_open( $command, $descriptors, $pipes, SMLISER_ROOT, $env );
 
@@ -427,7 +427,7 @@ final class ServerCommand extends AbstractCommand {
 		$this->output->success( sprintf( 'Server running at %s', $url ) );
 		$this->output->info( 'Press Ctrl+C to stop.' );
 
-		$forward = static function ( int $signal, SignalInfo $info ) use ( $process ): void {
+		$forward = static function ( int $signal, SignalInfo $info ) use ( $process ) : void {
 			proc_terminate( $process, $signal );
 		};
 
@@ -435,8 +435,8 @@ final class ServerCommand extends AbstractCommand {
 			$this->signals->on( $signal, $forward );
 		}
 
-		$this->tail = array();
-		$status     = $this->relay( $process, array( 1 => $pipes[1], 2 => $pipes[2] ) );
+		$this->tail = [];
+		$status     = $this->relay( $process, [ 1 => $pipes[1], 2 => $pipes[2] ] );
 
 		foreach ( self::STOP_SIGNALS as $signal ) {
 			$this->signals->remove_listener( $signal, $forward );
@@ -452,7 +452,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param array<int, resource> $streams The server's stdout and stderr, keyed by descriptor.
 	 * @return array<string, mixed> The proc_get_status() result that saw the server exit.
 	 */
-	private function relay( $process, array $streams ): array {
+	private function relay( $process, array $streams ) : array {
 		$buffers = array_fill_keys( array_keys( $streams ), '' );
 
 		foreach ( $streams as $stream ) {
@@ -467,7 +467,7 @@ final class ServerCommand extends AbstractCommand {
 			// False when a signal interrupts the wait; the loop just checks again.
 			$ready = empty( $read ) ? 0 : (int) @stream_select( $read, $write, $except, 0, self::POLL_INTERVAL );
 
-			foreach ( $ready > 0 ? $read : array() as $stream ) {
+			foreach ( $ready > 0 ? $read : [] as $stream ) {
 				$key   = array_search( $stream, $streams, true );
 				$chunk = fread( $stream, self::READ_CHUNK );
 
@@ -514,7 +514,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param array<string, mixed> $status A proc_get_status() result for the exited server.
 	 * @return int
 	 */
-	private function conclude( array $status ): int {
+	private function conclude( array $status ) : int {
 		if ( $status['signaled'] ) {
 			$stops = array_map( 'constant', array_filter( self::STOP_SIGNALS, 'defined' ) );
 
@@ -559,7 +559,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param string $buffer
 	 * @return void
 	 */
-	private function relay_lines( string &$buffer ): void {
+	private function relay_lines( string &$buffer ) : void {
 		$lines  = explode( "\n", $buffer );
 		$buffer = (string) array_pop( $lines );
 
@@ -574,7 +574,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param string $buffer
 	 * @return void
 	 */
-	private function relay_rest( string &$buffer ): void {
+	private function relay_rest( string &$buffer ) : void {
 		$this->relay_lines( $buffer );
 
 		if ( '' !== $buffer ) {
@@ -590,7 +590,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param string $line
 	 * @return void
 	 */
-	private function relay_line( string $line ): void {
+	private function relay_line( string $line ) : void {
 		$line = rtrim( $line, "\r" );
 
 		if ( '' === $line ) {
@@ -624,7 +624,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param string $line
 	 * @return string
 	 */
-	private function restamp( string $line ): string {
+	private function restamp( string $line ) : string {
 		return (string) preg_replace( self::TIMESTAMP, '[' . date( 'D M d H:i:s Y' ) . '] ', $line, 1 );
 	}
 
@@ -635,7 +635,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param bool   $is_connection Whether it is a per-connection line.
 	 * @return string
 	 */
-	private function colourise( string $line, bool $is_connection ): string {
+	private function colourise( string $line, bool $is_connection ) : string {
 		if ( ! $this->terminal->supports_ansi() ) {
 			return $line;
 		}
@@ -672,7 +672,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @return string|null The trimmed value, or null when the option was not given.
 	 * @throws InvalidArgumentException When the option was repeated or given without a value.
 	 */
-	private function read_value( CommandInput $input, string $long, string $short = '' ): ?string {
+	private function read_value( CommandInput $input, string $long, string $short = '' ) : ?string {
 		$name = null;
 
 		if ( $input->has_option( $long ) ) {
@@ -707,8 +707,8 @@ final class ServerCommand extends AbstractCommand {
 	 * @param string       $short Single-letter name, without the dash.
 	 * @return bool True when given, unless given as =false.
 	 */
-	private function read_flag( CommandInput $input, string $long, string $short ): bool {
-		foreach ( array( $long, $short ) as $name ) {
+	private function read_flag( CommandInput $input, string $long, string $short ) : bool {
+		foreach ( [ $long, $short ] as $name ) {
 			if ( $input->has_option( $name ) ) {
 				return false !== $input->get_option( $name, true );
 			}
@@ -723,7 +723,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param string $port
 	 * @return bool
 	 */
-	private function is_valid_port( string $port ): bool {
+	private function is_valid_port( string $port ) : bool {
 		return 1 === preg_match( '/^\d{1,5}$/', $port ) && (int) $port >= 1 && (int) $port <= 65535;
 	}
 
@@ -734,7 +734,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param int    $port
 	 * @return string
 	 */
-	private function authority( string $host, int $port ): string {
+	private function authority( string $host, int $port ) : string {
 		return str_contains( $host, ':' ) ? "[{$host}]:{$port}" : "{$host}:{$port}";
 	}
 
@@ -748,8 +748,8 @@ final class ServerCommand extends AbstractCommand {
 	 * @param int    $port
 	 * @return string
 	 */
-	private function url( string $host, int $port ): string {
-		$url_host = in_array( $host, array( '0.0.0.0', '::' ), true ) ? 'localhost' : $host;
+	private function url( string $host, int $port ) : string {
+		$url_host = in_array( $host, [ '0.0.0.0', '::' ], true ) ? 'localhost' : $host;
 
 		return 'http://' . $this->authority( $url_host, $port );
 	}

@@ -31,18 +31,18 @@ declare( strict_types=1 );
  * @var array<string, true>
  */
 const BUILTIN_EXTENSIONS = [
-	'Core'         => true,
-	'date'         => true,
-	'filter'       => true,
-	'hash'         => true,
-	'json'         => true,
-	'libxml'       => true,
-	'openssl'      => true,
-	'pcre'         => true,
-	'Reflection'   => true,
-	'SPL'          => true,
-	'standard'     => true,
-	'zlib'         => true,
+	'Core'       => true,
+	'date'       => true,
+	'filter'     => true,
+	'hash'       => true,
+	'json'       => true,
+	'libxml'     => true,
+	'openssl'    => true,
+	'pcre'       => true,
+	'Reflection' => true,
+	'SPL'        => true,
+	'standard'   => true,
+	'zlib'       => true,
 ];
 
 /**
@@ -52,17 +52,17 @@ const BUILTIN_EXTENSIONS = [
  * @var array<string, true>
  */
 const LANGUAGE_CONSTRUCTS = [
-	'isset'         => true,
-	'empty'         => true,
-	'eval'          => true,
-	'exit'          => true,
-	'die'           => true,
-	'unset'         => true,
-	'print'         => true,
-	'include'       => true,
-	'include_once'  => true,
-	'require'       => true,
-	'require_once'  => true,
+	'isset'        => true,
+	'empty'        => true,
+	'eval'         => true,
+	'exit'         => true,
+	'die'          => true,
+	'unset'        => true,
+	'print'        => true,
+	'include'      => true,
+	'include_once' => true,
+	'require'      => true,
+	'require_once' => true,
 ];
 
 /**
@@ -72,15 +72,15 @@ const LANGUAGE_CONSTRUCTS = [
  *
  * @var array<int, true>
  */
-function non_function_call_predecessors(): array {
+function non_function_call_predecessors() : array {
 	static $tokens = null;
 
 	if ( null === $tokens ) {
 		$tokens = [
 			T_OBJECT_OPERATOR => true,
-			T_NEW              => true,
-			T_DOUBLE_COLON     => true,
-			T_FUNCTION         => true,
+			T_NEW             => true,
+			T_DOUBLE_COLON    => true,
+			T_FUNCTION        => true,
 		];
 
 		if ( defined( 'T_NULLSAFE_OBJECT_OPERATOR' ) ) {
@@ -103,7 +103,7 @@ function non_function_call_predecessors(): array {
  *
  * @return never
  */
-function fail( string $message, int $code = 1 ): never {
+function fail( string $message, int $code = 1 ) : never {
 	fwrite( STDERR, "Error: {$message}\n" );
 	exit( $code );
 }
@@ -115,7 +115,7 @@ function fail( string $message, int $code = 1 ): never {
  *
  * @return bool
  */
-function is_name_token( int $token ): bool {
+function is_name_token( int $token ) : bool {
 	static $name_tokens = null;
 
 	if ( null === $name_tokens ) {
@@ -144,7 +144,7 @@ function is_name_token( int $token ): bool {
  *
  * @return string
  */
-function normalize_name( string $name ): string {
+function normalize_name( string $name ) : string {
 	return ltrim( trim( $name ), '\\' );
 }
 
@@ -156,7 +156,7 @@ function normalize_name( string $name ): string {
  *
  * @return array{index:int,token:mixed}|null
  */
-function next_meaningful_token( array $tokens, int $index ): ?array {
+function next_meaningful_token( array $tokens, int $index ) : ?array {
 	$count = count( $tokens );
 
 	for ( $index++; $index < $count; $index++ ) {
@@ -204,7 +204,7 @@ function next_meaningful_token( array $tokens, int $index ): ?array {
  *
  * @return array{index:int,token:mixed}|null
  */
-function previous_meaningful_token( array $tokens, int $index ): ?array {
+function previous_meaningful_token( array $tokens, int $index ) : ?array {
 	for ( $index--; $index >= 0; $index-- ) {
 		$token = $tokens[ $index ];
 
@@ -250,7 +250,7 @@ function previous_meaningful_token( array $tokens, int $index ): ?array {
  *
  * @return array{index:int,name:string}|null
  */
-function read_name( array $tokens, int $index ): ?array {
+function read_name( array $tokens, int $index ) : ?array {
 	$next = next_meaningful_token( $tokens, $index );
 
 	if ( ! $next ) {
@@ -294,13 +294,13 @@ function read_name( array $tokens, int $index ): ?array {
 		$part_token = $part['token'];
 
 		if ( is_array( $part_token ) && is_name_token( $part_token[0] ) ) {
-			$name   .= $part_token[1];
+			$name .= $part_token[1];
 			$current = $part['index'];
 			continue;
 		}
 
 		if ( '\\' === $part_token ) {
-			$name   .= '\\';
+			$name .= '\\';
 			$current = $part['index'];
 			continue;
 		}
@@ -325,7 +325,7 @@ function read_name( array $tokens, int $index ): ?array {
  *
  * @return array{index:int,names:array<int,string>}
  */
-function read_name_list( array $tokens, int $index, array $separators ): array {
+function read_name_list( array $tokens, int $index, array $separators ) : array {
 	$names   = [];
 	$current = $index;
 
@@ -371,7 +371,7 @@ function resolve_class_name(
 	string $name,
 	string $namespace,
 	array $uses
-): string {
+) : string {
 	$name = trim( $name );
 
 	if ( '' === $name ) {
@@ -432,7 +432,7 @@ function resolve_function_name(
 	string $name,
 	string $namespace,
 	array $function_uses
-): string {
+) : string {
 	$name = trim( $name );
 
 	if ( '' === $name ) {
@@ -482,7 +482,7 @@ function add_reference(
 	string $name,
 	string $file,
 	int $line
-): void {
+) : void {
 	$name = normalize_name( $name );
 
 	if ( '' === $name ) {
@@ -506,7 +506,7 @@ function add_reference(
  *
  * @return array<string,array{functions:array<int,string>,classes:array<int,string>}>
  */
-function load_static_extension_map(): array {
+function load_static_extension_map() : array {
 	$path = __DIR__ . '/extension-symbols.php';
 
 	if ( ! is_file( $path ) ) {
@@ -529,7 +529,7 @@ function load_static_extension_map(): array {
  *
  * @return array{classes:array<string,array{name:string,extension:string}>,functions:array<string,array{name:string,extension:string}>}
  */
-function build_static_indexes( array $static_map ): array {
+function build_static_indexes( array $static_map ) : array {
 	$classes   = [];
 	$functions = [];
 
@@ -562,7 +562,7 @@ function build_static_indexes( array $static_map ): array {
  *
  * @return array<string,array{name:string,extension:string}>
  */
-function build_runtime_class_index(): array {
+function build_runtime_class_index() : array {
 	$result = [];
 
 	$symbols = array_merge(
@@ -613,7 +613,7 @@ function build_runtime_class_index(): array {
  *
  * @return array<string,array{name:string,extension:string}>
  */
-function build_runtime_function_index(): array {
+function build_runtime_function_index() : array {
 	$result = [];
 
 	foreach ( get_defined_functions()['internal'] as $function ) {
@@ -646,7 +646,7 @@ function build_runtime_function_index(): array {
  *
  * @return array<string,true>
  */
-function build_user_class_index( array $files ): array {
+function build_user_class_index( array $files ) : array {
 	$result = [];
 
 	foreach ( $files as $file ) {
@@ -668,7 +668,7 @@ function build_user_class_index( array $files ): array {
 			}
 
 			if ( T_NAMESPACE === $token[0] ) {
-				$name = read_name( $tokens, $i );
+				$name      = read_name( $tokens, $i );
 				$namespace = $name ? normalize_name( $name['name'] ) : '';
 				continue;
 			}
@@ -721,7 +721,7 @@ function build_user_class_index( array $files ): array {
  *
  * @return array<int,string>
  */
-function collect_php_files( string $root ): array {
+function collect_php_files( string $root ) : array {
 	$files = [];
 
 	$excluded = [
@@ -792,7 +792,7 @@ function parse_use_statement(
 	int $index,
 	array &$uses,
 	array &$function_uses
-): int {
+) : int {
 	$count = count( $tokens );
 	$peek  = next_meaningful_token( $tokens, $index );
 
@@ -823,7 +823,7 @@ function parse_use_statement(
 	 * @param string $fqn  Fully-qualified name.
 	 * @param string $alias Alias (bare identifier).
 	 */
-	$record = static function ( string $kind, string $fqn, string $alias ) use ( &$uses, &$function_uses ): void {
+	$record = static function ( string $kind, string $fqn, string $alias ) use ( &$uses, &$function_uses ) : void {
 		$fqn = normalize_name( $fqn );
 
 		if ( '' === $fqn || '' === $alias ) {
@@ -892,8 +892,8 @@ function parse_use_statement(
 			$prefix = rtrim( $base, '\\' ) . '\\';
 
 			while ( true ) {
-				$sub_kind  = $item_kind;
-				$sub_peek  = next_meaningful_token( $tokens, $cursor );
+				$sub_kind = $item_kind;
+				$sub_peek = next_meaningful_token( $tokens, $cursor );
 
 				if ( $sub_peek && '}' === $sub_peek['token'] ) {
 					$cursor = $sub_peek['index'];
@@ -994,7 +994,7 @@ function parse_use_statement(
  *     functions:array<string,array>
  * }
  */
-function scan_file( string $file ): array {
+function scan_file( string $file ) : array {
 	$contents = file_get_contents( $file );
 
 	if ( false === $contents ) {
@@ -1032,8 +1032,8 @@ function scan_file( string $file ): array {
 		 * Namespace.
 		 */
 		if ( T_NAMESPACE === $id ) {
-			$name      = read_name( $tokens, $i );
-			$namespace = $name ? normalize_name( $name['name'] ) : '';
+			$name          = read_name( $tokens, $i );
+			$namespace     = $name ? normalize_name( $name['name'] ) : '';
 			$uses          = [];
 			$function_uses = [];
 
@@ -1193,7 +1193,7 @@ function scan_file( string $file ): array {
  *
  * @return string
  */
-function composer_extension_name( string $extension ): string {
+function composer_extension_name( string $extension ) : string {
 	return 'ext-' . strtolower( $extension );
 }
 
@@ -1204,11 +1204,11 @@ function composer_extension_name( string $extension ): string {
  *
  * @return array<int,array{symbol:string,type:string}>
  */
-function dedupe_symbols( array $symbols ): array {
+function dedupe_symbols( array $symbols ) : array {
 	$unique = [];
 
 	foreach ( $symbols as $symbol ) {
-		$key = strtolower( $symbol['type'] . ':' . $symbol['symbol'] );
+		$key            = strtolower( $symbol['type'] . ':' . $symbol['symbol'] );
 		$unique[ $key ] = $symbol;
 	}
 
@@ -1216,7 +1216,7 @@ function dedupe_symbols( array $symbols ): array {
 
 	usort(
 		$symbols,
-		static fn( array $a, array $b ): int => strcasecmp( $a['symbol'], $b['symbol'] )
+		static fn( array $a, array $b ) : int => strcasecmp( $a['symbol'], $b['symbol'] )
 	);
 
 	return $symbols;
@@ -1429,9 +1429,9 @@ if ( $json ) {
 
 	foreach ( $extensions as $extension => $symbols ) {
 		$output['requirements'][ composer_extension_name( $extension ) ] = [
-			'extension' => $extension,
+			'extension'             => $extension,
 			'loaded_in_scanner_env' => $loaded_status[ $extension ],
-			'symbols'   => $symbols,
+			'symbols'               => $symbols,
 		];
 	}
 

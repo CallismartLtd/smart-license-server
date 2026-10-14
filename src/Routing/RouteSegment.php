@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Routing
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Routing;
 
@@ -28,6 +28,5 @@ final class RouteSegment {
 		public readonly string $regex,
 		public readonly bool $optional,
 		public readonly array $paramNames
-	) {
-	}
+	) {}
 }

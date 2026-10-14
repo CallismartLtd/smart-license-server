@@ -18,52 +18,52 @@ use SmartLicenseServer\Monetization\License;
 
 class LicenseActivatedEmail extends EmailTemplate {
 
-    /**
-     * @param License $license   The activated license.
-     * @param string  $to        Recipient email address.
-     * @param string  $domain    The domain the license was activated on.
-     */
-    public function __construct(
-        private readonly License $license,
-        private readonly string  $to,
-        private readonly string  $domain
-    ) {}
+	/**
+	 * @param License $license   The activated license.
+	 * @param string  $to        Recipient email address.
+	 * @param string  $domain    The domain the license was activated on.
+	 */
+	public function __construct(
+		private readonly License $license,
+		private readonly string  $to,
+		private readonly string  $domain
+	) {}
 
-    static public function template_key(): string {
-        return 'license_activated';
-    }
+	static public function template_key() : string {
+		return 'license_activated';
+	}
 
-    protected function subject(): string {
-        return 'License Activated Successfully';
-    }
+	protected function subject() : string {
+		return 'License Activated Successfully';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "Your license has been activated on {$this->domain}.";
-    }
+	protected function preheader() : string {
+		return "Your license has been activated on {$this->domain}.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{licensee_name}}' => $this->license->get_licensee_fullname(),
-            '{{license_key}}'   => $this->license->get_license_key(),
-            '{{domain}}'        => $this->domain,
-            '{{end_date}}'      => $this->license->get_end_date()->format( \smliser_datetime_format() ),
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{licensee_name}}' => $this->license->get_licensee_fullname(),
+			'{{license_key}}'   => $this->license->get_license_key(),
+			'{{domain}}'        => $this->domain,
+			'{{end_date}}'      => $this->license->get_end_date()->format( \smliser_datetime_format() ),
+		] );
+	}
 
-    protected function body(): string {
-        $vars = $this->variables();
+	protected function body() : string {
+		$vars = $this->variables();
 
-        $licensee_name = \escHtml( $vars['{{licensee_name}}'] );
-        $license_key   = \escHtml( $vars['{{license_key}}'] );
-        $domain        = \escHtml( $vars['{{domain}}'] );
-        $end_date      = \escHtml( $vars['{{end_date}}'] );
-        $support       = \escHtml( $vars['{{support_email}}'] );
+		$licensee_name = \escHtml( $vars['{{licensee_name}}'] );
+		$license_key   = \escHtml( $vars['{{license_key}}'] );
+		$domain        = \escHtml( $vars['{{domain}}'] );
+		$end_date      = \escHtml( $vars['{{end_date}}'] );
+		$support       = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$licensee_name},
         </p>
@@ -126,60 +126,60 @@ class LicenseActivatedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'License Activated';
-    }
+	public function label() : string {
+		return 'License Activated';
+	}
 
-    public function description(): string {
-        return 'Sent when a license is successfully activated on a domain.';
-    }
-    
-    public static function preview(): static {
-        $license = License::from_array([
-            'licensee_fullname' => 'Jane Doe',
-            'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
-            'end_date'          => gmdate( 'Y-m-d', strtotime( '+1 year' ) ),
-        ]);
-        return new static( $license, 'preview@example.com', 'example.com' );
-    }
+	public function description() : string {
+		return 'Sent when a license is successfully activated on a domain.';
+	}
+	
+	public static function preview() : static {
+		$license = License::from_array( [
+			'licensee_fullname' => 'Jane Doe',
+			'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
+			'end_date'          => gmdate( 'Y-m-d', strtotime( '+1 year' ) ),
+		] );
+		return new static( $license, 'preview@example.com', 'example.com' );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{licensee_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'intro',
-                'type'      => 'text',
-                'content'   => 'Your license has been successfully activated on the domain below.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Activated Domain', 'value' => '{{domain}}' ],
-                    [ 'label' => 'License Key',      'value' => '{{license_key}}' ],
-                    [ 'label' => 'License Expires',  'value' => '{{end_date}}' ],
-                ],
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you did not activate this license or do not recognize the domain above, please contact us immediately at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{licensee_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'intro',
+				'type'      => 'text',
+				'content'   => 'Your license has been successfully activated on the domain below.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Activated Domain', 'value' => '{{domain}}' ],
+					[ 'label' => 'License Key',      'value' => '{{license_key}}' ],
+					[ 'label' => 'License Expires',  'value' => '{{end_date}}' ],
+				],
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you did not activate this license or do not recognize the domain above, please contact us immediately at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 
 }

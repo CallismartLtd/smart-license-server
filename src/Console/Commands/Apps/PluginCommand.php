@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Console\Commands\Apps;
  * Plugin command
  */
 class PluginCommand extends AbstractHostedAppCommand {
-    protected static function get_type() : string {
-        return 'plugin';
-    }
+	protected static function get_type() : string {
+		return 'plugin';
+	}
 }

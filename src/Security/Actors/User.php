@@ -29,490 +29,490 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * Ownership is always mediated through an Owner.
  */
 class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
-    use SanitizeAwareTrait, DatePropertyAwareTrait;
-
-    /**
-     * User active status.
-     *
-     * @var string
-     */
-    public const STATUS_ACTIVE = 'active';
-
-    /**
-     * User suspended status.
-     *
-     * @var string
-     */
-    public const STATUS_SUSPENDED = 'suspended';
-
-    /**
-     * User disabled status.
-     *
-     * @var string
-     */
-    public const STATUS_DISABLED = 'disabled';
-
-    /**
-     * User scheduled to be deleted status.
-     * 
-     * @var string
-     */
-    public const STATUS_DELETE_SCHEDULED = 'delete_scheduled';
-
-    /**
-     * Internal actor type identifier.
-     *
-     * @var string
-     */
-    public const TYPE = 'individual';
-
-    /**
-     * Unique user ID.
-     *
-     * @var int
-     */
-    protected int $id = 0;
-
-    /**
-     * User email.
-     *
-     * @var string
-     */
-    protected string $email = '';
-
-    /**
-     * Hashed password string.
-     *
-     * @var string
-     */
-    protected string $password_hash = '';
-
-    /**
-     * User lifecycle status.
-     *
-     * @var string
-     */
-    protected string $status = self::STATUS_ACTIVE;
-
-    /**
-     * Human-readable display name.
-     *
-     * @var string
-     */
-    protected string $display_name = '';
-
-    /**
-     * Date the user was created.
-     *
-     * @var DateTimeImmutable|null
-     */
-    protected ?DateTimeImmutable $created_at = null;
-
-    /**
-     * Date the user was last updated.
-     *
-     * @var DateTimeImmutable|null
-     */
-    protected ?DateTimeImmutable $updated_at = null;
-
-    /**
-     * Holds the value of `exists` check
-     *
-     * @var boolean|null 
-     */
-    protected ?bool $exists_cache = null;
-
-    /**
-     * User constructor.
-     *
-     * Intentionally lightweight. Hydration is expected
-     * to happen via setters or factory methods.
-     */
-    public function __construct() {}
-
-    /*
-    |----------
-    | GETTERS
-    |----------
-    */
-
-    /**
-     * Get the user ID.
-     *
-     * @return int User ID.
-     */
-    public function get_id() : int {
-        return $this->id;
-    }
-
-    /**
-     * Get the user email.
-     *
-     * @return string Email address.
-     */
-    public function get_email() : string {
-        return $this->email;
-    }
-
-    /**
-     * Get the hashed password.
-     *
-     * @return string Password hash.
-     */
-    public function get_password_hash() : string {
-        return $this->password_hash;
-    }
-
-    /**
-     * Get the user lifecycle status.
-     *
-     * @return string User status.
-     */
-    public function get_status() : string {
-        return $this->status;
-    }
-
-    /**
-     * Get the user display name.
-     *
-     * @return string Display name.
-     */
-    public function get_display_name() : string {
-        return $this->display_name;
-    }
-
-    /**
-     * Alias for `get_display_name`.
-     *
-     * @return string Display name.
-     */
-    public function get_name() : string {
-        return $this->get_display_name();
-    }
-
-    /**
-     * Get the creation date.
-     *
-     * @return DateTimeImmutable|null Creation timestamp.
-     */
-    public function get_created_at() : ?DateTimeImmutable {
-        return $this->created_at;
-    }
-
-    /**
-     * Get the last update date.
-     *
-     * @return DateTimeImmutable|null Update timestamp.
-     */
-    public function get_updated_at() : ?DateTimeImmutable {
-        return $this->updated_at;
-    }
-
-    /*
-    |---------
-    | SETTERS
-    |-----------
-    */
-
-    /**
-     * Set the user ID.
-     *
-     * @param int $id User ID.
-     * @return static
-     */
-    public function set_id( $id ) : static {
-        $this->id = self::sanitize_int( $id );
-        return $this;
-    }
-
-    /**
-     * Set the user email
-     *
-     * @param string $email Email or username.
-     * @return static
-     */
-    public function set_email( $email ) : static {
-        $this->email = self::sanitize_text( $email );
-        return $this;
-    }
-
-    /**
-     * Set the password hash.
-     *
-     * This method expects a *pre-hashed* password.
-     * Password hashing should happen outside the entity.
-     *
-     * @param string $hash Hashed password.
-     * @return static
-     */
-    public function set_password_hash( $hash ) : static {
-        $this->password_hash = $hash;
-        return $this;
-    }
-
-    /**
-     * Set the user status.
-     *
-     * @param string $status User lifecycle status.
-     * @return static
-     */
-    public function set_status( $status ) : static {
-        $this->status = self::sanitize_text( $status );
-        return $this;
-    }
-
-    /**
-     * Set the user display name.
-     *
-     * @param string $name Human-readable name.
-     * @return static
-     */
-    public function set_display_name( $name ) : static {
-        $this->display_name = self::sanitize_text( $name );
-        return $this;
-    }
-
-    /**
-     * Set the creation timestamp.
-     *
-     * @param string|DateTimeImmutable $date Creation date.
-     * @return static
-     */
-    public function set_created_at( $date ) : static {
-        return $this->set_date_prop( $date, 'created_at' );
-    }
-
-    /**
-     * Set the update timestamp.
-     *
-     * @param string|DateTimeImmutable $date Update date.
-     * @return static
-     */
-    public function set_updated_at( $date ) : static {
-        return $this->set_date_prop( $date, 'updated_at' );
-    }
-
-    /*
-    |----------------
-    | CRUD METHODS
-    |-----------------
-    */
-    /**
-     * Get by id
-     * 
-     * @param int $id
-     * @return static|null
-     */
-    public static function get_by_id( int $id ) : ?static {
-        static $users = [];
-
-        if ( ! array_key_exists( $id, $users ) ) {
-            $data           = static::fetch_by( 'id', $id, TableName::USERS->table() );
-            $users[ $id ]   = $data ? static::from_array( $data ) : null;
-        }
-
-        return $users[ $id ];
-    }
-
-    /**
-     * Get by email.
-     *
-     * Caches the retrieved user instance for 5 seconds. After 5 seconds,
-     * the database is queried again for the latest result.
-     *
-     * @param string $email
-     * @return static|null
-     */
-    public static function get_by_email( string $email ) : ?static {
-        static $users = [];
-
-        $now = microtime( true );
-
-        if ( isset( $users[ $email ] ) ) {
-            $cached = $users[ $email ];
-
-            if ( ( $now - $cached['timestamp'] ) < 5 ) {
-                return $cached['user'];
-            }
-
-            unset( $users[ $email ] );
-        }
-
-        $data = static::fetch_by( 'email', $email, TableName::USERS->table() );
-
-        if ( $data ) {
-            $users[ $email ] = [
-                'user'      => static::from_array( $data ),
-                'timestamp' => $now,
-            ];
-
-            return $users[ $email ]['user'];
-        }
-
-        return null;
-    }
-
-
-    /**
-     * Get all users
-     * 
-     * @param int $page The current pagination number.
-     * @param int $limit The maximum number of users to return.
-     * 
-     * @return static[]
-     */
-    public static function get_all( int $page, int $limit ) : array {
-        return array_map(
-            [static::class, 'from_array'],
-            static::fetch( TableName::USERS->table(), $page, $limit )
-        );
-    }
-
-    /**
-     * Count total records of users by status
-     * 
-     * @param string $status
-     * @return int
-     */
-    public static function count_status( $status ) : int {
-        $status             = self::sanitize_text( $status );
-        static $statuses    = [];
-
-        if ( ! array_key_exists( $status, $statuses ) ) {
-            $table  = TableName::USERS->table();
-
-            $sql    = static::query()
-                ->select( 'COUNT(*)' )->from( $table )
-                ->where( 'status', '=', $status );
-
-            $total  = static::$DB->get_var( $sql->build(), $sql->get_bindings() );
-
-            $statuses[$status]  = (int) $total;
-        }
-
-        return $statuses[$status];
-    }
-
-    /**
-     * Save user.
-     * 
-     * @return bool True on success, false otherwise.
-     */
-    public function save() : bool {
-        return (bool) static::$DB->transactional( function() {
-            $table  = TableName::USERS->table();
-
-            $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
-            $fields = array(
-                'display_name'  => $this->get_display_name(),
-                'email'         => $this->get_email(),
-                'password_hash' => $this->get_password_hash(),
-                'status'        => $this->get_status(),
-                'updated_at'    => $now->format( 'Y-m-d H:i:s' )
-            );
-
-            $lock_sql   = static::query()
-                ->select( 'id' )->from( $table )
-                ->where( 'id', '=', $this->id )
-                ->limit(1)->lock_for_update();
-
-            $user_id    = (int) static::$DB->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
-
-            if ( $user_id ) {
-                $result = static::$DB->update( $table, $fields, ['id' => $this->get_id()] );
-
-                $result &&
-                    $this->set_updated_at( $now );
-            } else {
-                $fields['created_at']   = $now->format( 'Y-m-d H:i:s' );
-                $result = static::$DB->insert( $table, $fields );
-                
-                $result &&
-                    $this->set_id( static::$DB->get_insert_id() )
-                    ->set_created_at( $now )
-                    ->set_updated_at( $now );
-            }
-
-            return $result !== false;            
-        });
-    }
-
-    /*
-    |-----------------
-    | UTILITY METHODS
-    |-----------------
-    */
-
-    /**
-     * Hydrate from array.
-     *
-     * @param array $data
-     * @return static
-     */
-    public static function from_array( array $data ) : static {
-        return static::from_array_helper( TableName::USERS->table(), $data );
-    }
-
-    /**
-     * Convert to array.
-     * 
-     * @return string[]
-     */
-    public function to_array() : array {
-        return [
-            'id'            => $this->get_id(),
-            'type'          => $this->get_type(),
-            'display_name'  => $this->get_display_name(),
-            'email'         => $this->get_email(),
-            'status'        => $this->get_status(),
-            'created_at'    => $this->get_created_at()->format( \smliser_datetime_format() ),
-            'updated_at'    => $this->get_updated_at()->format( \smliser_datetime_format() ),
-
-        ];
-    }
-
-    /**
-     * Determine whether the user is allowed to authenticate.
-     *
-     * @return bool True if the user can authenticate.
-     */
-    public function can_authenticate() : bool {
-        return self::STATUS_ACTIVE === $this->status;
-    }
-
-    /**
-     * Tells whether this user exists.
-     * 
-     * @return bool True when the user exists, false otherwise.
-     */
-    public function exists() : bool {
-        return $this->id > 0;
-    }
-
-    /**
-     * Check whether a user with email exists in the database
-     * 
-     * @param string $email
-     * @return bool True if user with email exists, false otherwise.
-     */
-    public static function email_exists( string $email ) : bool {
-        return ! empty( static::get_by_email( $email ) );
-    }
-
-    /**
-     * Get allowed owner statuses
-     *
-     * @return array
-     */
-    public static function get_allowed_statuses() : array {
-        return [ self::STATUS_ACTIVE, self::STATUS_SUSPENDED, self::STATUS_DISABLED ];
-    }
-    
-    public function get_type() : string {
-        return Owner::TYPE_INDIVIDUAL;
-    }
-
-    public function get_unique_identifier(): string {
-        return md5( $this->get_email() );
-    }
+	use SanitizeAwareTrait, DatePropertyAwareTrait;
+
+	/**
+	 * User active status.
+	 *
+	 * @var string
+	 */
+	public const STATUS_ACTIVE = 'active';
+
+	/**
+	 * User suspended status.
+	 *
+	 * @var string
+	 */
+	public const STATUS_SUSPENDED = 'suspended';
+
+	/**
+	 * User disabled status.
+	 *
+	 * @var string
+	 */
+	public const STATUS_DISABLED = 'disabled';
+
+	/**
+	 * User scheduled to be deleted status.
+	 * 
+	 * @var string
+	 */
+	public const STATUS_DELETE_SCHEDULED = 'delete_scheduled';
+
+	/**
+	 * Internal actor type identifier.
+	 *
+	 * @var string
+	 */
+	public const TYPE = 'individual';
+
+	/**
+	 * Unique user ID.
+	 *
+	 * @var int
+	 */
+	protected int $id = 0;
+
+	/**
+	 * User email.
+	 *
+	 * @var string
+	 */
+	protected string $email = '';
+
+	/**
+	 * Hashed password string.
+	 *
+	 * @var string
+	 */
+	protected string $password_hash = '';
+
+	/**
+	 * User lifecycle status.
+	 *
+	 * @var string
+	 */
+	protected string $status = self::STATUS_ACTIVE;
+
+	/**
+	 * Human-readable display name.
+	 *
+	 * @var string
+	 */
+	protected string $display_name = '';
+
+	/**
+	 * Date the user was created.
+	 *
+	 * @var DateTimeImmutable|null
+	 */
+	protected ?DateTimeImmutable $created_at = null;
+
+	/**
+	 * Date the user was last updated.
+	 *
+	 * @var DateTimeImmutable|null
+	 */
+	protected ?DateTimeImmutable $updated_at = null;
+
+	/**
+	 * Holds the value of `exists` check
+	 *
+	 * @var boolean|null 
+	 */
+	protected ?bool $exists_cache = null;
+
+	/**
+	 * User constructor.
+	 *
+	 * Intentionally lightweight. Hydration is expected
+	 * to happen via setters or factory methods.
+	 */
+	public function __construct() {}
+
+	/*
+	|----------
+	| GETTERS
+	|----------
+	*/
+
+	/**
+	 * Get the user ID.
+	 *
+	 * @return int User ID.
+	 */
+	public function get_id() : int {
+		return $this->id;
+	}
+
+	/**
+	 * Get the user email.
+	 *
+	 * @return string Email address.
+	 */
+	public function get_email() : string {
+		return $this->email;
+	}
+
+	/**
+	 * Get the hashed password.
+	 *
+	 * @return string Password hash.
+	 */
+	public function get_password_hash() : string {
+		return $this->password_hash;
+	}
+
+	/**
+	 * Get the user lifecycle status.
+	 *
+	 * @return string User status.
+	 */
+	public function get_status() : string {
+		return $this->status;
+	}
+
+	/**
+	 * Get the user display name.
+	 *
+	 * @return string Display name.
+	 */
+	public function get_display_name() : string {
+		return $this->display_name;
+	}
+
+	/**
+	 * Alias for `get_display_name`.
+	 *
+	 * @return string Display name.
+	 */
+	public function get_name() : string {
+		return $this->get_display_name();
+	}
+
+	/**
+	 * Get the creation date.
+	 *
+	 * @return DateTimeImmutable|null Creation timestamp.
+	 */
+	public function get_created_at() : ?DateTimeImmutable {
+		return $this->created_at;
+	}
+
+	/**
+	 * Get the last update date.
+	 *
+	 * @return DateTimeImmutable|null Update timestamp.
+	 */
+	public function get_updated_at() : ?DateTimeImmutable {
+		return $this->updated_at;
+	}
+
+	/*
+	|---------
+	| SETTERS
+	|-----------
+	*/
+
+	/**
+	 * Set the user ID.
+	 *
+	 * @param int $id User ID.
+	 * @return static
+	 */
+	public function set_id( $id ) : static {
+		$this->id = self::sanitize_int( $id );
+		return $this;
+	}
+
+	/**
+	 * Set the user email
+	 *
+	 * @param string $email Email or username.
+	 * @return static
+	 */
+	public function set_email( $email ) : static {
+		$this->email = self::sanitize_text( $email );
+		return $this;
+	}
+
+	/**
+	 * Set the password hash.
+	 *
+	 * This method expects a *pre-hashed* password.
+	 * Password hashing should happen outside the entity.
+	 *
+	 * @param string $hash Hashed password.
+	 * @return static
+	 */
+	public function set_password_hash( $hash ) : static {
+		$this->password_hash = $hash;
+		return $this;
+	}
+
+	/**
+	 * Set the user status.
+	 *
+	 * @param string $status User lifecycle status.
+	 * @return static
+	 */
+	public function set_status( $status ) : static {
+		$this->status = self::sanitize_text( $status );
+		return $this;
+	}
+
+	/**
+	 * Set the user display name.
+	 *
+	 * @param string $name Human-readable name.
+	 * @return static
+	 */
+	public function set_display_name( $name ) : static {
+		$this->display_name = self::sanitize_text( $name );
+		return $this;
+	}
+
+	/**
+	 * Set the creation timestamp.
+	 *
+	 * @param string|DateTimeImmutable $date Creation date.
+	 * @return static
+	 */
+	public function set_created_at( $date ) : static {
+		return $this->set_date_prop( $date, 'created_at' );
+	}
+
+	/**
+	 * Set the update timestamp.
+	 *
+	 * @param string|DateTimeImmutable $date Update date.
+	 * @return static
+	 */
+	public function set_updated_at( $date ) : static {
+		return $this->set_date_prop( $date, 'updated_at' );
+	}
+
+	/*
+	|----------------
+	| CRUD METHODS
+	|-----------------
+	*/
+	/**
+	 * Get by id
+	 * 
+	 * @param int $id
+	 * @return static|null
+	 */
+	public static function get_by_id( int $id ) : ?static {
+		static $users = [];
+
+		if ( ! array_key_exists( $id, $users ) ) {
+			$data         = static::fetch_by( 'id', $id, TableName::USERS->table() );
+			$users[ $id ] = $data ? static::from_array( $data ) : null;
+		}
+
+		return $users[ $id ];
+	}
+
+	/**
+	 * Get by email.
+	 *
+	 * Caches the retrieved user instance for 5 seconds. After 5 seconds,
+	 * the database is queried again for the latest result.
+	 *
+	 * @param string $email
+	 * @return static|null
+	 */
+	public static function get_by_email( string $email ) : ?static {
+		static $users = [];
+
+		$now = microtime( true );
+
+		if ( isset( $users[ $email ] ) ) {
+			$cached = $users[ $email ];
+
+			if ( ( $now - $cached['timestamp'] ) < 5 ) {
+				return $cached['user'];
+			}
+
+			unset( $users[ $email ] );
+		}
+
+		$data = static::fetch_by( 'email', $email, TableName::USERS->table() );
+
+		if ( $data ) {
+			$users[ $email ] = [
+				'user'      => static::from_array( $data ),
+				'timestamp' => $now,
+			];
+
+			return $users[ $email ]['user'];
+		}
+
+		return null;
+	}
+
+
+	/**
+	 * Get all users
+	 * 
+	 * @param int $page The current pagination number.
+	 * @param int $limit The maximum number of users to return.
+	 * 
+	 * @return static[]
+	 */
+	public static function get_all( int $page, int $limit ) : array {
+		return array_map(
+			[static::class, 'from_array'],
+			static::fetch( TableName::USERS->table(), $page, $limit )
+		);
+	}
+
+	/**
+	 * Count total records of users by status
+	 * 
+	 * @param string $status
+	 * @return int
+	 */
+	public static function count_status( $status ) : int {
+		$status          = self::sanitize_text( $status );
+		static $statuses = [];
+
+		if ( ! array_key_exists( $status, $statuses ) ) {
+			$table = TableName::USERS->table();
+
+			$sql = static::query()
+				->select( 'COUNT(*)' )->from( $table )
+				->where( 'status', '=', $status );
+
+			$total = static::$DB->get_var( $sql->build(), $sql->get_bindings() );
+
+			$statuses[$status] = (int) $total;
+		}
+
+		return $statuses[$status];
+	}
+
+	/**
+	 * Save user.
+	 * 
+	 * @return bool True on success, false otherwise.
+	 */
+	public function save() : bool {
+		return (bool) static::$DB->transactional( function() {
+			$table = TableName::USERS->table();
+
+			$now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+			$fields = [
+				'display_name'  => $this->get_display_name(),
+				'email'         => $this->get_email(),
+				'password_hash' => $this->get_password_hash(),
+				'status'        => $this->get_status(),
+				'updated_at'    => $now->format( 'Y-m-d H:i:s' )
+			];
+
+			$lock_sql = static::query()
+				->select( 'id' )->from( $table )
+				->where( 'id', '=', $this->id )
+				->limit( 1 )->lock_for_update();
+
+			$user_id = (int) static::$DB->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
+
+			if ( $user_id ) {
+				$result = static::$DB->update( $table, $fields, ['id' => $this->get_id()] );
+
+				$result &&
+					$this->set_updated_at( $now );
+			} else {
+				$fields['created_at'] = $now->format( 'Y-m-d H:i:s' );
+				$result               = static::$DB->insert( $table, $fields );
+				
+				$result &&
+					$this->set_id( static::$DB->get_insert_id() )
+					->set_created_at( $now )
+					->set_updated_at( $now );
+			}
+
+			return false !== $result;
+		} );
+	}
+
+	/*
+	|-----------------
+	| UTILITY METHODS
+	|-----------------
+	*/
+
+	/**
+	 * Hydrate from array.
+	 *
+	 * @param array $data
+	 * @return static
+	 */
+	public static function from_array( array $data ) : static {
+		return static::from_array_helper( TableName::USERS->table(), $data );
+	}
+
+	/**
+	 * Convert to array.
+	 * 
+	 * @return string[]
+	 */
+	public function to_array() : array {
+		return [
+			'id'           => $this->get_id(),
+			'type'         => $this->get_type(),
+			'display_name' => $this->get_display_name(),
+			'email'        => $this->get_email(),
+			'status'       => $this->get_status(),
+			'created_at'   => $this->get_created_at()->format( \smliser_datetime_format() ),
+			'updated_at'   => $this->get_updated_at()->format( \smliser_datetime_format() ),
+
+		];
+	}
+
+	/**
+	 * Determine whether the user is allowed to authenticate.
+	 *
+	 * @return bool True if the user can authenticate.
+	 */
+	public function can_authenticate() : bool {
+		return self::STATUS_ACTIVE === $this->status;
+	}
+
+	/**
+	 * Tells whether this user exists.
+	 * 
+	 * @return bool True when the user exists, false otherwise.
+	 */
+	public function exists() : bool {
+		return $this->id > 0;
+	}
+
+	/**
+	 * Check whether a user with email exists in the database
+	 * 
+	 * @param string $email
+	 * @return bool True if user with email exists, false otherwise.
+	 */
+	public static function email_exists( string $email ) : bool {
+		return ! empty( static::get_by_email( $email ) );
+	}
+
+	/**
+	 * Get allowed owner statuses
+	 *
+	 * @return array
+	 */
+	public static function get_allowed_statuses() : array {
+		return [ self::STATUS_ACTIVE, self::STATUS_SUSPENDED, self::STATUS_DISABLED ];
+	}
+	
+	public function get_type() : string {
+		return Owner::TYPE_INDIVIDUAL;
+	}
+
+	public function get_unique_identifier() : string {
+		return md5( $this->get_email() );
+	}
 }

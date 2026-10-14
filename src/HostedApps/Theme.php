@@ -20,389 +20,389 @@ use SmartLicenseServer\Utils\Format;
  * Represents a typical theme hosted in the repository.
  */
 class Theme extends AbstractHostedApp {
-    /**
-     * The database table for themes.
-     * 
-     * @var TableName
-     */
-    const MAIN = TableName::THEMES;
+	/**
+	 * The database table for themes.
+	 * 
+	 * @var TableName
+	 */
+	const MAIN = TableName::THEMES;
 
-    /**
-     * The theme metadata table
-     * 
-     * @var TableName
-     */
-    const META  = TableName::THEME_META;
+	/**
+	 * The theme metadata table
+	 * 
+	 * @var TableName
+	 */
+	const META = TableName::THEME_META;
 
-    /**
-     * WordPress version requirement.
-     * 
-     * @var string $requires_at_least The minimum WordPress version required to run the theme.
-     */
-    protected $requires_at_least = '';
+	/**
+	 * WordPress version requirement.
+	 * 
+	 * @var string $requires_at_least The minimum WordPress version required to run the theme.
+	 */
+	protected $requires_at_least = '';
 
-    /**
-     * Version Tested up to.
-     * 
-     * @var string $tested_up_to The latest WordPress version the app has been tested with.
-     */
-    protected $tested_up_to = '';
+	/**
+	 * Version Tested up to.
+	 * 
+	 * @var string $tested_up_to The latest WordPress version the app has been tested with.
+	 */
+	protected $tested_up_to = '';
 
-    /**
-     * PHP version requirement.
-     * 
-     * @var string $requires_php The minimum PHP version required to run the app.
-     */
-    protected $requires_php = '';
+	/**
+	 * PHP version requirement.
+	 * 
+	 * @var string $requires_php The minimum PHP version required to run the app.
+	 */
+	protected $requires_php = '';
 
-    /**
-     * Author .
-     * 
-     * @var array $author The properties of the theme author.
-     */
-    protected array|string $author = [
-        'user_nicename' => '',
-        'profile'       => '',
-        'avatar'        => '',
-        'display_name'  => '',
-        'author'        => '',
-        'author_url'    => ''
-    ];
+	/**
+	 * Author .
+	 * 
+	 * @var array $author The properties of the theme author.
+	 */
+	protected array|string $author = [
+		'user_nicename' => '',
+		'profile'       => '',
+		'avatar'        => '',
+		'display_name'  => '',
+		'author'        => '',
+		'author_url'    => ''
+	];
 
-    /**
-     * The theme's screenshot.png url
-     * 
-     * @var string $screenshot_url
-     */
-    protected $screenshot_url = '';
+	/**
+	 * The theme's screenshot.png url
+	 * 
+	 * @var string $screenshot_url
+	 */
+	protected $screenshot_url = '';
 
-    /**
-     * Class constructor
-     */
-    public function __construct() {}
+	/**
+	 * Class constructor
+	 */
+	public function __construct() {}
 
-    /**
-     * Get application type
-     * @return string
-     */
-    public function get_type() : string {
-        return 'theme';
-    }
+	/**
+	 * Get application type
+	 * @return string
+	 */
+	public function get_type() : string {
+		return 'theme';
+	}
 
-    /**
-     * Get the theme author name
-     * 
-     * @param string $context The author property to return. 
-     * @return string|array
-     */
-    public function get_author( $context = 'author' ) : string|array {
-        $author = parent::get_author();
+	/**
+	 * Get the theme author name
+	 * 
+	 * @param string $context The author property to return. 
+	 * @return string|array
+	 */
+	public function get_author( $context = 'author' ) : string|array {
+		$author = parent::get_author();
 
-        if ( ! empty( $context ) && array_key_exists( $context, (array) $author ) ) {
-            return $author[ $context ];
-        }
+		if ( ! empty( $context ) && array_key_exists( $context, (array) $author ) ) {
+			return $author[ $context ];
+		}
 
-        return $author;
+		return $author;
 
-    }
+	}
 
-    /**
-     * Get the author profile URL
-     * 
-     * @return URL
-     */
-    public function get_author_profile() : ?URL {
-        return URL::from( $this->author['author_url'] ?? '' );
-    }
+	/**
+	 * Get the author profile URL
+	 * 
+	 * @return URL
+	 */
+	public function get_author_profile() : ?URL {
+		return URL::from( $this->author['author_url'] ?? '' );
+	}
 
-    /**
-     * Get WordPress required version for theme.
-     */
-    public function requires_at_least() {
-        return $this->requires_at_least;
-    }
+	/**
+	 * Get WordPress required version for theme.
+	 */
+	public function requires_at_least() {
+		return $this->requires_at_least;
+	}
 
-    /**
-     * Get WordPress version tested up to.
-     */
-    public function get_tested_up_to() {
-        return $this->tested_up_to;
-    }
+	/**
+	 * Get WordPress version tested up to.
+	 */
+	public function get_tested_up_to() {
+		return $this->tested_up_to;
+	}
 
-    /**
-     * Get PHP required version for theme.
-     */
-    public function get_required_php() {
-        return $this->requires_php;
-    }
+	/**
+	 * Get PHP required version for theme.
+	 */
+	public function get_required_php() {
+		return $this->requires_php;
+	}
 
-    /**
-     * Get the theme screenshot URL.
-     * 
-     * @return string
-     */
-    public function get_screenshot_url() : string {
-        return $this->screenshot_url;
-    }
+	/**
+	 * Get the theme screenshot URL.
+	 * 
+	 * @return string
+	 */
+	public function get_screenshot_url() : string {
+		return $this->screenshot_url;
+	}
 
-    /**
-     * Get the theme main icon
-     */
-    public function get_icon() : string {
-        return $this->default_icon()->url();
-    }
+	/**
+	 * Get the theme main icon
+	 */
+	public function get_icon() : string {
+		return $this->default_icon()->url();
+	}
 
-    /*
-    |---------------
-    | SETTER METHODS
-    |---------------
-    */
-    /**
-     * Set WordPress required version for theme.
-     * 
-     * @param string $version
-     */
-    public function set_requires_at_least( $version ) {
-        $this->requires_at_least = $version;
-    }
+	/*
+	|---------------
+	| SETTER METHODS
+	|---------------
+	*/
+	/**
+	 * Set WordPress required version for theme.
+	 * 
+	 * @param string $version
+	 */
+	public function set_requires_at_least( $version ) {
+		$this->requires_at_least = $version;
+	}
 
-    /**
-     * Set WordPress tested up to version for theme.
-     * 
-     * @param string $version
-     */
-    public function set_tested_up_to( $version ) {
-        $this->tested_up_to = $version;
-    }
+	/**
+	 * Set WordPress tested up to version for theme.
+	 * 
+	 * @param string $version
+	 */
+	public function set_tested_up_to( $version ) {
+		$this->tested_up_to = $version;
+	}
 
-    /**
-     * Set PHP required version for theme.
-     * 
-     * @param string $version
-     */
-    public function set_requires_php( $version ) {
-        $this->requires_php = $version;
-    }
+	/**
+	 * Set PHP required version for theme.
+	 * 
+	 * @param string $version
+	 */
+	public function set_requires_php( $version ) {
+		$this->requires_php = $version;
+	}
 
-    /**
-     * Set the theme screenshot URL.
-     * 
-     * @param string $url
-     */
-    public function set_screenshot_url( string $url ) {
-        $this->screenshot_url = $url;
-    }
+	/**
+	 * Set the theme screenshot URL.
+	 * 
+	 * @param string $url
+	 */
+	public function set_screenshot_url( string $url ) {
+		$this->screenshot_url = $url;
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    #[Override]
-    public function set_author( string|array $value ): static {
-        if ( ! is_array( $value ) ) {
+	/**
+	 * {@inheritdoc}
+	 */
+	#[Override]
+	public function set_author( string|array $value ) : static {
+		if ( ! is_array( $value ) ) {
 
-            $value  = ['author' => $value];
-        }
+			$value = ['author' => $value];
+		}
 
-        return parent::set_author( $value );
-    }
-    
-    /**
-    |--------------
-    | CRUD METHODS
-    |--------------
-    */
+		return parent::set_author( $value );
+	}
+	
+	/**
+	|--------------
+	| CRUD METHODS
+	|--------------
+	*/
 
-    /**
-     * Get the database table name.
-     * 
-     * @return string
-     */
-    public static function get_db_table() : string {
-        return static::MAIN->table();
-    }
+	/**
+	 * Get the database table name.
+	 * 
+	 * @return string
+	 */
+	public static function get_db_table() : string {
+		return static::MAIN->table();
+	}
 
-    /**
-     * Get database fields.
-     * 
-     * @return array<int, string>
-     */
-    public function get_fillable() : array {
-        return array( 'owner_id', 'name', 'author', 'status', 'download_link' );
-    }
+	/**
+	 * Get database fields.
+	 * 
+	 * @return array<int, string>
+	 */
+	public function get_fillable() : array {
+		return [ 'owner_id', 'name', 'author', 'status', 'download_link' ];
+	}
 
-    /**
-     * Get the database table name.
-     * 
-     * @return string
-     */
-    public static function get_db_meta_table() : string {
-        return self::META->table();
-    }
+	/**
+	 * Get the database table name.
+	 * 
+	 * @return string
+	 */
+	public static function get_db_meta_table() : string {
+		return self::META->table();
+	}
 
-    /**
-     * Get the foreign key column name for metadata table
-     * 
-     * @return string
-     */
-    protected function get_meta_foreign_key() : string {
-        return 'theme_id';
-    }
+	/**
+	 * Get the foreign key column name for metadata table
+	 * 
+	 * @return string
+	 */
+	protected function get_meta_foreign_key() : string {
+		return 'theme_id';
+	}
 
-    /**
-    |--------------------
-    | UTILITY METHODS
-    |--------------------
-    */
+	/**
+	|--------------------
+	| UTILITY METHODS
+	|--------------------
+	*/
 
-    /**
-     * Converts associative array to object of this class.
-     * 
-     * @param array $result The associative array representing a theme.
-     * @return static
-     */
-    public static function from_array( $result ) : static {
-        $self = new static();
-        $self->set_id( $result['id'] ?? 0 );
-        $self->set_owner_id( $result['owner_id'] ?? 0 );
-        $self->set_name( $result['name'] ?? '' );
-        $self->set_slug( $result['slug'] ?? '' );
-        $self->set_download_url( $result['download_link'] ?? '' );
-        $self->set_created_at( $result['created_at'] ?? '' );
-        $self->set_updated_at( $result['updated_at'] ?? '' );
-        $self->set_status( $result['status'] ?? self::STATUS_ACTIVE );
+	/**
+	 * Converts associative array to object of this class.
+	 * 
+	 * @param array $result The associative array representing a theme.
+	 * @return static
+	 */
+	public static function from_array( $result ) : static {
+		$self = new static();
+		$self->set_id( $result['id'] ?? 0 );
+		$self->set_owner_id( $result['owner_id'] ?? 0 );
+		$self->set_name( $result['name'] ?? '' );
+		$self->set_slug( $result['slug'] ?? '' );
+		$self->set_download_url( $result['download_link'] ?? '' );
+		$self->set_created_at( $result['created_at'] ?? '' );
+		$self->set_updated_at( $result['updated_at'] ?? '' );
+		$self->set_status( $result['status'] ?? self::STATUS_ACTIVE );
 
-        $self->load_meta();
-        /** @var ThemeRepository */
-        $repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( 'theme' );
+		$self->load_meta();
+		/** @var ThemeRepository */
+		$repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( 'theme' );
 
-        $theme_metadata = $repo_class->get_metadata( $self->get_slug() );
-        $self->set_version( $theme_metadata['version'] ?? '' );
-        $self->set_tags( $theme_metadata['tags'] ?? [] );
+		$theme_metadata = $repo_class->get_metadata( $self->get_slug() );
+		$self->set_version( $theme_metadata['version'] ?? '' );
+		$self->set_tags( $theme_metadata['tags'] ?? [] );
 
-        $author = Format::decode( $result['author'] );
-        
-        $self->set_author( array(
-            'user_nicename' => $theme_metadata['author_nicename'] ?? $author['author_nicename'] ?? '',
-            'profile'       => $theme_metadata['author_profile'] ?? $author['author_profile'] ?? '',
-            'avatar'        => $theme_metadata['author_avatar'] ?? $author['author_avatar'] ?? '',
-            'display_name'  => $theme_metadata['author_display_name'] ?? $author['author_display_name'] ?? '',
-            'author'        => $theme_metadata['author'] ?? $author['author'] ?? '',
-            'author_url'    => $theme_metadata['author_uri'] ?? $author['author_url'] ?? '',
-        ));
+		$author = Format::decode( $result['author'] );
+		
+		$self->set_author( [
+			'user_nicename' => $theme_metadata['author_nicename'] ?? $author['author_nicename'] ?? '',
+			'profile'       => $theme_metadata['author_profile'] ?? $author['author_profile'] ?? '',
+			'avatar'        => $theme_metadata['author_avatar'] ?? $author['author_avatar'] ?? '',
+			'display_name'  => $theme_metadata['author_display_name'] ?? $author['author_display_name'] ?? '',
+			'author'        => $theme_metadata['author'] ?? $author['author'] ?? '',
+			'author_url'    => $theme_metadata['author_uri'] ?? $author['author_url'] ?? '',
+		] );
 
-        $self->set_author_profile( $theme_metadata['author_profile'] ?? '' );
-        $self->set_requires_at_least( $theme_metadata['requires_at_least'] ?? '' );
-        $self->set_tested_up_to( $theme_metadata['tested_up_to'] ?? '' );
-        $self->set_requires_php( $theme_metadata['requires_php'] ?? '' );
-        $license    = array(
-            'license'       => $theme_metadata['license'] ?? '',
-            'license_uri'   => $theme_metadata['license_uri'] ?? ''
-        );
+		$self->set_author_profile( $theme_metadata['author_profile'] ?? '' );
+		$self->set_requires_at_least( $theme_metadata['requires_at_least'] ?? '' );
+		$self->set_tested_up_to( $theme_metadata['tested_up_to'] ?? '' );
+		$self->set_requires_php( $theme_metadata['requires_php'] ?? '' );
+		$license = [
+			'license'     => $theme_metadata['license'] ?? '',
+			'license_uri' => $theme_metadata['license_uri'] ?? ''
+		];
 
-        $self->set_license( $license );
-        
-        $self->set_homepage( $self->get_meta( 'homepage_url' ) ?: $theme_metadata['theme_uri'] ?? '' );
-        
-        $theme_file   = $repo_class->locate( $self->get_slug() );
-        if ( ! is_smliser_error( $theme_file ) ) {
-            $self->set_file( $theme_file );
-        } else {
-            $self->set_file( '' );
-        }
+		$self->set_license( $license );
+		
+		$self->set_homepage( $self->get_meta( 'homepage_url' ) ?: $theme_metadata['theme_uri'] ?? '' );
+		
+		$theme_file = $repo_class->locate( $self->get_slug() );
+		if ( ! is_smliser_error( $theme_file ) ) {
+			$self->set_file( $theme_file );
+		} else {
+			$self->set_file( '' );
+		}
 
-        /** 
-         * Section informations 
-         */
-        $sections = array(
-            'description'   => $repo_class->get_description( $self->get_slug() ),
-            'changelog'     => $repo_class->get_changelog( $self->get_slug(), 'txt' ),
-            'installation'  => $repo_class->get_installation( $self->get_slug(), 'txt' ),
-            'screenshots'   =>  [],
-        );
-        
-        $self->set_section( $sections );
-        $manifest = $repo_class->get_app_dot_json( $self );
-        $self->set_manifest( $manifest );
+		/** 
+		 * Section informations 
+		 */
+		$sections = [
+			'description'  => $repo_class->get_description( $self->get_slug() ),
+			'changelog'    => $repo_class->get_changelog( $self->get_slug(), 'txt' ),
+			'installation' => $repo_class->get_installation( $self->get_slug(), 'txt' ),
+			'screenshots'  => [],
+		];
+		
+		$self->set_section( $sections );
+		$manifest = $repo_class->get_app_dot_json( $self );
+		$self->set_manifest( $manifest );
 
-        /**
-         * The theme screenshot
-         */
-        $self->set_screenshot_url( $repo_class->get_screenshot( $self->get_slug() ) );
+		/**
+		 * The theme screenshot
+		 */
+		$self->set_screenshot_url( $repo_class->get_screenshot( $self->get_slug() ) );
 
-        /**
-         * Screenshots
-         */
-        $self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
+		/**
+		 * Screenshots
+		 */
+		$self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
 
-        /**
-         * Set short description
-         */
-        $self->short_description = $repo_class->get_short_description( $self->get_slug() );
+		/**
+		 * Set short description
+		 */
+		$self->short_description = $repo_class->get_short_description( $self->get_slug() );
 
-        $self->set_ratings( $self->get_meta( 'ratings', 
-            array(
-                '5' => 0,
-                '4' => 0,
-                '3' => 0,
-                '2' => 0,
-                '1' => 0,
-            )
-        ));
+		$self->set_ratings( $self->get_meta( 'ratings',
+			[
+				'5' => 0,
+				'4' => 0,
+				'3' => 0,
+				'2' => 0,
+				'1' => 0,
+			]
+		) );
 
-        $self->set_num_ratings( $self->get_meta( 'num_ratings', 0 ) );
-        $self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
-        $self->set_support_url( (string) $self->get_meta( 'support_url', '' ) );
+		$self->set_num_ratings( $self->get_meta( 'num_ratings', 0 ) );
+		$self->set_active_installs( $self->get_meta( 'active_installs', 0 ) );
+		$self->set_support_url( (string) $self->get_meta( 'support_url', '' ) );
 
-        return $self;
-    }
+		return $self;
+	}
 
-    /**
-     * Concrete implementation of rest response for themes.
-     * 
-     * @return array
-     */
-    public function get_rest_response() : array {
-        $data = array(
-            'name'                  => $this->get_name(),
-            'slug'                  => $this->get_slug(),
-            'status'                => $this->get_status(),
-            'type'                  => $this->get_type(),
-            'version'               => $this->get_version(),
-            'preview_url'           => $this->get_meta( 'preview_url' ),
-            'author'                => $this->get_author( '' ),
-            'manifest'              => $this->get_manifest(),
-            'icon'                  => $this->get_icon(),
-            'screenshot_url'        => $this->get_screenshot_url(),
-            'rating'                => $this->get_average_rating(),
-            'num_ratings'           => $this->get_num_ratings(),
-            'reviews_url'           => '',
-            'downloaded'            => 0,
-            'last_updated'          => $this->get_last_updated()->format( 'Y-m-d'),
-            'last_updated_time'     => $this->get_last_updated()->format( 'Y-m-d H:i:s' ),
-            'creation_time'         => $this->get_date_created()->format( 'Y-m-d H:i:s' ),
-            'homepage'              => $this->get_homepage(),
-            'sections'              => $this->get_sections(),
-            'download_link'         => $this->get_download_url(),
-            'tags'                  => $this->get_tags(),
-            'requires'                  => $this->requires_at_least(),
-            'requires_php'              => $this->get_required_php(),
-            'is_monetized'              => $this->is_monetized(),
-            'external_support_url'      => $this->get_support_url(),
-            'support_url'               => $this->get_support_url(),
-            'external_repository_url'   => '',
-            'monetization'              => [],
-            'created_at'                => $this->get_date_created()->format( 'Y-m-d H:i:s' ),
-            'updated_at'                => $this->get_last_updated()->format( 'Y-m-d H:i:s' )
-        );
-        
-        if ( $this->is_monetized() ) {
-            $monetization = Monetization::get_by_app( $this->get_type(), $this->get_id() );
+	/**
+	 * Concrete implementation of rest response for themes.
+	 * 
+	 * @return array
+	 */
+	public function get_rest_response() : array {
+		$data = [
+			'name'                    => $this->get_name(),
+			'slug'                    => $this->get_slug(),
+			'status'                  => $this->get_status(),
+			'type'                    => $this->get_type(),
+			'version'                 => $this->get_version(),
+			'preview_url'             => $this->get_meta( 'preview_url' ),
+			'author'                  => $this->get_author( '' ),
+			'manifest'                => $this->get_manifest(),
+			'icon'                    => $this->get_icon(),
+			'screenshot_url'          => $this->get_screenshot_url(),
+			'rating'                  => $this->get_average_rating(),
+			'num_ratings'             => $this->get_num_ratings(),
+			'reviews_url'             => '',
+			'downloaded'              => 0,
+			'last_updated'            => $this->get_last_updated()->format( 'Y-m-d' ),
+			'last_updated_time'       => $this->get_last_updated()->format( 'Y-m-d H:i:s' ),
+			'creation_time'           => $this->get_date_created()->format( 'Y-m-d H:i:s' ),
+			'homepage'                => $this->get_homepage(),
+			'sections'                => $this->get_sections(),
+			'download_link'           => $this->get_download_url(),
+			'tags'                    => $this->get_tags(),
+			'requires'                => $this->requires_at_least(),
+			'requires_php'            => $this->get_required_php(),
+			'is_monetized'            => $this->is_monetized(),
+			'external_support_url'    => $this->get_support_url(),
+			'support_url'             => $this->get_support_url(),
+			'external_repository_url' => '',
+			'monetization'            => [],
+			'created_at'              => $this->get_date_created()->format( 'Y-m-d H:i:s' ),
+			'updated_at'              => $this->get_last_updated()->format( 'Y-m-d H:i:s' )
+		];
+		
+		if ( $this->is_monetized() ) {
+			$monetization = Monetization::get_by_app( $this->get_type(), $this->get_id() );
 
-            $data['monetization'] = $monetization->to_array();
-        }
+			$data['monetization'] = $monetization->to_array();
+		}
 
-        return $data;
+		return $data;
 
-    }
+	}
 
 }

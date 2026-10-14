@@ -18,59 +18,59 @@ use SmartLicenseServer\Security\Actors\User;
 
 class PasswordResetEmail extends EmailTemplate {
 
-    /**
-     * @param User   $user         The user requesting the reset.
-     * @param string $to           Recipient email address.
-     * @param string $reset_url    The password reset link.
-     * @param int    $expires_in   Number of minutes until the reset link expires.
-     * @param string $ip_address   IP address of the requesting user.
-     * @param string $user_agent   User agent of the requesting client.
-     */
-    public function __construct(
-        private readonly User   $user,
-        private readonly string $to,
-        private readonly string $reset_url,
-        private readonly int    $expires_in,
-        private readonly string $ip_address,
-        private readonly string $user_agent
-    ) {}
+	/**
+	 * @param User   $user         The user requesting the reset.
+	 * @param string $to           Recipient email address.
+	 * @param string $reset_url    The password reset link.
+	 * @param int    $expires_in   Number of minutes until the reset link expires.
+	 * @param string $ip_address   IP address of the requesting user.
+	 * @param string $user_agent   User agent of the requesting client.
+	 */
+	public function __construct(
+		private readonly User   $user,
+		private readonly string $to,
+		private readonly string $reset_url,
+		private readonly int    $expires_in,
+		private readonly string $ip_address,
+		private readonly string $user_agent
+	) {}
 
-    static public function template_key(): string {
-        return 'password_reset';
-    }
+	static public function template_key() : string {
+		return 'password_reset';
+	}
 
-    protected function subject(): string {
-        return 'Reset Your Password';
-    }
+	protected function subject() : string {
+		return 'Reset Your Password';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return 'We received a request to reset your password. Use the link inside to proceed.';
-    }
+	protected function preheader() : string {
+		return 'We received a request to reset your password. Use the link inside to proceed.';
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{display_name}}' => $this->user->get_display_name(),
-            '{{reset_url}}'    => $this->reset_url,
-            '{{expires_in}}'   => (string) $this->expires_in,
-            '{{ip_address}}'   => $this->ip_address,
-            '{{user_agent}}'   => $this->user_agent,
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{display_name}}' => $this->user->get_display_name(),
+			'{{reset_url}}'    => $this->reset_url,
+			'{{expires_in}}'   => (string) $this->expires_in,
+			'{{ip_address}}'   => $this->ip_address,
+			'{{user_agent}}'   => $this->user_agent,
+		] );
+	}
 
-    protected function body(): string {
-        $vars           = $this->variables();
-        $display_name   = \escHtml( $vars['{{display_name}}'] );
-        $reset_url      = \escHtml( $vars['{{reset_url}}'] );
-        $expires_in     = \escHtml( $vars['{{expires_in}}'] );
-        $support        = \escHtml( $vars['{{support_email}}'] );
-        $ip_address     = \escHtml( $vars['{{ip_address}}'] );
-        $user_agent     = \escHtml( $vars['{{user_agent}}'] );
+	protected function body() : string {
+		$vars         = $this->variables();
+		$display_name = \escHtml( $vars['{{display_name}}'] );
+		$reset_url    = \escHtml( $vars['{{reset_url}}'] );
+		$expires_in   = \escHtml( $vars['{{expires_in}}'] );
+		$support      = \escHtml( $vars['{{support_email}}'] );
+		$ip_address   = \escHtml( $vars['{{ip_address}}'] );
+		$user_agent   = \escHtml( $vars['{{user_agent}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$display_name},
         </p>
@@ -131,74 +131,74 @@ class PasswordResetEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Password Reset';
-    }
-    
-    public function description(): string {
-        return 'Sent when a user requests a password reset.';
-    }
+	public function label() : string {
+		return 'Password Reset';
+	}
+	
+	public function description() : string {
+		return 'Sent when a user requests a password reset.';
+	}
 
-    public static function preview(): static {
-        $user = User::from_array( [ 'display_name' => 'Jane Doe' ] );
-        return new static(
-            $user, 
-            'preview@example.com', 
-            'https://example.com/reset?token=xxxx', 
-            30,
-            '192.168.1.50',
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-        );
-    }
+	public static function preview() : static {
+		$user = User::from_array( [ 'display_name' => 'Jane Doe' ] );
+		return new static(
+			$user,
+			'preview@example.com',
+			'https://example.com/reset?token=xxxx',
+			30,
+			'192.168.1.50',
+			'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+		);
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{display_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'intro',
-                'type'      => 'text',
-                'content'   => 'We received a request to reset the password for your account. Click the button below to choose a new password.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'button',
-                'type'      => 'button',
-                'label'     => 'Reset My Password',
-                'url'       => '{{reset_url}}',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'expiry_notice',
-                'type'      => 'banner',
-                'tone'      => 'warning',
-                'content'   => 'This link will expire in {{expires_in}} minutes. If it expires, you can request a new one from the login page.',
-                'editable'  => true,
-                'removable' => true,
-            ],
-            [
-                'id'        => 'fallback',
-                'type'      => 'text',
-                'content'   => 'If the button above does not work, copy and paste this link into your browser: {{reset_url}}',
-                'editable'  => true,
-                'removable' => true,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you did not request a password reset, you can safely ignore this email. Your password will not change. If you have concerns, contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{display_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'intro',
+				'type'      => 'text',
+				'content'   => 'We received a request to reset the password for your account. Click the button below to choose a new password.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'button',
+				'type'      => 'button',
+				'label'     => 'Reset My Password',
+				'url'       => '{{reset_url}}',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'expiry_notice',
+				'type'      => 'banner',
+				'tone'      => 'warning',
+				'content'   => 'This link will expire in {{expires_in}} minutes. If it expires, you can request a new one from the login page.',
+				'editable'  => true,
+				'removable' => true,
+			],
+			[
+				'id'        => 'fallback',
+				'type'      => 'text',
+				'content'   => 'If the button above does not work, copy and paste this link into your browser: {{reset_url}}',
+				'editable'  => true,
+				'removable' => true,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you did not request a password reset, you can safely ignore this email. Your password will not change. If you have concerns, contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

@@ -21,65 +21,65 @@ use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$menu_args  = array(
-    'breadcrumbs'   => array(
-        array(
-            'title' => 'Repository',
-            'label' => 'Repository',
-            'url'   => $urlmanager->admin_repo_url()->url()
-        ),
+$menu_args = [
+	'breadcrumbs' => [
+		[
+			'title' => 'Repository',
+			'label' => 'Repository',
+			'url'   => $urlmanager->admin_repo_url()->url()
+		],
 
-        array(
-            'title' => sprintf( '%s Repository', (string) $type ),
-            'label' => ucfirst( (string) $type ),
-            'url'   => $urlmanager->admin_repo_url()->add_query_param( 'type', $type )->url()
-        ),
+		[
+			'title' => sprintf( '%s Repository', (string) $type ),
+			'label' => ucfirst( (string) $type ),
+			'url'   => $urlmanager->admin_repo_url()->add_query_param( 'type', $type )->url()
+		],
 
-        array(
-            'label' => $page_title
-        )
-    ),
+		[
+			'label' => $page_title
+		]
+	],
 
-    'actions'   => array(
-        array(
-            'title'     => 'Upload New Application',
-            'label'     => 'Upload New',
-            'url'       => $add_url->url(),
-            'icon'      => 'ti ti-upload',
-        ),
+	'actions' => [
+		[
+			'title' => 'Upload New Application',
+			'label' => 'Upload New',
+			'url'   => $add_url->url(),
+			'icon'  => 'ti ti-upload',
+		],
 
-        array(
-            'title'     => 'Plugin Repository',
-            'label'     => 'Plugins',
-            'url'       => $urlmanager->admin_repo_url()->add_query_param( 'type', 'plugin' )->url(),
-            'icon'      => 'ti ti-plug',
-            'active'    => 'plugin' === $type
-        ),
-        
-        array(
-            'title'     => 'Theme Repository',
-            'label'     => 'Themes',
-            'url'       => $urlmanager->admin_repo_url()->add_query_param( 'type', 'theme' )->url(),
-            'icon'      => 'ti ti-palette',
-            'active'    => 'theme' === $type
-        ),
-        
-        array(
-            'title'     => 'Software Repository',
-            'label'     => 'Software',
-            'url'       => $current_url->add_query_param( 'type', 'software' )->url(),
-            'icon'      => 'ti ti-device-desktop-code',
-            'active'    => 'software' === $type
-        ),
-    )
-);
+		[
+			'title'  => 'Plugin Repository',
+			'label'  => 'Plugins',
+			'url'    => $urlmanager->admin_repo_url()->add_query_param( 'type', 'plugin' )->url(),
+			'icon'   => 'ti ti-plug',
+			'active' => 'plugin' === $type
+		],
+		
+		[
+			'title'  => 'Theme Repository',
+			'label'  => 'Themes',
+			'url'    => $urlmanager->admin_repo_url()->add_query_param( 'type', 'theme' )->url(),
+			'icon'   => 'ti ti-palette',
+			'active' => 'theme' === $type
+		],
+		
+		[
+			'title'  => 'Software Repository',
+			'label'  => 'Software',
+			'url'    => $current_url->add_query_param( 'type', 'software' )->url(),
+			'icon'   => 'ti ti-device-desktop-code',
+			'active' => 'software' === $type
+		],
+	]
+];
 
 if ( ! $current_url->has_query_param( 'type' ) && ! $current_url->has_query_param( 'status' ) ) {
-    unset( $menu_args['breadcrumbs'][0] ); // Remove the home link on home page.
+	unset( $menu_args['breadcrumbs'][0] ); // Remove the home link on home page.
 }
 
 if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_param( 'status' ) && ! $type ) ) {
-    unset( $menu_args['breadcrumbs'][1] );
+	unset( $menu_args['breadcrumbs'][1] );
 }
 ?>
 <div class="smliser-admin-page">
@@ -93,16 +93,16 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
         <ul class="subsubsub smliser-status-filter">
             <?php $current_status = $request->query( 'status', '' ); ?>
 
-            <?php foreach ( AbstractHostedApp::STATUSES as $k => $label ) : 
+            <?php foreach ( AbstractHostedApp::STATUSES as $k => $label ) :
 
-                $is_active = ( $current_status === $k );
-                $count     = HostedApplicationService::count_apps(
-                    array(
-                        'status' => $k,
-                        'types'  => $type ?? HostedAppsRegistry::instance()->app_types(),
-                    )
-                );
-                ?>
+				$is_active = ( $current_status === $k );
+				$count     = HostedApplicationService::count_apps(
+					[
+						'status' => $k,
+						'types'  => $type ?? HostedAppsRegistry::instance()->app_types(),
+					]
+				);
+				?>
 
                 <li class="smliser-status-item">
                     <a 
@@ -126,16 +126,16 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
 
         <?php if ( empty( $apps ) ) : ?>
             <?php if ( ! $current_url->has_query_param( 'status' ) ) :
-                $type_name  = $type ? $type : 'application';
-                $message    = sprintf( 
-                    'No app found in the repository, upload new %1$s <a href="%3$s">here</a>.',
-                    escHtml( $type_name ), 
-                    escHtml( $status ?? '' ),
-                    escUrl( $add_url->url() )
-                );
-            else:
-                $message    = 'No app found matching this status';
-            endif; ?>
+				$type_name = $type ? $type : 'application';
+				$message   = sprintf(
+					'No app found in the repository, upload new %1$s <a href="%3$s">here</a>.',
+					escHtml( $type_name ),
+					escHtml( $status ?? '' ),
+					escUrl( $add_url->url() )
+				);
+			else:
+				$message = 'No app found matching this status';
+			endif; ?>
                 <?php echo smliser_not_found_container( $message ); ?>       
         <?php else: ?>
 
@@ -145,7 +145,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                         <select name="bulk_action" id="smliser-bulk-action" class="smliser-bulk-action-select" required>
                             <option value=""><?php echo escHtml( 'Bulk Actions' ); ?></option>
                             <?php foreach ( AbstractHostedApp::get_statuses() as $status_key => $status_label ) : ?>
-                                <?php if ( $status === $status_key) : continue; endif; ?>
+                                <?php if ( $status === $status_key ) : continue; endif; ?>
                                 <option value="<?php echo escAttr( $status_key ); ?>"><?php echo escHtml( $status_label ); ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -178,9 +178,9 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
                                 <td class="smliser-edit-row">
                                     <?php echo intval( $app->get_id() ); ?>
                                     <div class="smliser-edit-link">
-                                        <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'edit', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) )->url() ); ?>">edit</a> 
+                                        <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'edit', [ 'app_id' => $app->get_id(), 'type' => $app->get_type() ] )->url() ); ?>">edit</a> 
                                         |
-                                        <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'view', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) )->url() ); ?>">view</a>
+                                        <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'view', [ 'app_id' => $app->get_id(), 'type' => $app->get_type() ] )->url() ); ?>">view</a>
                                     </div>
                                 </td>
                                 <td><?php echo escHtml( $app->get_name() ); ?></td>

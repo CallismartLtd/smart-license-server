@@ -10,13 +10,13 @@ use SmartLicenseServer\Utils\Sanitizer;
 defined( 'SMLISER_ROOT' ) || exit;
 
 // Define the default values for the required parameters.
-$default_params = array(
-    'scope'         => '',
-    'app_name'      => '',
-    'return_url'    => '',
-    'callback_url'  => '',
-    'user_id'       => ''
-);
+$default_params = [
+	'scope'        => '',
+	'app_name'     => '',
+	'return_url'   => '',
+	'callback_url' => '',
+	'user_id'      => ''
+];
 
 // Filter $_GET to include only expected keys.
 $filtered_get = array_intersect_key( $_GET, $default_params );
@@ -29,31 +29,31 @@ $sanitized_params = array_map( [Sanitizer::class, 'sanitize_text'], $merged_para
 
 // Check for missing required parameters and use smliser_abort_request() to show a message.
 foreach ( $default_params as $key => $value ) {
-    if ( empty( $sanitized_params[$key] ) ) {
-        smliser_abort_request( sprintf( 'Missing required parameter: "%s"', escHtml( $key ) ) );
-    }
+	if ( empty( $sanitized_params[$key] ) ) {
+		smliser_abort_request( sprintf( 'Missing required parameter: "%s"', escHtml( $key ) ) );
+	}
 }
 
 $permission = 'Read';
 $verb       = 'View';
 if ( 'read_write' === $sanitized_params['scope'] ) {
-    $permission = 'Read/Write';
-    $verb       = 'View and manage';
+	$permission = 'Read/Write';
+	$verb       = 'View and manage';
 } elseif( 'write' === $sanitized_params['scope'] ) {
-    $permission = 'Write';
-    $verb       = 'Create';
+	$permission = 'Write';
+	$verb       = 'Create';
 } elseif ( 'read' !== $sanitized_params['scope'] && 'read_write' !== $sanitized_params['scope'] && 'write' !== $sanitized_params['scope'] ) {
-    smliser_abort_request( sprintf( 'Invalid scope: "%s".', escHtml( $sanitized_params['scope'] ) ) );
+	smliser_abort_request( sprintf( 'Invalid scope: "%s".', escHtml( $sanitized_params['scope'] ) ) );
 }
 
 
 if ( ! is_user_logged_in() ) {
-    $login_form             = smliser_resolve_template( 'templates.auth.auth-login.php' );
-    $theme_login_template   = get_template_directory() . '/smliser/auth/auth-login.php';
+	$login_form           = smliser_resolve_template( 'templates.auth.auth-login.php' );
+	$theme_login_template = get_template_directory() . '/smliser/auth/auth-login.php';
 
-    require_once file_exists( $theme_login_template ) ? $theme_login_template : $login_form;
+	require_once file_exists( $theme_login_template ) ? $theme_login_template : $login_form;
 } else {
-    $auth_template          = smliser_resolve_template( 'auth.auth-temp.php' );
-    $theme_auth_template    = get_template_directory() . '/smliser/auth/auth-temp.php';
-    require_once file_exists( $theme_auth_template ) ? $theme_auth_template : $auth_template;
+	$auth_template       = smliser_resolve_template( 'auth.auth-temp.php' );
+	$theme_auth_template = get_template_directory() . '/smliser/auth/auth-temp.php';
+	require_once file_exists( $theme_auth_template ) ? $theme_auth_template : $auth_template;
 }

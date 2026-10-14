@@ -35,135 +35,135 @@ use SmartLicenseServer\Templates\TemplateLocator;
  */
 interface EnvironmentProviderInterface {
 
-    /**
-     * Get the website URL.
-     * 
-     * @param string $path Optional path.
-     * @param array $qv     Optional query param
-     */
-    public static function url( string $path = '', array $qv = [] ) : URL;
+	/**
+	 * Get the website URL.
+	 * 
+	 * @param string $path Optional path.
+	 * @param array $qv     Optional query param
+	 */
+	public static function url( string $path = '', array $qv = [] ) : URL;
 
-    /**
-     * Get the website admin URL.
-     * 
-     * @param string $path Optional path.
-     * @param array $qv     Optional query param
-     */
-    public static function adminUrl( string $path = '', array $qv = [] ) : URL;
+	/**
+	 * Get the website admin URL.
+	 * 
+	 * @param string $path Optional path.
+	 * @param array $qv     Optional query param
+	 */
+	public static function adminUrl( string $path = '', array $qv = [] ) : URL;
 
-    /**
-     * Get the website REST API URL.
-     * 
-     * @param string $path Optional path.
-     * @param array $qv     Optional query param
-     */
-    public static function restAPIUrl( string $path = '', array $qv = [] ) : URL;
+	/**
+	 * Get the website REST API URL.
+	 * 
+	 * @param string $path Optional path.
+	 * @param array $qv     Optional query param
+	 */
+	public static function restAPIUrl( string $path = '', array $qv = [] ) : URL;
 
-    /**
-     * Get the REST API provider instance
-     * 
-     * @return RESTProviderInterface
-     */
-    public function restProvider() : RESTProviderInterface;
+	/**
+	 * Get the REST API provider instance
+	 * 
+	 * @return RESTProviderInterface
+	 */
+	public function restProvider() : RESTProviderInterface;
 
-    /**
-     * Get the URL for the assets directory.
-     * 
-     * @param string $path
-     */
-    public static function assetsUrl( string $path = '', array $params = [] ) : URL;
+	/**
+	 * Get the URL for the assets directory.
+	 * 
+	 * @param string $path
+	 */
+	public static function assetsUrl( string $path = '', array $params = [] ) : URL;
 
-    /**
-     * Bootstrap the environment.
-     * 
-     * @return static
-     */
-    public static function boot( RuntimeConfig $runtime_config ) : static;
+	/**
+	 * Bootstrap the environment.
+	 * 
+	 * @return static
+	 */
+	public static function boot( RuntimeConfig $runtime_config ) : static;
 
-    /**
-     * Get the DBAL instance.
-     */
-    public function database() : Database;
+	/**
+	 * Get the DBAL instance.
+	 */
+	public function database() : Database;
 
-    /**
-     * Get the filesystem API instance.
-     */
-    public function filesystem() : FileSystem;
+	/**
+	 * Get the filesystem API instance.
+	 */
+	public function filesystem() : FileSystem;
 
-    /**
-     * Get the cache instance API instance.
-     */
-    public function cache() : Cache;
-    /**
-     * Get the settings API instance.
-     */
-    public function settings() : Settings;
+	/**
+	 * Get the cache instance API instance.
+	 */
+	public function cache() : Cache;
+	/**
+	 * Get the settings API instance.
+	 */
+	public function settings() : Settings;
 
-    /**
-     * Get the mailing API instance.
-     */
-    public function mailer() : Mailer;
+	/**
+	 * Get the mailing API instance.
+	 */
+	public function mailer() : Mailer;
 
-    /**
-     * Get the job queue instance.
-     */
-    public function job_queue(): JobQueue;
+	/**
+	 * Get the job queue instance.
+	 */
+	public function job_queue() : JobQueue;
 
-    /**
-     * Get the background job worker instance.
-     */
-    public function queue_worker(): QueueWorker;
+	/**
+	 * Get the background job worker instance.
+	 */
+	public function queue_worker() : QueueWorker;
 
-    /**
-     * Get the task scheduler API instance.
-     */
-    public function scheduler(): Scheduler;
+	/**
+	 * Get the task scheduler API instance.
+	 */
+	public function scheduler() : Scheduler;
 
-    /**
-     * Get the current request object.
-     * 
-     * @return Request
-     */
-    public function request() : Request;
+	/**
+	 * Get the current request object.
+	 * 
+	 * @return Request
+	 */
+	public function request() : Request;
 
-    /**
-     * Get the global http client.
-     */
-    public function httpClient() : HttpClient;
+	/**
+	 * Get the global http client.
+	 */
+	public function httpClient() : HttpClient;
 
-    /**
-     * Get the monetization provider registry.
-     * 
-     * @return MonetizationRegistry
-     */
-    public function monetizationRegistry() : MonetizationRegistry;
+	/**
+	 * Get the monetization provider registry.
+	 * 
+	 * @return MonetizationRegistry
+	 */
+	public function monetizationRegistry() : MonetizationRegistry;
 
-    /**
-     * Get the email provider registry.
-     * 
-     * @return EmailProvidersRegistry
-     */
-    public function emailProviders() : EmailProvidersRegistry;
+	/**
+	 * Get the email provider registry.
+	 * 
+	 * @return EmailProvidersRegistry
+	 */
+	public function emailProviders() : EmailProvidersRegistry;
 
-    /**
-     * Get the template locator instance.
-     * 
-     * @return TemplateLocator
-     */
-    public function templateLocator() : TemplateLocator;
+	/**
+	 * Get the template locator instance.
+	 * 
+	 * @return TemplateLocator
+	 */
+	public function templateLocator() : TemplateLocator;
 
-    /**
-     * Get the admin dashboard registry
-     */
-    public function adminDashboardRegistry() : AdminDashboardRegistry;
+	/**
+	 * Get the admin dashboard registry
+	 */
+	public function adminDashboardRegistry() : AdminDashboardRegistry;
 
-    /**
-     * Get the client dashboard registry
-     */
-    public function clientDashboardRegistry() : ClientDashboardRegistry;
+	/**
+	 * Get the client dashboard registry
+	 */
+	public function clientDashboardRegistry() : ClientDashboardRegistry;
 
-    /**
-     * Get the runtime configuration object.
-     */
-    public function runtime_config() : RuntimeConfig;
+	/**
+	 * Get the runtime configuration object.
+	 */
+	public function runtime_config() : RuntimeConfig;
 }

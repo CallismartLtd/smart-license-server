@@ -18,16 +18,16 @@ use SmartLicenseServer\Utils\Format;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$max_upload_size    = Format::bytes( smliser_max_upload_size() );
-$args               = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
-$is_edit            = 'edit' === ( $request->get( 'tab' ) ?? $request->route_param( 'tab' ) );
+$max_upload_size = Format::bytes( smliser_max_upload_size() );
+$args            = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
+$is_edit         = 'edit' === ( $request->get( 'tab' ) ?? $request->route_param( 'tab' ) );
 
 if ( ! isset( $app ) ) {
-    unset(
-        $args['actions'][0], 
-        $args['actions'][1], 
-        $args['actions'][2]
-    );
+	unset(
+		$args['actions'][0],
+		$args['actions'][1],
+		$args['actions'][2]
+	);
 }
 
 ?>
@@ -83,17 +83,17 @@ if ( ! isset( $app ) ) {
                             <h3><?php echo escHtml( $data['title'] ?? '' ) ?></h3>
                             <div class="app-uploader-asset-container_images">
                                 <?php foreach( $data['images'] as $url ) : ?>
-                                    <?php if ( ! empty( $url ) ) : 
-                                        $asset_name = basename( $url );
-                                        $json_data = smliser_safe_json_encode([
-                                            'asset_type'    => $key,
-                                            'app_slug'      => isset( $app ) ? $app->get_slug() : '',
-                                            'app_type'      => isset( $app ) ? $app->get_type() : '',
-                                            'asset_name'    => $asset_name,
-                                            'asset_url'     => $url,
-                                            'context'       => 'edit'
-                                        ]);  
-                                    ?>
+                                    <?php if ( ! empty( $url ) ) :
+										$asset_name = basename( $url );
+										$json_data  = smliser_safe_json_encode( [
+											'asset_type' => $key,
+											'app_slug'   => isset( $app ) ? $app->get_slug() : '',
+											'app_type'   => isset( $app ) ? $app->get_type() : '',
+											'asset_name' => $asset_name,
+											'asset_url'  => $url,
+											'context'    => 'edit'
+										] );
+									?>
                                         <div class="app-uploader-image-preview">
                                             <img src="<?php echo escUrl( $url ); ?>" id="<?php echo escAttr( explode( '.', $asset_name )[0] ); ?>" alt="<?php echo escAttr( $asset_name ) ?>" loading="lazy" title="<?php echo escAttr( $asset_name ) ?>">
                                             <div class="app-uploader-image-preview_edit">
@@ -102,15 +102,15 @@ if ( ! isset( $app ) ) {
                                             </div>
                                         </div>
                                     <?php endif; ?>
-                                <?php endforeach; 
-                                $config = smliser_safe_json_encode([
-                                    'asset_type'    => $key,
-                                    'app_slug'      => isset( $app ) ? $app->get_slug() : '',
-                                    'app_type'      => isset( $app ) ? $app->get_type() : '',
-                                    'context'       => 'add_new'
-                                    
-                                ])
-                                ?>    
+                                <?php endforeach;
+								$config = smliser_safe_json_encode( [
+									'asset_type' => $key,
+									'app_slug'   => isset( $app ) ? $app->get_slug() : '',
+									'app_type'   => isset( $app ) ? $app->get_type() : '',
+									'context'    => 'add_new'
+									
+								] )
+								?>    
                                 <div class="smliser-uploader-add-image" data-action="openModal" data-config="<?php echo urlencode( $config ) ?>">
                                     <span class="ti ti-plus"></span>
                                 </div>             

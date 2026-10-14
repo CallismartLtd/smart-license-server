@@ -11,11 +11,11 @@ use SmartLicenseServer\Core\Request;
  */
 class LoginMonitorMiddleware extends AuthenticationMonitorMiddleware {
 
-	protected function account_from_request( Request $request ): ?string {
+	protected function account_from_request( Request $request ) : ?string {
 		return $request->get( 'user_login' );
 	}
 
-	protected function source_from_request( Request $request ): string {
+	protected function source_from_request( Request $request ) : string {
 		return $request->ip();
 	}
 }

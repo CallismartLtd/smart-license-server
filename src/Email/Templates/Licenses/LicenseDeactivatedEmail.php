@@ -18,50 +18,50 @@ use SmartLicenseServer\Monetization\License;
 
 class LicenseDeactivatedEmail extends EmailTemplate {
 
-    /**
-     * @param License $license   The license that was deactivated.
-     * @param string  $to        Recipient email address.
-     * @param string  $domain    The domain the license was deactivated from.
-     */
-    public function __construct(
-        private readonly License $license,
-        private readonly string  $to,
-        private readonly string  $domain
-    ) {}
+	/**
+	 * @param License $license   The license that was deactivated.
+	 * @param string  $to        Recipient email address.
+	 * @param string  $domain    The domain the license was deactivated from.
+	 */
+	public function __construct(
+		private readonly License $license,
+		private readonly string  $to,
+		private readonly string  $domain
+	) {}
 
-    static public function template_key(): string {
-        return 'license_deactivated';
-    }
+	static public function template_key() : string {
+		return 'license_deactivated';
+	}
 
-    protected function subject(): string {
-        return 'License Deactivated';
-    }
+	protected function subject() : string {
+		return 'License Deactivated';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "Your license has been deactivated from {$this->domain}.";
-    }
+	protected function preheader() : string {
+		return "Your license has been deactivated from {$this->domain}.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{licensee_name}}' => $this->license->get_licensee_fullname(),
-            '{{license_key}}'   => $this->license->get_license_key(),
-            '{{domain}}'        => $this->domain,
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{licensee_name}}' => $this->license->get_licensee_fullname(),
+			'{{license_key}}'   => $this->license->get_license_key(),
+			'{{domain}}'        => $this->domain,
+		] );
+	}
 
-    protected function body(): string {
-        $vars = $this->variables();
+	protected function body() : string {
+		$vars = $this->variables();
 
-        $licensee_name = \escHtml( $vars['{{licensee_name}}'] );
-        $license_key   = \escHtml( $vars['{{license_key}}'] );
-        $domain        = \escHtml( $vars['{{domain}}'] );
-        $support       = \escHtml( $vars['{{support_email}}'] );
+		$licensee_name = \escHtml( $vars['{{licensee_name}}'] );
+		$license_key   = \escHtml( $vars['{{license_key}}'] );
+		$domain        = \escHtml( $vars['{{domain}}'] );
+		$support       = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$licensee_name},
         </p>
@@ -111,55 +111,55 @@ class LicenseDeactivatedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'License Deactivated';
-    }
-    public function description(): string {
-        return 'Sent when a license is deactivated from a domain.';
-    }
-    public static function preview(): static {
-        $license = License::from_array([
-            'licensee_fullname' => 'Jane Doe',
-            'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
-        ]);
-        return new static( $license, 'preview@example.com', 'example.com' );
-    }
+	public function label() : string {
+		return 'License Deactivated';
+	}
+	public function description() : string {
+		return 'Sent when a license is deactivated from a domain.';
+	}
+	public static function preview() : static {
+		$license = License::from_array( [
+			'licensee_fullname' => 'Jane Doe',
+			'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
+		] );
+		return new static( $license, 'preview@example.com', 'example.com' );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{licensee_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'intro',
-                'type'      => 'text',
-                'content'   => 'Your license has been deactivated from the domain below. You can reactivate it on the same or a different domain at any time.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Deactivated Domain', 'value' => '{{domain}}' ],
-                    [ 'label' => 'License Key',         'value' => '{{license_key}}' ],
-                ],
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you did not request this deactivation, please contact us immediately at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{licensee_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'intro',
+				'type'      => 'text',
+				'content'   => 'Your license has been deactivated from the domain below. You can reactivate it on the same or a different domain at any time.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Deactivated Domain', 'value' => '{{domain}}' ],
+					[ 'label' => 'License Key',         'value' => '{{license_key}}' ],
+				],
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you did not request this deactivation, please contact us immediately at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

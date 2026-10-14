@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Routing
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Routing;
 
@@ -33,24 +33,23 @@ final class DispatchResult {
 		public readonly array $params = [],
 		public readonly array $middleware = [],
 		public readonly array $allowedMethods = []
-	) {
-	}
+	) {}
 
 	/**
 	 * @param array<string,string> $params
 	 */
-	public static function found( Route $route, array $params ): self {
+	public static function found( Route $route, array $params ) : self {
 		return new self( DispatchStatus::Found, $route, $route->handler, $params, $route->middleware );
 	}
 
-	public static function notFound(): self {
+	public static function notFound() : self {
 		return new self( DispatchStatus::NotFound );
 	}
 
 	/**
 	 * @param string[] $allowedMethods
 	 */
-	public static function methodNotAllowed( array $allowedMethods ): self {
+	public static function methodNotAllowed( array $allowedMethods ) : self {
 		return new self( DispatchStatus::MethodNotAllowed, allowedMethods: $allowedMethods );
 	}
 }

@@ -6,4 +6,3 @@
  *
  * @package SmartLicenseServer\Utils\Functions
  */
-

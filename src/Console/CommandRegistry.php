@@ -66,238 +66,238 @@ use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
  */
 class CommandRegistry extends AbstractRegistry {
 
-    /**
-     * Core commands.
-     * 
-     * @var array<int, class-string<CommandInterface>>
-     */
-    private array $core_commands  = [
-        WhoAmI::class,
-        ScheduleCommand::class,
-        MigrateCommand::class,
-        Installer::class,
-        CacheCommand::class,
-        AppCommand::class,
-        PluginCommand::class,
-        ThemeCommand::class,
-        SoftwareCommand::class,
-        SettingsCommand::class,
-        ServerCommand::class,
-        TestCommand::class,
-        QueueCommand::class,
-        Update::class,
-        CronCommand::class
-    ];
+	/**
+	 * Core commands.
+	 * 
+	 * @var array<int, class-string<CommandInterface>>
+	 */
+	private array $core_commands = [
+		WhoAmI::class,
+		ScheduleCommand::class,
+		MigrateCommand::class,
+		Installer::class,
+		CacheCommand::class,
+		AppCommand::class,
+		PluginCommand::class,
+		ThemeCommand::class,
+		SoftwareCommand::class,
+		SettingsCommand::class,
+		ServerCommand::class,
+		TestCommand::class,
+		QueueCommand::class,
+		Update::class,
+		CronCommand::class
+	];
 
-    /*
-    |----------------------
-    | CONSTRUCTOR
-    |----------------------
-    */
+	/*
+	|----------------------
+	| CONSTRUCTOR
+	|----------------------
+	*/
 
-    /**
-     * Private constructor — use instance().
-     */
-    private function __construct() {
-        $this->load_core();
-    }
+	/**
+	 * Private constructor — use instance().
+	 */
+	private function __construct() {
+		$this->load_core();
+	}
 
-    /*
-    |----------------------
-    | SINGLETON ACCESS
-    |----------------------
-    */
+	/*
+	|----------------------
+	| SINGLETON ACCESS
+	|----------------------
+	*/
 
-    /**
-     * Return the singleton instance.
-     *
-     * @param Container $container The DI container required on first call.
-     * @return static
-     */
-    public static function instance( ?Container $container = null ): static {
-        static $static = null;
+	/**
+	 * Return the singleton instance.
+	 *
+	 * @param Container $container The DI container required on first call.
+	 * @return static
+	 */
+	public static function instance( ?Container $container = null ) : static {
+		static $static = null;
 
-        if ( null === $static ) {
+		if ( null === $static ) {
 
-            if ( null === $container ) {
-                throw new EnvironmentBootstrapException(
-                    'misconfiguration',
-                    sprintf(
-                        'The Command registry must be called early with a %s instance',
-                        Container::class
-                    )
-                );
-            }
+			if ( null === $container ) {
+				throw new EnvironmentBootstrapException(
+					'misconfiguration',
+					sprintf(
+						'The Command registry must be called early with a %s instance',
+						Container::class
+					)
+				);
+			}
 
-            $static = new static();
-            $static->container = $container;
-        }
+			$static            = new static();
+			$static->container = $container;
+		}
 
-        return $static;
-    }
+		return $static;
+	}
 
-    /*
-    |---------------------
-    | CORE REGISTRATION
-    |---------------------
-    */
+	/*
+	|---------------------
+	| CORE REGISTRATION
+	|---------------------
+	*/
 
-    /**
-     * Register a core command.
-     *
-     * Core commands are part of the system contract and cannot be
-     * removed via unregister(). Attempting to register a core command
-     * whose name conflicts with an existing core command throws.
-     * Conflicts with custom commands silently promote the core command
-     * and remove the custom one — core always wins.
-     *
-     * @param class-string<CommandInterface> $class Fully-qualified command class name.
-     * @return static Fluent.
-     * @throws InvalidArgumentException If the class does not implement CommandInterface.
-     * @throws RuntimeException         If a core command with the same name already exists.
-     */
-    private function register_core( string $class ): static {
-        $this->assert_implements_interface( $class );
+	/**
+	 * Register a core command.
+	 *
+	 * Core commands are part of the system contract and cannot be
+	 * removed via unregister(). Attempting to register a core command
+	 * whose name conflicts with an existing core command throws.
+	 * Conflicts with custom commands silently promote the core command
+	 * and remove the custom one — core always wins.
+	 *
+	 * @param class-string<CommandInterface> $class Fully-qualified command class name.
+	 * @return static Fluent.
+	 * @throws InvalidArgumentException If the class does not implement CommandInterface.
+	 * @throws RuntimeException         If a core command with the same name already exists.
+	 */
+	private function register_core( string $class ) : static {
+		$this->assert_implements_interface( $class );
 
-        $name = $class::name();
+		$name = $class::name();
 
-        if ( isset( $this->core[ $name ] ) ) {
-            throw new RuntimeException(
-                sprintf( 'CommandRegistry: core command "%s" is already registered.', $name )
-            );
-        }
+		if ( isset( $this->core[ $name ] ) ) {
+			throw new RuntimeException(
+				sprintf( 'CommandRegistry: core command "%s" is already registered.', $name )
+			);
+		}
 
-        // Core silently wins over any existing custom command with the same name.
-        unset( $this->custom[ $name ] );
+		// Core silently wins over any existing custom command with the same name.
+		unset( $this->custom[ $name ] );
 
-        $this->core[ $name ] = $class;
+		$this->core[ $name ] = $class;
 
-        return $this;
-    }
+		return $this;
+	}
 
-    /**
-     * Boot core commands at once.
-     *
-     * @return void
-     */
-    protected function load_core() : void {
+	/**
+	 * Boot core commands at once.
+	 *
+	 * @return void
+	 */
+	protected function load_core() : void {
 
-        if ( $this->core_loaded ) {
-            return;
-        }
+		if ( $this->core_loaded ) {
+			return;
+		}
 
-        foreach ( $this->core_commands as $class ) {
-            $this->register_core( $class );
-        }
+		foreach ( $this->core_commands as $class ) {
+			$this->register_core( $class );
+		}
 
-        $this->core_loaded = true;
+		$this->core_loaded = true;
 
-    }
+	}
 
-    /*
-    |-------------------------
-    | CUSTOM REGISTRATION
-    |-------------------------
-    */
+	/*
+	|-------------------------
+	| CUSTOM REGISTRATION
+	|-------------------------
+	*/
 
-    /**
-     * Register multiple custom commands at once.
-     *
-     * @param array<class-string<CommandInterface>> $classes
-     * @return static Fluent.
-     */
-    public function register_many( array $classes ): static {
-        foreach ( $classes as $class ) {
-            $this->add( $class );
-        }
+	/**
+	 * Register multiple custom commands at once.
+	 *
+	 * @param array<class-string<CommandInterface>> $classes
+	 * @return static Fluent.
+	 */
+	public function register_many( array $classes ) : static {
+		foreach ( $classes as $class ) {
+			$this->add( $class );
+		}
 
-        return $this;
-    }
+		return $this;
+	}
 
-    /**
-     * Register a single command.
-     * 
-     * An alias for the add() method
-     * 
-     * @param class-string<CommandInterface> $command_classname
-     * @return static Fluent.
-     */
-    public function register_command( string $command_classname ) : static {
-        return $this->add( $command_classname );
-    }
+	/**
+	 * Register a single command.
+	 * 
+	 * An alias for the add() method
+	 * 
+	 * @param class-string<CommandInterface> $command_classname
+	 * @return static Fluent.
+	 */
+	public function register_command( string $command_classname ) : static {
+		return $this->add( $command_classname );
+	}
 
-    /**
-     * Whether a command is a core command.
-     *
-     * @param string $name The command name.
-     * @return bool
-     */
-    public function is_core( string $name ): bool {
-        return isset( $this->core[ $name ] );
-    }
+	/**
+	 * Whether a command is a core command.
+	 *
+	 * @param string $name The command name.
+	 * @return bool
+	 */
+	public function is_core( string $name ) : bool {
+		return isset( $this->core[ $name ] );
+	}
 
-    /**
-     * Whether a command is a custom command.
-     *
-     * @param string $name The command name.
-     * @return bool
-     */
-    public function is_custom( string $name ): bool {
-        return isset( $this->custom[ $name ] );
-    }
+	/**
+	 * Whether a command is a custom command.
+	 *
+	 * @param string $name The command name.
+	 * @return bool
+	 */
+	public function is_custom( string $name ) : bool {
+		return isset( $this->custom[ $name ] );
+	}
 
-    /**
-     * Get the instance of a registered command.
-     * 
-     * @param string    $name   The command name.
-     * @return CommandInterface|null
-     */
-    public function get_command( string $name ) : ?CommandInterface {
-        $command_classname  = $this->get( $name );
+	/**
+	 * Get the instance of a registered command.
+	 * 
+	 * @param string    $name   The command name.
+	 * @return CommandInterface|null
+	 */
+	public function get_command( string $name ) : ?CommandInterface {
+		$command_classname = $this->get( $name );
 
-        if ( ! $command_classname ) {
-            return null;
-        }
+		if ( ! $command_classname ) {
+			return null;
+		}
 
-        return $this->container->get( $command_classname );
-    }
+		return $this->container->get( $command_classname );
+	}
 
-    /**
-     * Get the instances of all commands registered.
-     * 
-     * @return array<string, CommandInterface>
-     */
-    public function get_commands() : array {
-        return $this->all( true, true );
-    }
+	/**
+	 * Get the instances of all commands registered.
+	 * 
+	 * @return array<string, CommandInterface>
+	 */
+	public function get_commands() : array {
+		return $this->all( true, true );
+	}
 
-    /*
-    |--------------------------------------------
-    | PRIVATE HELPERS
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| PRIVATE HELPERS
+	|--------------------------------------------
+	*/
 
-    /**
-     * Assert that a class implements CommandInterface.
-     *
-     * @param string $class
-     * @throws InvalidArgumentException
-     */
-    protected function assert_implements_interface( string $class ): void {
-        if ( ! class_exists( $class, true ) ) {
-            throw new InvalidArgumentException(
-                sprintf( 'CommandRegistry: class "%s" does not exist.', $class )
-            );
-        }
+	/**
+	 * Assert that a class implements CommandInterface.
+	 *
+	 * @param string $class
+	 * @throws InvalidArgumentException
+	 */
+	protected function assert_implements_interface( string $class ) : void {
+		if ( ! class_exists( $class, true ) ) {
+			throw new InvalidArgumentException(
+				sprintf( 'CommandRegistry: class "%s" does not exist.', $class )
+			);
+		}
 
-        if ( ! in_array( CommandInterface::class, class_implements( $class ) ?: [], true ) ) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    'CommandRegistry: "%s" must implement %s.',
-                    $class,
-                    CommandInterface::class
-                )
-            );
-        }
-    }
+		if ( ! in_array( CommandInterface::class, class_implements( $class ) ?: [], true ) ) {
+			throw new InvalidArgumentException(
+				sprintf(
+					'CommandRegistry: "%s" must implement %s.',
+					$class,
+					CommandInterface::class
+				)
+			);
+		}
+	}
 }

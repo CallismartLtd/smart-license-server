@@ -23,68 +23,68 @@ use Callismart\DBPrism\Utils\ColumnType;
  */
 class UserOptionsSchema implements DatabaseSchemaInterface {
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_label() : string {
-        return 'User Options';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_label() : string {
+		return 'User Options';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_description() : string {
-        return 'Stores user preferences.';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_description() : string {
+		return 'Stores user preferences.';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_table_name() : string {
-        return TableName::USER_OPTIONS->value;
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_table_name() : string {
+		return TableName::USER_OPTIONS->value;
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_columns() : array {
-        return [
-            Column::make( 'id' )
-                ->type( ColumnType::BIG_INT )
-                ->unsigned()
-                ->auto_increment()
-                ->required(),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_columns() : array {
+		return [
+			Column::make( 'id' )
+				->type( ColumnType::BIG_INT )
+				->unsigned()
+				->auto_increment()
+				->required(),
 
-            Column::make( 'user_id' )
-                ->type( ColumnType::BIG_INT )
-                ->unsigned()
-                ->required(),
+			Column::make( 'user_id' )
+				->type( ColumnType::BIG_INT )
+				->unsigned()
+				->required(),
 
-            Column::make( 'option_key' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 255 )
-                ->required(),
+			Column::make( 'option_key' )
+				->type( ColumnType::VARCHAR )
+				->size( 255 )
+				->required(),
 
-            Column::make( 'option_value' )
-                ->type( ColumnType::LONG_TEXT ),
-        ];
-    }
+			Column::make( 'option_value' )
+				->type( ColumnType::LONG_TEXT ),
+		];
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_constraints() : array {
-        $prefx  = static::constraintPrefix();
-        return [
-            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_constraints() : array {
+		$prefx = static::constraintPrefix();
+		return [
+			Constraint::primary( "{$prefx}primary" )->on( 'id' ),
 
-            Constraint::unique( "{$prefx}unique_opkey_userid" )->on( 'user_id', 'option_key' ),
+			Constraint::unique( "{$prefx}unique_opkey_userid" )->on( 'user_id', 'option_key' ),
 
-            Constraint::index( "{$prefx}option_key_index" )->on( 'option_key' ),
-        ];
-    }
+			Constraint::index( "{$prefx}option_key_index" )->on( 'option_key' ),
+		];
+	}
 
-    protected static function constraintPrefix() {
-        return 'smliser_useroptions_';
-    }
+	protected static function constraintPrefix() {
+		return 'smliser_useroptions_';
+	}
 }

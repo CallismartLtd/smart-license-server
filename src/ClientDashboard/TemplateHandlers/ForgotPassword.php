@@ -23,23 +23,23 @@ use SmartLicenseServer\Exceptions\RequestException;
  */
 class ForgotPassword implements DashboardHandlerInterface {
 
-    public static function slug() : string {
-        return 'forgot-password';
-    }
+	public static function slug() : string {
+		return 'forgot-password';
+	}
 
-    public function guard( Request $request ) : bool|RequestException {
-        // Forgot password accessible to everyone
-        return true;
-    }
+	public function guard( Request $request ) : bool|RequestException {
+		// Forgot password accessible to everyone
+		return true;
+	}
 
-    public function handle( Request $request ) : Response {
-        $html = smliser_render_template_to_string( ClientDashboardRenderer::AUTH_FORGOT_PWD_TEMPLATE, [] );
+	public function handle( Request $request ) : Response {
+		$html = smliser_render_template_to_string( ClientDashboardRenderer::AUTH_FORGOT_PWD_TEMPLATE, [] );
 
-        return ( new Response( 200 ) )
-            ->set_header( 'Content-Type', 'application/json; charset=utf-8' )
-            ->set_body( [
-                'success' => true,
-                'html'    => $html,
-            ] );
-    }
+		return ( new Response( 200 ) )
+			->set_header( 'Content-Type', 'application/json; charset=utf-8' )
+			->set_body( [
+				'success' => true,
+				'html'    => $html,
+			] );
+	}
 }

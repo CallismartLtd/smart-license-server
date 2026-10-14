@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Utils
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Utils;
 
@@ -14,7 +14,7 @@ namespace SmartLicenseServer\Utils;
  *
  * @see https://www.php.net/manual/en/function.fopen.php
  */
-enum FileOpenMode: string {
+enum FileOpenMode : string {
 
 	/**
 	 * Open for reading only.

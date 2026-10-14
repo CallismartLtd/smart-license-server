@@ -29,83 +29,82 @@ use SmartLicenseServer\Contracts\ServiceProviderInterface;
  */
 interface MonetizationProviderInterface extends ServiceProviderInterface {
 
-    /**
-     * Get the provider base URL or API endpoint.
-     *
-     * @return string
-     */
-    public static function get_url() : string;
+	/**
+	 * Get the provider base URL or API endpoint.
+	 *
+	 * @return string
+	 */
+	public static function get_url() : string;
 
-    /**
-     * Get product information from this provider.
-     *
-     * Providers MUST normalize the product data into the following format:
-     *
-     * {
-     *   id:                (int|string) Unique product ID in the provider system
-     *   url:               (string) Public-facing product URL
-     *   currency: {
-     *       code:              (string) ISO4217 currency code (e.g. 'USD')
-     *       symbol:            (string) Currency symbol (e.g. '$','€','₦')
-     *       symbol_position:   (string) One of: 'left' | 'left_space' | 'right' | 'right_space'
-     *       decimals:          (int) Decimal precision (default 2)
-     *       decimal_separator: (string) Usually '.' or ','
-     *       thousand_separator:(string) Usually ',' or '.'
-     *   }
-     *   pricing: {
-     *       price:           (float) Current/active price
-     *       regular_price:   (float) Base/regular price (non-sale)
-     *       sale_price:      (float) Discounted/sale price (or 0 if none)
-     *       is_on_sale:      (bool)  True if product is on sale
-     *   }
-     *   images:      (array[]) List of images, each { id, src, alt, name }
-     *   categories:  (array[]) List of categories, each { id, name, slug }
-     * }
-     *
-     * @param string|int $product_id Product identifier in provider system.
-     * @return array|null Normalized product array or null if not found.
-     */
-    public function get_product( $product_id );
+	/**
+	 * Get product information from this provider.
+	 *
+	 * Providers MUST normalize the product data into the following format:
+	 *
+	 * {
+	 *   id:                (int|string) Unique product ID in the provider system
+	 *   url:               (string) Public-facing product URL
+	 *   currency: {
+	 *       code:              (string) ISO4217 currency code (e.g. 'USD')
+	 *       symbol:            (string) Currency symbol (e.g. '$','€','₦')
+	 *       symbol_position:   (string) One of: 'left' | 'left_space' | 'right' | 'right_space'
+	 *       decimals:          (int) Decimal precision (default 2)
+	 *       decimal_separator: (string) Usually '.' or ','
+	 *       thousand_separator:(string) Usually ',' or '.'
+	 *   }
+	 *   pricing: {
+	 *       price:           (float) Current/active price
+	 *       regular_price:   (float) Base/regular price (non-sale)
+	 *       sale_price:      (float) Discounted/sale price (or 0 if none)
+	 *       is_on_sale:      (bool)  True if product is on sale
+	 *   }
+	 *   images:      (array[]) List of images, each { id, src, alt, name }
+	 *   categories:  (array[]) List of categories, each { id, name, slug }
+	 * }
+	 *
+	 * @param string|int $product_id Product identifier in provider system.
+	 * @return array|null Normalized product array or null if not found.
+	 */
+	public function get_product( $product_id );
 
 
 
-    /**
-     * Get normalized pricing tiers for a product.
-     *
-     * @param string|int $product_id
-     * @return array
-     */
-    public function get_pricing( $product_id );
+	/**
+	 * Get normalized pricing tiers for a product.
+	 *
+	 * @param string|int $product_id
+	 * @return array
+	 */
+	public function get_pricing( $product_id );
 
-    /**
-     * Get a checkout URL for a given pricing tier/product.
-     *
-     * @param string|int $product_id
-     * @return string|null  Checkout URL, or null if not applicable.
-     */
-    public static function get_checkout_url( $product_id = '' );
+	/**
+	 * Get a checkout URL for a given pricing tier/product.
+	 *
+	 * @param string|int $product_id
+	 * @return string|null  Checkout URL, or null if not applicable.
+	 */
+	public static function get_checkout_url( $product_id = '' );
 
-    /**
-     * Get provider settings schema.
-     * 
-     * @return array{string: 
-     *  array{
-     *      type: string, 
-     *      label: string,
-     *      default: mixed, 
-     *      description: string, 
-     *      required: bool
-     *  }
-     * }
-     */
-    public function get_settings_schema() : array;
+	/**
+	 * Get provider settings schema.
+	 * 
+	 * @return array{string: 
+	 *  array{
+	 *      type: string, 
+	 *      label: string,
+	 *      default: mixed, 
+	 *      description: string, 
+	 *      required: bool
+	 *  }
+	 * }
+	 */
+	public function get_settings_schema() : array;
 
-    /**
-     * Set provider configuration.
-     *
-     * @param array<string, mixed> $settings
-     * @return void
-     */
-    public function set_settings( array $settings ) : void;
+	/**
+	 * Set provider configuration.
+	 *
+	 * @param array<string, mixed> $settings
+	 * @return void
+	 */
+	public function set_settings( array $settings ) : void;
 }
-

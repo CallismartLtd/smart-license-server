@@ -38,97 +38,97 @@ use SmartLicenseServer\Console\Contracts\InputInterface;
  */
 class WPCLIInput implements InputInterface {
 
-    /**
-     * The current invocation's assoc_args, used by confirm() to check
-     * for --yes. Set by WPCLIRunner immediately before each
-     * command's execute() call.
-     *
-     * @var array<string, mixed>
-     */
-    private array $assoc_args = [];
+	/**
+	 * The current invocation's assoc_args, used by confirm() to check
+	 * for --yes. Set by WPCLIRunner immediately before each
+	 * command's execute() call.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $assoc_args = [];
 
-    /**
-     * Set the current invocation's assoc_args.
-     *
-     * Must be called by the runner before constructing/executing a
-     * command, since WP-CLI hands assoc_args to the callback rather
-     * than making them available statically.
-     *
-     * @param array<string, mixed> $assoc_args
-     * @return void
-     */
-    public function set_assoc_args( array $assoc_args ): void {
-        $this->assoc_args = $assoc_args;
-    }
+	/**
+	 * Set the current invocation's assoc_args.
+	 *
+	 * Must be called by the runner before constructing/executing a
+	 * command, since WP-CLI hands assoc_args to the callback rather
+	 * than making them available statically.
+	 *
+	 * @param array<string, mixed> $assoc_args
+	 * @return void
+	 */
+	public function set_assoc_args( array $assoc_args ) : void {
+		$this->assoc_args = $assoc_args;
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function read_line( string $prompt = '' ): ?string {
-        if ( '' !== $prompt ) {
-            fwrite( STDOUT, $prompt );
-        }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function read_line( string $prompt = '' ) : ?string {
+		if ( '' !== $prompt ) {
+			fwrite( STDOUT, $prompt );
+		}
 
-        $line = fgets( STDIN );
+		$line = fgets( STDIN );
 
-        return false === $line ? null : trim( $line );
-    }
+		return false === $line ? null : trim( $line );
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function prompt( string $question, string $default = '' ): string {
-        $prompt = '' !== $default
-            ? sprintf( '%s [%s] ', $question, $default )
-            : $question . ' ';
+	/**
+	 * {@inheritdoc}
+	 */
+	public function prompt( string $question, string $default = '' ) : string {
+		$prompt = '' !== $default
+			? sprintf( '%s [%s] ', $question, $default )
+			: $question . ' ';
 
-        $line = $this->read_line( $prompt ) ?? '';
+		$line = $this->read_line( $prompt ) ?? '';
 
-        return '' !== $line ? $line : $default;
-    }
+		return '' !== $line ? $line : $default;
+	}
 
-    /**
-     * {@inheritdoc}
-     *
-     * Honors --yes as WP-CLI users conventionally expect, without
-     * inheriting WP_CLI::confirm()'s process-halting behavior on "no".
-     */
-    public function confirm( string $question, bool $default = false ): bool {
-        if ( ! empty( $this->assoc_args['yes'] ) ) {
-            return true;
-        }
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Honors --yes as WP-CLI users conventionally expect, without
+	 * inheriting WP_CLI::confirm()'s process-halting behavior on "no".
+	 */
+	public function confirm( string $question, bool $default = false ) : bool {
+		if ( ! empty( $this->assoc_args['yes'] ) ) {
+			return true;
+		}
 
-        $hint  = $default ? '[Y/n]' : '[y/N]';
-        $input = strtolower( $this->read_line( sprintf( '%s %s: ', $question, $hint ) ) ?? '' );
+		$hint  = $default ? '[Y/n]' : '[y/N]';
+		$input = strtolower( $this->read_line( sprintf( '%s %s: ', $question, $hint ) ) ?? '' );
 
-        if ( '' === $input ) {
-            return $default;
-        }
+		if ( '' === $input ) {
+			return $default;
+		}
 
-        return in_array( $input, [ 'y', 'yes' ], true );
-    }
+		return in_array( $input, [ 'y', 'yes' ], true );
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function choice( string $question, array $choices, $default = null ) {
-        foreach ( $choices as $key => $label ) {
-            fwrite( STDOUT, sprintf( '  [%s] %s' . PHP_EOL, $key, $label ) );
-        }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function choice( string $question, array $choices, $default = null ) {
+		foreach ( $choices as $key => $label ) {
+			fwrite( STDOUT, sprintf( '  [%s] %s' . PHP_EOL, $key, $label ) );
+		}
 
-        $answer = $this->read_line( $question . ': ' ) ?? '';
+		$answer = $this->read_line( $question . ': ' ) ?? '';
 
-        return $choices[ $answer ] ?? $default;
-    }
+		return $choices[ $answer ] ?? $default;
+	}
 
-    /**
-     * {@inheritdoc}
-     *
-     * No hidden-input support under WP-CLI — see class docblock. This
-     * is a visible fallback, not a silent security gap: commands that
-     * truly need secret() should avoid relying on it under this runner.
-     */
-    public function secret( string $prompt = '' ): string {
-        return $this->read_line( $prompt ) ?? '';
-    }
+	/**
+	 * {@inheritdoc}
+	 *
+	 * No hidden-input support under WP-CLI — see class docblock. This
+	 * is a visible fallback, not a silent security gap: commands that
+	 * truly need secret() should avoid relying on it under this runner.
+	 */
+	public function secret( string $prompt = '' ) : string {
+		return $this->read_line( $prompt ) ?? '';
+	}
 }

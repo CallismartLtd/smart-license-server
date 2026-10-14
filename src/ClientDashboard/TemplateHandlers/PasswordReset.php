@@ -19,67 +19,67 @@ use SmartLicenseServer\Exceptions\RequestException;
 
 class PasswordReset implements DashboardHandlerInterface {
 
-    /**
-     * Get handler slug.
-     *
-     * @return string
-     */
-    public static function slug() : string {
-        return 'reset-password';
-    }
+	/**
+	 * Get handler slug.
+	 *
+	 * @return string
+	 */
+	public static function slug() : string {
+		return 'reset-password';
+	}
 
-    /**
-     * Guard this handler.
-     *
-     * Validates that reset token is present in query string.
-     *
-     * @param Request $request
-     * @return bool|RequestException
-     */
-    public function guard( Request $request ) : bool|RequestException {
-        $token = (string) $request->get( 'token', '' );
+	/**
+	 * Guard this handler.
+	 *
+	 * Validates that reset token is present in query string.
+	 *
+	 * @param Request $request
+	 * @return bool|RequestException
+	 */
+	public function guard( Request $request ) : bool|RequestException {
+		$token = (string) $request->get( 'token', '' );
 
-        if ( empty( $token ) ) {
-            return new RequestException(
-                'missing_token',
-                'Invalid or missing reset token.',
-                ['status' => 400 ]
-            );
-        }
+		if ( empty( $token ) ) {
+			return new RequestException(
+				'missing_token',
+				'Invalid or missing reset token.',
+				['status' => 400 ]
+			);
+		}
 
-        $check  = AuthController::verify_password_reset_token( $token );
+		$check = AuthController::verify_password_reset_token( $token );
 
-        if ( ! ( $check['valid'] ?? false ) ) {
-            return new RequestException(
-                'token_error',
-                $check['reason'] ?? 'Unknown error occured.',
-            );
-        }
+		if ( ! ( $check['valid'] ?? false ) ) {
+			return new RequestException(
+				'token_error',
+				$check['reason'] ?? 'Unknown error occured.',
+			);
+		}
 
-        return true;
-    }
+		return true;
+	}
 
-    /**
-     * Render password reset form.
-     *
-     * @param Request $request
-     * @return Response JSON response containing form HTML
-     */
-    public function handle( Request $request ) : Response {
-        // Get token and email from query string
-        $token = (string) $request->get( 'token', '' );
+	/**
+	 * Render password reset form.
+	 *
+	 * @param Request $request
+	 * @return Response JSON response containing form HTML
+	 */
+	public function handle( Request $request ) : Response {
+		// Get token and email from query string
+		$token = (string) $request->get( 'token', '' );
 
-        $html   = \smliser_render_template_to_string( 
-            ClientDashboardRenderer::AUTH_RESET_PWD_TEMPLATE,[
-            'token' => $token,
-        ]);
+		$html = \smliser_render_template_to_string(
+			ClientDashboardRenderer::AUTH_RESET_PWD_TEMPLATE,[
+			'token' => $token,
+		] );
 
-        // Return JSON response with form HTML and header
-        return (new Response( 200 ))
-            ->set_body( [
-                'success' => true,
-                'html'    => $html,
-            ] )
-            ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
-    }
+		// Return JSON response with form HTML and header
+		return ( new Response( 200 ) )
+			->set_body( [
+				'success' => true,
+				'html'    => $html,
+			] )
+			->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+	}
 }

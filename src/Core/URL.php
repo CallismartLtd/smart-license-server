@@ -33,7 +33,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @var array
 	 */
-	private array $components = array();
+	private array $components = [];
 
 	/*
 	|------------
@@ -65,7 +65,7 @@ class URL implements JsonSerializable {
 	 * @param string $url The URL string to parse.
 	 * @return array URL components (scheme, host, path, query, etc.)
 	 */
-	private function parse_components( string $url ): array {
+	private function parse_components( string $url ) : array {
 		$url = trim( $url );
 
 		if ( preg_match( '#^(localhost|127\.0\.0\.1)#', $url ) ) {
@@ -73,7 +73,7 @@ class URL implements JsonSerializable {
 		}
 
 		$components = parse_url( $url );
-		return $components ?: array();
+		return $components ?: [];
 	}
 
 	/**
@@ -85,7 +85,7 @@ class URL implements JsonSerializable {
 	 * @param array $components New components to apply.
 	 * @return static
 	 */
-	private function with_components( array $components ): static {
+	private function with_components( array $components ) : static {
 		$clone             = clone $this;
 		$clone->components = $components;
 		return $clone;
@@ -105,9 +105,9 @@ class URL implements JsonSerializable {
 	 * @param string $query Raw query string, without the leading "?".
 	 * @return array Decoded parameters.
 	 */
-	private static function parse_query( string $query ): array {
+	private static function parse_query( string $query ) : array {
 		if ( '' === $query ) {
-			return array();
+			return [];
 		}
 
 		parse_str( $query, $params );
@@ -122,7 +122,7 @@ class URL implements JsonSerializable {
 	 * @param array $params Decoded parameters.
 	 * @return string Query string, without the leading "?".
 	 */
-	private static function build_query( array $params ): string {
+	private static function build_query( array $params ) : string {
 		return http_build_query( $params, '', '&', PHP_QUERY_RFC3986 );
 	}
 
@@ -134,7 +134,7 @@ class URL implements JsonSerializable {
 	 * @param array $params Decoded parameters.
 	 * @return static
 	 */
-	private function with_query_params( array $params ): static {
+	private function with_query_params( array $params ) : static {
 		$components = $this->components;
 		$query      = static::build_query( $params );
 
@@ -158,18 +158,18 @@ class URL implements JsonSerializable {
 	 *
 	 * @return string Full URL.
 	 */
-	public function url(): string {
+	public function url() : string {
 		return static::build_url( $this->components );
 	}
 
 	/**
 	 * Get the full URL string (reconstructed from components).
-     * 
-     * This is a wrapper to ::url() method.
+	 * 
+	 * This is a wrapper to ::url() method.
 	 *
 	 * @return string Full URL.
 	 */
-	public function get_href(): string {
+	public function get_href() : string {
 		return $this->url();
 	}
 
@@ -178,7 +178,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return string|null Origin or null if host is missing.
 	 */
-	public function get_origin(): ?string {
+	public function get_origin() : ?string {
 		if ( empty( $this->components['host'] ) ) {
 			return null;
 		}
@@ -198,7 +198,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return string|null Domain or null if not set.
 	 */
-	public function get_host(): ?string {
+	public function get_host() : ?string {
 		return $this->components['host'] ?? null;
 	}
 
@@ -207,7 +207,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return string|null Scheme or null if not set.
 	 */
-	public function get_scheme(): ?string {
+	public function get_scheme() : ?string {
 		return $this->components['scheme'] ?? null;
 	}
 
@@ -216,7 +216,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return string|null Path or null if not set.
 	 */
-	public function get_path(): ?string {
+	public function get_path() : ?string {
 		return $this->components['path'] ?? null;
 	}
 
@@ -225,7 +225,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return string|null Fragment or null if not set.
 	 */
-	public function get_hash(): ?string {
+	public function get_hash() : ?string {
 		return $this->components['fragment'] ?? null;
 	}
 
@@ -234,7 +234,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return array Query parameters.
 	 */
-	public function get_query_params(): array {
+	public function get_query_params() : array {
 		return static::parse_query( (string) ( $this->components['query'] ?? '' ) );
 	}
 
@@ -255,7 +255,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return int|null
 	 */
-	public function get_port(): ?int {
+	public function get_port() : ?int {
 		return $this->components['port'] ?? null;
 	}
 
@@ -264,7 +264,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return string|null
 	 */
-	public function get_user(): ?string {
+	public function get_user() : ?string {
 		return $this->components['user'] ?? null;
 	}
 
@@ -273,7 +273,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return string|null
 	 */
-	public function get_pass(): ?string {
+	public function get_pass() : ?string {
 		return $this->components['pass'] ?? null;
 	}
 
@@ -292,7 +292,7 @@ class URL implements JsonSerializable {
 	 * @param string $scheme URL scheme (http, https, ftp, etc.).
 	 * @return static
 	 */
-	public function set_scheme( string $scheme ): static {
+	public function set_scheme( string $scheme ) : static {
 		$components           = $this->components;
 		$components['scheme'] = rtrim( strtolower( $scheme ), '://' );
 		return $this->with_components( $components );
@@ -304,7 +304,7 @@ class URL implements JsonSerializable {
 	 * @param string $path New path.
 	 * @return static
 	 */
-	public function set_path( string $path ): static {
+	public function set_path( string $path ) : static {
 		$components         = $this->components;
 		$components['path'] = '/' . ltrim( $path, '/' );
 		return $this->with_components( $components );
@@ -317,7 +317,7 @@ class URL implements JsonSerializable {
 	 * @param bool   $trailingslash Whether to add trailing slash?
 	 * @return static
 	 */
-	public function append_path( string $pathname, bool $trailingslash = false ): static {
+	public function append_path( string $pathname, bool $trailingslash = false ) : static {
 		$segment    = trim( $pathname, '/' );
 		$components = $this->components;
 
@@ -343,7 +343,7 @@ class URL implements JsonSerializable {
 	 * @param string $hash New fragment (with or without '#').
 	 * @return static
 	 */
-	public function set_hash( string $hash ): static {
+	public function set_hash( string $hash ) : static {
 		$components             = $this->components;
 		$components['fragment'] = ltrim( $hash, '#' );
 		return $this->with_components( $components );
@@ -356,8 +356,8 @@ class URL implements JsonSerializable {
 	 * @param mixed  $value Parameter value.
 	 * @return static
 	 */
-	public function add_query_param( string $key, $value ): static {
-		return $this->add_query_params( array( $key => $value ) );
+	public function add_query_param( string $key, $value ) : static {
+		return $this->add_query_params( [ $key => $value ] );
 	}
 
 	/**
@@ -366,7 +366,7 @@ class URL implements JsonSerializable {
 	 * @param array $params Associative array of parameters.
 	 * @return static
 	 */
-	public function add_query_params( array $params ): static {
+	public function add_query_params( array $params ) : static {
 		return $this->with_query_params( array_merge( $this->get_query_params(), $params ) );
 	}
 
@@ -377,7 +377,7 @@ class URL implements JsonSerializable {
 	 * @return static
 	 * @throws \InvalidArgumentException If the port is out of range.
 	 */
-	public function set_port( int $port ): static {
+	public function set_port( int $port ) : static {
 		if ( $port < 1 || $port > 65535 ) {
 			throw new \InvalidArgumentException( 'Invalid port number.' );
 		}
@@ -393,7 +393,7 @@ class URL implements JsonSerializable {
 	 * @param string $user Username.
 	 * @return static
 	 */
-	public function set_user( string $user ): static {
+	public function set_user( string $user ) : static {
 		$components         = $this->components;
 		$components['user'] = rawurlencode( $user );
 		return $this->with_components( $components );
@@ -405,7 +405,7 @@ class URL implements JsonSerializable {
 	 * @param string $pass Password.
 	 * @return static
 	 */
-	public function set_pass( string $pass ): static {
+	public function set_pass( string $pass ) : static {
 		$components         = $this->components;
 		$components['pass'] = rawurlencode( $pass );
 		return $this->with_components( $components );
@@ -418,7 +418,7 @@ class URL implements JsonSerializable {
 	 * @param string $pass Password.
 	 * @return static
 	 */
-	public function set_credentials( string $user, string $pass ): static {
+	public function set_credentials( string $user, string $pass ) : static {
 		return $this->set_user( $user )->set_pass( $pass );
 	}
 
@@ -427,7 +427,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return static
 	 */
-	public function remove_credentials(): static {
+	public function remove_credentials() : static {
 		$components = $this->components;
 		unset( $components['user'], $components['pass'] );
 		return $this->with_components( $components );
@@ -442,7 +442,7 @@ class URL implements JsonSerializable {
 	 * @param string|array ...$keys Parameter key(s) to remove.
 	 * @return static
 	 */
-	public function remove_query_param( string|array ...$keys ): static {
+	public function remove_query_param( string|array ...$keys ) : static {
 		$params = $this->get_query_params();
 
 		foreach ( $keys as $key ) {
@@ -459,7 +459,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return static
 	 */
-	public function remove_port(): static {
+	public function remove_port() : static {
 		$components = $this->components;
 		unset( $components['port'] );
 		return $this->with_components( $components );
@@ -470,7 +470,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return static
 	 */
-	public function remove_user(): static {
+	public function remove_user() : static {
 		$components = $this->components;
 		unset( $components['user'] );
 		return $this->with_components( $components );
@@ -481,7 +481,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return static
 	 */
-	public function remove_pass(): static {
+	public function remove_pass() : static {
 		$components = $this->components;
 		unset( $components['pass'] );
 		return $this->with_components( $components );
@@ -502,7 +502,7 @@ class URL implements JsonSerializable {
 	 * @param bool $dns_check Whether to perform DNS lookup for the host. Default false.
 	 * @return bool True if valid (and host exists if $dns_check is true), false otherwise.
 	 */
-	public function validate( bool $dns_check = false ): bool {
+	public function validate( bool $dns_check = false ) : bool {
 		$url = $this->url();
 
 		if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
@@ -525,7 +525,7 @@ class URL implements JsonSerializable {
 	 * @param bool $dns_check Whether to perform DNS lookup for the host. Default false.
 	 * @return bool
 	 */
-	public function is_valid( bool $dns_check = false ): bool {
+	public function is_valid( bool $dns_check = false ) : bool {
 		return true === $this->validate( $dns_check );
 	}
 
@@ -534,7 +534,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return bool True if URL scheme is https, false otherwise.
 	 */
-	public function is_ssl(): bool {
+	public function is_ssl() : bool {
 		return 'https' === strtolower( $this->get_scheme() ?? '' );
 	}
 
@@ -543,8 +543,8 @@ class URL implements JsonSerializable {
 	 *
 	 * @return bool True if host is local, false otherwise.
 	 */
-	public function is_localhost(): bool {
-		return in_array( strtolower( $this->get_bare_host() ), array( 'localhost', '127.0.0.1', '::1' ), true );
+	public function is_localhost() : bool {
+		return in_array( strtolower( $this->get_bare_host() ), [ 'localhost', '127.0.0.1', '::1' ], true );
 	}
 
 	/**
@@ -555,7 +555,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return bool True if host is a private IP, false otherwise.
 	 */
-	public function is_private_ip(): bool {
+	public function is_private_ip() : bool {
 		$ip = $this->get_bare_host();
 
 		if ( false === filter_var( $ip, FILTER_VALIDATE_IP ) ) {
@@ -570,7 +570,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return string Empty when no host is set.
 	 */
-	private function get_bare_host(): string {
+	private function get_bare_host() : string {
 		return trim( (string) $this->get_host(), '[]' );
 	}
 
@@ -579,7 +579,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return bool
 	 */
-	public function has_scheme(): bool {
+	public function has_scheme() : bool {
 		return isset( $this->components['scheme'] );
 	}
 
@@ -588,7 +588,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return bool True if port is set, false otherwise.
 	 */
-	public function has_port(): bool {
+	public function has_port() : bool {
 		return isset( $this->components['port'] );
 	}
 
@@ -597,7 +597,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return bool True if there is at least one query parameter, false otherwise.
 	 */
-	public function has_query(): bool {
+	public function has_query() : bool {
 		return ! empty( $this->get_query_params() );
 	}
 
@@ -606,7 +606,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return bool True if fragment is set, false otherwise.
 	 */
-	public function has_fragment(): bool {
+	public function has_fragment() : bool {
 		return ! empty( $this->components['fragment'] );
 	}
 
@@ -616,7 +616,7 @@ class URL implements JsonSerializable {
 	 * @param string $key Query parameter name.
 	 * @return bool True if exists, false otherwise.
 	 */
-	public function has_query_param( string $key ): bool {
+	public function has_query_param( string $key ) : bool {
 		return array_key_exists( $key, $this->get_query_params() );
 	}
 
@@ -625,7 +625,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return bool
 	 */
-	public function has_credentials(): bool {
+	public function has_credentials() : bool {
 		return isset( $this->components['user'] );
 	}
 
@@ -640,7 +640,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return string Full URL.
 	 */
-	public function __toString(): string {
+	public function __toString() : string {
 		return $this->url();
 	}
 
@@ -650,7 +650,7 @@ class URL implements JsonSerializable {
 	 * @param array $c URL components.
 	 * @return string Reconstructed URL.
 	 */
-	private static function build_url( array $c ): string {
+	private static function build_url( array $c ) : string {
 		$url = '';
 
 		if ( isset( $c['scheme'] ) ) {
@@ -697,7 +697,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return static
 	 */
-	public function sanitize(): static {
+	public function sanitize() : static {
 		$c = $this->components;
 
 		// Normalize scheme.
@@ -721,7 +721,7 @@ class URL implements JsonSerializable {
 
 		// Sanitize query parameter keys; build_query() encodes the values once.
 		unset( $c['query'] );
-		$clean = array();
+		$clean = [];
 
 		foreach ( $this->get_query_params() as $key => $value ) {
 			$clean_key = preg_replace( '/[^\w\-\.]/', '', (string) $key );
@@ -762,7 +762,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return string|null Basename or null if path is not set.
 	 */
-	public function basename(): ?string {
+	public function basename() : ?string {
 		$path = $this->get_path();
 		if ( null === $path ) {
 			return null;
@@ -785,14 +785,14 @@ class URL implements JsonSerializable {
 	 *
 	 * @return array
 	 */
-	public function dump(): array {
-		return array(
-			'url'            => array(
+	public function dump() : array {
+		return [
+			'url' => [
 				'full_url' => $this->url(),
 				'origin'   => $this->get_origin(),
-			),
+			],
 
-			'components'     => array(
+			'components' => [
 				'scheme'   => $this->get_scheme(),
 				'host'     => $this->get_host(),
 				'port'     => $this->get_port(),
@@ -801,28 +801,28 @@ class URL implements JsonSerializable {
 				'path'     => $this->get_path(),
 				'query'    => $this->components['query'] ?? null,
 				'fragment' => $this->get_hash(),
-			),
+			],
 
-			'query_params'   => $this->get_query_params(),
+			'query_params' => $this->get_query_params(),
 
-			'validation'     => array(
+			'validation' => [
 				'is_valid'      => $this->is_valid(),
 				'is_valid_dns'  => $this->is_valid( true ),
 				'is_ssl'        => $this->is_ssl(),
 				'is_localhost'  => $this->is_localhost(),
 				'is_private_ip' => $this->is_private_ip(),
-			),
+			],
 
-			'has'            => array(
+			'has' => [
 				'scheme'      => $this->has_scheme(),
 				'port'        => $this->has_port(),
 				'credentials' => $this->has_credentials(),
 				'query'       => $this->has_query(),
 				'fragment'    => $this->has_fragment(),
-			),
+			],
 
 			'raw_components' => $this->components,
-		);
+		];
 	}
 
 	/**
@@ -831,7 +831,7 @@ class URL implements JsonSerializable {
 	 * @param string $url The URL to parse.
 	 * @return static
 	 */
-	public static function from( string $url = '' ): static {
+	public static function from( string $url = '' ) : static {
 		return new static( $url );
 	}
 
@@ -840,7 +840,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return mixed
 	 */
-	public function jsonSerialize(): mixed {
+	public function jsonSerialize() : mixed {
 		return $this->sanitize()->url();
 	}
 
@@ -849,7 +849,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @return array
 	 */
-	public function __serialize(): array {
+	public function __serialize() : array {
 		return $this->components;
 	}
 
@@ -858,7 +858,7 @@ class URL implements JsonSerializable {
 	 *
 	 * @param mixed $data Serialized components.
 	 */
-	public function __unserialize( mixed $data ): void {
+	public function __unserialize( mixed $data ) : void {
 		$this->components = (array) $data;
 	}
 }

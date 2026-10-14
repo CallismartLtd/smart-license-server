@@ -22,46 +22,46 @@ use InvalidArgumentException;
  */
 final class DaysOfMonth implements DayMatcher {
 
-    /**
-     * Days-of-month this matcher fires on.
-     *
-     * @var int[]
-     */
-    private array $days;
+	/**
+	 * Days-of-month this matcher fires on.
+	 *
+	 * @var int[]
+	 */
+	private array $days;
 
-    /**
-     * Constructor.
-     *
-     * @param int ...$days One or more of 1-28.
-     * @throws InvalidArgumentException If empty, or any value is out of range.
-     */
-    public function __construct( int ...$days ) {
-        if ( empty( $days ) ) {
-            throw new InvalidArgumentException( 'DaysOfMonth: at least one day is required.' );
-        }
+	/**
+	 * Constructor.
+	 *
+	 * @param int ...$days One or more of 1-28.
+	 * @throws InvalidArgumentException If empty, or any value is out of range.
+	 */
+	public function __construct( int ...$days ) {
+		if ( empty( $days ) ) {
+			throw new InvalidArgumentException( 'DaysOfMonth: at least one day is required.' );
+		}
 
-        foreach ( $days as $day ) {
-            if ( $day < 1 || $day > 28 ) {
-                throw new InvalidArgumentException(
-                    sprintf( 'DaysOfMonth: "%d" is out of range. Days must be between 1 and 28.', $day )
-                );
-            }
-        }
+		foreach ( $days as $day ) {
+			if ( $day < 1 || $day > 28 ) {
+				throw new InvalidArgumentException(
+					sprintf( 'DaysOfMonth: "%d" is out of range. Days must be between 1 and 28.', $day )
+				);
+			}
+		}
 
-        $this->days = array_values( array_unique( $days ) );
-    }
+		$this->days = array_values( array_unique( $days ) );
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function matches( DateTimeImmutable $date ): bool {
-        return in_array( (int) $date->format( 'd' ), $this->days, true );
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function matches( DateTimeImmutable $date ) : bool {
+		return in_array( (int) $date->format( 'd' ), $this->days, true );
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function describe(): string {
-        return 'Monthly on day(s) ' . implode( ', ', $this->days );
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function describe() : string {
+		return 'Monthly on day(s) ' . implode( ', ', $this->days );
+	}
 }

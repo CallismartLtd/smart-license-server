@@ -30,51 +30,51 @@ use InvalidArgumentException;
  */
 final class EveryNDays implements DayMatcher {
 
-    /**
-     * Fixed reference date ("day zero") every cadence counts from.
-     * Arbitrary but must never change once tasks are relying on it —
-     * changing it would shift every existing every_days() schedule.
-     */
-    private const EPOCH = '1970-01-01';
+	/**
+	 * Fixed reference date ("day zero") every cadence counts from.
+	 * Arbitrary but must never change once tasks are relying on it —
+	 * changing it would shift every existing every_days() schedule.
+	 */
+	private const EPOCH = '1970-01-01';
 
-    /**
-     * Epoch as a DateTimeImmutable, built once.
-     *
-     * @var DateTimeImmutable
-     */
-    private DateTimeImmutable $epoch;
+	/**
+	 * Epoch as a DateTimeImmutable, built once.
+	 *
+	 * @var DateTimeImmutable
+	 */
+	private DateTimeImmutable $epoch;
 
-    /**
-     * Constructor.
-     *
-     * @param int $n Run every N days. Must be >= 1.
-     * @throws InvalidArgumentException If $n < 1.
-     */
-    public function __construct( private int $n ) {
-        if ( $n < 1 ) {
-            throw new InvalidArgumentException( 'EveryNDays: n must be at least 1.' );
-        }
+	/**
+	 * Constructor.
+	 *
+	 * @param int $n Run every N days. Must be >= 1.
+	 * @throws InvalidArgumentException If $n < 1.
+	 */
+	public function __construct( private int $n ) {
+		if ( $n < 1 ) {
+			throw new InvalidArgumentException( 'EveryNDays: n must be at least 1.' );
+		}
 
-        $this->epoch = new DateTimeImmutable( self::EPOCH, new DateTimeZone( 'UTC' )  );
-    }
+		$this->epoch = new DateTimeImmutable( self::EPOCH, new DateTimeZone( 'UTC' ) );
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function matches( DateTimeImmutable $date ): bool {
-        $target_date = $date->setTime( 0, 0, 0 );
+	/**
+	 * {@inheritdoc}
+	 */
+	public function matches( DateTimeImmutable $date ) : bool {
+		$target_date = $date->setTime( 0, 0, 0 );
 
-        // %a is the total day count, always non-negative regardless of
-        // direction — the epoch is always in the past for any real date.
-        $diff_days = (int) $this->epoch->diff( $target_date )->format( '%a' );
+		// %a is the total day count, always non-negative regardless of
+		// direction — the epoch is always in the past for any real date.
+		$diff_days = (int) $this->epoch->diff( $target_date )->format( '%a' );
 
-        return $diff_days % $this->n === 0;
-    }
+		return 0 === $diff_days % $this->n;
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function describe(): string {
-        return sprintf( 'Every %d day(s)', $this->n );
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function describe() : string {
+		return sprintf( 'Every %d day(s)', $this->n );
+	}
 }

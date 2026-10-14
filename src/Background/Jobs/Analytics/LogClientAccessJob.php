@@ -25,78 +25,78 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
  * DB write that was slowing down every API call.
  */
 class LogClientAccessJob implements JobHandlerInterface {
-    public function __construct( protected Database $db ) {}
+	public function __construct( protected Database $db ) {}
 
-    /*
-    |----------------------
-    | JobHandlerInterface
-    |----------------------
-    */
+	/*
+	|----------------------
+	| JobHandlerInterface
+	|----------------------
+	*/
 
-    /**
-     * {@inheritdoc}
-     *
-     * @param array{
-     *  app_type?: string,
-     *  app_slug?: string,
-     *  event_type?: string,
-     *  fingerprint?: string,
-     *  created_at?: string
-     * } $payload
-     * @return bool True on successful insert, false otherwise.
-     */
-    public function handle( array $payload = [] ): mixed {
-        $app_type    = (string) ( $payload['app_type']    ?? '' );
-        $app_slug    = (string) ( $payload['app_slug']    ?? '' );
-        $event_type  = (string) ( $payload['event_type']  ?? '' );
-        $fingerprint = (string) ( $payload['fingerprint'] ?? '' );
-        $created_at  = (string) ( $payload['created_at']  ?? gmdate( 'Y-m-d H:i:s' ) );
+	/**
+	 * {@inheritdoc}
+	 *
+	 * @param array{
+	 *  app_type?: string,
+	 *  app_slug?: string,
+	 *  event_type?: string,
+	 *  fingerprint?: string,
+	 *  created_at?: string
+	 * } $payload
+	 * @return bool True on successful insert, false otherwise.
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$app_type    = (string) ( $payload['app_type'] ?? '' );
+		$app_slug    = (string) ( $payload['app_slug'] ?? '' );
+		$event_type  = (string) ( $payload['event_type'] ?? '' );
+		$fingerprint = (string) ( $payload['fingerprint'] ?? '' );
+		$created_at  = (string) ( $payload['created_at'] ?? gmdate( 'Y-m-d H:i:s' ) );
 
-        if ( $app_type === '' || $app_slug === '' || $event_type === '' ) {
-            return false;
-        }
+		if ( '' === $app_type || '' === $app_slug || '' === $event_type ) {
+			return false;
+		}
 
-        // Insert the raw analytics log entry.
-        $inserted = $this->db->insert( TableName::ANALYTICS_LOG->table(), [
-            'app_type'    => $app_type,
-            'app_slug'    => $app_slug,
-            'event_type'  => $event_type,
-            'fingerprint' => $fingerprint,
-            'created_at'  => $created_at,
-        ] );
+		// Insert the raw analytics log entry.
+		$inserted = $this->db->insert( TableName::ANALYTICS_LOG->table(), [
+			'app_type'    => $app_type,
+			'app_slug'    => $app_slug,
+			'event_type'  => $event_type,
+			'fingerprint' => $fingerprint,
+			'created_at'  => $created_at,
+		] );
 
-        if ( ! $inserted ) {
-            return false;
-        }
+		if ( ! $inserted ) {
+			return false;
+		}
 
-        // Resolve the app instance and increment its lifetime counter meta.
-        $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+		// Resolve the app instance and increment its lifetime counter meta.
+		$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
-        if ( $app === null ) {
-            return true; // Log inserted — meta update is best-effort.
-        }
+		if ( null === $app ) {
+			return true; // Log inserted — meta update is best-effort.
+		}
 
-        $meta_key      = ( 'download' === $event_type )
-            ? AppsAnalytics::DOWNLOAD_COUNT_META_KEY
-            : AppsAnalytics::CLIENT_ACCESS_META_KEY;
+		$meta_key = ( 'download' === $event_type )
+			? AppsAnalytics::DOWNLOAD_COUNT_META_KEY
+			: AppsAnalytics::CLIENT_ACCESS_META_KEY;
 
-        $current_total = (int) $app->get_meta( $meta_key, 0 );
-        $app->update_meta( $meta_key, $current_total + 1 );
+		$current_total = (int) $app->get_meta( $meta_key, 0 );
+		$app->update_meta( $meta_key, $current_total + 1 );
 
-        return true;
-    }
+		return true;
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_job_name(): string {
-        return 'Log Client Access';
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function get_job_name() : string {
+		return 'Log Client Access';
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_job_description(): string {
-        return 'Asynchronously writes an analytics log entry and updates the app lifetime access counter.';
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function get_job_description() : string {
+		return 'Asynchronously writes an analytics log entry and updates the app lifetime access counter.';
+	}
 }

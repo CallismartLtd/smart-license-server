@@ -54,14 +54,14 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 <tbody>
                     <?php if ( empty( $apps ) ) : ?>
                         <?php if ( $request->get( 'app_search' ) ) :
-                            $message    = sprintf(
-                                'No app found matching the search term "%s". <a href="%s">Reset Search</a>',
-                                escHtml( $request->get( 'app_search' ) ),
-                                escUrl( $urlmanager->admin_repo_url( 'search' )->url() )
-                            );
-                        else:
-                            $message    = 'Search for hosted applications in the repository.';
-                        endif; ?>
+							$message = sprintf(
+								'No app found matching the search term "%s". <a href="%s">Reset Search</a>',
+								escHtml( $request->get( 'app_search' ) ),
+								escUrl( $urlmanager->admin_repo_url( 'search' )->url() )
+							);
+						else:
+							$message = 'Search for hosted applications in the repository.';
+						endif; ?>
 
                         <tr>
                             <td class="align-center bg-white">
@@ -75,9 +75,9 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                             <td class="smliser-edit-row">
                                 <?php echo intval( $app->get_id() ); ?>
                                 <div class="smliser-edit-link">
-                                    <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'edit', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) )->url() ); ?>">edit</a> 
+                                    <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'edit', [ 'app_id' => $app->get_id(), 'type' => $app->get_type() ] )->url() ); ?>">edit</a> 
                                     |
-                                    <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'view', array( 'app_id' => $app->get_id(), 'type' => $app->get_type() ) )->url() ); ?>">view</a>
+                                    <a href="<?php echo escUrl( $urlmanager->admin_repo_url( 'view', [ 'app_id' => $app->get_id(), 'type' => $app->get_type() ] )->url() ); ?>">view</a>
                                 </div>
                             </td>
                             <td><?php echo escHtml( $app->get_name() ); ?></td>

@@ -70,7 +70,7 @@ final class UserAccounts {
 	 * @param string $password Plain password.
 	 * @return string
 	 */
-	public function hash_password( #[\SensitiveParameter] string $password ): string {
+	public function hash_password( #[\SensitiveParameter] string $password ) : string {
 		return password_hash( $password, defined( 'PASSWORD_ARGON2ID' ) ? \PASSWORD_ARGON2ID : \PASSWORD_DEFAULT );
 	}
 
@@ -81,7 +81,7 @@ final class UserAccounts {
 	 * @param string $confirm  Confirmation.
 	 * @return RequestException|null The problem, or null when the password is acceptable.
 	 */
-	public function validate_password( #[\SensitiveParameter] string $password, #[\SensitiveParameter] string $confirm ): ?RequestException {
+	public function validate_password( #[\SensitiveParameter] string $password, #[\SensitiveParameter] string $confirm ) : ?RequestException {
 		if ( '' === $password ) {
 			return new RequestException( 'empty_password', 'Password must not be empty.', [ 'status' => 400 ] );
 		}
@@ -112,7 +112,7 @@ final class UserAccounts {
 	 *
 	 * @throws SecurityException When the password is empty or cannot be saved.
 	 */
-	public function change_password( User $user, #[\SensitiveParameter] string $password ): void {
+	public function change_password( User $user, #[\SensitiveParameter] string $password ) : void {
 		if ( '' === $password ) {
 			throw new SecurityException( 'empty_password', 'New password cannot be empty.' );
 		}
@@ -138,7 +138,7 @@ final class UserAccounts {
 	 *
 	 * @throws RequestException When the user cannot be saved.
 	 */
-	public function create_user( string $email, #[\SensitiveParameter] string $password, string $display_name = '' ): User {
+	public function create_user( string $email, #[\SensitiveParameter] string $password, string $display_name = '' ) : User {
 		$user = ( new User() )
 			->set_display_name( '' !== trim( $display_name ) ? $display_name : strstr( $email, '@', true ) )
 			->set_password_hash( $this->hash_password( $password ) )
@@ -163,7 +163,7 @@ final class UserAccounts {
 	 *
 	 * @throws RequestException When the role does not exist.
 	 */
-	public function assign_signup_role( User $user, string $account_type ): Role {
+	public function assign_signup_role( User $user, string $account_type ) : Role {
 		if ( ! in_array( $account_type, self::SIGNUP_ACCOUNT_TYPES, true ) ) {
 			$account_type = 'viewer';
 		}
@@ -188,7 +188,7 @@ final class UserAccounts {
 	 * @param string $email Email address.
 	 * @return bool False when another signup for the address holds the lock.
 	 */
-	public function acquire_signup_lock( string $email ): bool {
+	public function acquire_signup_lock( string $email ) : bool {
 		$key = $this->signup_lock_key( $email );
 
 		if ( $this->cache->has( $key ) ) {
@@ -206,7 +206,7 @@ final class UserAccounts {
 	 * @param string $email Email address.
 	 * @return void
 	 */
-	public function release_signup_lock( string $email ): void {
+	public function release_signup_lock( string $email ) : void {
 		$this->cache->delete( $this->signup_lock_key( $email ) );
 	}
 
@@ -216,7 +216,7 @@ final class UserAccounts {
 	 * @param string $email Email address.
 	 * @return string
 	 */
-	private function signup_lock_key( string $email ): string {
+	private function signup_lock_key( string $email ) : string {
 		return 'signup_lock_' . md5( strtolower( trim( $email ) ) );
 	}
 }

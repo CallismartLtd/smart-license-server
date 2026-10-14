@@ -42,14 +42,14 @@ namespace SmartLicenseServer\Events;
  */
 interface SubscriberInterface {
 
-    /**
-     * Return a map of event class names to handler method names.
-     *
-     * Each value may be:
-     *   - A string method name          — uses the default priority (10).
-     *   - [string $method, int $priority] — uses the specified priority.
-     *
-     * @return array<class-string<AbstractEvent>, string|array{string, int}>
-     */
-    public static function subscribed_events(): array;
+	/**
+	 * Return a map of event class names to handler method names.
+	 *
+	 * Each value may be:
+	 *   - A string method name          — uses the default priority (10).
+	 *   - [string $method, int $priority] — uses the specified priority.
+	 *
+	 * @return array<class-string<AbstractEvent>, string|array{string, int}>
+	 */
+	public static function subscribed_events() : array;
 }

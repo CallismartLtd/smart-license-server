@@ -26,538 +26,538 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * Each tier specifies its own provider, billing rules, and feature set.
  */
 class Monetization extends DataStore {
-    use SanitizeAwareTrait, DatePropertyAwareTrait;
-    /**
-     * The monetization ID.
-     * 
-     * @var int $id
-     */
-    protected int $id = 0;
-
-    /**
-     * App type (e.g. plugin, theme).
-     * 
-     * @var string $app_type
-     */
-    protected string $app_type = '';
-
-    /**
-     * The unique ID of the app this monetization belongs to.
-     *
-     * @var int
-     */
-    protected int $app_id = 0;
-
-    /**
-     * Whether this monetization is enabled.
-     * 
-     * @var bool $enabled
-     */
-    protected bool $enabled = false;
-
-    /**
-     * Collection of pricing tiers available for this monetization.
-     *
-     * @var array<int, PricingTier> $tiers Array of PricingTier objects, keyed by their ID.
-     */
-    protected array $tiers = [];
-
-    /**
-     * Date this monetization was created.
-     * 
-     * @var DateTimeImmutable|null $created_at
-     */
-    protected ?DateTimeImmutable $created_at = null;
-
-    /**
-     * Date this monetization was last updated.
-     * 
-     * @var DateTimeImmutable|null $updated_at
-     */
-    protected ?DateTimeImmutable $updated_at = null;
-
-    /**
-     * Constructor.
-     */
-    public function __construct() {}
-
-    /*
-    |-----------
-    | GETTERS
-    |-----------
-    */
-    /**
-     * Get the monetization ID.
-     *
-     * @return int
-     */
-    public function get_id() : int {
-        return $this->id;
-    }
-
-    /**
-     * Get the app type (e.g. plugin, theme).
-     * 
-     * @return string
-     */
-    public function get_app_type() : string {
-        return $this->app_type;
-    }
-
-    /**
-     * Get the app ID this monetization belongs to.
-     *
-     * @return int
-     */
-    public function get_app_id() : int {
-        return $this->app_id;
-    }    
-
-    /**
-     * Get the value of the enabled property.
-     *
-     * @return bool
-     */
-    public function get_enabled() : bool {
-        return $this->enabled;
-    }
-
-    /**
-     * Get all pricing tiers.
-     *
-     * @return PricingTier[]
-     */
-    public function get_tiers() : array {
-        return $this->tiers;
-    }
-
-    /**
-     * Get the creation date.
-     * 
-     * @return DateTimeImmutable|null
-     */
-    public function get_created_at() : ?DateTimeImmutable {
-        return $this->created_at;
-    }
-
-    /**
-     * Get the last update date.
-     * 
-     * @return DateTimeImmutable|null
-     */
-    public function get_updated_at() : ?DateTimeImmutable {
-        return $this->updated_at;
-    }
-
-    /*
-    |-----------
-    | SETTERS
-    |-----------
-    */
-    /**
-     * Set the monetization ID.
-     *
-     * @param int $id
-     * @return static
-     */
-    public function set_id( $id ) : static {
-        $this->id = static::sanitize_int( $id );
-        return $this;
-    }
-
-    /**
-     * Set the ID of the app associated with this monetization.
-     * 
-     * @param int $app_id
-     * @return static
-     */
-    public function set_app_id( $app_id ) : static {
-        $this->app_id = static::sanitize_int( $app_id );
-        return $this;
-    }
-
-    /**
-     * Set the app type (e.g. plugin, theme).
-     * 
-     * @param string $app_type
-     * @return static
-     */
-    public function set_app_type( $app_type ) : static {
-        $this->app_type = static::sanitize_text( $app_type );
-        return $this;
-    }
-
-    /**
-     * Set whether this monetization is enabled.
-     *
-     * @param bool $enabled
-     * @return static
-     */
-    public function set_enabled( $enabled ) : static {
-        $this->enabled = (bool) $enabled;
-        return $this;
-    }
-
-    /**
-     * Assign multiple pricing tiers to this monetization.
-     *
-     * @param PricingTier[] $tiers
-     * @return static
-     */
-    public function set_tiers( array $tiers ) : static {
-        foreach ( $tiers as $tier ) {
-            if ( ! ( $tier instanceof PricingTier ) ) {
-                throw new \InvalidArgumentException( 'All elements of $tiers must be instances of "\SmartLicenseServer\Monetization\Monetization\PricingTier".' );
-            }
-
-            $this->add_tier( $tier );
-        }
-
-        return $this;
-    }
-
-    /**
-     * Set the creation date.
-     * 
-     * @param string $created_at
-     * @return static
-     */
-    public function set_created_at( $created_at )  : static {
-        $this->set_date_prop( $created_at, 'created_at' );
-        return $this;
-    }
-    /**
-     * Set the last update date.
-     * 
-     * @param string $updated_at
-     * @return static
-     */
-    public function set_updated_at( $updated_at ) : static {
-        $this->set_date_prop( $updated_at, 'updated_at' );
-        return $this;
-    }
-
-    /*
-    |---------------------------
-    | CRUD METHODS
-    |---------------------------
-    */
-
-    /**
-     * Save or update this monetization record.
-     *
-     * @return bool True on success, false on failure.
-     */
-    public function save() : bool {
-        return static::$DB->transactional( function ( Database $db ) {
-            $now    = new DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
-            $data   = [
-                'app_type'  => $this->app_type,
-                'app_id'    => $this->app_id,
-                'enabled'    => $this->enabled ? 1 : 0,
-                'updated_at' => $now->format( 'Y-m-d H:i:s' ),
-            ];
-
-            $lock_query = static::query()
-                ->select( 'id' )->from( TableName::MONETIZATION->table() )
-                ->where( 'id', '=', $this->get_id() )
-                ->limit( 1 )->lock_for_update();
-            $id = (int) $db->get_var( $lock_query->build(), $lock_query->get_bindings() );
-
-            if ( $id ) {
-                // Update existing record
-                $updated = $db->update( TableName::MONETIZATION->table(), $data, [ 'id' => $id ] );
-
-                if ( false === $updated ) {
-                    return false;
-                }
-
-            } else {
-                $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
-                $inserted           = $db->insert( TableName::MONETIZATION->table(), $data );
-
-                if ( ! $inserted ) {
-                    return false;
-                }
-
-                $this->set_id( $db->get_insert_id() );
-                $this->set_created_at( $now );
-            }
-
-            $this->set_updated_at( $now );
-
-            // Save tiers.
-            foreach ( $this->tiers as $tier ) {
-                if ( $tier instanceof PricingTier ) {
-                    $tier->set_monetization_id( $this->id )->save();
-                }
-            }
-
-            return true;            
-        });
-    }
-
-    /**
-     * Delete this monetization record and its pricing tiers.
-     *
-     * @return bool True on success, false on failure.
-     * @throws Exception If a concurrent modification is detected or if database execution fails.
-     */
-    public function delete() : bool {
-        if ( ! $this->id ) {
-            return false;
-        }
-
-        $monetization_table = TableName::MONETIZATION->table();
-        $pricing_tier_table = TableName::PRICING_TIERS->table();
-
-        $delete_monetn_sql  = static::query()->delete( $monetization_table  )->where( 'id', '=', $this->id );
-        $delete_tiers_sql   = static::query()->delete( $pricing_tier_table )->where( 'monetization_id', '=', $this->id );
-        
-        $deleted = false;
-
-        $lock_query = static::query()->select( 'id' )->from( $monetization_table )
-            ->where( 'id', '=', $this->id )
-            ->limit(1);
-      
-        static::$DB->transactional( function( Database $db )
-        use ( $lock_query, $delete_monetn_sql, $delete_tiers_sql, &$deleted ) {
-            $lock_sql = $lock_query->lock_for_update()->build();
-            $exists   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
-
-            if ( ! $exists ) {
-                throw new Exception( 'delete_error', 'Record locked or already removed by concurrent request.' );
-            }
-
-            if ( false === $db->execute( $delete_tiers_sql->build(), $delete_tiers_sql->get_bindings() ) ) {
-                throw new Exception( 'delete_error', 'Database execution failure dropping pricing tiers.' );
-            }
-
-            if ( false === $db->execute( $delete_monetn_sql->build(), $delete_monetn_sql->get_bindings() ) ) {
-                throw new Exception( 'delete_error', 'Database execution failure dropping monetization record.' );
-            }
-            
-            $deleted = true;
-        } );
-
-        return $deleted;
-    }
-
-    /**
-     * Delete a specific pricing tier and keep this monetization in sync.
-     *
-     * @param int $tier_id
-     * @return bool True if successfully deleted, false otherwise.
-     */
-    public function delete_tier( $tier_id ) : bool {
-        $tier = $this->get_tier( $tier_id );
-        if ( ! $tier ) {
-            return false;
-        }
-
-        // Delete from DB.
-        if ( ! $tier->delete() ) {
-            return false;
-        }
-
-        // Sync in-memory tiers list.
-        $this->remove_tiers( $tier_id );
-
-        return true;
-    }
-
-
-    /**
-     * Get a monetization record by ID.
-     *
-     * @param int $id Monetization ID.
-     * @return Monetization|null
-     */
-    public static function get_by_id( int $id ) : ?static {
-        static $cache = [];
-
-        if ( array_key_exists( $id, $cache ) ) {
-            return $cache[$id];
-        }
-
-        $data   = static::fetch_by( 'id', $id, TableName::MONETIZATION->table() );
-
-        if ( $data ) {
-            $static = static::from_array( $data );
-            $static->set_tiers( PricingTier::get_by_monetization_id( $id ) );
-        } else {
-            $static = null;
-        }
-
-        $cache[$id] = $static;
-
-        return $cache[$id];
-    }
-
-    /**
-     * Get monetization record by App type + app ID.
-     *
-     * @param string $app_type
-     * @param int|string $app_id
-     * @return Monetization|null
-     */
-    public static function get_by_app( $app_type, $app_id ) : ?static {
-        $table  = TableName::MONETIZATION->table();
-
-        $sql    = static::query()->select( '*' )->from( $table )
-            ->where( 'app_type', '=', $app_type )
-            ->where( 'app_id', '=', $app_id );
-        $row    = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
-
-        if ( ! $row ) {
-            return null;
-        }
-
-        $static = new static();
-        $static->set_id( $row['id'] ?? 0 )
-            ->set_app_id( $row['app_id'] ?? 0 )
-            ->set_app_type( $row['app_type'] ?? '' )
-            ->set_enabled( (bool) $row['enabled'] ?? false )
-            ->set_created_at( $row['created_at'] ?? '' )
-            ->set_updated_at( $row['updated_at'] ?? '' );
-
-        $static->set_tiers( PricingTier::get_by_monetization_id( $row['id'] ?? 0 ) );
-
-        return $static;
-    }
-
-    /*
-    |---------------------------
-    | CONDITIONAL METHODS
-    |---------------------------
-    */
-
-    /**
-     * Check if this monetization has any pricing tiers.
-     *
-     * @return bool
-     */
-    public function has_tiers() : bool {
-        return ! empty( $this->tiers );
-    }
-
-    /**
-     * Check if this monetization is enabled.
-     *
-     * @return bool
-     */
-    public function is_enabled() : bool {
-        return $this->enabled;
-    }
-
-    /**
-     * Check if this monetization is active (enabled and has tiers).
-     *
-     * @return bool
-     */
-    public function is_active() : bool {
-        return $this->is_enabled() && $this->has_tiers();
-    }
-
-    /**
-     * Check if this monetization exists in the database.
-     * 
-     * @return bool
-     */
-    public function exists() : bool {
-        return $this->id > 0;
-    }
-
-    /*
-    |---------------------------
-    | UTILITY METHODS
-    |---------------------------
-    */
-
-    /**
-     * Convert this monetization to an associative array.
-     *
-     * @return array
-     */
-    public function to_array() : array{
-        return [
-            'id'         => $this->id,
-            'app_type'  => $this->app_type,
-            'app_id'    => $this->app_id,
-            'enabled'    => $this->enabled,
-            'tiers'      => array_map( function( $tier ) {
-                return $tier->to_array();
-            }, $this->tiers ),
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
-        ];
-    }
-
-    /**
-     * Hydratefrom array.
-     * 
-     * @param array $data
-     */
-    public static function from_array( array $data ) : static {
-        $static = new static();
-        $static->set_id( $data['id'] ?? 0 )
-            ->set_app_id( $data['app_id'] ?? '' )
-            ->set_app_type( $data['app_type'] ?? '' )
-            ->set_enabled( (bool) $data['enabled'] ?? false )
-            ->set_created_at( $data['created_at'] ?? '' )
-            ->set_updated_at( $data['updated_at'] ?? '' );
-        return $static;
-    }
-
-    /**
-     * Get the APP this monetization belongs to.
-     * 
-     * @return HostedAppsInterface|null
-     */
-    public function get_app() : ?HostedAppsInterface {
-        if ( empty( $this->app_type ) || empty( $this->app_id ) ) {
-            return null;
-        }
-
-        return HostedApplicationService::get_app_by_id( $this->app_type, $this->app_id );
-    }
-
-    /**
-     * Add a single pricing tier.
-     *
-     * @param PricingTier $tier
-     * @return static
-     */
-    public function add_tier( PricingTier $tier ) : static {
-        $t_id   = $tier->get_id();
-
-        $this->tiers[$t_id] = $tier;
-        return $this;
-    }
-
-    /**
-     * Remove the specified pricing tiers from the tiers list.
-     * 
-     * @param int[] $tier_ids Array of tier IDs to remove.
-     * @return static
-     */
-    public function remove_tiers( int ...$tier_ids ) : static {
-        foreach ( $tier_ids as $t_id ) {
-            $t_id   = static::sanitize_int( $t_id );
-            unset( $this->tiers[$t_id] );
-        }
-
-        return $this;
-    }
-
-    /**
-     * Find a pricing tier by its ID.
-     *
-     * @param int $tier_id
-     * @return PricingTier|null
-     */
-    public function get_tier( $tier_id ) : ?PricingTier {
-        $tier_id = static::sanitize_int( $tier_id );
-        return $this->tiers[$tier_id] ?? null;
-    }
+	use SanitizeAwareTrait, DatePropertyAwareTrait;
+	/**
+	 * The monetization ID.
+	 * 
+	 * @var int $id
+	 */
+	protected int $id = 0;
+
+	/**
+	 * App type (e.g. plugin, theme).
+	 * 
+	 * @var string $app_type
+	 */
+	protected string $app_type = '';
+
+	/**
+	 * The unique ID of the app this monetization belongs to.
+	 *
+	 * @var int
+	 */
+	protected int $app_id = 0;
+
+	/**
+	 * Whether this monetization is enabled.
+	 * 
+	 * @var bool $enabled
+	 */
+	protected bool $enabled = false;
+
+	/**
+	 * Collection of pricing tiers available for this monetization.
+	 *
+	 * @var array<int, PricingTier> $tiers Array of PricingTier objects, keyed by their ID.
+	 */
+	protected array $tiers = [];
+
+	/**
+	 * Date this monetization was created.
+	 * 
+	 * @var DateTimeImmutable|null $created_at
+	 */
+	protected ?DateTimeImmutable $created_at = null;
+
+	/**
+	 * Date this monetization was last updated.
+	 * 
+	 * @var DateTimeImmutable|null $updated_at
+	 */
+	protected ?DateTimeImmutable $updated_at = null;
+
+	/**
+	 * Constructor.
+	 */
+	public function __construct() {}
+
+	/*
+	|-----------
+	| GETTERS
+	|-----------
+	*/
+	/**
+	 * Get the monetization ID.
+	 *
+	 * @return int
+	 */
+	public function get_id() : int {
+		return $this->id;
+	}
+
+	/**
+	 * Get the app type (e.g. plugin, theme).
+	 * 
+	 * @return string
+	 */
+	public function get_app_type() : string {
+		return $this->app_type;
+	}
+
+	/**
+	 * Get the app ID this monetization belongs to.
+	 *
+	 * @return int
+	 */
+	public function get_app_id() : int {
+		return $this->app_id;
+	}
+
+	/**
+	 * Get the value of the enabled property.
+	 *
+	 * @return bool
+	 */
+	public function get_enabled() : bool {
+		return $this->enabled;
+	}
+
+	/**
+	 * Get all pricing tiers.
+	 *
+	 * @return PricingTier[]
+	 */
+	public function get_tiers() : array {
+		return $this->tiers;
+	}
+
+	/**
+	 * Get the creation date.
+	 * 
+	 * @return DateTimeImmutable|null
+	 */
+	public function get_created_at() : ?DateTimeImmutable {
+		return $this->created_at;
+	}
+
+	/**
+	 * Get the last update date.
+	 * 
+	 * @return DateTimeImmutable|null
+	 */
+	public function get_updated_at() : ?DateTimeImmutable {
+		return $this->updated_at;
+	}
+
+	/*
+	|-----------
+	| SETTERS
+	|-----------
+	*/
+	/**
+	 * Set the monetization ID.
+	 *
+	 * @param int $id
+	 * @return static
+	 */
+	public function set_id( $id ) : static {
+		$this->id = static::sanitize_int( $id );
+		return $this;
+	}
+
+	/**
+	 * Set the ID of the app associated with this monetization.
+	 * 
+	 * @param int $app_id
+	 * @return static
+	 */
+	public function set_app_id( $app_id ) : static {
+		$this->app_id = static::sanitize_int( $app_id );
+		return $this;
+	}
+
+	/**
+	 * Set the app type (e.g. plugin, theme).
+	 * 
+	 * @param string $app_type
+	 * @return static
+	 */
+	public function set_app_type( $app_type ) : static {
+		$this->app_type = static::sanitize_text( $app_type );
+		return $this;
+	}
+
+	/**
+	 * Set whether this monetization is enabled.
+	 *
+	 * @param bool $enabled
+	 * @return static
+	 */
+	public function set_enabled( $enabled ) : static {
+		$this->enabled = (bool) $enabled;
+		return $this;
+	}
+
+	/**
+	 * Assign multiple pricing tiers to this monetization.
+	 *
+	 * @param PricingTier[] $tiers
+	 * @return static
+	 */
+	public function set_tiers( array $tiers ) : static {
+		foreach ( $tiers as $tier ) {
+			if ( ! ( $tier instanceof PricingTier ) ) {
+				throw new \InvalidArgumentException( 'All elements of $tiers must be instances of "\SmartLicenseServer\Monetization\Monetization\PricingTier".' );
+			}
+
+			$this->add_tier( $tier );
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Set the creation date.
+	 * 
+	 * @param string $created_at
+	 * @return static
+	 */
+	public function set_created_at( $created_at ) : static {
+		$this->set_date_prop( $created_at, 'created_at' );
+		return $this;
+	}
+	/**
+	 * Set the last update date.
+	 * 
+	 * @param string $updated_at
+	 * @return static
+	 */
+	public function set_updated_at( $updated_at ) : static {
+		$this->set_date_prop( $updated_at, 'updated_at' );
+		return $this;
+	}
+
+	/*
+	|---------------------------
+	| CRUD METHODS
+	|---------------------------
+	*/
+
+	/**
+	 * Save or update this monetization record.
+	 *
+	 * @return bool True on success, false on failure.
+	 */
+	public function save() : bool {
+		return static::$DB->transactional( function ( Database $db ) {
+			$now  = new DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
+			$data = [
+				'app_type'   => $this->app_type,
+				'app_id'     => $this->app_id,
+				'enabled'    => $this->enabled ? 1 : 0,
+				'updated_at' => $now->format( 'Y-m-d H:i:s' ),
+			];
+
+			$lock_query = static::query()
+				->select( 'id' )->from( TableName::MONETIZATION->table() )
+				->where( 'id', '=', $this->get_id() )
+				->limit( 1 )->lock_for_update();
+			$id = (int) $db->get_var( $lock_query->build(), $lock_query->get_bindings() );
+
+			if ( $id ) {
+				// Update existing record
+				$updated = $db->update( TableName::MONETIZATION->table(), $data, [ 'id' => $id ] );
+
+				if ( false === $updated ) {
+					return false;
+				}
+
+			} else {
+				$data['created_at'] = $now->format( 'Y-m-d H:i:s' );
+				$inserted           = $db->insert( TableName::MONETIZATION->table(), $data );
+
+				if ( ! $inserted ) {
+					return false;
+				}
+
+				$this->set_id( $db->get_insert_id() );
+				$this->set_created_at( $now );
+			}
+
+			$this->set_updated_at( $now );
+
+			// Save tiers.
+			foreach ( $this->tiers as $tier ) {
+				if ( $tier instanceof PricingTier ) {
+					$tier->set_monetization_id( $this->id )->save();
+				}
+			}
+
+			return true;
+		} );
+	}
+
+	/**
+	 * Delete this monetization record and its pricing tiers.
+	 *
+	 * @return bool True on success, false on failure.
+	 * @throws Exception If a concurrent modification is detected or if database execution fails.
+	 */
+	public function delete() : bool {
+		if ( ! $this->id ) {
+			return false;
+		}
+
+		$monetization_table = TableName::MONETIZATION->table();
+		$pricing_tier_table = TableName::PRICING_TIERS->table();
+
+		$delete_monetn_sql = static::query()->delete( $monetization_table )->where( 'id', '=', $this->id );
+		$delete_tiers_sql  = static::query()->delete( $pricing_tier_table )->where( 'monetization_id', '=', $this->id );
+		
+		$deleted = false;
+
+		$lock_query = static::query()->select( 'id' )->from( $monetization_table )
+			->where( 'id', '=', $this->id )
+			->limit( 1 );
+	  
+		static::$DB->transactional( function( Database $db )
+		use ( $lock_query, $delete_monetn_sql, $delete_tiers_sql, &$deleted ) {
+			$lock_sql = $lock_query->lock_for_update()->build();
+			$exists   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
+
+			if ( ! $exists ) {
+				throw new Exception( 'delete_error', 'Record locked or already removed by concurrent request.' );
+			}
+
+			if ( false === $db->execute( $delete_tiers_sql->build(), $delete_tiers_sql->get_bindings() ) ) {
+				throw new Exception( 'delete_error', 'Database execution failure dropping pricing tiers.' );
+			}
+
+			if ( false === $db->execute( $delete_monetn_sql->build(), $delete_monetn_sql->get_bindings() ) ) {
+				throw new Exception( 'delete_error', 'Database execution failure dropping monetization record.' );
+			}
+			
+			$deleted = true;
+		} );
+
+		return $deleted;
+	}
+
+	/**
+	 * Delete a specific pricing tier and keep this monetization in sync.
+	 *
+	 * @param int $tier_id
+	 * @return bool True if successfully deleted, false otherwise.
+	 */
+	public function delete_tier( $tier_id ) : bool {
+		$tier = $this->get_tier( $tier_id );
+		if ( ! $tier ) {
+			return false;
+		}
+
+		// Delete from DB.
+		if ( ! $tier->delete() ) {
+			return false;
+		}
+
+		// Sync in-memory tiers list.
+		$this->remove_tiers( $tier_id );
+
+		return true;
+	}
+
+
+	/**
+	 * Get a monetization record by ID.
+	 *
+	 * @param int $id Monetization ID.
+	 * @return Monetization|null
+	 */
+	public static function get_by_id( int $id ) : ?static {
+		static $cache = [];
+
+		if ( array_key_exists( $id, $cache ) ) {
+			return $cache[$id];
+		}
+
+		$data = static::fetch_by( 'id', $id, TableName::MONETIZATION->table() );
+
+		if ( $data ) {
+			$static = static::from_array( $data );
+			$static->set_tiers( PricingTier::get_by_monetization_id( $id ) );
+		} else {
+			$static = null;
+		}
+
+		$cache[$id] = $static;
+
+		return $cache[$id];
+	}
+
+	/**
+	 * Get monetization record by App type + app ID.
+	 *
+	 * @param string $app_type
+	 * @param int|string $app_id
+	 * @return Monetization|null
+	 */
+	public static function get_by_app( $app_type, $app_id ) : ?static {
+		$table = TableName::MONETIZATION->table();
+
+		$sql = static::query()->select( '*' )->from( $table )
+			->where( 'app_type', '=', $app_type )
+			->where( 'app_id', '=', $app_id );
+		$row = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
+
+		if ( ! $row ) {
+			return null;
+		}
+
+		$static = new static();
+		$static->set_id( $row['id'] ?? 0 )
+			->set_app_id( $row['app_id'] ?? 0 )
+			->set_app_type( $row['app_type'] ?? '' )
+			->set_enabled( (bool) $row['enabled'] ?? false )
+			->set_created_at( $row['created_at'] ?? '' )
+			->set_updated_at( $row['updated_at'] ?? '' );
+
+		$static->set_tiers( PricingTier::get_by_monetization_id( $row['id'] ?? 0 ) );
+
+		return $static;
+	}
+
+	/*
+	|---------------------------
+	| CONDITIONAL METHODS
+	|---------------------------
+	*/
+
+	/**
+	 * Check if this monetization has any pricing tiers.
+	 *
+	 * @return bool
+	 */
+	public function has_tiers() : bool {
+		return ! empty( $this->tiers );
+	}
+
+	/**
+	 * Check if this monetization is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_enabled() : bool {
+		return $this->enabled;
+	}
+
+	/**
+	 * Check if this monetization is active (enabled and has tiers).
+	 *
+	 * @return bool
+	 */
+	public function is_active() : bool {
+		return $this->is_enabled() && $this->has_tiers();
+	}
+
+	/**
+	 * Check if this monetization exists in the database.
+	 * 
+	 * @return bool
+	 */
+	public function exists() : bool {
+		return $this->id > 0;
+	}
+
+	/*
+	|---------------------------
+	| UTILITY METHODS
+	|---------------------------
+	*/
+
+	/**
+	 * Convert this monetization to an associative array.
+	 *
+	 * @return array
+	 */
+	public function to_array() : array {
+		return [
+			'id'       => $this->id,
+			'app_type' => $this->app_type,
+			'app_id'   => $this->app_id,
+			'enabled'  => $this->enabled,
+			'tiers'    => array_map( function( $tier ) {
+				return $tier->to_array();
+			}, $this->tiers ),
+			'created_at' => $this->created_at,
+			'updated_at' => $this->updated_at,
+		];
+	}
+
+	/**
+	 * Hydratefrom array.
+	 * 
+	 * @param array $data
+	 */
+	public static function from_array( array $data ) : static {
+		$static = new static();
+		$static->set_id( $data['id'] ?? 0 )
+			->set_app_id( $data['app_id'] ?? '' )
+			->set_app_type( $data['app_type'] ?? '' )
+			->set_enabled( (bool) $data['enabled'] ?? false )
+			->set_created_at( $data['created_at'] ?? '' )
+			->set_updated_at( $data['updated_at'] ?? '' );
+		return $static;
+	}
+
+	/**
+	 * Get the APP this monetization belongs to.
+	 * 
+	 * @return HostedAppsInterface|null
+	 */
+	public function get_app() : ?HostedAppsInterface {
+		if ( empty( $this->app_type ) || empty( $this->app_id ) ) {
+			return null;
+		}
+
+		return HostedApplicationService::get_app_by_id( $this->app_type, $this->app_id );
+	}
+
+	/**
+	 * Add a single pricing tier.
+	 *
+	 * @param PricingTier $tier
+	 * @return static
+	 */
+	public function add_tier( PricingTier $tier ) : static {
+		$t_id = $tier->get_id();
+
+		$this->tiers[$t_id] = $tier;
+		return $this;
+	}
+
+	/**
+	 * Remove the specified pricing tiers from the tiers list.
+	 * 
+	 * @param int[] $tier_ids Array of tier IDs to remove.
+	 * @return static
+	 */
+	public function remove_tiers( int ...$tier_ids ) : static {
+		foreach ( $tier_ids as $t_id ) {
+			$t_id = static::sanitize_int( $t_id );
+			unset( $this->tiers[$t_id] );
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Find a pricing tier by its ID.
+	 *
+	 * @param int $tier_id
+	 * @return PricingTier|null
+	 */
+	public function get_tier( $tier_id ) : ?PricingTier {
+		$tier_id = static::sanitize_int( $tier_id );
+		return $this->tiers[$tier_id] ?? null;
+	}
 }

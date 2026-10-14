@@ -19,11 +19,11 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
     <?php smliser_print_admin_content_header( $menu_args ); ?>
     <?php if ( ! $message && $request->has( 'msg_id' ) ) : ?>
         <?php echo smliser_not_found_container(
-            sprintf(
-                'Invalid or deleted message. <a href="%s">Go Back</a>',
-                $urlmanager->admin_broadcasts_page_url()->url()
-            )
-        ); // phpcs:ignore ?>
+			sprintf(
+				'Invalid or deleted message. <a href="%s">Go Back</a>',
+				$urlmanager->admin_broadcasts_page_url()->url()
+			)
+		); // phpcs:ignore ?>
     <?php else : ?>
         <form class="smliser-compose-message-container" data-slug="broadcast-save">
             <div class="smliser-compose-message-container_left">

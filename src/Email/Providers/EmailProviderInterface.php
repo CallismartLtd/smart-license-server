@@ -16,44 +16,44 @@ use SmartLicenseServer\Email\EmailMessage;
 use SmartLicenseServer\Email\EmailResponse;
 use SmartLicenseServer\Exceptions\EmailTransportException;
 
-interface EmailProviderInterface extends ServiceProviderInterface{
+interface EmailProviderInterface extends ServiceProviderInterface {
 
-    /**
-     * Return required configuration fields.
-     *
-     * This allows the system to dynamically build a settings UI.
-     *
-     * Example return structure:
-     * [
-     *      'api_key' => [
-     *          'type'           => 'text',
-     *          'label'          => 'API Key',
-     *          'required'       => true,
-     *          'default'        => 'your api key' 
-     *          'description'    => 'Your provider API key.'
-     *      ]
-     * ]
-     *
-     * @return array<string, array<string, mixed>>
-     */
-    public static function get_settings_schema() : array;
+	/**
+	 * Return required configuration fields.
+	 *
+	 * This allows the system to dynamically build a settings UI.
+	 *
+	 * Example return structure:
+	 * [
+	 *      'api_key' => [
+	 *          'type'           => 'text',
+	 *          'label'          => 'API Key',
+	 *          'required'       => true,
+	 *          'default'        => 'your api key' 
+	 *          'description'    => 'Your provider API key.'
+	 *      ]
+	 * ]
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function get_settings_schema() : array;
 
-    /**
-     * Set provider configuration.
-     *
-     * @param array<string, mixed> $settings
-     * @return void
-     */
-    public function set_settings( array $settings ) : void;
+	/**
+	 * Set provider configuration.
+	 *
+	 * @param array<string, mixed> $settings
+	 * @return void
+	 */
+	public function set_settings( array $settings ) : void;
 
-    /**
-     * Send an email message.
-     *
-     * @param EmailMessage $message
-     * @return EmailResponse
-     *
-     * @throws EmailTransportException
-     */
-    public function send( EmailMessage $message ) : EmailResponse;
+	/**
+	 * Send an email message.
+	 *
+	 * @param EmailMessage $message
+	 * @return EmailResponse
+	 *
+	 * @throws EmailTransportException
+	 */
+	public function send( EmailMessage $message ) : EmailResponse;
 
 }

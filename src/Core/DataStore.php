@@ -22,153 +22,153 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * Provides unified API to manage data retrieved from the database
  */
 abstract class DataStore {
-    use SanitizeAwareTrait, CacheAwareTrait;
+	use SanitizeAwareTrait, CacheAwareTrait;
 
-    /**
-     * The active database abstraction layer.
-     * 
-     * @var Database $DB
-     */
-    protected static Database $DB;
+	/**
+	 * The active database abstraction layer.
+	 * 
+	 * @var Database $DB
+	 */
+	protected static Database $DB;
 
-    protected static Cache $cache;
+	protected static Cache $cache;
 
-    protected static URLManager $urlmanager;
+	protected static URLManager $urlmanager;
 
-    /**
-     * Get a single entity by an arbitrary column.
-     * 
-     * Intended for unique or near-unique lookups
-     * (e.g. identifier, slug, token).
-     * 
-     * @param string $column Column name.
-     * @param mixed  $value  Column value.
-     * @param string $table  Database table name.
-     */
-    protected static function fetch_by( string $column, mixed $value, string $table ) : ?array {
-        static::ensure_db();
-        
-        $column = self::sanitize_key( $column );
+	/**
+	 * Get a single entity by an arbitrary column.
+	 * 
+	 * Intended for unique or near-unique lookups
+	 * (e.g. identifier, slug, token).
+	 * 
+	 * @param string $column Column name.
+	 * @param mixed  $value  Column value.
+	 * @param string $table  Database table name.
+	 */
+	protected static function fetch_by( string $column, mixed $value, string $table ) : ?array {
+		static::ensure_db();
+		
+		$column = self::sanitize_key( $column );
 
-        if ( empty( $column ) ) {
-            return null;
-        }
+		if ( empty( $column ) ) {
+			return null;
+		}
 
-        $sql    = static::query()
-            ->select()->from( $table )
-            ->where( $column, '=', $value )->limit(1);
+		$sql = static::query()
+			->select()->from( $table )
+			->where( $column, '=', $value )->limit( 1 );
 
-        return static::$DB->get_row( $sql->build(), $sql->get_bindings() );
-    }
+		return static::$DB->get_row( $sql->build(), $sql->get_bindings() );
+	}
 
-    /**
-     * Get entries from a given table.
-     * 
-     * Use sparingly. Intended for admin or
-     * internal system operations.
-     * 
-     * @param string $table     The target table name.
-     * @param int $page         The pagination number.
-     * @param int $limit        The maximum record to fetch
-     * @return array<int,array>
-     */
-    protected static function fetch( string $table, int $page = 1, int $limit = 25 ) : array {
-        static::ensure_db();
+	/**
+	 * Get entries from a given table.
+	 * 
+	 * Use sparingly. Intended for admin or
+	 * internal system operations.
+	 * 
+	 * @param string $table     The target table name.
+	 * @param int $page         The pagination number.
+	 * @param int $limit        The maximum record to fetch
+	 * @return array<int,array>
+	 */
+	protected static function fetch( string $table, int $page = 1, int $limit = 25 ) : array {
+		static::ensure_db();
 
-        $offset = static::$DB->calculate_query_offset( $page, $limit );
-        $sql    = static::query()
-            ->select()->from( $table )
-            ->limit( $limit )->offset( $offset );
-        
-        return static::$DB->get_results( $sql->build(), $sql->get_bindings() );
+		$offset = static::$DB->calculate_query_offset( $page, $limit );
+		$sql    = static::query()
+			->select()->from( $table )
+			->limit( $limit )->offset( $offset );
+		
+		return static::$DB->get_results( $sql->build(), $sql->get_bindings() );
 
-    }
+	}
 
 
-    final public static function set_database( Database $database ): void {
-        if ( isset( static::$DB ) ) {
-            throw new RuntimeException(
-                'The DataStore database has already been initialized.'
-            );
-        }
+	final public static function set_database( Database $database ) : void {
+		if ( isset( static::$DB ) ) {
+			throw new RuntimeException(
+				'The DataStore database has already been initialized.'
+			);
+		}
 
-        static::$DB = $database;
-    }
+		static::$DB = $database;
+	}
 
-    final public static function set_cache( Cache $cache ): void {
-        if ( isset( static::$cache ) ) {
-            throw new RuntimeException(
-                'The DataStore cache has already been initialized.'
-            );
-        }
+	final public static function set_cache( Cache $cache ) : void {
+		if ( isset( static::$cache ) ) {
+			throw new RuntimeException(
+				'The DataStore cache has already been initialized.'
+			);
+		}
 
-        static::$cache = $cache;
-    }
+		static::$cache = $cache;
+	}
 
-    final public static function set_urlmanager( URLManager $urlmanager ) : void {
-        if ( isset( static::$urlmanager ) ) {
-            throw new RuntimeException(
-                'The url manager has already been initialized.'
-            );
-        }
+	final public static function set_urlmanager( URLManager $urlmanager ) : void {
+		if ( isset( static::$urlmanager ) ) {
+			throw new RuntimeException(
+				'The url manager has already been initialized.'
+			);
+		}
 
-        static::$urlmanager = $urlmanager;
-    }
+		static::$urlmanager = $urlmanager;
+	}
 
-    /**
-     * Helper method to hydrate from array.
-     * 
-     * Use only when child class's `set_*` methods matches
-     * column names.
-     * 
-     * @param string $table The database table name.
-     * @param array $data
-     * @return static
-     */
-    protected static function from_array_helper( string $table, array $data ) : static {
-        $self   = new static();
-        $cols   = SchemaRegistry::instance()->get_table_column_names( $table );
-        foreach ( $cols as $col ) {
-            if ( ! isset( $data[$col] ) ) {
-                continue;
-            }
+	/**
+	 * Helper method to hydrate from array.
+	 * 
+	 * Use only when child class's `set_*` methods matches
+	 * column names.
+	 * 
+	 * @param string $table The database table name.
+	 * @param array $data
+	 * @return static
+	 */
+	protected static function from_array_helper( string $table, array $data ) : static {
+		$self = new static();
+		$cols = SchemaRegistry::instance()->get_table_column_names( $table );
+		foreach ( $cols as $col ) {
+			if ( ! isset( $data[$col] ) ) {
+				continue;
+			}
 
-            $method = "set_{$col}";
+			$method = "set_{$col}";
 
-            if ( is_callable( [$self, $method] ) ) {
-                $self->{$method}( $data[$col] );
-            }
-        }
-        
-        return $self;
-    }
+			if ( is_callable( [$self, $method] ) ) {
+				$self->{$method}( $data[$col] );
+			}
+		}
+		
+		return $self;
+	}
 
-    protected static function query() : SQLBuilder {
-        return \smliserQueryBuilder( static::$DB->get_driver() );
-    }
+	protected static function query() : SQLBuilder {
+		return \smliserQueryBuilder( static::$DB->get_driver() );
+	}
 
-    /**
-     * Ensure dbal has been initialized.
-     * 
-     * @throws RuntimeException
-     */
-    protected static function ensure_db() : void {
-        if ( isset( static::$DB ) ) {
-            return;
-        }
+	/**
+	 * Ensure dbal has been initialized.
+	 * 
+	 * @throws RuntimeException
+	 */
+	protected static function ensure_db() : void {
+		if ( isset( static::$DB ) ) {
+			return;
+		}
 
-        throw new RuntimeException(
-            'The database abstraction layer must be set early.'
-        );
-    }
-    
-    protected static function ensure_cache() : void {
-        if ( isset( static::$cache ) ) {
-            return;
-        }
+		throw new RuntimeException(
+			'The database abstraction layer must be set early.'
+		);
+	}
+	
+	protected static function ensure_cache() : void {
+		if ( isset( static::$cache ) ) {
+			return;
+		}
 
-        throw new \RuntimeException(
-            'The cache abstraction layer must be set early.'
-        );
-    }
+		throw new \RuntimeException(
+			'The cache abstraction layer must be set early.'
+		);
+	}
 }

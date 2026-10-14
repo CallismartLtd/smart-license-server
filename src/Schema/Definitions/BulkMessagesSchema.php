@@ -24,83 +24,83 @@ use Callismart\DBPrism\Utils\DefaultColumnValue;
  */
 class BulkMessagesSchema implements DatabaseSchemaInterface {
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_label() : string {
-        return 'Bulk Messages';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_label() : string {
+		return 'Bulk Messages';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_description() : string {
-        return 'Stores bulk messages.';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_description() : string {
+		return 'Stores bulk messages.';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_table_name() : string {
-        return TableName::BULK_MESSAGES->value;
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_table_name() : string {
+		return TableName::BULK_MESSAGES->value;
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_columns() : array {
-        return [
-            Column::make( 'id' )
-                ->type( ColumnType::BIG_INT )
-                ->auto_increment()
-                ->required(),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_columns() : array {
+		return [
+			Column::make( 'id' )
+				->type( ColumnType::BIG_INT )
+				->auto_increment()
+				->required(),
 
-            Column::make( 'message_id' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 64 )
-                ->default( null ),
+			Column::make( 'message_id' )
+				->type( ColumnType::VARCHAR )
+				->size( 64 )
+				->default( null ),
 
-            Column::make( 'subject' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 255 )
-                ->required(),
+			Column::make( 'subject' )
+				->type( ColumnType::VARCHAR )
+				->size( 255 )
+				->required(),
 
-            Column::make( 'body' )
-                ->type( ColumnType::LONG_TEXT )
-                ->default( null ),
+			Column::make( 'body' )
+				->type( ColumnType::LONG_TEXT )
+				->default( null ),
 
-            Column::make( 'created_at' )
-                ->type( ColumnType::DATETIME )
-                ->default( null ),
+			Column::make( 'created_at' )
+				->type( ColumnType::DATETIME )
+				->default( null ),
 
-            Column::make( 'updated_at' )
-                ->type( ColumnType::DATETIME )
-                ->required()
-                ->default( DefaultColumnValue::expression( 'CURRENT_TIMESTAMP' ) )
-                ->comment( 'on_update CURRENT_TIMESTAMP' ),
+			Column::make( 'updated_at' )
+				->type( ColumnType::DATETIME )
+				->required()
+				->default( DefaultColumnValue::expression( 'CURRENT_TIMESTAMP' ) )
+				->comment( 'on_update CURRENT_TIMESTAMP' ),
 
-            Column::make( 'is_read' )
-                ->type( ColumnType::INTEGER )
-                ->size( 1 )
-                ->default( 0 ),
-        ];
-    }
+			Column::make( 'is_read' )
+				->type( ColumnType::INTEGER )
+				->size( 1 )
+				->default( 0 ),
+		];
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_constraints() : array {
-        $prefx  = static::constraintPrefix();
-        return [
-            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
-            Constraint::unique( "{$prefx}unique" )->on( 'message_id' ),
-            Constraint::index( "{$prefx}smliser_bulk_msg_created_at" )->on( 'created_at' ),
-            Constraint::index( "{$prefx}smliser_bulk_msg_updated_at" )->on( 'updated_at' ),
-            Constraint::index( "{$prefx}smliser_msg_id_lookup" )->on( 'message_id' ),
-        ];
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_constraints() : array {
+		$prefx = static::constraintPrefix();
+		return [
+			Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+			Constraint::unique( "{$prefx}unique" )->on( 'message_id' ),
+			Constraint::index( "{$prefx}smliser_bulk_msg_created_at" )->on( 'created_at' ),
+			Constraint::index( "{$prefx}smliser_bulk_msg_updated_at" )->on( 'updated_at' ),
+			Constraint::index( "{$prefx}smliser_msg_id_lookup" )->on( 'message_id' ),
+		];
+	}
 
-    protected static function constraintPrefix() {
-        return 'smliser_bulkmsgs_schema_';
-    }
+	protected static function constraintPrefix() {
+		return 'smliser_bulkmsgs_schema_';
+	}
 }

@@ -17,63 +17,63 @@ use SmartLicenseServer\Email\Templates\EmailTemplate;
 
 class PaymentReceivedEmail extends EmailTemplate {
 
-    /**
-     * @param string $to               Recipient email address.
-     * @param string $recipient_name   Name of the recipient.
-     * @param string $amount           Formatted payment amount (e.g. "$49.00").
-     * @param string $currency         Currency code (e.g. "USD").
-     * @param string $transaction_id   The payment transaction ID.
-     * @param string $payment_date     The date the payment was made.
-     * @param string $description      Description of what was paid for.
-     */
-    public function __construct(
-        private readonly string $to,
-        private readonly string $recipient_name,
-        private readonly string $amount,
-        private readonly string $currency,
-        private readonly string $transaction_id,
-        private readonly string $payment_date,
-        private readonly string $description
-    ) {}
+	/**
+	 * @param string $to               Recipient email address.
+	 * @param string $recipient_name   Name of the recipient.
+	 * @param string $amount           Formatted payment amount (e.g. "$49.00").
+	 * @param string $currency         Currency code (e.g. "USD").
+	 * @param string $transaction_id   The payment transaction ID.
+	 * @param string $payment_date     The date the payment was made.
+	 * @param string $description      Description of what was paid for.
+	 */
+	public function __construct(
+		private readonly string $to,
+		private readonly string $recipient_name,
+		private readonly string $amount,
+		private readonly string $currency,
+		private readonly string $transaction_id,
+		private readonly string $payment_date,
+		private readonly string $description
+	) {}
 
-    static public function template_key(): string {
-        return 'payment_received';
-    }
+	static public function template_key() : string {
+		return 'payment_received';
+	}
 
-    protected function subject(): string {
-        return 'Payment Received — Thank You';
-    }
+	protected function subject() : string {
+		return 'Payment Received — Thank You';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "We have received your payment of {$this->amount} {$this->currency}. Your receipt is inside.";
-    }
+	protected function preheader() : string {
+		return "We have received your payment of {$this->amount} {$this->currency}. Your receipt is inside.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{recipient_name}}' => $this->recipient_name,
-            '{{amount}}'         => $this->amount,
-            '{{currency}}'       => $this->currency,
-            '{{transaction_id}}' => $this->transaction_id,
-            '{{payment_date}}'   => $this->payment_date,
-            '{{description}}'    => $this->description,
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{recipient_name}}' => $this->recipient_name,
+			'{{amount}}'         => $this->amount,
+			'{{currency}}'       => $this->currency,
+			'{{transaction_id}}' => $this->transaction_id,
+			'{{payment_date}}'   => $this->payment_date,
+			'{{description}}'    => $this->description,
+		] );
+	}
 
-    protected function body(): string {
-        $vars           = $this->variables();
-        $recipient_name = \escHtml( $vars['{{recipient_name}}'] );
-        $amount         = \escHtml( $vars['{{amount}}'] );
-        $currency       = \escHtml( $vars['{{currency}}'] );
-        $transaction_id = \escHtml( $vars['{{transaction_id}}'] );
-        $payment_date   = \escHtml( $vars['{{payment_date}}'] );
-        $description    = \escHtml( $vars['{{description}}'] );
-        $support        = \escHtml( $vars['{{support_email}}'] );
+	protected function body() : string {
+		$vars           = $this->variables();
+		$recipient_name = \escHtml( $vars['{{recipient_name}}'] );
+		$amount         = \escHtml( $vars['{{amount}}'] );
+		$currency       = \escHtml( $vars['{{currency}}'] );
+		$transaction_id = \escHtml( $vars['{{transaction_id}}'] );
+		$payment_date   = \escHtml( $vars['{{payment_date}}'] );
+		$description    = \escHtml( $vars['{{description}}'] );
+		$support        = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$recipient_name},
         </p>
@@ -151,69 +151,69 @@ class PaymentReceivedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Payment Received';
-    }
-    public function description(): string {
-        return 'Sent when a payment is confirmed successfully.';
-    }
-    public static function preview(): static {
-        return new static(
-            'preview@example.com',
-            'Jane Doe',
-            '$49.00',
-            'USD',
-            'TXN-XXXXXXXXXXXX',
-            gmdate( 'D, d M Y' ),
-            'License renewal — My Awesome Plugin (Pro)'
-        );
-    }
+	public function label() : string {
+		return 'Payment Received';
+	}
+	public function description() : string {
+		return 'Sent when a payment is confirmed successfully.';
+	}
+	public static function preview() : static {
+		return new static(
+			'preview@example.com',
+			'Jane Doe',
+			'$49.00',
+			'USD',
+			'TXN-XXXXXXXXXXXX',
+			gmdate( 'D, d M Y' ),
+			'License renewal — My Awesome Plugin (Pro)'
+		);
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{recipient_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'intro',
-                'type'      => 'text',
-                'content'   => 'Thank you for your payment. We have received it successfully and your account has been updated accordingly.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'success',
-                'content'   => 'Amount Paid: {{amount}} {{currency}}',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Transaction ID', 'value' => '{{transaction_id}}' ],
-                    [ 'label' => 'Payment Date',   'value' => '{{payment_date}}' ],
-                    [ 'label' => 'Amount',         'value' => '{{amount}} {{currency}}' ],
-                    [ 'label' => 'Description',    'value' => '{{description}}' ],
-                ],
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'Please keep this email as your receipt. If you have any questions about this payment, contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{recipient_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'intro',
+				'type'      => 'text',
+				'content'   => 'Thank you for your payment. We have received it successfully and your account has been updated accordingly.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'success',
+				'content'   => 'Amount Paid: {{amount}} {{currency}}',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Transaction ID', 'value' => '{{transaction_id}}' ],
+					[ 'label' => 'Payment Date',   'value' => '{{payment_date}}' ],
+					[ 'label' => 'Amount',         'value' => '{{amount}} {{currency}}' ],
+					[ 'label' => 'Description',    'value' => '{{description}}' ],
+				],
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'Please keep this email as your receipt. If you have any questions about this payment, contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

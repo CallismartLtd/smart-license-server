@@ -19,68 +19,68 @@ use SmartLicenseServer\Security\Context\Guard;
  */
 class AdminAccessMiddleware implements MiddlewareInterface {
 
-    /**
-     * Class constructor
-     */
-    public function __construct( protected Guard $guard, protected URLManager $urlmanager ) {}
+	/**
+	 * Class constructor
+	 */
+	public function __construct( protected Guard $guard, protected URLManager $urlmanager ) {}
 
-    /**
-     * {@inheritdoc}
-     * 
-     * Perform authentication and authorization checks.
-     */
-    public function handle( Request $request, callable $next ) : mixed {
-        
-        // Handle unauthenticated state
-        if ( ! $this->guard->has_principal() ) {
-            if ( $request->wantsJson() ) {
-                return Response::json( [
-                    'success' => false,
-                    'message' => 'Unauthenticated access. Please log in to continue.',
-                    'code'    => 'UNAUTHENTICATED',
-                ], 401 );
-            }
+	/**
+	 * {@inheritdoc}
+	 * 
+	 * Perform authentication and authorization checks.
+	 */
+	public function handle( Request $request, callable $next ) : mixed {
+		
+		// Handle unauthenticated state
+		if ( ! $this->guard->has_principal() ) {
+			if ( $request->wantsJson() ) {
+				return Response::json( [
+					'success' => false,
+					'message' => 'Unauthenticated access. Please log in to continue.',
+					'code'    => 'UNAUTHENTICATED',
+				], 401 );
+			}
 
-            $is_mutation = in_array( $request->method(), [ Request::POST, Request::PATCH, Request::PUT, Request::DELETE ], true );
-            $return_url  = \smliser_get_current_url();
+			$is_mutation = in_array( $request->method(), [ Request::POST, Request::PATCH, Request::PUT, Request::DELETE ], true );
+			$return_url  = \smliser_get_current_url();
 
-            // Form submission after logged out? Preserve original referer if valid
-            if ( $is_mutation && $request->referer() ) {
-                $referer_url = URL::from( $request->referer() );
-                if ( $referer_url->is_valid() ) {
-                    $return_url = $referer_url;
-                }
-            }
+			// Form submission after logged out? Preserve original referer if valid
+			if ( $is_mutation && $request->referer() ) {
+				$referer_url = URL::from( $request->referer() );
+				if ( $referer_url->is_valid() ) {
+					$return_url = $referer_url;
+				}
+			}
 
-            // Prevent open redirect attack.
-            $app_origin = $this->urlmanager->url( '/' )->get_origin();
-            if ( ! $return_url->is_valid() || $return_url->get_origin() !== $app_origin ) {
-                $return_url = \smliser_get_current_url();
-            }
+			// Prevent open redirect attack.
+			$app_origin = $this->urlmanager->url( '/' )->get_origin();
+			if ( ! $return_url->is_valid() || $return_url->get_origin() !== $app_origin ) {
+				$return_url = \smliser_get_current_url();
+			}
 
-            $location = $this->urlmanager->login_url()->add_query_param( 'redirect_url', $return_url->url() );
-            
-            // Use 307 for POST/PUT/PATCH/DELETE to preserve method + body payload; use 302 for GET/HEAD
-            $status_code = $is_mutation ? 307 : 302;
+			$location = $this->urlmanager->login_url()->add_query_param( 'redirect_url', $return_url->url() );
+			
+			// Use 307 for POST/PUT/PATCH/DELETE to preserve method + body payload; use 302 for GET/HEAD
+			$status_code = $is_mutation ? 307 : 302;
 
-            return Response::make( '', $status_code )
-                ->set_header( 'Location', $location->url() );
-        }
+			return Response::make( '', $status_code )
+				->set_header( 'Location', $location->url() );
+		}
 
-        // Handle authenticated users without admin privileges
-        if ( ! $this->guard->get_principal()->is( 'system_admin' ) ) {
-            if ( $request->wantsJson() ) {
-                return Response::json( [
-                    'success' => false,
-                    'message' => 'Unauthorized access. System admin privileges required.',
-                    'code'    => 'UNAUTHORIZED',
-                ], 403 );
-            }
+		// Handle authenticated users without admin privileges
+		if ( ! $this->guard->get_principal()->is( 'system_admin' ) ) {
+			if ( $request->wantsJson() ) {
+				return Response::json( [
+					'success' => false,
+					'message' => 'Unauthorized access. System admin privileges required.',
+					'code'    => 'UNAUTHORIZED',
+				], 403 );
+			}
 
-            return Response::make( '', 302 )
-                ->set_header( 'Location', $this->urlmanager->client_dashboard_url()->url() );
-        }
+			return Response::make( '', 302 )
+				->set_header( 'Location', $this->urlmanager->client_dashboard_url()->url() );
+		}
 
-        return $next( $request );
-    }
+		return $next( $request );
+	}
 }

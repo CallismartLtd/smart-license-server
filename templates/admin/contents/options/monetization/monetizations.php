@@ -17,20 +17,20 @@
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
-defined( 'SMLISER_ROOT' ) || exit; 
+defined( 'SMLISER_ROOT' ) || exit;
 
-$args   = $page_handler->get_menu_args( $request );
+$args = $page_handler->get_menu_args( $request );
 
-$current_label  = end( $args['breadcrumbs'] )['label'];
-$args['breadcrumbs'][1]  = array(
-    'label' => $current_label,
-    'url'   => smliser_get_current_url()->remove_query_param( 'provider' ),
-    'icon'  => 'ti ti-basket-dollar'
+$current_label          = end( $args['breadcrumbs'] )['label'];
+$args['breadcrumbs'][1] = [
+	'label' => $current_label,
+	'url'   => smliser_get_current_url()->remove_query_param( 'provider' ),
+	'icon'  => 'ti ti-basket-dollar'
 
-);
+];
 
-$args['breadcrumbs'][2]['label']   = $name;
-$current_url = smliser_get_current_url()->remove_query_param( 'message', 'section', 'provider' );
+$args['breadcrumbs'][2]['label'] = $name;
+$current_url                     = smliser_get_current_url()->remove_query_param( 'message', 'section', 'provider' );
 
 ?>
 <div class="smliser-admin-page">
@@ -38,10 +38,10 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
     <?php if ( ! $provider ) : ?>
         <?php printf(
-            smliser_not_found_container( 'The email provider "%s" does not exists. <a href="%s">Go Back</a>' ),
-            $provider_key,
-            $current_url
-        ); ?>
+			smliser_not_found_container( 'The email provider "%s" does not exists. <a href="%s">Go Back</a>' ),
+			$provider_key,
+			$current_url
+		); ?>
     <?php else: ?>
 
         <?php if ( $saved = $request->get( 'message' ) ):?>

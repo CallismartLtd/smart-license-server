@@ -44,7 +44,7 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function authenticate(): ?Principal {
+	public function authenticate() : ?Principal {
 		$session = $this->sessions->resolve();
 
 		if ( null === $session ) {
@@ -79,7 +79,7 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 			return null;
 		}
 
-		$principal	= new Principal( $user, $role, $owner );
+		$principal = new Principal( $user, $role, $owner );
 
 		$this->guard->set_principal( $principal );
 
@@ -93,7 +93,7 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 		string $email,
 		#[\SensitiveParameter] string $pwd,
 		bool $remember = false
-	): RequestException|Principal {
+	) : RequestException|Principal {
 
 		$auth_result = ( new UserAuthenticator( $email, $pwd ) )->authenticate();
 
@@ -116,7 +116,7 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 			$remember
 		);
 
-		$principal	= new Principal(
+		$principal = new Principal(
 			$auth_result->actor,
 			$auth_result->role,
 			$auth_result->owner
@@ -130,7 +130,7 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function signup( Request $request ): RequestException|Principal {
+	public function signup( Request $request ) : RequestException|Principal {
 		$email = trim( (string) $request->get( 'email', '' ) );
 
 		if ( '' === $email || false === filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
@@ -177,7 +177,7 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 	 *
 	 * Signs out this browser only; sessions on other devices stay valid.
 	 */
-	public function logout(): void {
+	public function logout() : void {
 		$this->sessions->invalidate();
 	}
 
@@ -190,7 +190,7 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 	 *
 	 * @return void
 	 */
-	public function logout_everywhere(): void {
+	public function logout_everywhere() : void {
 		$session = $this->sessions->resolve();
 		$user    = null !== $session ? User::get_by_id( $session->principal_id ) : null;
 
@@ -204,7 +204,7 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function reset_password( User $user, #[\SensitiveParameter] string $new_pwd ): bool {
+	public function reset_password( User $user, #[\SensitiveParameter] string $new_pwd ) : bool {
 		$this->accounts->change_password( $user, $new_pwd );
 
 		// Whoever held the old password may hold a session: end them all.

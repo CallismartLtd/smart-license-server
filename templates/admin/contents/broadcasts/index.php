@@ -11,7 +11,7 @@
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
 
-unset( $menu_args['breadcrumbs'][0] ); 
+unset( $menu_args['breadcrumbs'][0] );
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
 

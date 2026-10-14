@@ -86,7 +86,7 @@ class Scheduler {
 	 * @param callable $callable Any PHP callable.
 	 * @return ScheduledTask Fluent - chain schedule methods on the returned object.
 	 */
-	public function call( string $id, callable $callable ): ScheduledTask {
+	public function call( string $id, callable $callable ) : ScheduledTask {
 		$task = new ScheduledTask( $id, $callable );
 		$this->register( $task );
 
@@ -113,7 +113,7 @@ class Scheduler {
 		string $job_class,
 		array $payload = [],
 		string $queue = JobDTO::QUEUE_LOW
-	): ScheduledTask {
+	) : ScheduledTask {
 		$task = new ScheduledTask(
 			$job_class,
 			function() use ( $job_class, $payload, $queue ) {
@@ -140,7 +140,7 @@ class Scheduler {
 	 * @param ScheduledTask $task
 	 * @return void
 	 */
-	public function register( ScheduledTask $task ): void {
+	public function register( ScheduledTask $task ) : void {
 		$this->tasks[ $task->get_id() ] = $task;
 	}
 
@@ -152,7 +152,7 @@ class Scheduler {
 	 * @param string $task_id
 	 * @return bool True if found and removed, false otherwise.
 	 */
-	public function unregister( string $task_id ): bool {
+	public function unregister( string $task_id ) : bool {
 		if ( ! isset( $this->tasks[ $task_id ] ) ) {
 			return false;
 		}
@@ -183,7 +183,7 @@ class Scheduler {
 	 *
 	 * @return array<string, bool> Map of task_id => success for tasks that ran.
 	 */
-	public function run_due_tasks(): array {
+	public function run_due_tasks() : array {
 		$results = [];
 
 		foreach ( $this->get_due_tasks() as $id => $task ) {
@@ -203,7 +203,7 @@ class Scheduler {
 	 * @return string|null Null on success; the error message on failure.
 	 * @throws \InvalidArgumentException When no task has this ID.
 	 */
-	public function run_task( string $task_id ): ?string {
+	public function run_task( string $task_id ) : ?string {
 		$task = $this->get_task( $task_id );
 
 		if ( null === $task ) {
@@ -234,7 +234,7 @@ class Scheduler {
 	 *
 	 * @return array<string, ScheduledTask>
 	 */
-	public function get_tasks(): array {
+	public function get_tasks() : array {
 		return $this->tasks;
 	}
 
@@ -244,7 +244,7 @@ class Scheduler {
 	 * @param string $task_id
 	 * @return ScheduledTask|null
 	 */
-	public function get_task( string $task_id ): ?ScheduledTask {
+	public function get_task( string $task_id ) : ?ScheduledTask {
 		return $this->tasks[ $task_id ] ?? null;
 	}
 
@@ -254,7 +254,7 @@ class Scheduler {
 	 * @param string $task_id
 	 * @return bool
 	 */
-	public function has_task( string $task_id ): bool {
+	public function has_task( string $task_id ) : bool {
 		return isset( $this->tasks[ $task_id ] );
 	}
 
@@ -263,7 +263,7 @@ class Scheduler {
 	 *
 	 * @return array<string, ScheduledTask>
 	 */
-	public function get_due_tasks(): array {
+	public function get_due_tasks() : array {
 		$due = [];
 
 		foreach ( $this->tasks as $id => $task ) {
@@ -287,7 +287,7 @@ class Scheduler {
 	 *     last_error:  string|null,
 	 * }
 	 */
-	public function get_task_state( string $task_id ): array {
+	public function get_task_state( string $task_id ) : array {
 		$state = $this->get_persisted_state();
 
 		$raw = $state[ $task_id ] ?? null;
@@ -327,7 +327,7 @@ class Scheduler {
 	 *     }
 	 * }>
 	 */
-	public function get_tasks_with_state(): array {
+	public function get_tasks_with_state() : array {
 		$result = [];
 
 		foreach ( $this->tasks as $id => $task ) {
@@ -355,7 +355,7 @@ class Scheduler {
 	 *     last_error?: string|null
 	 * }>
 	 */
-	protected function get_persisted_state(): array {
+	protected function get_persisted_state() : array {
 		$state = $this->settings->get( static::STATE_KEY, [] );
 
 		return is_array( $state ) ? $state : [];
@@ -367,7 +367,7 @@ class Scheduler {
 	 * @param array<string, array<string, mixed>> $state
 	 * @return void
 	 */
-	protected function set_persisted_state( array $state ): void {
+	protected function set_persisted_state( array $state ) : void {
 		$this->settings->set( static::STATE_KEY, $state );
 	}
 
@@ -380,7 +380,7 @@ class Scheduler {
 	 *
 	 * @return void
 	 */
-	protected function synchronize_state(): void {
+	protected function synchronize_state() : void {
 		$state = $this->get_persisted_state();
 
 		foreach ( array_keys( $state ) as $task_id ) {
@@ -398,7 +398,7 @@ class Scheduler {
 	 * @param string $task_id
 	 * @return void
 	 */
-	protected function remove_task_state( string $task_id ): void {
+	protected function remove_task_state( string $task_id ) : void {
 		$state = $this->get_persisted_state();
 
 		if ( ! array_key_exists( $task_id, $state ) ) {
@@ -417,9 +417,9 @@ class Scheduler {
 	 * @param ScheduledTask $task
 	 * @return void
 	 */
-	public function record_task_ran( string $task_id, ScheduledTask $task ): void {
-		$now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
-		$next_run   = $task->compute_next_run( $now );
+	public function record_task_ran( string $task_id, ScheduledTask $task ) : void {
+		$now      = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+		$next_run = $task->compute_next_run( $now );
 
 		$state = $this->get_persisted_state();
 
@@ -442,7 +442,7 @@ class Scheduler {
 	 * @param string $error_message
 	 * @return void
 	 */
-	public function record_task_failed( string $task_id, string $error_message ): void {
+	public function record_task_failed( string $task_id, string $error_message ) : void {
 		$state = $this->get_persisted_state();
 
 		$existing = $state[ $task_id ] ?? [];
@@ -471,7 +471,7 @@ class Scheduler {
 	 *
 	 * @return void
 	 */
-	protected function load_core_tasks(): void {
+	protected function load_core_tasks() : void {
 		// Prune raw analytics log entries weekly.
 		$this->call(
 			'prune_analytics_logs',

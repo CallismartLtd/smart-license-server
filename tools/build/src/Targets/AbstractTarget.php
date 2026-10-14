@@ -40,7 +40,7 @@ abstract class AbstractTarget {
 	 *
 	 * @return string
 	 */
-	abstract public function name(): string;
+	abstract public function name() : string;
 
 	/**
 	 * The `src/Environments/<name>` subdirectory this target keeps.
@@ -50,14 +50,14 @@ abstract class AbstractTarget {
 	 *
 	 * @return string
 	 */
-	abstract public function environment(): string;
+	abstract public function environment() : string;
 
 	/**
 	 * Build-relative runtime directory. Empty string means the build root.
 	 *
 	 * @return string
 	 */
-	abstract public function runtime_path(): string;
+	abstract public function runtime_path() : string;
 
 	/**
 	 * Entry files generated for this target.
@@ -65,18 +65,18 @@ abstract class AbstractTarget {
 	 * @param BuildContext $context Build context.
 	 * @return array<string, array{contents: string, mode: int}> Build-relative path => file.
 	 */
-	abstract public function generated_files( BuildContext $context ): array;
+	abstract public function generated_files( BuildContext $context ) : array;
 
 	/**
 	 * Repository files copied as-is, repository-relative => build-relative.
 	 *
 	 * @return array<string, string>
 	 */
-	public function root_files(): array {
-		return array(
+	public function root_files() : array {
+		return [
 			'LICENSE'      => 'LICENSE',
 			'changelog.md' => 'changelog.md',
-		);
+		];
 	}
 
 	/**
@@ -84,7 +84,7 @@ abstract class AbstractTarget {
 	 *
 	 * @return bool
 	 */
-	public function installs_dependencies(): bool {
+	public function installs_dependencies() : bool {
 		return true;
 	}
 
@@ -93,7 +93,7 @@ abstract class AbstractTarget {
 	 *
 	 * @return bool
 	 */
-	public function minify_assets(): bool {
+	public function minify_assets() : bool {
 		return true;
 	}
 
@@ -103,14 +103,14 @@ abstract class AbstractTarget {
 	 * @param BuildContext $context Build context.
 	 * @param BuildConsole $console Console.
 	 */
-	public function after_build( BuildContext $context, BuildConsole $console ): void {}
+	public function after_build( BuildContext $context, BuildConsole $console ) : void {}
 
 	/**
 	 * Build-relative core directory.
 	 *
 	 * @return string
 	 */
-	final public function core_path(): string {
+	final public function core_path() : string {
 		return BuildContext::join( $this->runtime_path(), self::CORE_DIR );
 	}
 
@@ -119,7 +119,7 @@ abstract class AbstractTarget {
 	 *
 	 * @return string
 	 */
-	final public function templates_path(): string {
+	final public function templates_path() : string {
 		return BuildContext::join( $this->runtime_path(), 'templates' );
 	}
 
@@ -128,7 +128,7 @@ abstract class AbstractTarget {
 	 *
 	 * @return string
 	 */
-	final public function assets_path(): string {
+	final public function assets_path() : string {
 		return BuildContext::join( $this->runtime_path(), 'assets' );
 	}
 
@@ -137,7 +137,7 @@ abstract class AbstractTarget {
 	 *
 	 * @return string
 	 */
-	final public function composer_path(): string {
+	final public function composer_path() : string {
 		return $this->runtime_path();
 	}
 }

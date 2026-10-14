@@ -13,31 +13,31 @@ namespace SmartLicenseServer\Security\OwnerSubjects;
  * The contracts all the classes that can be owners' subjects must implement.
  */
 interface OwnerSubjectInterface {
-    /**
-     * Get the ID of the owner subject.
-     * 
-     * @return int
-     */
-    public function get_id() : int;
+	/**
+	 * Get the ID of the owner subject.
+	 * 
+	 * @return int
+	 */
+	public function get_id() : int;
 
-    /**
-     * Get name of the owner subject.
-     * 
-     * @return string
-     */
-    public function get_display_name() : string;
+	/**
+	 * Get name of the owner subject.
+	 * 
+	 * @return string
+	 */
+	public function get_display_name() : string;
 
-    /**
-     * Get type of the owner subject.
-     * 
-     * @return string
-     */
-    public function get_type() : string;
+	/**
+	 * Get type of the owner subject.
+	 * 
+	 * @return string
+	 */
+	public function get_type() : string;
 
-    /**
-     * Get allowed statuses.
-     * 
-     * @return array
-     */
-    public static function get_allowed_statuses() : array;
+	/**
+	 * Get allowed statuses.
+	 * 
+	 * @return array
+	 */
+	public static function get_allowed_statuses() : array;
 }

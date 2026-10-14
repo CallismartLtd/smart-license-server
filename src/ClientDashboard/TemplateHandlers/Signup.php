@@ -22,23 +22,23 @@ use SmartLicenseServer\Exceptions\RequestException;
  */
 class Signup implements DashboardHandlerInterface {
 
-    public static function slug() : string {
-        return 'signup';
-    }
+	public static function slug() : string {
+		return 'signup';
+	}
 
-    public function guard( Request $request ) : bool|RequestException {
-        // Signup accessible to everyone (no authentication required)
-        return true;
-    }
+	public function guard( Request $request ) : bool|RequestException {
+		// Signup accessible to everyone (no authentication required)
+		return true;
+	}
 
-    public function handle( Request $request ) : Response {
-        $html = smliser_render_template_to_string( ClientDashboardRenderer::AUTH_SIGNUP_TEMPLATE, [] );
+	public function handle( Request $request ) : Response {
+		$html = smliser_render_template_to_string( ClientDashboardRenderer::AUTH_SIGNUP_TEMPLATE, [] );
 
-        return ( new Response( 200 ) )
-            ->set_header( 'Content-Type', 'application/json; charset=utf-8' )
-            ->set_body( [
-                'success' => true,
-                'html'    => $html,
-            ] );
-    }
+		return ( new Response( 200 ) )
+			->set_header( 'Content-Type', 'application/json; charset=utf-8' )
+			->set_body( [
+				'success' => true,
+				'html'    => $html,
+			] );
+	}
 }

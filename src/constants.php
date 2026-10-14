@@ -156,7 +156,7 @@ define( 'SMLISER_UPLOAD_TMP_PREFIX', 'smliser_tmp_' );
  * 
  * @var int
  */
-define( 'SMLISER_FILE_PERMISSION', ( fileperms( SMLISER_FILE  ) & 0777 | 0644 ) );
+define( 'SMLISER_FILE_PERMISSION', ( fileperms( SMLISER_FILE ) & 0777 | 0644 ) );
 
 /**
  * Default directory permission.

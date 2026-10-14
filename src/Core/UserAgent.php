@@ -75,7 +75,7 @@ final class UserAgent {
 	 *
 	 * @var string[]
 	 */
-	private const KNOWN_BOTS = array(
+	private const KNOWN_BOTS = [
 		'Googlebot', 'Google-InspectionTool', 'AdsBot-Google', 'Mediapartners-Google', 'Storebot-Google',
 		'bingbot', 'BingPreview', 'YandexBot', 'Baiduspider', 'DuckDuckBot', 'Applebot',
 		'facebookexternalhit', 'meta-externalagent', 'Twitterbot', 'LinkedInBot', 'Slackbot',
@@ -83,14 +83,14 @@ final class UserAgent {
 		'AhrefsBot', 'SemrushBot', 'MJ12bot', 'DotBot', 'PetalBot', 'Bytespider', 'SeznamBot',
 		'GPTBot', 'ChatGPT-User', 'OAI-SearchBot', 'ClaudeBot', 'Claude-User', 'PerplexityBot',
 		'CCBot', 'Amazonbot', 'UptimeRobot', 'Pingdom', 'HeadlessChrome', 'PhantomJS', 'Chrome-Lighthouse',
-	);
+	];
 
 	/**
 	 * Known HTTP libraries and CLI tools, keyed by lowercase product name.
 	 *
 	 * @var array<string, string>
 	 */
-	private const KNOWN_LIBRARIES = array(
+	private const KNOWN_LIBRARIES = [
 		'curl'              => 'curl',
 		'wget'              => 'Wget',
 		'httpie'            => 'HTTPie',
@@ -132,7 +132,7 @@ final class UserAgent {
 		'npm'               => 'npm',
 		'pip'               => 'pip',
 		'homebrew'          => 'Homebrew',
-	);
+	];
 
 	/**
 	 * Display names for known application products, keyed by lowercase product name.
@@ -143,107 +143,107 @@ final class UserAgent {
 	 *
 	 * @var array<string, string>
 	 */
-	private const KNOWN_APPS = array(
+	private const KNOWN_APPS = [
 		'smliser'  => 'Smart License Server',
 		'code'     => 'Visual Studio Code',
 		'discord'  => 'Discord',
 		'obsidian' => 'Obsidian',
 		'teams'    => 'Microsoft Teams',
-	);
+	];
 
 	/**
 	 * Browser rules as [ pattern, name ], most specific first. Group 1 is the version.
 	 *
 	 * @var array<int, array{0: string, 1: string}>
 	 */
-	private const BROWSERS = array(
-		array( '/\bEdg(?:e|A|iOS)?\/([\d.]+)/', 'Edge' ),
-		array( '/\bOPR\/([\d.]+)/', 'Opera' ),
-		array( '/\bOPiOS\/([\d.]+)/', 'Opera' ),
-		array( '/\bOpera Mini\/([\d.]+)/', 'Opera Mini' ),
-		array( '/\bOpera\/[\d.]+.*\bVersion\/([\d.]+)/', 'Opera' ),
-		array( '/\bOpera[\/ ]([\d.]+)/', 'Opera' ),
-		array( '/\bSamsungBrowser\/([\d.]+)/', 'Samsung Internet' ),
-		array( '/\bUC ?Browser\/([\d.]+)/i', 'UC Browser' ),
-		array( '/\bYaBrowser\/([\d.]+)/', 'Yandex Browser' ),
-		array( '/\bVivaldi\/([\d.]+)/', 'Vivaldi' ),
-		array( '/\bBrave\/([\d.]+)/', 'Brave' ),
-		array( '/\bDuckDuckGo\/([\d.]+)/', 'DuckDuckGo' ),
-		array( '/\bMiuiBrowser\/([\d.]+)/', 'MIUI Browser' ),
-		array( '/\bHuaweiBrowser\/([\d.]+)/', 'Huawei Browser' ),
-		array( '/\bSilk\/([\d.]+)/', 'Amazon Silk' ),
-		array( '/\bFBAV\/([\d.]+)/', 'Facebook' ),
-		array( '/\bInstagram ([\d.]+)/', 'Instagram' ),
-		array( '/\bLine\/([\d.]+)/', 'LINE' ),
-		array( '/\bSnapchat\/([\d.]+)/', 'Snapchat' ),
-		array( '/\bFxiOS\/([\d.]+)/', 'Firefox' ),
-		array( '/\bCriOS\/([\d.]+)/', 'Chrome' ),
-		array( '/\bGSA\/([\d.]+)/', 'Google App' ),
-		array( '/\bChromium\/([\d.]+)/', 'Chromium' ),
-		array( '/\bChrome\/([\d.]+)/', 'Chrome' ),
-		array( '/\bFirefox\/([\d.]+)/', 'Firefox' ),
-		array( '/\bAndroid\b.*\bVersion\/([\d.]+).*\bSafari\//', 'Android Browser' ),
-		array( '/\bVersion\/([\d.]+).*\bSafari\//', 'Safari' ),
-		array( '/\bAppleWebKit\b.*\bSafari\/([\d.]+)/', 'Safari' ),
-		array( '/\bMSIE ([\d.]+)/', 'Internet Explorer' ),
-		array( '/\bTrident\/.*\brv:([\d.]+)/', 'Internet Explorer' ),
-	);
+	private const BROWSERS = [
+		[ '/\bEdg(?:e|A|iOS)?\/([\d.]+)/', 'Edge' ],
+		[ '/\bOPR\/([\d.]+)/', 'Opera' ],
+		[ '/\bOPiOS\/([\d.]+)/', 'Opera' ],
+		[ '/\bOpera Mini\/([\d.]+)/', 'Opera Mini' ],
+		[ '/\bOpera\/[\d.]+.*\bVersion\/([\d.]+)/', 'Opera' ],
+		[ '/\bOpera[\/ ]([\d.]+)/', 'Opera' ],
+		[ '/\bSamsungBrowser\/([\d.]+)/', 'Samsung Internet' ],
+		[ '/\bUC ?Browser\/([\d.]+)/i', 'UC Browser' ],
+		[ '/\bYaBrowser\/([\d.]+)/', 'Yandex Browser' ],
+		[ '/\bVivaldi\/([\d.]+)/', 'Vivaldi' ],
+		[ '/\bBrave\/([\d.]+)/', 'Brave' ],
+		[ '/\bDuckDuckGo\/([\d.]+)/', 'DuckDuckGo' ],
+		[ '/\bMiuiBrowser\/([\d.]+)/', 'MIUI Browser' ],
+		[ '/\bHuaweiBrowser\/([\d.]+)/', 'Huawei Browser' ],
+		[ '/\bSilk\/([\d.]+)/', 'Amazon Silk' ],
+		[ '/\bFBAV\/([\d.]+)/', 'Facebook' ],
+		[ '/\bInstagram ([\d.]+)/', 'Instagram' ],
+		[ '/\bLine\/([\d.]+)/', 'LINE' ],
+		[ '/\bSnapchat\/([\d.]+)/', 'Snapchat' ],
+		[ '/\bFxiOS\/([\d.]+)/', 'Firefox' ],
+		[ '/\bCriOS\/([\d.]+)/', 'Chrome' ],
+		[ '/\bGSA\/([\d.]+)/', 'Google App' ],
+		[ '/\bChromium\/([\d.]+)/', 'Chromium' ],
+		[ '/\bChrome\/([\d.]+)/', 'Chrome' ],
+		[ '/\bFirefox\/([\d.]+)/', 'Firefox' ],
+		[ '/\bAndroid\b.*\bVersion\/([\d.]+).*\bSafari\//', 'Android Browser' ],
+		[ '/\bVersion\/([\d.]+).*\bSafari\//', 'Safari' ],
+		[ '/\bAppleWebKit\b.*\bSafari\/([\d.]+)/', 'Safari' ],
+		[ '/\bMSIE ([\d.]+)/', 'Internet Explorer' ],
+		[ '/\bTrident\/.*\brv:([\d.]+)/', 'Internet Explorer' ],
+	];
 
 	/**
 	 * Product tokens that belong to browsers and engines, never to an embedding app.
 	 *
 	 * @var string[]
 	 */
-	private const BROWSER_TOKENS = array(
+	private const BROWSER_TOKENS = [
 		'mozilla', 'applewebkit', 'gecko', 'chrome', 'chromium', 'safari', 'version', 'mobile',
 		'firefox', 'edg', 'edge', 'edga', 'edgios', 'opr', 'opios', 'opera', 'crios', 'fxios', 'gsa',
 		'electron', 'samsungbrowser', 'ucbrowser', 'yabrowser', 'vivaldi', 'brave', 'duckduckgo',
 		'miuibrowser', 'huaweibrowser', 'silk', 'trident', 'presto', 'headlesschrome', 'kaios',
-	);
+	];
 
 	/**
 	 * Operating system rules as [ pattern, name ], most specific first. Group 1 is the version.
 	 *
 	 * @var array<int, array{0: string, 1: string}>
 	 */
-	private const OPERATING_SYSTEMS = array(
-		array( '/\bWindows Phone(?: OS)? ([\d.]+)/i', 'Windows Phone' ),
-		array( '/\bXbox\b/i', 'Xbox' ),
-		array( '/\bWindows NT ([\d.]+)/i', 'Windows' ),
-		array( '/\bKAIOS(?:\/([\d.]+))?/i', 'KaiOS' ),
-		array( '/\bHarmonyOS(?:[ \/]([\d.]+))?/i', 'HarmonyOS' ),
-		array( '/\bAndroid(?:[ \/]([\d.]+))?/i', 'Android' ),
-		array( '/\biOS[ \/]([\d._]+)/', 'iOS' ),
-		array( '/\b(?:iPhone|iPad|iPod)\b(?:[^)]*?\bOS ([\d_]+))?/i', 'iOS' ),
-		array( '/\biOS\b/', 'iOS' ),
-		array( '/\bCrOS \w+ ([\d.]+)/', 'ChromeOS' ),
-		array( '/\bCrOS\b/', 'ChromeOS' ),
-		array( '/\bMac OS X(?: ([\d_.]+))?/i', 'macOS' ),
-		array( '/\bmacOS(?:[ \/]([\d.]+))?/i', 'macOS' ),
-		array( '/\bMacintosh\b/i', 'macOS' ),
-		array( '/\bTizen(?:[ \/]([\d.]+))?/i', 'Tizen' ),
-		array( '/\b(?:Web0S|webOS)(?:[ \/]([\d.]+))?/i', 'webOS' ),
-		array( '/\bPlayStation\b/i', 'PlayStation' ),
-		array( '/\bNintendo\b/i', 'Nintendo' ),
-		array( '/\b(?:BlackBerry|BB10)\b/i', 'BlackBerry' ),
-		array( '/\bUbuntu\b/i', 'Ubuntu' ),
-		array( '/\bFedora\b/i', 'Fedora' ),
-		array( '/\bDebian\b/i', 'Debian' ),
-		array( '/\bFreeBSD\b/i', 'FreeBSD' ),
-		array( '/\bOpenBSD\b/i', 'OpenBSD' ),
-		array( '/\bNetBSD\b/i', 'NetBSD' ),
-		array( '/\bLinux\b/i', 'Linux' ),
-		array( '/\bDarwin(?:\/([\d.]+))?/i', 'Darwin' ),
-		array( '/\bWindows(?:[ \/](\d[\d.]*))?/i', 'Windows' ),
-		array( '/\bWin(?:32|64)\b/i', 'Windows' ),
-	);
+	private const OPERATING_SYSTEMS = [
+		[ '/\bWindows Phone(?: OS)? ([\d.]+)/i', 'Windows Phone' ],
+		[ '/\bXbox\b/i', 'Xbox' ],
+		[ '/\bWindows NT ([\d.]+)/i', 'Windows' ],
+		[ '/\bKAIOS(?:\/([\d.]+))?/i', 'KaiOS' ],
+		[ '/\bHarmonyOS(?:[ \/]([\d.]+))?/i', 'HarmonyOS' ],
+		[ '/\bAndroid(?:[ \/]([\d.]+))?/i', 'Android' ],
+		[ '/\biOS[ \/]([\d._]+)/', 'iOS' ],
+		[ '/\b(?:iPhone|iPad|iPod)\b(?:[^)]*?\bOS ([\d_]+))?/i', 'iOS' ],
+		[ '/\biOS\b/', 'iOS' ],
+		[ '/\bCrOS \w+ ([\d.]+)/', 'ChromeOS' ],
+		[ '/\bCrOS\b/', 'ChromeOS' ],
+		[ '/\bMac OS X(?: ([\d_.]+))?/i', 'macOS' ],
+		[ '/\bmacOS(?:[ \/]([\d.]+))?/i', 'macOS' ],
+		[ '/\bMacintosh\b/i', 'macOS' ],
+		[ '/\bTizen(?:[ \/]([\d.]+))?/i', 'Tizen' ],
+		[ '/\b(?:Web0S|webOS)(?:[ \/]([\d.]+))?/i', 'webOS' ],
+		[ '/\bPlayStation\b/i', 'PlayStation' ],
+		[ '/\bNintendo\b/i', 'Nintendo' ],
+		[ '/\b(?:BlackBerry|BB10)\b/i', 'BlackBerry' ],
+		[ '/\bUbuntu\b/i', 'Ubuntu' ],
+		[ '/\bFedora\b/i', 'Fedora' ],
+		[ '/\bDebian\b/i', 'Debian' ],
+		[ '/\bFreeBSD\b/i', 'FreeBSD' ],
+		[ '/\bOpenBSD\b/i', 'OpenBSD' ],
+		[ '/\bNetBSD\b/i', 'NetBSD' ],
+		[ '/\bLinux\b/i', 'Linux' ],
+		[ '/\bDarwin(?:\/([\d.]+))?/i', 'Darwin' ],
+		[ '/\bWindows(?:[ \/](\d[\d.]*))?/i', 'Windows' ],
+		[ '/\bWin(?:32|64)\b/i', 'Windows' ],
+	];
 
 	/**
 	 * Windows NT kernel versions mapped to marketing versions.
 	 *
 	 * @var array<string, string>
 	 */
-	private const WINDOWS_VERSIONS = array(
+	private const WINDOWS_VERSIONS = [
 		'10.0' => '10',
 		'6.3'  => '8.1',
 		'6.2'  => '8',
@@ -252,23 +252,23 @@ final class UserAgent {
 		'5.2'  => 'XP',
 		'5.1'  => 'XP',
 		'5.0'  => '2000',
-	);
+	];
 
 	/**
 	 * Operating systems that imply a desktop device for browsers and Electron apps.
 	 *
 	 * @var string[]
 	 */
-	private const DESKTOP_SYSTEMS = array(
+	private const DESKTOP_SYSTEMS = [
 		'Windows', 'macOS', 'Linux', 'Ubuntu', 'Fedora', 'Debian', 'ChromeOS', 'FreeBSD', 'OpenBSD', 'NetBSD',
-	);
+	];
 
 	/**
 	 * Human-readable labels for device and client types.
 	 *
 	 * @var array<string, string>
 	 */
-	private const LABELS = array(
+	private const LABELS = [
 		self::DEVICE_DESKTOP => 'Desktop',
 		self::DEVICE_MOBILE  => 'Mobile',
 		self::DEVICE_TABLET  => 'Tablet',
@@ -277,7 +277,7 @@ final class UserAgent {
 		self::TYPE_APP       => 'App',
 		self::TYPE_LIBRARY   => 'Library',
 		self::TYPE_BOT       => 'Bot',
-	);
+	];
 
 	/*
 	|------------
@@ -297,7 +297,7 @@ final class UserAgent {
 	 *
 	 * @var array<int, array{0: string, 1: string}>
 	 */
-	private array $products = array();
+	private array $products = [];
 
 	/**
 	 * Whether the string carries an Electron token.
@@ -339,7 +339,7 @@ final class UserAgent {
 	 * @param string $user_agent The raw User-Agent header value.
 	 * @return self
 	 */
-	public static function parse( string $user_agent ): self {
+	public static function parse( string $user_agent ) : self {
 		return new self( $user_agent );
 	}
 
@@ -354,7 +354,7 @@ final class UserAgent {
 	 *
 	 * @return string
 	 */
-	public function get_user_agent(): string {
+	public function get_user_agent() : string {
 		return $this->user_agent;
 	}
 
@@ -363,7 +363,7 @@ final class UserAgent {
 	 *
 	 * @return string Empty when unknown.
 	 */
-	public function get_client_name(): string {
+	public function get_client_name() : string {
 		return $this->client_name;
 	}
 
@@ -372,7 +372,7 @@ final class UserAgent {
 	 *
 	 * @return string Empty when unknown.
 	 */
-	public function get_client_version(): string {
+	public function get_client_version() : string {
 		return $this->client_version;
 	}
 
@@ -381,7 +381,7 @@ final class UserAgent {
 	 *
 	 * @return string Empty when unknown.
 	 */
-	public function get_client(): string {
+	public function get_client() : string {
 		return self::join( $this->client_name, $this->client_version );
 	}
 
@@ -390,7 +390,7 @@ final class UserAgent {
 	 *
 	 * @return string One of the TYPE_* constants.
 	 */
-	public function get_client_type(): string {
+	public function get_client_type() : string {
 		return $this->client_type;
 	}
 
@@ -399,7 +399,7 @@ final class UserAgent {
 	 *
 	 * @return string Empty when unknown.
 	 */
-	public function get_os_name(): string {
+	public function get_os_name() : string {
 		return $this->os_name;
 	}
 
@@ -408,7 +408,7 @@ final class UserAgent {
 	 *
 	 * @return string Empty when unknown.
 	 */
-	public function get_os_version(): string {
+	public function get_os_version() : string {
 		return $this->os_version;
 	}
 
@@ -417,7 +417,7 @@ final class UserAgent {
 	 *
 	 * @return string Empty when unknown.
 	 */
-	public function get_os(): string {
+	public function get_os() : string {
 		return self::join( $this->os_name, $this->os_version );
 	}
 
@@ -426,7 +426,7 @@ final class UserAgent {
 	 *
 	 * @return string One of the DEVICE_* constants.
 	 */
-	public function get_device_type(): string {
+	public function get_device_type() : string {
 		return $this->device_type;
 	}
 
@@ -441,7 +441,7 @@ final class UserAgent {
 	 *
 	 * @return bool
 	 */
-	public function is_bot(): bool {
+	public function is_bot() : bool {
 		return self::TYPE_BOT === $this->client_type;
 	}
 
@@ -450,7 +450,7 @@ final class UserAgent {
 	 *
 	 * @return bool
 	 */
-	public function is_browser(): bool {
+	public function is_browser() : bool {
 		return self::TYPE_BROWSER === $this->client_type;
 	}
 
@@ -459,7 +459,7 @@ final class UserAgent {
 	 *
 	 * @return bool
 	 */
-	public function is_app(): bool {
+	public function is_app() : bool {
 		return self::TYPE_APP === $this->client_type;
 	}
 
@@ -468,7 +468,7 @@ final class UserAgent {
 	 *
 	 * @return bool
 	 */
-	public function is_library(): bool {
+	public function is_library() : bool {
 		return self::TYPE_LIBRARY === $this->client_type;
 	}
 
@@ -477,7 +477,7 @@ final class UserAgent {
 	 *
 	 * @return bool
 	 */
-	public function is_desktop(): bool {
+	public function is_desktop() : bool {
 		return self::DEVICE_DESKTOP === $this->device_type;
 	}
 
@@ -486,7 +486,7 @@ final class UserAgent {
 	 *
 	 * @return bool
 	 */
-	public function is_mobile(): bool {
+	public function is_mobile() : bool {
 		return self::DEVICE_MOBILE === $this->device_type;
 	}
 
@@ -495,7 +495,7 @@ final class UserAgent {
 	 *
 	 * @return bool
 	 */
-	public function is_tablet(): bool {
+	public function is_tablet() : bool {
 		return self::DEVICE_TABLET === $this->device_type;
 	}
 
@@ -513,7 +513,7 @@ final class UserAgent {
 	 *
 	 * @return string
 	 */
-	public function get_description(): string {
+	public function get_description() : string {
 		$description = '' !== $this->get_client() ? $this->get_client() : 'Unknown';
 
 		if ( '' !== $this->get_os() ) {
@@ -534,8 +534,8 @@ final class UserAgent {
 	 *
 	 * @return array{user_agent: string, client_name: string, client_version: string, client_type: string, os_name: string, os_version: string, device_type: string, description: string}
 	 */
-	public function to_array(): array {
-		return array(
+	public function to_array() : array {
+		return [
 			'user_agent'     => $this->user_agent,
 			'client_name'    => $this->client_name,
 			'client_version' => $this->client_version,
@@ -544,7 +544,7 @@ final class UserAgent {
 			'os_version'     => $this->os_version,
 			'device_type'    => $this->device_type,
 			'description'    => $this->get_description(),
-		);
+		];
 	}
 
 	/**
@@ -552,7 +552,7 @@ final class UserAgent {
 	 *
 	 * @return string
 	 */
-	public function __toString(): string {
+	public function __toString() : string {
 		return $this->get_description();
 	}
 
@@ -565,7 +565,7 @@ final class UserAgent {
 	/**
 	 * Split the string into product tokens, skipping parenthesized comments.
 	 */
-	private function tokenize(): void {
+	private function tokenize() : void {
 		preg_match_all( '/\([^()]*\)|([^\s()\/;,\[\]]+)(?:\/([^\s()\/;,\[\]]+))?/', $this->user_agent, $matches, PREG_SET_ORDER );
 
 		foreach ( $matches as $match ) {
@@ -573,7 +573,7 @@ final class UserAgent {
 				continue;
 			}
 
-			$this->products[] = array( $match[1], $match[2] ?? '' );
+			$this->products[] = [ $match[1], $match[2] ?? '' ];
 		}
 
 		$this->is_electron = (bool) preg_match( '/\bElectron\/[\d.]+/', $this->user_agent );
@@ -588,12 +588,12 @@ final class UserAgent {
 	/**
 	 * Resolve client name, version and type.
 	 */
-	private function detect_client(): void {
+	private function detect_client() : void {
 		if ( $this->detect_bot() ) {
 			return;
 		}
 
-		$first = $this->products[0] ?? array( '', '' );
+		$first = $this->products[0] ?? [ '', '' ];
 		$key   = strtolower( $first[0] );
 
 		if ( isset( self::KNOWN_LIBRARIES[ $key ] ) ) {
@@ -614,8 +614,8 @@ final class UserAgent {
 	 *
 	 * @return bool Whether a bot was found.
 	 */
-	private function detect_bot(): bool {
-		$names = implode( '|', array_map( static fn( string $name ): string => preg_quote( $name, '/' ), self::KNOWN_BOTS ) );
+	private function detect_bot() : bool {
+		$names = implode( '|', array_map( static fn( string $name ) : string => preg_quote( $name, '/' ), self::KNOWN_BOTS ) );
 
 		if ( preg_match( '/(?<![\w-])(' . $names . ')(?:\/([\w.\-]+))?/i', $this->user_agent, $match ) ) {
 			foreach ( self::KNOWN_BOTS as $name ) {
@@ -637,7 +637,7 @@ final class UserAgent {
 	/**
 	 * Detect browsers, Electron apps and WebView-embedded apps in Mozilla-style strings.
 	 */
-	private function detect_browser(): void {
+	private function detect_browser() : void {
 		$app = $this->find_app_token();
 
 		if ( $this->is_electron ) {
@@ -683,7 +683,7 @@ final class UserAgent {
 	 *
 	 * @return array{0: string, 1: string}|null
 	 */
-	private function find_app_token(): ?array {
+	private function find_app_token() : ?array {
 		foreach ( $this->products as $product ) {
 			if ( '' === $product[1] || ! preg_match( '/^[A-Za-z][\w.\-]*$/', $product[0] ) ) {
 				continue;
@@ -704,7 +704,7 @@ final class UserAgent {
 	 *
 	 * @return bool
 	 */
-	private function is_android_webview(): bool {
+	private function is_android_webview() : bool {
 		return str_contains( $this->user_agent, 'Android' )
 			&& (bool) preg_match( '/;\s*wv\)|\bVersion\/[\d.]+ Chrome\//', $this->user_agent );
 	}
@@ -716,7 +716,7 @@ final class UserAgent {
 	 * @param string $version Client version.
 	 * @param string $type    One of the TYPE_* constants.
 	 */
-	private function set_client( string $name, string $version, string $type ): void {
+	private function set_client( string $name, string $version, string $type ) : void {
 		if ( self::TYPE_APP === $type ) {
 			$name = self::KNOWN_APPS[ strtolower( $name ) ] ?? $name;
 		}
@@ -735,7 +735,7 @@ final class UserAgent {
 	/**
 	 * Resolve operating system name and version.
 	 */
-	private function detect_os(): void {
+	private function detect_os() : void {
 		foreach ( self::OPERATING_SYSTEMS as [ $pattern, $name ] ) {
 			if ( ! preg_match( $pattern, $this->user_agent, $match ) ) {
 				continue;
@@ -762,7 +762,7 @@ final class UserAgent {
 	/**
 	 * Resolve the device type from explicit tokens only.
 	 */
-	private function detect_device(): void {
+	private function detect_device() : void {
 		$ua = $this->user_agent;
 
 		if ( self::TYPE_BOT === $this->client_type ) {
@@ -814,7 +814,7 @@ final class UserAgent {
 	 * @param string $version Raw version.
 	 * @return string
 	 */
-	private static function normalize_version( string $version ): string {
+	private static function normalize_version( string $version ) : string {
 		return trim( str_replace( '_', '.', $version ), '.-' );
 	}
 
@@ -825,7 +825,7 @@ final class UserAgent {
 	 * @param string $version Version.
 	 * @return string
 	 */
-	private static function join( string $name, string $version ): string {
+	private static function join( string $name, string $version ) : string {
 		return trim( $name . ' ' . $version );
 	}
 }

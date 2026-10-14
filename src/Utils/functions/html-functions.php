@@ -26,40 +26,40 @@ use SmartLicenseServer\Utils\Sanitizer;
  * @return void
  */
 function smliser_render_toggle_switch( $attrs = [] ) {
-    $defaults = array(
-        'id'    => uniqid( 'smliser_toggle_' ),
-        'name'  => 'toggle_switch',
-        'value' => 0,
-        'class' => 'smliser_toggle-switch-input',
-    );
+	$defaults = [
+		'id'    => uniqid( 'smliser_toggle_' ),
+		'name'  => 'toggle_switch',
+		'value' => 0,
+		'class' => 'smliser_toggle-switch-input',
+	];
 
-    $attrs = array_merge( $defaults, $attrs );
+	$attrs = array_merge( $defaults, $attrs );
 
-    // Extract value to determine checked state
-    $value = (int) $attrs['value'];
-    unset( $attrs['value'] );
+	// Extract value to determine checked state
+	$value = (int) $attrs['value'];
+	unset( $attrs['value'] );
 
-    // Build attribute string
-    $attr_str = '';
-    foreach ( $attrs as $key => $val ) {
-        if ( is_bool( $val ) ) {
-            $attr_str .= $val ? sprintf( ' %s', escAttr( $key ) ) : '';
-        } else {
-            $attr_str .= sprintf( ' %s="%s"', escAttr( $key ), escAttr( $val ) );
-        }
-    }
+	// Build attribute string
+	$attr_str = '';
+	foreach ( $attrs as $key => $val ) {
+		if ( is_bool( $val ) ) {
+			$attr_str .= $val ? sprintf( ' %s', escAttr( $key ) ) : '';
+		} else {
+			$attr_str .= sprintf( ' %s="%s"', escAttr( $key ), escAttr( $val ) );
+		}
+	}
 
-    printf(
-        '<div class="smliser_toggle-switch-container">
+	printf(
+		'<div class="smliser_toggle-switch-container">
             <input type="checkbox"%1$s value="1" %2$s />
             <label for="%3$s" class="smliser_toggle-switch-label">
                 <span class="smliser_toggle-switch-slider"></span>
             </label>
         </div>',
-        $attr_str,
-        checked( $value, 1, false ),
-        escAttr( $attrs['id'] )
-    );
+		$attr_str,
+		checked( $value, 1, false ),
+		escAttr( $attrs['id'] )
+	);
 }
 
 /**
@@ -99,119 +99,119 @@ function smliser_render_toggle_switch( $attrs = [] ) {
  *     }
  * }
  */
-function smliser_render_input_field( array $args = [] ): void {
-    $default_args = array(
-        'label' => '',
-        'help'  => '',
-        'input' => array(
-            'type'    => 'text',
-            'name'    => '',
-            'value'   => '',
-            'class'   => 'smliser-form-label-row',
-            'options' => [],
-            'attr'    => [],
-        ),
-    );
+function smliser_render_input_field( array $args = [] ) : void {
+	$default_args = [
+		'label' => '',
+		'help'  => '',
+		'input' => [
+			'type'    => 'text',
+			'name'    => '',
+			'value'   => '',
+			'class'   => 'smliser-form-label-row',
+			'options' => [],
+			'attr'    => [],
+		],
+	];
 
-    $parsed_args = parse_args_recursive( $args, $default_args );
-    $input       = $parsed_args['input'];
-    $type        = $input['type'];
-    $help        = trim( $parsed_args['help'] );
+	$parsed_args = parse_args_recursive( $args, $default_args );
+	$input       = $parsed_args['input'];
+	$type        = $input['type'];
+	$help        = trim( $parsed_args['help'] );
 
-    // Build attributes string.
-    $attr_str = '';
-    if ( ! empty( $input['attr'] ) && is_array( $input['attr'] ) ) {
-        foreach ( $input['attr'] as $key => $val ) {
-            $attr_str .= sprintf( ' %s="%s"', escAttr( $key ), escAttr( $val ) );
-        }
-    }
+	// Build attributes string.
+	$attr_str = '';
+	if ( ! empty( $input['attr'] ) && is_array( $input['attr'] ) ) {
+		foreach ( $input['attr'] as $key => $val ) {
+			$attr_str .= sprintf( ' %s="%s"', escAttr( $key ), escAttr( $val ) );
+		}
+	}
 
-    $id = ! empty( $input['attr']['id'] ) ? $input['attr']['id'] : $input['name'];
+	$id = ! empty( $input['attr']['id'] ) ? $input['attr']['id'] : $input['name'];
 
-    // Hidden fields: no label, no help icon.
-    if ( 'hidden' === $type ) {
-        printf(
-            '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
-            escAttr( $type ),
-            escAttr( $input['name'] ),
-            escAttr( $id ),
-            escAttr( $input['value'] ),
-            $attr_str
-        );
-        return;
-    }
+	// Hidden fields: no label, no help icon.
+	if ( 'hidden' === $type ) {
+		printf(
+			'<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
+			escAttr( $type ),
+			escAttr( $input['name'] ),
+			escAttr( $id ),
+			escAttr( $input['value'] ),
+			$attr_str
+		);
+		return;
+	}
 
-    // Open label.
-    printf(
-        '<label for="%1$s" class="%2$s">',
-        escAttr( $id ),
-        escAttr( $input['class'] )
-    );
+	// Open label.
+	printf(
+		'<label for="%1$s" class="%2$s">',
+		escAttr( $id ),
+		escAttr( $input['class'] )
+	);
 
-    // Label text + optional help icon, grouped so they sit inline.
-    echo '<span class="smliser-field-label-text">';
-    echo '<span>' . escHtml( $parsed_args['label'] ) . '</span>';
+	// Label text + optional help icon, grouped so they sit inline.
+	echo '<span class="smliser-field-label-text">';
+	echo '<span>' . escHtml( $parsed_args['label'] ) . '</span>';
 
-    if ( '' !== $help ) {
-        smliser_render_field_help_icon( $help, $id );
-    }
+	if ( '' !== $help ) {
+		smliser_render_field_help_icon( $help, $id );
+	}
 
-    echo '</span>'; // .smliser-field-label-text
+	echo '</span>'; // .smliser-field-label-text
 
-    // Input element.
-    switch ( $type ) {
-        case 'textarea':
-            printf(
-                '<textarea name="%1$s" id="%2$s"%3$s>%4$s</textarea>',
-                escAttr( $input['name'] ),
-                escAttr( $id ),
-                $attr_str,
-                escTextArea( $input['value'] )
-            );
-            break;
+	// Input element.
+	switch ( $type ) {
+		case 'textarea':
+			printf(
+				'<textarea name="%1$s" id="%2$s"%3$s>%4$s</textarea>',
+				escAttr( $input['name'] ),
+				escAttr( $id ),
+				$attr_str,
+				escTextArea( $input['value'] )
+			);
+			break;
 
-        case 'select':
-            printf(
-                '<select name="%1$s" id="%2$s"%3$s>',
-                escAttr( $input['name'] ),
-                escAttr( $id ),
-                $attr_str
-            );
-            foreach ( $input['options'] as $val => $label ) {
-                printf(
-                    '<option value="%1$s" %2$s>%3$s</option>',
-                    escAttr( $val ),
-                    selected( $input['value'], $val, false ),
-                    escHtml( $label )
-                );
-            }
-            echo '</select>';
-            break;
+		case 'select':
+			printf(
+				'<select name="%1$s" id="%2$s"%3$s>',
+				escAttr( $input['name'] ),
+				escAttr( $id ),
+				$attr_str
+			);
+			foreach ( $input['options'] as $val => $label ) {
+				printf(
+					'<option value="%1$s" %2$s>%3$s</option>',
+					escAttr( $val ),
+					selected( $input['value'], $val, false ),
+					escHtml( $label )
+				);
+			}
+			echo '</select>';
+			break;
 
-        case 'checkbox':
-        case 'radio':
-            printf(
-                '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s" %5$s%6$s>',
-                escAttr( $type ),
-                escAttr( $input['name'] ),
-                escAttr( $id ),
-                escAttr( $input['value'] ),
-                checked( $input['value'], true, false ),
-                $attr_str
-            );
-            break;
+		case 'checkbox':
+		case 'radio':
+			printf(
+				'<input type="%1$s" name="%2$s" id="%3$s" value="%4$s" %5$s%6$s>',
+				escAttr( $type ),
+				escAttr( $input['name'] ),
+				escAttr( $id ),
+				escAttr( $input['value'] ),
+				checked( $input['value'], true, false ),
+				$attr_str
+			);
+			break;
 
-        case 'password':
-            echo '<div class="smliser-password-field-wrapper">';
-            printf(
-                '<input type="password" name="%1$s" id="%2$s" value="%3$s" class="smliser-password-input"%4$s>',
-                escAttr( $input['name'] ),
-                escAttr( $id ),
-                escAttr( $input['value'] ),
-                $attr_str
-            );
-            printf(
-                '<button type="button" class="smliser-password-toggle" data-target="%1$s" aria-label="%2$s">
+		case 'password':
+			echo '<div class="smliser-password-field-wrapper">';
+			printf(
+				'<input type="password" name="%1$s" id="%2$s" value="%3$s" class="smliser-password-input"%4$s>',
+				escAttr( $input['name'] ),
+				escAttr( $id ),
+				escAttr( $input['value'] ),
+				$attr_str
+			);
+			printf(
+				'<button type="button" class="smliser-password-toggle" data-target="%1$s" aria-label="%2$s">
                     <svg class="smliser-eye-icon smliser-eye-show" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                         <circle cx="12" cy="12" r="3"></circle>
@@ -221,25 +221,25 @@ function smliser_render_input_field( array $args = [] ): void {
                         <line x1="1" y1="1" x2="23" y2="23"></line>
                     </svg>
                 </button>',
-                escAttr( $id ),
-                escAttr( 'Toggle password visibility' )
-            );
-            echo '</div>';
-            break;
+				escAttr( $id ),
+				escAttr( 'Toggle password visibility' )
+			);
+			echo '</div>';
+			break;
 
-        default:
-            printf(
-                '<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
-                escAttr( $type ),
-                escAttr( $input['name'] ),
-                escAttr( $id ),
-                escAttr( $input['value'] ),
-                $attr_str
-            );
-            break;
-    }
+		default:
+			printf(
+				'<input type="%1$s" name="%2$s" id="%3$s" value="%4$s"%5$s>',
+				escAttr( $type ),
+				escAttr( $input['name'] ),
+				escAttr( $id ),
+				escAttr( $input['value'] ),
+				$attr_str
+			);
+			break;
+	}
 
-    echo '</label>';
+	echo '</label>';
 }
 
 /**
@@ -261,11 +261,11 @@ function smliser_render_input_field( array $args = [] ): void {
  * @param string $field_id   The ID of the field this help icon belongs to,
  *                           used to generate a unique tooltip ID.
  */
-function smliser_render_field_help_icon( string $help_text, string $field_id ): void {
-    $tooltip_id = escAttr( $field_id ) . '-help-tooltip';
+function smliser_render_field_help_icon( string $help_text, string $field_id ) : void {
+	$tooltip_id = escAttr( $field_id ) . '-help-tooltip';
 
-    printf(
-        '<span class="smliser-help-icon-wrap">
+	printf(
+		'<span class="smliser-help-icon-wrap">
             <button
                 type="button"
                 class="smliser-help-icon"
@@ -280,10 +280,10 @@ function smliser_render_field_help_icon( string $help_text, string $field_id ): 
             </button>
             <span id="%2$s" class="smliser-help-tooltip" role="tooltip">%3$s</span>
         </span>',
-        escAttr( $help_text ),
-        escAttr( $tooltip_id ),
-        escHtml( $help_text )
-    );
+		escAttr( $help_text ),
+		escAttr( $tooltip_id ),
+		escHtml( $help_text )
+	);
 }
 
 /**
@@ -315,101 +315,101 @@ function smliser_render_field_help_icon( string $help_text, string $field_id ): 
  */
 function smliser_render_pagination( array $pagination, string $base_url = '', string $page_param = 'paged' ) : void {
 
-    $total       = isset( $pagination['total'] ) ? (int) $pagination['total'] : 0;
-    $page        = isset( $pagination['page'] ) ? max( 1, (int) $pagination['page'] ) : 1;
-    $limit       = isset( $pagination['limit'] ) ? max( 1, (int) $pagination['limit'] ) : 20;
-    $total_pages = (int) ceil( $total / $limit );
+	$total       = isset( $pagination['total'] ) ? (int) $pagination['total'] : 0;
+	$page        = isset( $pagination['page'] ) ? max( 1, (int) $pagination['page'] ) : 1;
+	$limit       = isset( $pagination['limit'] ) ? max( 1, (int) $pagination['limit'] ) : 20;
+	$total_pages = (int) ceil( $total / $limit );
 
-    if ( $total <= 0 ) {
-        return;
-    }
+	if ( $total <= 0 ) {
+		return;
+	}
 
-    $page = min( $page, $total_pages );
+	$page = min( $page, $total_pages );
 
-    $window = 2;
-    $start  = max( 1, $page - $window );
-    $end    = min( $total_pages, $page + $window );
-    
+	$window = 2;
+	$start  = max( 1, $page - $window );
+	$end    = min( $total_pages, $page + $window );
+	
 
-    $base_url   = $base_url ? URL::from( $base_url ) : smliser_get_current_url();
-    $base_url   = $base_url->remove_query_param( $page_param, 'limit' );
-    $prev_page  = max( 1, $page - 1 );
-    $next_page  = min( $total_pages, $page + 1 );
+	$base_url  = $base_url ? URL::from( $base_url ) : smliser_get_current_url();
+	$base_url  = $base_url->remove_query_param( $page_param, 'limit' );
+	$prev_page = max( 1, $page - 1 );
+	$next_page = min( $total_pages, $page + 1 );
 
-    $offset    = ( $page - 1 ) * $limit;
-    $remaining = max( 0, $total - $offset );
-    $displayed = min( $limit, $remaining );
-    ?>
+	$offset    = ( $page - 1 ) * $limit;
+	$remaining = max( 0, $total - $offset );
+	$displayed = min( $limit, $remaining );
+	?>
 
     <p class="smliser-table-count">
         <?php
-        printf(
-            escHtml( '%1$d of %2$d %3$s' ),
-            intval( $displayed ),
-            intval( $total ),
-            escHtml( $total > 1 ? 'items' : 'item' )
-        );
-        ?>
+		printf(
+			escHtml( '%1$d of %2$d %3$s' ),
+			intval( $displayed ),
+			intval( $total ),
+			escHtml( $total > 1 ? 'items' : 'item' )
+		);
+		?>
     </p>
 
     <?php if ( $total_pages > 1 ) : ?>
         <div class="smliser-tablenav-pages">
             <span class="smliser-displaying-num">
                 <?php
-                printf(
-                    escHtml( 'Page %1$d of %2$d' ),
-                    intval( $page ),
-                    intval( $total_pages )
-                );
-                ?>
+				printf(
+					escHtml( 'Page %1$d of %2$d' ),
+					intval( $page ),
+					intval( $total_pages )
+				);
+				?>
             </span>
 
             <span class="smliser-pagination-links">
 
                 <?php if ( $page > 1 ) : ?>
-                    <a class="prev-page button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $prev_page, 'limit' => $limit ) )->url() ); ?>">&laquo;</a>
+                    <a class="prev-page button" href="<?php echo escUrl( $base_url->add_query_params( [ $page_param => $prev_page, 'limit' => $limit ] )->url() ); ?>">&laquo;</a>
                 <?php else : ?>
                     <span class="smliser-navspan button disabled">&laquo;</span>
                 <?php endif; ?>
 
                 <?php
-                // First page.
-                if ( $start > 1 ) :
-                    ?>
-                    <a class="button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => 1, 'limit' => $limit ) )->url() ); ?>">1</a>
+				// First page.
+				if ( $start > 1 ) :
+					?>
+                    <a class="button" href="<?php echo escUrl( $base_url->add_query_params( [ $page_param => 1, 'limit' => $limit ] )->url() ); ?>">1</a>
                     <?php if ( $start > 2 ) : ?>
                         <span class="smliser-navspan button disabled">…</span>
                     <?php endif; ?>
                 <?php endif; ?>
 
                 <?php
-                // Window pages.
-                for ( $i = $start; $i <= $end; $i++ ) :
-                    $class = ( $i === $page ) ? 'button current' : 'button';
-                    ?>
+				// Window pages.
+				for ( $i = $start; $i <= $end; $i++ ) :
+					$class = ( $i === $page ) ? 'button current' : 'button';
+					?>
                     <a class="<?php echo escAttr( $class ); ?>"
-                       href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $i, 'limit' => $limit ) )->url() ); ?>">
+                       href="<?php echo escUrl( $base_url->add_query_params( [ $page_param => $i, 'limit' => $limit ] )->url() ); ?>">
                         <?php echo intval( $i ); ?>
                     </a>
                 <?php endfor; ?>
 
                 <?php
-                // Last page.
-                if ( $end < $total_pages ) :
-                    if ( $end < $total_pages - 1 ) :
-                        ?>
+				// Last page.
+				if ( $end < $total_pages ) :
+					if ( $end < $total_pages - 1 ) :
+						?>
                         <span class="smliser-navspan button disabled">…</span>
                     <?php
-                    endif;
-                    ?>
+					endif;
+					?>
                     <a class="button"
-                       href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $total_pages, 'limit' => $limit ) )->url() ); ?>">
+                       href="<?php echo escUrl( $base_url->add_query_params( [ $page_param => $total_pages, 'limit' => $limit ] )->url() ); ?>">
                         <?php echo intval( $total_pages ); ?>
                     </a>
                 <?php endif; ?>
 
                 <?php if ( $page < $total_pages ) : ?>
-                    <a class="next-page button" href="<?php echo escUrl( $base_url->add_query_params( array( $page_param => $next_page, 'limit' => $limit ) )->url() ); ?>">&raquo;</a>
+                    <a class="next-page button" href="<?php echo escUrl( $base_url->add_query_params( [ $page_param => $next_page, 'limit' => $limit ] )->url() ); ?>">&raquo;</a>
                 <?php else : ?>
                     <span class="smliser-navspan button disabled">&raquo;</span>
                 <?php endif; ?>
@@ -426,89 +426,89 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
  * @param string|null $url
  */
 function smliser_dump_url( ?string $url = null ) : void {
-    $url    = $url ?? smliser_get_current_url();
-    $dump   = URL::from( $url )->dump();
-    // Pretty print for debugging
-    echo '<pre style="background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; font-family: \'Courier New\', monospace; font-size: 13px; line-height: 1.6; overflow-x: auto;">';
-    echo '<strong style="color: #4ec9b0; font-size: 16px;">🔍 URL DEBUG DUMP</strong>' . "\n";
-    echo str_repeat('─', 80) . "\n\n";
-    
-    // Full URL
-    echo '<span style="color: #569cd6;">📌 FULL URL:</span> ' . "\n";
-    echo '   <span style="color: #ce9178;">' . \escHtml( $dump['url']['full_url'] ) . '</span>' . "\n\n";
-    
-    // Origin
-    echo '<span style="color: #569cd6;">🌐 ORIGIN:</span> ' . "\n";
-    echo '   <span style="color: #ce9178;">' . \escHtml( $dump['url']['origin'] ?? 'N/A' ) . '</span>' . "\n\n";
-    
-    // Components
-    echo '<span style="color: #569cd6;">🧩 COMPONENTS:</span>' . "\n";
-    foreach ( $dump['components'] as $key => $value ) {
-        $color = $value !== null ? '#b5cea8' : '#808080';
-        $display = $value ?? '<span style="color: #808080; font-style: italic;">not set</span>';
-        echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: %s;">%s</span>' . "\n", 
-            str_pad( $key, 10 ), 
-            $color, 
-            $display 
-        );
-    }
-    echo "\n";
-    
-    // Query Parameters
-    echo '<span style="color: #569cd6;">🔗 QUERY PARAMETERS:</span>' . "\n";
-    if ( empty( $dump['query_params'] ) ) {
-        echo '   <span style="color: #808080; font-style: italic;">No query parameters</span>' . "\n";
-    } else {
-        foreach ( $dump['query_params'] as $key => $value ) {
-            if ( is_array( $value ) ) {
-                echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: #ce9178;">[%s]</span>' . "\n",
-                    \escHtml( $key ),
-                    \escHtml( implode( ', ', $value ) )
-                );
-            } else {
-                echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: #ce9178;">%s</span>' . "\n",
-                    \escHtml( $key ),
-                    \escHtml( (string) $value )
-                );
-            }
-        }
-    }
-    echo "\n";
-    
-    // Validation States
-    echo '<span style="color: #569cd6;">✅ VALIDATION:</span>' . "\n";
-    foreach ( $dump['validation'] as $key => $value ) {
-        $icon = $value ? '✓' : '✗';
-        $color = $value ? '#4ec9b0' : '#f48771';
-        echo sprintf( '   <span style="color: %s;">%s</span> <span style="color: #9cdcfe;">%s</span>' . "\n",
-            $color,
-            $icon,
-            str_replace( '_', ' ', $key )
-        );
-    }
-    echo "\n";
-    
-    // Presence Checks
-    echo '<span style="color: #569cd6;">🔎 PRESENCE CHECKS:</span>' . "\n";
-    foreach ( $dump['has'] as $key => $value ) {
-        $icon = $value ? '●' : '○';
-        $color = $value ? '#4ec9b0' : '#808080';
-        echo sprintf( '   <span style="color: %s;">%s</span> <span style="color: #9cdcfe;">has_%s</span>' . "\n",
-            $color,
-            $icon,
-            $key
-        );
-    }
-    echo "\n";
-    
-    // Raw Components
-    echo '<span style="color: #569cd6;">⚙️  RAW COMPONENTS ARRAY:</span>' . "\n";
-    echo '<span style="color: #808080;">';
-    print_r( $dump['raw_components'] );
-    echo '</span>';
-    
-    echo str_repeat('─', 80) . "\n";
-    echo '</pre>';
+	$url  = $url ?? smliser_get_current_url();
+	$dump = URL::from( $url )->dump();
+	// Pretty print for debugging
+	echo '<pre style="background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; font-family: \'Courier New\', monospace; font-size: 13px; line-height: 1.6; overflow-x: auto;">';
+	echo '<strong style="color: #4ec9b0; font-size: 16px;">🔍 URL DEBUG DUMP</strong>' . "\n";
+	echo str_repeat( '─', 80 ) . "\n\n";
+	
+	// Full URL
+	echo '<span style="color: #569cd6;">📌 FULL URL:</span> ' . "\n";
+	echo '   <span style="color: #ce9178;">' . \escHtml( $dump['url']['full_url'] ) . '</span>' . "\n\n";
+	
+	// Origin
+	echo '<span style="color: #569cd6;">🌐 ORIGIN:</span> ' . "\n";
+	echo '   <span style="color: #ce9178;">' . \escHtml( $dump['url']['origin'] ?? 'N/A' ) . '</span>' . "\n\n";
+	
+	// Components
+	echo '<span style="color: #569cd6;">🧩 COMPONENTS:</span>' . "\n";
+	foreach ( $dump['components'] as $key => $value ) {
+		$color   = null !== $value ? '#b5cea8' : '#808080';
+		$display = $value ?? '<span style="color: #808080; font-style: italic;">not set</span>';
+		echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: %s;">%s</span>' . "\n",
+			str_pad( $key, 10 ),
+			$color,
+			$display
+		);
+	}
+	echo "\n";
+	
+	// Query Parameters
+	echo '<span style="color: #569cd6;">🔗 QUERY PARAMETERS:</span>' . "\n";
+	if ( empty( $dump['query_params'] ) ) {
+		echo '   <span style="color: #808080; font-style: italic;">No query parameters</span>' . "\n";
+	} else {
+		foreach ( $dump['query_params'] as $key => $value ) {
+			if ( is_array( $value ) ) {
+				echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: #ce9178;">[%s]</span>' . "\n",
+					\escHtml( $key ),
+					\escHtml( implode( ', ', $value ) )
+				);
+			} else {
+				echo sprintf( '   <span style="color: #9cdcfe;">%s:</span> <span style="color: #ce9178;">%s</span>' . "\n",
+					\escHtml( $key ),
+					\escHtml( (string) $value )
+				);
+			}
+		}
+	}
+	echo "\n";
+	
+	// Validation States
+	echo '<span style="color: #569cd6;">✅ VALIDATION:</span>' . "\n";
+	foreach ( $dump['validation'] as $key => $value ) {
+		$icon  = $value ? '✓' : '✗';
+		$color = $value ? '#4ec9b0' : '#f48771';
+		echo sprintf( '   <span style="color: %s;">%s</span> <span style="color: #9cdcfe;">%s</span>' . "\n",
+			$color,
+			$icon,
+			str_replace( '_', ' ', $key )
+		);
+	}
+	echo "\n";
+	
+	// Presence Checks
+	echo '<span style="color: #569cd6;">🔎 PRESENCE CHECKS:</span>' . "\n";
+	foreach ( $dump['has'] as $key => $value ) {
+		$icon  = $value ? '●' : '○';
+		$color = $value ? '#4ec9b0' : '#808080';
+		echo sprintf( '   <span style="color: %s;">%s</span> <span style="color: #9cdcfe;">has_%s</span>' . "\n",
+			$color,
+			$icon,
+			$key
+		);
+	}
+	echo "\n";
+	
+	// Raw Components
+	echo '<span style="color: #569cd6;">⚙️  RAW COMPONENTS ARRAY:</span>' . "\n";
+	echo '<span style="color: #808080;">';
+	print_r( $dump['raw_components'] );
+	echo '</span>';
+	
+	echo str_repeat( '─', 80 ) . "\n";
+	echo '</pre>';
 }
 
 /**
@@ -520,22 +520,22 @@ function smliser_dump_url( ?string $url = null ) : void {
  * @param string $title
  * @param array{
  *  response: int,
-    link_url: string,
-    link_text: string,
-    back_link: bool
+	link_url: string,
+	link_text: string,
+	back_link: bool
  * } $args
  * 
  * @return never
  */
 function smliser_abort_request( $message = '', $title = '', $args = [] ) : never {
-    if ( ( $message instanceof RequestException ) || ( $message instanceof FileRequestException ) ) {
-        $error_data = $message->get_error_data();
-        $message    = $message->get_error_message();
-        $title      = $error_data['title'] ?? '';
-        $args       = (array) $error_data;
-    }
+	if ( ( $message instanceof RequestException ) || ( $message instanceof FileRequestException ) ) {
+		$error_data = $message->get_error_data();
+		$message    = $message->get_error_message();
+		$title      = $error_data['title'] ?? '';
+		$args       = (array) $error_data;
+	}
 
-    GlobalErrorHandler::instance()->abort( $message, $title, $args );
+	GlobalErrorHandler::instance()->abort( $message, $title, $args );
 }
 
 /**
@@ -544,14 +544,14 @@ function smliser_abort_request( $message = '', $title = '', $args = [] ) : never
  * @param string $text Message to show
  */
 function smliser_not_found_container( $text ) {
-    ob_start();
-    ?>
+	ob_start();
+	?>
     <div class="smliser-not-found-container">
         <p><?php echo Sanitizer::sanitize_html( $text ) ?> </p>
     </div>
 
     <?php
-    return ob_get_clean();
+	return ob_get_clean();
 }
 
 /**
@@ -562,14 +562,14 @@ function smliser_not_found_container( $text ) {
  * @return void
  */
 function smliser_print_notice( string $message, bool $is_dismissible = false ) : void {
-    $dismissible_class  = $is_dismissible ? ' is-dismissible': '';
-    printf(
-        '<div class="notice notice-info%s">
+	$dismissible_class = $is_dismissible ? ' is-dismissible': '';
+	printf(
+		'<div class="notice notice-info%s">
             <p>%s</p>
         </div>',
-        $dismissible_class,
-        escHtml( $message )
-    );
+		$dismissible_class,
+		escHtml( $message )
+	);
 }
 
 /**
@@ -620,46 +620,46 @@ function smliser_print_notice( string $message, bool $is_dismissible = false ) :
  */
 function smliser_print_admin_content_header( array $args = [], bool $echo = true ) {
 
-    $defaults = array(
-        'breadcrumbs'   => [],
-        'actions'       => [],
-        'nav_class'     => '',
-        'content_class' => '',
-        'attributes'    => [],
-    );
+	$defaults = [
+		'breadcrumbs'   => [],
+		'actions'       => [],
+		'nav_class'     => '',
+		'content_class' => '',
+		'attributes'    => [],
+	];
 
-    $args = parse_args( $args, $defaults );
+	$args = parse_args( $args, $defaults );
 
-    $print_active = fn ( bool $cond ) => $cond ? ' active' : '';
+	$print_active = fn ( bool $cond ) => $cond ? ' active' : '';
 
-    /**
-     * Helper to render arbitrary attributes safely.
-     */
-    $render_attributes = static function ( array $attributes ) : string {
+	/**
+	 * Helper to render arbitrary attributes safely.
+	 */
+	$render_attributes = static function ( array $attributes ) : string {
 
-        $html = '';
+		$html = '';
 
-        foreach ( $attributes as $key => $value ) {
+		foreach ( $attributes as $key => $value ) {
 
-            if ( is_bool( $value ) ) {
-                if ( $value ) {
-                    $html .= ' ' . escAttr( $key );
-                }
-                continue;
-            }
+			if ( is_bool( $value ) ) {
+				if ( $value ) {
+					$html .= ' ' . escAttr( $key );
+				}
+				continue;
+			}
 
-            $html .= sprintf(
-                ' %s="%s"',
-                escAttr( $key ),
-                escAttr( $value )
-            );
-        }
+			$html .= sprintf(
+				' %s="%s"',
+				escAttr( $key ),
+				escAttr( $value )
+			);
+		}
 
-        return $html;
-    };
+		return $html;
+	};
 
-    ob_start();
-    ?>
+	ob_start();
+	?>
 
     <nav
         class="smliser-top-nav <?php echo escAttr( $args['nav_class'] ); ?>"
@@ -671,26 +671,26 @@ function smliser_print_admin_content_header( array $args = [], bool $echo = true
                 <div class="smliser-breadcrumb">
 
                     <?php
-                    $breadcrumb_count = count( $args['breadcrumbs'] );
-                    $current_index    = 0;
+					$breadcrumb_count = count( $args['breadcrumbs'] );
+					$current_index    = 0;
 
-                    foreach ( $args['breadcrumbs'] as $breadcrumb ) :
+					foreach ( $args['breadcrumbs'] as $breadcrumb ) :
 
-                        $current_index++;
+						$current_index++;
 
-                        $breadcrumb = parse_args(
-                            $breadcrumb,
-                            array(
-                                'label'      => '',
-                                'url'        => '',
-                                'icon'       => '',
-                                'class'      => '',
-                                'attributes' => [],
-                            )
-                        );
+						$breadcrumb = parse_args(
+							$breadcrumb,
+							[
+								'label'      => '',
+								'url'        => '',
+								'icon'       => '',
+								'class'      => '',
+								'attributes' => [],
+							]
+						);
 
-                        $tag = ! empty( $breadcrumb['url'] ) ? 'a' : 'span';
-                        ?>
+						$tag = ! empty( $breadcrumb['url'] ) ? 'a' : 'span';
+						?>
 
                         <<?php echo escHtml( $tag ); ?>
                             class="<?php echo escAttr( $breadcrumb['class'] ); ?>"
@@ -723,30 +723,30 @@ function smliser_print_admin_content_header( array $args = [], bool $echo = true
 
                     <?php foreach ( $args['actions'] as $action ) :
 
-                        $action = parse_args(
-                            $action,
-                            array(
-                                'label'      => '',
-                                'url'        => '',
-                                'title'      => '',
-                                'icon'       => '',
-                                'active'     => false,
-                                'class'      => '',
-                                'attributes' => [],
-                                'target'     => '',
-                                'rel'        => '',
-                                'data'       => [],
-                            )
-                        );
+						$action = parse_args(
+							$action,
+							[
+								'label'      => '',
+								'url'        => '',
+								'title'      => '',
+								'icon'       => '',
+								'active'     => false,
+								'class'      => '',
+								'attributes' => [],
+								'target'     => '',
+								'rel'        => '',
+								'data'       => [],
+							]
+						);
 
-                        /**
-                         * Merge data-* attributes
-                         */
-                        foreach ( (array) $action['data'] as $data_key => $data_value ) {
-                            $action['attributes'][ 'data-' . $data_key ] = $data_value;
-                        }
+						/**
+						 * Merge data-* attributes
+						 */
+						foreach ( (array) $action['data'] as $data_key => $data_value ) {
+							$action['attributes'][ 'data-' . $data_key ] = $data_value;
+						}
 
-                        ?>
+						?>
 
                         <a
                             class="smliser-menu-link<?php echo escAttr( $print_active( (bool) $action['active'] ) ); ?> <?php echo escAttr( $action['class'] ); ?>"
@@ -778,14 +778,14 @@ function smliser_print_admin_content_header( array $args = [], bool $echo = true
     </nav>
 
     <?php
-    $output = ob_get_clean();
+	$output = ob_get_clean();
 
-    if ( true === $echo ) {
-        echo $output; // phpcs:ignore
-        return null;
-    }
+	if ( true === $echo ) {
+		echo $output; // phpcs:ignore
+		return null;
+	}
 
-    return $output;
+	return $output;
 }
 
 /**
@@ -797,7 +797,7 @@ function smliser_print_admin_content_header( array $args = [], bool $echo = true
  * @param mixed ...$vars One or more variables to inspect and dump.
  * @return never
  */
-function dd( mixed ...$vars ): never {
+function dd( mixed ...$vars ) : never {
 	if ( ! is_cli() && ! headers_sent() ) {
 		http_response_code( 500 );
 	}
@@ -839,43 +839,43 @@ function dd( mixed ...$vars ): never {
  * @return string
  */
 function attribute_matched( mixed $value, mixed $current, bool $echo, string $attr_name ) : string {
-    $attr_str   = '';
+	$attr_str = '';
 
-    if ( (string) $value === (string) $current ) {
-        $attr_str = " $attr_name='$attr_name'";
-    }
+	if ( (string) $value === (string) $current ) {
+		$attr_str = " $attr_name='$attr_name'";
+	}
 
-    if ( $echo ) {
-        echo $attr_str;
-    }
+	if ( $echo ) {
+		echo $attr_str;
+	}
 
-    return $attr_str;
+	return $attr_str;
 }
 
 if ( ! function_exists( 'selected' ) ) {
-    /**
-     * Outputs the HTML selected attribute.
-     * 
-     * @param mixed $value The attribute value to compare.
-     * @param mixed $current    The current value to check.
-     * @param bool  $echo       Whether to echo or return the attribute string.d 
-     */
-    function selected( mixed $value, mixed $current, bool $echo = true ) : string {
-        return attribute_matched( $value, $current, $echo, 'selected' );
-    }
+	/**
+	 * Outputs the HTML selected attribute.
+	 * 
+	 * @param mixed $value The attribute value to compare.
+	 * @param mixed $current    The current value to check.
+	 * @param bool  $echo       Whether to echo or return the attribute string.d 
+	 */
+	function selected( mixed $value, mixed $current, bool $echo = true ) : string {
+		return attribute_matched( $value, $current, $echo, 'selected' );
+	}
 }
 
 if ( ! function_exists( 'checked' ) ) {
-    /**
-     * Outputs the HTML checked attribute.
-     * 
-     * @param mixed $value The attribute value to compare.
-     * @param mixed $current    The current value to check.
-     * @param bool  $echo       Whether to echo or return the attribute string.d 
-     */
-    function checked( mixed $value, mixed $current, bool $echo ) : string {
-        return attribute_matched( $value, $current, $echo, 'checked' );
-    }
+	/**
+	 * Outputs the HTML checked attribute.
+	 * 
+	 * @param mixed $value The attribute value to compare.
+	 * @param mixed $current    The current value to check.
+	 * @param bool  $echo       Whether to echo or return the attribute string.d 
+	 */
+	function checked( mixed $value, mixed $current, bool $echo ) : string {
+		return attribute_matched( $value, $current, $echo, 'checked' );
+	}
 }
 
 /**
@@ -903,7 +903,7 @@ function render_top_menu_item( array $item ) : string {
 		$attr_string .= sprintf( ' %s="%s"', \escHtml( $name ), \escHtml( $value ) );
 	}
 
-    $icon_html = '';
+	$icon_html = '';
 
 	if ( ! empty( $item['icons'] ) ) {
 		foreach ( $item['icons'] as $icon ) {

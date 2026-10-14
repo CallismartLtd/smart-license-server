@@ -39,11 +39,11 @@ namespace SmartLicenseServer\Events;
  */
 interface ListenerInterface {
 
-    /**
-     * Handle the incoming event.
-     *
-     * @param  AbstractEvent $event The event instance.
-     * @return void
-     */
-    public function handle( AbstractEvent $event ): void;
+	/**
+	 * Handle the incoming event.
+	 *
+	 * @param  AbstractEvent $event The event instance.
+	 * @return void
+	 */
+	public function handle( AbstractEvent $event ) : void;
 }

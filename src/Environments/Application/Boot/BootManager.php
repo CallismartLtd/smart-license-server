@@ -24,54 +24,54 @@ use SmartLicenseServer\Core\Container\Container;
  */
 final class BootManager {
 
-    /**
-     * Registered bootstrappers stack.
-     *
-     * @var BootstrapperInterface[]
-     */
-    private array $bootstrappers = [];
+	/**
+	 * Registered bootstrappers stack.
+	 *
+	 * @var BootstrapperInterface[]
+	 */
+	private array $bootstrappers = [];
 
-    /**
-     * Class constructor.
-     *
-     * @param Container $container The dependency injection container.
-     */
-    public function __construct( private Container $container ) {}
+	/**
+	 * Class constructor.
+	 *
+	 * @param Container $container The dependency injection container.
+	 */
+	public function __construct( private Container $container ) {}
 
-    /**
-     * Add a bootstrapper instance to the management stack.
-     *
-     * @param BootstrapperInterface $bootstrapper The bootstrapper instance.
-     * @return self
-     */
-    public function add( BootstrapperInterface $bootstrapper ) : self {
-        $this->bootstrappers[] = $bootstrapper;
-        return $this;
-    }
+	/**
+	 * Add a bootstrapper instance to the management stack.
+	 *
+	 * @param BootstrapperInterface $bootstrapper The bootstrapper instance.
+	 * @return self
+	 */
+	public function add( BootstrapperInterface $bootstrapper ) : self {
+		$this->bootstrappers[] = $bootstrapper;
+		return $this;
+	}
 
-    /**
-     * Execute container registrations for all eligible bootstrappers.
-     *
-     * @return void
-     */
-    public function registerAll() : void {
-        foreach ( $this->bootstrappers as $bootstrapper ) {
-            if ( $bootstrapper->isEligible() ) {
-                $bootstrapper->register( $this->container );
-            }
-        }
-    }
+	/**
+	 * Execute container registrations for all eligible bootstrappers.
+	 *
+	 * @return void
+	 */
+	public function registerAll() : void {
+		foreach ( $this->bootstrappers as $bootstrapper ) {
+			if ( $bootstrapper->isEligible() ) {
+				$bootstrapper->register( $this->container );
+			}
+		}
+	}
 
-    /**
-     * Execute post-registration boot logic for all eligible bootstrappers.
-     *
-     * @return void
-     */
-    public function bootAll() : void {
-        foreach ( $this->bootstrappers as $bootstrapper ) {
-            if ( $bootstrapper->isEligible() ) {
-                $bootstrapper->boot( $this->container );
-            }
-        }
-    }
+	/**
+	 * Execute post-registration boot logic for all eligible bootstrappers.
+	 *
+	 * @return void
+	 */
+	public function bootAll() : void {
+		foreach ( $this->bootstrappers as $bootstrapper ) {
+			if ( $bootstrapper->isEligible() ) {
+				$bootstrapper->boot( $this->container );
+			}
+		}
+	}
 }

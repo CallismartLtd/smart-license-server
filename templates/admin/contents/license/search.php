@@ -17,23 +17,23 @@
 defined( 'SMLISER_ROOT' ) || exit;
 
 /** @var array $args */
-$args   = $page_handler->get_menu_args( $request );
+$args = $page_handler->get_menu_args( $request );
 
 \array_unshift(
-    $args['actions'],
-    array(
-        'title'     => 'Add New License',
-        'label'     => 'Add New',
-        'url'       => $add_url,
-        'icon'      => 'ti ti-plus',
-    ),
+	$args['actions'],
+	[
+		'title' => 'Add New License',
+		'label' => 'Add New',
+		'url'   => $add_url,
+		'icon'  => 'ti ti-plus',
+	],
 
-    array(
-        'title'     => 'View Activity Logs',
-        'label'     => 'Activity Logs',
-        'url'       => $urlmanager->admin_license_page_url( 'logs' ),
-        'icon'      => 'ti ti-activity',
-    )
+	[
+		'title' => 'View Activity Logs',
+		'label' => 'Activity Logs',
+		'url'   => $urlmanager->admin_license_page_url( 'logs' ),
+		'icon'  => 'ti ti-activity',
+	]
 
 );
 ?>
@@ -66,7 +66,7 @@ $args   = $page_handler->get_menu_args( $request );
                     </tr>
                 <?php else: ?>
                     <?php foreach ( $licenses as $license ) :
-                        ?>        
+						?>        
                         <tr>
                             <td class="smliser-edit-row">
                                 <?php echo escHtml( $license->get_id() ); ?>
@@ -83,7 +83,7 @@ $args   = $page_handler->get_menu_args( $request );
                                 <div class="smliser-license-obfuscation">
                                     <div class="smliser-license-obfuscation_data">
                                         <span class="smliser-license-input">
-                                            <input type="text" id="<?php echo escHtml( $license->get_id() ); ?>" value="<?php echo escHtml( $license->get_license_key()) ?>" readonly class="smliser-license-text" />
+                                            <input type="text" id="<?php echo escHtml( $license->get_id() ); ?>" value="<?php echo escHtml( $license->get_license_key() ) ?>" readonly class="smliser-license-text" />
                                             <span class="ti ti-copy copy-key smliser-tooltip" title="copy license key"></span>
                                         </span>
 

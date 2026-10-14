@@ -26,89 +26,89 @@ use Callismart\DBPrism\Utils\DefaultColumnValue;
  */
 class AnalyticsLogsSchema implements DatabaseSchemaInterface {
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_label() : string {
-        return 'Analytics Logs';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_label() : string {
+		return 'Analytics Logs';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_description() : string {
-        return 'Stores raw analytics events - source of truth for event data.';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_description() : string {
+		return 'Stores raw analytics events - source of truth for event data.';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_table_name() : string {
-        return TableName::ANALYTICS_LOG->value;
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_table_name() : string {
+		return TableName::ANALYTICS_LOG->value;
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_columns() : array {
-        return [
-            Column::make( 'id' )
-                ->type( ColumnType::BIG_INT )
-                ->size( 20 )
-                ->unsigned()
-                ->auto_increment()
-                ->required(),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_columns() : array {
+		return [
+			Column::make( 'id' )
+				->type( ColumnType::BIG_INT )
+				->size( 20 )
+				->unsigned()
+				->auto_increment()
+				->required(),
 
-            Column::make( 'app_type' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 20 )
-                ->required(),
+			Column::make( 'app_type' )
+				->type( ColumnType::VARCHAR )
+				->size( 20 )
+				->required(),
 
-            Column::make( 'app_slug' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 100 )
-                ->required(),
+			Column::make( 'app_slug' )
+				->type( ColumnType::VARCHAR )
+				->size( 100 )
+				->required(),
 
-            Column::make( 'event_type' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 50 )
-                ->required(),
+			Column::make( 'event_type' )
+				->type( ColumnType::VARCHAR )
+				->size( 50 )
+				->required(),
 
-            Column::make( 'fingerprint' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 64 )
-                ->default( null ),
+			Column::make( 'fingerprint' )
+				->type( ColumnType::VARCHAR )
+				->size( 64 )
+				->default( null ),
 
-            Column::make( 'created_at' )
-                ->type( ColumnType::DATETIME )
-                ->default( DefaultColumnValue::expression( 'CURRENT_TIMESTAMP' ) ),
-        ];
-    }
+			Column::make( 'created_at' )
+				->type( ColumnType::DATETIME )
+				->default( DefaultColumnValue::expression( 'CURRENT_TIMESTAMP' ) ),
+		];
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_constraints() : array {
-        $prefx  = static::constraintPrefix();
-        return [
-            Constraint::primary( "{$prefx}primary" )
-                ->on( 'id' ),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_constraints() : array {
+		$prefx = static::constraintPrefix();
+		return [
+			Constraint::primary( "{$prefx}primary" )
+				->on( 'id' ),
 
-            Constraint::index( "{$prefx}app_identity_idx" )
-                ->on( 'app_type', 'app_slug' ),
+			Constraint::index( "{$prefx}app_identity_idx" )
+				->on( 'app_type', 'app_slug' ),
 
-            Constraint::index( "{$prefx}event_type_idx" )
-                ->on( 'event_type' ),
+			Constraint::index( "{$prefx}event_type_idx" )
+				->on( 'event_type' ),
 
-            Constraint::index( "{$prefx}lookup_idx" )
-                ->on( 'app_slug', 'event_type', 'created_at' ),
+			Constraint::index( "{$prefx}lookup_idx" )
+				->on( 'app_slug', 'event_type', 'created_at' ),
 
-            Constraint::index( "{$prefx}created_at_idx" )
-                ->on( 'created_at' ),
-        ];
-    }
+			Constraint::index( "{$prefx}created_at_idx" )
+				->on( 'created_at' ),
+		];
+	}
 
-    protected static function constraintPrefix() {
-        return 'smliser_analytics_logs_';
-    }
+	protected static function constraintPrefix() {
+		return 'smliser_analytics_logs_';
+	}
 }

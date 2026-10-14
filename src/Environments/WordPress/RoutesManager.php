@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Environments\WordPress
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\WordPress;
 
@@ -28,7 +28,7 @@ class RoutesManager {
 	/**
 	 * Registers all rewrite rules with WordPress. Hooks to `init` action.
 	 */
-	public function route_register(): void {
+	public function route_register() : void {
 		$this->router->register();
 	}
 
@@ -38,7 +38,7 @@ class RoutesManager {
 	 * @param string[] $vars
 	 * @return string[]
 	 */
-	public function query_vars( array $vars ): array {
+	public function query_vars( array $vars ) : array {
 		return $this->router->query_vars( $vars );
 	}
 
@@ -46,7 +46,7 @@ class RoutesManager {
 	 * All route definitions, in the same order and grouping as the original
 	 * hand-written rules.
 	 */
-	private function define_routes(): void {
+	private function define_routes() : void {
 		$repo_prefix    = smliser_get_repository_url_prefix();
 		$dashboard_slug = smliser_get_client_dashboard_url_prefix();
 		$download_slug  = smliser_get_download_url_prefix();
@@ -58,7 +58,7 @@ class RoutesManager {
 		*/
 		$this->router->group(
 			$repo_prefix,
-			function ( Router $router ): void {
+			function ( Router $router ) : void {
 				// siteurl/repository
 				$router->add( '', 'smliser-repository' );
 
@@ -98,7 +98,7 @@ class RoutesManager {
 		$this->router->add(
 			pattern: $dashboard_slug,
 			pagename: 'client-dashboard',
-			handler: [ Dispatcher::class, 'render_client_dashboard' ]	
+			handler: [ Dispatcher::class, 'render_client_dashboard' ]
 		);
 
 		/*
@@ -108,7 +108,7 @@ class RoutesManager {
 		*/
 		$this->router->group(
 			$download_slug,
-			function ( Router $router ): void {
+			function ( Router $router ) : void {
 				
 				// License document download rule (specific): numeric license ID.
 				// siteurl/$download_slug/document/license-document-1.txt
@@ -143,7 +143,7 @@ class RoutesManager {
 		$this->router->add(
 			'smliser-auth/v1/authorize',
 			'',
-			array( 'smliser_auth' => '1' )
+			[ 'smliser_auth' => '1' ]
 		);
 	}
 
@@ -161,7 +161,7 @@ class RoutesManager {
 	 * 
 	 * @return Router
 	 */
-	public function get_router(): Router {
+	public function get_router() : Router {
 		return $this->router;
 	}
 }

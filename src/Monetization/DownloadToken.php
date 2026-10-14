@@ -22,405 +22,405 @@ use SmartLicenseServer\Utils\TokenDeliveryTrait;
  * to hosted applications in the repository.
  */
 class DownloadToken extends DataStore {
-    use TokenDeliveryTrait, SanitizeAwareTrait;
-    /**
-     * Token ID.
-     * 
-     * @var int
-     */
-    protected $id = 0;
+	use TokenDeliveryTrait, SanitizeAwareTrait;
+	/**
+	 * Token ID.
+	 * 
+	 * @var int
+	 */
+	protected $id = 0;
 
-    /**
-     * Associated application properties.
-     * 
-     * @var array
-     */
-    protected $app_prop = [
-        'app_type' => '',
-        'app_slug' => ''
-    ];
+	/**
+	 * Associated application properties.
+	 * 
+	 * @var array
+	 */
+	protected $app_prop = [
+		'app_type' => '',
+		'app_slug' => ''
+	];
 
-    /**
-     * License key associated with this token.
-     * 
-     * @var string
-     */
-    protected $license_key = '';
+	/**
+	 * License key associated with this token.
+	 * 
+	 * @var string
+	 */
+	protected $license_key = '';
 
-    /**
-     * The download token string.
-     * 
-     * @var string
-     */
-    protected $token = '';
+	/**
+	 * The download token string.
+	 * 
+	 * @var string
+	 */
+	protected $token = '';
 
-    /**
-     * Token expiry timestamp.
-     * 
-     * @var int
-     */
-    protected $expiry = 0;
+	/**
+	 * Token expiry timestamp.
+	 * 
+	 * @var int
+	 */
+	protected $expiry = 0;
 
-    /**
-     * Class constructor.
-     */
-    public function __construct() {}
+	/**
+	 * Class constructor.
+	 */
+	public function __construct() {}
 
-    /*
-    |-----------------
-    | SETTERS
-    |-----------------
-    */
+	/*
+	|-----------------
+	| SETTERS
+	|-----------------
+	*/
 
-    /**
-     * Set the token ID.
-     * 
-     * @param int $id
-     * @return static
-     */
-    public function set_id( int $id ) : static {
-        $this->id = max( 0, $id );
-        return $this;
-    }
+	/**
+	 * Set the token ID.
+	 * 
+	 * @param int $id
+	 * @return static
+	 */
+	public function set_id( int $id ) : static {
+		$this->id = max( 0, $id );
+		return $this;
+	}
 
-    /**
-     * Set application properties.
-     * 
-     * @param string $type App type
-     * @param string $slug App slug
-     * @return static
-     */
-    public function set_app_prop( string $type, string $slug ) : static {
-        $this->app_prop['app_type'] = $type;
-        $this->app_prop['app_slug'] = $slug;
-        return $this;
-    }
+	/**
+	 * Set application properties.
+	 * 
+	 * @param string $type App type
+	 * @param string $slug App slug
+	 * @return static
+	 */
+	public function set_app_prop( string $type, string $slug ) : static {
+		$this->app_prop['app_type'] = $type;
+		$this->app_prop['app_slug'] = $slug;
+		return $this;
+	}
 
-    /**
-     * Set the associated license key.
-     * 
-     * @param string $license_key
-     * @return static
-     */
-    public function set_license_key( string $license_key ) : static {
-        $this->license_key = static::sanitize_text( $license_key );
-        return $this;
-    }
+	/**
+	 * Set the associated license key.
+	 * 
+	 * @param string $license_key
+	 * @return static
+	 */
+	public function set_license_key( string $license_key ) : static {
+		$this->license_key = static::sanitize_text( $license_key );
+		return $this;
+	}
 
-    /**
-     * Set the download token string.
-     * 
-     * @param string $token
-     * @return static
-     */
-    public function set_token( string $token ) : static {
-        $this->token = static::sanitize_text( $token );
-        return $this;
-    }
+	/**
+	 * Set the download token string.
+	 * 
+	 * @param string $token
+	 * @return static
+	 */
+	public function set_token( string $token ) : static {
+		$this->token = static::sanitize_text( $token );
+		return $this;
+	}
 
-    /**
-     * Set the expiry timestamp.
-     * 
-     * @param int $expiry Unix timestamp
-     * @return static
-     */
-    public function set_expiry( int $expiry ) : static {
-        $this->expiry = max( 0, $expiry );
-        return $this;
-    }
+	/**
+	 * Set the expiry timestamp.
+	 * 
+	 * @param int $expiry Unix timestamp
+	 * @return static
+	 */
+	public function set_expiry( int $expiry ) : static {
+		$this->expiry = max( 0, $expiry );
+		return $this;
+	}
 
-    /*
-    |-----------------
-    | GETTERS
-    |-----------------
-    */
+	/*
+	|-----------------
+	| GETTERS
+	|-----------------
+	*/
 
-    /**
-     * Get token ID.
-     * 
-     * @return int
-     */
-    public function get_id() : int {
-        return $this->id;
-    }
+	/**
+	 * Get token ID.
+	 * 
+	 * @return int
+	 */
+	public function get_id() : int {
+		return $this->id;
+	}
 
-    /**
-     * Get application properties.
-     * 
-     * @param string $context 'view' returns formatted string, 'edit' returns raw array
-     * @return array|string
-     */
-    public function get_app_prop( string $context = 'view' ) : array|string {
-        if ( 'view' === $context ) {
-            $prop = array_filter( $this->app_prop );
-            return implode( '/', $prop );
-        }
-        return $this->app_prop;
-    }
+	/**
+	 * Get application properties.
+	 * 
+	 * @param string $context 'view' returns formatted string, 'edit' returns raw array
+	 * @return array|string
+	 */
+	public function get_app_prop( string $context = 'view' ) : array|string {
+		if ( 'view' === $context ) {
+			$prop = array_filter( $this->app_prop );
+			return implode( '/', $prop );
+		}
+		return $this->app_prop;
+	}
 
-    /**
-     * Get license key.
-     * 
-     * @return string
-     */
-    public function get_license_key() : string {
-        return $this->license_key;
-    }
+	/**
+	 * Get license key.
+	 * 
+	 * @return string
+	 */
+	public function get_license_key() : string {
+		return $this->license_key;
+	}
 
-    /**
-     * Get download token string.
-     * 
-     * @return string
-     */
-    public function get_token() : string {
-        return $this->token;
-    }
+	/**
+	 * Get download token string.
+	 * 
+	 * @return string
+	 */
+	public function get_token() : string {
+		return $this->token;
+	}
 
-    /**
-     * Get expiry timestamp.
-     * 
-     * @return int
-     */
-    public function get_expiry() : int {
-        return $this->expiry;
-    }
+	/**
+	 * Get expiry timestamp.
+	 * 
+	 * @return int
+	 */
+	public function get_expiry() : int {
+		return $this->expiry;
+	}
 
-    /*
-    |-----------------
-    | CRUD METHODS
-    |-----------------
-    */
+	/*
+	|-----------------
+	| CRUD METHODS
+	|-----------------
+	*/
 
-    /**
-     * Save the token to the database.
-     * 
-     * @return bool True on success, false otherwise
-     */
-    private function save() : bool {
-        $table = TableName::APP_DOWNLOAD_TOKENS->table();
+	/**
+	 * Save the token to the database.
+	 * 
+	 * @return bool True on success, false otherwise
+	 */
+	private function save() : bool {
+		$table = TableName::APP_DOWNLOAD_TOKENS->table();
 
-        $data = [
-            'app_prop'    => $this->get_app_prop( 'view' ),
-            'license_key' => $this->license_key,
-            'token'       => $this->token,
-            'expiry'      => $this->expiry
-        ];
+		$data = [
+			'app_prop'    => $this->get_app_prop( 'view' ),
+			'license_key' => $this->license_key,
+			'token'       => $this->token,
+			'expiry'      => $this->expiry
+		];
 
-        if ( $this->id ) {
-            $updated = static::$DB->update( $table, $data, ['id' => $this->id] );
-            return false !== $updated;
-        }
+		if ( $this->id ) {
+			$updated = static::$DB->update( $table, $data, ['id' => $this->id] );
+			return false !== $updated;
+		}
 
-        $inserted = static::$DB->insert( $table, $data );
-        if ( $inserted ) {
-            $this->set_id( static::$DB->get_insert_id() );
-            return true;
-        }
+		$inserted = static::$DB->insert( $table, $data );
+		if ( $inserted ) {
+			$this->set_id( static::$DB->get_insert_id() );
+			return true;
+		}
 
-        return false;
-    }
+		return false;
+	}
 
-    /**
-     * Delete the token from the database.
-     * 
-     * @return bool
-     */
-    public function delete() : bool {
-        if ( ! $this->id ) {
-            return false;
-        }
+	/**
+	 * Delete the token from the database.
+	 * 
+	 * @return bool
+	 */
+	public function delete() : bool {
+		if ( ! $this->id ) {
+			return false;
+		}
 
-        $table = TableName::APP_DOWNLOAD_TOKENS->table();
+		$table = TableName::APP_DOWNLOAD_TOKENS->table();
 
-        $deleted = static::$DB->delete( $table, ['id' => $this->id] );
-        return false !== $deleted;
-    }
+		$deleted = static::$DB->delete( $table, ['id' => $this->id] );
+		return false !== $deleted;
+	}
 
-    /**
-     * Load a token by ID.
-     * 
-     * @param int $id
-     * @return static|null
-     */
-    public static function get_by_id( int $id ) : ?static {
-        $data   = static::fetch_by( 'id', $id, TableName::APP_DOWNLOAD_TOKENS->table() );
+	/**
+	 * Load a token by ID.
+	 * 
+	 * @param int $id
+	 * @return static|null
+	 */
+	public static function get_by_id( int $id ) : ?static {
+		$data = static::fetch_by( 'id', $id, TableName::APP_DOWNLOAD_TOKENS->table() );
 
-        return $data ? static::from_array( $data ) : null;
-    }
+		return $data ? static::from_array( $data ) : null;
+	}
 
-    /**
-     * Fetch a token by token string.
-     * 
-     * @param string $token
-     * @return static|null
-     */
-    public static function get_by_token( string $token ) : ?static {
-        $table = TableName::APP_DOWNLOAD_TOKENS->table();
+	/**
+	 * Fetch a token by token string.
+	 * 
+	 * @param string $token
+	 * @return static|null
+	 */
+	public static function get_by_token( string $token ) : ?static {
+		$table = TableName::APP_DOWNLOAD_TOKENS->table();
 
-        $sql    = static::query()
-            ->select( '*' )
-            ->from( $table )
-            ->where( 'token', '=', $token )
-            ->limit( 1 );
+		$sql = static::query()
+			->select( '*' )
+			->from( $table )
+			->where( 'token', '=', $token )
+			->limit( 1 );
 
-        $row    = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
+		$row = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
 
-        return $row ? static::from_array( $row ) : null;
-    }
+		return $row ? static::from_array( $row ) : null;
+	}
 
-    /*
-    |-----------------
-    | UTILITY METHODS
-    |-----------------
-    */
+	/*
+	|-----------------
+	| UTILITY METHODS
+	|-----------------
+	*/
 
-    /**
-     * Check whether the token is expired.
-     * 
-     * @return bool
-     */
-    public function is_expired() : bool {
-        return $this->expiry > 0 && time() > $this->expiry;
-    }
+	/**
+	 * Check whether the token is expired.
+	 * 
+	 * @return bool
+	 */
+	public function is_expired() : bool {
+		return $this->expiry > 0 && time() > $this->expiry;
+	}
 
-    /**
-     * Generate a unique token string.
-     * 
-     * @param int $length Length of random token (default 32)
-     * @return string
-     */
-    private static function generate_token( int $length = 32 ) : string {
-        return sprintf( 'smliser_%s', bin2hex( random_bytes( $length ) ) );
-    }
+	/**
+	 * Generate a unique token string.
+	 * 
+	 * @param int $length Length of random token (default 32)
+	 * @return string
+	 */
+	private static function generate_token( int $length = 32 ) : string {
+		return sprintf( 'smliser_%s', bin2hex( random_bytes( $length ) ) );
+	}
 
-    /**
-     * Convert database row or array into a DownloadToken object.
-     * 
-     * @param array $data
-     * @return static
-     */
-    public static function from_array( array $data ) : static {
-        $static = new static();
-        $static->set_id( $data['id'] ?? 0 );
+	/**
+	 * Convert database row or array into a DownloadToken object.
+	 * 
+	 * @param array $data
+	 * @return static
+	 */
+	public static function from_array( array $data ) : static {
+		$static = new static();
+		$static->set_id( $data['id'] ?? 0 );
 
-        $app_prop   = $data['app_prop'] ?? '';
-        if ( is_string( $app_prop ) && preg_match( '#^[^/]+/[^/]+$#', $app_prop ) ) {
-            list( $type, $slug ) = explode( '/', $app_prop, 2 );
-            $static->set_app_prop( $type, $slug );
-        }
+		$app_prop = $data['app_prop'] ?? '';
+		if ( is_string( $app_prop ) && preg_match( '#^[^/]+/[^/]+$#', $app_prop ) ) {
+			list( $type, $slug ) = explode( '/', $app_prop, 2 );
+			$static->set_app_prop( $type, $slug );
+		}
 
-        $static->set_license_key( $data['license_key'] ?? '' )
-            ->set_token( $data['token'] ?? '' )
-            ->set_expiry( intval( $data['expiry'] ?? 0 ) );
+		$static->set_license_key( $data['license_key'] ?? '' )
+			->set_token( $data['token'] ?? '' )
+			->set_expiry( intval( $data['expiry'] ?? 0 ) );
 
-        return $static;
-    }
+		return $static;
+	}
 
-    /**
-    |-------------------------------------------
-    | TOKEN GENERATION AND VERIFICATION METHODS
-    |-------------------------------------------
-     */
+	/**
+	|-------------------------------------------
+	| TOKEN GENERATION AND VERIFICATION METHODS
+	|-------------------------------------------
+	 */
 
-    /**
-     * Generate a new download token for the app associated with a license
-     * 
-     * @param License $license The license object.
-     * @param int $expiry The license expiry duration in seconds.
-     * @throws \SmartLicenseServer\Exceptions\Exception
-     * @return string
-     */
-    public static function create_token( License $license, $expiry = 86400 ) : string {
-        // We cant issue token for a license that is not issued
-        if ( ! $license->is_issued() ) {
-            throw new Exception( 'download_token_error', 'This license must be issued to a hosted application first.', ['status' => 400] );
-        }
+	/**
+	 * Generate a new download token for the app associated with a license
+	 * 
+	 * @param License $license The license object.
+	 * @param int $expiry The license expiry duration in seconds.
+	 * @throws \SmartLicenseServer\Exceptions\Exception
+	 * @return string
+	 */
+	public static function create_token( License $license, $expiry = 86400 ) : string {
+		// We cant issue token for a license that is not issued
+		if ( ! $license->is_issued() ) {
+			throw new Exception( 'download_token_error', 'This license must be issued to a hosted application first.', ['status' => 400] );
+		}
 
-        $static = new static();
-        $app_type   = $license->get_app()->get_type();
-        $app_slug   = $license->get_app()->get_slug() ;
-        $expiry     = time() + (int) $expiry;
+		$static   = new static();
+		$app_type = $license->get_app()->get_type();
+		$app_slug = $license->get_app()->get_slug() ;
+		$expiry   = time() + (int) $expiry;
 
-        $static->set_app_prop( $app_type, $app_slug );
-        $static->set_license_key( $license->get_license_key() );
-        $static->set_expiry( $expiry );
+		$static->set_app_prop( $app_type, $app_slug );
+		$static->set_license_key( $license->get_license_key() );
+		$static->set_expiry( $expiry );
 
-        $raw_token  = static::generate_token();
-        $secret     = static::derive_key();
+		$raw_token = static::generate_token();
+		$secret    = static::derive_key();
 
-        $static->set_token( \hash_hmac( 'sha256', $raw_token, $secret ) );
+		$static->set_token( \hash_hmac( 'sha256', $raw_token, $secret ) );
 
-        $payload = [
-            'license_id'    => $license->get_id(),
-            'app_prop'      => $license->get_app_prop(),
-            'expiry_ts'     => $expiry,
-            'timestamp'     => time(),
-            'token'         => $raw_token
-        ];
+		$payload = [
+			'license_id' => $license->get_id(),
+			'app_prop'   => $license->get_app_prop(),
+			'expiry_ts'  => $expiry,
+			'timestamp'  => time(),
+			'token'      => $raw_token
+		];
 
-        $encoded_payload    = \smliser_safe_json_encode( $payload );
-        $signature          = \hash_hmac( 'sha256', $encoded_payload, $secret );
+		$encoded_payload = \smliser_safe_json_encode( $payload );
+		$signature       = \hash_hmac( 'sha256', $encoded_payload, $secret );
 
 
-        if ( ! $static->save() ) {
-            throw new Exception( 'download_token_error', 'Unable to save token in the database', ['status' => 500] );
-        }
+		if ( ! $static->save() ) {
+			throw new Exception( 'download_token_error', 'Unable to save token in the database', ['status' => 500] );
+		}
 
-        $token = sprintf( '%s.%s', $encoded_payload, $signature );
+		$token = sprintf( '%s.%s', $encoded_payload, $signature );
 
-        return static::base64url_encode( $token );
+		return static::base64url_encode( $token );
 
-    }
+	}
 
-    /**
-     * Verify the download token issued to the app in context.
-     *
-     * @param string $client_token
-     * @param HostedAppsInterface $app
-     * @return static
-     * @throws \SmartLicenseServer\Exceptions\Exception
-     */
-    public static function verify_token_for_app( string $client_token, HostedAppsInterface $app ) : static {
-        $decoded = static::base64url_decode( $client_token );
+	/**
+	 * Verify the download token issued to the app in context.
+	 *
+	 * @param string $client_token
+	 * @param HostedAppsInterface $app
+	 * @return static
+	 * @throws \SmartLicenseServer\Exceptions\Exception
+	 */
+	public static function verify_token_for_app( string $client_token, HostedAppsInterface $app ) : static {
+		$decoded = static::base64url_decode( $client_token );
 
-        $parts = explode('.', $decoded, 2);
-        if ( count( $parts ) !== 2 ) {
-            throw new Exception('download_token_invalid', 'Malformed download token.', ['status' => 400]);
-        }
+		$parts = explode( '.', $decoded, 2 );
+		if ( 2 !== count( $parts ) ) {
+			throw new Exception( 'download_token_invalid', 'Malformed download token.', ['status' => 400] );
+		}
 
-        [$encoded_payload, $signature] = $parts;
-        
-        $secret = static::derive_key();
+		[$encoded_payload, $signature] = $parts;
+		
+		$secret = static::derive_key();
 
-        if ( ! hash_equals( hash_hmac( 'sha256', $encoded_payload, $secret ), $signature ) ) {
-            throw new Exception( 'download_token_invalid', 'Invalid download token signature.', ['status' => 403] );
-        }
+		if ( ! hash_equals( hash_hmac( 'sha256', $encoded_payload, $secret ), $signature ) ) {
+			throw new Exception( 'download_token_invalid', 'Invalid download token signature.', ['status' => 403] );
+		}
 
-        $payload = json_decode( $encoded_payload, true );
-        if ( ! $payload || empty( $payload['token'] ) ) {
-            throw new Exception( 'download_token_invalid', 'Invalid download token payload.', ['status' => 400] );
-        }
+		$payload = json_decode( $encoded_payload, true );
+		if ( ! $payload || empty( $payload['token'] ) ) {
+			throw new Exception( 'download_token_invalid', 'Invalid download token payload.', ['status' => 400] );
+		}
 
-        $static = static::get_by_token( hash_hmac( 'sha256', $payload['token'], $secret ) );
-        if ( ! $static ) {
-            throw new Exception( 'download_token_invalid', 'Download token record not found.', ['status' => 404] );
-        }
+		$static = static::get_by_token( hash_hmac( 'sha256', $payload['token'], $secret ) );
+		if ( ! $static ) {
+			throw new Exception( 'download_token_invalid', 'Download token record not found.', ['status' => 404] );
+		}
 
-        if ( $static->is_expired() ) {
-            throw new Exception( 'download_token_expired', 'Download token has expired.', ['status' => 403] );
-        }
+		if ( $static->is_expired() ) {
+			throw new Exception( 'download_token_expired', 'Download token has expired.', ['status' => 403] );
+		}
 
-        $app_type   = $app->get_type();
-        $app_slug   = $app->get_slug();
+		$app_type = $app->get_type();
+		$app_slug = $app->get_slug();
 
-        // Context check: make sure token belongs to requested app.
-        $token_app_prop     = $static->get_app_prop( 'view' );
-        $requested_app_prop = sprintf( '%s/%s', $app_type, $app_slug );
+		// Context check: make sure token belongs to requested app.
+		$token_app_prop     = $static->get_app_prop( 'view' );
+		$requested_app_prop = sprintf( '%s/%s', $app_type, $app_slug );
 
-        if ( ! \hash_equals( $token_app_prop, $requested_app_prop ) ) {
-            throw new Exception( 'download_token_invalid', 'Download token does not match requested app.', ['status' => 403] );
-        }
+		if ( ! \hash_equals( $token_app_prop, $requested_app_prop ) ) {
+			throw new Exception( 'download_token_invalid', 'Download token does not match requested app.', ['status' => 403] );
+		}
 
-        return $static;
-    }
+		return $static;
+	}
 }

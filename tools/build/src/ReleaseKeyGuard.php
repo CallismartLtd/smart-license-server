@@ -61,12 +61,12 @@ final class ReleaseKeyGuard {
 	 * @return void
 	 * @throws BuildException When the release would leave installations unable to verify updates.
 	 */
-	public function check( string $dir, string $label ): void {
+	public function check( string $dir, string $label ) : void {
 		$file = $this->find( $dir );
 		$name = $this->relative( $file );
 		$keys = self::read_keys( $file, $name );
 
-		if ( array() === $keys ) {
+		if ( [] === $keys ) {
 			throw new BuildException(
 				sprintf(
 					'%s has no public keys in PUBLIC_KEYS. Installations running this release could never verify an update. Add your release (and recovery) public keys before building.',
@@ -121,7 +121,7 @@ final class ReleaseKeyGuard {
 	 * @return array<string|int, string> Base64 public keys, keyed by label when labelled.
 	 * @throws BuildException When the file cannot be read or the constant is not a plain list of keys.
 	 */
-	public static function read_keys( string $file, ?string $name = null ): array {
+	public static function read_keys( string $file, ?string $name = null ) : array {
 		$code = is_file( $file ) ? file_get_contents( $file ) : false;
 		$name = $name ?? $file;
 
@@ -132,7 +132,7 @@ final class ReleaseKeyGuard {
 		$tokens = array_values(
 			array_filter(
 				token_get_all( $code ),
-				static fn ( $token ): bool => ! is_array( $token ) || ! in_array( $token[0], array( T_WHITESPACE, T_COMMENT, T_DOC_COMMENT ), true )
+				static fn ( $token ) : bool => ! is_array( $token ) || ! in_array( $token[0], [ T_WHITESPACE, T_COMMENT, T_DOC_COMMENT ], true )
 			)
 		);
 
@@ -149,7 +149,7 @@ final class ReleaseKeyGuard {
 			throw new BuildException( "{$name} does not declare const PUBLIC_KEYS." );
 		}
 
-		$keys  = array();
+		$keys  = [];
 		$label = null;
 
 		for ( $i = $start + 1, $count = count( $tokens ); $i < $count; $i++ ) {
@@ -159,7 +159,7 @@ final class ReleaseKeyGuard {
 				return $keys;
 			}
 
-			if ( in_array( $token, array( '[', ']', '(', ')', ',' ), true ) || ( is_array( $token ) && in_array( $token[0], array( T_ARRAY, T_DOUBLE_ARROW ), true ) ) ) {
+			if ( in_array( $token, [ '[', ']', '(', ')', ',' ], true ) || ( is_array( $token ) && in_array( $token[0], [ T_ARRAY, T_DOUBLE_ARROW ], true ) ) ) {
 				continue;
 			}
 
@@ -199,12 +199,12 @@ final class ReleaseKeyGuard {
 	 * @return string Its path.
 	 * @throws BuildException When there is none, or more than one.
 	 */
-	private function find( string $dir ): string {
-		$found = array();
+	private function find( string $dir ) : string {
+		$found = [];
 		$files = new \RecursiveIteratorIterator(
 			new \RecursiveCallbackFilterIterator(
 				new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS ),
-				static fn ( \SplFileInfo $item ): bool => ! $item->isDir() || ! in_array( $item->getFilename(), array( 'vendor', 'node_modules', '.git' ), true )
+				static fn ( \SplFileInfo $item ) : bool => ! $item->isDir() || ! in_array( $item->getFilename(), [ 'vendor', 'node_modules', '.git' ], true )
 			)
 		);
 
@@ -231,8 +231,8 @@ final class ReleaseKeyGuard {
 	 * @param string $path Path.
 	 * @return string
 	 */
-	private function relative( string $path ): string {
-		foreach ( array( $this->context->out_dir, $this->context->repo_root ) as $root ) {
+	private function relative( string $path ) : string {
+		foreach ( [ $this->context->out_dir, $this->context->repo_root ] as $root ) {
 			if ( str_starts_with( $path, $root . '/' ) ) {
 				return substr( $path, strlen( $root ) + 1 );
 			}

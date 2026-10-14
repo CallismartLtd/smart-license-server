@@ -90,7 +90,7 @@ final class BackgroundRunner {
 	 * @param callable|null        $log    fn( string $line ): void for progress lines.
 	 * @return array{result: string, tasks?: int, failed?: int, jobs?: int, seconds?: float}
 	 */
-	public function run( string $source, array $meta = array(), ?int $budget = null, ?callable $log = null ) : array {
+	public function run( string $source, array $meta = [], ?int $budget = null, ?callable $log = null ) : array {
 		$lock = @fopen( $this->lock_file, 'c' );
 
 		if ( false === $lock || ! flock( $lock, LOCK_EX | LOCK_NB ) ) {
@@ -98,18 +98,18 @@ final class BackgroundRunner {
 				fclose( $lock );
 			}
 
-			return array( 'result' => self::BUSY );
+			return [ 'result' => self::BUSY ];
 		}
 
 		try {
 			if ( BackgroundStatus::SOURCE_CRON_URL === $source && $this->ran_recently() ) {
-				return array( 'result' => self::THROTTLED );
+				return [ 'result' => self::THROTTLED ];
 			}
 
 			if ( null !== $this->code_changes->reason() ) {
-				$this->status->record( $source, $meta + array( 'skipped' => 'updating' ) );
+				$this->status->record( $source, $meta + [ 'skipped' => 'updating' ] );
 
-				return array( 'result' => self::UPDATING );
+				return [ 'result' => self::UPDATING ];
 			}
 
 			return $this->run_locked( $source, $meta, $budget ?? ( \is_cli() ? self::CLI_QUEUE_BUDGET : self::WEB_QUEUE_BUDGET ), $log );
@@ -169,16 +169,16 @@ final class BackgroundRunner {
 			$this->worker->set_stop_checker( null );
 		}
 
-		$summary = array(
+		$summary = [
 			'tasks'   => $tasks,
 			'failed'  => $failed,
 			'jobs'    => $jobs,
 			'seconds' => round( microtime( true ) - $started, 2 ),
-		);
+		];
 
 		$this->status->record( $source, $meta + $summary );
 
-		return array( 'result' => self::RAN ) + $summary;
+		return [ 'result' => self::RAN ] + $summary;
 	}
 
 	/**
@@ -190,7 +190,7 @@ final class BackgroundRunner {
 	 * @return bool
 	 */
 	private function ran_recently() : bool {
-		foreach ( array( BackgroundStatus::SOURCE_CRON_URL, BackgroundStatus::SOURCE_CLI_CRON, BackgroundStatus::SOURCE_SCHEDULE_RUN ) as $source ) {
+		foreach ( [ BackgroundStatus::SOURCE_CRON_URL, BackgroundStatus::SOURCE_CLI_CRON, BackgroundStatus::SOURCE_SCHEDULE_RUN ] as $source ) {
 			$age = $this->status->age( $source );
 
 			if ( null !== $age && $age < self::MIN_URL_INTERVAL ) {

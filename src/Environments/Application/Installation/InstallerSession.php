@@ -60,7 +60,7 @@ final class InstallerSession {
 		private readonly string $file,
 		private readonly int $idle_timeout = self::IDLE_TIMEOUT
 	) {
-		$this->fs	= $fs;
+		$this->fs = $fs;
 	}
 
 	/**
@@ -114,12 +114,12 @@ final class InstallerSession {
 
 		$this->write_json(
 			$this->file,
-			array(
+			[
 				'session'    => hash( 'sha256', $cookie ),
 				'csrf'       => bin2hex( random_bytes( 16 ) ),
 				'claimed_at' => $now,
 				'last_seen'  => $now,
-			)
+			]
 		);
 
 		return $cookie;
@@ -171,7 +171,7 @@ final class InstallerSession {
 		$record = $this->active_record();
 
 		if ( null !== $record ) {
-			$record['flash'][] = array( 'type' => $type, 'message' => $message );
+			$record['flash'][] = [ 'type' => $type, 'message' => $message ];
 			$this->write_json( $this->file, $record );
 		}
 	}
@@ -185,7 +185,7 @@ final class InstallerSession {
 		$record = $this->active_record();
 
 		if ( null === $record || empty( $record['flash'] ) || ! is_array( $record['flash'] ) ) {
-			return array();
+			return [];
 		}
 
 		$notices = $record['flash'];

@@ -19,22 +19,22 @@ defined( 'SMLISER_ROOT' ) || exit;
 ?>
 <div class="smliser-admin-dashboard-template overview">
     <?php smliser_print_admin_content_header(
-        [
-            'breadcrumbs'   => array(
-                array(
-                    'label' => SMLISER_APP_NAME
-                )
-            ),
-            'actions'   => array(
-                array(
-                    'title' => 'Settings',
-                    'label' => 'Settings',
-                    'url'   => $urlmanager->admin_options_url(),
-                    'icon'  => 'ti ti-settings'
-                )
-            )
-        ]
-    ); ?>
+		[
+			'breadcrumbs' => [
+				[
+					'label' => SMLISER_APP_NAME
+				]
+			],
+			'actions' => [
+				[
+					'title' => 'Settings',
+					'label' => 'Settings',
+					'url'   => $urlmanager->admin_options_url(),
+					'icon'  => 'ti ti-settings'
+				]
+			]
+		]
+	); ?>
 
     <div class="smliser-admin-body">
         <div class="smliser-dashboard-hero">
@@ -62,12 +62,12 @@ defined( 'SMLISER_ROOT' ) || exit;
         <div class="smliser-dashboard-content">
             <?php foreach ( $metrics as $domain_name => $domain_data ) : ?>
                 <?php
-                $summary = $domain_data['summary'] ?? [];
-                $chart_data = $domain_data['chart_data'] ?? [];
-                $rankings = $domain_data['rankings'] ?? [];
-                $recent_logs = $domain_data['recent_logs'] ?? [];
-                $domain_id = Format::slugify( $domain_name );
-                ?>
+				$summary     = $domain_data['summary'] ?? [];
+				$chart_data  = $domain_data['chart_data'] ?? [];
+				$rankings    = $domain_data['rankings'] ?? [];
+				$recent_logs = $domain_data['recent_logs'] ?? [];
+				$domain_id   = Format::slugify( $domain_name );
+				?>
 
                 <div class="smliser-dashboard-content_item" data-domain="<?php echo escAttr( $domain_id ); ?>">
                     <div class="smliser-domain-header">
@@ -91,12 +91,12 @@ defined( 'SMLISER_ROOT' ) || exit;
                                                 <span class="value"><?php echo escHtml( number_format( $value ) ); ?></span>
                                                 <span class="label"><?php echo escHtml( smliser_format_metric_label( $key ) ); ?></span>
                                                 <?php
-                                                // Check for growth metric
-                                                $growth_key = $key . '_growth';
-                                                if ( isset( $summary[ $growth_key ] ) ) :
-                                                    $growth = $summary[ $growth_key ];
-                                                    $is_positive = $growth >= 0;
-                                                ?>
+												// Check for growth metric
+												$growth_key = $key . '_growth';
+												if ( isset( $summary[ $growth_key ] ) ) :
+													$growth      = $summary[ $growth_key ];
+													$is_positive = $growth >= 0;
+												?>
                                                     <span class="growth <?php echo $is_positive ? 'positive' : 'negative'; ?>">
                                                         <i class="ti ti-trending-<?php echo $is_positive ? 'up' : 'down'; ?>"></i>
                                                         <?php echo escHtml( number_format( abs( $growth ), 2 ) . '%' ); ?>
@@ -138,17 +138,17 @@ defined( 'SMLISER_ROOT' ) || exit;
                                                             <?php echo escHtml( ucfirst( $type ) ); ?>
                                                         </h5>
                                                         <ol class="smliser-ranking-list">
-                                                            <?php foreach ( array_slice( $apps, 0, 5 ) as $index => $app ) : 
-                                                                $app_sl     = (string) $app['app_slug'] ?? '';
-                                                                $app_ty     = (string) $app['app_type'] ?? '';
-                                                                $app_obj    = HostedApplicationService::get_app_by_slug( $app_ty, $app_sl );
-                                                                
-                                                                ?>
+                                                            <?php foreach ( array_slice( $apps, 0, 5 ) as $index => $app ) :
+																$app_sl  = (string) $app['app_slug'] ?? '';
+																$app_ty  = (string) $app['app_type'] ?? '';
+																$app_obj = HostedApplicationService::get_app_by_slug( $app_ty, $app_sl );
+																
+																?>
                                                                 <li class="smliser-ranking-item">
                                                                     <span class="rank">#<?php echo escHtml( $index + 1 ); ?></span>
                                                                     <?php if ( $app_obj ) : ?>
                                                                         <span class="name">
-                                                                            <a href="<?php echo \escUrl( $urlmanager->admin_repo_url( 'view', array( 'app_id' => $app_obj->get_id(), 'type' => $app_obj->get_type() ) )->url() ); ?>" target="_blank" >
+                                                                            <a href="<?php echo \escUrl( $urlmanager->admin_repo_url( 'view', [ 'app_id' => $app_obj->get_id(), 'type' => $app_obj->get_type() ] )->url() ); ?>" target="_blank" >
                                                                                 <?php echo escHtml( $app_obj->get_name() ); ?>
                                                                             </a>
                                                                         </span>
@@ -187,9 +187,9 @@ defined( 'SMLISER_ROOT' ) || exit;
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach ( $recent_logs as $log ) : 
-                                                $date = TimestampValue::fromTimestamp( (int) $log['created_at'] )->toDateTime();
-                                            ?>
+                                            <?php foreach ( $recent_logs as $log ) :
+												$date = TimestampValue::fromTimestamp( (int) $log['created_at'] )->toDateTime();
+											?>
                                                 <tr>
                                                     <td>
                                                         <span class="timestamp" title="<?php echo escAttr( $date->format( \smliser_datetime_format() ) ); ?>">
@@ -206,7 +206,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                                                         <code><?php echo escHtml( $log['license_id'] ?? 'N/A' ); ?></code>
                                                     </td>
                                                     <td>
-                                                        <?php if ( ! empty( $log['website'] ) && $log['website'] !== 'N/A' ) : ?>
+                                                        <?php if ( ! empty( $log['website'] ) && 'N/A' !== $log['website'] ) : ?>
                                                             <a href="<?php echo escUrl( $log['website'] ); ?>" target="_blank" rel="noopener">
                                                                 <?php echo escHtml( parse_url( $log['website'], PHP_URL_HOST ) ?? $log['website'] ); ?>
                                                                 <i class="ti ti-external-link"></i>
@@ -242,93 +242,93 @@ defined( 'SMLISER_ROOT' ) || exit;
  * Get icon for domain
  */
 function get_domain_icon( mixed $domain_name ) {
-    $icons = [
-        'Repository Overview'   => 'ti-database',
-        'Download Analytics'    => 'ti-download',
-        'Client Activity'       => 'ti-activity',
-        'License Activity'      => 'ti-license',
-        'Performance & Ranking' => 'ti-trophy',
-    ];
-    return $icons[ $domain_name ] ?? 'ti-chart-line';
+	$icons = [
+		'Repository Overview'   => 'ti-database',
+		'Download Analytics'    => 'ti-download',
+		'Client Activity'       => 'ti-activity',
+		'License Activity'      => 'ti-license',
+		'Performance & Ranking' => 'ti-trophy',
+	];
+	return $icons[ $domain_name ] ?? 'ti-chart-line';
 }
 
 /**
  * Get icon for metric key
  */
 function get_metric_icon( mixed $key ) {
-    $icons = [
-        'active_installations'      => 'ti-server',
-        'total_downloads'           => 'ti-download',
-        'total_accesses'            => 'ti-activity',
-        'plugins_downloads'         => 'ti-plug',
-        'themes_downloads'          => 'ti-palette',
-        'software_downloads'        => 'ti-package',
-        'plugin_installations'      => 'ti-plug',
-        'theme_installations'       => 'ti-palette',
-        'software_installations'    => 'ti-package',
-        'activations'               => 'ti-check',
-        'deactivations'             => 'ti-x',
-        'verifications'             => 'ti-shield-check',
-    ];
-    return $icons[ $key ] ?? 'ti-chart-bar';
+	$icons = [
+		'active_installations'   => 'ti-server',
+		'total_downloads'        => 'ti-download',
+		'total_accesses'         => 'ti-activity',
+		'plugins_downloads'      => 'ti-plug',
+		'themes_downloads'       => 'ti-palette',
+		'software_downloads'     => 'ti-package',
+		'plugin_installations'   => 'ti-plug',
+		'theme_installations'    => 'ti-palette',
+		'software_installations' => 'ti-package',
+		'activations'            => 'ti-check',
+		'deactivations'          => 'ti-x',
+		'verifications'          => 'ti-shield-check',
+	];
+	return $icons[ $key ] ?? 'ti-chart-bar';
 }
 
 /**
  * Get icon for app type
  */
 function smliser_get_type_icon( ?string $type ) {
-    $icons = [
-        'plugin'    => 'ti-plug',
-        'theme'     => 'ti-palette',
-        'software'  => 'ti-package',
-    ];
-    return $icons[ $type ] ?? 'ti-apps';
+	$icons = [
+		'plugin'   => 'ti-plug',
+		'theme'    => 'ti-palette',
+		'software' => 'ti-package',
+	];
+	return $icons[ $type ] ?? 'ti-apps';
 }
 
 /**
  * Get icon for event type
  */
 function smliser_get_event_icon( ?string $event_type ) {
-    $icons = [
-        'activation'        => 'ti-check',
-        'deactivation'      => 'ti-x',
-        'verification'      => 'ti-shield-check',
-        'uninstallation'    => 'ti-trash',
-        'unknown'           => 'ti-help',
-    ];
-    return $icons[ $event_type ] ?? 'ti-circle-dot';
+	$icons = [
+		'activation'     => 'ti-check',
+		'deactivation'   => 'ti-x',
+		'verification'   => 'ti-shield-check',
+		'uninstallation' => 'ti-trash',
+		'unknown'        => 'ti-help',
+	];
+	return $icons[ $event_type ] ?? 'ti-circle-dot';
 }
 
 /**
  * Format metric label for display
  */
 function smliser_format_metric_label( string $key ) {
-    // Skip growth keys
-    if ( strpos( $key, '_growth' ) !== false ) {
-        return '';
-    }
+	// Skip growth keys
+	if ( false !== strpos( $key, '_growth' ) ) {
+		return '';
+	}
 
-    $labels = [
-        'active_installations'      => 'Active Installations',
-        'total_downloads'           => 'Total Downloads',
-        'total_accesses'            => 'Total Accesses',
-        'plugins_downloads'         => 'Plugin Downloads',
-        'themes_downloads'          => 'Theme Downloads',
-        'software_downloads'        => 'Software Downloads',
-        'plugin_installations'      => 'Plugin Installations',
-        'theme_installations'       => 'Theme Installations',
-        'software_installations'    => 'Software Installations',
-        'activations'               => 'Activations',
-        'deactivations'             => 'Deactivations',
-        'verifications'             => 'Verifications',
-        'top_downloads'             => 'Top Apps by Downloads',
-        'top_accesses'              => 'Top Apps by Client Accesses',
-    ];
-    
-    if ( isset( $labels[ $key ] ) ) {
-        return $labels[ $key ];
-    }
-    
-    // Fallback: Convert snake_case to Title Case
-    return ucwords( str_replace( '_', ' ', $key ) );
+	$labels = [
+		'active_installations'   => 'Active Installations',
+		'total_downloads'        => 'Total Downloads',
+		'total_accesses'         => 'Total Accesses',
+		'plugins_downloads'      => 'Plugin Downloads',
+		'themes_downloads'       => 'Theme Downloads',
+		'software_downloads'     => 'Software Downloads',
+		'plugin_installations'   => 'Plugin Installations',
+		'theme_installations'    => 'Theme Installations',
+		'software_installations' => 'Software Installations',
+		'activations'            => 'Activations',
+		'deactivations'          => 'Deactivations',
+		'verifications'          => 'Verifications',
+		'top_downloads'          => 'Top Apps by Downloads',
+		'top_accesses'           => 'Top Apps by Client Accesses',
+	];
+	
+	if ( isset( $labels[ $key ] ) ) {
+		return $labels[ $key ];
+	}
+	
+	// Fallback: Convert snake_case to Title Case
+	return ucwords( str_replace( '_', ' ', $key ) );
 }

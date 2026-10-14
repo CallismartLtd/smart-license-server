@@ -63,7 +63,7 @@ final class PackageVerifier {
 			throw new UpdateException( sprintf( '%s could not be read for verification.', $name ) );
 		}
 
-		$result = array( 'warnings' => array(), 'signed_by' => null, 'sha256' => $actual );
+		$result = [ 'warnings' => [], 'signed_by' => null, 'sha256' => $actual ];
 
 		if ( null === $checksums ) {
 			if ( ! $trust_unsigned ) {
@@ -126,9 +126,9 @@ final class PackageVerifier {
 	 * @return array<string, string> File name => lowercase SHA-256.
 	 */
 	public static function parse( string $contents ) : array {
-		$hashes = array();
+		$hashes = [];
 
-		foreach ( preg_split( '/\R/', $contents ) ?: array() as $line ) {
+		foreach ( preg_split( '/\R/', $contents ) ?: [] as $line ) {
 			if ( 1 === preg_match( '/^([a-fA-F0-9]{64})\s+\*?(\S.*)$/', trim( $line ), $match ) ) {
 				$hashes[ trim( $match[2] ) ] = strtolower( $match[1] );
 			}

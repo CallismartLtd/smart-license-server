@@ -20,180 +20,180 @@ use function compact;
 /**
  * The admin bulk message page class
  */
-class BulkMessagePage implements AdminPageInterface{
-    
-    public function __construct(
-        protected TemplateLocator $locator,
-        protected URLManager $urlmanager,
-        protected AssetsManager $assets_manager
-    ) {
-       $this->register_assets();
-    }
+class BulkMessagePage implements AdminPageInterface {
+	
+	public function __construct(
+		protected TemplateLocator $locator,
+		protected URLManager $urlmanager,
+		protected AssetsManager $assets_manager
+	) {
+	   $this->register_assets();
+	}
 
-    protected function register_assets() : void {
-        $tinymce_handle = 'tinymce' ;
+	protected function register_assets() : void {
+		$tinymce_handle = 'tinymce' ;
 
-        if ( $this->assets_manager->has_script( $tinymce_handle ) ) {
-            $tinymce_script = $this->assets_manager->get_script( $tinymce_handle);
-            $this->assets_manager->unregister_script( $tinymce_handle);
+		if ( $this->assets_manager->has_script( $tinymce_handle ) ) {
+			$tinymce_script = $this->assets_manager->get_script( $tinymce_handle );
+			$this->assets_manager->unregister_script( $tinymce_handle );
 
-            $this->assets_manager->register_script(
-                'tinymce',
-                $tinymce_script['url'],
-                $tinymce_script['dependencies'],
-                $tinymce_script['version'],
-                $tinymce_script['footer'],
-                AssetsManager::CATEGORY_ADMIN_DASHBOARD
-            );          
-        }
-    }
+			$this->assets_manager->register_script(
+				'tinymce',
+				$tinymce_script['url'],
+				$tinymce_script['dependencies'],
+				$tinymce_script['version'],
+				$tinymce_script['footer'],
+				AssetsManager::CATEGORY_ADMIN_DASHBOARD
+			);
+		}
+	}
 
-    /**
-     * Bulk messages page dashbard.
-     * 
-     * @param Request $request
-     */
-    public function dashboard( Request $request ) : void {
-        $msg_data       = BulkMessageService::raw()->get_all();
-        $messages       = $msg_data['items'] ?? [];
-        $pagination     = $msg_data['pagination'] ?? [];
-        $current_url    = smliser_get_current_url();
-        $menu_args      = static::get_menu_args( $request );
-        $urlmanager     = $this->urlmanager;
-        $vars           = compact( 'urlmanager', 'messages', 'current_url', 'menu_args', 'pagination', 'request' );
-        $this->locator->render( 'admin.contents.broadcasts.index', $vars );
-    }
+	/**
+	 * Bulk messages page dashbard.
+	 * 
+	 * @param Request $request
+	 */
+	public function dashboard( Request $request ) : void {
+		$msg_data    = BulkMessageService::raw()->get_all();
+		$messages    = $msg_data['items'] ?? [];
+		$pagination  = $msg_data['pagination'] ?? [];
+		$current_url = smliser_get_current_url();
+		$menu_args   = static::get_menu_args( $request );
+		$urlmanager  = $this->urlmanager;
+		$vars        = compact( 'urlmanager', 'messages', 'current_url', 'menu_args', 'pagination', 'request' );
+		$this->locator->render( 'admin.contents.broadcasts.index', $vars );
+	}
 
-    /**
-     * Compose message page.
-     * 
-     * @param Request $request
-     */
-    public function message_editor( Request $request ) : void {
-        $message_id = $request->get( 'msg_id' );
-        $menu_args  = static::get_menu_args( $request );
-        $message    = BulkMessageService::raw()->get_message( $message_id );
-        $urlmanager = $this->urlmanager;
-        $vars       = compact( 'menu_args', 'request', 'message', 'urlmanager' );
-        
-        $this->locator->render( 'admin.contents.broadcasts.compose', $vars );
-    }
+	/**
+	 * Compose message page.
+	 * 
+	 * @param Request $request
+	 */
+	public function message_editor( Request $request ) : void {
+		$message_id = $request->get( 'msg_id' );
+		$menu_args  = static::get_menu_args( $request );
+		$message    = BulkMessageService::raw()->get_message( $message_id );
+		$urlmanager = $this->urlmanager;
+		$vars       = compact( 'menu_args', 'request', 'message', 'urlmanager' );
+		
+		$this->locator->render( 'admin.contents.broadcasts.compose', $vars );
+	}
 
-    /**
-     * Search messages page.
-     * 
-     * @param Request $request
-     */
-    public function search_page( Request $request ) : void {
-        $current_url    = smliser_get_current_url();
-        $menu_args      = static::get_menu_args( $request );
-        $search         = $request->get( 'msg_search' );
-        $page           = $request->get( 'paged', 1 );
-        $limit          = $request->get( 'limit', 10 );
-        $msg_data       = BulkMessageService::raw()->search( \compact( 'page', 'search', 'limit' ) );
-        $messages       = $msg_data['items'] ?? [];
-        $pagination     = $msg_data['pagination'] ?? [];
+	/**
+	 * Search messages page.
+	 * 
+	 * @param Request $request
+	 */
+	public function search_page( Request $request ) : void {
+		$current_url = smliser_get_current_url();
+		$menu_args   = static::get_menu_args( $request );
+		$search      = $request->get( 'msg_search' );
+		$page        = $request->get( 'paged', 1 );
+		$limit       = $request->get( 'limit', 10 );
+		$msg_data    = BulkMessageService::raw()->search( \compact( 'page', 'search', 'limit' ) );
+		$messages    = $msg_data['items'] ?? [];
+		$pagination  = $msg_data['pagination'] ?? [];
 
-        $urlmanager     = $this->urlmanager;
+		$urlmanager = $this->urlmanager;
 
-        $vars           = compact( 'urlmanager', 'current_url', 'menu_args', 'search', 'messages', 'pagination', 'request' );
+		$vars = compact( 'urlmanager', 'current_url', 'menu_args', 'search', 'messages', 'pagination', 'request' );
 
-        $this->locator->render( 'admin.contents.broadcasts.search', $vars );
-       
-    }
+		$this->locator->render( 'admin.contents.broadcasts.search', $vars );
+	   
+	}
 
-    /**
-     * Get page menu args
-     * 
-     * @param Request $request
-     * @return array
-     */
-    protected function get_menu_args( Request $request ) : array {
-        $tab    = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
-        $title  = match( $tab ) {
-            'edit'          => 'Edit Bulk Message',
-            'compose-new'   => 'Compose Bulk Message',
-            'search'        => 'Search Bulk Messages',
-            default         => 'Bulk Messages'
-        };
-        
-        return [
-            'breadcrumbs'   => array(
-                array(
-                    'label' => 'Bulk Messages',
-                    'url'   => $this->urlmanager->admin_broadcasts_page_url(),
-                    'icon'  => 'ti ti-home-filled'
-                ),
+	/**
+	 * Get page menu args
+	 * 
+	 * @param Request $request
+	 * @return array
+	 */
+	protected function get_menu_args( Request $request ) : array {
+		$tab   = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
+		$title = match( $tab ) {
+			'edit'        => 'Edit Bulk Message',
+			'compose-new' => 'Compose Bulk Message',
+			'search'      => 'Search Bulk Messages',
+			default       => 'Bulk Messages'
+		};
+		
+		return [
+			'breadcrumbs' => [
+				[
+					'label' => 'Bulk Messages',
+					'url'   => $this->urlmanager->admin_broadcasts_page_url(),
+					'icon'  => 'ti ti-home-filled'
+				],
 
-                array(
-                    'label' => $title
-                )
-            ),
-            'actions'   => array(
-                array(
-                    'title' => 'Compose new message',
-                    'label' => 'Compose New',
-                    'url'   => $this->urlmanager->admin_broadcasts_page_url( 'compose-new' ),
-                    'icon'  => 'ti ti-plus',
-                    'active'    => 'compose-new' === $tab
-                )
-            )
-        ];
-    }
+				[
+					'label' => $title
+				]
+			],
+			'actions' => [
+				[
+					'title'  => 'Compose new message',
+					'label'  => 'Compose New',
+					'url'    => $this->urlmanager->admin_broadcasts_page_url( 'compose-new' ),
+					'icon'   => 'ti ti-plus',
+					'active' => 'compose-new' === $tab
+				]
+			]
+		];
+	}
 
-    /*
-    |---------------------------
-    | INTERFACE IMPLEMENTATION
-    |---------------------------
-    */
+	/*
+	|---------------------------
+	| INTERFACE IMPLEMENTATION
+	|---------------------------
+	*/
 
-    public function index_page_handler() : callable {
-        return [$this, 'dashboard'];
-    }
+	public function index_page_handler() : callable {
+		return [$this, 'dashboard'];
+	}
 
-    /**
-     * @inheritdoc
-     */
-    public function get_submenu() : array {
-        return [
-            [
-                'title'         => 'All messages',
-                'slug'          => 'index',
-                'callback'      => [ $this, 'dashboard'],
-                'visibility'    => true,
-            ],
-            [
-                'title'         => 'Compose New',
-                'slug'          => 'compose-new',
-                'callback'      => [ $this, 'message_editor'],
-                'visibility'    => true,
-            ],
-            [
-                'title'         => 'Search Messages',
-                'slug'          => 'search',
-                'callback'      => [$this, 'search_page'],
-                'visibility'    => true,
-            ],
-            [
-                'title'         => 'Edit Message',
-                'slug'          => 'edit',
-                'callback'      => [$this, 'message_editor'],
-                'visibility'    => false,
-            ],
-        ];
-    }
-    
-    public function get_menu_key() : string {
-        return 'broadcasts';
-    }
+	/**
+	 * @inheritdoc
+	 */
+	public function get_submenu() : array {
+		return [
+			[
+				'title'      => 'All messages',
+				'slug'       => 'index',
+				'callback'   => [ $this, 'dashboard'],
+				'visibility' => true,
+			],
+			[
+				'title'      => 'Compose New',
+				'slug'       => 'compose-new',
+				'callback'   => [ $this, 'message_editor'],
+				'visibility' => true,
+			],
+			[
+				'title'      => 'Search Messages',
+				'slug'       => 'search',
+				'callback'   => [$this, 'search_page'],
+				'visibility' => true,
+			],
+			[
+				'title'      => 'Edit Message',
+				'slug'       => 'edit',
+				'callback'   => [$this, 'message_editor'],
+				'visibility' => false,
+			],
+		];
+	}
+	
+	public function get_menu_key() : string {
+		return 'broadcasts';
+	}
 
-    public function get_menu_data() : array {
-        return [
-            'title'         => 'Broadcasts',
-            'slug'          => 'broadcasts',
-            'handler'       => $this,
-            'icon'          => 'ti ti-message-code',
-            'visibility'    => true
-        ];
-    }
+	public function get_menu_data() : array {
+		return [
+			'title'      => 'Broadcasts',
+			'slug'       => 'broadcasts',
+			'handler'    => $this,
+			'icon'       => 'ti ti-message-code',
+			'visibility' => true
+		];
+	}
 }

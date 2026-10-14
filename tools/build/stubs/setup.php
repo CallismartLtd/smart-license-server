@@ -35,7 +35,7 @@ header( 'X-Robots-Tag: noindex' );
 
 $problems = setup_problems();
 $archive  = null;
-$targets  = array();
+$targets  = [];
 $selected = '';
 
 if ( empty( $problems ) ) {
@@ -51,7 +51,7 @@ if ( empty( $problems ) ) {
 
 if ( null !== $archive && 'POST' === ( isset( $_SERVER['REQUEST_METHOD'] ) ? $_SERVER['REQUEST_METHOD'] : 'GET' ) ) {
 	$selected = isset( $_POST['target'] ) ? (string) $_POST['target'] : '';
-	$ticked   = isset( $_POST['replace'] ) ? (array) $_POST['replace'] : array();
+	$ticked   = isset( $_POST['replace'] ) ? (array) $_POST['replace'] : [];
 
 	if ( ! isset( $targets[ $selected ] ) || ! empty( $targets[ $selected ]['problems'] ) ) {
 		$problems[] = 'Choose where to unpack the files.';
@@ -83,15 +83,15 @@ exit;
  * @return string[]
  */
 function setup_problems() {
-	$problems = array();
+	$problems = [];
 
 	if ( '' !== SETUP_PHP && version_compare( PHP_VERSION, SETUP_PHP, '<' ) ) {
 		$problems[] = sprintf( '%s needs PHP %s or newer; this server runs PHP %s. Choose a newer PHP version in your hosting control panel, then reload this page.', SETUP_TITLE, SETUP_PHP, PHP_VERSION );
 	}
 
-	$missing = array();
+	$missing = [];
 
-	foreach ( array_unique( array_merge( array( 'zip' ), (array) SETUP_EXTENSIONS ) ) as $extension ) {
+	foreach ( array_unique( array_merge( [ 'zip' ], (array) SETUP_EXTENSIONS ) ) as $extension ) {
 		if ( ! extension_loaded( $extension ) ) {
 			$missing[] = $extension;
 		}
@@ -123,8 +123,8 @@ function setup_problems() {
  * @return array<string, array>
  */
 function setup_targets( $dir, $names ) {
-	$top    = array();
-	$public = array();
+	$top    = [];
+	$public = [];
 
 	foreach ( $names as $name ) {
 		$parts            = explode( '/', $name );
@@ -136,12 +136,12 @@ function setup_targets( $dir, $names ) {
 	}
 
 	$docroot = setup_document_root();
-	$targets = array();
+	$targets = [];
 	$parent  = dirname( $dir );
 
 	// Only a folder called "public" can become the application's public folder.
 	if ( 'public' === basename( $dir ) && $parent !== $dir ) {
-		$paths = array();
+		$paths = [];
 
 		foreach ( array_keys( $top ) as $entry ) {
 			if ( 'public' !== $entry ) {
@@ -188,18 +188,18 @@ function setup_targets( $dir, $names ) {
  * @return array
  */
 function setup_target( $key, $app, $paths, $label, $description ) {
-	$target = array(
+	$target = [
 		'key'          => $key,
 		'app'          => $app,
 		'label'        => $label,
 		'description'  => $description,
 		'recommended'  => false,
 		'paths'        => $paths,
-		'conflicts'    => array(),   // Archive path => "file" | "folder" | "link".
-		'merges'       => array(),   // Existing .htaccess files the application's rules are added to.
-		'placeholders' => array(),   // Pages that would be shown instead of the application.
-		'problems'     => array(),
-	);
+		'conflicts'    => [],   // Archive path => "file" | "folder" | "link".
+		'merges'       => [],   // Existing .htaccess files the application's rules are added to.
+		'placeholders' => [],   // Pages that would be shown instead of the application.
+		'problems'     => [],
+	];
 
 	foreach ( $paths as $path ) {
 		$dest = $app . '/' . $path;
@@ -217,16 +217,16 @@ function setup_target( $key, $app, $paths, $label, $description ) {
 	// usually prefer index.html over index.php, so a placeholder page would
 	// hide the application.
 	if ( is_dir( $app . '/public' ) && ! isset( $target['conflicts']['public'] ) ) {
-		foreach ( array( 'index.html', 'index.htm', 'default.html', 'default.htm' ) as $page ) {
+		foreach ( [ 'index.html', 'index.htm', 'default.html', 'default.htm' ] as $page ) {
 			if ( is_file( $app . '/public/' . $page ) && ! in_array( 'public/' . $page, $paths, true ) ) {
 				$target['placeholders'][] = 'public/' . $page;
 			}
 		}
 	}
 
-	$existing = array();
+	$existing = [];
 
-	foreach ( array( 'bootstrap.php', 'system', 'manifest.json' ) as $name ) {
+	foreach ( [ 'bootstrap.php', 'system', 'manifest.json' ] as $name ) {
 		if ( file_exists( $app . '/' . $name ) ) {
 			$existing[] = $name;
 		}
@@ -236,7 +236,7 @@ function setup_target( $key, $app, $paths, $label, $description ) {
 		$target['problems'][] = sprintf( '%s already contains an installation (%s). This file only installs where there is none.', $app, implode( ', ', $existing ) );
 	}
 
-	$folders = array( $app );
+	$folders = [ $app ];
 
 	if ( 'parent' === $key ) {
 		$folders[] = $app . '/public';
@@ -262,7 +262,7 @@ function setup_target( $key, $app, $paths, $label, $description ) {
  * @return string[]
  */
 function setup_ticked( $key, $ticked ) {
-	$paths  = array();
+	$paths  = [];
 	$prefix = $key . ':';
 
 	foreach ( $ticked as $value ) {
@@ -367,7 +367,7 @@ function setup_unpack( $archive, $target, $ticked ) {
 
 	setup_remove( $staging );
 
-	return array( 'backup' => $backup );
+	return [ 'backup' => $backup ];
 }
 
 /**
@@ -429,7 +429,7 @@ function setup_open_archive() {
 		return 'The archive inside this file could not be opened. Upload this file again, then reload this page.';
 	}
 
-	$names  = array();
+	$names  = [];
 	$prefix = SETUP_ROOT . '/';
 
 	for ( $i = 0; $i < $zip->numFiles; $i++ ) {
@@ -442,10 +442,10 @@ function setup_open_archive() {
 
 	$zip->close();
 
-	return array(
+	return [
 		'path'  => $path,
 		'names' => $names,
-	);
+	];
 }
 
 /**
@@ -588,7 +588,7 @@ function setup_remove( $path ) {
 		return;
 	}
 
-	foreach ( array_diff( (array) scandir( $path ), array( '.', '..' ) ) as $entry ) {
+	foreach ( array_diff( (array) scandir( $path ), [ '.', '..' ] ) as $entry ) {
 		setup_remove( $path . '/' . $entry );
 	}
 
@@ -632,7 +632,7 @@ function setup_start_html( $targets, $problems, $selected ) {
 		$html .= '<p>The files cannot be unpacked yet:</p><ul class="problems">' . $items . '</ul>';
 	}
 
-	$usable = array();
+	$usable = [];
 
 	foreach ( $targets as $key => $target ) {
 		if ( empty( $target['problems'] ) ) {
@@ -667,7 +667,7 @@ function setup_start_html( $targets, $problems, $selected ) {
 
 		foreach ( $targets as $key => $target ) {
 			$disabled = ! isset( $usable[ $key ] );
-			$html    .= '<label class="choice' . ( $disabled ? ' disabled' : '' ) . '"><input type="radio" name="target" value="' . setup_e( $key ) . '"'
+			$html .= '<label class="choice' . ( $disabled ? ' disabled' : '' ) . '"><input type="radio" name="target" value="' . setup_e( $key ) . '"'
 				. ( $key === $selected ? ' checked' : '' ) . ( $disabled ? ' disabled' : '' ) . '> '
 				. '<span><strong>' . setup_e( $target['label'] ) . '</strong>' . ( $target['recommended'] ? ' <span class="badge">Recommended</span>' : '' )
 				. '<br><code>' . setup_e( $target['app'] ) . '</code>'

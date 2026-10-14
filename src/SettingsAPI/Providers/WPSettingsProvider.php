@@ -38,7 +38,7 @@ class WPSettingsProvider extends AbstractSettings {
 	 *
 	 * @since 0.2.0
 	 */
-	protected function do_set( string $key, $value ): bool {
+	protected function do_set( string $key, $value ) : bool {
 		$result = \update_option( $key, $value );
 		return false !== $result;
 	}
@@ -48,7 +48,7 @@ class WPSettingsProvider extends AbstractSettings {
 	 *
 	 * @since 0.2.0
 	 */
-	protected function do_delete( string $key ): bool {
+	protected function do_delete( string $key ) : bool {
 		return \delete_option( $key );
 	}
 
@@ -57,7 +57,7 @@ class WPSettingsProvider extends AbstractSettings {
 	 *
 	 * @since 0.2.0
 	 */
-	protected function do_has( string $key ): bool {
+	protected function do_has( string $key ) : bool {
 
 		$sentinel = new \stdClass();
 		$value    = \get_option( $key, $sentinel );
@@ -65,7 +65,7 @@ class WPSettingsProvider extends AbstractSettings {
 		return $value !== $sentinel;
 	}
 
-	protected function do_all( int $page, int $limit ): array {
+	protected function do_all( int $page, int $limit ) : array {
 		$offset = $this->db->calculate_query_offset( $page, $limit );
 		$table  = $GLOBALS['wpdb']?->options;
 
@@ -99,11 +99,11 @@ class WPSettingsProvider extends AbstractSettings {
 	 *
 	 * @since 0.2.0
 	 */
-	protected function do_search( string $query, int $page, int $limit ): array {
+	protected function do_search( string $query, int $page, int $limit ) : array {
 		$offset = $this->db->calculate_query_offset( $page, $limit );
 		$table  = $GLOBALS['wpdb']?->options;
 
-		$sql	= smliserQueryBuilder( $this->db->get_driver() )
+		$sql = smliserQueryBuilder( $this->db->get_driver() )
 			->select( 'option_name', 'option_value' )
 			->from( $table )
 			->where_contains( 'option_name', $query )

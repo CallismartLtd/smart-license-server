@@ -44,132 +44,132 @@ class Shell {
 	 */
 	protected string $tab_query_var;
 
-    /*
-    |--------------------
-    | TEMPLATE SLUGS
-    |--------------------
-    */
+	/*
+	|--------------------
+	| TEMPLATE SLUGS
+	|--------------------
+	*/
 
-    public const SHELL_TEMPLATE             = 'admin.index';
-    public const HEADER_TEMPLATE            = 'admin.header';
-    public const MENU_TEMPLATE              = 'admin.menu';
-    public const CONTENT_TEMPLATE           = 'admin.content';
-    public const FOOTER_TEMPLATE            = 'admin.footer';
+	public const SHELL_TEMPLATE   = 'admin.index';
+	public const HEADER_TEMPLATE  = 'admin.header';
+	public const MENU_TEMPLATE    = 'admin.menu';
+	public const CONTENT_TEMPLATE = 'admin.content';
+	public const FOOTER_TEMPLATE  = 'admin.footer';
 
-    /**
-     * @param AdminDashboardRegistry	$registry
-     * @param TemplateLocator			$locator
+	/**
+	 * @param AdminDashboardRegistry	$registry
+	 * @param TemplateLocator			$locator
 	 * @param Request					$request
-     */
-    public function __construct(
-        protected AdminDashboardRegistry $registry,
-        protected TemplateLocator $locator,
+	 */
+	public function __construct(
+		protected AdminDashboardRegistry $registry,
+		protected TemplateLocator $locator,
 		protected Request $request,
-        protected Guard $guard,
-        protected AssetsManager $assets_manager,
-        protected URLManager $urlmanager
-    ) {}
+		protected Guard $guard,
+		protected AssetsManager $assets_manager,
+		protected URLManager $urlmanager
+	) {}
 
-    /*
-    |---------
-    | RENDER
-    |---------
-    */
+	/*
+	|---------
+	| RENDER
+	|---------
+	*/
 
-    /**
-     * Render the full dashboard shell.
-     *
-     * @return void
-     */
-    public function render() : void {
-        $this->locator->render( self::SHELL_TEMPLATE, [
-            'registry'          => $this->registry,
-			'request'           => $this->request,
-            'guard'             => $this->guard,
-            'assets_manager'    => $this->assets_manager,
-            'urlmanager'        => $this->urlmanager,
-        ] );
-    }
+	/**
+	 * Render the full dashboard shell.
+	 *
+	 * @return void
+	 */
+	public function render() : void {
+		$this->locator->render( self::SHELL_TEMPLATE, [
+			'registry'       => $this->registry,
+			'request'        => $this->request,
+			'guard'          => $this->guard,
+			'assets_manager' => $this->assets_manager,
+			'urlmanager'     => $this->urlmanager,
+		] );
+	}
 
-    /**
-     * Render only the header partial.
-     *
-     * @param string $rest_base
-     * @param string $active_slug
-     * @return void
-     */
-    public function render_header( string $rest_base, string $active_slug = '' ) : void {
-        $menu        = $this->registry->all();
-        $active_slug = $active_slug ?: array_key_first( $menu ) ?? '';
+	/**
+	 * Render only the header partial.
+	 *
+	 * @param string $rest_base
+	 * @param string $active_slug
+	 * @return void
+	 */
+	public function render_header( string $rest_base, string $active_slug = '' ) : void {
+		$menu        = $this->registry->all();
+		$active_slug = $active_slug ?: array_key_first( $menu ) ?? '';
 
-        $this->locator->render( self::HEADER_TEMPLATE, [
-            'menu'          => $menu,
-            'rest_base'     => rtrim( $rest_base, '/' ) . '/',
-            'active_slug'   => $active_slug,
-            'guard'         => $this->guard
-        ] );
-    }
+		$this->locator->render( self::HEADER_TEMPLATE, [
+			'menu'        => $menu,
+			'rest_base'   => rtrim( $rest_base, '/' ) . '/',
+			'active_slug' => $active_slug,
+			'guard'       => $this->guard
+		] );
+	}
 
-    /**
-     * Render only the menu partial.
-     *
-     * Useful when the menu needs to be refreshed independently
-     * after a registry modification.
-     *
-     * @param string $active_slug
-     * @return void
-     */
-    public function render_menu( string $active_slug = '' ) : void {
-        $this->locator->render( self::MENU_TEMPLATE, [
-            'menu'          => $this->registry->all(),
-            'active_slug'   => $active_slug,
-            'guard'         => $this->guard
-        ] );
-    }
+	/**
+	 * Render only the menu partial.
+	 *
+	 * Useful when the menu needs to be refreshed independently
+	 * after a registry modification.
+	 *
+	 * @param string $active_slug
+	 * @return void
+	 */
+	public function render_menu( string $active_slug = '' ) : void {
+		$this->locator->render( self::MENU_TEMPLATE, [
+			'menu'        => $this->registry->all(),
+			'active_slug' => $active_slug,
+			'guard'       => $this->guard
+		] );
+	}
 
-    /**
-     * Render only the content partial.
-     *
-     * @return void
-     */
-    public function render_content( string $rest_base, string $active_slug = '' ) : void {
-        $this->locator->render( self::CONTENT_TEMPLATE, [
-            'rest_base'     => rtrim( $rest_base, '/' ) . '/',
-            'active_slug'   => $active_slug,
-            'guard'         => $this->guard
-        ] );
-    }
+	/**
+	 * Render only the content partial.
+	 *
+	 * @return void
+	 */
+	public function render_content( string $rest_base, string $active_slug = '' ) : void {
+		$this->locator->render( self::CONTENT_TEMPLATE, [
+			'rest_base'   => rtrim( $rest_base, '/' ) . '/',
+			'active_slug' => $active_slug,
+			'guard'       => $this->guard
+		] );
+	}
 
-    /**
-     * Render only the footer partial.
-     *
-     * @return void
-     */
-    public function render_footer() : void {
-        $this->locator->render( self::FOOTER_TEMPLATE );
-    }
+	/**
+	 * Render only the footer partial.
+	 *
+	 * @return void
+	 */
+	public function render_footer() : void {
+		$this->locator->render( self::FOOTER_TEMPLATE );
+	}
 
-    /**
-     * Render the full shell to a string.
-     *
-     * @return string
-     */
-    public function render_to_string() : string {
-        ob_start();
-        $this->render();
-        return (string) ob_get_clean();
-    }
+	/**
+	 * Render the full shell to a string.
+	 *
+	 * @return string
+	 */
+	public function render_to_string() : string {
+		ob_start();
+		$this->render();
+		return (string) ob_get_clean();
+	}
 
-    /**
-     * Return as HTTP response object.
-     * 
-     * @param string $rest_base
-     * @param string $active_slug
-     * @return Response
-     */
-    public function asResponse( string $rest_base, string $active_slug = '' ) : Response {
-        return ( new Response )
-            ->set_body( $this->render_to_string() )
-            ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
-    }
+	/**
+	 * Return as HTTP response object.
+	 * 
+	 * @param string $rest_base
+	 * @param string $active_slug
+	 * @return Response
+	 */
+	public function asResponse( string $rest_base, string $active_slug = '' ) : Response {
+		return ( new Response )
+			->set_body( $this->render_to_string() )
+			->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+	}
 }

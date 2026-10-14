@@ -29,7 +29,7 @@ final class CommandInput {
 	 */
 	public function __construct(
 		private array $arguments = [],
-		private array $options   = [],
+		private array $options = [],
 	) {}
 
 	/*
@@ -45,7 +45,7 @@ final class CommandInput {
 	 * @param mixed      $default Fallback value returned if the argument was not supplied.
 	 * @return mixed
 	 */
-	public function get_argument( int|string $key, mixed $default = null ): mixed {
+	public function get_argument( int|string $key, mixed $default = null ) : mixed {
 		return $this->arguments[ $key ] ?? $default;
 	}
 
@@ -55,7 +55,7 @@ final class CommandInput {
 	 * @param int|string $key Zero-based positional index or argument name.
 	 * @return bool
 	 */
-	public function has_argument( int|string $key ): bool {
+	public function has_argument( int|string $key ) : bool {
 		return array_key_exists( $key, $this->arguments );
 	}
 
@@ -64,7 +64,7 @@ final class CommandInput {
 	 *
 	 * @return array<int|string, mixed>
 	 */
-	public function get_arguments(): array {
+	public function get_arguments() : array {
 		return $this->arguments;
 	}
 
@@ -81,7 +81,7 @@ final class CommandInput {
 	 * @param mixed  $default Fallback value returned if the option was not provided.
 	 * @return mixed
 	 */
-	public function get_option( string $name, mixed $default = null ): mixed {
+	public function get_option( string $name, mixed $default = null ) : mixed {
 		return $this->options[ $name ] ?? $default;
 	}
 
@@ -94,7 +94,7 @@ final class CommandInput {
 	 * @param string $name Option name without leading dashes.
 	 * @return bool
 	 */
-	public function has_option( string $name ): bool {
+	public function has_option( string $name ) : bool {
 		return array_key_exists( $name, $this->options );
 	}
 
@@ -103,7 +103,7 @@ final class CommandInput {
 	 *
 	 * @return array<string, mixed>
 	 */
-	public function get_options(): array {
+	public function get_options() : array {
 		return $this->options;
 	}
 }

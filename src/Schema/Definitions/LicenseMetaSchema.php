@@ -23,67 +23,67 @@ use Callismart\DBPrism\Utils\ColumnType;
  */
 class LicenseMetaSchema implements DatabaseSchemaInterface {
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_label() : string {
-        return 'License Meta';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_label() : string {
+		return 'License Meta';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_description() : string {
-        return 'Stores arbitrary key-value metadata for licenses.';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_description() : string {
+		return 'Stores arbitrary key-value metadata for licenses.';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_table_name() : string {
-        return TableName::LICENSE_META->value;
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_table_name() : string {
+		return TableName::LICENSE_META->value;
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_columns() : array {
-        return [
-            Column::make( 'id' )
-                ->type( ColumnType::BIG_INT )
-                ->unsigned()
-                ->auto_increment()
-                ->required(),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_columns() : array {
+		return [
+			Column::make( 'id' )
+				->type( ColumnType::BIG_INT )
+				->unsigned()
+				->auto_increment()
+				->required(),
 
-            Column::make( 'license_id' )
-                ->type( ColumnType::BIG_INT )
-                ->unsigned()
-                ->required(),
+			Column::make( 'license_id' )
+				->type( ColumnType::BIG_INT )
+				->unsigned()
+				->required(),
 
-            Column::make( 'meta_key' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 255 )
-                ->required(),
+			Column::make( 'meta_key' )
+				->type( ColumnType::VARCHAR )
+				->size( 255 )
+				->required(),
 
-            Column::make( 'meta_value' )
-                ->type( ColumnType::LONG_TEXT )
-                ->default( null ),
-        ];
-    }
+			Column::make( 'meta_value' )
+				->type( ColumnType::LONG_TEXT )
+				->default( null ),
+		];
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_constraints() : array {
-        $prefx  = static::constraintPrefix();
-        return [
-            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
-            Constraint::index( "{$prefx}license_id_index" )->on( 'license_id' ),
-            Constraint::index( "{$prefx}meta_key_index" )->on( 'meta_key' ),
-        ];
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_constraints() : array {
+		$prefx = static::constraintPrefix();
+		return [
+			Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+			Constraint::index( "{$prefx}license_id_index" )->on( 'license_id' ),
+			Constraint::index( "{$prefx}meta_key_index" )->on( 'meta_key' ),
+		];
+	}
 
-    protected static function constraintPrefix() {
-        return 'smliser_license_meta_';
-    }
+	protected static function constraintPrefix() {
+		return 'smliser_license_meta_';
+	}
 }

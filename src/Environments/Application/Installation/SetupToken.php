@@ -49,7 +49,7 @@ final class SetupToken {
 		FileSystem $fs,
 		private readonly string $file
 	) {
-		$this->fs	= $fs;
+		$this->fs = $fs;
 	}
 
 	/**
@@ -88,10 +88,10 @@ final class SetupToken {
 
 		$this->write_json(
 			$this->file,
-			array(
+			[
 				'token'      => $token,
 				'expires_at' => time() + self::TTL,
-			)
+			]
 		);
 
 		return $token;

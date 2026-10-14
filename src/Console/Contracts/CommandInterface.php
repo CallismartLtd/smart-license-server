@@ -25,14 +25,14 @@ interface CommandInterface {
 	 *
 	 * @return string
 	 */
-	public static function name(): string;
+	public static function name() : string;
 
 	/**
 	 * One-line description shown in the global command listing.
 	 *
 	 * @return string
 	 */
-	public function description(): string;
+	public function description() : string;
 
 	/**
 	 * Extended help body shown in per-command help. Return an empty
@@ -41,7 +41,7 @@ interface CommandInterface {
 	 *
 	 * @return string
 	 */
-	public function help(): string;
+	public function help() : string;
 
 	/**
 	 * The command's option/argument definition, consumed by an
@@ -51,14 +51,14 @@ interface CommandInterface {
 	 *
 	 * @return array<string, mixed>
 	 */
-	public function definition(): array;
+	public function definition() : array;
 
 	/**
 	 * One-line usage synopsis shown in per-command help.
 	 *
 	 * @return string
 	 */
-	public function synopsis(): string;
+	public function synopsis() : string;
 
 	/**
 	 * Get subcommands and their handlers.
@@ -66,7 +66,7 @@ interface CommandInterface {
 	 * @return array<string, callable(CommandInput): int> Array of subcommand names 
 	 * and handlers.
 	 */
-	public function get_subcommands(): array;
+	public function get_subcommands() : array;
 
 	/**
 	 * Run the command.
@@ -74,5 +74,5 @@ interface CommandInterface {
 	 * @param CommandInput $input The parsed arguments/options this command was invoked with.
 	 * @return int Process exit code — 0 for success, non-zero for failure.
 	 */
-	public function run( CommandInput $input ): int;
+	public function run( CommandInput $input ) : int;
 }

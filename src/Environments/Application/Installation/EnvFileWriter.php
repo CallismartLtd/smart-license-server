@@ -83,7 +83,7 @@ class EnvFileWriter {
 	 * @throws InvalidArgumentException If the example template file does not exist.
 	 * @throws RuntimeException         If reading the template file fails.
 	 */
-	public static function create_from_example( string $example_path, string $target_path, ?FileSystem $fs = null ): static {
+	public static function create_from_example( string $example_path, string $target_path, ?FileSystem $fs = null ) : static {
 		$fs ??= FileSystem::instance();
 
 		if ( ! $fs->is_file( $example_path ) ) {
@@ -122,7 +122,7 @@ class EnvFileWriter {
 	 * @return static
 	 * @throws InvalidArgumentException If the provided key is empty.
 	 */
-	public function set( string $key, ?string $value ): static {
+	public function set( string $key, ?string $value ) : static {
 		if ( '' === trim( $key ) ) {
 			throw new InvalidArgumentException( 'Environment key cannot be empty.' );
 		}
@@ -130,7 +130,7 @@ class EnvFileWriter {
 		$formatted_value = $this->format_value( $value );
 
 		if ( isset( $this->key_index_map[ $key ] ) ) {
-			$line_index                  = $this->key_index_map[ $key ];
+			$line_index                 = $this->key_index_map[ $key ];
 			$this->lines[ $line_index ] = "{$key}={$formatted_value}";
 		} else {
 			$this->lines[]               = "{$key}={$formatted_value}";
@@ -146,7 +146,7 @@ class EnvFileWriter {
 	 * @param array<string, string|null> $values Associative array of keys and values.
 	 * @return static
 	 */
-	public function set_multiple( array $values ): static {
+	public function set_multiple( array $values ) : static {
 		foreach ( $values as $key => $value ) {
 			$this->set( $key, $value );
 		}
@@ -169,7 +169,7 @@ class EnvFileWriter {
 	 * @return bool True on successful write, false on failure.
 	 * @throws RuntimeException If target directory is not writable.
 	 */
-	public function save(): bool {
+	public function save() : bool {
 		$target_dir = dirname( $this->target_path );
 		if ( ! $this->fs->is_dir( $target_dir ) || ! $this->fs->is_writable( $target_dir ) ) {
 			throw new RuntimeException( "Target directory is not writable: {$target_dir}" );
@@ -191,7 +191,7 @@ class EnvFileWriter {
 	 * @return void
 	 * @throws RuntimeException If unable to read target file.
 	 */
-	private function load_from_file( string $file_path ): void {
+	private function load_from_file( string $file_path ) : void {
 		$content = $this->fs->get_contents( $file_path );
 		if ( false === $content ) {
 			throw new RuntimeException( "Failed to read target file: {$file_path}" );
@@ -210,7 +210,7 @@ class EnvFileWriter {
 	 * @param array<int, string> $raw_lines Raw lines from configuration template or file.
 	 * @return void
 	 */
-	private function parse_lines( array $raw_lines ): void {
+	private function parse_lines( array $raw_lines ) : void {
 		$this->lines         = [];
 		$this->key_index_map = [];
 
@@ -236,12 +236,12 @@ class EnvFileWriter {
 	 * @param string|null $value The value to format.
 	 * @return string Formatted value suitable for .env format.
 	 */
-	private function format_value( ?string $value ): string {
+	private function format_value( ?string $value ) : string {
 		if ( null === $value ) {
 			return '';
 		}
 
-		if ( in_array( strtolower( $value ), array( 'true', 'false' ), true ) ) {
+		if ( in_array( strtolower( $value ), [ 'true', 'false' ], true ) ) {
 			return strtolower( $value );
 		}
 

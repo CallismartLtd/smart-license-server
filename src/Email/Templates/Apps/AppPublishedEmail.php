@@ -19,49 +19,49 @@ use SmartLicenseServer\HostedApps\Plugin;
 
 class AppPublishedEmail extends EmailTemplate {
 
-    /**
-     * @param HostedAppsInterface $app  The published application.
-     * @param string              $to   Recipient email address.
-     */
-    public function __construct(
-        private readonly HostedAppsInterface $app,
-        private readonly string              $to
-    ) {}
+	/**
+	 * @param HostedAppsInterface $app  The published application.
+	 * @param string              $to   Recipient email address.
+	 */
+	public function __construct(
+		private readonly HostedAppsInterface $app,
+		private readonly string              $to
+	) {}
 
-    static public function template_key(): string {
-        return 'app_published';
-    }
+	static public function template_key() : string {
+		return 'app_published';
+	}
 
-    protected function subject(): string {
-        return "{$this->app->get_name()} Has Been Published";
-    }
+	protected function subject() : string {
+		return "{$this->app->get_name()} Has Been Published";
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "{$this->app->get_name()} is now live.";
-    }
+	protected function preheader() : string {
+		return "{$this->app->get_name()} is now live.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{app_name}}'    => $this->app->get_name(),
-            '{{app_version}}' => $this->app->get_version(),
-            '{{app_type}}'    => ucfirst( $this->app->get_type() ),
-            '{{app_slug}}'    => $this->app->get_slug(),
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{app_name}}'    => $this->app->get_name(),
+			'{{app_version}}' => $this->app->get_version(),
+			'{{app_type}}'    => ucfirst( $this->app->get_type() ),
+			'{{app_slug}}'    => $this->app->get_slug(),
+		] );
+	}
 
-    protected function body(): string {
-        $vars        = $this->variables();
-        $app_name    = \escHtml( $vars['{{app_name}}'] );
-        $app_version = \escHtml( $vars['{{app_version}}'] );
-        $app_type    = \escHtml( $vars['{{app_type}}'] );
-        $app_slug    = \escHtml( $vars['{{app_slug}}'] );
-        $support     = \escHtml( $vars['{{support_email}}'] );
+	protected function body() : string {
+		$vars        = $this->variables();
+		$app_name    = \escHtml( $vars['{{app_name}}'] );
+		$app_version = \escHtml( $vars['{{app_version}}'] );
+		$app_type    = \escHtml( $vars['{{app_type}}'] );
+		$app_slug    = \escHtml( $vars['{{app_slug}}'] );
+		$support     = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Your application is now live.
         </p>
@@ -137,60 +137,60 @@ class AppPublishedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Application Published';
-    }
-    public function description(): string {
-        return 'Sent to the app owner when a hosted application is published.';
-    }
-    public static function preview(): static {
-        $app = Plugin::from_array_minimal([
-            'name'    => 'My Awesome Plugin',
-            'version' => '0.2.0',
-            'type'    => 'plugin',
-            'slug'    => 'my-awesome-plugin',
-        ]);
-        return new static( $app, 'preview@example.com' );
-    }
+	public function label() : string {
+		return 'Application Published';
+	}
+	public function description() : string {
+		return 'Sent to the app owner when a hosted application is published.';
+	}
+	public static function preview() : static {
+		$app = Plugin::from_array_minimal( [
+			'name'    => 'My Awesome Plugin',
+			'version' => '0.2.0',
+			'type'    => 'plugin',
+			'slug'    => 'my-awesome-plugin',
+		] );
+		return new static( $app, 'preview@example.com' );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Your application is now live.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'success',
-                'content'   => '{{app_name}} has been published successfully and is now available to licensed users.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Application Name', 'value' => '{{app_name}}' ],
-                    [ 'label' => 'Type',             'value' => '{{app_type}}' ],
-                    [ 'label' => 'Version',          'value' => '{{app_version}}' ],
-                    [ 'label' => 'Slug',             'value' => '{{app_slug}}' ],
-                ],
-                'editable'  => true,
-                'removable' => true,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you have any questions or concerns, contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Your application is now live.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'success',
+				'content'   => '{{app_name}} has been published successfully and is now available to licensed users.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Application Name', 'value' => '{{app_name}}' ],
+					[ 'label' => 'Type',             'value' => '{{app_type}}' ],
+					[ 'label' => 'Version',          'value' => '{{app_version}}' ],
+					[ 'label' => 'Slug',             'value' => '{{app_slug}}' ],
+				],
+				'editable'  => true,
+				'removable' => true,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you have any questions or concerns, contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

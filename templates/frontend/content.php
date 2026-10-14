@@ -29,10 +29,10 @@
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$principal      = $principal      ?? null;
-$rest_base      = $rest_base      ?? '';
-$active_slug    = $active_slug    ?? '';
-$topbar_center  = $topbar_center  ?? null;
+$principal      = $principal ?? null;
+$rest_base      = $rest_base ?? '';
+$active_slug    = $active_slug ?? '';
+$topbar_center  = $topbar_center ?? null;
 $topbar_actions = $topbar_actions ?? null;
 
 ?>
@@ -48,12 +48,12 @@ $topbar_actions = $topbar_actions ?? null;
 <main class="smlcd-main" id="smlcd-main" role="main">
 
     <?php /* -----------------------------------------------
-     * TOPBAR
-     *
-     * Three slots: left / center / right.
-     * Inject custom content via $topbar_center and
-     * $topbar_actions without modifying this template.
-     * ----------------------------------------------- */ ?>
+	 * TOPBAR
+	 *
+	 * Three slots: left / center / right.
+	 * Inject custom content via $topbar_center and
+	 * $topbar_actions without modifying this template.
+	 * ----------------------------------------------- */ ?>
     <div class="smlcd-topbar" role="banner">
 
         <?php /* LEFT SLOT — sidebar toggle */ ?>
@@ -108,12 +108,12 @@ $topbar_actions = $topbar_actions ?? null;
     </div>
 
     <?php /* -----------------------------------------------
-     * CONTENT AREA
-     * Three mutually exclusive states managed by JS:
-     *   loading  — spinner visible
-     *   content  — rendered HTML from REST response
-     *   error    — error message + retry button
-     * ----------------------------------------------- */ ?>
+	 * CONTENT AREA
+	 * Three mutually exclusive states managed by JS:
+	 *   loading  — spinner visible
+	 *   content  — rendered HTML from REST response
+	 *   error    — error message + retry button
+	 * ----------------------------------------------- */ ?>
     <div
         class="smlcd-content-area"
         id="smlcd-content-area"

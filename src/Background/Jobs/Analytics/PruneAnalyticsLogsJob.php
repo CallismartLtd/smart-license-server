@@ -34,56 +34,56 @@ use SmartLicenseServer\SettingsAPI\Settings;
  */
 class PruneAnalyticsLogsJob implements JobHandlerInterface {
 
-    public function __construct(
-        protected Database $db,
-        protected Settings $settings
-    ) {}
+	public function __construct(
+		protected Database $db,
+		protected Settings $settings
+	) {}
 
-    /*
-    |----------------------
-    | JobHandlerInterface
-    |----------------------
-    */
+	/*
+	|----------------------
+	| JobHandlerInterface
+	|----------------------
+	*/
 
-    /**
-     * {@inheritdoc}
-     *
-     * Expected payload keys:
-     *   - retention_days (int) Entries older than this are deleted. Default 90.
-     *
-     * @param array<string, mixed> $payload
-     * @return int Number of rows deleted.
-     */
-    public function handle( array $payload = [] ): mixed {
-        $default_retention  = (int) $this->settings->get( Settings::LOG_RETENTION_DAYS, 90 );
-        $retention_days = (int) ( $payload['retention_days'] ?? $default_retention );
-        $cutoff         = TimestampValue::now()->subtractDays( $retention_days )->format( 'Y-m-d H:i:s' );
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Expected payload keys:
+	 *   - retention_days (int) Entries older than this are deleted. Default 90.
+	 *
+	 * @param array<string, mixed> $payload
+	 * @return int Number of rows deleted.
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$default_retention = (int) $this->settings->get( Settings::LOG_RETENTION_DAYS, 90 );
+		$retention_days    = (int) ( $payload['retention_days'] ?? $default_retention );
+		$cutoff            = TimestampValue::now()->subtractDays( $retention_days )->format( 'Y-m-d H:i:s' );
 
-        $sql    = \smliserQueryBuilder( $this->db->get_driver() )
-            ->delete( TableName::ANALYTICS_LOG->table() )
-            ->where( 'created_at', '<', $cutoff );
+		$sql = \smliserQueryBuilder( $this->db->get_driver() )
+			->delete( TableName::ANALYTICS_LOG->table() )
+			->where( 'created_at', '<', $cutoff );
 
-        $affected = (int) $this->db->execute( $sql->build(), $sql->get_bindings() );
+		$affected = (int) $this->db->execute( $sql->build(), $sql->get_bindings() );
 
-        if ( ! $affected ) {
-            return 0;
-        }
+		if ( ! $affected ) {
+			return 0;
+		}
 
-        return $affected;
-        
-    }
+		return $affected;
+		
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_job_name(): string {
-        return 'Prune Analytics Logs';
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function get_job_name() : string {
+		return 'Prune Analytics Logs';
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_job_description(): string {
-        return 'Deletes raw analytics log entries older than the configured retention period to keep the table lean.';
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function get_job_description() : string {
+		return 'Deletes raw analytics log entries older than the configured retention period to keep the table lean.';
+	}
 }

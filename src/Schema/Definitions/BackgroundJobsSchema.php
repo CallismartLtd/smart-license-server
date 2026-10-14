@@ -23,123 +23,123 @@ use Callismart\DBPrism\Utils\ColumnType;
  */
 class BackgroundJobsSchema implements DatabaseSchemaInterface {
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_label() : string {
-        return 'Background Jobs';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_label() : string {
+		return 'Background Jobs';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_description() : string {
-        return 'Stores background jobs.';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_description() : string {
+		return 'Stores background jobs.';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_table_name() : string {
-        return TableName::BACKGROUND_JOBS->value;
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_table_name() : string {
+		return TableName::BACKGROUND_JOBS->value;
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_columns() : array {
-        return [
-            Column::make( 'id' )
-                ->type( ColumnType::BIG_INT )
-                ->unsigned()
-                ->auto_increment()
-                ->required(),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_columns() : array {
+		return [
+			Column::make( 'id' )
+				->type( ColumnType::BIG_INT )
+				->unsigned()
+				->auto_increment()
+				->required(),
 
-            Column::make( 'job_class' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 255 )
-                ->required(),
+			Column::make( 'job_class' )
+				->type( ColumnType::VARCHAR )
+				->size( 255 )
+				->required(),
 
-            Column::make( 'queue' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 50 )
-                ->default( 'default' )
-                ->required(),
+			Column::make( 'queue' )
+				->type( ColumnType::VARCHAR )
+				->size( 50 )
+				->default( 'default' )
+				->required(),
 
-            Column::make( 'priority' )
-                ->type( ColumnType::INTEGER )
-                ->unsigned()
-                ->default( 5 )
-                ->required(),
+			Column::make( 'priority' )
+				->type( ColumnType::INTEGER )
+				->unsigned()
+				->default( 5 )
+				->required(),
 
-            Column::make( 'status' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 20 )
-                ->default( 'pending' )
-                ->required(),
+			Column::make( 'status' )
+				->type( ColumnType::VARCHAR )
+				->size( 20 )
+				->default( 'pending' )
+				->required(),
 
-            Column::make( 'payload' )
-                ->type( ColumnType::JSON )
-                ->required(),
+			Column::make( 'payload' )
+				->type( ColumnType::JSON )
+				->required(),
 
-            Column::make( 'attempts' )
-                ->type( ColumnType::INTEGER )
-                ->unsigned()
-                ->default( 0 )
-                ->required(),
+			Column::make( 'attempts' )
+				->type( ColumnType::INTEGER )
+				->unsigned()
+				->default( 0 )
+				->required(),
 
-            Column::make( 'max_attempts' )
-                ->type( ColumnType::INTEGER )
-                ->unsigned()
-                ->default( 3 )
-                ->required(),
+			Column::make( 'max_attempts' )
+				->type( ColumnType::INTEGER )
+				->unsigned()
+				->default( 3 )
+				->required(),
 
-            Column::make( 'available_at' )
-                ->type( ColumnType::DATETIME )
-                ->required(),
+			Column::make( 'available_at' )
+				->type( ColumnType::DATETIME )
+				->required(),
 
-            Column::make( 'started_at' )
-                ->type( ColumnType::DATETIME )
-                ->default( null ),
+			Column::make( 'started_at' )
+				->type( ColumnType::DATETIME )
+				->default( null ),
 
-            Column::make( 'completed_at' )
-                ->type( ColumnType::DATETIME )
-                ->default( null ),
+			Column::make( 'completed_at' )
+				->type( ColumnType::DATETIME )
+				->default( null ),
 
-            Column::make( 'created_at' )
-                ->type( ColumnType::DATETIME )
-                ->required(),
+			Column::make( 'created_at' )
+				->type( ColumnType::DATETIME )
+				->required(),
 
-            Column::make( 'result' )
-                ->type( ColumnType::JSON )
-                ->default( null ),
+			Column::make( 'result' )
+				->type( ColumnType::JSON )
+				->default( null ),
 
-            Column::make( 'error_message' )
-                ->type( ColumnType::TEXT )
-                ->default( null ),
-        ];
-    }
+			Column::make( 'error_message' )
+				->type( ColumnType::TEXT )
+				->default( null ),
+		];
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_constraints() : array {
-        $prefx  = static::constraintPrefix();
-        return [
-            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_constraints() : array {
+		$prefx = static::constraintPrefix();
+		return [
+			Constraint::primary( "{$prefx}primary" )->on( 'id' ),
 
-            Constraint::index( "{$prefx}idx_queue_status_available" )
-            ->on( 'queue', 'status', 'available_at' ),
+			Constraint::index( "{$prefx}idx_queue_status_available" )
+			->on( 'queue', 'status', 'available_at' ),
 
-            Constraint::index( "{$prefx}idx_status" )->on( 'status' ),
+			Constraint::index( "{$prefx}idx_status" )->on( 'status' ),
 
-            Constraint::index( "{$prefx}idx_started_at" )->on( 'started_at' ),
+			Constraint::index( "{$prefx}idx_started_at" )->on( 'started_at' ),
 
-            Constraint::index( "{$prefx}idx_completed_at" )->on( 'completed_at' ),
-        ];
-    }
+			Constraint::index( "{$prefx}idx_completed_at" )->on( 'completed_at' ),
+		];
+	}
 
-    protected static function constraintPrefix() {
-        return 'smliser_bgjobs_schema_';
-    }
+	protected static function constraintPrefix() {
+		return 'smliser_bgjobs_schema_';
+	}
 }

@@ -101,8 +101,8 @@ final class UpdateServer {
 			$response = $this->http->get(
 				url: $url,
 				headers: [
-					'Accept'		=> 'application/json',
-					'User-Agent'	=> \smliser_http_ua( true )
+					'Accept'     => 'application/json',
+					'User-Agent' => \smliser_http_ua( true )
 				],
 				options: ['timeout' => self::TIMEOUT ]
 			);
@@ -130,11 +130,11 @@ final class UpdateServer {
 
 		$this->report( $progress, 'check', self::STATUS_OK, sprintf( 'The update server publishes version %s%s.', $version, $security ? ' (security release)' : '' ) );
 
-		return array(
+		return [
 			'version'  => $version,
 			'security' => $security,
 			'source'   => $url,
-		);
+		];
 	}
 
 	/**
@@ -163,9 +163,9 @@ final class UpdateServer {
 				url: $url,
 				destination: $zip,
 				headers: [
-					'User-Agent'	=> \smliser_http_ua( true )
+					'User-Agent' => \smliser_http_ua( true )
 				],
-				options: array( 'timeout' => self::DOWNLOAD_TIMEOUT )
+				options: [ 'timeout' => self::DOWNLOAD_TIMEOUT ]
 			);
 		} catch ( Throwable $e ) {
 			$this->discard( $zip );
@@ -186,7 +186,7 @@ final class UpdateServer {
 			throw $e;
 		}
 
-		return array( 'zip' => $zip, 'source' => $url ) + $verified;
+		return [ 'zip' => $zip, 'source' => $url ] + $verified;
 	}
 
 	/**
@@ -217,7 +217,7 @@ final class UpdateServer {
 			$response = $this->http->get(
 				url: $url,
 				headers: [
-					'User-Agent'	=> \smliser_http_ua( true )
+					'User-Agent' => \smliser_http_ua( true )
 				],
 				options: [ 'timeout' => self::TIMEOUT ]
 			);

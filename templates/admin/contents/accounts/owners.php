@@ -37,8 +37,8 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 <?php if ( $st_v > 0 ) : ?>
                     <a href="
                         <?php echo escUrl(
-                            smliser_get_current_url()->add_query_param( 'status', $v )->url()
-                        );?>" class="smliser-status-link">
+							smliser_get_current_url()->add_query_param( 'status', $v )->url()
+						);?>" class="smliser-status-link">
                         <?php echo escHtml( ucfirst( $v ) ); ?> (<?php echo intval( $st_v ); ?>)
                     </a>
                 <?php endif; ?>

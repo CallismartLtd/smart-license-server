@@ -57,9 +57,9 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
         <div class="smliser-provider-cards">
             <?php foreach ( $providers as $provider_id => $provider ) :
-                $is_default     = $default_provider === $provider_id;
-                $provider_url   = $current_url->add_query_param( 'provider', $provider_id );
-            ?>
+				$is_default   = $default_provider === $provider_id;
+				$provider_url = $current_url->add_query_param( 'provider', $provider_id );
+			?>
                 <div class="smliser-provider-card <?php echo escAttr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
 
                     <div class="smliser-provider-card__icon-wrap">
@@ -82,7 +82,7 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
                             Configure
                         </a>
                     </div>
-                    <?php if ( $provider_id === 'php_mail' ) : ?>
+                    <?php if ( 'php_mail' === $provider_id ) : ?>
                         <p class="smliser-provider-card__notice">
                             Not recommended for production use.
                         </p>
@@ -105,34 +105,34 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
             <div class="smliser-options-form_body">
 
                 <?php smliser_render_input_field( [
-                    'label' => 'Provider',
-                    'help'  => 'Select the provider you want to test.',
-                    'input' => [
-                        'type'  => 'select',
-                        'name'  => 'provider_id',
-                        'value' => $default_provider ?? '',
-                        'class' => 'smliser-form-label-row smliser-auto-select2',
-                        'options' => array_map(
-                            fn( $p ) => $p->get_name(),
-                            $providers
-                        ),
-                    ],
-                ] ); ?>
+					'label' => 'Provider',
+					'help'  => 'Select the provider you want to test.',
+					'input' => [
+						'type'    => 'select',
+						'name'    => 'provider_id',
+						'value'   => $default_provider ?? '',
+						'class'   => 'smliser-form-label-row smliser-auto-select2',
+						'options' => array_map(
+							fn( $p ) => $p->get_name(),
+							$providers
+						),
+					],
+				] ); ?>
 
                 <?php smliser_render_input_field( [
-                    'label' => 'Send To',
-                    'help'  => 'Email address to deliver the test message to.',
-                    'input' => [
-                        'type'  => 'text',
-                        'name'  => 'test_email',
-                        'value' => '',
-                        'attr'  => [
-                            'placeholder'  => 'you@example.com',
-                            'autocomplete' => 'email',
-                            'spellcheck'   => 'off',
-                        ],
-                    ],
-                ] ); ?>
+					'label' => 'Send To',
+					'help'  => 'Email address to deliver the test message to.',
+					'input' => [
+						'type'  => 'text',
+						'name'  => 'test_email',
+						'value' => '',
+						'attr'  => [
+							'placeholder'  => 'you@example.com',
+							'autocomplete' => 'email',
+							'spellcheck'   => 'off',
+						],
+					],
+				] ); ?>
 
                 <div class="smliser-form-label-row">
                     <span style="text-align: right;">

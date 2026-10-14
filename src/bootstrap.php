@@ -14,7 +14,7 @@ use SmartLicenseServer\RuntimeConfig;
 require_once __DIR__ . '/Autoloader.php';
 
 // Merge the runtime configuration with the default configuration values.
-$smliser_runtime   = RuntimeConfig::defaults()->merge( $config ?? [] );
+$smliser_runtime = RuntimeConfig::defaults()->merge( $config ?? [] );
 
 // Define the global constants used in the application.
 require_once __DIR__ . '/constants.php';

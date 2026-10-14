@@ -58,12 +58,12 @@ class DowntimeExecutionHandler implements ExecutionHandlerInterface {
 	 */
 	public function handle() : int {
 		$error = new Exception();
-		$error->add( self::ERROR_CODE, $this->message, array( 'status' => 503 ) );
+		$error->add( self::ERROR_CODE, $this->message, [ 'status' => 503 ] );
 
-		$headers = array(
+		$headers = [
 			'Retry-After'   => (string) max( 0, $this->retry_after ),
 			'Cache-Control' => 'no-store, no-cache, must-revalidate',
-		);
+		];
 
 		if ( $this->wants_json() ) {
 			$headers['Content-Type'] = 'application/json; charset=utf-8';

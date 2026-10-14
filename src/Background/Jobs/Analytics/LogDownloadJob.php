@@ -25,71 +25,71 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
  * client access count are distinct metrics tracked independently.
  */
 class LogDownloadJob implements JobHandlerInterface {
-    public function __construct( protected Database $db ) {}
-    /*
-    |----------------------
-    | JobHandlerInterface
-    |----------------------
-    */
+	public function __construct( protected Database $db ) {}
+	/*
+	|----------------------
+	| JobHandlerInterface
+	|----------------------
+	*/
 
-    /**
-     * {@inheritdoc}
-     *
-     * @param array{
-     *  app_type?: string,
-     *  app_slug?: string,
-     *  fingerprint?: string,
-     *  created_at?: string
-     * } $payload
-     * @return bool True on successful insert, false otherwise.
-     */
-    public function handle( array $payload = [] ): mixed {
-        $app_type    = (string) ( $payload['app_type']    ?? '' );
-        $app_slug    = (string) ( $payload['app_slug']    ?? '' );
-        $fingerprint = (string) ( $payload['fingerprint'] ?? '' );
-        $created_at  = (string) ( $payload['created_at']  ?? gmdate( 'Y-m-d H:i:s' ) );
+	/**
+	 * {@inheritdoc}
+	 *
+	 * @param array{
+	 *  app_type?: string,
+	 *  app_slug?: string,
+	 *  fingerprint?: string,
+	 *  created_at?: string
+	 * } $payload
+	 * @return bool True on successful insert, false otherwise.
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$app_type    = (string) ( $payload['app_type'] ?? '' );
+		$app_slug    = (string) ( $payload['app_slug'] ?? '' );
+		$fingerprint = (string) ( $payload['fingerprint'] ?? '' );
+		$created_at  = (string) ( $payload['created_at'] ?? gmdate( 'Y-m-d H:i:s' ) );
 
-        if ( $app_type === '' || $app_slug === '' ) {
-            return false;
-        }
+		if ( '' === $app_type || '' === $app_slug ) {
+			return false;
+		}
 
-        // Insert the raw download log entry.
-        $inserted = $this->db->insert( TableName::ANALYTICS_LOG->table(), [
-            'app_type'    => $app_type,
-            'app_slug'    => $app_slug,
-            'event_type'  => 'download',
-            'fingerprint' => $fingerprint,
-            'created_at'  => $created_at,
-        ] );
+		// Insert the raw download log entry.
+		$inserted = $this->db->insert( TableName::ANALYTICS_LOG->table(), [
+			'app_type'    => $app_type,
+			'app_slug'    => $app_slug,
+			'event_type'  => 'download',
+			'fingerprint' => $fingerprint,
+			'created_at'  => $created_at,
+		] );
 
-        if ( ! $inserted ) {
-            return false;
-        }
+		if ( ! $inserted ) {
+			return false;
+		}
 
-        // Resolve the app and increment its lifetime download counter.
-        $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+		// Resolve the app and increment its lifetime download counter.
+		$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
-        if ( $app === null ) {
-            return true; // Log inserted — meta update is best-effort.
-        }
+		if ( null === $app ) {
+			return true; // Log inserted — meta update is best-effort.
+		}
 
-        $current_total = (int) $app->get_meta( AppsAnalytics::DOWNLOAD_COUNT_META_KEY, 0 );
-        $app->update_meta( AppsAnalytics::DOWNLOAD_COUNT_META_KEY, $current_total + 1 );
+		$current_total = (int) $app->get_meta( AppsAnalytics::DOWNLOAD_COUNT_META_KEY, 0 );
+		$app->update_meta( AppsAnalytics::DOWNLOAD_COUNT_META_KEY, $current_total + 1 );
 
-        return true;
-    }
+		return true;
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_job_name(): string {
-        return 'Log Download';
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function get_job_name() : string {
+		return 'Log Download';
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_job_description(): string {
-        return 'Asynchronously writes a download log entry and updates the app lifetime download counter.';
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function get_job_description() : string {
+		return 'Asynchronously writes a download log entry and updates the app lifetime download counter.';
+	}
 }

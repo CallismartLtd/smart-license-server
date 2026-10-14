@@ -221,7 +221,7 @@ class MultipartStreamEngine {
 	 * @param string $message
 	 * @param array  $context
 	 */
-	private function debug_log( string $message, array $context = [] ): void {
+	private function debug_log( string $message, array $context = [] ) : void {
 		if ( ! $this->debug ) {
 			return;
 		}
@@ -252,7 +252,7 @@ class MultipartStreamEngine {
 	 *
 	 * @return string
 	 */
-	private function get_state_name(): string {
+	private function get_state_name() : string {
 		return match ( $this->state ) {
 			self::STATE_PREAMBLE => 'PREAMBLE',
 			self::STATE_HEADERS  => 'HEADERS',
@@ -267,7 +267,7 @@ class MultipartStreamEngine {
 	 *
 	 * @return array
 	 */
-	public function get_debug_log(): array {
+	public function get_debug_log() : array {
 		return $this->debug_log;
 	}
 
@@ -276,13 +276,13 @@ class MultipartStreamEngine {
 	 *
 	 * @throws Exception
 	 */
-	public function parse(): void {
-		while ( $this->state !== self::STATE_COMPLETE ) {
+	public function parse() : void {
+		while ( self::STATE_COMPLETE !== $this->state ) {
 			if ( strlen( $this->buffer ) < 8192 && ! feof( $this->stream ) ) {
 				$this->read_chunk();
 			}
 
-			if ( strlen( $this->buffer ) === 0 && feof( $this->stream ) ) {
+			if ( 0 === strlen( $this->buffer ) && feof( $this->stream ) ) {
 				break;
 			}
 
@@ -315,7 +315,7 @@ class MultipartStreamEngine {
 			}
 		}
 
-		if ( $this->state === self::STATE_BODY ) {
+		if ( self::STATE_BODY === $this->state ) {
 			if ( strlen( $this->buffer ) > 0 ) {
 				if ( $this->current_file_handle ) {
 					$this->write_to_file( $this->buffer );
@@ -335,20 +335,20 @@ class MultipartStreamEngine {
 	 *
 	 * @throws Exception
 	 */
-	private function read_chunk(): void {
+	private function read_chunk() : void {
 		if ( feof( $this->stream ) ) {
 			return;
 		}
 
 		$chunk = fread( $this->stream, 4096 );
 
-		if ( $chunk === false ) {
+		if ( false === $chunk ) {
 			throw new Exception( 'stream_read_error', 'Failed to read from stream.' );
 		}
 
 		$chunk_len = strlen( $chunk );
 
-		if ( $chunk_len === 0 ) {
+		if ( 0 === $chunk_len ) {
 			return;
 		}
 
@@ -377,10 +377,10 @@ class MultipartStreamEngine {
 	 *
 	 * @throws Exception
 	 */
-	private function process_preamble(): void {
+	private function process_preamble() : void {
 		$pos = strpos( $this->buffer, $this->boundary_marker );
 
-		if ( $pos === false ) {
+		if ( false === $pos ) {
 			$keep         = min( strlen( $this->buffer ), strlen( $this->boundary_marker ) + 2 );
 			$this->buffer = substr( $this->buffer, -$keep );
 			return;
@@ -394,14 +394,14 @@ class MultipartStreamEngine {
 
 		$next_chars = substr( $this->buffer, $after_boundary, 4 );
 
-		if ( substr( $next_chars, 0, 2 ) === '--' ) {
+		if ( '--' === substr( $next_chars, 0, 2 ) ) {
 			$this->state = self::STATE_COMPLETE;
 			return;
 		}
 
-		if ( substr( $next_chars, 0, 2 ) === "\r\n" ) {
+		if ( "\r\n" === substr( $next_chars, 0, 2 ) ) {
 			$this->buffer = substr( $this->buffer, $after_boundary + 2 );
-		} elseif ( substr( $next_chars, 0, 1 ) === "\n" ) {
+		} elseif ( "\n" === substr( $next_chars, 0, 1 ) ) {
 			$this->buffer = substr( $this->buffer, $after_boundary + 1 );
 		} else {
 			throw new Exception( 'malformed_boundary', 'Boundary not followed by CRLF.' );
@@ -417,16 +417,16 @@ class MultipartStreamEngine {
 	 *
 	 * @throws Exception
 	 */
-	private function process_headers(): void {
+	private function process_headers() : void {
 		$end_pos = strpos( $this->buffer, "\r\n\r\n" );
 		$sep_len = 4;
 
-		if ( $end_pos === false ) {
+		if ( false === $end_pos ) {
 			$end_pos = strpos( $this->buffer, "\n\n" );
 			$sep_len = 2;
 		}
 
-		if ( $end_pos === false ) {
+		if ( false === $end_pos ) {
 			if ( strlen( $this->buffer ) > 65536 ) {
 				throw new Exception( 'headers_too_large', 'Headers exceed 64KB limit.' );
 			}
@@ -469,7 +469,7 @@ class MultipartStreamEngine {
 	 *
 	 * @throws Exception
 	 */
-	private function process_body(): void {
+	private function process_body() : void {
 		$crlf_boundary = "\r\n" . $this->boundary_marker;
 		$lf_boundary   = "\n" . $this->boundary_marker;
 
@@ -480,17 +480,17 @@ class MultipartStreamEngine {
 		$boundary_len  = 0;
 		$boundary_type = null;
 
-		if ( $pos_crlf !== false && ( $pos_lf === false || $pos_crlf <= $pos_lf ) ) {
+		if ( false !== $pos_crlf && ( false === $pos_lf || $pos_crlf <= $pos_lf ) ) {
 			$pos           = $pos_crlf;
 			$boundary_len  = strlen( $crlf_boundary );
 			$boundary_type = 'CRLF';
-		} elseif ( $pos_lf !== false ) {
+		} elseif ( false !== $pos_lf ) {
 			$pos           = $pos_lf;
 			$boundary_len  = strlen( $lf_boundary );
 			$boundary_type = 'LF';
 		}
 
-		if ( $pos === false ) {
+		if ( false === $pos ) {
 			$this->debug_log( 'No boundary in buffer, accumulating body data' );
 
 			$keep = max( strlen( $crlf_boundary ), strlen( $lf_boundary ) ) + 4;
@@ -534,29 +534,29 @@ class MultipartStreamEngine {
 
 		if ( strlen( $this->buffer ) < 2 ) {
 			$this->debug_log( 'Need more data after boundary' );
-			$this->state            = self::STATE_HEADERS;
-			$this->current_headers  = [];
-			$this->header_bytes     = 0;
+			$this->state           = self::STATE_HEADERS;
+			$this->current_headers = [];
+			$this->header_bytes    = 0;
 			return;
 		}
 
-		if ( substr( $this->buffer, 0, 2 ) === '--' ) {
+		if ( '--' === substr( $this->buffer, 0, 2 ) ) {
 			$this->debug_log( 'Found closing boundary, parsing complete' );
 			$this->state = self::STATE_COMPLETE;
 			return;
 		}
 
-		if ( substr( $this->buffer, 0, 2 ) === "\r\n" ) {
+		if ( "\r\n" === substr( $this->buffer, 0, 2 ) ) {
 			$this->buffer = substr( $this->buffer, 2 );
-		} elseif ( substr( $this->buffer, 0, 1 ) === "\n" ) {
+		} elseif ( "\n" === substr( $this->buffer, 0, 1 ) ) {
 			$this->buffer = substr( $this->buffer, 1 );
 		}
 
 		$this->debug_log( 'Starting next part' );
 
-		$this->state            = self::STATE_HEADERS;
-		$this->current_headers  = [];
-		$this->header_bytes     = 0;
+		$this->state           = self::STATE_HEADERS;
+		$this->current_headers = [];
+		$this->header_bytes    = 0;
 	}
 
 	/**
@@ -566,7 +566,7 @@ class MultipartStreamEngine {
 	 * @return array
 	 * @throws Exception
 	 */
-	private function parse_headers( string $raw_headers ): array {
+	private function parse_headers( string $raw_headers ) : array {
 		$headers = [];
 		$lines   = explode( "\n", str_replace( "\r\n", "\n", $raw_headers ) );
 
@@ -583,7 +583,7 @@ class MultipartStreamEngine {
 
 			$colon = strpos( $line, ':' );
 
-			if ( $colon === false ) {
+			if ( false === $colon ) {
 				continue;
 			}
 
@@ -602,7 +602,7 @@ class MultipartStreamEngine {
 	 * @param string $value
 	 * @return array
 	 */
-	private function parse_content_disposition( string $value ): array {
+	private function parse_content_disposition( string $value ) : array {
 		$result = [];
 
 		if ( preg_match( '/\bname=(?:"([^"]+)"|([^;\s]+))/i', $value, $m ) ) {
@@ -622,7 +622,7 @@ class MultipartStreamEngine {
 	 * @param string $name
 	 * @throws Exception
 	 */
-	private function validate_field_name( string $name ): void {
+	private function validate_field_name( string $name ) : void {
 		if ( strlen( $name ) > 255 ) {
 			throw new Exception( 'field_name_too_long', 'Field name exceeds 255 chars.' );
 		}
@@ -644,7 +644,7 @@ class MultipartStreamEngine {
 	 *
 	 * @throws Exception
 	 */
-	private function open_file_for_streaming(): void {
+	private function open_file_for_streaming() : void {
 		$this->files_count++;
 
 		if ( $this->files_count > $this->limits['max_file_uploads'] ) {
@@ -681,14 +681,14 @@ class MultipartStreamEngine {
 	 * @param string $data
 	 * @throws Exception
 	 */
-	private function write_to_file( string $data ): void {
+	private function write_to_file( string $data ) : void {
 		if ( ! $this->current_file_handle ) {
 			return;
 		}
 
 		$len = strlen( $data );
 
-		if ( $len === 0 ) {
+		if ( 0 === $len ) {
 			return;
 		}
 
@@ -703,7 +703,7 @@ class MultipartStreamEngine {
 
 		$written = fwrite( $this->current_file_handle, $data );
 
-		if ( $written === false || $written !== $len ) {
+		if ( false === $written || $written !== $len ) {
 			throw new Exception( 'file_write_error', 'Failed to write to temp file.' );
 		}
 
@@ -713,7 +713,7 @@ class MultipartStreamEngine {
 	/**
 	 * Close current file.
 	 */
-	private function close_current_file(): void {
+	private function close_current_file() : void {
 		if ( $this->current_file_handle ) {
 			fclose( $this->current_file_handle );
 			$this->current_file_handle = null;
@@ -723,7 +723,7 @@ class MultipartStreamEngine {
 	/**
 	 * Finalize current part.
 	 */
-	private function finalize_current_part(): void {
+	private function finalize_current_part() : void {
 		if ( ! isset( $this->current_disposition['name'] ) ) {
 			$this->debug_log( 'Skipping part without name' );
 			return;
@@ -779,7 +779,7 @@ class MultipartStreamEngine {
 	 * @param string $filename
 	 * @return string
 	 */
-	private function sanitize_filename( string $filename ): string {
+	private function sanitize_filename( string $filename ) : string {
 		$filename = str_replace( '\\', '/', $filename );
 		$filename = basename( $filename );
 		$filename = preg_replace( '/[\x00-\x1F\x7F]/', '', $filename );
@@ -798,7 +798,7 @@ class MultipartStreamEngine {
 	 * @param int    $error
 	 * @param int    $size
 	 */
-	private function add_file_entry( string $field_name, string $filename, string $mime, string $tmp_path, int $error, int $size ): void {
+	private function add_file_entry( string $field_name, string $filename, string $mime, string $tmp_path, int $error, int $size ) : void {
 		$parsed = $this->parse_field_name( $field_name );
 
 		$file_data = [
@@ -840,7 +840,7 @@ class MultipartStreamEngine {
 	 * @param string $field_name
 	 * @param string $value
 	 */
-	private function add_post_field( string $field_name, string $value ): void {
+	private function add_post_field( string $field_name, string $value ) : void {
 		$parsed = $this->parse_field_name( $field_name );
 
 		if ( $parsed['is_array'] ) {
@@ -866,7 +866,7 @@ class MultipartStreamEngine {
 	 * @param string $name
 	 * @return array
 	 */
-	private function parse_field_name( string $name ): array {
+	private function parse_field_name( string $name ) : array {
 		if ( ! preg_match( '/^([^\[]+)(\[.*\])?$/', $name, $m ) ) {
 			return [ 'is_array' => false, 'base' => $name, 'keys' => [] ];
 		}
@@ -882,7 +882,7 @@ class MultipartStreamEngine {
 
 		$keys = $matches[1];
 
-		if ( count( $keys ) === 1 && $keys[0] === '' ) {
+		if ( 1 === count( $keys ) && '' === $keys[0] ) {
 			return [ 'is_array' => true, 'base' => $base, 'keys' => null ];
 		}
 
@@ -896,7 +896,7 @@ class MultipartStreamEngine {
 	 * @param array $keys
 	 * @param mixed $value
 	 */
-	private function set_nested_value( array &$array, array $keys, $value ): void {
+	private function set_nested_value( array &$array, array $keys, $value ) : void {
 		$current = &$array;
 
 		foreach ( $keys as $i => $key ) {
@@ -918,7 +918,7 @@ class MultipartStreamEngine {
 	 * @param array $keys
 	 * @param array $file_data
 	 */
-	private function set_nested_file_value( array &$files, array $keys, array $file_data ): void {
+	private function set_nested_file_value( array &$files, array $keys, array $file_data ) : void {
 		foreach ( [ 'name', 'type', 'tmp_name', 'error', 'size' ] as $field ) {
 			$current = &$files[ $field ];
 
@@ -940,7 +940,7 @@ class MultipartStreamEngine {
 	 *
 	 * @return array
 	 */
-	public function get_post_data(): array {
+	public function get_post_data() : array {
 		return $this->post_data;
 	}
 
@@ -949,7 +949,7 @@ class MultipartStreamEngine {
 	 *
 	 * @return array
 	 */
-	public function get_files_data(): array {
+	public function get_files_data() : array {
 		return $this->files_data;
 	}
 
@@ -958,7 +958,7 @@ class MultipartStreamEngine {
 	 *
 	 * @return array
 	 */
-	public function get_temp_files(): array {
+	public function get_temp_files() : array {
 		return $this->temp_files;
 	}
 
@@ -967,7 +967,7 @@ class MultipartStreamEngine {
 	 *
 	 * @return int
 	 */
-	public function get_bytes_read(): int {
+	public function get_bytes_read() : int {
 		return $this->bytes_read;
 	}
 
@@ -976,7 +976,7 @@ class MultipartStreamEngine {
 	 *
 	 * @return int
 	 */
-	public function get_files_count(): int {
+	public function get_files_count() : int {
 		return $this->files_count;
 	}
 }

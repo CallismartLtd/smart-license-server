@@ -39,820 +39,820 @@ class_implements;
  * This controller is used to CRUD requests for security entities.
  */
 class RequestController {
-    use SanitizeAwareTrait, SecurityAwareTrait;
-    public function __construct(
-        protected AvatarManager $avatar,
-        
-        protected AvatarManager $avatar_manager,
-        Guard $guard,
-    ) {
-        $this->guard = $guard;
-    }
+	use SanitizeAwareTrait, SecurityAwareTrait;
+	public function __construct(
+		protected AvatarManager $avatar,
+		
+		protected AvatarManager $avatar_manager,
+		Guard $guard,
+	) {
+		$this->guard = $guard;
+	}
 
-    /**
-     * Process request to create or update a security entity.
-     * 
-     * @param Request $request The request object.
-     * @return Response The response object.
-     */
-    public function save_entity( Request $request ) : Response {
-        try {
+	/**
+	 * Process request to create or update a security entity.
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response The response object.
+	 */
+	public function save_entity( Request $request ) : Response {
+		try {
 
-            $entity = $request->get( 'entity' );
+			$entity = $request->get( 'entity' );
 
-            if ( ! $entity ) {
-                throw new RequestException( 'required_param', 'Please provide the security entity.' );
-            }
+			if ( ! $entity ) {
+				throw new RequestException( 'required_param', 'Please provide the security entity.' );
+			}
 
-            $class  = ContextServiceProvider::get_entity_classname( $entity );
+			$class = ContextServiceProvider::get_entity_classname( $entity );
 
-            if ( ! $class ) {
-                throw new RequestException( 'required_param', 'This provided security entity is not supported.', ['status' => 400] );
-            }
+			if ( ! $class ) {
+				throw new RequestException( 'required_param', 'This provided security entity is not supported.', ['status' => 400] );
+			}
 
-            $id         = $request->get( 'id' );
-            $ent_object = $class::get_by_id( $id );
+			$id         = $request->get( 'id' );
+			$ent_object = $class::get_by_id( $id );
 
-            if ( ! $ent_object ) {
-                $ent_object = new $class;
-            }
+			if ( ! $ent_object ) {
+				$ent_object = new $class;
+			}
 
-            $self_method    = "save_{$entity}";
+			$self_method = "save_{$entity}";
 
-            if ( ! method_exists( __CLASS__, $self_method ) ) {
-                throw new RequestException( 'internal_server_error', sprintf( 'Internal save method for "%s" does not exist.', $entity ), ['status' => 500] );
-            }
+			if ( ! method_exists( __CLASS__, $self_method ) ) {
+				throw new RequestException( 'internal_server_error', sprintf( 'Internal save method for "%s" does not exist.', $entity ), ['status' => 500] );
+			}
 
-            $result    = self::$self_method( $ent_object, $request );
+			$result = self::$self_method( $ent_object, $request );
 
-            if ( is_smliser_error( $result ) ) {
-                throw $result;
-            }
+			if ( is_smliser_error( $result ) ) {
+				throw $result;
+			}
 
-            $data   = [
-                'success'   => true,
-                'data'      => array(
-                    'message'   => sprintf( '%s saved successfully.', ucwords( str_replace( '_', ' ', $entity ) ) ),
-                    'entity_id' => $ent_object->get_id(),
-                    'entity'    => $entity
-                )
-            ];
+			$data = [
+				'success' => true,
+				'data'    => [
+					'message'   => sprintf( '%s saved successfully.', ucwords( str_replace( '_', ' ', $entity ) ) ),
+					'entity_id' => $ent_object->get_id(),
+					'entity'    => $entity
+				]
+			];
 
-            if ( $entity === 'service_account' ) {
-                $new_api_keys  = $request->get( 'new_api_keys', null );
+			if ( 'service_account' === $entity ) {
+				$new_api_keys = $request->get( 'new_api_keys', null );
 
-                if ( $new_api_keys ) {
-                    $data['data']['api_keys'] = $new_api_keys;
-                }
-            }
+				if ( $new_api_keys ) {
+					$data['data']['api_keys'] = $new_api_keys;
+				}
+			}
 
-            return Response::json( $data );
+			return Response::json( $data );
 
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
 
 /**
-     * Process result to delete a security entity.
-     * 
-     * @param Request $request
-     * @return Response
-     */
-    public function delete_entity( Request $request ) : Response {
-        try {
-            $this->is_system_admin();
-
-            $entity = $request->get( 'entity_type' );
-
-            if ( ! $entity ) {
-                throw new RequestException( 'required_param', 'Please provide the security entity.', ['status' => 400] );
-            }
-
-            $class = ContextServiceProvider::get_entity_classname( $entity );
-
-            if ( ! $class ) {
-                throw new RequestException( 'invalid_param', 'The provided security entity is not supported.', ['status' => 400] );
-            }
-
-            $permission_domain = match( strtolower( $entity ) ) {
-                Owner::TYPE_INDIVIDUAL, 'user'      => 'user',
-                Owner::TYPE_ORGANIZATION            => 'organization',
-                'serviceaccount', 'service_account' => 'service_account',
-                'owner'                             => 'owner',
-                default                             => null
-            };
-
-            if ( ! $permission_domain ) {
-                throw new RequestException( 'invalid_param', 'Invalid or unsupported permission domain.', ['status' => 400] );
-            }
-
-            $cap = sprintf( 'security.%s.delete', $permission_domain );
-            $this->check_permissions( $cap );
-
-            $id          = (int) $request->get( 'id' );
-            $ent_object  = $class::get_by_id( $id );
-            $entity_name = ucwords( str_replace( '_', ' ', $permission_domain ) );
-
-            if ( ! $ent_object ) {
-                throw new RequestException( 'not_found', sprintf( '%s does not exist in the database.', $entity_name ), ['status' => 404] );
-            }
-
-            $actor = $this->guard->principal()->get_actor();
-
-            // Universal Self-Deletion Prevention (Users & Service Accounts).
-            if ( $actor && $ent_object->get_id() === $actor->get_id() && get_class( $ent_object ) === get_class( $actor ) ) {
-                throw new RequestException( 'precondition_failed', 'You cannot delete your own active identity.' );
-            }
-
-            // Universal Last Administrative Lockout Safeguard.
-            $role = ContextServiceProvider::get_principal_role( $ent_object );
-            
-            if ( $role && 'system_admin' === $role->get_slug() ) {
-                $admins = ContextServiceProvider::get_platform_admins();
-                
-                // Count active admins filtering out the target entity ID
-                $remaining_admins = array_filter( $admins, function( $admin ) use ( $ent_object ) {
-                    return $admin->get_id() !== $ent_object->get_id();
-                });
-
-                if ( empty( $remaining_admins ) ) {
-                    throw new RequestException( 'precondition_failed', 'Action blocked: Cannot delete the sole remaining system administrator.' );
-                }
-            }
-
-            // Execution
-            ContextServiceProvider::delete_entity( $ent_object );
-
-            return Response::json([
-                'success' => true,
-                'data'    => [
-                    'message'   => sprintf( '%s deleted successfully.', $entity_name ),
-                    'entity_id' => $ent_object->get_id(),
-                    'entity'    => $entity
-                ]
-            ]);
-        } catch ( Exception $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Save the user object.
-     * 
-     * @param User $user The user object.
-     * @param Request $request The request object.
-     * @return bool|RequestException
-     */
-    protected function save_user( User $user, Request $request ) : bool|RequestException {
-        try {
-            $email  = $request->get( 'email' );
-
-            if ( empty( $email ) || ! is_email( $email )) {
-                throw new RequestException( 'required_param', 'Please provide a valid email address.', ['status' => 400] );
-            }
-
-            if ( ! $user->exists() && User::email_exists( $email ) ) {
-
-                throw new RequestException( 'email_exists' );
+	 * Process result to delete a security entity.
+	 * 
+	 * @param Request $request
+	 * @return Response
+	 */
+	public function delete_entity( Request $request ) : Response {
+		try {
+			$this->is_system_admin();
+
+			$entity = $request->get( 'entity_type' );
+
+			if ( ! $entity ) {
+				throw new RequestException( 'required_param', 'Please provide the security entity.', ['status' => 400] );
+			}
+
+			$class = ContextServiceProvider::get_entity_classname( $entity );
+
+			if ( ! $class ) {
+				throw new RequestException( 'invalid_param', 'The provided security entity is not supported.', ['status' => 400] );
+			}
+
+			$permission_domain = match( strtolower( $entity ) ) {
+				Owner::TYPE_INDIVIDUAL, 'user'      => 'user',
+				Owner::TYPE_ORGANIZATION            => 'organization',
+				'serviceaccount', 'service_account' => 'service_account',
+				'owner'                             => 'owner',
+				default                             => null
+			};
+
+			if ( ! $permission_domain ) {
+				throw new RequestException( 'invalid_param', 'Invalid or unsupported permission domain.', ['status' => 400] );
+			}
+
+			$cap = sprintf( 'security.%s.delete', $permission_domain );
+			$this->check_permissions( $cap );
+
+			$id          = (int) $request->get( 'id' );
+			$ent_object  = $class::get_by_id( $id );
+			$entity_name = ucwords( str_replace( '_', ' ', $permission_domain ) );
+
+			if ( ! $ent_object ) {
+				throw new RequestException( 'not_found', sprintf( '%s does not exist in the database.', $entity_name ), ['status' => 404] );
+			}
+
+			$actor = $this->guard->principal()->get_actor();
+
+			// Universal Self-Deletion Prevention (Users & Service Accounts).
+			if ( $actor && $ent_object->get_id() === $actor->get_id() && get_class( $ent_object ) === get_class( $actor ) ) {
+				throw new RequestException( 'precondition_failed', 'You cannot delete your own active identity.' );
+			}
+
+			// Universal Last Administrative Lockout Safeguard.
+			$role = ContextServiceProvider::get_principal_role( $ent_object );
+			
+			if ( $role && 'system_admin' === $role->get_slug() ) {
+				$admins = ContextServiceProvider::get_platform_admins();
+				
+				// Count active admins filtering out the target entity ID
+				$remaining_admins = array_filter( $admins, function( $admin ) use ( $ent_object ) {
+					return $admin->get_id() !== $ent_object->get_id();
+				} );
+
+				if ( empty( $remaining_admins ) ) {
+					throw new RequestException( 'precondition_failed', 'Action blocked: Cannot delete the sole remaining system administrator.' );
+				}
+			}
+
+			// Execution
+			ContextServiceProvider::delete_entity( $ent_object );
+
+			return Response::json( [
+				'success' => true,
+				'data'    => [
+					'message'   => sprintf( '%s deleted successfully.', $entity_name ),
+					'entity_id' => $ent_object->get_id(),
+					'entity'    => $entity
+				]
+			] );
+		} catch ( Exception $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Save the user object.
+	 * 
+	 * @param User $user The user object.
+	 * @param Request $request The request object.
+	 * @return bool|RequestException
+	 */
+	protected function save_user( User $user, Request $request ) : bool|RequestException {
+		try {
+			$email = $request->get( 'email' );
+
+			if ( empty( $email ) || ! is_email( $email ) ) {
+				throw new RequestException( 'required_param', 'Please provide a valid email address.', ['status' => 400] );
+			}
+
+			if ( ! $user->exists() && User::email_exists( $email ) ) {
+
+				throw new RequestException( 'email_exists' );
 
-            } else if ( $user->exists() && $user->get_email() !== $email ) {
+			} else if ( $user->exists() && $user->get_email() !== $email ) {
 
-                $email_owner  = User::get_by_email( $email );
+				$email_owner = User::get_by_email( $email );
 
-                if ( $email_owner && $user->get_id() !== $email_owner->get_id() ) {
-                    throw new RequestException( 'email_exists' );
-                }
+				if ( $email_owner && $user->get_id() !== $email_owner->get_id() ) {
+					throw new RequestException( 'email_exists' );
+				}
 
-            }
+			}
 
-            if ( ! $user->exists() ) {
-                $this->check_permissions( 'security.user.create' );
-            } else {
-                $this->check_permissions( 'security.user.update' );
-            }
+			if ( ! $user->exists() ) {
+				$this->check_permissions( 'security.user.create' );
+			} else {
+				$this->check_permissions( 'security.user.update' );
+			}
 
-            $display_name   = $request->get( 'display_name' );
-            $status         = $request->get( 'status' );
+			$display_name = $request->get( 'display_name' );
+			$status       = $request->get( 'status' );
 
-            if ( ! in_array( $status, User::get_allowed_statuses(), true ) ) {
-                throw new RequestException( 'invalid_user_status', 'The status provided is not allowed.', ['status' => 400] );
-            }
-            
-            $password_1     = $request->get( 'password_1' );
-            $password_2     = $request->get( 'password_2' );
+			if ( ! in_array( $status, User::get_allowed_statuses(), true ) ) {
+				throw new RequestException( 'invalid_user_status', 'The status provided is not allowed.', ['status' => 400] );
+			}
+			
+			$password_1 = $request->get( 'password_1' );
+			$password_2 = $request->get( 'password_2' );
 
-            if ( $password_1 !== $password_2 ) {
-                throw new RequestException( 'password_mismatch', 'Password mismatch, please check and try again.', ['status' => 400] );
-            }
+			if ( $password_1 !== $password_2 ) {
+				throw new RequestException( 'password_mismatch', 'Password mismatch, please check and try again.', ['status' => 400] );
+			}
 
-            if ( strlen( $password_1 ) > 128 ) {
-                throw new RequestException( 'password_too_long', 'Password exceeds maximum length.', ['status' => 400] );
-            }
+			if ( strlen( $password_1 ) > 128 ) {
+				throw new RequestException( 'password_too_long', 'Password exceeds maximum length.', ['status' => 400] );
+			}
 
-            if ( ! $user->exists() && ( empty( $password_1 ) || empty( $password_2 ) ) ) {
+			if ( ! $user->exists() && ( empty( $password_1 ) || empty( $password_2 ) ) ) {
 
-                throw new RequestException( 'required_param', 'Please provide new user passwords.', ['status' => 400] );
+				throw new RequestException( 'required_param', 'Please provide new user passwords.', ['status' => 400] );
 
-            }
+			}
 
-            if ( ! empty( $password_1 ) ) {
-                $password_hash  = password_hash( $password_1, PASSWORD_ARGON2ID );
+			if ( ! empty( $password_1 ) ) {
+				$password_hash = password_hash( $password_1, PASSWORD_ARGON2ID );
 
-                if ( $user->exists() && password_verify( $password_1, $user->get_password_hash() ) ) {
-                    throw new RequestException( 'same_password', 'Cannot reuse old password, please use new ones.', ['status' => 409] );
-                }
+				if ( $user->exists() && password_verify( $password_1, $user->get_password_hash() ) ) {
+					throw new RequestException( 'same_password', 'Cannot reuse old password, please use new ones.', ['status' => 409] );
+				}
 
-                $user->set_password_hash( $password_hash );
-            }
+				$user->set_password_hash( $password_hash );
+			}
 
-            $uid    = $user->exists() ? $user->get_unique_identifier() :  null;
+			$uid = $user->exists() ? $user->get_unique_identifier() :  null;
 
-            $user->set_email( $email )
-            ->set_display_name( $display_name )
-            ->set_status( $status );
-            
-            if ( ! $user->save() ) {
-                throw new RequestException( 'database_error', 'Unable to save user', ['status' => 500] );
-            }
-            
-            // User email change affects their hashed avatar.
-            if ( $uid && $uid !== $user->get_unique_identifier() ) {
+			$user->set_email( $email )
+			->set_display_name( $display_name )
+			->set_status( $status );
+			
+			if ( ! $user->save() ) {
+				throw new RequestException( 'database_error', 'Unable to save user', ['status' => 500] );
+			}
+			
+			// User email change affects their hashed avatar.
+			if ( $uid && $uid !== $user->get_unique_identifier() ) {
 
-                $this->avatar->rename( $user->get_type(), $uid, $user->get_unique_identifier() );
-            }
+				$this->avatar->rename( $user->get_type(), $uid, $user->get_unique_identifier() );
+			}
 
-            $avatar_file = $request->get_file( 'avatar' );
+			$avatar_file = $request->get_file( 'avatar' );
 
-            if ( $avatar_file && $avatar_file->is_upload_successful() ) {
-                $avatar_file->set_new_name( $user->get_unique_identifier() );
-                $this->avatar->upload( $avatar_file, $user->get_type() );
-            }
+			if ( $avatar_file && $avatar_file->is_upload_successful() ) {
+				$avatar_file->set_new_name( $user->get_unique_identifier() );
+				$this->avatar->upload( $avatar_file, $user->get_type() );
+			}
 
-            self::save_role( $user, $request );
+			self::save_role( $user, $request );
 
-            return true;
-        } catch ( InvalidArgumentException $e ) {
+			return true;
+		} catch ( InvalidArgumentException $e ) {
 
-            return new RequestException(
-                'invalid_argument',
-                $e->getMessage(),
-                [ 'status' => 400 ]
-            );
+			return new RequestException(
+				'invalid_argument',
+				$e->getMessage(),
+				[ 'status' => 400 ]
+			);
 
-        } catch ( RequestException $e ) {
+		} catch ( RequestException $e ) {
 
-            return $e;
+			return $e;
 
-        } catch ( Exception $e ) {
+		} catch ( Exception $e ) {
 
-            return new RequestException(
-                $e->get_error_code(),
-                $e->get_error_message(),
-                [ 'status' => 500 ]
-            );
-        }
-    }
+			return new RequestException(
+				$e->get_error_code(),
+				$e->get_error_message(),
+				[ 'status' => 500 ]
+			);
+		}
+	}
 
-    /**
-     * Save service account object.
-     * 
-     * @param ServiceAccount $sa_acc The service account object.
-     * @param Request $request The request object.
-     * @return bool|RequestException
-     */
-    protected function save_service_account( ServiceAccount $sa_acc, Request $request ) : bool|RequestException {
-        try {
-            $display_name   = $request->get( 'display_name' );
+	/**
+	 * Save service account object.
+	 * 
+	 * @param ServiceAccount $sa_acc The service account object.
+	 * @param Request $request The request object.
+	 * @return bool|RequestException
+	 */
+	protected function save_service_account( ServiceAccount $sa_acc, Request $request ) : bool|RequestException {
+		try {
+			$display_name = $request->get( 'display_name' );
 
-            if ( empty( $display_name ) || ! is_string( $display_name )) {
-                throw new RequestException( 'required_param', 'Please provide a valid service account display name.', ['status' => 400] );
-            }
+			if ( empty( $display_name ) || ! is_string( $display_name ) ) {
+				throw new RequestException( 'required_param', 'Please provide a valid service account display name.', ['status' => 400] );
+			}
 
-            $status = $request->get( 'status' );
+			$status = $request->get( 'status' );
 
-            if ( ! in_array( $status, ServiceAccount::get_allowed_statuses(), true ) ) {
-                throw new RequestException( 'invalid_service_account_status', 'The status provided is not allowed.', ['status' => 400] );
-            }
+			if ( ! in_array( $status, ServiceAccount::get_allowed_statuses(), true ) ) {
+				throw new RequestException( 'invalid_service_account_status', 'The status provided is not allowed.', ['status' => 400] );
+			}
 
-            $owner_id   = $this->sanitize_int( $request->get( 'owner_id', 0 ) );
-            $owner      = Owner::get_by_id( $owner_id );
-            
-            if ( ! $owner || ! $owner->exists() ) {
-                throw new RequestException( 'owner_not_found', 'The resource owner for this service account was not found.', ['status' => 400] );
-            }
+			$owner_id = $this->sanitize_int( $request->get( 'owner_id', 0 ) );
+			$owner    = Owner::get_by_id( $owner_id );
+			
+			if ( ! $owner || ! $owner->exists() ) {
+				throw new RequestException( 'owner_not_found', 'The resource owner for this service account was not found.', ['status' => 400] );
+			}
 
-            $subject    = ContextServiceProvider::get_owner_subject( $owner );
+			$subject = ContextServiceProvider::get_owner_subject( $owner );
 
-            if ( $request->isEmpty( 'role_slug' ) ) {
-                throw new RequestException( 'required_param', 'Please select a role for this service account', [ 'status' => 400 ] );
-            }
+			if ( $request->isEmpty( 'role_slug' ) ) {
+				throw new RequestException( 'required_param', 'Please select a role for this service account', [ 'status' => 400 ] );
+			}
 
-            $uid            = $sa_acc->exists() ? $sa_acc->get_unique_identifier() : null;
+			$uid = $sa_acc->exists() ? $sa_acc->get_unique_identifier() : null;
 
-            $description    = $request->get( 'description', '' );
-            $sa_acc->set_display_name( $display_name )
-            ->set_status( $status )
-            ->set_owner_id( $owner->get_id() )
-            ->set_description( $description );
-            
-            $account_exists = $sa_acc->exists();
+			$description = $request->get( 'description', '' );
+			$sa_acc->set_display_name( $display_name )
+			->set_status( $status )
+			->set_owner_id( $owner->get_id() )
+			->set_description( $description );
+			
+			$account_exists = $sa_acc->exists();
 
-            if ( $account_exists ) {
-                $this->check_permissions( 'security.service_account.update' );
-            } else {
-                $this->check_permissions( 'security.service_account.create' );
-            }
+			if ( $account_exists ) {
+				$this->check_permissions( 'security.service_account.update' );
+			} else {
+				$this->check_permissions( 'security.service_account.create' );
+			}
 
-            if ( ! $sa_acc->save() ) {
-                throw new RequestException( 'database_error', 'Unable to save service account', ['status' => 500] );
-            }
+			if ( ! $sa_acc->save() ) {
+				throw new RequestException( 'database_error', 'Unable to save service account', ['status' => 500] );
+			}
 
-            // Unique ID change affects their hashed avatar.
-            if ( $uid && $uid !== $sa_acc->get_unique_identifier() ) {
+			// Unique ID change affects their hashed avatar.
+			if ( $uid && $uid !== $sa_acc->get_unique_identifier() ) {
 
-                $this->avatar->rename( $sa_acc->get_type(), $uid, $sa_acc->get_unique_identifier() );
-            }
+				$this->avatar->rename( $sa_acc->get_type(), $uid, $sa_acc->get_unique_identifier() );
+			}
 
-            $avatar_file = $request->get_file( 'avatar' );
+			$avatar_file = $request->get_file( 'avatar' );
 
-            if ( $avatar_file && $avatar_file->is_upload_successful() ) {
-                $avatar_file->set_new_name( $sa_acc->get_unique_identifier() );
-                $this->avatar->upload( $avatar_file, $sa_acc->get_type() );
-            }
+			if ( $avatar_file && $avatar_file->is_upload_successful() ) {
+				$avatar_file->set_new_name( $sa_acc->get_unique_identifier() );
+				$this->avatar->upload( $avatar_file, $sa_acc->get_type() );
+			}
 
-            $request->set( 'subject', $subject );
+			$request->set( 'subject', $subject );
 
-            if ( ! $account_exists ) {
-                $request->set( 'new_api_keys', $sa_acc->get_new_api_key_data() );
-            }
+			if ( ! $account_exists ) {
+				$request->set( 'new_api_keys', $sa_acc->get_new_api_key_data() );
+			}
 
-            self::save_role( $sa_acc, $request );
-            
-            return true;
-        } catch ( InvalidArgumentException $e ) {
+			self::save_role( $sa_acc, $request );
+			
+			return true;
+		} catch ( InvalidArgumentException $e ) {
 
-            return new RequestException(
-                'invalid_argument',
-                $e->getMessage(),
-                [ 'status' => 400 ]
-            );
-
-        } catch ( RequestException $e ) {
-
-            return $e;
-
-        } catch ( Exception $e ) {
-
-            return new RequestException(
-                $e->get_error_code(),
-                $e->get_error_message(),
-                [ 'status' => 500 ]
-            );
-        }
-    }
-
-    /**
-     * Save organization object.
-     * 
-     * @param Organization $organization The organization object.
-     * @param Request $request The request object.
-     * @return bool|RequestException
-     */
-    protected function save_organization( Organization $organization, Request $request ) : bool|RequestException{
-        try {
-            $display_name   = $request->get( 'display_name' );
-
-            if ( empty( $display_name ) || ! is_string( $display_name )) {
-                throw new RequestException( 'required_param', 'Please provide a valid organization name.', ['status' => 400] );
-            }
-
-            $status = $request->get( 'status' );
-
-            if ( ! in_array( $status, Organization::get_allowed_statuses(), true ) ) {
-                throw new RequestException( 'invalid_organization_status', 'The status provided is not allowed.', ['status' => 400] );
-            }
-
-            $uid    = $organization ? $organization->get_unique_identifier() : null;
-
-            if ( ! $organization->exists() ) {
-                $this->check_permissions( 'security.organization.create' );
-                if ( $request->isEmpty( 'slug' ) ) {
-                    $request->set( 'slug', strtolower( str_replace( [' ', '-'], ['_', '_'], $display_name ) ) );
-                }
-
-                $organization->set_slug( $request->get( 'slug' ) );
-            } else {
-                $this->check_permissions( 'security.organization.update' );
-            }
-
-            $organization->set_display_name( $display_name )->set_status( $status );
-            
-            if ( ! $organization->save() ) {
-                throw new RequestException( 'database_error', 'Unable to save organization', ['status' => 500] );
-            }
-
-            // Slug change affects their hashed avatar.
-            if ( $uid && $uid !== $organization->get_unique_identifier() ) {
-
-                $this->avatar->rename( $organization->get_type(), $uid, $organization->get_unique_identifier() );
-            }
-
-            $avatar_file = $request->get_file( 'avatar' );
-
-            if ( $avatar_file && $avatar_file->is_upload_successful() ) {
-                $avatar_file->set_new_name( $organization->get_unique_identifier() );
-                $this->avatar->upload( $avatar_file, $organization->get_type() );
-            }
-
-            return true;
-        } catch ( InvalidArgumentException $e ) {
-
-            return new RequestException(
-                'invalid_argument',
-                $e->getMessage(),
-                [ 'status' => 400 ]
-            );
-
-        } catch ( RequestException $e ) {
-
-            return $e;
-
-        } catch ( Exception $e ) {
-
-            return new RequestException(
-                $e->get_error_code(),
-                $e->get_error_message(),
-                [ 'status' => 500 ]
-            );
-        }
-    }
-
-    /**
-     * Save organization member
-     * 
-     * @param Request $request
-     */
-    public function save_organization_member( Request $request ) : Response {
-        try {
-            $role_slug  = (string) $request->get( 'role_slug' );
-            $role       = Role::get_by_slug( $role_slug );
-
-            if ( ! $role ) {
-                throw new RequestException( 'bad_request', 'Member must have a valid role.', ['status' => 400] );
-            }
-
-            $status = (string) $request->get( 'status' );
-
-            if ( ! $status || ! in_array( $status, OrganizationMember::get_allowed_statuses(), true  ) ) {
-                throw new RequestException(
-                    'bad_request',
-                    sprintf( 'The member status must be one of %s', \implode( ',', OrganizationMember::get_allowed_statuses() ) ),
-                    ['status'   => 400]
-                );
-            }
-
-            $org_id         = $this->sanitize_int( $request->get( 'organization_id' ) );
-            $organization   = Organization::get_by_id( $org_id );
-
-            if ( ! $organization ) {
-                throw new RequestException( 'bad_request', 'The member must belong to an existing organization.', ['status' => 400] );
-            }
-
-            $member_id    = $this->sanitize_int( $request->get( 'member_id' ) );
-            
-            $user    = User::get_by_id( $member_id );
-
-            if ( ! $user ) {
-                throw new RequestException( 'bad_request', 'The member subject must be an existing user.', ['status' => 400] );
-            }
-           
-            $id  = $this->sanitize_int( $request->get( 'id' ) );
-            
-            $member     = $organization->get_members()->get( $id );
-
-            if ( ! $member ) {
-                $this->check_permissions( 'security.organization.add_members' );
-                
-                $member = OrganizationMember::from_array(
-                    [
-                        'id'    => 0,
-                        'member_id' => $user->get_id(),
-                        'status'    => $status
-                    ]
-                );
-
-                $member->set_role( $role );
-
-                $organization->get_members()->add( $member );
-            } else {
-                $this->check_permissions( 'security.organization.update_members' );
-                $member->set_status( $status );
-            }
-
-            ContextServiceProvider::save_organization_member( $member, $organization, $role );
-
-            return Response::json([
-                'success'   => true,
-                'data'      => array(
-                    'message'   => 'Member saved successfully.',
-                    'member'    => [
-                        'id'            => $member->get_id(),
-                        'display_name'  => $member->get_display_name(),
-                        'status'        => $member->get_status(),
-                        'type'          => $member->get_type(),
-                        'created_at'    => $member->get_created_at()?->format( \smliser_datetime_format() ) ?? new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) )->format( \smliser_datetime_format() ),
-                        'updated_at'    => $member->get_updated_at()?->format( \smliser_datetime_format() ) ?? new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) )->format( \smliser_datetime_format() ),
-                    ],
-                    'entity'    => Owner::TYPE_ORGANIZATION
-                )
-            ]);
-
-        } catch ( InvalidArgumentException $e ) {
-            $error   = new RequestException(
-                'invalid_argument',
-                $e->getMessage(),
-                [ 'status' => 400 ]
-            );
-
-        } catch ( Exception $e ) {
-
-            $error   = new RequestException(
-                $e->get_error_code(),
-                $e->get_error_message(),
-                [ 'status' => 500 ]
-            );
-        } catch ( RequestException $e ) {
-            $error   = $e;
-
-        }
-
-        return Response::error( $error )
-            ->set_header( 'Content-Type', 'application/json; charset=UTF-8'  );
-    }
-
-    /**
-     * Save the owner object.
-     *
-     * @param Owner   $owner   The Owner object.
-     * @param Request $request The request object.
-     * @return bool|RequestException
-     */
-    protected function save_owner( Owner $owner, Request $request ): bool|RequestException {
-
-        $subject_id = $this->sanitize_int( $request->get( 'subject_id' ) );
-
-        // Subject ID must exist.
-        if ( empty( $subject_id ) ) {
-            return new RequestException(
-                'required_param',
-                'Please provide a valid subject_id.',
-                [ 'status' => 400 ]
-            );
-        }
-
-        $owner_type = $request->get( 'owner_type' );
-        $is_valid_owner_type = in_array( $owner_type, Owner::get_allowed_owner_types(), true );
-
-        // Owner type must be valid.
-        if ( empty( $owner_type ) || ! is_string( $owner_type ) || ! $is_valid_owner_type ) {
-            return new RequestException(
-                'required_param',
-                'Please provide a valid resource owner type.',
-                [ 'status' => 400 ]
-            );
-        }
-
-        $subject_class = ContextServiceProvider::get_entity_classname( $owner_type );
-        /** @var OwnerSubjectInterface|null $principal */
-        $subject =  $subject_class ? $subject_class::get_by_id( $subject_id ) : null;
-
-        // Owner subject entity must be valid and exists.
-        if ( ! $subject || ! in_array( OwnerSubjectInterface::class, (array) class_implements( $subject ), true ) ) {
-            return new RequestException( 'resource_owner_not_found' );
-        }
-
-        $owner_name = $request->get( 'name' );
-
-        if ( empty( $owner_name ) || ! is_string( $owner_name ) ) {
-            return new RequestException(
-                'required_param',
-                'Please provide a valid resource owner name.',
-                [ 'status' => 400 ]
-            );
-        }
-
-        $status = $request->get( 'status' );
-
-        if ( ! in_array( $status, Owner::get_allowed_statuses(), true ) ) {
-            return new RequestException(
-                'required_param',
-                'The status provided is not allowed.',
-                [ 'status' => 400 ]
-            );
-        }
-        
-        try {
-
-            // Owner
-            $owner->set_name( $owner_name )
-                ->set_subject_id( $subject_id )
-                ->set_status( $status )
-            ->set_type( $owner_type );
-
-            if ( $owner->exists() ) {
-                $this->check_permissions( 'security.owner.update' );
-            } else {
-                $this->check_permissions( 'security.owner.create' );
-            }
-
-            if ( ! $owner->save() ) {
-                throw new RequestException(
-                    'owner_save_error',
-                    'Unable to save resource owner.',
-                    [ 'status' => 500 ]
-                );
-            }
-
-            return true;
-
-        } catch ( InvalidArgumentException $e ) {
-
-            return new RequestException(
-                'invalid_argument',
-                $e->getMessage(),
-                [ 'status' => 400 ]
-            );
-
-        } catch ( RequestException $e ) {
-
-            return $e;
-
-        } catch ( Exception $e ) {
-
-            return new RequestException(
-                $e->get_error_code(),
-                $e->get_error_message(),
-                [ 'status' => 500 ]
-            );
-        }
-    }
-
-    /**
-     * Save role to the database
-     * 
-     * @param Request $request The request object.
-     * @param ActorInterface $actor The either User or ServiceAccount instance.
-     * @throws Exception
-     */
-    protected function save_role( ActorInterface $actor, Request $request ) {
-        $caps       = (array) $request->get( 'capabilities', [] );
-        $role_slug  = $request->get( 'role_slug' );
-        $role_label = $request->get( 'role_label' );
-        $role       = Role::get_by_slug( $role_slug );
-
-        /** @var OwnerSubjectInterface|null $subject */
-        $subject    = $request->get( 'subject', null );
-
-        if ( ! $role ) {
-            $this->check_permissions( 'security.role.create' );
-            $role = ( new Role() )
-            ->set_slug( $role_slug );
-
-        } else {
-            $this->check_permissions( 'security.role.update' );
-        }
-
-        $role->set_label( $role_label )
-        ->set_capabilities( $caps );
-        
-        if ( ! $role->save() ) {
-            throw new RequestException(
-                'role_save_error',
-                'Unable to save role to the database.',
-                [ 'status' => 500 ]
-            );
-        }
-        
-        // Context binding.
-        ContextServiceProvider::save_actor_role( $actor, $role, $subject );
-    }
-
-    /**
-     * Search for users and organizations.
-     * 
-     * @param Request $request The request object.
-     * @return Response The response object.
-     */
-    public function search_users_orgs( Request $request ) : Response {
-        try {
-            $this->is_system_admin();
-
-            $search_term   = $request->get( 'search' );
-
-            if ( empty( $search_term ) ) {
-                throw new RequestException( 'required_param', 'Missing parameter "search".' );
-            }
-
-            $types  = (array) $request->get( 'types', Owner::get_allowed_owner_types() );
-            $status = (string) $request->get( 'status', 'active' );
-
-            $args   = compact( 'search_term', 'types', 'status' );
-
-            $results    = ContextServiceProvider::search( $args );
-
-            foreach( $results['items'] as $i => $item ) {
-                $ent                    = $item->to_array();
-                $ent['avatar']          = $this->avatar_manager->url( $item->get_unique_identifier(), $item->get_type() );
-                $results['items'][$i]   = $ent;
-
-            }
-
-            return Response::json([
-                'success'       => true,
-                'items'         => $results['items'],
-                'pagination'    => $results['pagination'],
-            ]);
-
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8'  );
-        }
-        
-    }
-
-    /**
-     * Search for resource owners.
-     * 
-     * @param Request $request The request object.
-     * @return Response The response object.
-     */
-    public function search_resource_owners( Request $request ) : Response {
-        try {
-            $this->is_system_admin();
-
-            $search_term   = $request->get( 'search' );
-
-            if ( empty( $search_term ) ) {
-                throw new RequestException( 'required_param', 'Missing parameter "search".' );
-            }
-
-            $status = (string) $request->get( 'status', '' );
-
-            $args   = compact( 'search_term', 'status' );
-
-            $results    = ContextServiceProvider::search_owners( $args );
-            $data       = Collection::make( $results['items'] )->map( 'smliser_value_to_array' );
-
-            return Response::json([
-                'success'       => true,
-                'items'         => $data->toArray(),
-                'pagination'    => $results['pagination'],
-            ]);
-
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8'  );
-        }
-    }
-
-    /**
-     * Delete/remove a member from an organization.
-     * 
-     * @param Request $request The request object.
-     * @return Response
-     */
-    public function delete_org_member( Request $request ): Response {
-        try {
-            $this->check_permissions( 'security.organization.remove_members' );
-
-            $org_id     = $this->sanitize_int( $request->get( 'organization_id' ) );
-            $member_id  = $this->sanitize_int( $request->get( 'member_id' ) );
-
-            $organization   = Organization::get_by_id( $org_id );
-
-            if ( ! $organization ) {
-                throw new RequestException( 'error', 'The provided orgaization does exist.', ['status' => 400] );
-            }
-
-            if ( ! $organization->is_member( $member_id ) ) {
-                throw new RequestException( 'error', 'The provided member does not belong to this organization, try refreshing the current page.', ['status' => 400] );
-            }
-
-            $member = $organization->get_members()->get( $member_id );
-            ContextServiceProvider::delete_organization_member( $member, $organization );
-
-            return Response::json([
-                'success'   => true,
-                'data'      => [
-                    'message'   => sprintf( '%s has been successfully removed from %s.', $member->get_display_name(), $organization->get_display_name() )
-                ]
-            ]);
-        } catch ( Exception $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8'  );
-        }
-    }
+			return new RequestException(
+				'invalid_argument',
+				$e->getMessage(),
+				[ 'status' => 400 ]
+			);
+
+		} catch ( RequestException $e ) {
+
+			return $e;
+
+		} catch ( Exception $e ) {
+
+			return new RequestException(
+				$e->get_error_code(),
+				$e->get_error_message(),
+				[ 'status' => 500 ]
+			);
+		}
+	}
+
+	/**
+	 * Save organization object.
+	 * 
+	 * @param Organization $organization The organization object.
+	 * @param Request $request The request object.
+	 * @return bool|RequestException
+	 */
+	protected function save_organization( Organization $organization, Request $request ) : bool|RequestException {
+		try {
+			$display_name = $request->get( 'display_name' );
+
+			if ( empty( $display_name ) || ! is_string( $display_name ) ) {
+				throw new RequestException( 'required_param', 'Please provide a valid organization name.', ['status' => 400] );
+			}
+
+			$status = $request->get( 'status' );
+
+			if ( ! in_array( $status, Organization::get_allowed_statuses(), true ) ) {
+				throw new RequestException( 'invalid_organization_status', 'The status provided is not allowed.', ['status' => 400] );
+			}
+
+			$uid = $organization ? $organization->get_unique_identifier() : null;
+
+			if ( ! $organization->exists() ) {
+				$this->check_permissions( 'security.organization.create' );
+				if ( $request->isEmpty( 'slug' ) ) {
+					$request->set( 'slug', strtolower( str_replace( [' ', '-'], ['_', '_'], $display_name ) ) );
+				}
+
+				$organization->set_slug( $request->get( 'slug' ) );
+			} else {
+				$this->check_permissions( 'security.organization.update' );
+			}
+
+			$organization->set_display_name( $display_name )->set_status( $status );
+			
+			if ( ! $organization->save() ) {
+				throw new RequestException( 'database_error', 'Unable to save organization', ['status' => 500] );
+			}
+
+			// Slug change affects their hashed avatar.
+			if ( $uid && $uid !== $organization->get_unique_identifier() ) {
+
+				$this->avatar->rename( $organization->get_type(), $uid, $organization->get_unique_identifier() );
+			}
+
+			$avatar_file = $request->get_file( 'avatar' );
+
+			if ( $avatar_file && $avatar_file->is_upload_successful() ) {
+				$avatar_file->set_new_name( $organization->get_unique_identifier() );
+				$this->avatar->upload( $avatar_file, $organization->get_type() );
+			}
+
+			return true;
+		} catch ( InvalidArgumentException $e ) {
+
+			return new RequestException(
+				'invalid_argument',
+				$e->getMessage(),
+				[ 'status' => 400 ]
+			);
+
+		} catch ( RequestException $e ) {
+
+			return $e;
+
+		} catch ( Exception $e ) {
+
+			return new RequestException(
+				$e->get_error_code(),
+				$e->get_error_message(),
+				[ 'status' => 500 ]
+			);
+		}
+	}
+
+	/**
+	 * Save organization member
+	 * 
+	 * @param Request $request
+	 */
+	public function save_organization_member( Request $request ) : Response {
+		try {
+			$role_slug = (string) $request->get( 'role_slug' );
+			$role      = Role::get_by_slug( $role_slug );
+
+			if ( ! $role ) {
+				throw new RequestException( 'bad_request', 'Member must have a valid role.', ['status' => 400] );
+			}
+
+			$status = (string) $request->get( 'status' );
+
+			if ( ! $status || ! in_array( $status, OrganizationMember::get_allowed_statuses(), true ) ) {
+				throw new RequestException(
+					'bad_request',
+					sprintf( 'The member status must be one of %s', \implode( ',', OrganizationMember::get_allowed_statuses() ) ),
+					['status' => 400]
+				);
+			}
+
+			$org_id       = $this->sanitize_int( $request->get( 'organization_id' ) );
+			$organization = Organization::get_by_id( $org_id );
+
+			if ( ! $organization ) {
+				throw new RequestException( 'bad_request', 'The member must belong to an existing organization.', ['status' => 400] );
+			}
+
+			$member_id = $this->sanitize_int( $request->get( 'member_id' ) );
+			
+			$user = User::get_by_id( $member_id );
+
+			if ( ! $user ) {
+				throw new RequestException( 'bad_request', 'The member subject must be an existing user.', ['status' => 400] );
+			}
+		   
+			$id = $this->sanitize_int( $request->get( 'id' ) );
+			
+			$member = $organization->get_members()->get( $id );
+
+			if ( ! $member ) {
+				$this->check_permissions( 'security.organization.add_members' );
+				
+				$member = OrganizationMember::from_array(
+					[
+						'id'        => 0,
+						'member_id' => $user->get_id(),
+						'status'    => $status
+					]
+				);
+
+				$member->set_role( $role );
+
+				$organization->get_members()->add( $member );
+			} else {
+				$this->check_permissions( 'security.organization.update_members' );
+				$member->set_status( $status );
+			}
+
+			ContextServiceProvider::save_organization_member( $member, $organization, $role );
+
+			return Response::json( [
+				'success' => true,
+				'data'    => [
+					'message' => 'Member saved successfully.',
+					'member'  => [
+						'id'           => $member->get_id(),
+						'display_name' => $member->get_display_name(),
+						'status'       => $member->get_status(),
+						'type'         => $member->get_type(),
+						'created_at'   => $member->get_created_at()?->format( \smliser_datetime_format() ) ?? new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) )->format( \smliser_datetime_format() ),
+						'updated_at'   => $member->get_updated_at()?->format( \smliser_datetime_format() ) ?? new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) )->format( \smliser_datetime_format() ),
+					],
+					'entity' => Owner::TYPE_ORGANIZATION
+				]
+			] );
+
+		} catch ( InvalidArgumentException $e ) {
+			$error = new RequestException(
+				'invalid_argument',
+				$e->getMessage(),
+				[ 'status' => 400 ]
+			);
+
+		} catch ( Exception $e ) {
+
+			$error = new RequestException(
+				$e->get_error_code(),
+				$e->get_error_message(),
+				[ 'status' => 500 ]
+			);
+		} catch ( RequestException $e ) {
+			$error = $e;
+
+		}
+
+		return Response::error( $error )
+			->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+	}
+
+	/**
+	 * Save the owner object.
+	 *
+	 * @param Owner   $owner   The Owner object.
+	 * @param Request $request The request object.
+	 * @return bool|RequestException
+	 */
+	protected function save_owner( Owner $owner, Request $request ) : bool|RequestException {
+
+		$subject_id = $this->sanitize_int( $request->get( 'subject_id' ) );
+
+		// Subject ID must exist.
+		if ( empty( $subject_id ) ) {
+			return new RequestException(
+				'required_param',
+				'Please provide a valid subject_id.',
+				[ 'status' => 400 ]
+			);
+		}
+
+		$owner_type          = $request->get( 'owner_type' );
+		$is_valid_owner_type = in_array( $owner_type, Owner::get_allowed_owner_types(), true );
+
+		// Owner type must be valid.
+		if ( empty( $owner_type ) || ! is_string( $owner_type ) || ! $is_valid_owner_type ) {
+			return new RequestException(
+				'required_param',
+				'Please provide a valid resource owner type.',
+				[ 'status' => 400 ]
+			);
+		}
+
+		$subject_class = ContextServiceProvider::get_entity_classname( $owner_type );
+		/** @var OwnerSubjectInterface|null $principal */
+		$subject = $subject_class ? $subject_class::get_by_id( $subject_id ) : null;
+
+		// Owner subject entity must be valid and exists.
+		if ( ! $subject || ! in_array( OwnerSubjectInterface::class, (array) class_implements( $subject ), true ) ) {
+			return new RequestException( 'resource_owner_not_found' );
+		}
+
+		$owner_name = $request->get( 'name' );
+
+		if ( empty( $owner_name ) || ! is_string( $owner_name ) ) {
+			return new RequestException(
+				'required_param',
+				'Please provide a valid resource owner name.',
+				[ 'status' => 400 ]
+			);
+		}
+
+		$status = $request->get( 'status' );
+
+		if ( ! in_array( $status, Owner::get_allowed_statuses(), true ) ) {
+			return new RequestException(
+				'required_param',
+				'The status provided is not allowed.',
+				[ 'status' => 400 ]
+			);
+		}
+		
+		try {
+
+			// Owner
+			$owner->set_name( $owner_name )
+				->set_subject_id( $subject_id )
+				->set_status( $status )
+			->set_type( $owner_type );
+
+			if ( $owner->exists() ) {
+				$this->check_permissions( 'security.owner.update' );
+			} else {
+				$this->check_permissions( 'security.owner.create' );
+			}
+
+			if ( ! $owner->save() ) {
+				throw new RequestException(
+					'owner_save_error',
+					'Unable to save resource owner.',
+					[ 'status' => 500 ]
+				);
+			}
+
+			return true;
+
+		} catch ( InvalidArgumentException $e ) {
+
+			return new RequestException(
+				'invalid_argument',
+				$e->getMessage(),
+				[ 'status' => 400 ]
+			);
+
+		} catch ( RequestException $e ) {
+
+			return $e;
+
+		} catch ( Exception $e ) {
+
+			return new RequestException(
+				$e->get_error_code(),
+				$e->get_error_message(),
+				[ 'status' => 500 ]
+			);
+		}
+	}
+
+	/**
+	 * Save role to the database
+	 * 
+	 * @param Request $request The request object.
+	 * @param ActorInterface $actor The either User or ServiceAccount instance.
+	 * @throws Exception
+	 */
+	protected function save_role( ActorInterface $actor, Request $request ) {
+		$caps       = (array) $request->get( 'capabilities', [] );
+		$role_slug  = $request->get( 'role_slug' );
+		$role_label = $request->get( 'role_label' );
+		$role       = Role::get_by_slug( $role_slug );
+
+		/** @var OwnerSubjectInterface|null $subject */
+		$subject = $request->get( 'subject', null );
+
+		if ( ! $role ) {
+			$this->check_permissions( 'security.role.create' );
+			$role = ( new Role() )
+			->set_slug( $role_slug );
+
+		} else {
+			$this->check_permissions( 'security.role.update' );
+		}
+
+		$role->set_label( $role_label )
+		->set_capabilities( $caps );
+		
+		if ( ! $role->save() ) {
+			throw new RequestException(
+				'role_save_error',
+				'Unable to save role to the database.',
+				[ 'status' => 500 ]
+			);
+		}
+		
+		// Context binding.
+		ContextServiceProvider::save_actor_role( $actor, $role, $subject );
+	}
+
+	/**
+	 * Search for users and organizations.
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response The response object.
+	 */
+	public function search_users_orgs( Request $request ) : Response {
+		try {
+			$this->is_system_admin();
+
+			$search_term = $request->get( 'search' );
+
+			if ( empty( $search_term ) ) {
+				throw new RequestException( 'required_param', 'Missing parameter "search".' );
+			}
+
+			$types  = (array) $request->get( 'types', Owner::get_allowed_owner_types() );
+			$status = (string) $request->get( 'status', 'active' );
+
+			$args = compact( 'search_term', 'types', 'status' );
+
+			$results = ContextServiceProvider::search( $args );
+
+			foreach( $results['items'] as $i => $item ) {
+				$ent                  = $item->to_array();
+				$ent['avatar']        = $this->avatar_manager->url( $item->get_unique_identifier(), $item->get_type() );
+				$results['items'][$i] = $ent;
+
+			}
+
+			return Response::json( [
+				'success'    => true,
+				'items'      => $results['items'],
+				'pagination' => $results['pagination'],
+			] );
+
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+		
+	}
+
+	/**
+	 * Search for resource owners.
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response The response object.
+	 */
+	public function search_resource_owners( Request $request ) : Response {
+		try {
+			$this->is_system_admin();
+
+			$search_term = $request->get( 'search' );
+
+			if ( empty( $search_term ) ) {
+				throw new RequestException( 'required_param', 'Missing parameter "search".' );
+			}
+
+			$status = (string) $request->get( 'status', '' );
+
+			$args = compact( 'search_term', 'status' );
+
+			$results = ContextServiceProvider::search_owners( $args );
+			$data    = Collection::make( $results['items'] )->map( 'smliser_value_to_array' );
+
+			return Response::json( [
+				'success'    => true,
+				'items'      => $data->toArray(),
+				'pagination' => $results['pagination'],
+			] );
+
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Delete/remove a member from an organization.
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response
+	 */
+	public function delete_org_member( Request $request ) : Response {
+		try {
+			$this->check_permissions( 'security.organization.remove_members' );
+
+			$org_id    = $this->sanitize_int( $request->get( 'organization_id' ) );
+			$member_id = $this->sanitize_int( $request->get( 'member_id' ) );
+
+			$organization = Organization::get_by_id( $org_id );
+
+			if ( ! $organization ) {
+				throw new RequestException( 'error', 'The provided orgaization does exist.', ['status' => 400] );
+			}
+
+			if ( ! $organization->is_member( $member_id ) ) {
+				throw new RequestException( 'error', 'The provided member does not belong to this organization, try refreshing the current page.', ['status' => 400] );
+			}
+
+			$member = $organization->get_members()->get( $member_id );
+			ContextServiceProvider::delete_organization_member( $member, $organization );
+
+			return Response::json( [
+				'success' => true,
+				'data'    => [
+					'message' => sprintf( '%s has been successfully removed from %s.', $member->get_display_name(), $organization->get_display_name() )
+				]
+			] );
+		} catch ( Exception $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
 }

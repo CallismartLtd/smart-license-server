@@ -21,30 +21,30 @@ use SmartLicenseServer\Templates\TemplateLocator;
  * Controls and handles all request to the admin routes.
  */
 final class Dispatcher {
-    public function __construct(
-        protected Guard $guard,
-        protected URLManager $urlmanager,
-        protected AdminDashboardRegistry $registry,
-        protected TemplateLocator $locator,
-        protected AssetsManager $assets_manager
-    ) {}
+	public function __construct(
+		protected Guard $guard,
+		protected URLManager $urlmanager,
+		protected AdminDashboardRegistry $registry,
+		protected TemplateLocator $locator,
+		protected AssetsManager $assets_manager
+	) {}
 
-    /**
-     * Renders the admin dashboard.
-     * 
-     * The route callback to handle the admin dashboard page.
-     */
-    public function render_admin_dashboard( Request $request ) : Response {
+	/**
+	 * Renders the admin dashboard.
+	 * 
+	 * The route callback to handle the admin dashboard page.
+	 */
+	public function render_admin_dashboard( Request $request ) : Response {
 
-        $renderer       = new Shell(
-            $this->registry,
-            $this->locator,
-            $request, $this->guard,
-            $this->assets_manager,
-            $this->urlmanager
-        );
-        $rest_base      = $this->urlmanager->client_dashboard_url();
-        
-        return $renderer->asResponse ( $rest_base->url() );
-    }
+		$renderer = new Shell(
+			$this->registry,
+			$this->locator,
+			$request, $this->guard,
+			$this->assets_manager,
+			$this->urlmanager
+		);
+		$rest_base = $this->urlmanager->client_dashboard_url();
+		
+		return $renderer->asResponse ( $rest_base->url() );
+	}
 }

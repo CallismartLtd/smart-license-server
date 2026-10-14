@@ -26,40 +26,40 @@ use SmartLicenseServer\Environments\Application\Web\HttpDispatcher;
  */
 class HttpExecutionHandler implements ExecutionHandlerInterface {
 
-    /**
-     * The generated HTTP response.
-     *
-     * @var Response|null
-     */
-    protected ?Response $response = null;
+	/**
+	 * The generated HTTP response.
+	 *
+	 * @var Response|null
+	 */
+	protected ?Response $response = null;
 
-    /**
-     * Class constructor.
-     *
-     * @param HttpDispatcher $dispatcher The HTTP route/request dispatcher.
-     * @param Request        $request    The incoming HTTP request object.
-     */
-    public function __construct(
-        protected HttpDispatcher $dispatcher,
-        protected Request $request
-    ) {}
+	/**
+	 * Class constructor.
+	 *
+	 * @param HttpDispatcher $dispatcher The HTTP route/request dispatcher.
+	 * @param Request        $request    The incoming HTTP request object.
+	 */
+	public function __construct(
+		protected HttpDispatcher $dispatcher,
+		protected Request $request
+	) {}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function handle() : int {        
-        $this->response = $this->dispatcher->dispatch( $this->request );
-        $this->response->send();
+	/**
+	 * {@inheritdoc}
+	 */
+	public function handle() : int {
+		$this->response = $this->dispatcher->dispatch( $this->request );
+		$this->response->send();
 
-        return $this->response->get_status_code() >= 400 ? 1 : 0;
-    }
+		return $this->response->get_status_code() >= 400 ? 1 : 0;
+	}
 
-    /**
-     * Get the resolved response instance.
-     *
-     * @return Response|null
-     */
-    public function getResponse() : ?Response {
-        return $this->response;
-    }
+	/**
+	 * Get the resolved response instance.
+	 *
+	 * @return Response|null
+	 */
+	public function getResponse() : ?Response {
+		return $this->response;
+	}
 }

@@ -63,11 +63,11 @@ class ApplyUpdateJob implements JobHandlerInterface {
 	 * @param array<string, mixed> $payload
 	 * @return array{ok: bool, step: string, message: string, log: string[]}
 	 */
-	public function handle( array $payload = [] ): mixed {
+	public function handle( array $payload = [] ) : mixed {
 		$action    = 'rollback' === ( $payload['action'] ?? 'install' ) ? 'rollback' : 'install';
 		$step      = 'apply' === ( $payload['step'] ?? 'prepare' ) ? 'apply' : 'prepare';
 		$reinstall = ! empty( $payload['reinstall'] );
-		$log       = array();
+		$log       = [];
 		$progress  = static function ( string $name, string $status, string $message ) use ( &$log ) : void {
 			$log[] = sprintf( '[%s] %s', $name, $message );
 		};
@@ -109,11 +109,11 @@ class ApplyUpdateJob implements JobHandlerInterface {
 			return $this->finish_attempt( 'install', true, sprintf( '%s %s is up to date; nothing was installed.', \SMLISER_APP_NAME, \SMLISER_VER ), $log );
 		}
 
-		$this->dispatch_job( self::class, array( 'action' => 'install', 'step' => 'apply', 'reinstall' => $reinstall ) );
+		$this->dispatch_job( self::class, [ 'action' => 'install', 'step' => 'apply', 'reinstall' => $reinstall ] );
 
 		$message = sprintf( 'Version %s is downloaded and verified; installing it is queued.', $prepared['manifest']->version );
 
-		return array( 'ok' => true, 'step' => 'prepare', 'message' => $message, 'log' => $log );
+		return [ 'ok' => true, 'step' => 'prepare', 'message' => $message, 'log' => $log ];
 	}
 
 	/**
@@ -128,20 +128,20 @@ class ApplyUpdateJob implements JobHandlerInterface {
 	private function finish_attempt( string $action, bool $ok, string $message, array $log ) : array {
 		$this->updates->record_attempt( $action, $ok, trim( implode( "\n", $log ) . "\n" . $message ) );
 
-		return array( 'ok' => $ok, 'step' => 'install' === $action ? 'apply' : 'rollback', 'message' => $message, 'log' => $log );
+		return [ 'ok' => $ok, 'step' => 'install' === $action ? 'apply' : 'rollback', 'message' => $message, 'log' => $log ];
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public static function get_job_name(): string {
+	public static function get_job_name() : string {
 		return 'Apply Update';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public static function get_job_description(): string {
+	public static function get_job_description() : string {
 		return 'Downloads, verifies and installs the latest release of the application through the update API, in two queued steps.';
 	}
 }

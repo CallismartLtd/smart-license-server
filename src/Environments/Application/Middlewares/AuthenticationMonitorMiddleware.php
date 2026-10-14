@@ -48,7 +48,7 @@ abstract class AuthenticationMonitorMiddleware implements MiddlewareInterface {
 	 * flagged from prior attempts. Does not record this request either
 	 * way — that happens downstream, once the outcome is known.
 	 */
-	public function handle( Request $request, callable $next ): mixed {
+	public function handle( Request $request, callable $next ) : mixed {
 
 		$account = $this->account_from_request( $request );
 		$source  = $this->source_from_request( $request );
@@ -75,7 +75,7 @@ abstract class AuthenticationMonitorMiddleware implements MiddlewareInterface {
 	 *
 	 * @return string|null
 	 */
-	abstract protected function account_from_request( Request $request ): ?string;
+	abstract protected function account_from_request( Request $request ) : ?string;
 
 	/**
 	 * Extract the source identifier (normally an IP) for this request.
@@ -86,14 +86,14 @@ abstract class AuthenticationMonitorMiddleware implements MiddlewareInterface {
 	 *
 	 * @return string
 	 */
-	abstract protected function source_from_request( Request $request ): string;
+	abstract protected function source_from_request( Request $request ) : string;
 
 	/**
 	 * Create a response for a blocked request.
 	 *
 	 * @return Response
 	 */
-	protected function blocked_response(): Response {
+	protected function blocked_response() : Response {
 
 		return Response::make(
 			'Authentication temporarily blocked.',

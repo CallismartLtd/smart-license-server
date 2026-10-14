@@ -33,11 +33,11 @@ final class BackgroundStatus {
 	/**
 	 * Runner sources.
 	 */
-	public const SOURCE_CRON_URL      = 'cron_url';      // The public cron URL, called by an external service.
-	public const SOURCE_CLI_CRON      = 'cli_cron';      // `smliser cron`, from crontab or a hosting panel.
-	public const SOURCE_SCHEDULE_RUN  = 'schedule_run';  // `smliser schedule run`.
-	public const SOURCE_WORKER        = 'worker';        // `smliser queue work`, a long-running worker.
-	public const SOURCE_ADMIN         = 'admin';         // The admin Schedules and Queue Monitor buttons.
+	public const SOURCE_CRON_URL     = 'cron_url';      // The public cron URL, called by an external service.
+	public const SOURCE_CLI_CRON     = 'cli_cron';      // `smliser cron`, from crontab or a hosting panel.
+	public const SOURCE_SCHEDULE_RUN = 'schedule_run';  // `smliser schedule run`.
+	public const SOURCE_WORKER       = 'worker';        // `smliser queue work`, a long-running worker.
+	public const SOURCE_ADMIN        = 'admin';         // The admin Schedules and Queue Monitor buttons.
 
 	/**
 	 * File name, inside the storage directory.
@@ -72,15 +72,15 @@ final class BackgroundStatus {
 	 * @param array<string, mixed> $data   What it did (tasks, jobs, seconds...).
 	 * @return void
 	 */
-	public function record( string $source, array $data = array() ) : void {
-		$entry = array(
+	public function record( string $source, array $data = [] ) : void {
+		$entry = [
 			'at'   => gmdate( DATE_ATOM ),
 			'php'  => PHP_VERSION,
 			'sapi' => PHP_SAPI,
-		) + $data;
+		] + $data;
 
-		$lock_file	= $this->file . '.lock';
-		$lock		= @fopen( $lock_file, 'c' );
+		$lock_file = $this->file . '.lock';
+		$lock      = @fopen( $lock_file, 'c' );
 
 		if ( false === $lock || ! flock( $lock, LOCK_EX ) ) {
 			return;
@@ -105,12 +105,12 @@ final class BackgroundStatus {
 	 */
 	public function read() : array {
 		if ( ! $this->fs->is_file( $this->file ) ) {
-			return array();
+			return [];
 		}
 
 		$data = json_decode( (string) $this->fs->get_contents( $this->file ), true );
 
-		return is_array( $data ) ? $data : array();
+		return is_array( $data ) ? $data : [];
 	}
 
 	/**
@@ -146,11 +146,11 @@ final class BackgroundStatus {
 	public function latest_runner() : ?array {
 		$latest = null;
 
-		foreach ( array( self::SOURCE_CLI_CRON, self::SOURCE_SCHEDULE_RUN, self::SOURCE_CRON_URL, self::SOURCE_WORKER ) as $source ) {
+		foreach ( [ self::SOURCE_CLI_CRON, self::SOURCE_SCHEDULE_RUN, self::SOURCE_CRON_URL, self::SOURCE_WORKER ] as $source ) {
 			$age = $this->age( $source );
 
 			if ( null !== $age && ( null === $latest || $age < $latest['age'] ) ) {
-				$latest = array( 'source' => $source, 'at' => (string) $this->last( $source )['at'], 'age' => $age );
+				$latest = [ 'source' => $source, 'at' => (string) $this->last( $source )['at'], 'age' => $age ];
 			}
 		}
 

@@ -20,12 +20,12 @@ use SmartLicenseServer\Utils\Format;
  *
  * @since 0.2.0
  */
-function smliser_time_diff_string( $start_date, $end_date ): string {
+function smliser_time_diff_string( $start_date, $end_date ) : string {
 
-    return Format::time_diff_string(
-        (string) $start_date,
-        (string) $end_date
-    );
+	return Format::time_diff_string(
+		(string) $start_date,
+		(string) $end_date
+	);
 }
 
 /**
@@ -36,17 +36,17 @@ function smliser_time_diff_string( $start_date, $end_date ): string {
  * @param int|float|string $duration Duration in seconds.
  * @return string
  */
-function smliser_readable_duration( $duration ): string {
+function smliser_readable_duration( $duration ) : string {
 
-    if ( is_string( $duration ) ) {
-        return $duration;
-    }
+	if ( is_string( $duration ) ) {
+		return $duration;
+	}
 
-    if ( ! is_numeric( $duration ) ) {
-        return 'Invalid duration';
-    }
+	if ( ! is_numeric( $duration ) ) {
+		return 'Invalid duration';
+	}
 
-    return Format::duration_ago( (float) $duration );
+	return Format::duration_ago( (float) $duration );
 }
 
 /**
@@ -57,7 +57,7 @@ function smliser_readable_duration( $duration ): string {
 function smliser_locale_date_format() {
 	$date_format = Settings::instance()->get( 'date_format', 'Y-m-d', false );
 	$time_format = Settings::instance()->get( 'time_format', 'g:i a', false );
-    return [ $date_format, $time_format ];
+	return [ $date_format, $time_format ];
 }
 
 /**
@@ -85,8 +85,8 @@ function smliser_json_encode_attr( $data ) {
 /**
  * Recursively implode a multi-dimensional array.
  */
-function smliser_implode_deep( array $array, ?string $separator = null, array $options = [], int $depth = 0 ): string {
-    return Format::implode_deep( $array, $separator, $options, $depth );
+function smliser_implode_deep( array $array, ?string $separator = null, array $options = [], int $depth = 0 ) : string {
+	return Format::implode_deep( $array, $separator, $options, $depth );
 }
 
 /**
@@ -101,15 +101,15 @@ function smliser_implode_deep( array $array, ?string $separator = null, array $o
  *
  * @return string Formatted value
  */
-function smliser_format_deep_value( $value, $key, int $depth, array $options ): string {
-    return Format::deep_value( $value, $key, $depth, $options );
+function smliser_format_deep_value( $value, $key, int $depth, array $options ) : string {
+	return Format::deep_value( $value, $key, $depth, $options );
 }
 
 /**
  * Implode array with automatic smart formatting.
  */
-function smliser_implode_deep_smart( array $array, ?bool $include_keys = null ): string {
-    return Format::smart_implode( $array, $include_keys );
+function smliser_implode_deep_smart( array $array, ?bool $include_keys = null ) : string {
+	return Format::smart_implode( $array, $include_keys );
 }
 
 /**
@@ -120,8 +120,8 @@ function smliser_implode_deep_smart( array $array, ?bool $include_keys = null ):
  *
  * @return int Maximum depth
  */
-function smliser_array_max_depth( array $array, int $depth = 0 ): int {
-    return Format::array_max_depth( $array, $depth );
+function smliser_array_max_depth( array $array, int $depth = 0 ) : int {
+	return Format::array_max_depth( $array, $depth );
 }
 
 /**
@@ -142,8 +142,8 @@ function smliser_array_max_depth( array $array, int $depth = 0 ): int {
  *
  * @return string HTML list
  */
-function smliser_implode_deep_html( array $array, string $type = 'ul', array $options = [], int $depth = 0 ): string {
-    return Format::implode_deep_html( $array, $type, $options, $depth );
+function smliser_implode_deep_html( array $array, string $type = 'ul', array $options = [], int $depth = 0 ) : string {
+	return Format::implode_deep_html( $array, $type, $options, $depth );
 }
 
 /**
@@ -154,7 +154,7 @@ function smliser_implode_deep_html( array $array, string $type = 'ul', array $op
  * @param string $more The string to append to indicate more.
  */
 function smliser_trim_words( string $text, int $num = 50, ?string $more = null ) : string {
-    return Format::trim_words( $text, $num, $more );
+	return Format::trim_words( $text, $num, $more );
 }
 
 /**
@@ -165,14 +165,14 @@ function smliser_trim_words( string $text, int $num = 50, ?string $more = null )
  * @param string $more The string to append to indicate more.
  */
 function smliser_trim_words_utf8( string $text, int $num = 50, ?string $more = null ) : string {
-    return Format::trim_words_utf8( $text, $num, $more );
+	return Format::trim_words_utf8( $text, $num, $more );
 }
 
 /**
  * Helper: Format label from snake_case to readable format
  */
 function smliser_format_label( $label ) : string {
-    return Format::label( $label );
+	return Format::label( $label );
 }
 
 /**
@@ -200,5 +200,5 @@ function smliser_format_label( $label ) : string {
  * @throws \Exception If a secure random source is unavailable.
  */
 function smliser_generate_uuid_v4() : string {
-    return Format::uuid_4();
+	return Format::uuid_4();
 }

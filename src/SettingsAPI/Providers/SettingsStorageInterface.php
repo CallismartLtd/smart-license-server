@@ -43,7 +43,7 @@ interface SettingsStorageInterface {
 	 * @param mixed  $value The data to be stored.
 	 * @return bool True on successful storage/update, false otherwise.
 	 */
-	public function set( string $key, mixed $value ): bool;
+	public function set( string $key, mixed $value ) : bool;
 
 	/**
 	 * Removes a specific setting key and its value from storage.
@@ -53,7 +53,7 @@ interface SettingsStorageInterface {
 	 * @param string $key The unique identifier/name of the setting to delete.
 	 * @return bool True on successful deletion, false if the key wasn't found or deletion failed.
 	 */
-	public function delete( string $key ): bool;
+	public function delete( string $key ) : bool;
 
 	/**
 	 * Checks if a specific setting key exists in the storage.
@@ -63,7 +63,7 @@ interface SettingsStorageInterface {
 	 * @param string $key The unique identifier/name of the setting.
 	 * @return bool True if the key exists, false otherwise.
 	 */
-	public function has( string $key ): bool;
+	public function has( string $key ) : bool;
 
 	/**
 	 * Retrieves a paginated collection of settings from storage.
@@ -74,7 +74,7 @@ interface SettingsStorageInterface {
 	 * @param int $limit The maximum number of settings to return per page.
 	 * @return array<string, mixed> Associative array of settings keyed by setting name.
 	 */
-	public function all( int $page = 1, int $limit = 20 ): array;
+	public function all( int $page = 1, int $limit = 20 ) : array;
 
 	/**
 	 * Searches for settings matching a given query.
@@ -92,5 +92,5 @@ interface SettingsStorageInterface {
 	 *                           should be applied to the search query.
 	 * @return array<string, mixed> Associative array of matching settings keyed by setting name.
 	 */
-	public function search( string $query, int $page, int $limit = 50 ): array;
+	public function search( string $query, int $page, int $limit = 50 ) : array;
 }

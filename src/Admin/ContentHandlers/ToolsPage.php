@@ -164,11 +164,11 @@ class ToolsPage implements AdminPageInterface {
 	 * @return void
 	 */
 	public function schedules_page( Request $request ) : void {
-		$tasks          = $this->scheduler->get_tasks_with_state();
-		$page_handler   = $this;
+		$tasks        = $this->scheduler->get_tasks_with_state();
+		$page_handler = $this;
 
-		$vars   = \compact( 'tasks', 'page_handler', 'request' );
-		$this->locator->render( 'admin.contents.system.index', $vars );        
+		$vars = \compact( 'tasks', 'page_handler', 'request' );
+		$this->locator->render( 'admin.contents.system.index', $vars );
 	}
 
 	/**
@@ -178,12 +178,12 @@ class ToolsPage implements AdminPageInterface {
 	 * @return void
 	 */
 	public function queues_page( Request $request ) : void {
-		$section    = $request->query( 'section' );
-		$page       = (int) $request->get( 'page', 1 );
-		$limit      = (int) $request->get( 'limit', 25 );
-		$queue      = $request->get( 'queue', null );
-		$status     = $request->get( 'status', null );
-		$jobs       = 'failed' === $section
+		$section = $request->query( 'section' );
+		$page    = (int) $request->get( 'page', 1 );
+		$limit   = (int) $request->get( 'limit', 25 );
+		$queue   = $request->get( 'queue', null );
+		$status  = $request->get( 'status', null );
+		$jobs    = 'failed' === $section
 			? $this->job_queue->get_failed_jobs( $page, $limit, $queue )
 			: $this->job_queue->get_jobs( $page, $limit, $queue, $status );
 		$log_rentention = (int) $this->settings->get( Settings::LOG_RETENTION_DAYS, 30 );
@@ -193,13 +193,13 @@ class ToolsPage implements AdminPageInterface {
 			$queue_stats[$st] = $this->job_queue->count_jobs_by_status( $st );
 		}
 
-		$page_handler   = $this;
-		$urlmanager     = $this->urlmanager;
-		$vars           = \compact(
+		$page_handler = $this;
+		$urlmanager   = $this->urlmanager;
+		$vars         = \compact(
 			'jobs', 'page_handler', 'request', 'urlmanager', 'queue_stats',
 			'log_rentention'
 		);
-		$this->locator->render( 'admin.contents.system.queues', $vars ); 
+		$this->locator->render( 'admin.contents.system.queues', $vars );
 	}
 
 	/**
@@ -214,9 +214,9 @@ class ToolsPage implements AdminPageInterface {
 	 * @return void
 	 */
 	public function system_diagnostics_page( Request $request ) : void {
-		$diagnostics    = $this->collect_diagnostics();
-		$report_meta    = $this->report_meta();
-		$page_handler   = $this;
+		$diagnostics  = $this->collect_diagnostics();
+		$report_meta  = $this->report_meta();
+		$page_handler = $this;
 
 		$vars = \compact( 'diagnostics', 'report_meta', 'page_handler', 'request' );
 		$this->locator->render( 'admin.contents.system.diagnostics', $vars );
@@ -233,10 +233,10 @@ class ToolsPage implements AdminPageInterface {
 	 * @return void
 	 */
 	public function site_health_page( Request $request ) : void {
-		$checks            = $this->run_health_checks();
-		$report_meta       = $this->report_meta();
-		$page_handler      = $this;
-		$vars = \compact( 'checks', 'report_meta', 'page_handler', 'request' );
+		$checks       = $this->run_health_checks();
+		$report_meta  = $this->report_meta();
+		$page_handler = $this;
+		$vars         = \compact( 'checks', 'report_meta', 'page_handler', 'request' );
 		$this->locator->render( 'admin.contents.system.health', $vars );
 	}
 
@@ -298,58 +298,58 @@ class ToolsPage implements AdminPageInterface {
 		return 'tools';
 	}
 
-	public function get_menu_data(): array {
+	public function get_menu_data() : array {
 		return [
-			'title'         => 'Tools',
-			'icon'          => 'ti ti-tool',
-			'handler'       => $this,
-			'slug'          => 'tools',
-			'visibility'    => true
+			'title'      => 'Tools',
+			'icon'       => 'ti ti-tool',
+			'handler'    => $this,
+			'slug'       => 'tools',
+			'visibility' => true
 		];
 	}
 
-	public function get_submenu(): array {
+	public function get_submenu() : array {
 		return [
 			[
-				'title'         => 'Schedules',
-				'slug'          => 'schedules',
-				'callback'      => [$this, 'schedules_page'],
-				'visibility'    => true
+				'title'      => 'Schedules',
+				'slug'       => 'schedules',
+				'callback'   => [$this, 'schedules_page'],
+				'visibility' => true
 			],
 			[
-				'title'         => 'Queue Monitor',
-				'slug'          => 'queues',
-				'callback'      => [$this, 'queues_page'],
-				'visibility'    => true
+				'title'      => 'Queue Monitor',
+				'slug'       => 'queues',
+				'callback'   => [$this, 'queues_page'],
+				'visibility' => true
 			],
 			[
-				'title'         => 'Background Processing',
-				'slug'          => 'background',
-				'callback'      => [$this, 'background_page'],
-				'visibility'    => true
+				'title'      => 'Background Processing',
+				'slug'       => 'background',
+				'callback'   => [$this, 'background_page'],
+				'visibility' => true
 			],
 			[
-				'title'         => 'System Diagnostics',
-				'slug'          => 'diagnostics',
-				'callback'      => [$this, 'system_diagnostics_page'],
-				'visibility'    => true
+				'title'      => 'System Diagnostics',
+				'slug'       => 'diagnostics',
+				'callback'   => [$this, 'system_diagnostics_page'],
+				'visibility' => true
 			],
 			[
-				'title'         => 'Site Health',
-				'slug'          => 'health',
-				'callback'      => [$this, 'site_health_page'],
-				'visibility'    => true
+				'title'      => 'Site Health',
+				'slug'       => 'health',
+				'callback'   => [$this, 'site_health_page'],
+				'visibility' => true
 			],
 			[
-				'title'         => 'Updates',
-				'slug'          => 'updates',
-				'callback'      => [$this, 'updates_page'],
-				'visibility'    => true
+				'title'      => 'Updates',
+				'slug'       => 'updates',
+				'callback'   => [$this, 'updates_page'],
+				'visibility' => true
 			],
 		];
 	}
 
-	public function index_page_handler(): callable {
+	public function index_page_handler() : callable {
 		return [$this, 'schedules_page'];
 	}
 
@@ -358,15 +358,15 @@ class ToolsPage implements AdminPageInterface {
 	 *
 	 * @return array<string, mixed>
 	 */
-	public function get_top_menu_args( Request $request ): array {
-		$tab    = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
-		$title  = match( $tab ) {
-			'queues'        => 'Queue Monitor',
-			'background'    => 'Background Processing',
-			'diagnostics'   => 'System Diagnostics',
-			'health'        => 'Site Health',
-			'updates'       => 'Updates',
-			default         => ''
+	public function get_top_menu_args( Request $request ) : array {
+		$tab   = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
+		$title = match( $tab ) {
+			'queues'      => 'Queue Monitor',
+			'background'  => 'Background Processing',
+			'diagnostics' => 'System Diagnostics',
+			'health'      => 'Site Health',
+			'updates'     => 'Updates',
+			default       => ''
 		};
 
 		return [
@@ -464,27 +464,27 @@ class ToolsPage implements AdminPageInterface {
 		$overdue = $this->overdue_tasks();
 
 		return [
-			'Server'                    => $this->collect_server_diagnostics(),
-			'Installation'              => $this->collect_installation_diagnostics(),
-			'Updates'                   => $this->collect_update_diagnostics(),
-			'Required Extensions'       => $this->collect_required_extension_diagnostics(),
-			'Loaded Extensions'         => $this->collect_loaded_extension_diagnostics(),
-			'Database'                  => $this->collect_database_diagnostics(),
-			'Directories'               => $this->collect_directory_diagnostics(),
-			'Background Processing'     => [
-				'Pending Jobs'      => (string) $queue_stats['pending'],
-				'Running Jobs'      => (string) $queue_stats['running'],
-				'Failed Jobs'       => (string) $queue_stats['failed'],
-				'Completed Jobs'    => (string) $queue_stats['completed'],
-				'Waiting Since'     => null === $waiting['oldest']
+			'Server'                => $this->collect_server_diagnostics(),
+			'Installation'          => $this->collect_installation_diagnostics(),
+			'Updates'               => $this->collect_update_diagnostics(),
+			'Required Extensions'   => $this->collect_required_extension_diagnostics(),
+			'Loaded Extensions'     => $this->collect_loaded_extension_diagnostics(),
+			'Database'              => $this->collect_database_diagnostics(),
+			'Directories'           => $this->collect_directory_diagnostics(),
+			'Background Processing' => [
+				'Pending Jobs'   => (string) $queue_stats['pending'],
+				'Running Jobs'   => (string) $queue_stats['running'],
+				'Failed Jobs'    => (string) $queue_stats['failed'],
+				'Completed Jobs' => (string) $queue_stats['completed'],
+				'Waiting Since'  => null === $waiting['oldest']
 					? 'No job is waiting'
 					: \sprintf( '%d job(s) ready to run; the oldest since %s', $waiting['count'], $this->format_time( $waiting['oldest'] ) ),
-				'Scheduled Tasks'   => (string) \count( $tasks ),
-				'Overdue Tasks'     => empty( $overdue )
+				'Scheduled Tasks' => (string) \count( $tasks ),
+				'Overdue Tasks'   => empty( $overdue )
 					? 'None'
 					: \implode( ', ', \array_map( static fn( array $task ) : string => $task['label'], $overdue ) ),
-				'Last Task Run'     => $this->format_time( $this->last_task_run() ) ?: 'Never',
-				'Log Retention'     => (string) $this->settings->get( Settings::LOG_RETENTION_DAYS, 30 ) . ' days',
+				'Last Task Run' => $this->format_time( $this->last_task_run() ) ?: 'Never',
+				'Log Retention' => (string) $this->settings->get( Settings::LOG_RETENTION_DAYS, 30 ) . ' days',
 			],
 		];
 	}
@@ -501,17 +501,17 @@ class ToolsPage implements AdminPageInterface {
 		$flag     = $this->maintenance->read();
 
 		$rows = [
-			'State File'                   => match ( true ) {
+			'State File' => match ( true ) {
 				false === $state => 'Damaged or unreadable (' . $this->state->path() . ')',
 				null === $state  => 'Missing (' . $this->state->path() . ')',
 				default          => 'OK',
 			},
-			'Installed'                    => \is_array( $state ) && ! empty( $state['installed_at'] ) ? (string) $state['installed_at'] : 'No',
-			'Running Code Version'         => \SMLISER_VER,
-			'Recorded App Version'         => (string) ( $versions['app'] ?? 'Not recorded' ),
-			'Code Schema Version'          => \SMLISER_DB_VER,
-			'Recorded Schema Version'      => (string) ( $versions['schema'] ?? 'Not recorded' ),
-			'Maintenance Mode'             => null === $flag
+			'Installed'               => \is_array( $state ) && ! empty( $state['installed_at'] ) ? (string) $state['installed_at'] : 'No',
+			'Running Code Version'    => \SMLISER_VER,
+			'Recorded App Version'    => (string) ( $versions['app'] ?? 'Not recorded' ),
+			'Code Schema Version'     => \SMLISER_DB_VER,
+			'Recorded Schema Version' => (string) ( $versions['schema'] ?? 'Not recorded' ),
+			'Maintenance Mode'        => null === $flag
 				? 'Off'
 				: \sprintf( 'On (%s%s)', $this->maintenance->reason(), empty( $flag['since'] ) ? '' : ', since ' . $flag['since'] ),
 			'.env File'                    => Format::yes_no( \file_exists( \SMLISER_ROOT . '.env' ) ),
@@ -571,23 +571,23 @@ class ToolsPage implements AdminPageInterface {
 				UpdateService::AUTO_ALL => 'All releases',
 				default                 => 'Security releases only',
 			},
-			'Last Check'        => '' === (string) $check['checked_at'] ? 'Never' : (string) $check['checked_at'],
-			'Latest Release'    => null === $check['latest']
+			'Last Check'     => '' === (string) $check['checked_at'] ? 'Never' : (string) $check['checked_at'],
+			'Latest Release' => null === $check['latest']
 				? 'Unknown'
 				: $check['latest'] . ( $check['security'] ? ' (security release)' : '' ) . ( $check['available'] ? ' (available)' : ' (installed)' ),
-			'Last Check Error'  => (string) ( $check['error'] ?? '' ) ?: 'None',
-			'Update Blockers'   => empty( $overview['blockers'] ) ? 'None' : \implode( ' ', $overview['blockers'] ),
-			'Queued Install'    => null === $overview['queued']
+			'Last Check Error' => (string) ( $check['error'] ?? '' ) ?: 'None',
+			'Update Blockers'  => empty( $overview['blockers'] ) ? 'None' : \implode( ' ', $overview['blockers'] ),
+			'Queued Install'   => null === $overview['queued']
 				? 'None'
 				: \sprintf( '%s, by %s at %s', $overview['queued']['version'] ?? '?', $overview['queued']['by'] ?? '?', $overview['queued']['at'] ?? '?' ),
-			'Verified Package'  => null === $ready ? 'None' : \sprintf( '%s, prepared %s', $ready['version'] ?? '?', $ready['prepared_at'] ?? '?' ),
-			'Last Update'       => null === $run
+			'Verified Package' => null === $ready ? 'None' : \sprintf( '%s, prepared %s', $ready['version'] ?? '?', $ready['prepared_at'] ?? '?' ),
+			'Last Update'      => null === $run
 				? 'None'
 				: \sprintf( '%s to %s: %s (started %s)', $run['from'] ?? '?', $run['to'] ?? '?', $run['stage'] ?? '?', $run['started_at'] ?? '?' ),
 			'Last Queued Attempt' => null === $attempt
 				? 'None'
 				: \sprintf( '%s %s at %s', $attempt['action'] ?? '?', ! empty( $attempt['ok'] ) ? 'succeeded' : 'failed', $attempt['at'] ?? '?' ),
-			'Backup'            => null === $backup ? 'None' : \sprintf( 'Version %s, made %s', $backup['version'], $backup['made_at'] ),
+			'Backup' => null === $backup ? 'None' : \sprintf( 'Version %s, made %s', $backup['version'], $backup['made_at'] ),
 		];
 	}
 
@@ -761,7 +761,7 @@ class ToolsPage implements AdminPageInterface {
 
 		$rows = [];
 		foreach ( $extensions as $extension ) {
-			$version = \phpversion( $extension );
+			$version            = \phpversion( $extension );
 			$rows[ $extension ] = ( false !== $version && '' !== $version ) ? $version : 'Loaded';
 		}
 
@@ -791,7 +791,7 @@ class ToolsPage implements AdminPageInterface {
 			'Zip Extension'       => Format::yes_no( \extension_loaded( 'zip' ) ),
 		];
 
-		$rows = \array_merge( $rows, $this->collect_opcache_diagnostics() );
+		$rows                            = \array_merge( $rows, $this->collect_opcache_diagnostics() );
 		$rows['Total Installation Size'] = $this->collect_installation_size();
 
 		return $rows;
@@ -868,11 +868,11 @@ class ToolsPage implements AdminPageInterface {
 			return [ 'OPcache' => 'Disabled' ];
 		}
 
-		$memory  = $status['memory_usage'] ?? [];
-		$used    = (int) ( $memory['used_memory'] ?? 0 );
-		$free    = (int) ( $memory['free_memory'] ?? 0 );
-		$wasted  = (int) ( $memory['wasted_memory'] ?? 0 );
-		$total   = $used + $free + $wasted;
+		$memory = $status['memory_usage'] ?? [];
+		$used   = (int) ( $memory['used_memory'] ?? 0 );
+		$free   = (int) ( $memory['free_memory'] ?? 0 );
+		$wasted = (int) ( $memory['wasted_memory'] ?? 0 );
+		$total  = $used + $free + $wasted;
 
 		$interned       = $status['interned_strings_usage'] ?? [];
 		$interned_used  = (int) ( $interned['used_memory'] ?? 0 );
@@ -882,15 +882,15 @@ class ToolsPage implements AdminPageInterface {
 		$hit_rate = isset( $stats['opcache_hit_rate'] ) ? \round( (float) $stats['opcache_hit_rate'], 2 ) : null;
 
 		return [
-			'OPcache'                  => 'Enabled',
-			'OPcache Memory Usage'     => $total > 0
+			'OPcache'              => 'Enabled',
+			'OPcache Memory Usage' => $total > 0
 				? \sprintf( '%s / %s (%s used)', Format::bytes( $used ), Format::bytes( $total ), Format::percent( $used / $total ) )
 				: Format::bytes( $used ),
 			'OPcache Interned Strings' => $interned_total > 0
 				? \sprintf( '%s / %s (%s used)', Format::bytes( $interned_used ), Format::bytes( $interned_total ), Format::percent( $interned_used / $interned_total ) )
 				: Format::bytes( $interned_used ),
-			'OPcache Hit Rate'         => null !== $hit_rate ? $hit_rate . '%' : 'Unknown',
-			'OPcache Cache Full'       => Format::yes_no( ! empty( $status['cache_full'] ) ),
+			'OPcache Hit Rate'   => null !== $hit_rate ? $hit_rate . '%' : 'Unknown',
+			'OPcache Cache Full' => Format::yes_no( ! empty( $status['cache_full'] ) ),
 		];
 	}
 
@@ -935,49 +935,49 @@ class ToolsPage implements AdminPageInterface {
 	}
 
 	/**
-     * Gather database engine/connection facts via the DBPrism Inspector.
-     *
-     * Only non-null fields from DatabaseInfoDTO are shown — not every
-     * engine exposes every field (e.g. SQLite has no port/server).
-     *
-     * @return array<string, string>
-     */
-    private function collect_database_diagnostics() : array {
-        try {
-            $info = $this->get_database_info();
-        } catch ( \Throwable $e ) {
-            return [ 'Status' => 'Unable to inspect connection: ' . $e->getMessage() ];
-        }
+	 * Gather database engine/connection facts via the DBPrism Inspector.
+	 *
+	 * Only non-null fields from DatabaseInfoDTO are shown — not every
+	 * engine exposes every field (e.g. SQLite has no port/server).
+	 *
+	 * @return array<string, string>
+	 */
+	private function collect_database_diagnostics() : array {
+		try {
+			$info = $this->get_database_info();
+		} catch ( \Throwable $e ) {
+			return [ 'Status' => 'Unable to inspect connection: ' . $e->getMessage() ];
+		}
 
-        $rows = [
-            // Engine & Driver Identity
-            'Engine'            => $info->engine,
-            'Product'           => $info->product,
-            'Version'           => $info->version,
-            'Driver'            => $this->db->get_adapter()::class,
+		$rows = [
+			// Engine & Driver Identity
+			'Engine'  => $info->engine,
+			'Product' => $info->product,
+			'Version' => $info->version,
+			'Driver'  => $this->db->get_adapter()::class,
 
-            // Database & Schema.
-            'Database'          => $info->database,
-            'Schema'            => $info->schema,
-            'Size'              => null !== $info->size_bytes ? Format::bytes( $info->size_bytes ) : 'Unknown',
-            'Charset'           => $info->charset,
-            'Collation'         => $info->collation,
-            'Timezone'          => $info->timezone,
+			// Database & Schema.
+			'Database'  => $info->database,
+			'Schema'    => $info->schema,
+			'Size'      => null !== $info->size_bytes ? Format::bytes( $info->size_bytes ) : 'Unknown',
+			'Charset'   => $info->charset,
+			'Collation' => $info->collation,
+			'Timezone'  => $info->timezone,
 
-            // Connection & Network
-            'Server'            => $info->server,
-            'Port'              => null !== $info->port ? (string) $info->port : null,
-            'Transport'         => $info->transport,
-            'Protocol Version'  => null !== $info->protocol_version ? (string) $info->protocol_version : null,
-            'SSL'               => null !== $info->ssl ? Format::yes_no( $info->ssl ) : null,
+			// Connection & Network
+			'Server'           => $info->server,
+			'Port'             => null !== $info->port ? (string) $info->port : null,
+			'Transport'        => $info->transport,
+			'Protocol Version' => null !== $info->protocol_version ? (string) $info->protocol_version : null,
+			'SSL'              => null !== $info->ssl ? Format::yes_no( $info->ssl ) : null,
 
-            // Host Server Environment
-            'Server Hostname'   => $info->server_hostname,
-            'Server OS'         => $info->server_os,
-        ];
+			// Host Server Environment
+			'Server Hostname' => $info->server_hostname,
+			'Server OS'       => $info->server_os,
+		];
 
-        return \array_filter( $rows, static fn( $value ) => null !== $value && '' !== $value );
-    }
+		return \array_filter( $rows, static fn( $value ) => null !== $value && '' !== $value );
+	}
 
 	/*
 	|--------------------
@@ -1065,26 +1065,26 @@ class ToolsPage implements AdminPageInterface {
 		// Failed/stuck jobs.
 		$failed_count = $this->job_queue->count_jobs_by_status( 'failed' );
 		$checks[]     = [
-			'id'             => 'failed_jobs',
-			'label'          => 'Failed Jobs',
-			'status'         => $failed_count === 0 ? 'pass' : ( $failed_count < 50 ? 'warning' : 'critical' ),
-			'message'        => $failed_count === 0
+			'id'      => 'failed_jobs',
+			'label'   => 'Failed Jobs',
+			'status'  => 0 === $failed_count ? 'pass' : ( $failed_count < 50 ? 'warning' : 'critical' ),
+			'message' => 0 === $failed_count
 				? 'No failed jobs in the queue.'
 				: \sprintf( '%d failed job(s) in the archive.', $failed_count ),
-			'recommendation' => $failed_count === 0
+			'recommendation' => 0 === $failed_count
 				? null
 				: 'Review the Queue Monitor → Failed tab to diagnose recurring failures.',
 		];
 
 		$running_count = $this->job_queue->count_jobs_by_status( 'running' );
 		$checks[]      = [
-			'id'             => 'stuck_jobs',
-			'label'          => 'Jobs Stuck Running',
-			'status'         => $running_count === 0 ? 'pass' : 'warning',
-			'message'        => $running_count === 0
+			'id'      => 'stuck_jobs',
+			'label'   => 'Jobs Stuck Running',
+			'status'  => 0 === $running_count ? 'pass' : 'warning',
+			'message' => 0 === $running_count
 				? 'No jobs currently running.'
 				: \sprintf( '%d job(s) currently in a running state.', $running_count ),
-			'recommendation' => $running_count === 0
+			'recommendation' => 0 === $running_count
 				? null
 				: 'If this count stays elevated across page reloads, a worker may have died mid-job. Run `queue release-stale` from the CLI.',
 		];
@@ -1097,13 +1097,13 @@ class ToolsPage implements AdminPageInterface {
 			}
 		}
 		$checks[] = [
-			'id'             => 'scheduled_task_errors',
-			'label'          => 'Scheduled Task Errors',
-			'status'         => $tasks_with_errors === 0 ? 'pass' : 'critical',
-			'message'        => $tasks_with_errors === 0
+			'id'      => 'scheduled_task_errors',
+			'label'   => 'Scheduled Task Errors',
+			'status'  => 0 === $tasks_with_errors ? 'pass' : 'critical',
+			'message' => 0 === $tasks_with_errors
 				? 'All scheduled tasks last ran without error.'
 				: \sprintf( '%d scheduled task(s) recorded an error on their last run.', $tasks_with_errors ),
-			'recommendation' => $tasks_with_errors === 0
+			'recommendation' => 0 === $tasks_with_errors
 				? null
 				: 'Open the Schedules tab and review the error detail for each affected task.',
 		];
@@ -1558,8 +1558,8 @@ class ToolsPage implements AdminPageInterface {
 			&& $this->fs->is_file( $htaccess )
 			&& \str_contains( (string) $this->fs->get_contents( $htaccess ), '# BEGIN Smart License Server' );
 
-		$check['status']         = $protected ? 'warning' : 'critical';
-		$check['message']        = $protected
+		$check['status']  = $protected ? 'warning' : 'critical';
+		$check['message'] = $protected
 			? \sprintf( 'The web server serves %s instead of its public folder. The .htaccess file in that folder keeps everything outside public unreachable, but the whole application folder depends on it.', $document_root )
 			: \sprintf( 'The web server serves %s instead of its public folder, and nothing stops visitors from downloading files outside public, such as .env with the database password and application secrets.', $document_root );
 		$check['recommendation'] = \sprintf(

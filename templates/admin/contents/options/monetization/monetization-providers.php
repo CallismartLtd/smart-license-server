@@ -29,10 +29,10 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <td><?php echo escHtml( $id ); ?></td>
                         <td><?php echo escHtml( $provider::get_name() ); ?></td>
                         <td>
-                            <a href="<?php 
-                            echo escUrl( $urlmanager->admin_options_url( 'monetization' )
-                                ->add_query_params(  ['provider' => $provider::get_id() ] )->url()
-                            ); ?>"
+                            <a href="<?php
+							echo escUrl( $urlmanager->admin_options_url( 'monetization' )
+								->add_query_params( ['provider' => $provider::get_id() ] )->url()
+							); ?>"
                             class="button smliser-nav-btn"> <i class="ti ti-settings"></i> Configure</a></td>
                     </tr>
                 <?php endforeach; ?>

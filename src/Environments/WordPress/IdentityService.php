@@ -26,594 +26,595 @@ use WP_Session_Tokens;
 use WP_User;
 
 final class IdentityService extends AbstractIdentityProvider implements PasswordIdentityProviderInterface {
-    /**
-     * @param Guard        $guard    The security guard.
-     * @param UserAccounts $accounts Shared account operations.
-     * @param Settings     $settings The settings API.
-     */
-    public function __construct(
-        protected Guard $guard,
-        protected UserAccounts $accounts,
-        protected Settings $settings
-    ) {}
-    /*
-    |------------------------------------------
-    | PROVIDER IDENTITY
-    |------------------------------------------
-    */
-
-    /**
-     * Get provider ID.
-     *
-     * @return string
-     */
-    protected function issuer() : string {
-        /** @todo: Function does not exist, use contructor injection for settings API */
-
-        $inst_id = $this->settings->get( 'installation_uuid', false );
-
-        if ( empty( $inst_id ) ) {
-            $inst_id = \smliser_generate_uuid_v4();
-            $this->settings->set( 'installation_uuid', $inst_id );
-        }
-
-        return 'urn:smliser:wordpress:' . $inst_id;
-    }
-
-    /*
-    |------------------------------------------
-    | FEDERATION & SYNCHRONIZATION
-    |------------------------------------------
-    */
-
-    /**
-     * Get the resource owner this actor is associated with.
-     * 
-     * @return Owner|null
-     */
-    protected function get_actor_owner() : ?Owner {
-        $session_token = wp_get_session_token();
-
-        if ( ! $session_token ) {
-            return null;
-        }
-
-        $transient_key = md5( $this->issuer() . '_' . $session_token );
-        $owner_id = get_transient( $transient_key );
-
-        if ( $owner_id ) {
-            return Owner::get_by_id( (int) $owner_id );
-        }
-
-        return null;
-    }
-
-    /**
-     * Add a Wordpress user to Smart License Server using the federation feature.
-     * 
-     * @param int $wp_user_id The WordPress user ID.
-     * @param int|User $user ID or an instance of @see `\SmartLicenseServer\Security\Actors\User`
-     * @return bool
-     */
-    protected function sync_user( int $wp_user_id, User|int $user ) : bool {
-        $user = is_int( $user ) ? User::get_by_id( $user ) : $user;
-
-        if ( ! $user ) {
-            return false;
-        }
-        
-        return $this->add( $user->get_id(), $this->issuer(), (string) $wp_user_id );
-    }
-
-    /**
-     * Remove a WordPress user from Smart License Server.
-     * 
-     * This method is called when a WordPress user is deleted to keep the federation table clean.
-     * 
-     * @param int $wp_user_id The WordPress user ID.
-     * @return void
-     */
-    public function desync_user( int $wp_user_id ) : void {
-        $user = $this->find_actor( $this->issuer(), (string) $wp_user_id );
-        if ( $user ) {
-            $this->remove( $user->get_id() );
-
-            /** @disregard */
-            $user->set_status( User::STATUS_DELETE_SCHEDULED )->save();
-        }
-    }
-
-    /*
-    |------------------------------------------
-    | WORDPRESS USER MANAGEMENT
-    |------------------------------------------
-    */
-
-    /**
-     * Set the current WordPress user.
-     * 
-     * @param WP_User $wp_user
-     * @param bool $remember
-     * @return WP_User
-     */
-    protected function set_current_user( WP_User $wp_user, bool $remember = false ) : WP_User {
-        wp_set_auth_cookie( $wp_user->ID, $remember );
-        wp_set_current_user( $wp_user->ID, $wp_user->user_login );
-        
-        do_action( 'wp_login', $wp_user->user_login, $wp_user );
-        
-        $this->authenticate();
-
-        return $wp_user;
-    }
-
-    /**
-     * Create a WP_User.
-     * 
-     * @param array{
-     *      email: string,
-     *      password: string,
-     *      username?: string,
-     *      display_name?: string,
-     *   
-     * } $userdata
-     * @return RequestException|WP_User
-     */
-    private function create_wp_user( array $userdata ) : RequestException|WP_User {
-        $email = $userdata['email'];
-        $pwd = $userdata['password'];
-        $username = $userdata['username'] ?? '';
-        $display_name = $userdata['display_name'] ?? '';
-
-        if ( \email_exists( $email ) ) {
-            return new RequestException( 'email_exists' );
-        }
-
-        $username = $username ?: sanitize_user( current( explode( '@', $email ) ), true );
-
-        if ( \username_exists( $username ) ) {
-            do {
-                $username .= \wp_generate_password( 4, false );
-            } while( \username_exists( $username ) );
-        }
-
-        $userdata = [
-            'user_login'    => $username,
-            'user_pass'     => $pwd,
-            'user_email'    => $email,
-            'display_name'  => $display_name,
-        ];
-
-        $wp_user_id = wp_insert_user( $userdata );
-
-        if ( $wp_user_id instanceof WP_Error ) {
-            return new RequestException(
-                $wp_user_id->get_error_code(),
-                $wp_user_id->get_error_message(),
-                ['status' => 401 ]
-            );
-        }
-
-        $wp_user = get_user( $wp_user_id );
-
-        if ( ! $wp_user ) {
-            return new RequestException(
-                'user_not_created',
-                'Unable to create WordPress user, try again.'
-            );
-        }
-
-        return $wp_user;
-    }
-
-    /*
-    |------------------------------------------
-    | AUTO-PROVISIONING
-    |------------------------------------------
-    */
-
-    /**
-     * Automatically federate WordPress administrators into Smart License Server.
-     * 
-     * Silently fails on errors.
-     *
-     * @return void
-     */
-    public function auto_provision() : void {
-        if ( ! \is_user_logged_in() || ! \is_super_admin() ) return;
-
-        if ( $this->guard->has_principal() ) return;
-
-        $wp_user    = wp_get_current_user();
-        $issuer     = $this->issuer();
-        $wp_user_id = $wp_user->ID;
-        $actor      = $this->find_actor( $issuer, (string) $wp_user_id );
-
-        if ( $actor ) return;
-
-        $email          = $wp_user->user_email;
-        $smliser_user   = User::get_by_email( $email );
-
-        if ( $smliser_user ) {
-            $this->sync_user( $wp_user_id, $smliser_user );
-            return;
-        }
-
-        $user           = new User;
-        $password_hash  = $this->accounts->hash_password( wp_generate_password() );
-        $user->set_display_name( $wp_user->display_name )
-            ->set_password_hash( $password_hash )
-            ->set_status( User::STATUS_ACTIVE )
-            ->set_email( $email );
-
-        if ( ! $user->save() ) return;
-        
-        $default_role   = DefaultRoles::get( 'system_admin' );
-        $caps           = $default_role['capabilities'];
-        $role_slug      = $default_role['slug'];
-        $role_label     = $default_role['label'];
-        
-        $role           = Role::get_by_slug( $role_slug );
-
-        if ( ! $role ) {
-            $role = new Role();
-        }
-
-        $role->set_label( $role_label)
-            ->set_slug( $role_slug )
-            ->set_capabilities( $caps )
-            ->set_is_canonical( $default_role['is_canonical'] );
-        try {
-            $owner = ContextServiceProvider::get_default_owner( $user );
-            if ( ! $owner ) {
-                $owner = new Owner;
-            }
-            
-            if ( ! $owner->exists() ) {
-                $owner->set_name( $user->get_display_name() )
-                    ->set_status( Owner::STATUS_ACTIVE )
-                    ->set_subject_id( $user->get_id() )
-                    ->set_type( Owner::TYPE_INDIVIDUAL );
-                $owner->save();
-            }
-            
-            $owner_subject = ContextServiceProvider::get_owner_subject( $owner );
-            ContextServiceProvider::save_actor_role( $user, $role, $owner_subject );
-            $this->sync_user( $wp_user_id, $user );
-
-        } catch ( \Throwable ) {}
-    }
-
-    /*
-    |------------------------------------------
-    | AUTHENTICATION
-    |------------------------------------------
-    */
-
-    /**
-     * Authenticates and sets the principal.
-     * 
-     * @return Principal|null 
-     */
-    public function authenticate() : ?Principal {
-        if ( ! is_user_logged_in() ) {
-            return null;
-        }
-
-        if ( $this->guard->has_principal() ) {
-            return $this->guard->get_principal();
-        }
-
-        if ( \wp_installing() ) return null;
-
-        $wp_user = wp_get_current_user();
-        $issuer = $this->issuer();
-        $wp_user_id = (string) $wp_user->ID;
-
-        $actor = $this->find_actor( $issuer, $wp_user_id );
-
-        if ( ! $actor ) {
-            return null;
-        }
-
-        // A suspended or disabled account loses access on its next request.
-        if ( $actor instanceof User && ! $actor->can_authenticate() ) {
-            return null;
-        }
-        
-        $owner = $this->get_actor_owner();
-        
-        if ( ! $owner || ! $owner->exists() ) {
-            $owner = ContextServiceProvider::get_default_owner( $actor );
-        }
-
-        $owner_subject  = $owner ? ContextServiceProvider::get_owner_subject( $owner ) : null;
-        $role           = ContextServiceProvider::get_principal_role( $actor, $owner_subject );
-
-        if ( ! $role || ! $role->exists() ) {
-            return null;
-        }
-
-        $principal = new Principal( $actor, $role, $owner );
-
-        $this->guard->set_principal( $principal );
-
-        return $principal;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ): RequestException|Principal {
-        $login = $this->wp_user_logon( $email, $pwd, $remember );
-
-        if ( $login instanceof RequestException ) {
-            if ( 'invalid_user' !== $login->get_error_code() ) {
-                return $login;
-            }
-            
-            $login = $this->smliser_user_logon( $email, $pwd, $remember );
-
-            if ( $login instanceof RequestException ) {
-                
-                return $login;
-            }
-        }
-
-        if ( \is_user_logged_in() && ! $this->guard->has_principal() ) {
-            $current_user   = \wp_get_current_user();
-            if ( ! User::email_exists( $current_user->user_email ) ) {
-                return new RequestException( 'authentication_error', 'Signup to access this portal.' );
-            }
-
-            return new RequestException( 'authentication_error', 'Please use the password reset option to recover your account.' );
-        }
-
-        $principal = $this->guard->get_principal();
-
-        if ( ! $principal ) {
-            return new RequestException( 'authentication_error', 'Login failed, contact us if you need further assistance.' );
-        }
-
-        return $principal;
-    }
-
-    /**
-     * Logon a WP_User.
-     * 
-     * @param string $email
-     * @param string $pwd
-     * @param bool $remember
-     * @return RequestException|WP_User
-     */
-    public function wp_user_logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ) : RequestException|WP_User {
-        $wp_user = \wp_signon(
-            [
-                'user_login' => $email,
-                'user_password' => $pwd,
-                'remember' => $remember
-
-            ],
-            true
-        );
-
-        if ( $wp_user instanceof WP_Error ) {
-            $code = $wp_user->get_error_code();
-
-            if ( 'invalid_email' === $code ) {
-                $code = 'invalid_user';
-            }
-
-            $message = \strip_tags( $wp_user->get_error_message() );
-
-            if ( 'incorrect_password' === $code ) {
-                $message = 'The password you entered is incorrect.';
-            }
-
-            return new RequestException( $code, $message );
-        }
-
-        return $this->set_current_user( $wp_user, $remember );
-    }
-
-    /**
-     * Directly logon a \SmartLicenseServer\Security\Actors\User and auto federate.
-     * 
-     * @param string $email
-     * @param string $pwd
-     * @param bool $remember
-     * @return RequestException|WP_User
-     */
-    public function smliser_user_logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ) : RequestException|WP_User {
-        if ( ! User::email_exists( $email ) ) {
-            return new RequestException(
-                'invalid_user',
-                'Unknown email address.',
-                ['status' => 401]
-            );
-        }
-
-        /** @var \SmartLicenseServer\Security\Actors\User $user */
-        $user = User::get_by_email( $email );
-
-        if ( ! password_verify( $pwd, $user->get_password_hash() ) ) {
-            return new RequestException( 'incorrect_password' );
-        }
-
-        if ( ! \email_exists( $user->get_email() ) ) {
-            $wp_user = $this->create_wp_user( [
-                'email' => $email,
-                'password' => $pwd,
-                'display_name' => $user->get_display_name()
-            ] );
-
-            if ( $wp_user instanceof RequestException ) {
-                return $wp_user;
-            }
-
-        } else {
-            $wp_user = \get_user_by( 'email', $user->get_email() );
-
-            if ( ! $wp_user ) {
-                return new RequestException(
-                    'invalid_user',
-                    'Unknown email address.'
-                );
-            }
-        }
-
-        if ( ! $this->find_actor( $this->issuer(), (string) $wp_user->ID ) ) {
-            $this->sync_user( $wp_user->ID, $user );
-        }
-
-        return $this->set_current_user( $wp_user, $remember );
-    }
-
-    /*
-    |------------------------------------------
-    | SIGNUP & REGISTRATION
-    |------------------------------------------
-    */
-
-    /**
-     * {@inheritdoc}
-     */
-    public function signup( Request $request ): RequestException|Principal {
-        if ( $request->isEmpty( 'email' ) ) {
-            return new RequestException(
-                'required_param',
-                'Email is required.',
-                ['status' => 400]    
-            );
-        }
-
-        $email = $request->get( 'email' );
-
-        if ( ! filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
-            return new RequestException(
-                'invalid_email',
-                'The email address is invalid.',
-                ['status' => 400]    
-            );
-        }
-
-        if ( ! $this->accounts->acquire_signup_lock( $email ) ) {
-            return new RequestException(
-                'signup_locked',
-                'Too many signup attempts, please try again later.',
-                ['status' => 429 ]
-            );
-        }
-
-        try {
-            $password_1 = (string) $request->get( 'password_1', '', false );
-            $problem    = $this->accounts->validate_password( $password_1, (string) $request->get( 'password_2', '', false ) );
-
-            if ( null !== $problem ) {
-                throw $problem;
-            }
-
-            $display_name = $request->get( 'full_name', '' );
-            $wp_user = $this->create_wp_user([
-                'email'         => $email,
-                'password'      => $password_1,
-                'display_name'  => $display_name
-            ]);
-
-            if ( $wp_user instanceof RequestException ) {
-                if ( \is_user_logged_in() ) {
-                    $wp_user    = \wp_get_current_user();
-                }
-            }
-
-            if ( $wp_user instanceof RequestException ) {
-                throw $wp_user;
-            }
-
-            $user = User::email_exists( $email )
-                ? User::get_by_email( $email )
-                : $this->accounts->create_user( $email, $password_1, $display_name ?: $wp_user->display_name );
-
-            $this->accounts->assign_signup_role( $user, (string) $request->get( 'account_type', 'viewer' ) );
-
-            $this->sync_user( $wp_user->ID, $user );
-            $this->set_current_user( $wp_user, true );
-
-            if ( ! $this->guard->has_principal() ) {
-                throw new RequestException(
-                    'authentication_error',
-                    'Login failed, contact us if you need further assistance.'
-                );
-            }
-
-            return $this->guard->get_principal();
-
-        } catch( RequestException $e ) {
-            return $e;
-        } catch ( \Throwable ) {
-            return new RequestException(
-                'signup_error',
-                'An error occurred during signup, please try again.',
-                ['status' => 500 ]
-            );
-        } finally {
-            $this->accounts->release_signup_lock( $email );
-        }
-    }
-
-    /*
-    |------------------------------------------
-    | PASSWORD MANAGEMENT
-    |------------------------------------------
-    */
-
-    /**
-     * {@inheritdoc}
-     */
-    public function reset_password( User $user, #[\SensitiveParameter] string $new_pwd ): bool {
-        $this->accounts->change_password( $user, $new_pwd );
-
-        $wp_user_id = $this->find_external_id( $this->issuer(), $user->get_id() );
-
-        if ( ! $wp_user_id && User::email_exists( $user->get_email() ) ) {
-            $wp_user    = \get_user_by( 'email', $user->get_email() );
-            $wp_user_id = $wp_user ? $wp_user->ID : null;
-        }
-
-        if ( $wp_user_id ) {
-            wp_set_password( $new_pwd, (int) $wp_user_id );
-
-            // Whoever held the old password may hold a session: end them all.
-            WP_Session_Tokens::get_instance( (int) $wp_user_id )->destroy_all();
-
-            $this->sync_user( (int) $wp_user_id, $user );
-        }
-
-        return true;
-    }
-
-    /*
-    |------------------------------------------
-    | LOGOUT
-    |------------------------------------------
-    */
-
-    /**
-     * {@inheritdoc}
-     */
-    public function logout() : void {
-        wp_logout();
-        $this->guard->clear_principal();
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * Ends every WordPress session of the current user, then signs this browser out.
-     */
-    public function logout_everywhere() : void {
-        \wp_destroy_all_sessions();
-        wp_logout();
-        $this->guard->clear_principal();
-    }
+	/**
+	 * @param Guard        $guard    The security guard.
+	 * @param UserAccounts $accounts Shared account operations.
+	 * @param Settings     $settings The settings API.
+	 */
+	public function __construct(
+		protected Guard $guard,
+		protected UserAccounts $accounts,
+		protected Settings $settings
+	) {}
+	/*
+	|------------------------------------------
+	| PROVIDER IDENTITY
+	|------------------------------------------
+	*/
+
+	/**
+	 * Get provider ID.
+	 *
+	 * @return string
+	 */
+	protected function issuer() : string {
+		/** @todo: Function does not exist, use contructor injection for settings API */
+
+		$inst_id = $this->settings->get( 'installation_uuid', false );
+
+		if ( empty( $inst_id ) ) {
+			$inst_id = \smliser_generate_uuid_v4();
+			$this->settings->set( 'installation_uuid', $inst_id );
+		}
+
+		return 'urn:smliser:wordpress:' . $inst_id;
+	}
+
+	/*
+	|------------------------------------------
+	| FEDERATION & SYNCHRONIZATION
+	|------------------------------------------
+	*/
+
+	/**
+	 * Get the resource owner this actor is associated with.
+	 * 
+	 * @return Owner|null
+	 */
+	protected function get_actor_owner() : ?Owner {
+		$session_token = wp_get_session_token();
+
+		if ( ! $session_token ) {
+			return null;
+		}
+
+		$transient_key = md5( $this->issuer() . '_' . $session_token );
+		$owner_id      = get_transient( $transient_key );
+
+		if ( $owner_id ) {
+			return Owner::get_by_id( (int) $owner_id );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Add a Wordpress user to Smart License Server using the federation feature.
+	 * 
+	 * @param int $wp_user_id The WordPress user ID.
+	 * @param int|User $user ID or an instance of @see `\SmartLicenseServer\Security\Actors\User`
+	 * @return bool
+	 */
+	protected function sync_user( int $wp_user_id, User|int $user ) : bool {
+		$user = is_int( $user ) ? User::get_by_id( $user ) : $user;
+
+		if ( ! $user ) {
+			return false;
+		}
+		
+		return $this->add( $user->get_id(), $this->issuer(), (string) $wp_user_id );
+	}
+
+	/**
+	 * Remove a WordPress user from Smart License Server.
+	 * 
+	 * This method is called when a WordPress user is deleted to keep the federation table clean.
+	 * 
+	 * @param int $wp_user_id The WordPress user ID.
+	 * @return void
+	 */
+	public function desync_user( int $wp_user_id ) : void {
+		$user = $this->find_actor( $this->issuer(), (string) $wp_user_id );
+		if ( $user ) {
+			$this->remove( $user->get_id() );
+
+			/** @disregard */
+			$user->set_status( User::STATUS_DELETE_SCHEDULED )->save();
+		}
+	}
+
+	/*
+	|------------------------------------------
+	| WORDPRESS USER MANAGEMENT
+	|------------------------------------------
+	*/
+
+	/**
+	 * Set the current WordPress user.
+	 * 
+	 * @param WP_User $wp_user
+	 * @param bool $remember
+	 * @return WP_User
+	 */
+	protected function set_current_user( WP_User $wp_user, bool $remember = false ) : WP_User {
+		wp_set_auth_cookie( $wp_user->ID, $remember );
+		wp_set_current_user( $wp_user->ID, $wp_user->user_login );
+		
+		do_action( 'wp_login', $wp_user->user_login, $wp_user );
+		
+		$this->authenticate();
+
+		return $wp_user;
+	}
+
+	/**
+	 * Create a WP_User.
+	 * 
+	 * @param array{
+	 *      email: string,
+	 *      password: string,
+	 *      username?: string,
+	 *      display_name?: string,
+	 *   
+	 * } $userdata
+	 * @return RequestException|WP_User
+	 */
+	private function create_wp_user( array $userdata ) : RequestException|WP_User {
+		$email        = $userdata['email'];
+		$pwd          = $userdata['password'];
+		$username     = $userdata['username'] ?? '';
+		$display_name = $userdata['display_name'] ?? '';
+
+		if ( \email_exists( $email ) ) {
+			return new RequestException( 'email_exists' );
+		}
+
+		$username = $username ?: sanitize_user( current( explode( '@', $email ) ), true );
+
+		if ( \username_exists( $username ) ) {
+			do {
+				$username .= \wp_generate_password( 4, false );
+			} while( \username_exists( $username ) );
+		}
+
+		$userdata = [
+			'user_login'   => $username,
+			'user_pass'    => $pwd,
+			'user_email'   => $email,
+			'display_name' => $display_name,
+		];
+
+		$wp_user_id = wp_insert_user( $userdata );
+
+		if ( $wp_user_id instanceof WP_Error ) {
+			return new RequestException(
+				$wp_user_id->get_error_code(),
+				$wp_user_id->get_error_message(),
+				['status' => 401 ]
+			);
+		}
+
+		$wp_user = get_user( $wp_user_id );
+
+		if ( ! $wp_user ) {
+			return new RequestException(
+				'user_not_created',
+				'Unable to create WordPress user, try again.'
+			);
+		}
+
+		return $wp_user;
+	}
+
+	/*
+	|------------------------------------------
+	| AUTO-PROVISIONING
+	|------------------------------------------
+	*/
+
+	/**
+	 * Automatically federate WordPress administrators into Smart License Server.
+	 * 
+	 * Silently fails on errors.
+	 *
+	 * @return void
+	 */
+	public function auto_provision() : void {
+		if ( ! \is_user_logged_in() || ! \is_super_admin() ) return;
+
+		if ( $this->guard->has_principal() ) return;
+
+		$wp_user    = wp_get_current_user();
+		$issuer     = $this->issuer();
+		$wp_user_id = $wp_user->ID;
+		$actor      = $this->find_actor( $issuer, (string) $wp_user_id );
+
+		if ( $actor ) return;
+
+		$email        = $wp_user->user_email;
+		$smliser_user = User::get_by_email( $email );
+
+		if ( $smliser_user ) {
+			$this->sync_user( $wp_user_id, $smliser_user );
+			return;
+		}
+
+		$user          = new User;
+		$password_hash = $this->accounts->hash_password( wp_generate_password() );
+		$user->set_display_name( $wp_user->display_name )
+			->set_password_hash( $password_hash )
+			->set_status( User::STATUS_ACTIVE )
+			->set_email( $email );
+
+		if ( ! $user->save() ) return;
+		
+		$default_role = DefaultRoles::get( 'system_admin' );
+		$caps         = $default_role['capabilities'];
+		$role_slug    = $default_role['slug'];
+		$role_label   = $default_role['label'];
+		
+		$role = Role::get_by_slug( $role_slug );
+
+		if ( ! $role ) {
+			$role = new Role();
+		}
+
+		$role->set_label( $role_label )
+			->set_slug( $role_slug )
+			->set_capabilities( $caps )
+			->set_is_canonical( $default_role['is_canonical'] );
+		try {
+			$owner = ContextServiceProvider::get_default_owner( $user );
+			if ( ! $owner ) {
+				$owner = new Owner;
+			}
+			
+			if ( ! $owner->exists() ) {
+				$owner->set_name( $user->get_display_name() )
+					->set_status( Owner::STATUS_ACTIVE )
+					->set_subject_id( $user->get_id() )
+					->set_type( Owner::TYPE_INDIVIDUAL );
+				$owner->save();
+			}
+			
+			$owner_subject = ContextServiceProvider::get_owner_subject( $owner );
+			ContextServiceProvider::save_actor_role( $user, $role, $owner_subject );
+			$this->sync_user( $wp_user_id, $user );
+
+		} catch ( \Throwable ) {
+		}
+	}
+
+	/*
+	|------------------------------------------
+	| AUTHENTICATION
+	|------------------------------------------
+	*/
+
+	/**
+	 * Authenticates and sets the principal.
+	 * 
+	 * @return Principal|null 
+	 */
+	public function authenticate() : ?Principal {
+		if ( ! is_user_logged_in() ) {
+			return null;
+		}
+
+		if ( $this->guard->has_principal() ) {
+			return $this->guard->get_principal();
+		}
+
+		if ( \wp_installing() ) return null;
+
+		$wp_user    = wp_get_current_user();
+		$issuer     = $this->issuer();
+		$wp_user_id = (string) $wp_user->ID;
+
+		$actor = $this->find_actor( $issuer, $wp_user_id );
+
+		if ( ! $actor ) {
+			return null;
+		}
+
+		// A suspended or disabled account loses access on its next request.
+		if ( $actor instanceof User && ! $actor->can_authenticate() ) {
+			return null;
+		}
+		
+		$owner = $this->get_actor_owner();
+		
+		if ( ! $owner || ! $owner->exists() ) {
+			$owner = ContextServiceProvider::get_default_owner( $actor );
+		}
+
+		$owner_subject = $owner ? ContextServiceProvider::get_owner_subject( $owner ) : null;
+		$role          = ContextServiceProvider::get_principal_role( $actor, $owner_subject );
+
+		if ( ! $role || ! $role->exists() ) {
+			return null;
+		}
+
+		$principal = new Principal( $actor, $role, $owner );
+
+		$this->guard->set_principal( $principal );
+
+		return $principal;
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ) : RequestException|Principal {
+		$login = $this->wp_user_logon( $email, $pwd, $remember );
+
+		if ( $login instanceof RequestException ) {
+			if ( 'invalid_user' !== $login->get_error_code() ) {
+				return $login;
+			}
+			
+			$login = $this->smliser_user_logon( $email, $pwd, $remember );
+
+			if ( $login instanceof RequestException ) {
+				
+				return $login;
+			}
+		}
+
+		if ( \is_user_logged_in() && ! $this->guard->has_principal() ) {
+			$current_user = \wp_get_current_user();
+			if ( ! User::email_exists( $current_user->user_email ) ) {
+				return new RequestException( 'authentication_error', 'Signup to access this portal.' );
+			}
+
+			return new RequestException( 'authentication_error', 'Please use the password reset option to recover your account.' );
+		}
+
+		$principal = $this->guard->get_principal();
+
+		if ( ! $principal ) {
+			return new RequestException( 'authentication_error', 'Login failed, contact us if you need further assistance.' );
+		}
+
+		return $principal;
+	}
+
+	/**
+	 * Logon a WP_User.
+	 * 
+	 * @param string $email
+	 * @param string $pwd
+	 * @param bool $remember
+	 * @return RequestException|WP_User
+	 */
+	public function wp_user_logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ) : RequestException|WP_User {
+		$wp_user = \wp_signon(
+			[
+				'user_login'    => $email,
+				'user_password' => $pwd,
+				'remember'      => $remember
+
+			],
+			true
+		);
+
+		if ( $wp_user instanceof WP_Error ) {
+			$code = $wp_user->get_error_code();
+
+			if ( 'invalid_email' === $code ) {
+				$code = 'invalid_user';
+			}
+
+			$message = \strip_tags( $wp_user->get_error_message() );
+
+			if ( 'incorrect_password' === $code ) {
+				$message = 'The password you entered is incorrect.';
+			}
+
+			return new RequestException( $code, $message );
+		}
+
+		return $this->set_current_user( $wp_user, $remember );
+	}
+
+	/**
+	 * Directly logon a \SmartLicenseServer\Security\Actors\User and auto federate.
+	 * 
+	 * @param string $email
+	 * @param string $pwd
+	 * @param bool $remember
+	 * @return RequestException|WP_User
+	 */
+	public function smliser_user_logon( string $email, #[\SensitiveParameter] string $pwd, bool $remember = false ) : RequestException|WP_User {
+		if ( ! User::email_exists( $email ) ) {
+			return new RequestException(
+				'invalid_user',
+				'Unknown email address.',
+				['status' => 401]
+			);
+		}
+
+		/** @var \SmartLicenseServer\Security\Actors\User $user */
+		$user = User::get_by_email( $email );
+
+		if ( ! password_verify( $pwd, $user->get_password_hash() ) ) {
+			return new RequestException( 'incorrect_password' );
+		}
+
+		if ( ! \email_exists( $user->get_email() ) ) {
+			$wp_user = $this->create_wp_user( [
+				'email'        => $email,
+				'password'     => $pwd,
+				'display_name' => $user->get_display_name()
+			] );
+
+			if ( $wp_user instanceof RequestException ) {
+				return $wp_user;
+			}
+
+		} else {
+			$wp_user = \get_user_by( 'email', $user->get_email() );
+
+			if ( ! $wp_user ) {
+				return new RequestException(
+					'invalid_user',
+					'Unknown email address.'
+				);
+			}
+		}
+
+		if ( ! $this->find_actor( $this->issuer(), (string) $wp_user->ID ) ) {
+			$this->sync_user( $wp_user->ID, $user );
+		}
+
+		return $this->set_current_user( $wp_user, $remember );
+	}
+
+	/*
+	|------------------------------------------
+	| SIGNUP & REGISTRATION
+	|------------------------------------------
+	*/
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function signup( Request $request ) : RequestException|Principal {
+		if ( $request->isEmpty( 'email' ) ) {
+			return new RequestException(
+				'required_param',
+				'Email is required.',
+				['status' => 400]
+			);
+		}
+
+		$email = $request->get( 'email' );
+
+		if ( ! filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
+			return new RequestException(
+				'invalid_email',
+				'The email address is invalid.',
+				['status' => 400]
+			);
+		}
+
+		if ( ! $this->accounts->acquire_signup_lock( $email ) ) {
+			return new RequestException(
+				'signup_locked',
+				'Too many signup attempts, please try again later.',
+				['status' => 429 ]
+			);
+		}
+
+		try {
+			$password_1 = (string) $request->get( 'password_1', '', false );
+			$problem    = $this->accounts->validate_password( $password_1, (string) $request->get( 'password_2', '', false ) );
+
+			if ( null !== $problem ) {
+				throw $problem;
+			}
+
+			$display_name = $request->get( 'full_name', '' );
+			$wp_user      = $this->create_wp_user( [
+				'email'        => $email,
+				'password'     => $password_1,
+				'display_name' => $display_name
+			] );
+
+			if ( $wp_user instanceof RequestException ) {
+				if ( \is_user_logged_in() ) {
+					$wp_user = \wp_get_current_user();
+				}
+			}
+
+			if ( $wp_user instanceof RequestException ) {
+				throw $wp_user;
+			}
+
+			$user = User::email_exists( $email )
+				? User::get_by_email( $email )
+				: $this->accounts->create_user( $email, $password_1, $display_name ?: $wp_user->display_name );
+
+			$this->accounts->assign_signup_role( $user, (string) $request->get( 'account_type', 'viewer' ) );
+
+			$this->sync_user( $wp_user->ID, $user );
+			$this->set_current_user( $wp_user, true );
+
+			if ( ! $this->guard->has_principal() ) {
+				throw new RequestException(
+					'authentication_error',
+					'Login failed, contact us if you need further assistance.'
+				);
+			}
+
+			return $this->guard->get_principal();
+
+		} catch( RequestException $e ) {
+			return $e;
+		} catch ( \Throwable ) {
+			return new RequestException(
+				'signup_error',
+				'An error occurred during signup, please try again.',
+				['status' => 500 ]
+			);
+		} finally {
+			$this->accounts->release_signup_lock( $email );
+		}
+	}
+
+	/*
+	|------------------------------------------
+	| PASSWORD MANAGEMENT
+	|------------------------------------------
+	*/
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function reset_password( User $user, #[\SensitiveParameter] string $new_pwd ) : bool {
+		$this->accounts->change_password( $user, $new_pwd );
+
+		$wp_user_id = $this->find_external_id( $this->issuer(), $user->get_id() );
+
+		if ( ! $wp_user_id && User::email_exists( $user->get_email() ) ) {
+			$wp_user    = \get_user_by( 'email', $user->get_email() );
+			$wp_user_id = $wp_user ? $wp_user->ID : null;
+		}
+
+		if ( $wp_user_id ) {
+			wp_set_password( $new_pwd, (int) $wp_user_id );
+
+			// Whoever held the old password may hold a session: end them all.
+			WP_Session_Tokens::get_instance( (int) $wp_user_id )->destroy_all();
+
+			$this->sync_user( (int) $wp_user_id, $user );
+		}
+
+		return true;
+	}
+
+	/*
+	|------------------------------------------
+	| LOGOUT
+	|------------------------------------------
+	*/
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public function logout() : void {
+		wp_logout();
+		$this->guard->clear_principal();
+	}
+
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Ends every WordPress session of the current user, then signs this browser out.
+	 */
+	public function logout_everywhere() : void {
+		\wp_destroy_all_sessions();
+		wp_logout();
+		$this->guard->clear_principal();
+	}
 }

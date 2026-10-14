@@ -43,548 +43,548 @@ sprintf;
  */
 
 class Owner extends DataStore {
-    use SanitizeAwareTrait;
-    public const TYPE_INDIVIDUAL    = 'individual';
-    public const TYPE_ORGANIZATION  = 'organization';
-    public const TYPE_PLATFORM      = 'platform';
-
-    public const STATUS_ACTIVE      = 'active';
-    public const STATUS_SUSPENDED   = 'suspended';
-    public const STATUS_DISABLED    = 'disabled';
-    /**
-     * The unique ID
-     * 
-     * @var int $id
-     */
-    protected int $id = 0;
-
-    /**
-     * The subject id.
-     * 
-     * @var int $subject_id The ID of the subject entity.
-     */
-    protected int $subject_id = 0;
-
-    /**
-     * The owner type.
-     * - an individual (personal ownership),
-     * - an organization (company / team),
-     * - or the platform itself (system-level ownership).
-     * 
-     * This property is a reflection of the subject entity type.
-     * 
-     * @var string $type
-     */
-    protected string $type = self::TYPE_PLATFORM;
-
-    /**
-     * Owner lifecycle status.
-     *
-     * Examples:
-     * - active
-     * - suspended
-     * - disabled
-     *
-     * @var string
-     */
-    protected string $status = self::STATUS_ACTIVE;
-
-    /**
-     * Human-readable display name.
-     *
-     * @var string
-     */
-    protected string $name = '';
-
-    /**
-     * Creation date
-     * 
-     * @var DateTimeImmutable $created_at
-     */
-    protected ?DateTimeImmutable $created_at = null;
-
-    /**
-     * Last updated
-     * 
-     * @var DateTimeImmutable $updated_at
-     */
-    protected ?DateTimeImmutable $updated_at = null;
-
-    /**
-     * Owned apps
-     * 
-     * @var AbstractHostedApp[] $apps
-     */
-    protected ?array $apps = null;
-
-    /**
-     * Class constructor
-     */
-    public function __construct() {}
-
-    /*
-    |-----------
-    | SETTERS
-    |-----------
-    */
-
-    /**
-     * Set ID
-     * @param int $id
-     * @return static
-     */
-    public function set_id( $id ) : static {
-        $this->id = static::sanitize_int( $id );
-
-        return $this;
-    }
-
-    /**
-     * Set the id of the of the subject entity.
-     * 
-     * @param int $id
-     * @return static
-     */
-    public function set_subject_id( $id ) : static {
-        $this->subject_id = static::sanitize_int( $id );
-
-        return $this;
-    }
-
-    /**
-     * Set owner type
-     * 
-     * @param string $type
-     * @return static
-     */
-    public function set_type( $type ) : static {
-        $type = static::sanitize_text( $type );
-        if ( ! in_array( $type, static::get_allowed_owner_types(), true ) ) {
-            return $this;
-        }
-
-        $this->type = $type;
-
-        return $this;
-    }
-
-    /**
-     * Set ownership status
-     * 
-     * @param string $status
-     * @return static
-     */
-    public function set_status( $status ) : static {
-        $status = static::sanitize_text( $status );
-
-        if ( ! in_array( $status, static::get_allowed_statuses(), true ) ) {
-            return $this;
-        }
-
-        $this->status = $status;
-        return $this;
-    }
-
-    /**
-     * Set owner name
-     * 
-     * @param string $name
-     * @return static
-     */
-    public function set_name( $name ) : static {
-        $this->name = static::sanitize_text( $name );
-        
-        return $this;
-    }
-
-    /**
-     * Set date created.
-     * 
-     * @param string|DateTimeImmutable $date
-     * @return static
-     */
-    public function set_created_at( $date ) : static {
-        if ( $date instanceof DateTimeImmutable ) {
-            $this->created_at = $date;
-            return $this;
-        }
-
-        if ( ! is_string( $date ) ){
-            return $this;
-        }
-
-        try {
-            $date   = new DateTimeImmutable( $date, new DateTimeZone( 'UTC' ) );
-        } catch ( DateMalformedStringException $e ) {
-            return $this;
-        }
-
-        $this->created_at = $date;
-
-        return $this;
-    }
-
-    /**
-     * Set update date.
-     * 
-     * @param string|DateTimeImmutable $date
-     * @return static
-     */
-    public function set_updated_at( $date ) : static {
-        if ( $date instanceof DateTimeImmutable ) {
-            $this->updated_at = $date;
-            return $this;
-        }
-
-        if ( ! is_string( $date ) ){
-            return $this;
-        }
-
-        try {
-            $date   = new DateTimeImmutable( $date, new DateTimeZone( 'UTC' ) );
-        } catch ( DateMalformedStringException $e ) {
-            return $this;
-        }
-
-        $this->updated_at = $date;
-
-        return $this;
-    }
-
-    /*
-    |-----------
-    | GETTERS
-    |-----------
-    */
-
-    /**
-     * Get owner ID.
-     * 
-     * @return int
-     */
-    public function get_id() : int {
-        return $this->id;
-    }
-
-    /**
-     * Get the subject entity ID
-     * 
-     * @return int
-     */
-    public function get_subject_id() : int {
-        return $this->subject_id;
-    }
-
-    /**
-     * Get type
-     * 
-     * @return string
-     */
-    public function get_type() : string {
-        return $this->type;
-    }
-
-    /**
-     * Get the ownership status
-     * 
-     * @return string
-     */
-    public function get_status() : string {
-        return $this->status;
-    }
-
-    /**
-     * Get owner name.
-     * 
-     * @return string
-     */
-    public function get_name() : string {
-        return $this->name;
-    }
-
-    /**
-     * Get date created
-     * 
-     * @return DateTimeImmutable
-     */
-    public function get_created_at() : ?DateTimeImmutable {
-        return $this->created_at;
-    }
-
-    /**
-     * Get date created
-     * 
-     * @return DateTimeImmutable
-     */
-    public function get_updated_at() : ?DateTimeImmutable {
-        return $this->updated_at;
-    }
-
-    /*
-    |--------------
-    | CRUD METHODS
-    |--------------
-    */
-
-    /**
-     * Get hosted apps.
-     * 
-     * @param array{page?: int, limit?: int, status?: string, types?: string[]} $args
-     * 
-     * @return AbstractHostedApp[]
-     */
-    public function get_apps( $args = [] ) : array {
-        if ( ! $this->id ) {
-            return [];
-        }
-        // Lazy loaded.
-        if (  null !== $this->apps ) {
-            return $this->apps;
-        }
-
-        $this->apps = HostedApplicationService::get_apps_for_owner( $this->get_id(), $args );
-
-        return $this->apps;
-    }
-
-    /**
-     * Save app to the database.
-     * 
-     * @return bool
-     * @throws DatabaseException Sensitive database error, caller must handle accordingly.
-     */
-    public function save() : bool {
-        return (bool) static::$DB->transactional( function( Database $db ) {
-            $table  = TableName::RESOURCE_OWNERS->table();
-            $now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
-
-            $data   = [
-                'subject_id'    => $this->get_subject_id(),
-                'name'          => $this->get_name(),
-                'type'          => $this->get_type(),
-                'status'        => $this->get_status(),
-                'updated_at'    => $now->format( 'Y-m-d H:i:s' )
-            ];
-
-            $lock_sql = static::query()
-                ->select( 'id' )->from( $table )
-                ->where( 'subject_id', '=', $this->get_subject_id() )
-                ->where( 'type', '=', $this->get_type() )
-                ->limit(1)->lock_for_update();
-            $id = (int) static::$DB->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
-
-            if ( $id ) {
-                unset( $data['subject_id'], $data['type'] );
-                $result = $db->update( $table, $data, ['id' => $this->get_id()] );
-
-                $result && $this->set_updated_at( $now );
-            } else {
-                $subject_exists = static::get_by_subject( $data['subject_id'], $data['type'] );
-
-                if ( $subject_exists ) {
-                    throw new DatabaseException( 'duplicate_entry', sprintf( 'This %s is already a resource owner.', $data['type'] ) );
-                }
-
-                $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
-                $result = $db->insert( $table, $data );
-
-                $result && 
-                    $this->set_id( $db->get_insert_id() )
-                    ->set_created_at( $now )
-                    ->set_updated_at( $now );
-            }
-
-            if ( false === $result ) {
-                $code = $this->id ? 'update_failed' : 'insert_failed';
-                throw new DatabaseException( $code, $db->get_last_error() ) ;
-            }
-
-            return true;            
-        });
-
-    }
-
-    /**
-     * Get by id
-     * 
-     * @param int $id
-     * @return static
-     */
-    public static function get_by_id( int $id ) : ?static {
-        static $owners = [];
-
-        if ( ! array_key_exists( $id, $owners ) ) {
-            $data           = static::fetch_by( 'id', $id, TableName::RESOURCE_OWNERS->table() );
-            $owners[ $id ]  = $data ? static::from_array( $data ) : null;
-        }
-
-        return $owners[ $id ];
-    }
-
-    /**
-     * Get a resource Owner object using the subject properties.
-     * 
-     * @param int $subject_id The subject ID.
-     * @param string $owner_type    The owner type.
-     * @return static|null
-     */
-    public static function get_by_subject( int $subject_id, string $owner_type ) : ?static {
-        static $owners = [];
-
-        $key    = "$subject_id:$owner_type";
-
-        if ( ! array_key_exists( $key, $owners ) ) {
-            $table  = TableName::RESOURCE_OWNERS->table();
-            $sql    = static::query()
-                ->select( '*' )->from( $table )
-                ->where( 'subject_id', '=', $subject_id )
-                ->where( 'type', '=', $owner_type )
-                ->limit(1);
-
-            $result = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
-
-            $owner  = $result ? static::from_array( $result ) : null;
-            $owners[ $key ] = $owner;
-        }
-
-        return $owners[ $key ];
-    }
-
-    /**
-     * Get all owners
-     * 
-     * @param int $page The current pagination number.
-     * @param int $limit The number of results per page.
-     * @return static[]
-     */
-    public static function get_all( int $page = 1, $limit = 25 ) : array {
-        return array_map(
-            [static::class, 'from_array'],
-            static::fetch( TableName::RESOURCE_OWNERS->table(), $page, $limit )
-        );
-    }
-
-    /**
-     * Count total records of owners by status
-     * 
-     * @param string $status
-     * @return int
-     */
-    public static function count_status( $status ) : int {
-        $status             = static::sanitize_text( $status );
-        static $statuses    = [];
-
-        if ( ! array_key_exists( $status, $statuses ) ) {
-            $table  = TableName::RESOURCE_OWNERS->table();
-
-            $sql    = static::query()
-                ->select( 'COUNT(*)' )->from( $table )
-                ->where( 'status', '=', $status );
-
-            $total  = static::$DB->get_var( $sql->build(), $sql->get_bindings() );
-
-            $statuses[$status]  = (int) $total;
-        }
-
-        return $statuses[$status];
-    }
-
-    /*
-    |-------------------
-    | UTITLITY METHODS
-    |-------------------
-    */
-
-    /**
-     * Hydrate from array
-     * 
-     * @param array $data
-     * @return static
-     */
-    public static function from_array( array $data ) : static {
-        return static::from_array_helper( TableName::RESOURCE_OWNERS->table(), $data );
-    }
-
-    /**
-     * Convert to array
-     * 
-     * @return array
-     */
-    public function to_array() : array {
-        $data   = get_object_vars( $this );
-        
-        $data   = ['type' => $this->get_type()] + $data;
-
-        return $data;
-    }
-
-    /**
-     * Get allowed owner types
-     * 
-     * @return ('individual'|'organization'|'platform')[]
-     */
-    public static function get_allowed_owner_types() : array {
-        return [static::TYPE_INDIVIDUAL, static::TYPE_ORGANIZATION, static::TYPE_PLATFORM];
-    }
-
-    /**
-     * Get allowed owner statuses
-     *
-     * @return array
-     */
-    public static function get_allowed_statuses() : array {
-        return [ static::STATUS_ACTIVE, static::STATUS_SUSPENDED, static::STATUS_DISABLED ];
-    }
-
-    /*
-    |--------------------
-    | CONDITIONAL METHODS
-    |--------------------
-    */
-
-    /**
-     * Tells whether this owner exists.
-     * 
-     * @return bool True when the owner exists, false otherwise.
-     */
-    public function exists() : bool {
-        return $this->id > 0;
-    }
-
-    /**
-     * Tells whether owner is individual.
-     * 
-     * @return bool
-     */
-    public function is_individual() : bool {
-        return $this->get_type() === static::TYPE_INDIVIDUAL;
-    }
-
-    /**
-     * Tells whether owner is organization.
-     * 
-     * @return bool
-     */
-    public function is_organization() : bool {
-        return $this->get_type() === static::TYPE_ORGANIZATION;
-    }
-
-    /**
-     * Tells whether owner is platform.
-     * 
-     * @return bool
-     */
-    public function is_platform() : bool {
-        return $this->get_type() === static::TYPE_PLATFORM;
-    }
-
-    /**
-     * Tells whether this app is owned by this owner.
-     * 
-     * @param AbstractHostedApp $app
-     * @return bool
-     */
-    public function owns_app( AbstractHostedApp $app ) : bool {
-        return $app->get_owner_id() === $this->get_id();
-    }
+	use SanitizeAwareTrait;
+	public const TYPE_INDIVIDUAL   = 'individual';
+	public const TYPE_ORGANIZATION = 'organization';
+	public const TYPE_PLATFORM     = 'platform';
+
+	public const STATUS_ACTIVE    = 'active';
+	public const STATUS_SUSPENDED = 'suspended';
+	public const STATUS_DISABLED  = 'disabled';
+	/**
+	 * The unique ID
+	 * 
+	 * @var int $id
+	 */
+	protected int $id = 0;
+
+	/**
+	 * The subject id.
+	 * 
+	 * @var int $subject_id The ID of the subject entity.
+	 */
+	protected int $subject_id = 0;
+
+	/**
+	 * The owner type.
+	 * - an individual (personal ownership),
+	 * - an organization (company / team),
+	 * - or the platform itself (system-level ownership).
+	 * 
+	 * This property is a reflection of the subject entity type.
+	 * 
+	 * @var string $type
+	 */
+	protected string $type = self::TYPE_PLATFORM;
+
+	/**
+	 * Owner lifecycle status.
+	 *
+	 * Examples:
+	 * - active
+	 * - suspended
+	 * - disabled
+	 *
+	 * @var string
+	 */
+	protected string $status = self::STATUS_ACTIVE;
+
+	/**
+	 * Human-readable display name.
+	 *
+	 * @var string
+	 */
+	protected string $name = '';
+
+	/**
+	 * Creation date
+	 * 
+	 * @var DateTimeImmutable $created_at
+	 */
+	protected ?DateTimeImmutable $created_at = null;
+
+	/**
+	 * Last updated
+	 * 
+	 * @var DateTimeImmutable $updated_at
+	 */
+	protected ?DateTimeImmutable $updated_at = null;
+
+	/**
+	 * Owned apps
+	 * 
+	 * @var AbstractHostedApp[] $apps
+	 */
+	protected ?array $apps = null;
+
+	/**
+	 * Class constructor
+	 */
+	public function __construct() {}
+
+	/*
+	|-----------
+	| SETTERS
+	|-----------
+	*/
+
+	/**
+	 * Set ID
+	 * @param int $id
+	 * @return static
+	 */
+	public function set_id( $id ) : static {
+		$this->id = static::sanitize_int( $id );
+
+		return $this;
+	}
+
+	/**
+	 * Set the id of the of the subject entity.
+	 * 
+	 * @param int $id
+	 * @return static
+	 */
+	public function set_subject_id( $id ) : static {
+		$this->subject_id = static::sanitize_int( $id );
+
+		return $this;
+	}
+
+	/**
+	 * Set owner type
+	 * 
+	 * @param string $type
+	 * @return static
+	 */
+	public function set_type( $type ) : static {
+		$type = static::sanitize_text( $type );
+		if ( ! in_array( $type, static::get_allowed_owner_types(), true ) ) {
+			return $this;
+		}
+
+		$this->type = $type;
+
+		return $this;
+	}
+
+	/**
+	 * Set ownership status
+	 * 
+	 * @param string $status
+	 * @return static
+	 */
+	public function set_status( $status ) : static {
+		$status = static::sanitize_text( $status );
+
+		if ( ! in_array( $status, static::get_allowed_statuses(), true ) ) {
+			return $this;
+		}
+
+		$this->status = $status;
+		return $this;
+	}
+
+	/**
+	 * Set owner name
+	 * 
+	 * @param string $name
+	 * @return static
+	 */
+	public function set_name( $name ) : static {
+		$this->name = static::sanitize_text( $name );
+		
+		return $this;
+	}
+
+	/**
+	 * Set date created.
+	 * 
+	 * @param string|DateTimeImmutable $date
+	 * @return static
+	 */
+	public function set_created_at( $date ) : static {
+		if ( $date instanceof DateTimeImmutable ) {
+			$this->created_at = $date;
+			return $this;
+		}
+
+		if ( ! is_string( $date ) ) {
+			return $this;
+		}
+
+		try {
+			$date = new DateTimeImmutable( $date, new DateTimeZone( 'UTC' ) );
+		} catch ( DateMalformedStringException $e ) {
+			return $this;
+		}
+
+		$this->created_at = $date;
+
+		return $this;
+	}
+
+	/**
+	 * Set update date.
+	 * 
+	 * @param string|DateTimeImmutable $date
+	 * @return static
+	 */
+	public function set_updated_at( $date ) : static {
+		if ( $date instanceof DateTimeImmutable ) {
+			$this->updated_at = $date;
+			return $this;
+		}
+
+		if ( ! is_string( $date ) ) {
+			return $this;
+		}
+
+		try {
+			$date = new DateTimeImmutable( $date, new DateTimeZone( 'UTC' ) );
+		} catch ( DateMalformedStringException $e ) {
+			return $this;
+		}
+
+		$this->updated_at = $date;
+
+		return $this;
+	}
+
+	/*
+	|-----------
+	| GETTERS
+	|-----------
+	*/
+
+	/**
+	 * Get owner ID.
+	 * 
+	 * @return int
+	 */
+	public function get_id() : int {
+		return $this->id;
+	}
+
+	/**
+	 * Get the subject entity ID
+	 * 
+	 * @return int
+	 */
+	public function get_subject_id() : int {
+		return $this->subject_id;
+	}
+
+	/**
+	 * Get type
+	 * 
+	 * @return string
+	 */
+	public function get_type() : string {
+		return $this->type;
+	}
+
+	/**
+	 * Get the ownership status
+	 * 
+	 * @return string
+	 */
+	public function get_status() : string {
+		return $this->status;
+	}
+
+	/**
+	 * Get owner name.
+	 * 
+	 * @return string
+	 */
+	public function get_name() : string {
+		return $this->name;
+	}
+
+	/**
+	 * Get date created
+	 * 
+	 * @return DateTimeImmutable
+	 */
+	public function get_created_at() : ?DateTimeImmutable {
+		return $this->created_at;
+	}
+
+	/**
+	 * Get date created
+	 * 
+	 * @return DateTimeImmutable
+	 */
+	public function get_updated_at() : ?DateTimeImmutable {
+		return $this->updated_at;
+	}
+
+	/*
+	|--------------
+	| CRUD METHODS
+	|--------------
+	*/
+
+	/**
+	 * Get hosted apps.
+	 * 
+	 * @param array{page?: int, limit?: int, status?: string, types?: string[]} $args
+	 * 
+	 * @return AbstractHostedApp[]
+	 */
+	public function get_apps( $args = [] ) : array {
+		if ( ! $this->id ) {
+			return [];
+		}
+		// Lazy loaded.
+		if ( null !== $this->apps ) {
+			return $this->apps;
+		}
+
+		$this->apps = HostedApplicationService::get_apps_for_owner( $this->get_id(), $args );
+
+		return $this->apps;
+	}
+
+	/**
+	 * Save app to the database.
+	 * 
+	 * @return bool
+	 * @throws DatabaseException Sensitive database error, caller must handle accordingly.
+	 */
+	public function save() : bool {
+		return (bool) static::$DB->transactional( function( Database $db ) {
+			$table = TableName::RESOURCE_OWNERS->table();
+			$now   = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+
+			$data = [
+				'subject_id' => $this->get_subject_id(),
+				'name'       => $this->get_name(),
+				'type'       => $this->get_type(),
+				'status'     => $this->get_status(),
+				'updated_at' => $now->format( 'Y-m-d H:i:s' )
+			];
+
+			$lock_sql = static::query()
+				->select( 'id' )->from( $table )
+				->where( 'subject_id', '=', $this->get_subject_id() )
+				->where( 'type', '=', $this->get_type() )
+				->limit( 1 )->lock_for_update();
+			$id = (int) static::$DB->get_var( $lock_sql->build(), $lock_sql->get_bindings() );
+
+			if ( $id ) {
+				unset( $data['subject_id'], $data['type'] );
+				$result = $db->update( $table, $data, ['id' => $this->get_id()] );
+
+				$result && $this->set_updated_at( $now );
+			} else {
+				$subject_exists = static::get_by_subject( $data['subject_id'], $data['type'] );
+
+				if ( $subject_exists ) {
+					throw new DatabaseException( 'duplicate_entry', sprintf( 'This %s is already a resource owner.', $data['type'] ) );
+				}
+
+				$data['created_at'] = $now->format( 'Y-m-d H:i:s' );
+				$result             = $db->insert( $table, $data );
+
+				$result &&
+					$this->set_id( $db->get_insert_id() )
+					->set_created_at( $now )
+					->set_updated_at( $now );
+			}
+
+			if ( false === $result ) {
+				$code = $this->id ? 'update_failed' : 'insert_failed';
+				throw new DatabaseException( $code, $db->get_last_error() ) ;
+			}
+
+			return true;
+		} );
+
+	}
+
+	/**
+	 * Get by id
+	 * 
+	 * @param int $id
+	 * @return static
+	 */
+	public static function get_by_id( int $id ) : ?static {
+		static $owners = [];
+
+		if ( ! array_key_exists( $id, $owners ) ) {
+			$data          = static::fetch_by( 'id', $id, TableName::RESOURCE_OWNERS->table() );
+			$owners[ $id ] = $data ? static::from_array( $data ) : null;
+		}
+
+		return $owners[ $id ];
+	}
+
+	/**
+	 * Get a resource Owner object using the subject properties.
+	 * 
+	 * @param int $subject_id The subject ID.
+	 * @param string $owner_type    The owner type.
+	 * @return static|null
+	 */
+	public static function get_by_subject( int $subject_id, string $owner_type ) : ?static {
+		static $owners = [];
+
+		$key = "$subject_id:$owner_type";
+
+		if ( ! array_key_exists( $key, $owners ) ) {
+			$table = TableName::RESOURCE_OWNERS->table();
+			$sql   = static::query()
+				->select( '*' )->from( $table )
+				->where( 'subject_id', '=', $subject_id )
+				->where( 'type', '=', $owner_type )
+				->limit( 1 );
+
+			$result = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
+
+			$owner          = $result ? static::from_array( $result ) : null;
+			$owners[ $key ] = $owner;
+		}
+
+		return $owners[ $key ];
+	}
+
+	/**
+	 * Get all owners
+	 * 
+	 * @param int $page The current pagination number.
+	 * @param int $limit The number of results per page.
+	 * @return static[]
+	 */
+	public static function get_all( int $page = 1, $limit = 25 ) : array {
+		return array_map(
+			[static::class, 'from_array'],
+			static::fetch( TableName::RESOURCE_OWNERS->table(), $page, $limit )
+		);
+	}
+
+	/**
+	 * Count total records of owners by status
+	 * 
+	 * @param string $status
+	 * @return int
+	 */
+	public static function count_status( $status ) : int {
+		$status          = static::sanitize_text( $status );
+		static $statuses = [];
+
+		if ( ! array_key_exists( $status, $statuses ) ) {
+			$table = TableName::RESOURCE_OWNERS->table();
+
+			$sql = static::query()
+				->select( 'COUNT(*)' )->from( $table )
+				->where( 'status', '=', $status );
+
+			$total = static::$DB->get_var( $sql->build(), $sql->get_bindings() );
+
+			$statuses[$status] = (int) $total;
+		}
+
+		return $statuses[$status];
+	}
+
+	/*
+	|-------------------
+	| UTITLITY METHODS
+	|-------------------
+	*/
+
+	/**
+	 * Hydrate from array
+	 * 
+	 * @param array $data
+	 * @return static
+	 */
+	public static function from_array( array $data ) : static {
+		return static::from_array_helper( TableName::RESOURCE_OWNERS->table(), $data );
+	}
+
+	/**
+	 * Convert to array
+	 * 
+	 * @return array
+	 */
+	public function to_array() : array {
+		$data = get_object_vars( $this );
+		
+		$data = ['type' => $this->get_type()] + $data;
+
+		return $data;
+	}
+
+	/**
+	 * Get allowed owner types
+	 * 
+	 * @return ('individual'|'organization'|'platform')[]
+	 */
+	public static function get_allowed_owner_types() : array {
+		return [static::TYPE_INDIVIDUAL, static::TYPE_ORGANIZATION, static::TYPE_PLATFORM];
+	}
+
+	/**
+	 * Get allowed owner statuses
+	 *
+	 * @return array
+	 */
+	public static function get_allowed_statuses() : array {
+		return [ static::STATUS_ACTIVE, static::STATUS_SUSPENDED, static::STATUS_DISABLED ];
+	}
+
+	/*
+	|--------------------
+	| CONDITIONAL METHODS
+	|--------------------
+	*/
+
+	/**
+	 * Tells whether this owner exists.
+	 * 
+	 * @return bool True when the owner exists, false otherwise.
+	 */
+	public function exists() : bool {
+		return $this->id > 0;
+	}
+
+	/**
+	 * Tells whether owner is individual.
+	 * 
+	 * @return bool
+	 */
+	public function is_individual() : bool {
+		return $this->get_type() === static::TYPE_INDIVIDUAL;
+	}
+
+	/**
+	 * Tells whether owner is organization.
+	 * 
+	 * @return bool
+	 */
+	public function is_organization() : bool {
+		return $this->get_type() === static::TYPE_ORGANIZATION;
+	}
+
+	/**
+	 * Tells whether owner is platform.
+	 * 
+	 * @return bool
+	 */
+	public function is_platform() : bool {
+		return $this->get_type() === static::TYPE_PLATFORM;
+	}
+
+	/**
+	 * Tells whether this app is owned by this owner.
+	 * 
+	 * @param AbstractHostedApp $app
+	 * @return bool
+	 */
+	public function owns_app( AbstractHostedApp $app ) : bool {
+		return $app->get_owner_id() === $this->get_id();
+	}
 }

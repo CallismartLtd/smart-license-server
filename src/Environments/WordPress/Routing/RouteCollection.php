@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Environments\WordPress\Routing
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\WordPress\Routing;
 
@@ -25,18 +25,18 @@ final class RouteCollection {
 	/** @var Route[] */
 	private array $routes = [];
 
-	public function add( Route $route ): void {
+	public function add( Route $route ) : void {
 		$this->routes[] = $route;
 	}
 
 	/**
 	 * @return Route[]
 	 */
-	public function all(): array {
+	public function all() : array {
 		return $this->routes;
 	}
 
-	public function find( string $name ): ?Route {
+	public function find( string $name ) : ?Route {
 		foreach ( $this->routes as $route ) {
 			if ( $route->getName() === $name ) {
 				return $route;

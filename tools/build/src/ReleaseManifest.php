@@ -57,10 +57,10 @@ final class ReleaseManifest {
 	 * @return void
 	 * @throws BuildException When a file cannot be read or the manifest cannot be written.
 	 */
-	public function write( AbstractTarget $target, int $time ): void {
+	public function write( AbstractTarget $target, int $time ) : void {
 		$this->console->step( 'Writing release manifest' );
 
-		$files = array();
+		$files = [];
 
 		foreach ( self::files( $this->context->out_dir ) as $relative ) {
 			if ( self::FILE === $relative ) {
@@ -77,17 +77,17 @@ final class ReleaseManifest {
 		}
 
 		$project  = $this->context->project;
-		$manifest = array(
+		$manifest = [
 			'name'     => $project->name,
 			'version'  => $project->version,
 			'target'   => $target->name(),
 			'built_at' => gmdate( 'Y-m-d\TH:i:s\Z', $time ),
-			'requires' => array(
+			'requires' => [
 				'php'        => $project->php,
 				'extensions' => $project->extensions,
-			),
-			'files'    => $files,
-		);
+			],
+			'files' => $files,
+		];
 
 		$json = json_encode( $manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR ) . "\n";
 
@@ -104,8 +104,8 @@ final class ReleaseManifest {
 	 * @param string $dir Directory.
 	 * @return string[] Relative paths with forward slashes.
 	 */
-	public static function files( string $dir ): array {
-		$files    = array();
+	public static function files( string $dir ) : array {
+		$files    = [];
 		$iterator = new \RecursiveIteratorIterator(
 			new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS )
 		);

@@ -26,419 +26,419 @@ use SmartLicenseServer\Security\Context\Guard;
  */
 class HostedApps extends DataStore {
 
-    public function __construct(
-        protected Guard $guard,
-        protected HostingController $hosting,
-        protected MonetizationRegistry $monetization,
-        protected AppsAnalytics $apps_analytics
-    ) {}
-
-    /**
-     * Guards the repository route against HTTP `Non-Safe Methods`.
-     *
-     * @param Request $request The current request object.
-     * @return bool
-     */
-    public function repository_get_guard( Request $request ) : bool|RequestException {
-        if ( $request->is_method( 'GET' ) ) {
-            return true;
-        }
-
-        // 405 errror.
-        return new RequestException( 'method_not_allowed' );
-    }
-
-    /**
-     * Guard against GET methods and safely check permissions on HTTP `Non-Safe Methods`.
-     * 
-     * @param Request $request The request object.
-     * @return bool|RequestException
-     */
-    public function repository_unsafe_method_guard( Request $request ) : bool|RequestException {
-        if ( $request->is_method( 'GET' ) ) {
-            // Edge-case 405 error.
-            return new RequestException( 'method_not_allowed' );
-        }
-
-        $actor  = $this->guard->get_principal();
-
-        if ( ! $actor ) {
-            // Actor is not authenticated, return 401 response code.
-            return new RequestException( 'missing_auth' );
-        }
-
-        $content_type   = strtolower( $request->contentType() );
-
-        if ( ! \str_contains( $content_type, 'multipart/form-data' ) && ! $request->isDelete() ) {
-            return new RequestException( 'requires_multipart_form_data' );
-        }
-
-        $has_permission = match( $request->method() ) {
-            'POST'          => $actor->can( 'hosted_apps.create' ),
-            'DELETE'        => $actor->can( 'hosted_apps.delete' ),
-            'PUT', 'PATCH'  => $actor->can( 'hosted_apps.update' ),
-            default         => false,
-        };
-
-        // Allow or deny with 403 response code.
-        return $has_permission ?: new RequestException( 'unauthorized_scope' );
-    }
-
-    /**
-     * Repository REST API handler.
-     *
-     * @param Request $request The current request object.
-     * @return Response
-     */
-    public function repository_response( Request $request ) : Response {
-        $search = $request->get( 'search' );
-        $page   = $request->get( 'page' ) ?? 1;
-        $limit  = $request->get( 'limit' ) ?? 25;
-        $status = $request->get( 'status' ) ?: AbstractHostedApp::STATUS_ACTIVE;
-        $types  = $request->get( 'types' ) ?: array( 'plugin','theme','software' );
-
-        $args   = $search ? array(
-            'term'   => $search,
-            'page'   => $page,
-            'limit'  => $limit,
-            'status' => $status,
-            'types'  => (array) $types,
-        ): array(
-            'page'   => $page,
-            'limit'  => $limit,
-            'status' => $status,
-            'types'  => (array) $types,
-        );
-
-        $cache_key  = static::make_cache_key( __METHOD__, $args );
-        $data       = static::cache_get( $cache_key );
-
-        if ( false === $data ) {
-            // Query repository.
-            $results = $search ? HostedApplicationService::search_apps( $args ) : HostedApplicationService::get_apps( $args );
-            
-            if ( ! empty( $results['items'] ) ) {
-                foreach ( $results['items'] as &$app ) {                    
-                    $app    = $app->get_rest_response();
-                }
-            }
-
-            $data = array(
-                'success'       => true,
-                'apps'          => $results['items'],
-                'pagination'    => $results['pagination'],
-            );
-
-            static::cache_set( $cache_key, $data, static::default_ttl() );
-        }
-
-        return Response::json( $data, 200 );
-    }
-
-    /**
-     * Responds to HTTP GET request method on the single app route.
-     * This method responds to /repostory/{app-type}/{app-slug}/ 
-     * path of the our REST API namespace 
-     * 
-     * @param Request $request The REST API request object.
-     */
-    public function single_app_get( Request $request ) : RequestException|Response {
-        $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
-        $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
-
-        $cache_key  = static::make_cache_key( __METHOD__, [$app_type, $app_slug] );
-
-        /** @var \SmartLicenseServer\Exceptions\RequestException|false|array $data */
-        $data    = static::cache_get( $cache_key );
-
-        if ( false === $data ) {
-            $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( ! $app ) {
-                $data    = new RequestException( 'app_not_found', __( 'The requested app could not be found', 'smliser' ), ['status' => 404] );
-            } else {
-                $this->apps_analytics->log_client_access(
-                    $app,
-                    \sprintf( '%s_info', $app->get_type() ),
-                    $request->ip(),
-                    (string) $request->userAgent()
-                );
-
-                $data    = [
-                    'success'           => true,
-                    $app->get_type()    => $app->get_rest_response()
-                ];
-            }
-
-            static::cache_set( $cache_key, $data, static::default_ttl() );
-            
-        }
-
-        if ( $data instanceof RequestException ) {
-            return $data;
-        }
-        
-        return Response::json( $data, 200 );
-    }
-
-    /**
-     * Responds to HTTP POST request on single app route.
-     * 
-     * @param Request $request The request object
-     * @return Response
-     */
-    public function create_app( Request $request ) : Response {
-        try {
-            $response = $this->hosting->save_app( $request );
-
-            if ( $response->ok() ) {
-                $resource_location  = $request->path();
-
-                $response->set_header( 'Location', $resource_location );
-                $response->set_status_code( 201 );
-
-                /** @var HostedAppsInterface $app */
-                $app            = $response->get_request()->get( 'smliser_resource' );
-                $response_body  = $app->get_rest_response();
-                
-                $response->set_body( $response_body );
-
-                static::cache_clear();
-            }
-            
-            return $response;
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-
-    }
-
-    /**
-     * Responds to HTTP PATCH and PUT request on single app route.
-     * 
-     * @param Request $request The request object.
-     * @return Response
-     */
-    public function update_app( Request $request ) : Response {
-        try {
-            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
-            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
-
-            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( ! $app_exists ) {
-                if ( $request->isPut() ) {
-                    return static::create_app( $request );
-                }
-
-                throw new RequestException( 'app_not_found' );
-            }
-
-            $request->set( 'app_slug', $app_slug )
-            ->set( 'app_type', $app_type );
-
-            $response = $this->hosting->save_app( $request );
-
-            if ( $response->ok() ) {
-                $response->remove_header( 'Location' );
-                $response->set_status_code( 204 );
-                
-                $response->set_body( '' );
-                static::cache_clear();
-            }
-
-            return $response;
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Responds to HTTP DELETE request to delete a hosted application.
-     * 
-     * @param Request $request The request object.
-     * @return Response
-     */
-    public function delete_app( Request $request ) : Response {
-        try {
-            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
-            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
-
-            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( ! $app_exists ) {
-                throw new RequestException( 'app_not_found' );
-            }
-
-            $request->set( 'app_slug', $app_slug )
-                    ->set( 'app_type', $app_type )
-                    ->set( 'app_status', AbstractHostedApp::STATUS_TRASH );
-
-            $response   = $this->hosting->change_app_status( $request );
-
-            if ( $response->ok() ) {
-                $response->set_status_code( 204 )         
-                ->set_body( '' );
-                
-                static::cache_clear();
-            }
-
-            return $response;
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Guards asset upload for an application.
-     * 
-     * @param Request $request The request object.
-     * @return RequestException|bool
-     */
-    public function assets_management_guard( Request $request ) : RequestException|bool {
-        if ( $request->is_method( 'GET' ) ) {
-            // Edge-case 405 error.
-            return new RequestException( 'method_not_allowed' );
-        }
-
-        $actor  = $this->guard->get_principal();
-
-        if ( ! $actor ) {
-            // Actor is not authenticated, return 401 response code.
-            return new RequestException( 'missing_auth' );
-        }
-
-        $content_type   = strtolower( $request->contentType() );
-
-        if ( ! \str_contains( $content_type, 'multipart/form-data' ) && ! $request->isDelete() ) {
-            return new RequestException( 'requires_multipart_form_data' );
-        }
-
-        $has_permission = match( $request->method() ) {
-            'POST'      => $actor->can( 'hosted_apps.upload_assets' ),
-            'DELETE'    => $actor->can( 'hosted_apps.delete_assets' ),
-            'PUT',      => $actor->can( 'hosted_apps.edit_assets' ),
-            default     => false,
-        };
-
-        // Allow or deny with 403 response code.
-        return $has_permission ?: new RequestException( 'unauthorized_scope' );
-    }
-
-    /**
-     * Responds to HTTP POST request to upload app assets.
-     * 
-     * @param Request $request The request object.
-     * @return Response
-     */
-    public function upload_app_assets( Request $request ) : Response {
-        try {
-            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
-            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
-
-            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( ! $app_exists ) {
-                throw new RequestException( 'app_not_found' );
-            }
-
-            $response   = $this->hosting->app_asset_upload( $request );
-
-            return $response;     
-        } catch( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Responds to HTTP PUT request to edit an app asset.
-     * 
-     * @param Request $request The request object.
-     * @return Response
-     */
-    public function update_app_asset( Request $request ) : Response {
-        try {
-            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
-            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
-            $asset_name = $request->get( 'asset_name' );
-
-            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( ! $app_exists ) {
-                throw new RequestException( 'app_not_found' );
-            }
-
-            static::force_single_file_upload( $request, 'asset_file' )
-                ->set_new_name( $asset_name );
-
-            $response   = $this->hosting->app_asset_upload( $request );
-
-            return $response;     
-        } catch( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Responds to HTTP DELETE request to delete an app asset.
-     * 
-     * @param Request $request The request object.
-     * @return Response
-     */
-    public function delete_app_asset( Request $request ) : Response {
-        try {
-            $app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
-            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
-
-            $app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( ! $app_exists ) {
-                throw new RequestException( 'app_not_found' );
-            }
-
-            $response   = $this->hosting->app_asset_delete( $request );
-
-            if ( $response->ok() ) {
-                $response->set_status_code( 204 );
-                $response->set_body( '' );
-            }
-
-            return $response;     
-        } catch( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Force single application asset upload.
-     * 
-     * @param Request $request The request object.
-     * @param string $file_key  The file key.
-     * @throws RequestException On success to abort request.
-     * @return UploadedFile
-     */
-    private function force_single_file_upload( Request $request, string $file_key ) : UploadedFile {
-        $files   = $request->get_files( $file_key );
-        
-        $total      = $files?->count() ?? 0;
-        $error_map  = match ( true ) {
-            $total < 1  => ['required_file', 'Please upload {app_type} asset file.'],
-            $total > 1  => ['payload_too_large', 'Sorry, a maximum of 1 file is required when updating a {app_type} asset.'],
-            default     => null,
-        };
-
-        if ( $error_map ) {
-            [$code, $message] = $error_map;
-
-            throw new RequestException( $code, str_replace( '{app_type}', (string) $request->getTyped( 'app_type', 'string', '' ), $message ) );
-        }
-        
-        return $files->get(0);
-    }
+	public function __construct(
+		protected Guard $guard,
+		protected HostingController $hosting,
+		protected MonetizationRegistry $monetization,
+		protected AppsAnalytics $apps_analytics
+	) {}
+
+	/**
+	 * Guards the repository route against HTTP `Non-Safe Methods`.
+	 *
+	 * @param Request $request The current request object.
+	 * @return bool
+	 */
+	public function repository_get_guard( Request $request ) : bool|RequestException {
+		if ( $request->is_method( 'GET' ) ) {
+			return true;
+		}
+
+		// 405 errror.
+		return new RequestException( 'method_not_allowed' );
+	}
+
+	/**
+	 * Guard against GET methods and safely check permissions on HTTP `Non-Safe Methods`.
+	 * 
+	 * @param Request $request The request object.
+	 * @return bool|RequestException
+	 */
+	public function repository_unsafe_method_guard( Request $request ) : bool|RequestException {
+		if ( $request->is_method( 'GET' ) ) {
+			// Edge-case 405 error.
+			return new RequestException( 'method_not_allowed' );
+		}
+
+		$actor = $this->guard->get_principal();
+
+		if ( ! $actor ) {
+			// Actor is not authenticated, return 401 response code.
+			return new RequestException( 'missing_auth' );
+		}
+
+		$content_type = strtolower( $request->contentType() );
+
+		if ( ! \str_contains( $content_type, 'multipart/form-data' ) && ! $request->isDelete() ) {
+			return new RequestException( 'requires_multipart_form_data' );
+		}
+
+		$has_permission = match( $request->method() ) {
+			'POST'         => $actor->can( 'hosted_apps.create' ),
+			'DELETE'       => $actor->can( 'hosted_apps.delete' ),
+			'PUT', 'PATCH' => $actor->can( 'hosted_apps.update' ),
+			default        => false,
+		};
+
+		// Allow or deny with 403 response code.
+		return $has_permission ?: new RequestException( 'unauthorized_scope' );
+	}
+
+	/**
+	 * Repository REST API handler.
+	 *
+	 * @param Request $request The current request object.
+	 * @return Response
+	 */
+	public function repository_response( Request $request ) : Response {
+		$search = $request->get( 'search' );
+		$page   = $request->get( 'page' ) ?? 1;
+		$limit  = $request->get( 'limit' ) ?? 25;
+		$status = $request->get( 'status' ) ?: AbstractHostedApp::STATUS_ACTIVE;
+		$types  = $request->get( 'types' ) ?: [ 'plugin','theme','software' ];
+
+		$args = $search ? [
+			'term'   => $search,
+			'page'   => $page,
+			'limit'  => $limit,
+			'status' => $status,
+			'types'  => (array) $types,
+		]: [
+			'page'   => $page,
+			'limit'  => $limit,
+			'status' => $status,
+			'types'  => (array) $types,
+		];
+
+		$cache_key = static::make_cache_key( __METHOD__, $args );
+		$data      = static::cache_get( $cache_key );
+
+		if ( false === $data ) {
+			// Query repository.
+			$results = $search ? HostedApplicationService::search_apps( $args ) : HostedApplicationService::get_apps( $args );
+			
+			if ( ! empty( $results['items'] ) ) {
+				foreach ( $results['items'] as &$app ) {
+					$app = $app->get_rest_response();
+				}
+			}
+
+			$data = [
+				'success'    => true,
+				'apps'       => $results['items'],
+				'pagination' => $results['pagination'],
+			];
+
+			static::cache_set( $cache_key, $data, static::default_ttl() );
+		}
+
+		return Response::json( $data, 200 );
+	}
+
+	/**
+	 * Responds to HTTP GET request method on the single app route.
+	 * This method responds to /repostory/{app-type}/{app-slug}/ 
+	 * path of the our REST API namespace 
+	 * 
+	 * @param Request $request The REST API request object.
+	 */
+	public function single_app_get( Request $request ) : RequestException|Response {
+		$app_type = (string) $request->getTyped( 'app_type', 'string', '' );
+		$app_slug = (string) $request->getTyped( 'app_slug', 'string', '' );
+
+		$cache_key = static::make_cache_key( __METHOD__, [$app_type, $app_slug] );
+
+		/** @var \SmartLicenseServer\Exceptions\RequestException|false|array $data */
+		$data = static::cache_get( $cache_key );
+
+		if ( false === $data ) {
+			$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app ) {
+				$data = new RequestException( 'app_not_found', __( 'The requested app could not be found', 'smliser' ), ['status' => 404] );
+			} else {
+				$this->apps_analytics->log_client_access(
+					$app,
+					\sprintf( '%s_info', $app->get_type() ),
+					$request->ip(),
+					(string) $request->userAgent()
+				);
+
+				$data = [
+					'success'        => true,
+					$app->get_type() => $app->get_rest_response()
+				];
+			}
+
+			static::cache_set( $cache_key, $data, static::default_ttl() );
+			
+		}
+
+		if ( $data instanceof RequestException ) {
+			return $data;
+		}
+		
+		return Response::json( $data, 200 );
+	}
+
+	/**
+	 * Responds to HTTP POST request on single app route.
+	 * 
+	 * @param Request $request The request object
+	 * @return Response
+	 */
+	public function create_app( Request $request ) : Response {
+		try {
+			$response = $this->hosting->save_app( $request );
+
+			if ( $response->ok() ) {
+				$resource_location = $request->path();
+
+				$response->set_header( 'Location', $resource_location );
+				$response->set_status_code( 201 );
+
+				/** @var HostedAppsInterface $app */
+				$app           = $response->get_request()->get( 'smliser_resource' );
+				$response_body = $app->get_rest_response();
+				
+				$response->set_body( $response_body );
+
+				static::cache_clear();
+			}
+			
+			return $response;
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+
+	}
+
+	/**
+	 * Responds to HTTP PATCH and PUT request on single app route.
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response
+	 */
+	public function update_app( Request $request ) : Response {
+		try {
+			$app_type = (string) $request->getTyped( 'app_type', 'string', '' );
+			$app_slug = (string) $request->getTyped( 'app_slug', 'string', '' );
+
+			$app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app_exists ) {
+				if ( $request->isPut() ) {
+					return static::create_app( $request );
+				}
+
+				throw new RequestException( 'app_not_found' );
+			}
+
+			$request->set( 'app_slug', $app_slug )
+			->set( 'app_type', $app_type );
+
+			$response = $this->hosting->save_app( $request );
+
+			if ( $response->ok() ) {
+				$response->remove_header( 'Location' );
+				$response->set_status_code( 204 );
+				
+				$response->set_body( '' );
+				static::cache_clear();
+			}
+
+			return $response;
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Responds to HTTP DELETE request to delete a hosted application.
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response
+	 */
+	public function delete_app( Request $request ) : Response {
+		try {
+			$app_type = (string) $request->getTyped( 'app_type', 'string', '' );
+			$app_slug = (string) $request->getTyped( 'app_slug', 'string', '' );
+
+			$app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app_exists ) {
+				throw new RequestException( 'app_not_found' );
+			}
+
+			$request->set( 'app_slug', $app_slug )
+					->set( 'app_type', $app_type )
+					->set( 'app_status', AbstractHostedApp::STATUS_TRASH );
+
+			$response = $this->hosting->change_app_status( $request );
+
+			if ( $response->ok() ) {
+				$response->set_status_code( 204 )
+				->set_body( '' );
+				
+				static::cache_clear();
+			}
+
+			return $response;
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Guards asset upload for an application.
+	 * 
+	 * @param Request $request The request object.
+	 * @return RequestException|bool
+	 */
+	public function assets_management_guard( Request $request ) : RequestException|bool {
+		if ( $request->is_method( 'GET' ) ) {
+			// Edge-case 405 error.
+			return new RequestException( 'method_not_allowed' );
+		}
+
+		$actor = $this->guard->get_principal();
+
+		if ( ! $actor ) {
+			// Actor is not authenticated, return 401 response code.
+			return new RequestException( 'missing_auth' );
+		}
+
+		$content_type = strtolower( $request->contentType() );
+
+		if ( ! \str_contains( $content_type, 'multipart/form-data' ) && ! $request->isDelete() ) {
+			return new RequestException( 'requires_multipart_form_data' );
+		}
+
+		$has_permission = match( $request->method() ) {
+			'POST'   => $actor->can( 'hosted_apps.upload_assets' ),
+			'DELETE' => $actor->can( 'hosted_apps.delete_assets' ),
+			'PUT',   => $actor->can( 'hosted_apps.edit_assets' ),
+			default  => false,
+		};
+
+		// Allow or deny with 403 response code.
+		return $has_permission ?: new RequestException( 'unauthorized_scope' );
+	}
+
+	/**
+	 * Responds to HTTP POST request to upload app assets.
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response
+	 */
+	public function upload_app_assets( Request $request ) : Response {
+		try {
+			$app_type = (string) $request->getTyped( 'app_type', 'string', '' );
+			$app_slug = (string) $request->getTyped( 'app_slug', 'string', '' );
+
+			$app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app_exists ) {
+				throw new RequestException( 'app_not_found' );
+			}
+
+			$response = $this->hosting->app_asset_upload( $request );
+
+			return $response;
+		} catch( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Responds to HTTP PUT request to edit an app asset.
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response
+	 */
+	public function update_app_asset( Request $request ) : Response {
+		try {
+			$app_type   = (string) $request->getTyped( 'app_type', 'string', '' );
+			$app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
+			$asset_name = $request->get( 'asset_name' );
+
+			$app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app_exists ) {
+				throw new RequestException( 'app_not_found' );
+			}
+
+			static::force_single_file_upload( $request, 'asset_file' )
+				->set_new_name( $asset_name );
+
+			$response = $this->hosting->app_asset_upload( $request );
+
+			return $response;
+		} catch( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Responds to HTTP DELETE request to delete an app asset.
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response
+	 */
+	public function delete_app_asset( Request $request ) : Response {
+		try {
+			$app_type = (string) $request->getTyped( 'app_type', 'string', '' );
+			$app_slug = (string) $request->getTyped( 'app_slug', 'string', '' );
+
+			$app_exists = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app_exists ) {
+				throw new RequestException( 'app_not_found' );
+			}
+
+			$response = $this->hosting->app_asset_delete( $request );
+
+			if ( $response->ok() ) {
+				$response->set_status_code( 204 );
+				$response->set_body( '' );
+			}
+
+			return $response;
+		} catch( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Force single application asset upload.
+	 * 
+	 * @param Request $request The request object.
+	 * @param string $file_key  The file key.
+	 * @throws RequestException On success to abort request.
+	 * @return UploadedFile
+	 */
+	private function force_single_file_upload( Request $request, string $file_key ) : UploadedFile {
+		$files = $request->get_files( $file_key );
+		
+		$total     = $files?->count() ?? 0;
+		$error_map = match ( true ) {
+			$total < 1 => ['required_file', 'Please upload {app_type} asset file.'],
+			$total > 1 => ['payload_too_large', 'Sorry, a maximum of 1 file is required when updating a {app_type} asset.'],
+			default    => null,
+		};
+
+		if ( $error_map ) {
+			[$code, $message] = $error_map;
+
+			throw new RequestException( $code, str_replace( '{app_type}', (string) $request->getTyped( 'app_type', 'string', '' ), $message ) );
+		}
+		
+		return $files->get( 0 );
+	}
 }

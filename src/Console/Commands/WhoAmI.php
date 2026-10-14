@@ -21,40 +21,40 @@ use SmartLicenseServer\Security\Context\Guard;
  * Print the user name associated with the current principal.
  */
 class WhoAmI extends AbstractCommand {
-    public function __construct(
-        protected Guard $guard,
-        InputInterface $io,
-        OutputInterface $output,
-        ScriptName $script_name
-    ) {
-        
-        parent::__construct(
-            io: $io,
-            output: $output,
-            script_name: $script_name
-        );
-    }
+	public function __construct(
+		protected Guard $guard,
+		InputInterface $io,
+		OutputInterface $output,
+		ScriptName $script_name
+	) {
+		
+		parent::__construct(
+			io: $io,
+			output: $output,
+			script_name: $script_name
+		);
+	}
 
-    public static function name(): string {
-        return 'whoami';
-    }
+	public static function name() : string {
+		return 'whoami';
+	}
 
-    public function description(): string {
-        return 'Print the user name associated with the current principal.';
-    }
+	public function description() : string {
+		return 'Print the user name associated with the current principal.';
+	}
 
-    public function help(): string {
-        return '';
-    }
+	public function help() : string {
+		return '';
+	}
 
-    public function run( CommandInput $input ): int {
-        if ( ! $this->guard->has_principal() ) {
-            $this->output->error( 'Guest' );
-            return 1;
-        }
+	public function run( CommandInput $input ) : int {
+		if ( ! $this->guard->has_principal() ) {
+			$this->output->error( 'Guest' );
+			return 1;
+		}
 
-        $this->output->info( $this->guard->get_principal()->get_display_name() );
+		$this->output->info( $this->guard->get_principal()->get_display_name() );
 
-        return 0;
-    }
+		return 0;
+	}
 }

@@ -12,29 +12,29 @@ defined( 'SMLISER_ROOT' ) || exit;
 
 // Authors listing will differ in the future.
 $author = sprintf(
-    '<ul>
+	'<ul>
         <li><a href="%1$s">%2$s</a></li>
     
     </ul>',
-    $app->get_author_profile(),
-    $app->get_author()
+	$app->get_author_profile(),
+	$app->get_author()
 );
 
-$template_sidebar['Author']['content']  = $author;
+$template_sidebar['Author']['content'] = $author;
 
 $screenshots = [];
 
 foreach( $app->get_screenshots() as $screenshot ) {
-    $screenshots[] = $screenshot['src'] ?? '';
+	$screenshots[] = $screenshot['src'] ?? '';
 }
 
-$banners    = $app->get_banners();
-$icons      = $app->get_icons();
+$banners = $app->get_banners();
+$icons   = $app->get_icons();
 
-$images   = [
-    'Icons'         => array_filter( $icons ),
-    'Banners'       => array_filter( $banners ),
-    'Screenshots'   => array_filter( $screenshots ),
+$images = [
+	'Icons'       => array_filter( $icons ),
+	'Banners'     => array_filter( $banners ),
+	'Screenshots' => array_filter( $screenshots ),
 ];
 
 include_once __DIR__ . '/preview.php';

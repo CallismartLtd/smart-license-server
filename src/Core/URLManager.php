@@ -61,39 +61,39 @@ use SmartLicenseServer\Exceptions\ProxyMethodException;
  */
 class URLManager {
 
-    public function __construct(
-        protected URLManagerInterface $adapter
-        
-    ) {}
+	public function __construct(
+		protected URLManagerInterface $adapter
+		
+	) {}
 
-    /**
-     * Swap the current adapter.
-     * 
-     * This method is used by the dev server API to update the
-     * url manager.
-     * 
-     * @access private
-     * @param URLManagerInterface $adapter
-     */
-    public function set_adapter( URLManagerInterface $adapter ) : void {
-        $this->adapter   = $adapter;
-    }
+	/**
+	 * Swap the current adapter.
+	 * 
+	 * This method is used by the dev server API to update the
+	 * url manager.
+	 * 
+	 * @access private
+	 * @param URLManagerInterface $adapter
+	 */
+	public function set_adapter( URLManagerInterface $adapter ) : void {
+		$this->adapter = $adapter;
+	}
 
-    /**
-     * Proxy calls to the adapter methods.
-     *
-     * @param string $method Method name.
-     * @param array  $args   Method arguments.
-     *
-     * @return mixed
-     *
-     * @throws ProxyMethodException If the method does not exist in the adapter.
-     */
-    public function __call( string $method, array $args ) {
-        if ( method_exists( $this->adapter, $method ) ) {
-            return $this->adapter->$method( ...$args );
-        }
+	/**
+	 * Proxy calls to the adapter methods.
+	 *
+	 * @param string $method Method name.
+	 * @param array  $args   Method arguments.
+	 *
+	 * @return mixed
+	 *
+	 * @throws ProxyMethodException If the method does not exist in the adapter.
+	 */
+	public function __call( string $method, array $args ) {
+		if ( method_exists( $this->adapter, $method ) ) {
+			return $this->adapter->$method( ...$args );
+		}
 
-        throw new ProxyMethodException( static::class, $method );
-    }
+		throw new ProxyMethodException( static::class, $method );
+	}
 }

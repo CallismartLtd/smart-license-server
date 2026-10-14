@@ -19,89 +19,89 @@ use SmartLicenseServer\Exceptions\FileSystemException;
  */
 
 trait RepoFilesAwareTrait {
-    /**
-     * Get theme changelog.
-     * 
-     * @return string The changelog in HTML format.
-     */
-    public function get_changelog( string $slug, string $suffix = '.md' ) : string {
-        $changelog_md = $this->file_get_contents( $slug, sprintf( 'changelog.%s', $suffix ) );
-        return $this->mdparser->parse( $changelog_md ?: '' );
-    }
+	/**
+	 * Get theme changelog.
+	 * 
+	 * @return string The changelog in HTML format.
+	 */
+	public function get_changelog( string $slug, string $suffix = '.md' ) : string {
+		$changelog_md = $this->file_get_contents( $slug, sprintf( 'changelog.%s', $suffix ) );
+		return $this->mdparser->parse( $changelog_md ?: '' );
+	}
 
-    /**
-     * Get installation.md file
-     * 
-     * @param string $slug
-     * @return string
-     */
-    public function get_installation( string $slug, string $suffix = 'md' ) {
-        $installation = $this->file_get_contents( $slug, sprintf( 'installation.%s', $suffix ) );
-        return $this->mdparser->parse( $installation ?: '' );
-    }
+	/**
+	 * Get installation.md file
+	 * 
+	 * @param string $slug
+	 * @return string
+	 */
+	public function get_installation( string $slug, string $suffix = 'md' ) {
+		$installation = $this->file_get_contents( $slug, sprintf( 'installation.%s', $suffix ) );
+		return $this->mdparser->parse( $installation ?: '' );
+	}
 
-    /**
-     * Get readme.md file
-     * 
-     * @param string $slug
-     * @return string
-     */
-    public function get_readme( string $slug, string $suffix = 'md' ) : string {
-        $readme = $this->file_get_contents( $slug, sprintf( 'readme.%s', $suffix ) );
-        return $this->mdparser->parse( $readme ?: '' );
-    }
+	/**
+	 * Get readme.md file
+	 * 
+	 * @param string $slug
+	 * @return string
+	 */
+	public function get_readme( string $slug, string $suffix = 'md' ) : string {
+		$readme = $this->file_get_contents( $slug, sprintf( 'readme.%s', $suffix ) );
+		return $this->mdparser->parse( $readme ?: '' );
+	}
 
-    /**
-     * Get the content of a file from the repository and optionally look for it in the zipped file.
-     * 
-     * @param string $slug
-     * @param string $filename The file name to look for.
-     * @return string the content of the file.
-     */
-    private function file_get_contents( string $slug, string $filename ) : string  {
-        $slug           = $this->real_slug( $slug );
-        $file_contents  = '';
-        try {
-            $base_dir = $this->enter_slug( $slug );
-        } catch ( FileSystemException $e ) {
-            return $file_contents;
-        }
-        $file_path = FileSystemHelper::join_path( $base_dir, $filename );
+	/**
+	 * Get the content of a file from the repository and optionally look for it in the zipped file.
+	 * 
+	 * @param string $slug
+	 * @param string $filename The file name to look for.
+	 * @return string the content of the file.
+	 */
+	private function file_get_contents( string $slug, string $filename ) : string {
+		$slug          = $this->real_slug( $slug );
+		$file_contents = '';
+		try {
+			$base_dir = $this->enter_slug( $slug );
+		} catch ( FileSystemException $e ) {
+			return $file_contents;
+		}
+		$file_path = FileSystemHelper::join_path( $base_dir, $filename );
 
-        if ( ! $this->exists( $file_path ) ) {
-            // Let's try to read from the zip file as a fallback.
-            $zip_path   = $this->locate( $slug );
-            if ( is_smliser_error( $zip_path ) ) {
-                return $file_contents;
-            }
+		if ( ! $this->exists( $file_path ) ) {
+			// Let's try to read from the zip file as a fallback.
+			$zip_path = $this->locate( $slug );
+			if ( is_smliser_error( $zip_path ) ) {
+				return $file_contents;
+			}
 
-            $zip = new \ZipArchive();
-            if ( $zip->open( $zip_path ) !== true ) {
-                return $file_contents;
-            }
+			$zip = new \ZipArchive();
+			if ( true !== $zip->open( $zip_path ) ) {
+				return $file_contents;
+			}
 
-            $firstEntry = $zip->getNameIndex(0);
-            $rootDir    = explode( '/', $firstEntry)[0];
-            $name       = FileSystemHelper::join_path( $rootDir, $filename );
-            $file_index = $zip->locateName( $name, \ZipArchive::FL_NOCASE );
+			$firstEntry = $zip->getNameIndex( 0 );
+			$rootDir    = explode( '/', $firstEntry )[0];
+			$name       = FileSystemHelper::join_path( $rootDir, $filename );
+			$file_index = $zip->locateName( $name, \ZipArchive::FL_NOCASE );
 
-            if ( false === $file_index ) {
-                $zip->close();
-                return $file_contents;
-            }
+			if ( false === $file_index ) {
+				$zip->close();
+				return $file_contents;
+			}
 
-            $file_contents = $zip->getFromIndex( $file_index );
-            $zip->close();
+			$file_contents = $zip->getFromIndex( $file_index );
+			$zip->close();
 
-            // cache the file for future use.
-            if ( ! $this->put_contents( $file_path, $file_contents ) ) {
-                // TODO: Log error?
-            }
+			// cache the file for future use.
+			if ( ! $this->put_contents( $file_path, $file_contents ) ) {
+				// TODO: Log error?
+			}
 
-        } else {
-            $file_contents = $this->get_contents( $file_path );
-        }
+		} else {
+			$file_contents = $this->get_contents( $file_path );
+		}
 
-        return (string) $file_contents;
-    }
+		return (string) $file_contents;
+	}
 }

@@ -120,17 +120,17 @@ class RestAPIProvider implements RESTProviderInterface {
 			prefix: self::PREFIX,
 			callback: function ( CoreRouter $router ) use ( $resolver ) {
 				$router->get( '', fn() : Response => Response::json( $this->index->api() ) );
-				$router->add( pattern: '', methods: array( 'OPTIONS' ), handler: fn() : Response => $this->options( 'GET, OPTIONS', $this->index->api() ) );
+				$router->add( pattern: '', methods: [ 'OPTIONS' ], handler: fn() : Response => $this->options( 'GET, OPTIONS', $this->index->api() ) );
 
 				foreach ( $this->versions as $version ) {
 					$this->register_version( $router, $version, $resolver );
 				}
 			},
-			middleware: array(
-				array( $this, 'json_middleware' ),
-				array( $this, 'https_middleware' ),
-				array( $this, 'authentication_middleware' ),
-			)
+			middleware: [
+				[ $this, 'json_middleware' ],
+				[ $this, 'https_middleware' ],
+				[ $this, 'authentication_middleware' ],
+			]
 		);
 	}
 
@@ -151,10 +151,10 @@ class RestAPIProvider implements RESTProviderInterface {
 			prefix: $namespace,
 			callback: function ( CoreRouter $router ) use ( $config, $namespace, $catalog, $resolver ) {
 				$router->get( '', fn( Request $request ) : Response => $this->version_index( $namespace, $request ) );
-				$router->add( pattern: '', methods: array( 'OPTIONS' ), handler: fn() : Response => $this->options( $this->index->allow( $namespace ), $this->index->version( $namespace ) ) );
+				$router->add( pattern: '', methods: [ 'OPTIONS' ], handler: fn() : Response => $this->options( $this->index->allow( $namespace ), $this->index->version( $namespace ) ) );
 
 				foreach ( $config['routes'] as $route ) {
-					$middleware = array();
+					$middleware = [];
 
 					if ( isset( $route['guard'] ) ) {
 						$middleware[] = $this->guard_middleware( $route['guard'], $resolver );
@@ -178,7 +178,7 @@ class RestAPIProvider implements RESTProviderInterface {
 
 					$router->add(
 						pattern: $pattern,
-						methods: array( 'OPTIONS' ),
+						methods: [ 'OPTIONS' ],
 						handler: fn() : Response => $this->options(
 							$this->index->allow( $namespace, $pattern ),
 							$this->index->route( $namespace, $pattern )
@@ -208,11 +208,11 @@ class RestAPIProvider implements RESTProviderInterface {
 
 		if ( null === $description ) {
 			return Response::json(
-				array(
+				[
 					'code'       => 'rest_unknown_category',
 					'message'    => sprintf( 'There is no "%s" category in %s.', $category, $namespace ),
 					'categories' => $this->index->catalog( $namespace )->categories(),
-				),
+				],
 				404
 			);
 		}
@@ -364,7 +364,7 @@ class RestAPIProvider implements RESTProviderInterface {
 			return true;
 		}
 
-		return new RequestException( 'rest_https_required', 'The REST API requires a secure (HTTPS) connection.', array( 'status' => 403 ) );
+		return new RequestException( 'rest_https_required', 'The REST API requires a secure (HTTPS) connection.', [ 'status' => 403 ] );
 	}
 
 	/**
@@ -417,7 +417,7 @@ class RestAPIProvider implements RESTProviderInterface {
 			return new RequestException(
 				$result->error_code ?? 'rest_authentication_failed',
 				$result->message ?? 'The API key could not be verified.',
-				array( 'status' => AuthenticationResult::STATUS_UNAUTHORIZED === $result->status ? 403 : 401 )
+				[ 'status' => AuthenticationResult::STATUS_UNAUTHORIZED === $result->status ? 403 : 401 ]
 			);
 		}
 

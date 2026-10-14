@@ -22,14 +22,14 @@ class UpdateAvailableEmail extends UpdateEmail {
 	/**
 	 * {@inheritdoc}
 	 */
-	public static function template_key(): string {
+	public static function template_key() : string {
 		return 'system_update_available';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	protected function subject(): string {
+	protected function subject() : string {
 		return $this->security
 			? sprintf( 'Security update: %s %s is available', \SMLISER_APP_NAME, $this->new_version )
 			: sprintf( '%s %s is available', \SMLISER_APP_NAME, $this->new_version );
@@ -38,7 +38,7 @@ class UpdateAvailableEmail extends UpdateEmail {
 	/**
 	 * {@inheritdoc}
 	 */
-	protected function preheader(): string {
+	protected function preheader() : string {
 		return $this->security
 			? sprintf( 'Version %s fixes a security issue. This site runs %s; install the update soon.', $this->new_version, $this->current_version )
 			: sprintf( 'This site runs %s. Review and install %s from the Updates page.', $this->current_version, $this->new_version );
@@ -47,21 +47,21 @@ class UpdateAvailableEmail extends UpdateEmail {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function label(): string {
+	public function label() : string {
 		return 'Update Available';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function description(): string {
+	public function description() : string {
 		return 'Sent to the site administration email when a new release is out that automatic updates will not install.';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public static function preview(): static {
+	public static function preview() : static {
 		return new static(
 			'preview@example.com',
 			'0.4.1',
@@ -75,46 +75,46 @@ class UpdateAvailableEmail extends UpdateEmail {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function get_blocks(): array {
-		return array(
-			array(
+	public function get_blocks() : array {
+		return [
+			[
 				'id'        => 'greeting',
 				'type'      => 'greeting',
 				'content'   => 'An update is available for {{app_name}}',
 				'editable'  => true,
 				'removable' => false,
-			),
-			array(
-				'id'        => 'banner',
-				'type'      => 'banner',
-				'tone'      => $this->security ? 'warning' : 'info',
-				'content'   => $this->security
+			],
+			[
+				'id'      => 'banner',
+				'type'    => 'banner',
+				'tone'    => $this->security ? 'warning' : 'info',
+				'content' => $this->security
 					? 'Version {{new_version}} is a security release. Install it as soon as possible.'
 					: 'Version {{new_version}} of {{product_name}} is available.',
 				'editable'  => true,
 				'removable' => false,
-			),
-			array(
+			],
+			[
 				'id'      => 'reason',
 				'type'    => 'text',
 				'content' => '{{detail}} Review the release and install it from the Updates page.',
-			),
-			array(
+			],
+			[
 				'id'   => 'details',
 				'type' => 'detail_card',
-				'rows' => array(
-					array( 'label' => 'Installed', 'value' => '{{current_version}}' ),
-					array( 'label' => 'Available', 'value' => '{{new_version}}' ),
-					array( 'label' => 'Release Type', 'value' => '{{release_type}}' ),
-				),
-			),
-			array(
+				'rows' => [
+					[ 'label' => 'Installed', 'value' => '{{current_version}}' ],
+					[ 'label' => 'Available', 'value' => '{{new_version}}' ],
+					[ 'label' => 'Release Type', 'value' => '{{release_type}}' ],
+				],
+			],
+			[
 				'id'    => 'button',
 				'type'  => 'button',
 				'label' => 'Review and Install',
 				'url'   => '{{updates_url}}',
-			),
+			],
 			$this->closing_block(),
-		);
+		];
 	}
 }

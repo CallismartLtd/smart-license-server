@@ -10,7 +10,7 @@
 namespace SmartLicenseServer\Console;
 
 final class AsciiLogo {
-    public const LARGE = <<<ASCII
+	public const LARGE = <<<ASCII
    _____                      _     _      _                            _____                          
   / ____|                    | |   | |    (_)                          / ____|                         
  | (___  _ __ ___   __ _ _ __| |_  | |     _  ___ ___ _ __  ___  ___  | (___   ___ _ ____   _____ _ __ 
@@ -20,7 +20,7 @@ final class AsciiLogo {
                                                                                                                                                                                             
 ASCII;
 
-    public const SHORT = <<<ASCII
+	public const SHORT = <<<ASCII
   ____  __  __ _     ___ ____  _____ ____
  / ___||  \/  | |   |_ _/ ___|| ____|  _ \
  \___ \| |\/| | |    | |\___ \|  _| | |_) |
@@ -29,7 +29,7 @@ ASCII;
 
 ASCII;
 
-    public const MONOSPACED = <<<ASCII
+	public const MONOSPACED = <<<ASCII
  ███████╗███╗   ███╗██╗     ██╗███████╗███████╗██████╗
  ██╔════╝████╗ ████║██║     ██║██╔════╝██╔════╝██╔══██╗
  ███████╗██╔████╔██║██║     ██║███████╗█████╗  ██████╔╝

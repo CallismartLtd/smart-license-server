@@ -130,13 +130,13 @@ class RouteCatalog {
 
 		$descriptor = $this->grouped[ $route ];
 
-		return array(
+		return [
 			'route'           => $descriptor['route'],
 			'humanized_route' => $descriptor['humanized_route'],
 			'category'        => $descriptor['category'],
 			'allowed_methods' => array_keys( $descriptor['methods'] ),
 			'methods'         => $descriptor['methods'],
-		);
+		];
 	}
 
 	/**
@@ -164,25 +164,25 @@ class RouteCatalog {
 
 		foreach ( $api_config['routes'] as $route_config ) {
 			$route    = $route_config['route'];
-			$methods  = is_array( $route_config['methods'] ) ? $route_config['methods'] : array( $route_config['methods'] );
+			$methods  = is_array( $route_config['methods'] ) ? $route_config['methods'] : [ $route_config['methods'] ];
 			$args     = $this->format_args( $route_config['args'] ?? [] );
 			$name     = $route_config['name'] ?? 'Unnamed Route';
 			$category = $route_config['category'] ?? null;
 
 			if ( ! isset( $grouped[ $route ] ) ) {
-				$grouped[ $route ] = array(
+				$grouped[ $route ] = [
 					'route'           => $route,
 					'humanized_route' => self::humanize_route( $namespace . '/' . $route ),
 					'category'        => $category,
 					'methods'         => [],
-				);
+				];
 			}
 
 			foreach ( $methods as $method ) {
-				$grouped[ $route ]['methods'][ strtoupper( trim( $method ) ) ] = array(
+				$grouped[ $route ]['methods'][ strtoupper( trim( $method ) ) ] = [
 					'name' => $name,
 					'args' => $args,
-				);
+				];
 			}
 		}
 
@@ -199,13 +199,13 @@ class RouteCatalog {
 		$formatted = [];
 
 		foreach ( $args as $arg_name => $arg_config ) {
-			$formatted[] = array(
+			$formatted[] = [
 				'name'        => $arg_name,
 				'type'        => $arg_config['type'] ?? 'mixed',
 				'required'    => ! empty( $arg_config['required'] ),
 				'description' => $arg_config['description'] ?? 'No description',
 				'default'     => $arg_config['default'] ?? null,
-			);
+			];
 		}
 
 		return $formatted;

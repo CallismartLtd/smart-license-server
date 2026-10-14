@@ -32,25 +32,25 @@ class InstallerPage {
 	/**
 	 * Stepper labels, keyed by step.
 	 */
-	protected const STEPS = array(
+	protected const STEPS = [
 		'access'   => 'Access',
 		'database' => 'Database',
 		'setup'    => 'Setup',
 		'admin'    => 'Administrator',
 		'finish'   => 'Finish',
-	);
+	];
 
 	/**
 	 * Setup tasks the script runs one by one, keyed by task with display labels.
 	 */
-	public const SETUP_TASKS = array(
+	public const SETUP_TASKS = [
 		'site_url'    => 'Save the site address',
 		'directories' => 'Create the storage folders',
 		'assets'      => 'Publish the public assets',
 		'tables'      => 'Create the database tables',
 		'roles'       => 'Install the default roles',
 		'htaccess'    => 'Write the web server rules (.htaccess)',
-	);
+	];
 
 	/*
 	|--------
@@ -67,7 +67,7 @@ class InstallerPage {
 	 * @return array{title: string, html: string}
 	 */
 	public function token( string $action_url, string $token_path, ?string $error = null ) : array {
-		$notices = null === $error ? array() : array( array( 'type' => 'error', 'message' => $error ) );
+		$notices = null === $error ? [] : [ [ 'type' => 'error', 'message' => $error ] ];
 		$app     = $this->e( \SMLISER_APP_NAME );
 		$dir     = $this->e( dirname( $token_path ) . '/' );
 		$file    = $this->e( basename( $token_path ) );
@@ -126,7 +126,7 @@ class InstallerPage {
 			);
 		}
 
-		$port_hint = array();
+		$port_hint = [];
 		foreach ( $drivers as $info ) {
 			if ( null !== $info['port'] ) {
 				$port_hint[] = $info['label'] . ' ' . $info['port'];
@@ -137,7 +137,7 @@ class InstallerPage {
 		$port_ph      = null === $default_port ? '' : (string) $default_port;
 		$charset_ph   = (string) ( $drivers[ $current ]['charset'] ?? '' );
 
-		$charset_hint = array();
+		$charset_hint = [];
 		foreach ( $drivers as $info ) {
 			if ( null !== ( $info['charset'] ?? null ) ) {
 				$charset_hint[] = $info['label'] . ' <code>' . $this->e( $info['charset'] ) . '</code>';
@@ -467,7 +467,7 @@ class InstallerPage {
 	 * @param array  $notices List of {type, message, detail?}.
 	 * @return array{title: string, html: string}
 	 */
-	protected function page( string $step, string $title, string $body, array $notices = array() ) : array {
+	protected function page( string $step, string $title, string $body, array $notices = [] ) : array {
 		$alerts = '';
 		foreach ( $notices as $notice ) {
 			$alerts .= $this->notice(
@@ -486,10 +486,10 @@ class InstallerPage {
 			$body
 		);
 
-		return array(
+		return [
 			'title' => $title,
 			'html'  => $html,
-		);
+		];
 	}
 
 	/**
@@ -501,7 +501,7 @@ class InstallerPage {
 	 * @return string
 	 */
 	protected function notice( string $type, string $message, ?string $detail = null ) : string {
-		$type = in_array( $type, array( 'success', 'warning', 'error' ), true ) ? $type : 'warning';
+		$type = in_array( $type, [ 'success', 'warning', 'error' ], true ) ? $type : 'warning';
 
 		return sprintf(
 			'<div class="notice notice-%1$s" role="%2$s"><p>%3$s</p>%4$s</div>',
@@ -590,8 +590,8 @@ class InstallerPage {
 		$items    = '';
 
 		foreach ( $keys as $index => $key ) {
-			$state  = $index < $position ? 'complete' : ( $index === $position ? 'current' : 'upcoming' );
-			$aria   = 'current' === $state ? ' aria-current="step"' : '';
+			$state = $index < $position ? 'complete' : ( $index === $position ? 'current' : 'upcoming' );
+			$aria  = 'current' === $state ? ' aria-current="step"' : '';
 			$items .= sprintf(
 				'<li class="%1$s"%2$s><span class="dot">%3$d</span><span class="name">%4$s</span></li>',
 				$state,

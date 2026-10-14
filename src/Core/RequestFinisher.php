@@ -67,7 +67,7 @@ final class RequestFinisher {
 	 *                METHOD_NONE means headers were already sent, so the
 	 *                client may wait until the script ends.
 	 */
-	public static function finish( int $status = 204, string $body = '', array $headers = array(), int $time_limit = 0 ) : string {
+	public static function finish( int $status = 204, string $body = '', array $headers = [], int $time_limit = 0 ) : string {
 		if ( self::$finished ) {
 			return self::METHOD_NONE;
 		}

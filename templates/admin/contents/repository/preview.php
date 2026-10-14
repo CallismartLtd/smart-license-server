@@ -53,13 +53,13 @@ defined( 'SMLISER_ROOT' ) || exit;
                 <?php foreach ( $template_header['buttons'] as $button ) : ?>
                     <a href="<?php echo escUrl( $button['url'] ); ?>" 
                        class="<?php echo implode( ' ', $button['class'] ); ?>"
-                       <?php 
-                       if ( ! empty( $button['attr'] ) ) {
-                           foreach ( $button['attr'] as $attr_key => $attr_value ) {
-                               echo sprintf( '%s="%s" ', escAttr( $attr_key ), escAttr( $attr_value ) );
-                           }
-                       }
-                       ?>>
+                       <?php
+					   if ( ! empty( $button['attr'] ) ) {
+						   foreach ( $button['attr'] as $attr_key => $attr_value ) {
+							   echo sprintf( '%s="%s" ', escAttr( $attr_key ), escAttr( $attr_value ) );
+						   }
+					   }
+					   ?>>
                         <?php if ( ! empty( $button['icon'] ) ) : ?>
                             <i class="<?php echo escAttr( $button['icon'] ); ?>"></i>
                         <?php endif; ?>
@@ -87,10 +87,10 @@ defined( 'SMLISER_ROOT' ) || exit;
                     
                     <div class="smliser-screenshot-gallery">
                         <div tabindex="0" class="smliser-gallery-preview">
-                            <?php 
-                                $first_title = array_key_first( $images );
-                                $first_image = current( $images );                            
-                            ?>
+                            <?php
+								$first_title = array_key_first( $images );
+								$first_image = current( $images );
+							?>
                             <h3 class="smliser-gallery-preview_title"><?php echo escHtml( $first_title ); ?></h3>
                             <div class="smliser-gallery-preview_image">
                                 <img class="smliser-request-fullscreen" src="<?php echo escUrl( current( $first_image )?: $urlmanager->assets_url( 'images/no-image.svg' ) ); ?>" alt="image" title="Double click for fullscreen">

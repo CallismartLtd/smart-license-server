@@ -32,62 +32,62 @@ class StandaloneTarget extends AbstractTarget {
 	/**
 	 * {@inheritdoc}
 	 */
-	public function name(): string {
+	public function name() : string {
 		return 'standalone';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function environment(): string {
+	public function environment() : string {
 		return 'Application';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function runtime_path(): string {
+	public function runtime_path() : string {
 		return 'system';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function root_files(): array {
+	public function root_files() : array {
 		return array_merge(
 			parent::root_files(),
-			array(
+			[
 				'readme.md'         => 'readme.md',
 				'.env.example'      => '.env.example',
 				'.htaccess.example' => '.htaccess.example',
-			)
+			]
 		);
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public function generated_files( BuildContext $context ): array {
+	public function generated_files( BuildContext $context ) : array {
 		$core = '/' . $this->core_path();
 
-		return array(
-			'bootstrap.php'    => array(
-				'contents' => strtr( self::BOOTSTRAP, array( '{{CORE}}' => $core, '{{RUNTIME}}' => '/' . $this->runtime_path() . '/' ) ),
+		return [
+			'bootstrap.php' => [
+				'contents' => strtr( self::BOOTSTRAP, [ '{{CORE}}' => $core, '{{RUNTIME}}' => '/' . $this->runtime_path() . '/' ] ),
 				'mode'     => 0644,
-			),
-			'smliser'          => array(
+			],
+			'smliser' => [
 				'contents' => self::CLI_ENTRY,
 				'mode'     => 0755,
-			),
-			'public/index.php' => array(
+			],
+			'public/index.php' => [
 				'contents' => self::WEB_ENTRY,
 				'mode'     => 0644,
-			),
-			'.htaccess'        => array(
+			],
+			'.htaccess' => [
 				'contents' => $this->stub( 'root.htaccess' ),
 				'mode'     => 0644,
-			),
-		) + $this->server_configs( $context );
+			],
+		] + $this->server_configs( $context );
 	}
 
 	/**
@@ -97,7 +97,7 @@ class StandaloneTarget extends AbstractTarget {
 	 * @return string
 	 * @throws BuildException When the template is missing.
 	 */
-	private function stub( string $name ): string {
+	private function stub( string $name ) : string {
 		$path = dirname( __DIR__, 2 ) . '/stubs/standalone/' . $name;
 
 		if ( ! is_file( $path ) ) {
@@ -119,19 +119,19 @@ class StandaloneTarget extends AbstractTarget {
 	 * @return array<string, array{contents: string, mode: int}>
 	 * @throws BuildException When a configuration template is missing.
 	 */
-	private function server_configs( BuildContext $context ): array {
+	private function server_configs( BuildContext $context ) : array {
 		$minor = $context->project->php_minor();
-		$vars  = array(
+		$vars  = [
 			'{{PHP_FPM_SOCKET}}'  => null === $minor ? '/run/php/php-fpm.sock' : "/run/php/php{$minor}-fpm.sock",
 			'{{PHP_REQUIREMENT}}' => null === $minor ? 'a supported PHP version' : "PHP {$minor} or newer",
-		);
-		$files = array();
+		];
+		$files = [];
 
-		foreach ( array( 'nginx.conf', 'Caddyfile', 'apache.conf', 'server.php' ) as $name ) {
-			$files[ 'server/' . $name ] = array(
+		foreach ( [ 'nginx.conf', 'Caddyfile', 'apache.conf', 'server.php' ] as $name ) {
+			$files[ 'server/' . $name ] = [
 				'contents' => strtr( $this->stub( 'server/' . $name ), $vars ),
 				'mode'     => 0644,
-			);
+			];
 		}
 
 		return $files;

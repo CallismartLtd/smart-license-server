@@ -20,7 +20,7 @@ final class Builder {
 	/**
 	 * Repository directories every build copies.
 	 */
-	private const SOURCE_DIRS = array( 'src', 'templates', 'assets' );
+	private const SOURCE_DIRS = [ 'src', 'templates', 'assets' ];
 
 	/**
 	 * Number of files copied in this run.
@@ -46,7 +46,7 @@ final class Builder {
 	 * @param AbstractTarget $target Target.
 	 * @throws BuildException On any failure.
 	 */
-	public function run( AbstractTarget $target ): void {
+	public function run( AbstractTarget $target ) : void {
 		$started = microtime( true );
 
 		$this->console->write(
@@ -98,7 +98,7 @@ final class Builder {
 	 * @param AbstractTarget $target Target.
 	 * @throws BuildException When a precondition fails.
 	 */
-	private function validate( AbstractTarget $target ): void {
+	private function validate( AbstractTarget $target ) : void {
 		$this->console->step( 'Validating' );
 
 		foreach ( self::SOURCE_DIRS as $dir ) {
@@ -136,7 +136,7 @@ final class Builder {
 	 *
 	 * @throws BuildException When the output path is unsafe.
 	 */
-	private function guard_output_path(): void {
+	private function guard_output_path() : void {
 		$out  = $this->normalize( $this->context->out_dir );
 		$root = $this->normalize( $this->context->repo_root );
 
@@ -163,7 +163,7 @@ final class Builder {
 	 *
 	 * @throws BuildException When the directory cannot be created.
 	 */
-	private function prepare_output(): void {
+	private function prepare_output() : void {
 		$this->console->step( 'Preparing output directory' );
 
 		if ( is_dir( $this->context->out_dir ) ) {
@@ -180,18 +180,18 @@ final class Builder {
 	 * @param AbstractTarget $target Target.
 	 * @throws BuildException When a copy fails.
 	 */
-	private function copy_sources( AbstractTarget $target ): void {
+	private function copy_sources( AbstractTarget $target ) : void {
 		$this->console->step( 'Copying sources' );
 
-		$destinations = array(
+		$destinations = [
 			'src'       => $target->core_path(),
 			'templates' => $target->templates_path(),
 			'assets'    => $target->assets_path(),
-		);
+		];
 
 		foreach ( $destinations as $source => $destination ) {
 			$before  = $this->copied;
-			$exclude = 'src' === $source ? $this->excluded_environments( $target ) : array();
+			$exclude = 'src' === $source ? $this->excluded_environments( $target ) : [];
 
 			$this->copy_tree( $this->context->source( $source ), $this->context->target( $destination ), $exclude );
 
@@ -208,9 +208,9 @@ final class Builder {
 	 * @param AbstractTarget $target Target.
 	 * @return string[]
 	 */
-	private function excluded_environments( AbstractTarget $target ): array {
-		$excluded = array();
-		$entries  = scandir( $this->context->source( 'src/Environments' ) ) ?: array();
+	private function excluded_environments( AbstractTarget $target ) : array {
+		$excluded = [];
+		$entries  = scandir( $this->context->source( 'src/Environments' ) ) ?: [];
 
 		foreach ( $entries as $entry ) {
 			if ( '.' === $entry || '..' === $entry || $entry === $target->environment() ) {
@@ -232,7 +232,7 @@ final class Builder {
 	 * @param AbstractTarget $target Target.
 	 * @throws BuildException When a copy fails.
 	 */
-	private function copy_root_files( AbstractTarget $target ): void {
+	private function copy_root_files( AbstractTarget $target ) : void {
 		$this->console->step( 'Copying root files' );
 
 		foreach ( $target->root_files() as $source => $destination ) {
@@ -253,7 +253,7 @@ final class Builder {
 	 * @param AbstractTarget $target Target.
 	 * @throws BuildException When Composer fails.
 	 */
-	private function install_dependencies( AbstractTarget $target ): void {
+	private function install_dependencies( AbstractTarget $target ) : void {
 		$this->console->step( 'Installing dependencies' );
 
 		$composer_dir = $this->context->target( $target->composer_path() );
@@ -270,7 +270,7 @@ final class Builder {
 			$this->console->warn( 'composer.lock not found; Composer will resolve versions fresh.' );
 		}
 
-		$command = array(
+		$command = [
 			$this->context->composer,
 			'install',
 			'--no-dev',
@@ -278,9 +278,9 @@ final class Builder {
 			'--no-interaction',
 			'--no-progress',
 			'--working-dir=' . $composer_dir,
-		);
+		];
 
-		$process = @proc_open( $command, array( 0 => STDIN, 1 => STDOUT, 2 => STDERR ), $pipes, $composer_dir );
+		$process = @proc_open( $command, [ 0 => STDIN, 1 => STDOUT, 2 => STDERR ], $pipes, $composer_dir );
 		if ( ! is_resource( $process ) ) {
 			throw new BuildException( "Could not start Composer ({$this->context->composer}). Pass --composer=<path>." );
 		}
@@ -302,7 +302,7 @@ final class Builder {
 	 * @return string
 	 * @throws BuildException When composer.json is invalid.
 	 */
-	private function composer_json(): string {
+	private function composer_json() : string {
 		try {
 			$data = json_decode( (string) file_get_contents( $this->context->source( 'composer.json' ) ), false, 512, JSON_THROW_ON_ERROR );
 		} catch ( \JsonException $e ) {
@@ -312,7 +312,7 @@ final class Builder {
 		$core = AbstractTarget::CORE_DIR;
 
 		if ( 'src' !== $core && isset( $data->autoload->{'psr-4'} ) ) {
-			$remap = static fn ( string $path ): string => ( 'src' === rtrim( $path, '/' ) || str_starts_with( $path, 'src/' ) )
+			$remap = static fn ( string $path ) : string => ( 'src' === rtrim( $path, '/' ) || str_starts_with( $path, 'src/' ) )
 				? $core . '/' . ltrim( substr( $path, 3 ), '/' )
 				: $path;
 
@@ -337,7 +337,7 @@ final class Builder {
 	 * @param AbstractTarget $target Target.
 	 * @throws BuildException When a file cannot be written.
 	 */
-	private function write_generated_files( AbstractTarget $target ): void {
+	private function write_generated_files( AbstractTarget $target ) : void {
 		$this->console->step( 'Generating files' );
 
 		foreach ( $target->generated_files( $this->context ) as $relative => $file ) {
@@ -367,11 +367,11 @@ final class Builder {
 	 * @param string[] $exclude     Source-relative directories to skip.
 	 * @throws BuildException When a copy fails.
 	 */
-	private function copy_tree( string $source, string $destination, array $exclude = array() ): void {
+	private function copy_tree( string $source, string $destination, array $exclude = [] ) : void {
 		$iterator = new \RecursiveIteratorIterator(
 			new \RecursiveCallbackFilterIterator(
 				new \RecursiveDirectoryIterator( $source, \FilesystemIterator::SKIP_DOTS ),
-				static function ( \SplFileInfo $item ) use ( $source, $exclude ): bool {
+				static function ( \SplFileInfo $item ) use ( $source, $exclude ) : bool {
 					$relative = str_replace( '\\', '/', substr( $item->getPathname(), strlen( $source ) + 1 ) );
 					return ! in_array( $relative, $exclude, true );
 				}
@@ -400,7 +400,7 @@ final class Builder {
 	 * @param string $destination Destination file.
 	 * @throws BuildException When the copy fails.
 	 */
-	private function copy_file( string $source, string $destination ): void {
+	private function copy_file( string $source, string $destination ) : void {
 		$this->make_dir( dirname( $destination ) );
 
 		if ( ! copy( $source, $destination ) ) {
@@ -417,7 +417,7 @@ final class Builder {
 	 * @param string $dir Directory.
 	 * @throws BuildException When creation fails.
 	 */
-	private function make_dir( string $dir ): void {
+	private function make_dir( string $dir ) : void {
 		if ( ! is_dir( $dir ) && ! mkdir( $dir, 0755, true ) && ! is_dir( $dir ) ) {
 			throw new BuildException( "Could not create {$dir}." );
 		}
@@ -428,7 +428,7 @@ final class Builder {
 	 *
 	 * @param string $dir Directory.
 	 */
-	private function remove_tree( string $dir ): void {
+	private function remove_tree( string $dir ) : void {
 		$iterator = new \RecursiveIteratorIterator(
 			new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS ),
 			\RecursiveIteratorIterator::CHILD_FIRST
@@ -447,7 +447,7 @@ final class Builder {
 	 * @param string $path Path.
 	 * @return string
 	 */
-	private function normalize( string $path ): string {
+	private function normalize( string $path ) : string {
 		$real = realpath( $path );
 		return rtrim( str_replace( '\\', '/', false !== $real ? $real : $path ), '/' );
 	}

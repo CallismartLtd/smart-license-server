@@ -27,11 +27,11 @@ defined( 'SMLISER_ROOT' ) || exit;
 | VARIABLES & DEFAULTS
 |--------------------------------------------------
 */
-$rest_base      = $rest_base   ?? '';
-$active_slug    = $active_slug ?? array_key_first( $menu ) ?? '';
-$repo_name      = (string) $settings->get( 'smliser_repository_name', SMLISER_APP_NAME );
-$terms_url      = URL::from( $settings->get( Settings::TERMS_URL, '' ) );
-$privacy_url    = URL::from( $settings->get( Settings::PRIVACY_POLICY_URL, '' ) );
+$rest_base   = $rest_base ?? '';
+$active_slug = $active_slug ?? array_key_first( $menu ) ?? '';
+$repo_name   = (string) $settings->get( 'smliser_repository_name', SMLISER_APP_NAME );
+$terms_url   = URL::from( $settings->get( Settings::TERMS_URL, '' ) );
+$privacy_url = URL::from( $settings->get( Settings::PRIVACY_POLICY_URL, '' ) );
 
 /*
 |--------------------------------------------------
@@ -39,7 +39,7 @@ $privacy_url    = URL::from( $settings->get( Settings::PRIVACY_POLICY_URL, '' ) 
 |--------------------------------------------------
 */
 
-$theme    = 'dark';
+$theme     = 'dark';
 $collapsed = false;
 
 
@@ -50,22 +50,22 @@ $collapsed = false;
 |    opens <div class="smlcd-layout" id="smlcd-layout">
 |--------------------------------------------------
 */
-$title  = $repo_name;
-$title  = ! empty( $menu )
-    ? sprintf( '%s — %s', $menu[$active_slug]['title'], $title ) ?? $title
-    : $title;
+$title = $repo_name;
+$title = ! empty( $menu )
+	? sprintf( '%s — %s', $menu[$active_slug]['title'], $title ) ?? $title
+	: $title;
 
 
 $this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
-    'menu'              => $menu,
-    'rest_base'         => $rest_base,
-    'active_slug'       => $active_slug,
-    'title'             => $title,
-    'repo_name'         => $repo_name,
-    'theme'             => $theme,
-    'collapsed'         => $collapsed,
-    'allowed_slugs'     => $slugs,
-    'assets_manager'    => $assets_manager
+	'menu'           => $menu,
+	'rest_base'      => $rest_base,
+	'active_slug'    => $active_slug,
+	'title'          => $title,
+	'repo_name'      => $repo_name,
+	'theme'          => $theme,
+	'collapsed'      => $collapsed,
+	'allowed_slugs'  => $slugs,
+	'assets_manager' => $assets_manager
 ] );
 
 /*
@@ -76,10 +76,10 @@ $this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
 */
 
 $this->render( AuthForms::INDEX_CONTENT_TEMPLATE, [
-    'rest_base'     => $rest_base,
-    'active_slug'   => $active_slug,
-    'repo_name'     => $repo_name,
-    'request'       => $request
+	'rest_base'   => $rest_base,
+	'active_slug' => $active_slug,
+	'repo_name'   => $repo_name,
+	'request'     => $request
 ] );
 
 /*
@@ -89,5 +89,5 @@ $this->render( AuthForms::INDEX_CONTENT_TEMPLATE, [
 |--------------------------------------------------
 */
 $this->render( ClientDashboardRenderer::FOOTER_TEMPLATE, [
-    'assets_manager'    => $assets_manager
+	'assets_manager' => $assets_manager
 ] );

@@ -42,13 +42,13 @@ function smliser_safe_json_encode( mixed $data, int $flags = 0, int $depth = 512
  * @param mixed $data Data to encode and send.
  */
 function smliser_send_json( $data, $status_code = 200, $flags = 0 ) : never {
-    if ( ! headers_sent() ) {
-        http_response_code( $status_code );
-        header( 'Content-Type: application/json; charset=UTF-8' );
-    }
+	if ( ! headers_sent() ) {
+		http_response_code( $status_code );
+		header( 'Content-Type: application/json; charset=UTF-8' );
+	}
 
-    echo smliser_safe_json_encode( $data, $flags ); // phpcs:ignore
-    exit;
+	echo smliser_safe_json_encode( $data, $flags ); // phpcs:ignore
+	exit;
 }
 
 /**
@@ -59,26 +59,26 @@ function smliser_send_json( $data, $status_code = 200, $flags = 0 ) : never {
  * @param int $flags JSON encode flags.
  */
 function smliser_send_json_error( $data = null, $status_code = 400, $flags = 0 ) {
-    $response = array( 'success' => false );
+	$response = [ 'success' => false ];
 
-    if ( isset( $data ) ) {
-        if ( $data instanceof \SmartLicenseServer\Exceptions\Exception ) {
-            $error_data = $data->to_array();
-            if ( smliser_debug_enabled() ) {
-                unset( $error_data['trace'] );
-            } 
+	if ( isset( $data ) ) {
+		if ( $data instanceof \SmartLicenseServer\Exceptions\Exception ) {
+			$error_data = $data->to_array();
+			if ( smliser_debug_enabled() ) {
+				unset( $error_data['trace'] );
+			}
 
-            $response['data'] = $error_data;
+			$response['data'] = $error_data;
 
-            if ( isset( $data->get_error_data()['status'] ) ) {
-                $status_code = $data->get_error_data()['status'];
-            }
-        } else {
-            $response['data'] = $data;
-        }
-    }
+			if ( isset( $data->get_error_data()['status'] ) ) {
+				$status_code = $data->get_error_data()['status'];
+			}
+		} else {
+			$response['data'] = $data;
+		}
+	}
 
-    smliser_send_json( $response, $status_code, $flags );
+	smliser_send_json( $response, $status_code, $flags );
 }
 
 /**
@@ -89,13 +89,13 @@ function smliser_send_json_error( $data = null, $status_code = 400, $flags = 0 )
  * @param int $flags JSON encode flags.
  */
 function smliser_send_json_success( mixed $data = null, $status_code = 200, $flags = 0 ) {
-    $response = ['success' => true];
+	$response = ['success' => true];
 
-    if ( isset( $data ) ) {
-        $response['data'] = $data;
-    }
+	if ( isset( $data ) ) {
+		$response['data'] = $data;
+	}
 
-    smliser_send_json( $response, $status_code, $flags );
+	smliser_send_json( $response, $status_code, $flags );
 }
 
 /**
@@ -104,40 +104,40 @@ function smliser_send_json_success( mixed $data = null, $status_code = 200, $fla
  * @param mixed $data Data to sanitize.
  * @return mixed UTF-8 cleaned data.
  */
-function smliser_utf8ize( mixed $data ): mixed {
-    if ( is_string( $data ) ) {
-        // Native, high-performance C-level UTF-8 scrubbing (PHP 7.2+).
-        return function_exists( 'mb_scrub' ) 
-            ? mb_scrub( $data, 'UTF-8' ) 
-            : mb_convert_encoding( $data, 'UTF-8', 'UTF-8' );
-    }
+function smliser_utf8ize( mixed $data ) : mixed {
+	if ( is_string( $data ) ) {
+		// Native, high-performance C-level UTF-8 scrubbing (PHP 7.2+).
+		return function_exists( 'mb_scrub' )
+			? mb_scrub( $data, 'UTF-8' )
+			: mb_convert_encoding( $data, 'UTF-8', 'UTF-8' );
+	}
 
-    if ( is_array( $data ) ) {
-        $clean = [];
-        foreach ( $data as $key => $value ) {
-            $clean_key = is_string( $key ) ? smliser_utf8ize( $key ) : $key;
-            $clean[ $clean_key ] = smliser_utf8ize( $value );
-        }
-        return $clean;
-    }
+	if ( is_array( $data ) ) {
+		$clean = [];
+		foreach ( $data as $key => $value ) {
+			$clean_key           = is_string( $key ) ? smliser_utf8ize( $key ) : $key;
+			$clean[ $clean_key ] = smliser_utf8ize( $value );
+		}
+		return $clean;
+	}
 
-    if ( is_object( $data ) ) {
-        // Respect objects with custom JSON serialization.
-        if ( $data instanceof \JsonSerializable ) {
-            return smliser_utf8ize( $data->jsonSerialize() );
-        }
+	if ( is_object( $data ) ) {
+		// Respect objects with custom JSON serialization.
+		if ( $data instanceof \JsonSerializable ) {
+			return smliser_utf8ize( $data->jsonSerialize() );
+		}
 
-        // Clone to avoid mutating the original object instance.
-        $cloned = clone $data;
+		// Clone to avoid mutating the original object instance.
+		$cloned = clone $data;
 
-        // Clean public properties for standard stdClass objects.
-        foreach ( get_object_vars( $data ) as $key => $value ) {
-            $cloned->$key = smliser_utf8ize( $value );
-        }
+		// Clean public properties for standard stdClass objects.
+		foreach ( get_object_vars( $data ) as $key => $value ) {
+			$cloned->$key = smliser_utf8ize( $value );
+		}
 
-        return $cloned;
-    }
+		return $cloned;
+	}
 
-    // Scalar types (int, float, bool, null, resources) return unchanged.
-    return $data;
+	// Scalar types (int, float, bool, null, resources) return unchanged.
+	return $data;
 }

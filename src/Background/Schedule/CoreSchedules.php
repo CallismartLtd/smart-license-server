@@ -27,153 +27,153 @@ use SmartLicenseServer\SettingsAPI\Settings;
  * Registers all core automated tasks.
  */
 final class CoreSchedules {
-    public function __construct(
-        protected JobQueue $job_queue,
-        protected Settings $settings,
-        protected UpdateService $updates
-    ) {}
+	public function __construct(
+		protected JobQueue $job_queue,
+		protected Settings $settings,
+		protected UpdateService $updates
+	) {}
 
-    /**
-     * Callback to prune analytics log entry weekly.
-     */
-    public function pruneAnalyticsJob() : void {
-        $this->job_queue->dispatch(
-            JobDTO::make(
-                job_class : PruneAnalyticsLogsJob::class,
-                payload   : [],
-                queue     : JobDTO::QUEUE_LOW,
-            )
-        );
-    }
+	/**
+	 * Callback to prune analytics log entry weekly.
+	 */
+	public function pruneAnalyticsJob() : void {
+		$this->job_queue->dispatch(
+			JobDTO::make(
+				job_class : PruneAnalyticsLogsJob::class,
+				payload   : [],
+				queue     : JobDTO::QUEUE_LOW,
+			)
+		);
+	}
 
-    /**
-     * Callback to prune license activity log entry nightly.
-     */
-    public function pruneLicenseActivityJob() : void {
-        $this->job_queue->dispatch(
-            JobDTO::make(
-                job_class : PruneLicenseActivityLogsJob::class,
-                payload   : [],
-                queue     : JobDTO::QUEUE_LOW,
-            )
-        );
-    }
+	/**
+	 * Callback to prune license activity log entry nightly.
+	 */
+	public function pruneLicenseActivityJob() : void {
+		$this->job_queue->dispatch(
+			JobDTO::make(
+				job_class : PruneLicenseActivityLogsJob::class,
+				payload   : [],
+				queue     : JobDTO::QUEUE_LOW,
+			)
+		);
+	}
 
-    /**
-     * Callback to mark licenses that has past end date as expired and notify licensees.
-     */
-    public function markExpiredLicenses() : void {
-        $this->job_queue->dispatch(
-            JobDTO::make(
-                job_class : ExpireLicensesJob::class,
-                payload   : [ 'batch_size' => 100 ],
-                queue     : JobDTO::QUEUE_LOW,
-            )
-        );
-    }
+	/**
+	 * Callback to mark licenses that has past end date as expired and notify licensees.
+	 */
+	public function markExpiredLicenses() : void {
+		$this->job_queue->dispatch(
+			JobDTO::make(
+				job_class : ExpireLicensesJob::class,
+				payload   : [ 'batch_size' => 100 ],
+				queue     : JobDTO::QUEUE_LOW,
+			)
+		);
+	}
 
-    /**
-     * Send 7-day expiry reminder to licensees.
-     */
-    public function sendExpiringLicense7Days() : void {
-        $this->job_queue->dispatch(
-            JobDTO::make(
-                job_class : NotifyExpiringLicensesJob::class,
-                payload   : [ 'days_before' => 7, 'batch_size' => 100 ],
-                queue     : JobDTO::QUEUE_LOW,
-            )
-        );
-    }            
-    
-    /**
-     * Send 3-day expiry reminder to licensees.
-     */
-    public function sendExpiringLicense3Days() : void {
-        $this->job_queue->dispatch(
-            JobDTO::make(
-                job_class : NotifyExpiringLicensesJob::class,
-                payload   : [ 'days_before' => 3, 'batch_size' => 100 ],
-                queue     : JobDTO::QUEUE_LOW,
-            )
-        );
-    }
+	/**
+	 * Send 7-day expiry reminder to licensees.
+	 */
+	public function sendExpiringLicense7Days() : void {
+		$this->job_queue->dispatch(
+			JobDTO::make(
+				job_class : NotifyExpiringLicensesJob::class,
+				payload   : [ 'days_before' => 7, 'batch_size' => 100 ],
+				queue     : JobDTO::QUEUE_LOW,
+			)
+		);
+	}
+	
+	/**
+	 * Send 3-day expiry reminder to licensees.
+	 */
+	public function sendExpiringLicense3Days() : void {
+		$this->job_queue->dispatch(
+			JobDTO::make(
+				job_class : NotifyExpiringLicensesJob::class,
+				payload   : [ 'days_before' => 3, 'batch_size' => 100 ],
+				queue     : JobDTO::QUEUE_LOW,
+			)
+		);
+	}
 
-    /**
-     * Prune orphaned license meta rows weekly.
-     */
-    public function pruneOphanedLicenseMeta() : void {
-        $this->job_queue->dispatch(
-            JobDTO::make(
-                job_class : PruneLicenseMetaJob::class,
-                payload   : [],
-                queue     : JobDTO::QUEUE_LOW,
-            )
-        );
-    }
+	/**
+	 * Prune orphaned license meta rows weekly.
+	 */
+	public function pruneOphanedLicenseMeta() : void {
+		$this->job_queue->dispatch(
+			JobDTO::make(
+				job_class : PruneLicenseMetaJob::class,
+				payload   : [],
+				queue     : JobDTO::QUEUE_LOW,
+			)
+		);
+	}
 
-    /**
-     * Clean expired download tokens every 4 hours.
-     */
-    public function pruneExpiredDownloadtoken() : void {
-        $this->job_queue->dispatch(
-            JobDTO::make(
-                job_class : CleanExpiredTokensJob::class,
-                payload   : [],
-                queue     : JobDTO::QUEUE_LOW,
-            )
-        );
-    }
+	/**
+	 * Clean expired download tokens every 4 hours.
+	 */
+	public function pruneExpiredDownloadtoken() : void {
+		$this->job_queue->dispatch(
+			JobDTO::make(
+				job_class : CleanExpiredTokensJob::class,
+				payload   : [],
+				queue     : JobDTO::QUEUE_LOW,
+			)
+		);
+	}
 
-    /**
-     * Permanently delete trashed apps older than 30 days — weekly.
-     */
-    public function deleteTrashedApps() : void {
-        $this->job_queue->dispatch(
-            JobDTO::make(
-                job_class : CleanTrashedAppsJob::class,
-                payload   : [ 'days_in_trash' => 30, 'batch_size' => 50 ],
-                queue     : JobDTO::QUEUE_LOW,
-            )
-        );
-    }
+	/**
+	 * Permanently delete trashed apps older than 30 days — weekly.
+	 */
+	public function deleteTrashedApps() : void {
+		$this->job_queue->dispatch(
+			JobDTO::make(
+				job_class : CleanTrashedAppsJob::class,
+				payload   : [ 'days_in_trash' => 30, 'batch_size' => 50 ],
+				queue     : JobDTO::QUEUE_LOW,
+			)
+		);
+	}
 
-    /**
-     * Release stale running jobs every 15 minutes.
-     */
-    public function releaseStaleJobs() : void {
-        $this->job_queue->release_stale_running_jobs();
-    }
+	/**
+	 * Release stale running jobs every 15 minutes.
+	 */
+	public function releaseStaleJobs() : void {
+		$this->job_queue->release_stale_running_jobs();
+	}
 
-    /**
-     * Purge completed jobs older than 7 days, nightly.
-     */
-    public function purgeCompletedJobs() : void {
-        $this->job_queue->purge_completed_jobs(
-            (int) $this->settings->get( Settings::LOG_RETENTION_DAYS )
-        );
-    }
+	/**
+	 * Purge completed jobs older than 7 days, nightly.
+	 */
+	public function purgeCompletedJobs() : void {
+		$this->job_queue->purge_completed_jobs(
+			(int) $this->settings->get( Settings::LOG_RETENTION_DAYS )
+		);
+	}
 
-    /**
-     * Purge failed jobs.
-     */
-    public function purgeFailedJobs() : void {
-        $this->job_queue->purge_failed_jobs(
-            (int) $this->settings->get( Settings::LOG_RETENTION_DAYS )
-        );
-    }
+	/**
+	 * Purge failed jobs.
+	 */
+	public function purgeFailedJobs() : void {
+		$this->job_queue->purge_failed_jobs(
+			(int) $this->settings->get( Settings::LOG_RETENTION_DAYS )
+		);
+	}
 
-    /**
-     * Check for updates; queue the automatic update when the policy allows it.
-     */
-    public function checkForUpdates() : void {
-        if ( $this->updates->scheduled_check() ) {
-            $this->job_queue->dispatch(
-                JobDTO::make(
-                    job_class : ApplyUpdateJob::class,
-                    payload   : [],
-                    queue     : JobDTO::QUEUE_LOW,
-                )
-            );
-        }
-    }
+	/**
+	 * Check for updates; queue the automatic update when the policy allows it.
+	 */
+	public function checkForUpdates() : void {
+		if ( $this->updates->scheduled_check() ) {
+			$this->job_queue->dispatch(
+				JobDTO::make(
+					job_class : ApplyUpdateJob::class,
+					payload   : [],
+					queue     : JobDTO::QUEUE_LOW,
+				)
+			);
+		}
+	}
 }

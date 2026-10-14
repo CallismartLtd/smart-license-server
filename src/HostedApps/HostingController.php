@@ -30,833 +30,833 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * Software Hosting Controller handles HTTP request and response for hosted applications.
  */
 class HostingController {
-    use SanitizeAwareTrait, SecurityAwareTrait, QueueAwareTrait;
-
-    public function __construct(
-        protected URLManager $urlmanager,
-        Guard $guard,
-        protected Cache $cache,
-        JobQueue $job_queue
-        
-    ) {
-        $this->guard        = $guard;
-        $this->job_queue    = $job_queue;
-    }
-
-    /*
-    |---------------------------
-    | CREATE OPERATION METHODS
-    |---------------------------
-    */
-
-    /**
-     * Responds to requests to create or update an application.
-     * 
-     * @param Request $request
-     */
-    public function save_app( Request $request ) {
-        try {
-            static::check_permissions( 'hosted_apps.create', 'hosted_apps.update' );
-
-            $app_type = $request->get( 'app_type', null );
-
-            if ( ! $app_type ) {
-                throw new RequestException( 'invalid_parameter_type', 'The app_type parameter is required.' , array( 'status' => 400 ) );
-            }
-
-            $registry   = HostedAppsRegistry::instance();
-
-            if ( ! $registry->is_app_type_registered( $app_type ) ) {
-                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ) , array( 'status' => 400 ) );
-            }
-            
-            $app_id     = (int) $request->getTyped( 'app_id', 'int', 0 );
-            $app_slug   = (string) $request->getTyped( 'app_slug', 'string', '' );
-            $app_class  = $registry->get_app_type_class( $app_type );
-
-            $init_method    = $app_id ? 'get_app_by_id' : 'get_app_by_slug';
-            $arg            = $app_id ? $app_id : $app_slug;
-
-            if ( ! $app_class || ! class_exists( $app_class ) ) {
-                throw new RequestException( 'invalid_input', sprintf( 'App class for type "%s" not found.', $app_type ) , array( 'status' => 400 ) );
-            }
-            
-            if ( $arg ) {
-                $app    = HostedApplicationService::$init_method( $app_type, $arg );
-            } else {
-                $app    = new $app_class;
-            }
-
-            if ( ! $app instanceof AbstractHostedApp ) {
-                throw new RequestException( 'invalid_input', 'Sorry there is no app matching the provided slug or ID.' , array( 'status' => 404 ) );
-            }
-
-            static::check_app_ownership( $app );
-
-            $name   = $request->get( 'app_name', null );
-            
-            if ( ! $app->exists() && empty( $name ) ) {
-                throw new RequestException( 'invalid_input', 'Application name is required.' , array( 'status' => 400 ) );
-            }
-
-            $author = $request->get( 'app_author', null );
-
-            if ( ! $app->exists() && empty( $author ) ) {
-                throw new RequestException( 'invalid_input', 'Application author name is required.' , array( 'status' => 400 ) );
-            }
-
-            $app_zip_file = $request->get_file( 'app_zip_file' );
-            $author_url   = $request->get( 'app_author_url', '' );
-            $version      = $request->get( 'app_version', '' );
-
-            if ( ! $app->get_slug() && ! $request->isEmpty( 'app_slug' ) ) {
-                $app->set_slug( $request->get( 'app_slug' ) );
-            }
-
-            $app->set_name( $name ?: $app->get_name() );
-            $app->set_author( $author ?: $app->get_author() );
-            $app->set_author_profile( $author_url ?: $app->get_author_profile() );
-            $app->set_version( $version ?: $app->get_version() );
-            $app->set_file( $app_zip_file ?? '' );
-
-            /*
-            |------------------------------------------
-            | Capture pre-save state for job dispatching
-            |------------------------------------------
-            */
-            $is_new          = ! $app->exists();
-            $zip_uploaded    = $app_zip_file instanceof \SmartLicenseServer\Core\UploadedFile
-                               && $app_zip_file->is_upload_successful();
-            $old_owner_id    = $app->get_owner_id();
-        
-            if ( $app->exists() ) {
-
-                $update_method = "update_{$app_type}";
-
-                if ( ! method_exists( static::class, $update_method ) ) {
-                    throw new RequestException( 'internal_server_error', sprintf( 'The update method for the application type "%s" was not found!', $app_type ) , array( 'status' => 500 ) );
-                }
-
-                $updated = self::$update_method( $app, $request );
-
-                if ( is_smliser_error( $updated ) ) {
-                    throw $updated;
-                }
-
-                $is_admin   = $this->guard->get_principal()?->is( 'system_admin' ) ?? false;
-
-                if ( $is_admin && $request->hasValue( 'app_owner_id' ) ) {
-                    $app->set_owner_id( $request->get( 'app_owner_id' ) );
-                }
-                
-            } else if ( $request->hasValue( 'app_owner_id' ) ) {
-                $app->set_owner_id( $request->get( 'app_owner_id' ) );
-            } else {
-                $app->set_owner_id( $this->guard->get_principal()?->get_owner()?->get_id() ?? 0 );
-            }
-
-            $new_owner_id = $app->get_owner_id();
-            $owner_changed = ! $is_new && $new_owner_id !== $old_owner_id;
-
-            $result = $app->save();
-
-            if ( is_smliser_error( $result ) ) {
-                throw new RequestException(
-                    $result->get_error_code() ?: 'save_failed', $result->get_error_message(),
-                    $result->get_error_data()
-                );
-            }
-
-            if ( ! $request->isEmpty( 'app_status' ) && AbstractHostedApp::STATUS_TRASH !== $request->get( 'app_status' ) ) {
-                static::change_app_status( $request, $app );
-            }
-
-            /*
-            |------------------------------------------
-            | Dispatch background jobs
-            |------------------------------------------
-            */
-            $job_payload = [
-                'app_type' => $app->get_type(),
-                'app_slug' => $app->get_slug(),
-            ];
-
-            if ( $is_new ) {
-                // New app published.
-                $this->dispatch_job( SendAppPublishedEmailJob::class, $job_payload );
-
-            } else {
-                // Existing app zip updated — notify owner and licensees.
-                if ( $zip_uploaded ) {
-                    $this->dispatch_job( SendAppUpdatedEmailJob::class, $job_payload );
-                    $this->dispatch_job( NotifyAppUpdateJob::class, $job_payload );
-                }
-
-                // Ownership transferred.
-                if ( $owner_changed ) {
-                    $this->dispatch_job( SendAppOwnershipChangedEmailJob::class, array_merge( $job_payload, [
-                        'previous_owner_id' => $old_owner_id,
-                        'new_owner_id'      => $new_owner_id,
-                    ] ) );
-                }
-            }
-
-            $this->cache->clear();
-
-            $data = array(
-                'success'   => true,
-                'data'      => array(
-                    'message'       => sprintf( '%s Saved', ucfirst( $app_type ) ),
-                    'redirect_url'  => $this->urlmanager->admin_repo_url( 'edit', array( 'type' => $app_type, 'app_id' => $app->get_id() )
-                )
-            ));
-
-            $request->set( 'smliser_resource', $app );
-
-            return Response::json( $data, 200 )
-            ->set_request( $request )
-            ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Update a plugin.
-     * 
-     * @param Plugin $plugin The plugin ID.
-     * @param Request $request The request object.
-     * @return true|RequestException
-     */
-    protected function update_plugin( Plugin &$plugin, Request $request ) {
-        $manifest   = $request->get_file( 'app_json_file' );
-
-        if ( $manifest && $manifest->is_upload_successful() ) {
-            $plugin_manifest = static::extract_app_json_content( $request );
-
-            if ( $plugin_manifest instanceof RequestException ) {
-                return $plugin_manifest;
-            }
-
-            $plugin->set_manifest( $plugin_manifest );
-        }
-
-        $plugin->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
-        $plugin->update_meta( 'support_url', $request->get( 'app_support_url' ) );
-        $plugin->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
-
-        return true;
-    }
-
-    /**
-     * Update a theme.
-     * 
-     * @param Theme $theme
-     * @param Request $request
-     * @return true|RequestException
-     */
-    protected function update_theme( Theme &$theme, Request $request ) {
-        $manifest   = $request->get_file( 'app_json_file' );
-
-        if ( $manifest && $manifest->is_upload_successful() ) {
-            $theme_manifest = static::extract_app_json_content( $request );
-
-            if ( $theme_manifest instanceof RequestException ) {
-                return $theme_manifest;
-            }
-
-            $theme->set_manifest( $theme_manifest );
-        }
-    
-        $author     = $request->get( 'app_author', null );
-        $author_url = $request->get( 'app_author_url', '' );
-
-        $theme->set_author([
-            'author'                => $author,
-            'author_display_name'   => $author,
-            'author_url'            => $author_url,
-        ]);
-
-        $theme->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
-        $theme->update_meta( 'support_url', $request->get( 'app_support_url' ) );
-        $theme->update_meta( 'homepage_url', $request->get( 'app_homepage_url', '' ) );
-        $theme->update_meta( 'preview_url', $request->get( 'app_preview_url', '' ) );
-        $theme->update_meta( 'external_repository_url', $request->get( 'app_external_repository_url', '' ) );
-
-        return true;
-    }
-
-    /**
-     * Update software
-     *
-     * @param Software $software
-     * @param Request  $request
-     * @return true|Exception
-     */
-    protected function update_software( Software &$software, $request ) {
-
-        // Manifest is optional on update — if no app.json is provided the existing
-        // manifest is preserved. Allows CLI callers to update without re-uploading.
-        $uploaded_json = $request->get_file( 'app_json_file' );
-
-        if ( $uploaded_json && $uploaded_json->is_upload_successful() ) {
-            $manifest = static::extract_app_json_content( $request );
-
-            if ( $manifest instanceof RequestException ) {
-                return $manifest;
-            }
-
-            $software->set_manifest( $manifest );
-        }
-        $software->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
-        $software->update_meta( 'support_url', $request->get( 'app_support_url' ) );
-        $software->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
-        $software->update_meta( 'documentation_url', $request->get( 'app_documentation_url', null ) );
-        return true;
-    }
-
-    /**
-     * Helper method to extract the app.json file contents from the request.
-     * 
-     * @param Request $request The request object.
-     * @return RequestException|array
-     */
-    private function extract_app_json_content( Request $request ) : RequestException|array {
-        $uploaded_json = $request->get_file( 'app_json_file' );
-
-        if ( ! $uploaded_json || ! $uploaded_json->is_upload_successful() ) {
-            return new RequestException(
-                'missing_file',
-                'Please upload app.json file using "app_json_file" key in your file parameter.'
-            );
-        }
-
-        if ( ! $uploaded_json->is_uploaded_file() ) {
-            return new RequestException(
-                'missing_file',
-                'app.json files must be correctly uploaded.'
-            );
-        }
-
-        if ( 'json' !== $uploaded_json->get_canonical_extension() ) {
-            return new RequestException(
-                'missing_file',
-                'app.json files must be a json file.'
-            );
-        }
-
-        $contents = $uploaded_json->get_contents();
-
-        if ( false === $contents ) {
-            return new RequestException( 'file_read_error', 'Unable to read uploaded app.json file.' );
-        }
-
-        $manifest = json_decode( $contents, true );
-
-        if ( ! is_array( $manifest ) ) {
-            return new RequestException( 'invalid_app_json', 'Invalid app.json file. JSON could not be parsed.' );
-        }
-
-        return (array) static::sanitize_deep( $manifest );
-    }
-
-    /**
-     * Handles an application's asset upload using a standardized Request object.
-     *
-     * @param Request $request The standardized request object.
-     * @return Response
-     */
-    public function app_asset_upload( Request $request ) {
-        try {
-            static::check_permissions( 'hosted_apps.upload_assets', 'hosted_apps.edit_assets' );
-
-            $app_type   = $request->get( 'app_type' );
-            $app_slug   = $request->get( 'app_slug' );
-            $asset_type = $request->get( 'asset_type' );
-
-            $missing    = [];
-            foreach ( \compact( 'app_slug', 'app_type', 'asset_type' ) as $key => $value ) {
-                if ( empty( $value ) ) {
-                    $missing[] = $key;
-                }
-            }
-
-            if ( ! empty( $missing ) ) {
-                throw new RequestException(
-                    'required_param',
-                    sprintf( 'Missing required parameters: %s', implode( ', ', $missing ) )
-                );
-            }
-
-            unset( $missing );
-            
-            if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
-                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported.', $app_type ) );
-            }
-
-            $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( ! $app ) {
-                throw new RequestException( 'app_not_found' );
-            }
-
-            static::check_app_ownership( $app );
-
-            $asset_file = $request->get_files( 'asset_file' );
-            
-            if ( ! $asset_file || ! ( $asset_file->count() > 0 ) ) {
-                throw new RequestException( 'invalid_input', 'Upload at least one asset using "asset_file" or "asset_file[]" key in your file parameter name.' );
-            }
-
-            $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
-            
-            if ( ! $repo_class ) {
-                throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
-            }
-            
-            if ( $request->isPost() ) {
-                $result = $repo_class->safe_assets_upload( $app_slug, $asset_file, $asset_type );
-            } else {
-                static::check_permissions( 'hosted_apps.edit_assets' );
-
-                $file       = $asset_file->get(0);
-                $new_name   = $request->get( 'asset_name' );
-
-                if ( $new_name ) {
-                    $file->set_new_name( $new_name );
-                }
-                $result = $repo_class->put_app_asset( $app_slug, $asset_file->get(0), $asset_type );
-
-                if ( is_smliser_error( $result ) ) {
-                    throw new RequestException(
-                        $result->get_error_code() ?: 'asset_upload_failed',
-                        $result->get_error_message(),
-                    );
-                }
-            }
-
-            $this->cache->clear();
-            
-            return Response::json(
-                [ 'success' => true, 'result' => $result ],
-                200
-            );
-
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Handles an application's asset deletion using a standardized Request object.
-     *
-     * @param Request $request The standardized request object.
-     * @return Response
-     */
-    public function app_asset_delete( Request $request ) {
-        try {
-            static::check_permissions( 'hosted_apps.delete_assets' );
-
-            $app_type   = $request->get( 'app_type' );
-            $app_slug   = $request->get( 'app_slug' );
-            $asset_name = $request->get( 'asset_name' );
-
-            $missing    = [];
-            foreach ( \compact( 'app_slug', 'app_type' ) as $key => $value ) {
-                if ( empty( $value ) ) {
-                    $missing[] = $key;
-                }
-            }
-
-            if ( ! empty( $missing ) ) {
-                throw new RequestException(
-                    'required_param',
-                    sprintf( 'Missing required parameters: %s', implode( ', ', $missing ) ),
-                    ['status' => 400]
-                );
-            }
-
-            unset( $missing );
-
-            if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
-                throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ), ['status' => 400] );
-            }
-
-            $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( ! $app ) {
-                throw new RequestException( 'app_not_found' );
-            }
-
-            static::check_app_ownership( $app );
-
-            $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
-            
-            if ( ! $repo_class ) {
-                throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.', ['status' => 500] );
-            }
-
-            $result = $repo_class->delete_asset( $app_slug, $asset_name );
-
-            if ( is_smliser_error( $result ) ) {
-                throw new RequestException(
-                    $result->get_error_code() ?: 'asset_deletion_failed',
-                    $result->get_error_message(),
-                    $result->get_error_data()
-                );
-            }
-
-           $this->cache->clear();
-
-            return Response::json(
-                [ 'success' => true, 'data' => [ 'message' => 'Asset deleted successfully.' ] ],
-                200
-            );
-
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Handles application artifact upload.
-     * 
-     * @param Request $request The request object.
-     * @return Response
-     */
-    public function app_artifact_upload( Request $request ): Response {
-        try {
-            $is_edit    = $request->isPut() || $request->isPatch();
-            
-            if ( $is_edit ) {
-                static::check_permissions( 'hosted_apps.edit_assets' );
-            } else {
-                static::check_permissions( 'hosted_apps.upload_assets' );
-            }
-
-            $app_type   = (string) $request->get( 'app_type', '' );
-            $app_slug   = (string) $request->get( 'app_slug', '' );
-            $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( ! $app ) {
-                throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was not found.', $app_type, $app_slug ), array( 'status' => 404 ) );
-            }
-
-            static::check_app_ownership( $app );
-
-            $registry   = HostedAppsRegistry::instance();
-            $repo_class = $registry->get_app_type_directory_class( $app_type );
-
-            if ( ! $repo_class ) {
-                throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.', array( 'status' => 500 ) );
-            }
-
-            $current_filename   = (string) $request->get( 'artifact_filename', '' );
-
-            if ( $is_edit && '' === $current_filename ) {
-                throw new RequestException(
-                    'required_param',
-                    'The artifact filename is required.'
-                );
-            }
-            
-            $canonical_filename = (string) $request->get( 'canonical_filename', '' );
-
-            if ( ! $canonical_filename ) {
-                throw new RequestException( 'required_param', 'The canonical filename for this artifact is required.' );
-            }
-
-            // Redundant is better.
-            $contains_dir_seps = str_contains( $canonical_filename, DIRECTORY_SEPARATOR ) 
-                || str_contains( $canonical_filename, '/' ) || str_contains( $canonical_filename, '\\' );
-
-            if ( $contains_dir_seps ) {
-                throw new RequestException( 'invalid_input', 'The artifact name must not contain directory separators.' );
-            }
-
-            unset( $contains_dir_seps );
-
-            $artifact_file      = $request->get_file( 'artifact_file' );
-            $canonical_filename = FileSystemHelper::sanitize_filename( $canonical_filename );
-
-            if ( '' === $canonical_filename ) {
-                throw new RequestException(
-                    'invalid_input',
-                    'The artifact filename is invalid.'
-                );
-            }
-
-            if ( null === $artifact_file ) {
-
-                if ( ! $is_edit ) {
-                    throw new RequestException( 'required_param', 'Please upload the artifact file using "artifact_file" as file parameter key.' );
-                }
-
-                $response_data  = $repo_class->rename_artifact( $app->get_slug(), $current_filename, $canonical_filename );
-
-            } else {
-                $artifact_file->set_new_name( $canonical_filename );
-                
-                $response_data = $repo_class->upload_artifact([
-                    'app_slug'      => $app->get_slug(),
-                    'file'          => $artifact_file,
-                    'new_filename'  => $canonical_filename,
-                    'filename'      => $current_filename,
-                    'overwrite'     => $is_edit
-                ]);
-            }
-
-            if ( $response_data instanceof Exception ) {
-                throw new RequestException(
-                    $response_data->get_error_code(),
-                    $response_data->get_error_message(),
-                    $response_data->get_error_data()
-                );
-            } 
-
-            $response_data['download_url']  = $this->urlmanager->app_artifact_download_url(
-                $app->get_type(),
-                $app->get_slug(),
-                $response_data['filename']
-            );
-            $response   = ['success' => true, 'data' => $response_data ];
-
-            return Response::json( $response, 200 );
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Handles application artifact deletion.
-     *
-     * @param Request $request The request object.
-     * @return Response
-     */
-    public function app_artifact_delete( Request $request ): Response {
-        try {
-            static::check_permissions( 'hosted_apps.delete_assets', 'hosted_apps.edit_assets' );
-
-            $app_type          = (string) $request->get( 'app_type', '' );
-            $app_slug          = (string) $request->get( 'app_slug', '' );
-            $artifact_filename = (string) $request->get( 'artifact_filename', '' );
-
-            $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( ! $app ) {
-                throw new RequestException(
-                    'resource_not_found',
-                    sprintf(
-                        'The %s with slug "%s" was not found.',
-                        $app_type,
-                        $app_slug
-                    ),
-                    [ 'status' => 404 ]
-                );
-            }
-
-            static::check_app_ownership( $app );
-
-            if ( '' === $artifact_filename ) {
-                throw new RequestException(
-                    'required_param',
-                    'The artifact filename is required.'
-                );
-            }
-
-            if (
-                str_contains( $artifact_filename, '/' ) ||
-                str_contains( $artifact_filename, '\\' )
-            ) {
-                throw new RequestException(
-                    'invalid_input',
-                    'The artifact filename must not contain directory separators.'
-                );
-            }
-
-            $registry   = HostedAppsRegistry::instance();
-            $repo_class = $registry->get_app_type_directory_class( $app_type );
-
-            if ( ! $repo_class ) {
-                throw new RequestException(
-                    'internal_server_error',
-                    'Unable to resolve repository class.',
-                    [ 'status' => 500 ]
-                );
-            }
-
-            $response = $repo_class->delete_artifact( $app->get_slug(), $artifact_filename );
-
-            if ( $response instanceof Exception ) {
-                throw new RequestException(
-                    $response->get_error_code(),
-                    $response->get_error_message(),
-                    $response->get_error_data()
-                );
-            }
-
-            $response_data = [
-                'success' => true,
-                'message'   => 'Deleted successfully',
-                'data'    => [
-                    'filename' => $artifact_filename,
-                    'deleted'  => true,
-                ],
-            ];
-
-            return Response::json( $response_data, 200 );
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Perform a status change on a hosted app.
-     *
-     * @param Request $request The request object.
-     * @param AbstractHostedApp|null $app
-     * @return Response
-     */
-    public function change_app_status( Request $request, ?AbstractHostedApp $app = null ) : Response {
-        try {
-            static::check_permissions( 'hosted_apps.change_status' );
-
-            $app_slug   = $request->get( 'app_slug' );
-            $app_type   = $request->get( 'app_type' );
-            $app        = $app ?? HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            if ( ! $app ) {
-                throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was not found', $app_type, $app_slug ), array( 'status' => 404 ) );
-            }
-
-            static::check_app_ownership( $app );
-
-            $status           = $request->get( 'app_status' );
-            $known_statuses   = array_keys( $app->get_statuses() );
-
-            if ( ! in_array( $status, $known_statuses, true ) ) {
-                throw new RequestException( 'invalid_input', sprintf( 'The status "%s" is not valid for the %s with slug "%s"', $status, $app_type, $app_slug ), array( 'status' => 400 ) );
-            }
-
-            $old_status = $app->get_status();
-
-            if ( $old_status === $status ) {
-                throw new RequestException( 'precondition_failed', sprintf( 'Status is already "%s".', $status ) );
-            }
-            
-            $app->set_status( $status );
-            $saved = $app->save();
-
-            if ( $saved instanceof Exception ) {
-                throw new RequestException( 'status_change_failed', sprintf( 'Failed to change status for the %s from %s to %s, error: %s', $app_type, $old_status, $status, $saved->get_error_message() ), array( 'status' => 500 ) );
-            }
-
-            // Deal with trashed apps.
-            if ( in_array( AbstractHostedApp::STATUS_TRASH, array( $old_status, $status ), true ) ) {
-                static::check_permissions( 'hosted_apps.delete' );
-
-                $repo_class = HostedApplicationService::get_app_repository_class( $app_type );
-                
-                if ( ! $repo_class ) {
-                    throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
-                }
-
-                if ( $old_status === AbstractHostedApp::STATUS_TRASH && $status !== AbstractHostedApp::STATUS_TRASH ) {
-                    $repo_class->restore_from_trash( $app->get_slug() );
-                } elseif ( $status === AbstractHostedApp::STATUS_TRASH ) {
-                    $repo_class->queue_app_for_deletion( $app->get_slug() );
-                }
-            }
-
-            // Dispatch status change notification — skip trash transitions
-            // since CleanTrashedAppsJob handles permanent deletion silently.
-            if ( $status !== AbstractHostedApp::STATUS_TRASH ) {
-                $this->dispatch_job( SendAppStatusChangedEmailJob::class, [
-                    'app_type'      => $app->get_type(),
-                    'app_slug'      => $app->get_slug(),
-                    'old_status'    =>  $old_status,
-                    'new_status'    => $status,
-                    'reason'        => $request->get( 'status_change_reason', '' ),
-                ] );
-            }
-
-           $this->cache->clear();
-
-            $data = array(
-                'message'       => sprintf( '%s status changed from %s to %s', ucfirst( $app_type ), $old_status, $status ),
-                'redirect_url'  => $this->urlmanager->admin_repo_url( 'view', array( 'type' => $app->get_type(), 'app_id' => $app->get_id() ) )
-            );
-
-            return Response::json( [ 'success' => true, 'data' => $data ], 200 );
-
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
-        }
-    }
-
-    /**
-     * Perform bulk action on hosted apps
-     * 
-     * @param Request $request The request object.
-     * @return Response
-     */
-    public function app_bulk_action( Request $request ) : Response {
-        try {
-            static::is_system_admin();
-
-            $app_ids    = $request->get( 'ids', [] );
-            $action     = $request->get( 'bulk_action' );
-            $affected   = 0;
-
-            foreach( (array) $app_ids as $data ) {
-                $type   = $data['app_type'] ?? '';
-                $slug   = $data['app_slug'] ?? '';
-
-                if ( empty( $type ) || empty( $slug ) ) {
-                    continue;
-                }
-
-                $app = HostedApplicationService::get_app_by_slug( $type, $slug );
-
-                if ( ! $app ) {
-                    continue;
-                }
-
-                $new_request    = new Request( array(
-                    'app_type' => $type,
-                    'app_slug' => $slug,
-                    'app_status' => $action,
-                ) );
-
-                $new_request->set_headers( $request->get_headers() );
-
-                $response = static::change_app_status( $new_request, $app );
-
-                $response->ok() && $affected++;
-            }
-
-            $url = $this->urlmanager->admin_repo_url( 'admin' )
-                ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
-
-            $response = ( new Response( 200, [], '' ) )
-                ->set_request( $request )
-                ->set_header( 'Location', $url->url() );
-
-           $this->cache->clear();
-            return $response;
-
-        } catch ( Exception $e ) {
-            $url = $this->urlmanager->admin_repo_url( 'admin' )
-                ->add_query_param( 'message', \sprintf( 'Error: %s', $e->get_error_message() ) );
-
-            return ( new Response() )
-                ->set_header( 'Location', $url->url() );
-        }
-    }
+	use SanitizeAwareTrait, SecurityAwareTrait, QueueAwareTrait;
+
+	public function __construct(
+		protected URLManager $urlmanager,
+		Guard $guard,
+		protected Cache $cache,
+		JobQueue $job_queue
+		
+	) {
+		$this->guard     = $guard;
+		$this->job_queue = $job_queue;
+	}
+
+	/*
+	|---------------------------
+	| CREATE OPERATION METHODS
+	|---------------------------
+	*/
+
+	/**
+	 * Responds to requests to create or update an application.
+	 * 
+	 * @param Request $request
+	 */
+	public function save_app( Request $request ) {
+		try {
+			static::check_permissions( 'hosted_apps.create', 'hosted_apps.update' );
+
+			$app_type = $request->get( 'app_type', null );
+
+			if ( ! $app_type ) {
+				throw new RequestException( 'invalid_parameter_type', 'The app_type parameter is required.' , [ 'status' => 400 ] );
+			}
+
+			$registry = HostedAppsRegistry::instance();
+
+			if ( ! $registry->is_app_type_registered( $app_type ) ) {
+				throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ) , [ 'status' => 400 ] );
+			}
+			
+			$app_id    = (int) $request->getTyped( 'app_id', 'int', 0 );
+			$app_slug  = (string) $request->getTyped( 'app_slug', 'string', '' );
+			$app_class = $registry->get_app_type_class( $app_type );
+
+			$init_method = $app_id ? 'get_app_by_id' : 'get_app_by_slug';
+			$arg         = $app_id ? $app_id : $app_slug;
+
+			if ( ! $app_class || ! class_exists( $app_class ) ) {
+				throw new RequestException( 'invalid_input', sprintf( 'App class for type "%s" not found.', $app_type ) , [ 'status' => 400 ] );
+			}
+			
+			if ( $arg ) {
+				$app = HostedApplicationService::$init_method( $app_type, $arg );
+			} else {
+				$app = new $app_class;
+			}
+
+			if ( ! $app instanceof AbstractHostedApp ) {
+				throw new RequestException( 'invalid_input', 'Sorry there is no app matching the provided slug or ID.' , [ 'status' => 404 ] );
+			}
+
+			static::check_app_ownership( $app );
+
+			$name = $request->get( 'app_name', null );
+			
+			if ( ! $app->exists() && empty( $name ) ) {
+				throw new RequestException( 'invalid_input', 'Application name is required.' , [ 'status' => 400 ] );
+			}
+
+			$author = $request->get( 'app_author', null );
+
+			if ( ! $app->exists() && empty( $author ) ) {
+				throw new RequestException( 'invalid_input', 'Application author name is required.' , [ 'status' => 400 ] );
+			}
+
+			$app_zip_file = $request->get_file( 'app_zip_file' );
+			$author_url   = $request->get( 'app_author_url', '' );
+			$version      = $request->get( 'app_version', '' );
+
+			if ( ! $app->get_slug() && ! $request->isEmpty( 'app_slug' ) ) {
+				$app->set_slug( $request->get( 'app_slug' ) );
+			}
+
+			$app->set_name( $name ?: $app->get_name() );
+			$app->set_author( $author ?: $app->get_author() );
+			$app->set_author_profile( $author_url ?: $app->get_author_profile() );
+			$app->set_version( $version ?: $app->get_version() );
+			$app->set_file( $app_zip_file ?? '' );
+
+			/*
+			|------------------------------------------
+			| Capture pre-save state for job dispatching
+			|------------------------------------------
+			*/
+			$is_new       = ! $app->exists();
+			$zip_uploaded = $app_zip_file instanceof \SmartLicenseServer\Core\UploadedFile
+							   && $app_zip_file->is_upload_successful();
+			$old_owner_id = $app->get_owner_id();
+		
+			if ( $app->exists() ) {
+
+				$update_method = "update_{$app_type}";
+
+				if ( ! method_exists( static::class, $update_method ) ) {
+					throw new RequestException( 'internal_server_error', sprintf( 'The update method for the application type "%s" was not found!', $app_type ) , [ 'status' => 500 ] );
+				}
+
+				$updated = self::$update_method( $app, $request );
+
+				if ( is_smliser_error( $updated ) ) {
+					throw $updated;
+				}
+
+				$is_admin = $this->guard->get_principal()?->is( 'system_admin' ) ?? false;
+
+				if ( $is_admin && $request->hasValue( 'app_owner_id' ) ) {
+					$app->set_owner_id( $request->get( 'app_owner_id' ) );
+				}
+				
+			} else if ( $request->hasValue( 'app_owner_id' ) ) {
+				$app->set_owner_id( $request->get( 'app_owner_id' ) );
+			} else {
+				$app->set_owner_id( $this->guard->get_principal()?->get_owner()?->get_id() ?? 0 );
+			}
+
+			$new_owner_id  = $app->get_owner_id();
+			$owner_changed = ! $is_new && $new_owner_id !== $old_owner_id;
+
+			$result = $app->save();
+
+			if ( is_smliser_error( $result ) ) {
+				throw new RequestException(
+					$result->get_error_code() ?: 'save_failed', $result->get_error_message(),
+					$result->get_error_data()
+				);
+			}
+
+			if ( ! $request->isEmpty( 'app_status' ) && AbstractHostedApp::STATUS_TRASH !== $request->get( 'app_status' ) ) {
+				static::change_app_status( $request, $app );
+			}
+
+			/*
+			|------------------------------------------
+			| Dispatch background jobs
+			|------------------------------------------
+			*/
+			$job_payload = [
+				'app_type' => $app->get_type(),
+				'app_slug' => $app->get_slug(),
+			];
+
+			if ( $is_new ) {
+				// New app published.
+				$this->dispatch_job( SendAppPublishedEmailJob::class, $job_payload );
+
+			} else {
+				// Existing app zip updated — notify owner and licensees.
+				if ( $zip_uploaded ) {
+					$this->dispatch_job( SendAppUpdatedEmailJob::class, $job_payload );
+					$this->dispatch_job( NotifyAppUpdateJob::class, $job_payload );
+				}
+
+				// Ownership transferred.
+				if ( $owner_changed ) {
+					$this->dispatch_job( SendAppOwnershipChangedEmailJob::class, array_merge( $job_payload, [
+						'previous_owner_id' => $old_owner_id,
+						'new_owner_id'      => $new_owner_id,
+					] ) );
+				}
+			}
+
+			$this->cache->clear();
+
+			$data = [
+				'success' => true,
+				'data'    => [
+					'message'      => sprintf( '%s Saved', ucfirst( $app_type ) ),
+					'redirect_url' => $this->urlmanager->admin_repo_url( 'edit', [ 'type' => $app_type, 'app_id' => $app->get_id() ]
+				)
+			]];
+
+			$request->set( 'smliser_resource', $app );
+
+			return Response::json( $data, 200 )
+			->set_request( $request )
+			->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Update a plugin.
+	 * 
+	 * @param Plugin $plugin The plugin ID.
+	 * @param Request $request The request object.
+	 * @return true|RequestException
+	 */
+	protected function update_plugin( Plugin &$plugin, Request $request ) {
+		$manifest = $request->get_file( 'app_json_file' );
+
+		if ( $manifest && $manifest->is_upload_successful() ) {
+			$plugin_manifest = static::extract_app_json_content( $request );
+
+			if ( $plugin_manifest instanceof RequestException ) {
+				return $plugin_manifest;
+			}
+
+			$plugin->set_manifest( $plugin_manifest );
+		}
+
+		$plugin->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
+		$plugin->update_meta( 'support_url', $request->get( 'app_support_url' ) );
+		$plugin->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
+
+		return true;
+	}
+
+	/**
+	 * Update a theme.
+	 * 
+	 * @param Theme $theme
+	 * @param Request $request
+	 * @return true|RequestException
+	 */
+	protected function update_theme( Theme &$theme, Request $request ) {
+		$manifest = $request->get_file( 'app_json_file' );
+
+		if ( $manifest && $manifest->is_upload_successful() ) {
+			$theme_manifest = static::extract_app_json_content( $request );
+
+			if ( $theme_manifest instanceof RequestException ) {
+				return $theme_manifest;
+			}
+
+			$theme->set_manifest( $theme_manifest );
+		}
+	
+		$author     = $request->get( 'app_author', null );
+		$author_url = $request->get( 'app_author_url', '' );
+
+		$theme->set_author( [
+			'author'              => $author,
+			'author_display_name' => $author,
+			'author_url'          => $author_url,
+		] );
+
+		$theme->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
+		$theme->update_meta( 'support_url', $request->get( 'app_support_url' ) );
+		$theme->update_meta( 'homepage_url', $request->get( 'app_homepage_url', '' ) );
+		$theme->update_meta( 'preview_url', $request->get( 'app_preview_url', '' ) );
+		$theme->update_meta( 'external_repository_url', $request->get( 'app_external_repository_url', '' ) );
+
+		return true;
+	}
+
+	/**
+	 * Update software
+	 *
+	 * @param Software $software
+	 * @param Request  $request
+	 * @return true|Exception
+	 */
+	protected function update_software( Software &$software, $request ) {
+
+		// Manifest is optional on update — if no app.json is provided the existing
+		// manifest is preserved. Allows CLI callers to update without re-uploading.
+		$uploaded_json = $request->get_file( 'app_json_file' );
+
+		if ( $uploaded_json && $uploaded_json->is_upload_successful() ) {
+			$manifest = static::extract_app_json_content( $request );
+
+			if ( $manifest instanceof RequestException ) {
+				return $manifest;
+			}
+
+			$software->set_manifest( $manifest );
+		}
+		$software->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
+		$software->update_meta( 'support_url', $request->get( 'app_support_url' ) );
+		$software->update_meta( 'homepage_url', $request->get( 'app_homepage_url', null ) );
+		$software->update_meta( 'documentation_url', $request->get( 'app_documentation_url', null ) );
+		return true;
+	}
+
+	/**
+	 * Helper method to extract the app.json file contents from the request.
+	 * 
+	 * @param Request $request The request object.
+	 * @return RequestException|array
+	 */
+	private function extract_app_json_content( Request $request ) : RequestException|array {
+		$uploaded_json = $request->get_file( 'app_json_file' );
+
+		if ( ! $uploaded_json || ! $uploaded_json->is_upload_successful() ) {
+			return new RequestException(
+				'missing_file',
+				'Please upload app.json file using "app_json_file" key in your file parameter.'
+			);
+		}
+
+		if ( ! $uploaded_json->is_uploaded_file() ) {
+			return new RequestException(
+				'missing_file',
+				'app.json files must be correctly uploaded.'
+			);
+		}
+
+		if ( 'json' !== $uploaded_json->get_canonical_extension() ) {
+			return new RequestException(
+				'missing_file',
+				'app.json files must be a json file.'
+			);
+		}
+
+		$contents = $uploaded_json->get_contents();
+
+		if ( false === $contents ) {
+			return new RequestException( 'file_read_error', 'Unable to read uploaded app.json file.' );
+		}
+
+		$manifest = json_decode( $contents, true );
+
+		if ( ! is_array( $manifest ) ) {
+			return new RequestException( 'invalid_app_json', 'Invalid app.json file. JSON could not be parsed.' );
+		}
+
+		return (array) static::sanitize_deep( $manifest );
+	}
+
+	/**
+	 * Handles an application's asset upload using a standardized Request object.
+	 *
+	 * @param Request $request The standardized request object.
+	 * @return Response
+	 */
+	public function app_asset_upload( Request $request ) {
+		try {
+			static::check_permissions( 'hosted_apps.upload_assets', 'hosted_apps.edit_assets' );
+
+			$app_type   = $request->get( 'app_type' );
+			$app_slug   = $request->get( 'app_slug' );
+			$asset_type = $request->get( 'asset_type' );
+
+			$missing = [];
+			foreach ( \compact( 'app_slug', 'app_type', 'asset_type' ) as $key => $value ) {
+				if ( empty( $value ) ) {
+					$missing[] = $key;
+				}
+			}
+
+			if ( ! empty( $missing ) ) {
+				throw new RequestException(
+					'required_param',
+					sprintf( 'Missing required parameters: %s', implode( ', ', $missing ) )
+				);
+			}
+
+			unset( $missing );
+			
+			if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
+				throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported.', $app_type ) );
+			}
+
+			$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app ) {
+				throw new RequestException( 'app_not_found' );
+			}
+
+			static::check_app_ownership( $app );
+
+			$asset_file = $request->get_files( 'asset_file' );
+			
+			if ( ! $asset_file || ! ( $asset_file->count() > 0 ) ) {
+				throw new RequestException( 'invalid_input', 'Upload at least one asset using "asset_file" or "asset_file[]" key in your file parameter name.' );
+			}
+
+			$repo_class = HostedApplicationService::get_app_repository_class( $app_type );
+			
+			if ( ! $repo_class ) {
+				throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
+			}
+			
+			if ( $request->isPost() ) {
+				$result = $repo_class->safe_assets_upload( $app_slug, $asset_file, $asset_type );
+			} else {
+				static::check_permissions( 'hosted_apps.edit_assets' );
+
+				$file     = $asset_file->get( 0 );
+				$new_name = $request->get( 'asset_name' );
+
+				if ( $new_name ) {
+					$file->set_new_name( $new_name );
+				}
+				$result = $repo_class->put_app_asset( $app_slug, $asset_file->get( 0 ), $asset_type );
+
+				if ( is_smliser_error( $result ) ) {
+					throw new RequestException(
+						$result->get_error_code() ?: 'asset_upload_failed',
+						$result->get_error_message(),
+					);
+				}
+			}
+
+			$this->cache->clear();
+			
+			return Response::json(
+				[ 'success' => true, 'result' => $result ],
+				200
+			);
+
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Handles an application's asset deletion using a standardized Request object.
+	 *
+	 * @param Request $request The standardized request object.
+	 * @return Response
+	 */
+	public function app_asset_delete( Request $request ) {
+		try {
+			static::check_permissions( 'hosted_apps.delete_assets' );
+
+			$app_type   = $request->get( 'app_type' );
+			$app_slug   = $request->get( 'app_slug' );
+			$asset_name = $request->get( 'asset_name' );
+
+			$missing = [];
+			foreach ( \compact( 'app_slug', 'app_type' ) as $key => $value ) {
+				if ( empty( $value ) ) {
+					$missing[] = $key;
+				}
+			}
+
+			if ( ! empty( $missing ) ) {
+				throw new RequestException(
+					'required_param',
+					sprintf( 'Missing required parameters: %s', implode( ', ', $missing ) ),
+					['status' => 400]
+				);
+			}
+
+			unset( $missing );
+
+			if ( ! HostedApplicationService::app_type_is_allowed( $app_type ) ) {
+				throw new RequestException( 'invalid_input', sprintf( 'The app type "%s" is not supported', $app_type ), ['status' => 400] );
+			}
+
+			$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app ) {
+				throw new RequestException( 'app_not_found' );
+			}
+
+			static::check_app_ownership( $app );
+
+			$repo_class = HostedApplicationService::get_app_repository_class( $app_type );
+			
+			if ( ! $repo_class ) {
+				throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.', ['status' => 500] );
+			}
+
+			$result = $repo_class->delete_asset( $app_slug, $asset_name );
+
+			if ( is_smliser_error( $result ) ) {
+				throw new RequestException(
+					$result->get_error_code() ?: 'asset_deletion_failed',
+					$result->get_error_message(),
+					$result->get_error_data()
+				);
+			}
+
+		   $this->cache->clear();
+
+			return Response::json(
+				[ 'success' => true, 'data' => [ 'message' => 'Asset deleted successfully.' ] ],
+				200
+			);
+
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Handles application artifact upload.
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response
+	 */
+	public function app_artifact_upload( Request $request ) : Response {
+		try {
+			$is_edit = $request->isPut() || $request->isPatch();
+			
+			if ( $is_edit ) {
+				static::check_permissions( 'hosted_apps.edit_assets' );
+			} else {
+				static::check_permissions( 'hosted_apps.upload_assets' );
+			}
+
+			$app_type = (string) $request->get( 'app_type', '' );
+			$app_slug = (string) $request->get( 'app_slug', '' );
+			$app      = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app ) {
+				throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was not found.', $app_type, $app_slug ), [ 'status' => 404 ] );
+			}
+
+			static::check_app_ownership( $app );
+
+			$registry   = HostedAppsRegistry::instance();
+			$repo_class = $registry->get_app_type_directory_class( $app_type );
+
+			if ( ! $repo_class ) {
+				throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.', [ 'status' => 500 ] );
+			}
+
+			$current_filename = (string) $request->get( 'artifact_filename', '' );
+
+			if ( $is_edit && '' === $current_filename ) {
+				throw new RequestException(
+					'required_param',
+					'The artifact filename is required.'
+				);
+			}
+			
+			$canonical_filename = (string) $request->get( 'canonical_filename', '' );
+
+			if ( ! $canonical_filename ) {
+				throw new RequestException( 'required_param', 'The canonical filename for this artifact is required.' );
+			}
+
+			// Redundant is better.
+			$contains_dir_seps = str_contains( $canonical_filename, DIRECTORY_SEPARATOR )
+				|| str_contains( $canonical_filename, '/' ) || str_contains( $canonical_filename, '\\' );
+
+			if ( $contains_dir_seps ) {
+				throw new RequestException( 'invalid_input', 'The artifact name must not contain directory separators.' );
+			}
+
+			unset( $contains_dir_seps );
+
+			$artifact_file      = $request->get_file( 'artifact_file' );
+			$canonical_filename = FileSystemHelper::sanitize_filename( $canonical_filename );
+
+			if ( '' === $canonical_filename ) {
+				throw new RequestException(
+					'invalid_input',
+					'The artifact filename is invalid.'
+				);
+			}
+
+			if ( null === $artifact_file ) {
+
+				if ( ! $is_edit ) {
+					throw new RequestException( 'required_param', 'Please upload the artifact file using "artifact_file" as file parameter key.' );
+				}
+
+				$response_data = $repo_class->rename_artifact( $app->get_slug(), $current_filename, $canonical_filename );
+
+			} else {
+				$artifact_file->set_new_name( $canonical_filename );
+				
+				$response_data = $repo_class->upload_artifact( [
+					'app_slug'     => $app->get_slug(),
+					'file'         => $artifact_file,
+					'new_filename' => $canonical_filename,
+					'filename'     => $current_filename,
+					'overwrite'    => $is_edit
+				] );
+			}
+
+			if ( $response_data instanceof Exception ) {
+				throw new RequestException(
+					$response_data->get_error_code(),
+					$response_data->get_error_message(),
+					$response_data->get_error_data()
+				);
+			}
+
+			$response_data['download_url'] = $this->urlmanager->app_artifact_download_url(
+				$app->get_type(),
+				$app->get_slug(),
+				$response_data['filename']
+			);
+			$response = ['success' => true, 'data' => $response_data ];
+
+			return Response::json( $response, 200 );
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Handles application artifact deletion.
+	 *
+	 * @param Request $request The request object.
+	 * @return Response
+	 */
+	public function app_artifact_delete( Request $request ) : Response {
+		try {
+			static::check_permissions( 'hosted_apps.delete_assets', 'hosted_apps.edit_assets' );
+
+			$app_type          = (string) $request->get( 'app_type', '' );
+			$app_slug          = (string) $request->get( 'app_slug', '' );
+			$artifact_filename = (string) $request->get( 'artifact_filename', '' );
+
+			$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app ) {
+				throw new RequestException(
+					'resource_not_found',
+					sprintf(
+						'The %s with slug "%s" was not found.',
+						$app_type,
+						$app_slug
+					),
+					[ 'status' => 404 ]
+				);
+			}
+
+			static::check_app_ownership( $app );
+
+			if ( '' === $artifact_filename ) {
+				throw new RequestException(
+					'required_param',
+					'The artifact filename is required.'
+				);
+			}
+
+			if (
+				str_contains( $artifact_filename, '/' ) ||
+				str_contains( $artifact_filename, '\\' )
+			) {
+				throw new RequestException(
+					'invalid_input',
+					'The artifact filename must not contain directory separators.'
+				);
+			}
+
+			$registry   = HostedAppsRegistry::instance();
+			$repo_class = $registry->get_app_type_directory_class( $app_type );
+
+			if ( ! $repo_class ) {
+				throw new RequestException(
+					'internal_server_error',
+					'Unable to resolve repository class.',
+					[ 'status' => 500 ]
+				);
+			}
+
+			$response = $repo_class->delete_artifact( $app->get_slug(), $artifact_filename );
+
+			if ( $response instanceof Exception ) {
+				throw new RequestException(
+					$response->get_error_code(),
+					$response->get_error_message(),
+					$response->get_error_data()
+				);
+			}
+
+			$response_data = [
+				'success' => true,
+				'message' => 'Deleted successfully',
+				'data'    => [
+					'filename' => $artifact_filename,
+					'deleted'  => true,
+				],
+			];
+
+			return Response::json( $response_data, 200 );
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Perform a status change on a hosted app.
+	 *
+	 * @param Request $request The request object.
+	 * @param AbstractHostedApp|null $app
+	 * @return Response
+	 */
+	public function change_app_status( Request $request, ?AbstractHostedApp $app = null ) : Response {
+		try {
+			static::check_permissions( 'hosted_apps.change_status' );
+
+			$app_slug = $request->get( 'app_slug' );
+			$app_type = $request->get( 'app_type' );
+			$app      = $app ?? HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app ) {
+				throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was not found', $app_type, $app_slug ), [ 'status' => 404 ] );
+			}
+
+			static::check_app_ownership( $app );
+
+			$status         = $request->get( 'app_status' );
+			$known_statuses = array_keys( $app->get_statuses() );
+
+			if ( ! in_array( $status, $known_statuses, true ) ) {
+				throw new RequestException( 'invalid_input', sprintf( 'The status "%s" is not valid for the %s with slug "%s"', $status, $app_type, $app_slug ), [ 'status' => 400 ] );
+			}
+
+			$old_status = $app->get_status();
+
+			if ( $old_status === $status ) {
+				throw new RequestException( 'precondition_failed', sprintf( 'Status is already "%s".', $status ) );
+			}
+			
+			$app->set_status( $status );
+			$saved = $app->save();
+
+			if ( $saved instanceof Exception ) {
+				throw new RequestException( 'status_change_failed', sprintf( 'Failed to change status for the %s from %s to %s, error: %s', $app_type, $old_status, $status, $saved->get_error_message() ), [ 'status' => 500 ] );
+			}
+
+			// Deal with trashed apps.
+			if ( in_array( AbstractHostedApp::STATUS_TRASH, [ $old_status, $status ], true ) ) {
+				static::check_permissions( 'hosted_apps.delete' );
+
+				$repo_class = HostedApplicationService::get_app_repository_class( $app_type );
+				
+				if ( ! $repo_class ) {
+					throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
+				}
+
+				if ( AbstractHostedApp::STATUS_TRASH === $old_status && AbstractHostedApp::STATUS_TRASH !== $status ) {
+					$repo_class->restore_from_trash( $app->get_slug() );
+				} elseif ( AbstractHostedApp::STATUS_TRASH === $status ) {
+					$repo_class->queue_app_for_deletion( $app->get_slug() );
+				}
+			}
+
+			// Dispatch status change notification — skip trash transitions
+			// since CleanTrashedAppsJob handles permanent deletion silently.
+			if ( AbstractHostedApp::STATUS_TRASH !== $status ) {
+				$this->dispatch_job( SendAppStatusChangedEmailJob::class, [
+					'app_type'   => $app->get_type(),
+					'app_slug'   => $app->get_slug(),
+					'old_status' => $old_status,
+					'new_status' => $status,
+					'reason'     => $request->get( 'status_change_reason', '' ),
+				] );
+			}
+
+		   $this->cache->clear();
+
+			$data = [
+				'message'      => sprintf( '%s status changed from %s to %s', ucfirst( $app_type ), $old_status, $status ),
+				'redirect_url' => $this->urlmanager->admin_repo_url( 'view', [ 'type' => $app->get_type(), 'app_id' => $app->get_id() ] )
+			];
+
+			return Response::json( [ 'success' => true, 'data' => $data ], 200 );
+
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Perform bulk action on hosted apps
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response
+	 */
+	public function app_bulk_action( Request $request ) : Response {
+		try {
+			static::is_system_admin();
+
+			$app_ids  = $request->get( 'ids', [] );
+			$action   = $request->get( 'bulk_action' );
+			$affected = 0;
+
+			foreach( (array) $app_ids as $data ) {
+				$type = $data['app_type'] ?? '';
+				$slug = $data['app_slug'] ?? '';
+
+				if ( empty( $type ) || empty( $slug ) ) {
+					continue;
+				}
+
+				$app = HostedApplicationService::get_app_by_slug( $type, $slug );
+
+				if ( ! $app ) {
+					continue;
+				}
+
+				$new_request = new Request( [
+					'app_type'   => $type,
+					'app_slug'   => $slug,
+					'app_status' => $action,
+				] );
+
+				$new_request->set_headers( $request->get_headers() );
+
+				$response = static::change_app_status( $new_request, $app );
+
+				$response->ok() && $affected++;
+			}
+
+			$url = $this->urlmanager->admin_repo_url( 'admin' )
+				->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
+
+			$response = ( new Response( 200, [], '' ) )
+				->set_request( $request )
+				->set_header( 'Location', $url->url() );
+
+		   $this->cache->clear();
+			return $response;
+
+		} catch ( Exception $e ) {
+			$url = $this->urlmanager->admin_repo_url( 'admin' )
+				->add_query_param( 'message', \sprintf( 'Error: %s', $e->get_error_message() ) );
+
+			return ( new Response() )
+				->set_header( 'Location', $url->url() );
+		}
+	}
 }

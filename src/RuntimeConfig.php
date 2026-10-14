@@ -32,61 +32,61 @@ use Callismart\DTO\DTO;
  * @property-read string $error_log_path Absolute path to the error log file.
  */
 class RuntimeConfig extends DTO {
-    /**
-     * {@inheritdoc}
-     */
-    protected function allowed_keys() : array {
-        return [
-            'app_root',
-            'storage_dir',
-            'runtime_dir',
-            'index_file',
-            'debug_mode',
-            'display_errors',
-            'log_errors',
-            'secret',
-            'salt',
-            'db_table_prefix',
-            'error_log_path'
-        ];
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	protected function allowed_keys() : array {
+		return [
+			'app_root',
+			'storage_dir',
+			'runtime_dir',
+			'index_file',
+			'debug_mode',
+			'display_errors',
+			'log_errors',
+			'secret',
+			'salt',
+			'db_table_prefix',
+			'error_log_path'
+		];
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function sensitive_keys() : array {
-        return ['secret', 'salt'];
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	protected function sensitive_keys() : array {
+		return ['secret', 'salt'];
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function cast( string $key, mixed $value ) : mixed {
-        return match ( $key ) {
-            'debug_mode', 'display_errors', 'log_errors' => (bool) $value,
-            default => (string) $value
-        };
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	protected function cast( string $key, mixed $value ) : mixed {
+		return match ( $key ) {
+			'debug_mode', 'display_errors', 'log_errors' => (bool) $value,
+			default                                      => (string) $value
+		};
+	}
 
-    /**
-     * Instanciate with default configuration
-     * 
-     * @return static
-     */
-    public static function defaults() : static {
-        return new static([
-            'app_root'      => $_SERVER['DOCUMENT_ROOT'] ?? '',
-            'storage_dir'   => '',
-            'runtime_dir'   => '',
-            'index_file'    => __FILE__,
-            'debug_mode'        => false,
-            'display_errors'    => false,
-            'log_errors'        => false,
-            'secret'    => '',
-            'salt'      => '',
-            'db_table_prefix'   => 'smliser_',
-            'error_log_path'    => ''
+	/**
+	 * Instanciate with default configuration
+	 * 
+	 * @return static
+	 */
+	public static function defaults() : static {
+		return new static( [
+			'app_root'        => $_SERVER['DOCUMENT_ROOT'] ?? '',
+			'storage_dir'     => '',
+			'runtime_dir'     => '',
+			'index_file'      => __FILE__,
+			'debug_mode'      => false,
+			'display_errors'  => false,
+			'log_errors'      => false,
+			'secret'          => '',
+			'salt'            => '',
+			'db_table_prefix' => 'smliser_',
+			'error_log_path'  => ''
 
-        ]);
-    }
+		] );
+	}
 }

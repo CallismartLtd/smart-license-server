@@ -17,8 +17,8 @@ namespace SmartLicenseServer\Exceptions;
  * Can carry an optional code and status for structured error handling.
  */
 class EmailTransportException extends Exception {
-    function __construct( string $message ) {
-        parent::__construct( 'email_error', $message );
+	function __construct( string $message ) {
+		parent::__construct( 'email_error', $message );
 
-    }
+	}
 }

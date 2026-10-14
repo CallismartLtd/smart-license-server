@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Environments\WordPress\Routing
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\WordPress\Routing;
 
@@ -15,7 +15,7 @@ use SmartLicenseServer\Routing\InvalidRouteException;
  * Priority for add_rewrite_rule(). Mirrors WordPress' own 'top' | 'bottom' values,
  * as an enum instead of an unvalidated string.
  */
-enum RoutePriority: string {
+enum RoutePriority : string {
 
 	case Top    = 'top';
 	case Bottom = 'bottom';
@@ -23,7 +23,7 @@ enum RoutePriority: string {
 	/**
 	 * @throws InvalidRouteException If $value is not 'top' or 'bottom'.
 	 */
-	public static function fromString( string $value ): self {
+	public static function fromString( string $value ) : self {
 		try {
 			return self::from( $value );
 		} catch ( \ValueError $e ) {

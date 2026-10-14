@@ -29,19 +29,19 @@ $status_groups = [
 		'icon'  => 'ti ti-circle-x',
 		'open'  => true,
 	],
-	'warning'  => [
+	'warning' => [
 		'title' => 'Warnings',
 		'label' => 'Warning',
 		'icon'  => 'ti ti-alert-triangle',
 		'open'  => true,
 	],
-	'info'     => [
+	'info' => [
 		'title' => 'Recommendations',
 		'label' => 'Recommended',
 		'icon'  => 'ti ti-info-circle',
 		'open'  => false,
 	],
-	'pass'     => [
+	'pass' => [
 		'title' => 'Passed Checks',
 		'label' => 'Passed',
 		'icon'  => 'ti ti-circle-check',
@@ -69,12 +69,12 @@ $overall_states = [
 		'title'   => 'Should be fixed now',
 		'message' => 'One or more critical checks failed. Parts of the application may not work until these are resolved.',
 	],
-	'warning'  => [
+	'warning' => [
 		'icon'    => 'ti ti-alert-triangle',
 		'title'   => 'Should be improved',
 		'message' => 'The application is running, but some checks need attention.',
 	],
-	'pass'     => [
+	'pass' => [
 		'icon'    => 'ti ti-circle-check',
 		'title'   => 'Good',
 		'message' => 'All critical and warning checks passed.',
@@ -98,7 +98,7 @@ $overall = $overall_states[ $overall_status ];
 // Everything health.js displays comes from here, so display strings
 // live in one place.
 $async_config = [
-	'statuses'       => \array_map(
+	'statuses' => \array_map(
 		static fn( array $group ) : array => [
 			'label' => $group['label'],
 			'icon'  => $group['icon'],

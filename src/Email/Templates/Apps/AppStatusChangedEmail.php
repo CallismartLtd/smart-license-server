@@ -20,67 +20,67 @@ use SmartLicenseServer\HostedApps\Plugin;
 
 class AppStatusChangedEmail extends EmailTemplate {
 
-    /**
-     * @param HostedAppsInterface $app        The application whose status changed.
-     * @param string              $to         Recipient email address.
-     * @param string              $old_status The previous status.
-     * @param string              $new_status The new status.
-     * @param string|null         $reason     Optional reason for the status change.
-     */
-    public function __construct(
-        private readonly HostedAppsInterface $app,
-        private readonly string              $to,
-        private readonly string              $old_status,
-        private readonly string              $new_status,
-        private readonly ?string             $reason = null
-    ) {}
+	/**
+	 * @param HostedAppsInterface $app        The application whose status changed.
+	 * @param string              $to         Recipient email address.
+	 * @param string              $old_status The previous status.
+	 * @param string              $new_status The new status.
+	 * @param string|null         $reason     Optional reason for the status change.
+	 */
+	public function __construct(
+		private readonly HostedAppsInterface $app,
+		private readonly string              $to,
+		private readonly string              $old_status,
+		private readonly string              $new_status,
+		private readonly ?string             $reason = null
+	) {}
 
-    static public function template_key(): string {
-        return 'app_status_changed';
-    }
+	static public function template_key() : string {
+		return 'app_status_changed';
+	}
 
-    protected function subject(): string {
-        return "{$this->app->get_name()} Status Changed to " . ucfirst( $this->new_status );
-    }
+	protected function subject() : string {
+		return "{$this->app->get_name()} Status Changed to " . ucfirst( $this->new_status );
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "The status of {$this->app->get_name()} has been changed from {$this->old_status} to {$this->new_status}.";
-    }
+	protected function preheader() : string {
+		return "The status of {$this->app->get_name()} has been changed from {$this->old_status} to {$this->new_status}.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{app_name}}'   => $this->app->get_name(),
-            '{{app_type}}'   => ucfirst( $this->app->get_type() ),
-            '{{old_status}}' => ucfirst( $this->old_status ),
-            '{{new_status}}' => ucfirst( $this->new_status ),
-            '{{reason}}'     => $this->reason ?? 'No reason provided.',
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{app_name}}'   => $this->app->get_name(),
+			'{{app_type}}'   => ucfirst( $this->app->get_type() ),
+			'{{old_status}}' => ucfirst( $this->old_status ),
+			'{{new_status}}' => ucfirst( $this->new_status ),
+			'{{reason}}'     => $this->reason ?? 'No reason provided.',
+		] );
+	}
 
-    protected function body(): string {
-        $vars       = $this->variables();
-        $app_name   = \escHtml( $vars['{{app_name}}'] );
-        $app_type   = \escHtml( $vars['{{app_type}}'] );
-        $old_status = \escHtml( $vars['{{old_status}}'] );
-        $new_status = \escHtml( $vars['{{new_status}}'] );
-        $reason     = \escHtml( $vars['{{reason}}'] );
-        $support    = \escHtml( $vars['{{support_email}}'] );
+	protected function body() : string {
+		$vars       = $this->variables();
+		$app_name   = \escHtml( $vars['{{app_name}}'] );
+		$app_type   = \escHtml( $vars['{{app_type}}'] );
+		$old_status = \escHtml( $vars['{{old_status}}'] );
+		$new_status = \escHtml( $vars['{{new_status}}'] );
+		$reason     = \escHtml( $vars['{{reason}}'] );
+		$support    = \escHtml( $vars['{{support_email}}'] );
 
-        $is_negative = in_array(
-            strtolower( $this->new_status ),
-            [ 'suspended', 'inactive', 'rejected', 'disabled' ],
-            true
-        );
+		$is_negative = in_array(
+			strtolower( $this->new_status ),
+			[ 'suspended', 'inactive', 'rejected', 'disabled' ],
+			true
+		);
 
-        [ $banner_bg, $banner_border, $banner_text_color, $banner_icon ] = $is_negative
-            ? [ '#fef2f2', '#fecaca', '#991b1b', '&#128683;' ]
-            : [ '#f0fdf4', '#bbf7d0', '#166534', '&#10003;' ];
+		[ $banner_bg, $banner_border, $banner_text_color, $banner_icon ] = $is_negative
+			? [ '#fef2f2', '#fecaca', '#991b1b', '&#128683;' ]
+			: [ '#f0fdf4', '#bbf7d0', '#166534', '&#10003;' ];
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             A status update for your application.
         </p>
@@ -150,59 +150,59 @@ class AppStatusChangedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Application Status Changed';
-    }
-    public function description(): string {
-        return 'Sent to the app owner when the status of their application is changed by an administrator.';
-    }
-    public static function preview(): static {
-        $app = Plugin::from_array_minimal([
-            'name' => 'My Awesome Plugin',
-            'type' => 'plugin',
-        ]);
-        return new static( $app, 'preview@example.com', 'active', 'suspended', 'Violation of terms of service.' );
-    }
+	public function label() : string {
+		return 'Application Status Changed';
+	}
+	public function description() : string {
+		return 'Sent to the app owner when the status of their application is changed by an administrator.';
+	}
+	public static function preview() : static {
+		$app = Plugin::from_array_minimal( [
+			'name' => 'My Awesome Plugin',
+			'type' => 'plugin',
+		] );
+		return new static( $app, 'preview@example.com', 'active', 'suspended', 'Violation of terms of service.' );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'A status update for your application.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'warning',
-                'content'   => 'The status of {{app_name}} has been changed from {{old_status}} to {{new_status}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Application',     'value' => '{{app_name}}' ],
-                    [ 'label' => 'Type',            'value' => '{{app_type}}' ],
-                    [ 'label' => 'Previous Status', 'value' => '{{old_status}}' ],
-                    [ 'label' => 'New Status',      'value' => '{{new_status}}' ],
-                    [ 'label' => 'Reason',          'value' => '{{reason}}' ],
-                ],
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you have questions about this change or believe it was made in error, please contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'A status update for your application.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'warning',
+				'content'   => 'The status of {{app_name}} has been changed from {{old_status}} to {{new_status}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Application',     'value' => '{{app_name}}' ],
+					[ 'label' => 'Type',            'value' => '{{app_type}}' ],
+					[ 'label' => 'Previous Status', 'value' => '{{old_status}}' ],
+					[ 'label' => 'New Status',      'value' => '{{new_status}}' ],
+					[ 'label' => 'Reason',          'value' => '{{reason}}' ],
+				],
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you have questions about this change or believe it was made in error, please contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

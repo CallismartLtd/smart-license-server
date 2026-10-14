@@ -30,60 +30,60 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
  * Sends AppUpdatedEmail to the app owner when an app file is updated.
  */
 class SendAppUpdatedEmailJob implements JobHandlerInterface {
-    use OwnerEmailResolverTrait;
+	use OwnerEmailResolverTrait;
 
-    public function __construct(
-        protected Mailer $mailer
-    ) {}
+	public function __construct(
+		protected Mailer $mailer
+	) {}
 
-    public static function get_job_name(): string {
-        return 'send_app_updated_email';
-    }
+	public static function get_job_name() : string {
+		return 'send_app_updated_email';
+	}
 
-    public static function get_job_description(): string {
-        return 'Sends a notification email to the app owner when an app is updated.';
-    }
+	public static function get_job_description() : string {
+		return 'Sends a notification email to the app owner when an app is updated.';
+	}
 
-    /**
-     * @param array{app_type?: string, app_slug?: string, old_version?: string} $payload
-     * @return array{sent: int, skipped: int}
-     */
-    public function handle( array $payload = [] ): mixed {
-        $app_type       = (string) ( $payload['app_type'] ?? '' );
-        $app_slug       = (string) ( $payload['app_slug'] ?? '' );
-        $old_version    = (string) ( $payload['old_version'] ?? '' );
+	/**
+	 * @param array{app_type?: string, app_slug?: string, old_version?: string} $payload
+	 * @return array{sent: int, skipped: int}
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$app_type    = (string) ( $payload['app_type'] ?? '' );
+		$app_slug    = (string) ( $payload['app_slug'] ?? '' );
+		$old_version = (string) ( $payload['old_version'] ?? '' );
 
-        $sent    = 0;
-        $skipped = 0;
+		$sent    = 0;
+		$skipped = 0;
 
-        $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+		$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
-        if ( ! $app ) {
-            return compact( 'sent', 'skipped' );
-        }
+		if ( ! $app ) {
+			return compact( 'sent', 'skipped' );
+		}
 
-        $emails = $this->resolve_owner_emails( $app->get_owner_id() );
+		$emails = $this->resolve_owner_emails( $app->get_owner_id() );
 
-        if ( empty( $emails ) ) {
-            return compact( 'sent', 'skipped' );
-        }
+		if ( empty( $emails ) ) {
+			return compact( 'sent', 'skipped' );
+		}
 
-        foreach ( $emails as $email ) {
-            $message = ( new AppUpdatedEmail( $app, $email, $old_version ) )->to_message();
+		foreach ( $emails as $email ) {
+			$message = ( new AppUpdatedEmail( $app, $email, $old_version ) )->to_message();
 
-            if ( $message === null ) {
-                $skipped++;
-                continue;
-            }
+			if ( null === $message ) {
+				$skipped++;
+				continue;
+			}
 
-            try {
-                $this->mailer->send( $message );
-                $sent++;
-            } catch ( \Throwable ) {
-                $skipped++;
-            }
-        }
+			try {
+				$this->mailer->send( $message );
+				$sent++;
+			} catch ( \Throwable ) {
+				$skipped++;
+			}
+		}
 
-        return compact( 'sent', 'skipped' );
-    }
+		return compact( 'sent', 'skipped' );
+	}
 }

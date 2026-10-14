@@ -105,7 +105,7 @@ final class AssetsManager {
 		protected JS $js,
 		protected CSRF $csrf,
 	) {
-        $this->register_default_js_constants();
+		$this->register_default_js_constants();
 		$this->register_default_styles();
 		$this->register_default_scripts();
 	}
@@ -855,7 +855,7 @@ final class AssetsManager {
 		];
 
 		return [
-			'styles'  => array_map(
+			'styles' => array_map(
 				fn( $handle ) => [
 					'handle' => $handle,
 					'url'    => $all_css[ $handle ]['url'],
@@ -902,27 +902,27 @@ final class AssetsManager {
 	 */
 	private function register_default_js_constants() : void {
 		$consts = [
-            'ajaxURL'           => $this->urlmanager->admin_url( 'admin/json' )->url(),
-            'csrf_token'        => $this->csrf_token(),
-            'csrf_header'       => CSRF::HEADER,
-            'csrf_field'        => CSRF::FIELD,
-            'spinner_gif'       => $this->urlmanager->assets_url( 'images/spinner.gif' )->url(),
-            'spinner_gif_2x'    => $this->urlmanager->assets_url( 'images/spinner-2x.gif' )->url(),
-			'theme_storage_key'	=> 'dashboard-theme',
-			'sidebar_state_key'	=> 'dashboard-menu-collapsed',
-            // 'app_search_api'    => \restAPIUrl( '/repository/' ),
-            'uploads'            => [
-                'max_upload_size'           => smliser_max_upload_size(),
-                'max_upload_size_readable'  => Format::bytes( smliser_max_upload_size() ) 
-            ],
-			'stripable_query_vars'	=> ['message', 'msg', 'updated', 'error']
-        ];
+			'ajaxURL'           => $this->urlmanager->admin_url( 'admin/json' )->url(),
+			'csrf_token'        => $this->csrf_token(),
+			'csrf_header'       => CSRF::HEADER,
+			'csrf_field'        => CSRF::FIELD,
+			'spinner_gif'       => $this->urlmanager->assets_url( 'images/spinner.gif' )->url(),
+			'spinner_gif_2x'    => $this->urlmanager->assets_url( 'images/spinner-2x.gif' )->url(),
+			'theme_storage_key' => 'dashboard-theme',
+			'sidebar_state_key' => 'dashboard-menu-collapsed',
+			// 'app_search_api'    => \restAPIUrl( '/repository/' ),
+			'uploads' => [
+				'max_upload_size'          => smliser_max_upload_size(),
+				'max_upload_size_readable' => Format::bytes( smliser_max_upload_size() )
+			],
+			'stripable_query_vars' => ['message', 'msg', 'updated', 'error']
+		];
 
 		if ( $this->guard->has_principal() ) {
 			$consts['default_roles'] = [
-                'roles'         => Role::all( true ),
-                'capabilities'  => Capability::get_caps()
-            ];
+				'roles'        => Role::all( true ),
+				'capabilities' => Capability::get_caps()
+			];
 		}
 
 		$this->register_js_constant( 'smliser_var', $consts );

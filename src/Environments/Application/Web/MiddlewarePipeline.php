@@ -54,7 +54,7 @@ final class MiddlewarePipeline {
 			$this->middleware[] = $this->resolver->resolveMiddleware( $item );
 		}
 
-		$this->handler	= $this->resolver->resolve( $handler );
+		$this->handler = $this->resolver->resolve( $handler );
 	}
 
 	/**
@@ -71,7 +71,7 @@ final class MiddlewarePipeline {
 		array $middleware,
 		mixed $handler,
 		Request $request
-	): mixed {
+	) : mixed {
 		return ( new self( $resolver, $middleware, $handler ) )->dispatch( $request );
 	}
 
@@ -81,7 +81,7 @@ final class MiddlewarePipeline {
 	 * @param Request $request
 	 * @return mixed
 	 */
-	private function dispatch( Request $request ): mixed {
+	private function dispatch( Request $request ) : mixed {
 		return $this->handleStep( 0, $request );
 	}
 
@@ -92,12 +92,12 @@ final class MiddlewarePipeline {
 	 * @param Request $request
 	 * @return mixed
 	 */
-	private function handleStep( int $index, Request $request ): mixed {
+	private function handleStep( int $index, Request $request ) : mixed {
 		if ( ! isset( $this->middleware[ $index ] ) ) {
 			return ( $this->handler )( $request );
 		}
 
-		$next = function ( Request $request ) use ( $index ): mixed {
+		$next = function ( Request $request ) use ( $index ) : mixed {
 			return $this->handleStep( $index + 1, $request );
 		};
 

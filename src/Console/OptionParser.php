@@ -48,7 +48,7 @@ class OptionParser {
 	 *     options: array
 	 * }
 	 */
-	public function parse( array $args ): array {
+	public function parse( array $args ) : array {
 
 		$options   = [];
 		$arguments = [];
@@ -97,7 +97,7 @@ class OptionParser {
 	 * @param array  &$options Options collected so far.
 	 * @return void
 	 */
-	protected function parse_long_option( string $arg, array $args, int &$i, array &$options ): void {
+	protected function parse_long_option( string $arg, array $args, int &$i, array &$options ) : void {
 
 		$arg = substr( $arg, 2 );
 
@@ -155,7 +155,7 @@ class OptionParser {
 	 * @param array  &$options Options collected so far.
 	 * @return void
 	 */
-	protected function parse_short_flag( string $arg, array $args, int &$i, array &$options ): void {
+	protected function parse_short_flag( string $arg, array $args, int &$i, array &$options ) : void {
 
 		$flags = substr( $arg, 1 );
 
@@ -202,7 +202,7 @@ class OptionParser {
 	 * @param string $value
 	 * @return bool
 	 */
-	protected function is_short_flag( string $value ): bool {
+	protected function is_short_flag( string $value ) : bool {
 		return 1 === preg_match( '/^-[A-Za-z]+$/', $value );
 	}
 
@@ -213,7 +213,7 @@ class OptionParser {
 	 * @param string $value
 	 * @return bool
 	 */
-	protected function looks_like_option( string $value ): bool {
+	protected function looks_like_option( string $value ) : bool {
 		return str_starts_with( $value, '--' ) || $this->is_short_flag( $value );
 	}
 
@@ -237,7 +237,7 @@ class OptionParser {
 		array &$options,
 		string $key,
 		$value
-	): void {
+	) : void {
 
 		if ( ! isset( $options[ $key ] ) ) {
 			$options[ $key ] = $value;

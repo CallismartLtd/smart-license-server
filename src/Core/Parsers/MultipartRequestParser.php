@@ -57,16 +57,16 @@ class MultipartRequestParser implements RequestBodyParserInterface {
 	public function __construct(
 		private string $content_type,
 		private array $limits,
-		private ?string $upload_tmp_prefix  = null,
-		private bool $debug                 = false,
-		private bool $verbose               = false
+		private ?string $upload_tmp_prefix = null,
+		private bool $debug = false,
+		private bool $verbose = false
 	) {}
 
 	/**
 	 * @inheritDoc
 	 * @throws Exception
 	 */
-	public function parse(): array {
+	public function parse() : array {
 		$boundary = $this->extract_boundary();
 		$stream   = @fopen( 'php://input', 'rb' );
 
@@ -98,14 +98,14 @@ class MultipartRequestParser implements RequestBodyParserInterface {
 	/**
 	 * @inheritDoc
 	 */
-	public function get_bytes_read(): int {
+	public function get_bytes_read() : int {
 		return $this->engine ? $this->engine->get_bytes_read() : 0;
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function get_temp_files(): array {
+	public function get_temp_files() : array {
 		return $this->engine ? $this->engine->get_temp_files() : [];
 	}
 
@@ -114,7 +114,7 @@ class MultipartRequestParser implements RequestBodyParserInterface {
 	 *
 	 * @return int
 	 */
-	public function get_files_count(): int {
+	public function get_files_count() : int {
 		return $this->engine ? $this->engine->get_files_count() : 0;
 	}
 
@@ -123,7 +123,7 @@ class MultipartRequestParser implements RequestBodyParserInterface {
 	 *
 	 * @return array
 	 */
-	public function get_debug_log(): array {
+	public function get_debug_log() : array {
 		return $this->engine ? $this->engine->get_debug_log() : [];
 	}
 
@@ -133,7 +133,7 @@ class MultipartRequestParser implements RequestBodyParserInterface {
 	 * @return string
 	 * @throws Exception
 	 */
-	private function extract_boundary(): string {
+	private function extract_boundary() : string {
 		if ( ! preg_match( '/boundary=(["\']?)([^"\';\s]+)\1/i', $this->content_type, $m ) ) {
 			throw new Exception( 'missing_boundary', 'No boundary in Content-Type.' );
 		}

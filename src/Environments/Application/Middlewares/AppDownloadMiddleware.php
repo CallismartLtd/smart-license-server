@@ -15,11 +15,11 @@ use SmartLicenseServer\Core\Request;
  * Handles normalization of requests to download a hosted application.
  */
 class AppDownloadMiddleware implements MiddlewareInterface {
-    /**
-     * {@inheritdoc}
-     */
-    public function handle( Request $request, callable $next ): mixed {
-        
-        return $next( $request );
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function handle( Request $request, callable $next ) : mixed {
+		
+		return $next( $request );
+	}
 }

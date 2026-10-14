@@ -65,12 +65,12 @@ class Response {
 	 */
 	protected $headers = [];
 
-    /**
-     * Registered callbacks to be executed after file is served.
-     *
-     * @var array
-     */
-    protected $after_serve_callbacks = [];
+	/**
+	 * Registered callbacks to be executed after file is served.
+	 *
+	 * @var array
+	 */
+	protected $after_serve_callbacks = [];
 
 	/**
 	 * Response body.
@@ -94,17 +94,17 @@ class Response {
 	 * @param string|string $body	Optional. Initial body content.
 	 */
 	public function __construct( int $status_code = 200, $headers = [], string|array $body = '' ) {
-		$this->error	= new Exception();
+		$this->error = new Exception();
 		
 		$this->set_status_code( $status_code );
 		
 		foreach ( $headers as $name => $value ) {
-            if ( is_array( $value ) && isset( $value[0], $value[1] ) ) {
-                $this->set_header( (string) $value[0], (string) $value[1] );
-            } elseif ( is_string( $name ) ) {
-                $this->set_header( $name, (string) $value );
-            }
-        }
+			if ( is_array( $value ) && isset( $value[0], $value[1] ) ) {
+				$this->set_header( (string) $value[0], (string) $value[1] );
+			} elseif ( is_string( $name ) ) {
+				$this->set_header( $name, (string) $value );
+			}
+		}
 
 		$this->set_body( $body );
 	}
@@ -121,8 +121,8 @@ class Response {
 	 * @return static
 	 */
 	public function set_status_code( int $code, ?string $reason = null ) : static {
-		$this->status_code		= $code;
-		$this->reason_phrase	= $reason ?: $this->get_default_reason_phrase( $code );
+		$this->status_code   = $code;
+		$this->reason_phrase = $reason ?: $this->get_default_reason_phrase( $code );
 		return $this;
 	}
 
@@ -156,14 +156,14 @@ class Response {
 	}
 
 	/**
-     * Get default reason phrase for a status code.
-     *
-     * @param int $code HTTP status code.
-     * @return string
-     */
-    protected function get_default_reason_phrase( int $code ) : string {
-        return static::reason_phrase( $code );
-    }
+	 * Get default reason phrase for a status code.
+	 *
+	 * @param int $code HTTP status code.
+	 * @return string
+	 */
+	protected function get_default_reason_phrase( int $code ) : string {
+		return static::reason_phrase( $code );
+	}
 
 	/*--------------------------------------------------------------
 	# Headers
@@ -177,13 +177,13 @@ class Response {
 	 * @param bool $override Whether or not to override existing value.
 	 * @return static
 	 */
-	public function set_header( string $name, string $value, bool $override = true  ) {
-		$key	= $this->header_canonical( $name );
+	public function set_header( string $name, string $value, bool $override = true ) {
+		$key = $this->header_canonical( $name );
 
 		if ( ! $this->has_header( $key ) || $override ) {
-			$this->headers[ $key ]	= $value;
+			$this->headers[ $key ] = $value;
 		} else {
-			$this->headers[ $key ]	.= ', ' . $value;
+			$this->headers[ $key ] .= ', ' . $value;
 		}
 		
 		return $this;
@@ -208,7 +208,7 @@ class Response {
 	 * @return bool
 	 */
 	public function has_header( $name ) : bool {
-		$key	= $this->header_canonical( $name );
+		$key = $this->header_canonical( $name );
 		return array_key_exists( $key, $this->headers );
 	}
 
@@ -219,7 +219,7 @@ class Response {
 	 * @return static
 	 */
 	public function remove_header( string $name ) : static {
-		$key	= $this->header_canonical( $name );
+		$key = $this->header_canonical( $name );
 		unset( $this->headers[$key] );
 		return $this;
 	}
@@ -230,7 +230,7 @@ class Response {
 	 * @return true
 	 */
 	public function remove_headers() : bool {
-		$this->headers	= [];
+		$this->headers = [];
 		return true;
 	}
 
@@ -246,12 +246,12 @@ class Response {
 		}
 
 		foreach ( $this->headers as $key => $value ) {
-			$new_key	= str_replace( '_', '-', $key );
-			$value = trim( preg_replace( '/[\r\n]+/', ' ', $value ) );
-			$value = preg_replace( '/\s+/', ' ', $value );
+			$new_key = str_replace( '_', '-', $key );
+			$value   = trim( preg_replace( '/[\r\n]+/', ' ', $value ) );
+			$value   = preg_replace( '/\s+/', ' ', $value );
 
 			unset( $this->headers[$key] );
-			$this->headers[$new_key]	= $value;
+			$this->headers[$new_key] = $value;
 		}
 
 		return $this->headers;
@@ -268,7 +268,7 @@ class Response {
 	 * @return static
 	 */
 	public function set_body( string|array $content ) : static {
-		$this->body	= $content;
+		$this->body = $content;
 		return $this;
 	}
 
@@ -347,7 +347,7 @@ class Response {
 			\smliser_abort_request(
 				'Unable to start download. Headers already sent.',
 				'Headers Sent',
-				['status' => 500]	
+				['status' => 500]
 			);
 			return;
 		}
@@ -365,7 +365,7 @@ class Response {
 		);
 
 		foreach ( $this->headers as $name => $value ) {
-			$name	= str_replace( '_', '-', $name );
+			$name = str_replace( '_', '-', $name );
 					
 			$value = trim( preg_replace( '/[\r\n]+/', ' ', $value ) );
 			$value = preg_replace( '/\s+/', ' ', $value );
@@ -373,7 +373,7 @@ class Response {
 			header( $name . ': ' . $value );
 		}
 		
-		$method	= $_SERVER['REQUEST_METHOD'] ?? '';
+		$method = $_SERVER['REQUEST_METHOD'] ?? '';
 
 		if ( 'OPTIONS' === $method || $this->is_redirect() ) {
 			$this->stop();
@@ -426,92 +426,92 @@ class Response {
 	|---------------
 	*/
 	/**
-     * Add an error or append an additional message to an existing error.
-     *
-     * Delegates to the internal Exception object.
-     *
-     * @param string|int $code    Error code.
-     * @param string     $message Error message.
-     * @param mixed      $data    Optional. Error data. Default empty string.
-     * @return static
-     */
-    public function add_error( $code, $message, $data = '' ) : static {
-        $this->error->add( $code, $message, $data );
-        return $this;
-    }
+	 * Add an error or append an additional message to an existing error.
+	 *
+	 * Delegates to the internal Exception object.
+	 *
+	 * @param string|int $code    Error code.
+	 * @param string     $message Error message.
+	 * @param mixed      $data    Optional. Error data. Default empty string.
+	 * @return static
+	 */
+	public function add_error( $code, $message, $data = '' ) : static {
+		$this->error->add( $code, $message, $data );
+		return $this;
+	}
 
-    /**
-     * Verifies if the response contains accumulated errors.
-     *
-     * Delegates to the internal Exception object.
-     *
-     * @return bool If the response contains errors.
-     */
-    public function has_errors(): bool {
-        return $this->error->has_errors();
-    }
+	/**
+	 * Verifies if the response contains accumulated errors.
+	 *
+	 * Delegates to the internal Exception object.
+	 *
+	 * @return bool If the response contains errors.
+	 */
+	public function has_errors() : bool {
+		return $this->error->has_errors();
+	}
 
-    /**
-     * Retrieves the first error code available.
-     *
-     * Delegates to the internal Exception object.
-     *
-     * @return string|int Empty string, if no error codes.
-     */
-    public function get_error_code() {
-        return $this->error->get_error_code();
-    }
+	/**
+	 * Retrieves the first error code available.
+	 *
+	 * Delegates to the internal Exception object.
+	 *
+	 * @return string|int Empty string, if no error codes.
+	 */
+	public function get_error_code() {
+		return $this->error->get_error_code();
+	}
 
-    /**
-     * Retrieves the first error message available.
-     *
-     * Delegates to the internal Exception object.
-     *
-     * @param string|int $code Optional. Error code to retrieve the message for.
-     * Default empty string (will use the first code).
-     * @return string The error message.
-     */
-    public function get_error_message( $code = '' ) {
-        return $this->error->get_error_message( $code );
-    }
+	/**
+	 * Retrieves the first error message available.
+	 *
+	 * Delegates to the internal Exception object.
+	 *
+	 * @param string|int $code Optional. Error code to retrieve the message for.
+	 * Default empty string (will use the first code).
+	 * @return string The error message.
+	 */
+	public function get_error_message( $code = '' ) {
+		return $this->error->get_error_message( $code );
+	}
 
-    /**
-     * Retrieves the most recently added error data for an error code.
-     *
-     * Delegates to the internal Exception object.
-     *
-     * @param string|int $code Optional. Error code. Default empty string.
-     * @return mixed Error data, if it exists.
-     */
-    public function get_error_data( $code = '' ) {
-        return $this->error->get_error_data( $code );
-    }
+	/**
+	 * Retrieves the most recently added error data for an error code.
+	 *
+	 * Delegates to the internal Exception object.
+	 *
+	 * @param string|int $code Optional. Error code. Default empty string.
+	 * @return mixed Error data, if it exists.
+	 */
+	public function get_error_data( $code = '' ) {
+		return $this->error->get_error_data( $code );
+	}
 
-    /**
-     * Retrieves the entire internal Exception object.
-     *
-     * Useful for logging or merging with another Exception instance.
-     *
-     * @return \SmartLicenseServer\Exceptions\Exception The internal Exception object.
-     */
-    public function get_exception(): Exception {
-        return $this->error;
-    }
+	/**
+	 * Retrieves the entire internal Exception object.
+	 *
+	 * Useful for logging or merging with another Exception instance.
+	 *
+	 * @return \SmartLicenseServer\Exceptions\Exception The internal Exception object.
+	 */
+	public function get_exception() : Exception {
+		return $this->error;
+	}
 
-    /**
-     * Overwrites the internal Exception object with a new one.
-     *
-     * Useful when converting external errors into the response's error state.
-     *
-     * @param Exception $exception The new exception object.
-     * @return static
-     */
-    public function set_exception( Exception $exception ): static {
-        $this->error	= $exception;
-		$error_data		= $this->error->get_error_data();
+	/**
+	 * Overwrites the internal Exception object with a new one.
+	 *
+	 * Useful when converting external errors into the response's error state.
+	 *
+	 * @param Exception $exception The new exception object.
+	 * @return static
+	 */
+	public function set_exception( Exception $exception ) : static {
+		$this->error = $exception;
+		$error_data  = $this->error->get_error_data();
 		$this->set_status_code( (int) ( $error_data['status'] ?? $error_data['response'] ?? 500 ) );
-        return $this;
-    }
+		return $this;
+	}
 
 	/**
 	 * Prepare error response.
@@ -522,14 +522,14 @@ class Response {
 		$this->set_header( 'X-Content-Type-Options', 'nosniff' );
 
 		if ( $this->is_json_response() ) {
-			$this->set_body([
-				'success'	=> false,
-				'error'		=> [
-					'message'	=> $this->get_error_message(),
-					'data'		=> $this->get_error_data(),
-					'code'		=> $this->get_error_code()
+			$this->set_body( [
+				'success' => false,
+				'error'   => [
+					'message' => $this->get_error_message(),
+					'data'    => $this->get_error_data(),
+					'code'    => $this->get_error_code()
 				]
-			]);
+			] );
 		} else {
 			$nonce = base64_encode( random_bytes( 16 ) );
 
@@ -567,7 +567,7 @@ class Response {
 			$content_type = reset( $content_type );
 		}
 
-		return is_string( $content_type ) && stripos( $content_type, 'application/json' ) !== false;
+		return is_string( $content_type ) && false !== stripos( $content_type, 'application/json' );
 	}
 
 	/**
@@ -601,7 +601,7 @@ class Response {
 	 *
 	 * @return static
 	 */
-	public function clear_headers(): static {
+	public function clear_headers() : static {
 		$this->headers = [];
 		return $this;
 	}
@@ -615,58 +615,58 @@ class Response {
 		exit;
 	}
 
-    /**
-     * Register a callback to be executed after the response is sent.
-     *
-     * @param callable $callback   The function or method to call.
-     * @param mixed   ...$args       Optional. Arguments to pass to the callback.
-     *
-     * @return void
-     */
-    public function post_response_action( callable $callback, mixed ...$args ) {
-        $this->after_serve_callbacks[] = array(
-            'callback' => $callback,
-            'args'     => $args,
-        );
-    }
+	/**
+	 * Register a callback to be executed after the response is sent.
+	 *
+	 * @param callable $callback   The function or method to call.
+	 * @param mixed   ...$args       Optional. Arguments to pass to the callback.
+	 *
+	 * @return void
+	 */
+	public function post_response_action( callable $callback, mixed ...$args ) {
+		$this->after_serve_callbacks[] = [
+			'callback' => $callback,
+			'args'     => $args,
+		];
+	}
 
-    /**
-     * Trigger all registered after-serve callbacks.
-     *
-     * Automatically injects the current Response instance ($this)
-     * as the last parameter.
-     *
-     * @return void
-     */
-    protected function trigger_after_serve_callbacks() {
-        foreach ( $this->after_serve_callbacks as $item ) {
-            $callback = $item['callback'];
-            $args     = $item['args'];
+	/**
+	 * Trigger all registered after-serve callbacks.
+	 *
+	 * Automatically injects the current Response instance ($this)
+	 * as the last parameter.
+	 *
+	 * @return void
+	 */
+	protected function trigger_after_serve_callbacks() {
+		foreach ( $this->after_serve_callbacks as $item ) {
+			$callback = $item['callback'];
+			$args     = $item['args'];
 
-            array_push( $args, $this );
+			array_push( $args, $this );
 
-            try {
-                call_user_func_array( $callback, $args );
+			try {
+				call_user_func_array( $callback, $args );
 
-            } catch ( \Throwable $e ) {
-                $callback_name = 'closure';
-                if ( is_array( $callback ) ) {
-                    $callback_name = ( is_object( $callback[0] ) ? get_class( $callback[0] ) : $callback[0] ) . '::' . $callback[1];
-                } elseif ( is_string( $callback ) ) {
-                    $callback_name = $callback;
-                }
+			} catch ( \Throwable $e ) {
+				$callback_name = 'closure';
+				if ( is_array( $callback ) ) {
+					$callback_name = ( is_object( $callback[0] ) ? get_class( $callback[0] ) : $callback[0] ) . '::' . $callback[1];
+				} elseif ( is_string( $callback ) ) {
+					$callback_name = $callback;
+				}
 
-                smliser_log_error( sprintf(
-                    '[%ss] Post-serve callback failed (%s): %s in %s:%d',
+				smliser_log_error( sprintf(
+					'[%ss] Post-serve callback failed (%s): %s in %s:%d',
 					get_class( $this ),
-                    $callback_name,
-                    $e->getMessage(),
-                    $e->getFile(),
-                    $e->getLine()
-                ) );
-            }
-        }
-    }
+					$callback_name,
+					$e->getMessage(),
+					$e->getFile(),
+					$e->getLine()
+				) );
+			}
+		}
+	}
 
 	/**
 	 * Set the request property.
@@ -769,7 +769,7 @@ class Response {
 	 *                       header, or the buttons will not be interactive.
 	 * @return string Complete HTML document.
 	 */
-	protected function http_error_document( string $message, string $nonce ): string {
+	protected function http_error_document( string $message, string $nonce ) : string {
 		$code         = $this->get_status_code();
 		$reason       = $this->get_reason_phrase();
 		$safe_reason  = \escHtml( $reason );

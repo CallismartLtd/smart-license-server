@@ -29,397 +29,397 @@ dirname, basename, json_decode, json_last_error, smliser_safe_json_encode;
  * Note: it does not represent a single hosted software @see \SmartLicenseServer\HostedApps\Software
  */
 class SoftwareRepository extends Repository {
-    use RepoFilesAwareTrait;
+	use RepoFilesAwareTrait;
 
-    /**
-     * Class constructor
-     * 
-     * Always binds to the `themes` subdirectory.
-     * 
-     * @param MDParser $mdparser        The markdown parser.
-     * @param URLManager $urlmanager    The URL manager.
-     */
-    public function __construct(
-        protected MDParser $mdparser,
-        protected URLManager $urlmanager,
-        FileSystem $file_system
-    ) {
-        parent::__construct( $file_system, 'software' );
-    }
+	/**
+	 * Class constructor
+	 * 
+	 * Always binds to the `themes` subdirectory.
+	 * 
+	 * @param MDParser $mdparser        The markdown parser.
+	 * @param URLManager $urlmanager    The URL manager.
+	 */
+	public function __construct(
+		protected MDParser $mdparser,
+		protected URLManager $urlmanager,
+		FileSystem $file_system
+	) {
+		parent::__construct( $file_system, 'software' );
+	}
 
-    /**
-     * Locate the software ZIP file inside the repository.
-     * 
-     * @param string $slug The software slug.
-     * @return string|Exception Absolute path to the ZIP file or Exception if not found.
-     */
-    public function locate( $slug ) : string| Exception {
-        if ( empty( $slug ) || ! is_string( $slug ) ) {
-            return new Exception(
-                'invalid_slug',
-                __( 'Software slug must be a non-empty string.', 'smliser' ),
-                [ 'status' => 400 ]
-            );
-        }
+	/**
+	 * Locate the software ZIP file inside the repository.
+	 * 
+	 * @param string $slug The software slug.
+	 * @return string|Exception Absolute path to the ZIP file or Exception if not found.
+	 */
+	public function locate( $slug ) : string| Exception {
+		if ( empty( $slug ) || ! is_string( $slug ) ) {
+			return new Exception(
+				'invalid_slug',
+				__( 'Software slug must be a non-empty string.', 'smliser' ),
+				[ 'status' => 400 ]
+			);
+		}
 
-        try {
-            $slug = $this->real_slug( $slug );
-            $this->enter_slug( $slug );
-        } catch ( FileSystemException $e ) {
-            return new Exception(
-                'invalid_slug',
-                $e->get_error_message(),
-                [ 'status' => 400 ]
-            );
-        }
+		try {
+			$slug = $this->real_slug( $slug );
+			$this->enter_slug( $slug );
+		} catch ( FileSystemException $e ) {
+			return new Exception(
+				'invalid_slug',
+				$e->get_error_message(),
+				[ 'status' => 400 ]
+			);
+		}
 
-        $software_zip   = $this->path( sprintf( '%s.zip', $slug ) );
+		$software_zip = $this->path( sprintf( '%s.zip', $slug ) );
 
-        if ( ! $this->exists( $software_zip ) ) {
-            return new Exception(
-                'software_not_found',
-                __( 'The requested software package was not found in the repository.', 'smliser' ),
-                [ 'status' => 404 ]
-            );
-        }
+		if ( ! $this->exists( $software_zip ) ) {
+			return new Exception(
+				'software_not_found',
+				__( 'The requested software package was not found in the repository.', 'smliser' ),
+				[ 'status' => 404 ]
+			);
+		}
 
-        return $software_zip;
-    }
+		return $software_zip;
+	}
 
-    /**
-     * {@inheritdoc}
-     * 
-     * - Post update: validates readme.md presence in the ZIP.
-     */
-    public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) : array {
-        // -- Core upload.
-        $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
+	/**
+	 * {@inheritdoc}
+	 * 
+	 * - Post update: validates readme.md presence in the ZIP.
+	 */
+	public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) : array {
+		// -- Core upload.
+		$stored_path = $this->safe_zip_upload( $file, $new_name, $update );
 
-        if ( $stored_path instanceof Exception ) {
-            return [
-                'error' => $stored_path
-            ];
-        }
+		if ( $stored_path instanceof Exception ) {
+			return [
+				'error' => $stored_path
+			];
+		}
 
-        // -- Post-upload validation for software ZIPs.
-        $base_folder    = dirname( $stored_path );
-        $slug           = basename( $stored_path, '.zip' );
+		// -- Post-upload validation for software ZIPs.
+		$base_folder = dirname( $stored_path );
+		$slug        = basename( $stored_path, '.zip' );
 
-        $cleanup_func = function() use ( $update, $stored_path, $base_folder ) {
-            if ( $update ) {
-                $this->delete( $stored_path ); // only remove bad zip.
-            } else {
-                $this->rmdir( $base_folder, true ); // remove new folder completely.
-            }
-        };
+		$cleanup_func = function() use ( $update, $stored_path, $base_folder ) {
+			if ( $update ) {
+				$this->delete( $stored_path ); // only remove bad zip.
+			} else {
+				$this->rmdir( $base_folder, true ); // remove new folder completely.
+			}
+		};
 
-        // Post-upload validation: Check readme.md and metadata.
-        $zip = new ZipArchive();
-        if ( true !== $zip->open( $stored_path ) ) {
-            return [
-                'error' => new Exception(
-                    'zip_invalid',
-                    'Uploaded ZIP could not be opened.',
-                    [ 'status' => 400 ]
-                ),
-                'rollback_function' => $cleanup_func,
-                'base_dir'          => $base_folder,
-                'slug'              => $slug
-            ];
-        }
+		// Post-upload validation: Check readme.md and metadata.
+		$zip = new ZipArchive();
+		if ( true !== $zip->open( $stored_path ) ) {
+			return [
+				'error' => new Exception(
+					'zip_invalid',
+					'Uploaded ZIP could not be opened.',
+					[ 'status' => 400 ]
+				),
+				'rollback_function' => $cleanup_func,
+				'base_dir'          => $base_folder,
+				'slug'              => $slug
+			];
+		}
 
-        $first_index    = $zip->getNameIndex( 0 );
-        $rootDir        = explode( '/', $first_index )[0];
-        $readme_index   = $zip->locateName( $rootDir . '/readme.md', ZipArchive::FL_NOCASE );
+		$first_index  = $zip->getNameIndex( 0 );
+		$rootDir      = explode( '/', $first_index )[0];
+		$readme_index = $zip->locateName( $rootDir . '/readme.md', ZipArchive::FL_NOCASE );
 
-        if ( false === $readme_index ) {
-            $zip->close();
-            return [
-                'error' => new Exception(
-                    'readme_missing',
-                    'The uploaded software ZIP file is missing the required readme.md file.',
-                    [ 'status' => 400 ]
-                ),
-                'rollback_function' => $cleanup_func,
-                'base_dir'          => $base_folder,
-                'slug'              => $slug
-            ];
-        }
+		if ( false === $readme_index ) {
+			$zip->close();
+			return [
+				'error' => new Exception(
+					'readme_missing',
+					'The uploaded software ZIP file is missing the required readme.md file.',
+					[ 'status' => 400 ]
+				),
+				'rollback_function' => $cleanup_func,
+				'base_dir'          => $base_folder,
+				'slug'              => $slug
+			];
+		}
 
-        $readme_contents    = $zip->getFromIndex( $readme_index );
+		$readme_contents = $zip->getFromIndex( $readme_index );
 
-        $zip->close();
+		$zip->close();
 
-        $readme_path = FileSystemHelper::join_path( $base_folder, 'readme.md' );
+		$readme_path = FileSystemHelper::join_path( $base_folder, 'readme.md' );
 
-        if ( ! $this->put_contents( $readme_path, $readme_contents ) ) {
-            return [
-                'error'     => new Exception(
-                    'readme_save_failed',
-                    'Failed to save readme.md after upload.',
-                    [ 'status' => 500 ]
-                ),
-                'rollback_function' => $cleanup_func,
-                'base_dir'          => $base_folder,
-                'slug'              => $slug
-            ];
-        }
-        
-        return [
-            'slug'              => $slug,
-            'base_dir'          => $base_folder,
-            'rollback_function' => $cleanup_func
-        ];
-    }
+		if ( ! $this->put_contents( $readme_path, $readme_contents ) ) {
+			return [
+				'error' => new Exception(
+					'readme_save_failed',
+					'Failed to save readme.md after upload.',
+					[ 'status' => 500 ]
+				),
+				'rollback_function' => $cleanup_func,
+				'base_dir'          => $base_folder,
+				'slug'              => $slug
+			];
+		}
+		
+		return [
+			'slug'              => $slug,
+			'base_dir'          => $base_folder,
+			'rollback_function' => $cleanup_func
+		];
+	}
 
-    /**
-     * Validate names and types of asset that can be uploaded for a software.
-     * 
-     * @param UploadedFile $file The uploaded file instance.
-     * @param string $type       The asset type.
-     * @return Exception|string On error, file name otherwise.
-     */
-    public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : Exception|string {
-        $ext        = $file->get_canonical_extension();
-        $validation = $this->is_valid_image( $file->get_tmp_path() );
+	/**
+	 * Validate names and types of asset that can be uploaded for a software.
+	 * 
+	 * @param UploadedFile $file The uploaded file instance.
+	 * @param string $type       The asset type.
+	 * @return Exception|string On error, file name otherwise.
+	 */
+	public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : Exception|string {
+		$ext        = $file->get_canonical_extension();
+		$validation = $this->is_valid_image( $file->get_tmp_path() );
 
-        if ( is_smliser_error( $validation ) ) {
-            return $validation;
-        }
+		if ( is_smliser_error( $validation ) ) {
+			return $validation;
+		}
 
-        // Only icon, cover and screenshots are allowed.
-        switch ( $type ) {
-            case 'icon':
-                $allowed    = in_array( $file->get_name( false ), static::ALLOWED_ICON_NAMES, true );
-                if ( ! $allowed ) {
-                    return new Exception(
-                        'filename_error',
-                        sprintf( 'Icon name must be one of: %s', implode( ', ', static::ALLOWED_ICON_NAMES ) )
-                    );
-                }
+		// Only icon, cover and screenshots are allowed.
+		switch ( $type ) {
+			case 'icon':
+				$allowed = in_array( $file->get_name( false ), static::ALLOWED_ICON_NAMES, true );
+				if ( ! $allowed ) {
+					return new Exception(
+						'filename_error',
+						sprintf( 'Icon name must be one of: %s', implode( ', ', static::ALLOWED_ICON_NAMES ) )
+					);
+				}
 
-                return $file->get_name();
-            case 'cover':
-                return sprintf( 'cover.%s', $ext );
-            case 'screenshot':
-            case 'screenshots':
-                if ( preg_match( '/screenshot-(\d+)/', $file->get_name(), $m ) ) {
-                    $screenshot = sprintf( 'screenshot-%d.%s', $m[1], $ext ); 
-                } else {
-                    // Auto-generate next index.
-                    $screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
-                }
+				return $file->get_name();
+			case 'cover':
+				return sprintf( 'cover.%s', $ext );
+			case 'screenshot':
+			case 'screenshots':
+				if ( preg_match( '/screenshot-(\d+)/', $file->get_name(), $m ) ) {
+					$screenshot = sprintf( 'screenshot-%d.%s', $m[1], $ext );
+				} else {
+					// Auto-generate next index.
+					$screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
+				}
 
-                return $screenshot;
+				return $screenshot;
 
-            default:
-                return new Exception( 'invalid_type', 'Software only supports icon, cover and screenshots as asset type.', [ 'status' => 400 ] );
-        }
-    }
+			default:
+				return new Exception( 'invalid_type', 'Software only supports icon, cover and screenshots as asset type.', [ 'status' => 400 ] );
+		}
+	}
 
-    /**
-     * Get software assets as URL.
-     * 
-     * @param string $slug Software slug.
-     * @param string $type Asset type (e.g., cover, screenshots).
-     * @return URL[]|URL Asset URLs or Exception on failure.
-     */
-    public function get_assets( string $slug, string $type ) : URL|array {
-        $slug = $this->real_slug( $slug );
+	/**
+	 * Get software assets as URL.
+	 * 
+	 * @param string $slug Software slug.
+	 * @param string $type Asset type (e.g., cover, screenshots).
+	 * @return URL[]|URL Asset URLs or Exception on failure.
+	 */
+	public function get_assets( string $slug, string $type ) : URL|array {
+		$slug = $this->real_slug( $slug );
 
-        try {
-            $base_dir = $this->enter_slug( $slug );
-        } catch ( FileSystemException ) {
-            return ( 'cover' === $type ) ? URL::from( '' ) : [];
-        }
+		try {
+			$base_dir = $this->enter_slug( $slug );
+		} catch ( FileSystemException ) {
+			return ( 'cover' === $type ) ? URL::from( '' ) : [];
+		}
 
-        $assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
+		$assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
 
-        if ( ! $this->is_dir( $assets_dir ) ) {
-            return ( 'cover' === $type ) ? URL::from( '' ) : [];
-        }
+		if ( ! $this->is_dir( $assets_dir ) ) {
+			return ( 'cover' === $type ) ? URL::from( '' ) : [];
+		}
 
-        $possible_exts  = static::ALLOWED_IMAGE_EXTENSIONS;
+		$possible_exts = static::ALLOWED_IMAGE_EXTENSIONS;
 
-        switch ( $type ) {
-            case 'icons':
-                $icons = [];
-                $possible_icons = [ 'icon-128x128', 'icon-256x256', 'icon' ];
+		switch ( $type ) {
+			case 'icons':
+				$icons          = [];
+				$possible_icons = [ 'icon-128x128', 'icon-256x256', 'icon' ];
 
-                foreach ( $possible_icons as $icon_name ) {
-                    $path       = FileSystemHelper::join_path( $assets_dir, $icon_name );
-                    $pattern    = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
-                    $icon_files = glob( $pattern, GLOB_BRACE );
+				foreach ( $possible_icons as $icon_name ) {
+					$path       = FileSystemHelper::join_path( $assets_dir, $icon_name );
+					$pattern    = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
+					$icon_files = glob( $pattern, GLOB_BRACE );
 
-                    foreach ( $icon_files as $icon ) {
-                        $icons[] = $this->urlmanager->app_asset_url( 'software', $slug, basename( $icon ) );
-                    }
-                }
+					foreach ( $icon_files as $icon ) {
+						$icons[] = $this->urlmanager->app_asset_url( 'software', $slug, basename( $icon ) );
+					}
+				}
 
-                return $icons;
+				return $icons;
 
-            case 'cover':
-                $path           = FileSystemHelper::join_path( $assets_dir, 'cover' );
-                $pattern        = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
-                $cover_files    = glob( $pattern, GLOB_BRACE );
-                if ( empty( $cover_files ) ) {
-                    return URL::from( '' );
-                }
-                
-                foreach ( $cover_files as $cover ) {
-                    if ( $this->is_file( $cover ) ) {
-                        return $this->urlmanager->app_asset_url( 'software', $slug, basename( $cover ) );
-                    }
-                }
+			case 'cover':
+				$path        = FileSystemHelper::join_path( $assets_dir, 'cover' );
+				$pattern     = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
+				$cover_files = glob( $pattern, GLOB_BRACE );
+				if ( empty( $cover_files ) ) {
+					return URL::from( '' );
+				}
+				
+				foreach ( $cover_files as $cover ) {
+					if ( $this->is_file( $cover ) ) {
+						return $this->urlmanager->app_asset_url( 'software', $slug, basename( $cover ) );
+					}
+				}
 
-                return URL::from( '' );
-                
-            case 'screenshots':
-                $path           = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
-                $pattern        = sprintf( '%s-*.{%s}', $path, implode( ',', $possible_exts ) );
-                $files          = glob( $pattern, GLOB_BRACE );
-                $screenshots    = [];
-                
-                foreach ( $files as $screenshot ) {
-                    $screenshots[] = $this->urlmanager->app_asset_url( 'software', $slug, basename( $screenshot ) );
-                }
+				return URL::from( '' );
+				
+			case 'screenshots':
+				$path        = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
+				$pattern     = sprintf( '%s-*.{%s}', $path, implode( ',', $possible_exts ) );
+				$files       = glob( $pattern, GLOB_BRACE );
+				$screenshots = [];
+				
+				foreach ( $files as $screenshot ) {
+					$screenshots[] = $this->urlmanager->app_asset_url( 'software', $slug, basename( $screenshot ) );
+				}
 
-                return $screenshots;
+				return $screenshots;
 
-            default:
-                return [];
-        }
-    }
+			default:
+				return [];
+		}
+	}
 
-    /**
-     * Get the app.json metadata for a software.
-     * 
-     * @param Software $software
-     * @return array
-     */
-    public function get_app_dot_json( $software ) : array {
-        try {
-            
-            $slug = $this->real_slug( $software->get_slug() );
-            $base_dir =$this->enter_slug( $slug );
+	/**
+	 * Get the app.json metadata for a software.
+	 * 
+	 * @param Software $software
+	 * @return array
+	 */
+	public function get_app_dot_json( $software ) : array {
+		try {
+			
+			$slug     = $this->real_slug( $software->get_slug() );
+			$base_dir = $this->enter_slug( $slug );
 
-        } catch ( FileSystemException $e ) {
-            return $this->regenerate_app_dot_json( $software );
-        }
+		} catch ( FileSystemException $e ) {
+			return $this->regenerate_app_dot_json( $software );
+		}
 
-        $app_json_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
+		$app_json_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
 
-        if ( ! $this->exists( $app_json_path ) ) {
-            return $this->regenerate_app_dot_json( $software );
-        }
+		if ( ! $this->exists( $app_json_path ) ) {
+			return $this->regenerate_app_dot_json( $software );
+		}
 
-        $contents   = $this->get_contents( $app_json_path );
-        $data       = json_decode( $contents, true );
+		$contents = $this->get_contents( $app_json_path );
+		$data     = json_decode( $contents, true );
 
-        if ( json_last_error() === JSON_ERROR_NONE && is_array( $data ) ) {
-            return $data;
-        }
+		if ( JSON_ERROR_NONE === json_last_error() && is_array( $data ) ) {
+			return $data;
+		}
 
-        // Repair json file.
-        return $this->regenerate_app_dot_json( $software );
-    }
+		// Repair json file.
+		return $this->regenerate_app_dot_json( $software );
+	}
 
-    /**
-     * Build app.jon file.
-     * 
-     * @param Software $software
-     * @return array
-     */
-    public function regenerate_app_dot_json( $software ) : array {
+	/**
+	 * Build app.jon file.
+	 * 
+	 * @param Software $software
+	 * @return array
+	 */
+	public function regenerate_app_dot_json( $software ) : array {
 
-        $defaults = [
-            'name'              => $software->get_name(),
-            'slug'              => $software->get_slug(),
-            'version'           => $software->get_version(),
-            'short_description' => $software->get_short_description(),
-        ];
+		$defaults = [
+			'name'              => $software->get_name(),
+			'slug'              => $software->get_slug(),
+			'version'           => $software->get_version(),
+			'short_description' => $software->get_short_description(),
+		];
 
-        $current = $software->get_manifest();
+		$current = $software->get_manifest();
 
-        // Allow overrides and additional fields.
-        $manifest = array_merge( $defaults, $current );
+		// Allow overrides and additional fields.
+		$manifest = array_merge( $defaults, $current );
 
-        // Enforce canonical identity fields.
-        foreach ( [ 'name', 'slug', 'version' ] as $key ) {
-            $manifest[ $key ] = $defaults[ $key ];
-        }
+		// Enforce canonical identity fields.
+		foreach ( [ 'name', 'slug', 'version' ] as $key ) {
+			$manifest[ $key ] = $defaults[ $key ];
+		}
 
-        try {
-            $slug     = $this->real_slug( $software->get_slug() );
-            $base_dir = $this->enter_slug( $slug );
-        } catch ( FileSystemException $e ) {
-            return $manifest;
-        }
+		try {
+			$slug     = $this->real_slug( $software->get_slug() );
+			$base_dir = $this->enter_slug( $slug );
+		} catch ( FileSystemException $e ) {
+			return $manifest;
+		}
 
-        $file_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
+		$file_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
 
-        $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;
-        $json  = smliser_safe_json_encode( $manifest, $flags );
+		$flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;
+		$json  = smliser_safe_json_encode( $manifest, $flags );
 
-        $this->put_contents( $file_path, $json );
+		$this->put_contents( $file_path, $json );
 
-        return $manifest;
-    }
-    
-    /**
-     * Get description from readm.md file.
-     * 
-     * @param string $slug
-     * @return string
-     */
-    public function get_description( $slug ) {
-        return $this->get_readme( $slug );
-    }
+		return $manifest;
+	}
+	
+	/**
+	 * Get description from readm.md file.
+	 * 
+	 * @param string $slug
+	 * @return string
+	 */
+	public function get_description( $slug ) {
+		return $this->get_readme( $slug );
+	}
 
-    /**
-     * Get the value of faq key in the app.json file
-     *
-     * @param Software $software
-     * @return string HTML markup of frequently asked questions.
-     */
-    public function get_faq( Software $software ) : string {
-        $app_json = $this->get_app_dot_json( $software );
-        $faq      = $app_json['faq'] ?? [];
+	/**
+	 * Get the value of faq key in the app.json file
+	 *
+	 * @param Software $software
+	 * @return string HTML markup of frequently asked questions.
+	 */
+	public function get_faq( Software $software ) : string {
+		$app_json = $this->get_app_dot_json( $software );
+		$faq      = $app_json['faq'] ?? [];
 
-        if ( empty( $faq ) || ! is_array( $faq ) ) {
-            return '';
-        }
+		if ( empty( $faq ) || ! is_array( $faq ) ) {
+			return '';
+		}
 
-        $html  = '<dl>';
+		$html = '<dl>';
 
-        foreach ( $faq as $question => $answer ) {
-            if ( ! is_string( $question ) || ! is_string( $answer ) ) {
-                continue;
-            }
+		foreach ( $faq as $question => $answer ) {
+			if ( ! is_string( $question ) || ! is_string( $answer ) ) {
+				continue;
+			}
 
-            $html .= '<dt>';
-            $html .= escHtml( $question );
-            $html .= '</dt>';
+			$html .= '<dt>';
+			$html .= escHtml( $question );
+			$html .= '</dt>';
 
-            $html .= '<dd>';
-            $html .= escHtml( $answer );
-            $html .= '</dd>';
-        }
+			$html .= '<dd>';
+			$html .= escHtml( $answer );
+			$html .= '</dd>';
+		}
 
-        $html .= '</dl>';
+		$html .= '</dl>';
 
-        return $html;
-    }
+		return $html;
+	}
 
-    /**
-     * Get short description.
-     * 
-     * @param Software $software
-     * @return string
-     */
-    public function get_short_description( Software $software ) : string {
-        $app_json   = $this->get_app_dot_json( $software );
+	/**
+	 * Get short description.
+	 * 
+	 * @param Software $software
+	 * @return string
+	 */
+	public function get_short_description( Software $software ) : string {
+		$app_json = $this->get_app_dot_json( $software );
 
-        return $app_json['short_description'] ?? '';
-    }
+		return $app_json['short_description'] ?? '';
+	}
 }

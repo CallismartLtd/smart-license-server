@@ -28,1476 +28,1476 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * @package SmartLicenseServer\HostedApps
  */
 abstract class AbstractHostedApp extends DataStore implements HostedAppsInterface {
-    use SanitizeAwareTrait, DatePropertyAwareTrait;
-
-    /**
-     * App database ID
-     * 
-     * @var int $id The app ID.
-     */
-    protected int $id = 0;
-
-    /**
-     * App owner ID
-     * 
-     * @var int $owner_id
-     */
-    protected int $owner_id = 0;
-
-    /**
-     * The name of the app..
-     * 
-     * @var string $name The app's name.
-     */
-    protected string $name = '';
-
-    /**
-     * The app status
-     * 
-     * @var string $status
-     */
-    protected string $status = self::STATUS_ACTIVE;
-
-    /**
-     * App slug.
-     * 
-     * @var string $slug app slug.
-     */
-    protected string $slug = '';
-
-    /**
-     * App Version.
-     * 
-     * @var string $version The current version of the app.
-     */
-    protected string $version = '';
-
-    /**
-     * Author .
-     * 
-     * @var string|array $author The author of the app
-     */
-    protected string|array $author;
-
-    /**
-     * Author profile.
-     * 
-     * @var URL $author_profile The author's app link or information.
-     */
-    protected ?URL $author_profile = null;
-
-    /**
-     * Update time.
-     * 
-     * @var DateTimeImmutable|null $updated_at The last time the app was updated
-     */
-    protected ?DateTimeImmutable $updated_at = null;
-
-    /**
-     * Date created
-     * 
-     * @var DateTimeImmutable|null $created_at When app was created.
-     */
-    protected ?DateTimeImmutable $created_at = null;
-
-    /**
-     * An array of app sections (e.g., description, installation, FAQ).
-     * 
-     * @var array{
-     *  description: string, 
-     *  installation: string, 
-     *  faq: string, 
-     *  screenshots: string, 
-     *  changelog: string, 
-     *  reviews: string
-     * } $sections
-     */
-    protected array $sections = array(
-        'description'   => '',
-        'installation'  => '',
-        'faq'           => '',
-        'screenshots'   => '',
-        'changelog'     => '',
-        'reviews'       => '',
-
-    );
-
-    /**
-     * An array of of app icons.
-     * 
-     * @var array $icons
-     */
-    protected array $icons = [];
-
-    /**
-     * Short description.
-     * 
-     * @var string $short_description A brief description of the app.
-     */
-    protected string $short_description = '';
-
-    /**
-     * An array of app screenshots.
-     * 
-     * @var array $screenshots
-     */
-    protected array $screenshots = [];
-
-    /**
-     *  An array of app ratings.
-     * 
-     *  @var array{5: int, 4: int, 3: int, 2: int, 1: int} $ratings
-     */
-    protected array $ratings = array(
-        '5' => 0,
-        '4' => 0,
-        '3' => 0,
-        '2' => 0,
-        '1' => 0,
-    );
-
-    /**
-     * Number of ratings
-     * 
-     * @var int $num_ratings
-     */
-    protected int $num_ratings = 0;
-
-    /**
-     * The number of active installations
-     * 
-     * @var int $active_installs
-     */
-    protected int $active_installs = 0;
-
-    /**
-     * Download link.
-     * 
-     * @var URL|null $download_link The file url.
-     */
-    protected ?URL $download_link = null;
-
-    /**
-     * The app support URL
-     * 
-     * @var URL|null $support_url
-     */
-    protected ?URL $support_url = null;
-
-    /**
-     * The app homepage URL
-     * 
-     * @var URL $homepage
-     */
-    protected ?URL $homepage = null;
-
-    /**
-     * Absolute path to the application's zip file.
-     * 
-     * @var string|UploadedFile $file The absolute path to the app zip file or an uploaded zip file.
-     */
-    protected string|UploadedFile $file;
-
-    /**
-     * The app tags.
-     * 
-     * @var array $tags
-     */
-    protected array $tags = [];
-
-    /**
-     * App meta data stored in the database.
-     * 
-     * @var array $meta_data
-     */
-    protected array $meta_data = [];
-
-    /**
-     * The applications manifest data used to build the app.json.
-     * 
-     * @var array $manifest
-     */
-    protected array $manifest = [
-        'type'          => '',
-        'platforms'     => [],
-        'tech_stack'    => [],
-        'dependencies'  => [],
-    ];
-
-    /**
-     * The license underwhich this application is distributed
-     * 
-     * @var array $license
-     */
-    protected array $license = [
-        'license'       => '',
-        'license_uri'   => ''
-    ];
-
-    /**
-     * App trash status
-     * 
-     * @var string
-     */
-    const STATUS_TRASH = 'trash';
-
-    /**
-     * App active status.
-     * 
-     * @var string
-     */
-    const STATUS_ACTIVE = 'active';
-
-    /**
-     * App inactive status.
-     * 
-     * @var string
-     */
-    const STATUS_INACTIVE   = 'deactivated';
-
-    /**
-     * App suspended status
-     * 
-     * @var string
-     */
-    const STATUS_SUSPENDED  = 'suspended';
-
-    /**
-     * All status collections.
-     * 
-     * @var array
-     */
-    const STATUSES = [
-        self::STATUS_ACTIVE     => self::STATUS_ACTIVE,
-        self::STATUS_INACTIVE   => self::STATUS_INACTIVE,
-        self::STATUS_SUSPENDED  => self::STATUS_SUSPENDED,
-        self::STATUS_TRASH      => self::STATUS_TRASH,
-    ];
-
-    /**
-    |----------------
-    | SETTERS
-    |----------------
-    */
-
-    /**
-     * Set the database ID
-     * 
-     * @param int $id
-     * @return static Fluent.
-     */
-    public function set_id( $id ) : static {
-        $this->id = static::sanitize_int( $id );
-        return $this;
-    }
-
-    /**
-     * Set the owner ID
-     * 
-     * @param int $owner_id
-     * @return static Fluent.
-     */
-    public function set_owner_id( $owner_id ) : static {
-        $this->owner_id = self::sanitize_int( $owner_id );
-
-        return $this;
-    }
-
-    /**
-     * Set the app name
-     * 
-     * @param string|null $name
-     * @return static Fluent.
-     */
-    public function set_name( ?string $name ) : static {
-        $this->name = self::sanitize_text( $name );
-
-        return $this;
-    }
-
-    /**
-     * Set the slug
-     * 
-     * @param string $slug
-     */
-    public function set_slug( string $slug ) : static {
-        $this->slug = self::sanitize_text( $slug );
-
-        return $this;
-    }
-
-    /**
-     * Set the app status
-     * 
-     * @param string $status
-     */
-    public function set_status( string $status ) : static {
-        $this->status = self::sanitize_text( $status );
-
-        return $this;
-    }
-
-    /**
-     * Set app author property.
-     * 
-     * @param string|array $value
-     */
-    public function set_author( string|array $value ) : static {
-        if ( is_array( $value ) ) {
-            $this->author = \array_merge( (array) $this->author, $value );
-        } else {
-            $this->author = $value;
-        }
-        
-        return $this;
-    }
-
-    /**
-     * set app homepage URL
-     * 
-     * @param string $url
-     */
-    public function set_homepage( ?string $url ) : static {
-        $this->homepage = URL::from( $url ?? '' )->sanitize();
-
-        return $this;
-    }
-
-    /**
-     * Set app screenshots
-     * 
-     * @param array $screenshots
-     */
-    public function set_screenshots( array $screenshots ) : static {
-        $this->screenshots = $screenshots;
-
-        return $this;
-    }
-
-    /**
-     * Set App icons
-     * 
-     * @param array $icons
-     */
-    public function set_icons( array $icons ) : static {
-        $this->icons = $icons;
-
-        return $this;
-
-    }
-    /**
-     * Set the link to the author's profile
-     * 
-     * @param string|URL|null $url
-     */
-    public function set_author_profile( string|URL|null $url ) : static {
-        $this->author_profile = ( $url instanceof URL ) ? $url->sanitize() : URL::from( (string) $url )->sanitize();
-
-        return $this;
-    }
-
-    /**
-     * Set app version
-     * 
-     * @param string $version
-     */
-    public function set_version( ?string $version ) : static {
-        $this->version = self::sanitize_text( $version );
-
-        return $this;
-    }
-
-    /**
-     * Set last updated
-     * 
-     * @param mixed $date
-     */
-    public function set_updated_at( mixed $date ) : static {
-        return $this->set_date_prop( $date, 'updated_at' );
-    }
-
-    /**
-     * Set When created
-     * 
-     * @param mixed $date
-     */
-    public function set_created_at( mixed $date ) : static {
-        return $this->set_date_prop( $date, 'created_at' );
-    }
-
-    /**
-     * Set Section
-     * 
-     * @param array{
-     *  description: string, 
-     *  installation: string, 
-     *  faq: string, 
-     *  screenshots: string, 
-     *  changelog: string, 
-     *  reviews: string
-     * } $section_data An associative array containing each section information.
-     */
-    public function set_section( array $section_data ) : static {
-        if ( isset( $section_data['description'] ) ) {
-            $this->sections['description'] = $section_data['description'];
-        } 
-        
-        if ( isset( $section_data['installation'] ) ) {
-            $this->sections['installation'] = $section_data['installation'];
-        }
-        
-        if ( isset( $section_data['changelog'] ) ) {
-            $this->sections['changelog'] = $section_data['changelog'];
-        }
-
-        if ( isset( $section_data['screenshots'] ) ) {
-            $this->sections['screenshots'] = $section_data['screenshots'];
-        }
-        
-        if ( isset( $section_data['faq'] ) ) {
-            $this->sections['faq'] = $section_data['faq'];
-        }
-
-        if ( isset( $section_data['reviews'] ) ) {
-            $this->sections['reviews'] = $section_data['reviews'];
-        }
-
-        return $this;
-    }
-
-    /**
-     *  Set the file
-     * 
-     * @param string|UploadedFile $file
-     */
-    public function set_file( string|UploadedFile $file ) : static {
-        $this->file = $file;
-
-        return $this;
-    }
-
-    /**
-     * Set ratings
-     * 
-     * @param array{5: int, 4: int, 3: int, 2: int, 1: int} $ratings
-     */
-    public function set_ratings( $ratings ) : static {
-        $this->ratings = array_map(
-            [$this, 'sanitize_int'],
-            array_intersect_key( $ratings, $this->ratings )
-        );
-        return $this;
-    }
-
-    /**
-     * Get number of rating
-     * 
-     * @param int $value
-     */
-    public function set_num_ratings( int $value ) : static {
-        $this->num_ratings  = static::sanitize_int( $value );
-
-        return $this;
-    }
-
-    /**
-     * The number of active installations
-     * @param int $value
-     */
-    public function set_active_installs( mixed $value ) : static {
-        $this->active_installs = static::sanitize_int( $value );
-
-        return $this;
-    }
-
-    /**
-     * Set the app support URL
-     *
-     * @param string|URL $url The support URL
-     * @return static
-     */
-    public function set_support_url( string|URL $url ) : static {
-        $this->support_url = ( $url instanceof URL ) ? $url : URL::from( $url );
-
-        return $this;
-    }
-
-    /**
-     * Set the APP tags.
-     * 
-     * @param array $tags
-     */
-    public function set_tags( array $tags ) : static {
-        $this->tags = array_map( [__CLASS__, 'sanitize_text'], (array) $tags );
-
-        return $this;
-    }
-
-    /**
-     * Set the manifest property.
-     * 
-     * @param array $data
-     * 
-     */
-    public function set_manifest( array $data ) : static {
-        $defaults   = [
-            'type'          => '',
-            'platforms'     => [],
-            'tech_stack'    => [],
-            'dependencies'  => [],
-        ];
-        
-        $this->manifest = $data + $defaults;
-
-        return $this;
-    }
-
-    /**
-     * Set the software license underwhich this app is distributed
-     * 
-     * @param array $license
-     */
-    public function set_license( array $license ) : static {
-        $this->license = $license + $this->license;
-
-        return $this;
-    }
-    
-    /**
-    |------------
-    | GETTERS
-    |------------
-    */
-
-    /**
-     * Get the app ID.
-     * 
-     * @return int
-     */
-    public function get_id() : int {
-        return $this->id;
-    }
-
-    /**
-     * Get the app owner ID
-     * 
-     * @return int
-     */
-    public function get_owner_id() : int {
-        return $this->owner_id;
-    }
-
-
-    /**
-     * Get the application name.
-     * 
-     * @return string
-     */
-    public function get_name() : string {
-        return $this->name;
-    }
-
-    /**
-     * Get the app status
-     * 
-     * @return string
-     */
-    public function get_status() : string {
-        return $this->status;
-    }
-
-    /**
-     * Get the application version.
-     * 
-     * @return string
-     */
-    public function get_version() : string {
-        return $this->version;
-    }
-
-    /**
-     * Get the application author.
-     * 
-     * @return string|array
-     */
-    public function get_author() : string|array {
-        return $this->author;
-    }
-
-    /**
-     * Get the application slug (URL-friendly name).
-     * 
-     * @return string
-     */
-    public function get_slug() : string {
-        return $this->slug;
-    }
-
-    /**
-     * Get the homepage URL
-     * 
-     * @return URL
-     */
-    public function get_homepage() : URL {
-        if ( isset( $this->homepage ) && $this->homepage->is_valid() ) {
-            return $this->homepage;
-        }
-        
-        return $this->get_url();
-    }
-    
-    /**
-     * Get app screenshots
-     * 
-     * @return array $screenshots
-     */
-    public function get_screenshots() : array {
-        return $this->screenshots;
-
-    }
-
-    /**
-     * Get plugin icons
-     * 
-     * @return array
-     */
-    public function get_icons() : array {
-        return $this->icons;
-
-    }
-
-    /**
-     * Get the application description.
-     * 
-     * @return string
-     */
-    public function get_description() : string {
-        return $this->sections['description'];
-    }
-
-    /**
-     * Get application short description.
-     */
-    public function get_short_description() : string {
-        return $this->short_description;
-    }
-
-    /**
-     * Get the application changelog.
-     * 
-     * @return string
-     */
-    public function get_changelog() : string {
-        return $this->get_section( 'changelog' );
-    }
-
-    /**
-     * Get the application's installation guide.
-     * 
-     * @return string a parsed HTML string from the readme file.
-     */
-    public function get_installation() : string {
-        return $this->get_section( 'installation' );
-    }
-
-    /**
-     * Get application support URL.
-     */
-    public function get_support_url() : ?URL {
-        return $this->support_url;
-    }
-
-    /**
-     * Get the value of a specific section property.
-     * 
-     * @param string $name  Section name.
-     * @return string The particular section name
-     */
-    public function get_section( string $name ) : string {
-        $name   = strtolower( $name );
-
-        return $this->sections[$name] ?? '';
-    }
-
-
-    /**
-     * Get ratings
-     * 
-     * @return array $ratings
-     */
-    public function get_ratings() : array {
-        return $this->ratings;
-    }
-
-    /**
-     * Get number of rating
-     * 
-     * @return int
-     */
-    public function get_num_ratings() : int {
-        return $this->num_ratings;
-    }
-
-    /**
-     * Get average rating
-     * 
-     * @return float
-     */
-    public function get_average_rating() : float {
-        $total_ratings  = array_sum( $this->ratings );
-        $num_ratings    = $this->get_num_ratings();
-
-        if ( $num_ratings > 0 ) {
-            return round( $total_ratings / $num_ratings, 2 );
-        }
-
-        return 0;
-    }
-
-    /**
-     * The number of active installations
-     */
-    public function get_active_installs() : int {
-        return $this->active_installs;
-    }
-
-    /**
-     * Get the file.
-     * 
-     * @return string|UploadedFile
-     */
-    public function get_file() : string|UploadedFile {
-        return $this->file;
-    }
-
-    /**
-     * Get Sections
-     * 
-     * @return array $sections.
-     */
-    public function get_sections() : array {
-        return $this->sections;
-    }
-    
-    /**
-     * Get last updated
-     */
-    public function get_updated_at() : DateTimeImmutable {
-        return $this->updated_at;
-    }
-    
-    /**
-     * Get last updated
-     */
-    public function get_last_updated() : DateTimeImmutable {
-        return $this->get_updated_at();
-    }
-
-    /**
-     * Get when created.
-     */
-    public function get_created_at() : DateTimeImmutable {
-        return $this->created_at;
-    }
-    /**
-     * Get when created.
-     */
-    public function get_date_created() {
-        return $this->get_created_at();
-    }
-
-    /**
-     * Get the app tags.
-     * 
-     * @return array $tags
-     */
-    public function get_tags() : array {
-        return $this->tags;
-    }
-
-    /**
-     * Get the manifest property
-     * 
-     * @return array
-     */
-    public function get_manifest() : array {
-        return $this->manifest;
-    }
-
-    /**
-     * Get app destribution license
-     * 
-     * @return array
-     */
-    public function get_license() : array {
-        return $this->license;
-    }
-
-    /**
-    |-------------------------------------------
-    | ABSTRACT METHODS THAT MUST BE IMPLEMENTED
-    |-------------------------------------------
-    */
-
-    /**
-     * Get the application type (e.g., 'plugin', 'theme', 'library').
-     * 
-     * @return string
-     */
-    abstract public function get_type() : string;
-
-    /**
-     * Get the app main icon
-     * 
-     * @return string
-     */
-    abstract function get_icon() : string;
-
-    /**
-     * Method to get the database table name.
-     */
-    abstract public static function get_db_table() : string;
-
-    /**
-     * Method to get the database meta table name.
-     */
-    abstract public static function get_db_meta_table() : string;
-
-    /**
-     * Get the foreign key column name for metadata table
-     * 
-     * @return string
-     */
-    abstract protected function get_meta_foreign_key() : string;
-    
-    /**
-     * Get an instance of this class from an array
-     * @param array $data
-     */
-    abstract public static function from_array( $data ) : static;
-
-    /**
-     * Get database fields.
-     * 
-     * @return array<int, string>
-     */
-    abstract public function get_fillable() : array;
-
-    /**
-    |---------------------
-    | SHARED CRUD METHODS
-    |---------------------
-    */
-
-    /**
-     * Save the app.
-     * 
-     * @return bool|Exception Does not throw.
-     */
-    public function save() : bool|Exception {
-        $db_fields  = $this->get_fillable();
-
-        $data       = [];
-        foreach( $db_fields as $key ) {
-            $method = "get_{$key}";
-            if ( ! \is_callable( [$this, $method] ) ) {
-                continue;
-            }
-
-            $value  = 'get_author' === $method ? $this->$method( '' ) : $this->$method();
-
-            $data[$key] = is_array( $value ) ? Format::encode( $value, Format::ENCODING_PHP ) : (string) $value;
-        }
-        /**
-         * @var array{
-         *  slug?: string,
-         *  base_dir?: string,
-         *  rollback_function?: \Closure,
-         *  error?: \SmartLicenseServer\Exceptions\Exception
-         *}|null $repo_result
-         */
-        $repo_result    = null;
-
-        try {
-            return static::$DB->transactional( function( Database $db ) use ( &$data, &$repo_result ) {
-                $file               = $this->file;
-                $repo_class         = HostedAppsRegistry::instance()->get_app_type_directory_class( $this->get_type() );
-                $now                = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
-                
-                $data['updated_at'] = $now->format( 'Y-m-d H:i:s' );
-
-                $lock_query = static::query()->select( 'id' )->from( static::get_db_table() )
-                    ->where( 'id', '=', static::sanitize_int( $this->get_id() ) )
-                    ->limit( 1 )->lock_for_update();
-                
-                $id = (int) $db->get_var( $lock_query->build(), $lock_query->get_bindings() );
-
-                // We have an ID, update!
-                if ( $id ) {
-
-                    if ( ( $file instanceof UploadedFile ) && $file->is_upload_successful() ) {
-                        $result         = $repo_class->upload_zip( $file, $this->get_slug(), true );
-                        $repo_result    = $result;
-                        
-                        if ( isset( $result['error'] ) ) {
-                            throw $result['error'];
-                        }
-
-                    }
-
-                    // Perform safe update query execution via builder context
-                    $update_query = static::query()->update( static::get_db_table() )->set( $data )
-                        ->where( 'id', '=', $id );
-                    
-                    if ( false === $db->execute( $update_query->build(), $update_query->get_bindings() ) ) {
-                        throw new Exception( 'db_update_error', $db->get_last_error() );
-                    }
-
-                } else {
-                    if ( ! ( $file instanceof UploadedFile ) || ! $file->is_upload_successful() ) {
-                        throw new Exception( 'required_file', 'No plugin file provided for upload.', array( 'status' => 400 ) );
-                    }
-
-                    $filename = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
-                    $result         = $repo_class->upload_zip( $file, $filename );
-                    $repo_result    = $result;
-
-                    if ( isset( $repo_result['error'] ) ) {
-                        throw $result['error'];
-                    }
-
-                    if ( ! isset( $result['slug'] ) ) {
-                        throw new Exception(
-                            'slug_not_set',
-                            \sprintf(
-                                'No slug was acquired after uploading this %s.',
-                                $this->get_type()
-                            )
-                        );
-                    }
-                    $this->set_slug( $result['slug'] );
-
-                    $data['slug']       = $result['slug'];
-                    $data['created_at'] = $now->format( 'Y-m-d H:i:s' );
-
-                    $insert_query = static::query()->insert( $this->get_db_table() )->values( $data );
-                    
-                    if ( false === $db->execute( $insert_query->build(), $insert_query->get_bindings() ) ) {
-                        throw new Exception( 'db_insert_error', $db->get_last_error() );
-                    }
-
-                    $this->set_id( $db->get_insert_id() );
-                    $this->set_created_at( $now );
-                }
-
-                $this->set_updated_at( $now );
-                $new_file   = $repo_class->locate( $this->get_slug() );
-
-                if ( ! $new_file instanceof Exception ) {
-                    $this->set_file( $new_file );
-                }
-                
-                $repo_class->regenerate_app_dot_json( $this );
-                
-                return true;
-            });
-
-        } catch ( Exception $e ) {
-            if ( isset( $repo_result ) ) {
-                if ( isset( $repo_result['rollback_function'] ) ) {
-                    $repo_result['rollback_function']();
-                }
-            }        
-            return $e;
-        }
-    }
-
-    /**
-     * Delete an app, its associated metadata, and its physical files.
-     * 
-     * @return bool True on success, false otherwise.
-     * @throws Exception If a concurrent modification is detected or database execution fails.
-     */
-    public function delete() : bool {
-        if ( empty( $this->id ) ) {
-            return false;
-        }
-
-        $db         = static::$DB;
-        $table      = $this->get_db_table();
-        $meta_table = $this->get_db_meta_table();
-        $foreign_key = $this->get_meta_foreign_key();
-
-        $delete_app_sql  = static::query()->delete( $table )->where( 'id', '=', $this->get_id() );
-        $delete_meta_sql = static::query()->delete( $meta_table )->where( $foreign_key, '=', $this->get_id() );
-        
-        $lock_query = static::query()->select( 'id', 'slug', 'type' )->from( $table )
-            ->where( 'id', '=', $this->get_id() )
-            ->limit( 1 );
-
-        $deleted    = false;
-        $app_slug   = $this->get_slug();
-        $app_type   = $this->get_type();
-
-        $db->transactional( function( Database $db ) use ( $lock_query, $delete_meta_sql, $delete_app_sql, &$deleted, &$app_slug, &$app_type ) {
-            $lock_sql = $lock_query->lock_for_update()->build();
-            $record   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
-
-            if ( ! $record ) {
-                throw new Exception( 'delete_error', 'The application record is locked or has already been removed.' );
-            }
-
-            if ( ! empty( $record['slug'] ) ) {
-                $app_slug = $record['slug'];
-            }
-            if ( ! empty( $record['type'] ) ) {
-                $app_type = $record['type'];
-            }
-
-            if ( false === $db->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) ) {
-                throw new Exception( 'delete_error', 'Database execution failure dropping application metadata rows.' );
-            }
-
-            if ( false === $db->execute( $delete_app_sql->build(), $delete_app_sql->get_bindings() ) ) {
-                throw new Exception( 'delete_error', 'Database execution failure dropping primary application entry.' );
-            }
-
-            $deleted = true;
-        });
-
-        if ( $deleted  && ! empty( $this->meta_data ) ) {
-            $this->meta_data = [];
-        }
-
-        return $deleted;
-    }
-
-    /**
-     * Load all metadata for this app into internal cache.
-     *
-     * @return array Loaded metadata in key => value format.
-     */
-    public function load_meta() : array {
-        if ( ! $this->get_id() ) {
-            return [];
-        }
-
-        $db         = static::$DB;
-        $table      = static::get_db_meta_table();
-        $app_id     = static::sanitize_int( $this->get_id() );
-        $fk_column  = $this->get_meta_foreign_key();
-
-        $sql        = static::query()->select( 'meta_key', 'meta_value' )
-            ->from( $table )
-            ->where( $fk_column, '=', $app_id )
-            ->order_by( 'id', 'ASC' );
-        $results    = $db->get_results( $sql->build(), $sql->get_bindings() );
-
-        $meta = [];
-
-        if ( ! empty( $results ) ) {
-            foreach ( $results as $row ) {
-                $key   = self::sanitize_key( $row['meta_key'] );
-                $value = $row['meta_value'];
-
-                $value = Format::decode( $value );
-
-                $meta[ $key ] = $value;
-            }
-        }
-
-        $this->meta_data = $meta;
-
-        return $meta;
-    }
-
-    /**
-     * Update existing metadata.
-     *
-     * @param mixed $key   Meta key.
-     * @param mixed $value New value.
-     * @return bool True on success, false on failure.
-     */
-    public function update_meta( $key, $value ) : bool {
-
-        if ( ! $this->get_id() ) {
-            return false;
-        }
-
-        $db         = static::$DB;
-        $table      = static::get_db_meta_table();
-        $fk_column  = $this->get_meta_foreign_key();
-
-        $key        = self::sanitize_key( $key );
-        $store      = Format::encode( $value, Format::ENCODING_PHP );
-
-        $meta_id_sql = static::query()->select( 'id' )->from( $table )
-            ->where( $fk_column, '=', $this->get_id() )
-            ->where( 'meta_key', '=', $key )
-            ->limit( 1 );
-        $meta_id = $db->get_var( $meta_id_sql->build(), $meta_id_sql->get_bindings() );
-
-        if ( null === $meta_id ) {
-            // INSERT
-            $inserted = $db->insert(
-                $table,
-                [
-                    $fk_column   => $this->get_id(),
-                    'meta_key'   => $key,
-                    'meta_value' => $store,
-                ]
-            );
-
-            if ( $inserted !== false ) {
-                $this->meta_data[ $key ] = $value;
-                return true;
-            }
-
-            return false;
-
-        } else {
-            // UPDATE existing meta
-            $updated = $db->update(
-                $table,
-                [ 'meta_value' => $store ],
-                [
-                    $fk_column  => $this->get_id(),
-                    'id'        => $meta_id,
-                    'meta_key'  => $key,
-                ]
-            );
-
-            if ( $updated !== false ) {
-                $this->meta_data[ $key ] = $value;
-                return true;
-            }
-
-            return false;
-        }
-    }
-
-    /**
-     * Get the value of a metadata.
-     *
-     * @param string $meta_key   The meta key.
-     * @param mixed  $default_to The fallback value.
-     * @return mixed|null
-     */
-    public function get_meta( string $meta_key, mixed $default_to = null ) : mixed {
-        $meta_key = self::sanitize_text( $meta_key );
-
-        if ( array_key_exists( $meta_key, $this->meta_data ) ) {
-            return $this->meta_data[ $meta_key ];
-        }
-
-        $db         = static::$DB;
-        $table      = static::get_db_meta_table();
-        $fk_column  = $this->get_meta_foreign_key();
-
-        $sql = static::query()->select( 'meta_value' )
-            ->from( $table )
-            ->where( $fk_column, '=', static::sanitize_int( $this->get_id() ) )
-            ->where( 'meta_key', '=', $meta_key )
-            ->limit( 1 );
-
-        $result = $db->get_var( $sql->build(), $sql->get_bindings() );
-
-        $this->meta_data[ $meta_key ] = Format::decode( $result );
-
-        return $this->meta_data[ $meta_key ] ?? $default_to;
-    }
-
-    /**
-     * Get the value of all metadata in key => value format.
-     */
-    public function get_meta_data() : array {
-        if ( empty( $this->meta_data ) ) {
-            return $this->load_meta();
-        }
-
-        return $this->meta_data;
-    }
-
-    /**
-     * Delete a metadata.
-     *
-     * @param string $meta_key The meta key.
-     * @return bool True on success, false on failure.
-     */
-    public function delete_meta( string $meta_key ) {
-        $app_id = $this->get_id();
-
-        if ( ! $app_id ) {
-            return false;
-        }
-
-        $db         = static::$DB;
-        $table      = static::get_db_meta_table();
-        $fk_column  = $this->get_meta_foreign_key();
-        $meta_key   = self::sanitize_key( $meta_key );
-
-        // Delete from database
-        $deleted = $db->delete(
-            $table,
-            [
-                $fk_column => $app_id,
-                'meta_key' => $meta_key,
-            ]
-        );
-
-        if ( $deleted !== false ) {
-            // Remove from instance cache if it exists
-            if ( isset( $this->meta_data[ $meta_key ] ) ) {
-                unset( $this->meta_data[ $meta_key ] );
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Move this app to trash
-     * 
-     * @return bool
-     */
-    public function trash() {
-        $this->set_status( static::STATUS_TRASH );
-
-        return false === \is_smliser_error( $this->save() );
-    }
-
-    /*
-    |--------------
-    | URL METHODS
-    |--------------
-    */
-
-    /**
-     * Set Download url.
-     * 
-     * @param string|URL|null $url The download url.
-     */
-    public function set_download_url( string|URL|null $url = '' ) : static {
-        $url    = ( $url instanceof URL ) ? $url : URL::from( $url );
-        
-        if ( $url->is_valid() ) {
-            $this->download_link = $url->sanitize();
-        } else {
-            $this->download_link = static::$urlmanager->app_downloads_url(
-                $this->get_type(), $this->get_slug() 
-            );            
-        }
-
-        return $this;
-    }
-
-    /**
-     * Get the download URL for the application.
-     */
-    public function get_download_url() : URL {
-        return $this->download_link ?? static::$urlmanager->app_downloads_url(
-                $this->get_type(), $this->get_slug()
-        );
-    }
-
-    /**
-     * Get a sample of download URL for licensed app.
-     */
-    public function monetized_url_sample() {
-        return sprintf( '%s?download_token=[TOKEN]', $this->get_download_url()->url() );
-    }
-
-    /**
-     * Get the URL to view the app.
-     * 
-     * @return URL
-     */
-    public function get_url() : URL {        
-        return static::$urlmanager->app_repository_url( $this->get_type(), $this->get_slug() );
-    }
-
-    /**
-     * Default app icon.
-     * 
-     * @return URL
-     */
-    public function default_icon() : URL {
-        return static::$urlmanager->assets_url(
-            smliser_get_placeholder_icon( $this->get_type() )
-        );
-    }
-
-    /*
-    |------------------------
-    | SHARED UTILITY METHODS
-    |------------------------
-    */
-
-    /**
-     * Get the absolute path to the app zip file
-     * 
-     * @return string|Exception The file path or Exception on failure.
-     */
-    public function get_zip_file() : string|Exception {
-        $file = $this->get_file();
-
-        if ( $file instanceof UploadedFile ) {
-            if ( $file->is_upload_successful() ) {
-                return $file->get_tmp_path();
-            } else {
-                return new Exception( 'file_upload_error', $file->get_error_message(), array( 'status' => 400 ) );
-            }
-        }
-
-        return $file;
-    }
-
-    /**
-     * Get all available statuses with their labels.
-     * 
-     * @return array
-     */
-    public static function get_statuses() {
-        return [
-            static::STATUS_ACTIVE     => 'Active',
-            static::STATUS_INACTIVE   => 'Inactive',
-            static::STATUS_SUSPENDED  => 'Suspended',
-            static::STATUS_TRASH      => 'Trash',
-        ];
-    }
-
-    /**
-     * The app owner instance
-     * 
-     * @return ?Owner
-     */
-    public function get_owner() : ?Owner {
-        return Owner::get_by_id( $this->get_owner_id() );
-    }
-
-    /**
-     * Hydrate object from DB row with only core fields.
-     * Does NOT load meta, assets, sections, or files.
-     *
-     * @param array $row Associative array from DB.
-     * @return static
-     */
-    public static function from_array_minimal( array $row ): static {
-        $static = new static();
-
-        $static->set_id( $row['id'] ?? 0 );
-        $static->set_name( $row['name'] ?? '' );
-        $static->set_slug( $row['slug'] ?? '' );
-        $static->set_author( $row['author'] ?? '' );
-        $static->set_status( $row['status'] ?? static::STATUS_ACTIVE );
-        $static->set_download_url( (string) ( $row['download_link'] ?? '' ) );
-        $static->set_created_at( $row['created_at'] ?? '' );
-        $static->set_updated_at( $row['updated_at'] ?? '' );
-
-        return $static;
-    }
-    /*
-    |------------------------
-    | SHARED CONDITIONAL METHODS
-    |------------------------
-    */
-    /**
-     * Check if app is in trash
-     * 
-     * @return bool
-     */
-    public function is_trashed() : bool {
-        return static::STATUS_TRASH === $this->get_status();
-    }
-
-    /**
-     * Check if app is active
-     * 
-     * @return bool
-     */
-    public function is_active() : bool {
-        return static::STATUS_ACTIVE === $this->get_status();
-    }
-
-
-    /**
-     * Check if app is inactive
-     * 
-     * @return bool
-     */
-    public function is_inactive() : bool {
-        return static::STATUS_INACTIVE === $this->get_status();
-    }
-
-    /**
-     * Check if app is suspended
-     * 
-     * @return bool
-     */
-    public function is_suspended() : bool {
-        return static::STATUS_SUSPENDED === $this->get_status();
-    }
-
-    /**
-     * Check if app can be activated
-     * 
-     * @return bool
-     */
-    public function can_be_activated() : bool {
-        return ! $this->is_active() && ! $this->is_trashed();
-    }
-
-    /**
-     * Check if app can be restored from trash.
-     * 
-     * @return bool
-     */
-    public function can_be_restored() : bool {
-        return $this->is_trashed();
-    }
-
-    /**
-     * Check if app can be trashed.
-     * 
-     * @return bool
-     */
-    public function can_be_trashed() : bool {
-        return ! $this->is_trashed();
-    }
-    
-    /**
-     * Check if this app is monetized.
-     * 
-     * @return bool true if monetized, false otherwise.
-     */
-    public function is_monetized() : bool {
-        $db         = static::$DB;
-        $table_name = TableName::MONETIZATION->table();
-        $query      = static::query()->select( 'COUNT(*)' )->from( $table_name )
-            ->where( 'app_type', '=', $this->get_type() )
-            ->where( 'app_id', '=', static::sanitize_int( $this->id ) )
-            ->where( 'enabled', '=', '1' );
-        $count    = (int) $db->get_var( $query->build(), $query->get_bindings() );
-        return $count > 0;
-    }
-
-    /**
-     * Tells if the app exists.
-     * 
-     * @return bool
-     */
-    public function exists() : bool {
-        return $this->get_id() > 0;
-    }
-
-    /**
-     * Tells whether this app has an owner.
-     * 
-     * @return bool
-     */
-    public function has_owner() : bool {
-        return ( $this->get_owner() instanceof Owner );
-    }
+	use SanitizeAwareTrait, DatePropertyAwareTrait;
+
+	/**
+	 * App database ID
+	 * 
+	 * @var int $id The app ID.
+	 */
+	protected int $id = 0;
+
+	/**
+	 * App owner ID
+	 * 
+	 * @var int $owner_id
+	 */
+	protected int $owner_id = 0;
+
+	/**
+	 * The name of the app..
+	 * 
+	 * @var string $name The app's name.
+	 */
+	protected string $name = '';
+
+	/**
+	 * The app status
+	 * 
+	 * @var string $status
+	 */
+	protected string $status = self::STATUS_ACTIVE;
+
+	/**
+	 * App slug.
+	 * 
+	 * @var string $slug app slug.
+	 */
+	protected string $slug = '';
+
+	/**
+	 * App Version.
+	 * 
+	 * @var string $version The current version of the app.
+	 */
+	protected string $version = '';
+
+	/**
+	 * Author .
+	 * 
+	 * @var string|array $author The author of the app
+	 */
+	protected string|array $author;
+
+	/**
+	 * Author profile.
+	 * 
+	 * @var URL $author_profile The author's app link or information.
+	 */
+	protected ?URL $author_profile = null;
+
+	/**
+	 * Update time.
+	 * 
+	 * @var DateTimeImmutable|null $updated_at The last time the app was updated
+	 */
+	protected ?DateTimeImmutable $updated_at = null;
+
+	/**
+	 * Date created
+	 * 
+	 * @var DateTimeImmutable|null $created_at When app was created.
+	 */
+	protected ?DateTimeImmutable $created_at = null;
+
+	/**
+	 * An array of app sections (e.g., description, installation, FAQ).
+	 * 
+	 * @var array{
+	 *  description: string, 
+	 *  installation: string, 
+	 *  faq: string, 
+	 *  screenshots: string, 
+	 *  changelog: string, 
+	 *  reviews: string
+	 * } $sections
+	 */
+	protected array $sections = [
+		'description'  => '',
+		'installation' => '',
+		'faq'          => '',
+		'screenshots'  => '',
+		'changelog'    => '',
+		'reviews'      => '',
+
+	];
+
+	/**
+	 * An array of of app icons.
+	 * 
+	 * @var array $icons
+	 */
+	protected array $icons = [];
+
+	/**
+	 * Short description.
+	 * 
+	 * @var string $short_description A brief description of the app.
+	 */
+	protected string $short_description = '';
+
+	/**
+	 * An array of app screenshots.
+	 * 
+	 * @var array $screenshots
+	 */
+	protected array $screenshots = [];
+
+	/**
+	 *  An array of app ratings.
+	 * 
+	 *  @var array{5: int, 4: int, 3: int, 2: int, 1: int} $ratings
+	 */
+	protected array $ratings = [
+		'5' => 0,
+		'4' => 0,
+		'3' => 0,
+		'2' => 0,
+		'1' => 0,
+	];
+
+	/**
+	 * Number of ratings
+	 * 
+	 * @var int $num_ratings
+	 */
+	protected int $num_ratings = 0;
+
+	/**
+	 * The number of active installations
+	 * 
+	 * @var int $active_installs
+	 */
+	protected int $active_installs = 0;
+
+	/**
+	 * Download link.
+	 * 
+	 * @var URL|null $download_link The file url.
+	 */
+	protected ?URL $download_link = null;
+
+	/**
+	 * The app support URL
+	 * 
+	 * @var URL|null $support_url
+	 */
+	protected ?URL $support_url = null;
+
+	/**
+	 * The app homepage URL
+	 * 
+	 * @var URL $homepage
+	 */
+	protected ?URL $homepage = null;
+
+	/**
+	 * Absolute path to the application's zip file.
+	 * 
+	 * @var string|UploadedFile $file The absolute path to the app zip file or an uploaded zip file.
+	 */
+	protected string|UploadedFile $file;
+
+	/**
+	 * The app tags.
+	 * 
+	 * @var array $tags
+	 */
+	protected array $tags = [];
+
+	/**
+	 * App meta data stored in the database.
+	 * 
+	 * @var array $meta_data
+	 */
+	protected array $meta_data = [];
+
+	/**
+	 * The applications manifest data used to build the app.json.
+	 * 
+	 * @var array $manifest
+	 */
+	protected array $manifest = [
+		'type'         => '',
+		'platforms'    => [],
+		'tech_stack'   => [],
+		'dependencies' => [],
+	];
+
+	/**
+	 * The license underwhich this application is distributed
+	 * 
+	 * @var array $license
+	 */
+	protected array $license = [
+		'license'     => '',
+		'license_uri' => ''
+	];
+
+	/**
+	 * App trash status
+	 * 
+	 * @var string
+	 */
+	const STATUS_TRASH = 'trash';
+
+	/**
+	 * App active status.
+	 * 
+	 * @var string
+	 */
+	const STATUS_ACTIVE = 'active';
+
+	/**
+	 * App inactive status.
+	 * 
+	 * @var string
+	 */
+	const STATUS_INACTIVE = 'deactivated';
+
+	/**
+	 * App suspended status
+	 * 
+	 * @var string
+	 */
+	const STATUS_SUSPENDED = 'suspended';
+
+	/**
+	 * All status collections.
+	 * 
+	 * @var array
+	 */
+	const STATUSES = [
+		self::STATUS_ACTIVE    => self::STATUS_ACTIVE,
+		self::STATUS_INACTIVE  => self::STATUS_INACTIVE,
+		self::STATUS_SUSPENDED => self::STATUS_SUSPENDED,
+		self::STATUS_TRASH     => self::STATUS_TRASH,
+	];
+
+	/**
+	|----------------
+	| SETTERS
+	|----------------
+	*/
+
+	/**
+	 * Set the database ID
+	 * 
+	 * @param int $id
+	 * @return static Fluent.
+	 */
+	public function set_id( $id ) : static {
+		$this->id = static::sanitize_int( $id );
+		return $this;
+	}
+
+	/**
+	 * Set the owner ID
+	 * 
+	 * @param int $owner_id
+	 * @return static Fluent.
+	 */
+	public function set_owner_id( $owner_id ) : static {
+		$this->owner_id = self::sanitize_int( $owner_id );
+
+		return $this;
+	}
+
+	/**
+	 * Set the app name
+	 * 
+	 * @param string|null $name
+	 * @return static Fluent.
+	 */
+	public function set_name( ?string $name ) : static {
+		$this->name = self::sanitize_text( $name );
+
+		return $this;
+	}
+
+	/**
+	 * Set the slug
+	 * 
+	 * @param string $slug
+	 */
+	public function set_slug( string $slug ) : static {
+		$this->slug = self::sanitize_text( $slug );
+
+		return $this;
+	}
+
+	/**
+	 * Set the app status
+	 * 
+	 * @param string $status
+	 */
+	public function set_status( string $status ) : static {
+		$this->status = self::sanitize_text( $status );
+
+		return $this;
+	}
+
+	/**
+	 * Set app author property.
+	 * 
+	 * @param string|array $value
+	 */
+	public function set_author( string|array $value ) : static {
+		if ( is_array( $value ) ) {
+			$this->author = \array_merge( (array) $this->author, $value );
+		} else {
+			$this->author = $value;
+		}
+		
+		return $this;
+	}
+
+	/**
+	 * set app homepage URL
+	 * 
+	 * @param string $url
+	 */
+	public function set_homepage( ?string $url ) : static {
+		$this->homepage = URL::from( $url ?? '' )->sanitize();
+
+		return $this;
+	}
+
+	/**
+	 * Set app screenshots
+	 * 
+	 * @param array $screenshots
+	 */
+	public function set_screenshots( array $screenshots ) : static {
+		$this->screenshots = $screenshots;
+
+		return $this;
+	}
+
+	/**
+	 * Set App icons
+	 * 
+	 * @param array $icons
+	 */
+	public function set_icons( array $icons ) : static {
+		$this->icons = $icons;
+
+		return $this;
+
+	}
+	/**
+	 * Set the link to the author's profile
+	 * 
+	 * @param string|URL|null $url
+	 */
+	public function set_author_profile( string|URL|null $url ) : static {
+		$this->author_profile = ( $url instanceof URL ) ? $url->sanitize() : URL::from( (string) $url )->sanitize();
+
+		return $this;
+	}
+
+	/**
+	 * Set app version
+	 * 
+	 * @param string $version
+	 */
+	public function set_version( ?string $version ) : static {
+		$this->version = self::sanitize_text( $version );
+
+		return $this;
+	}
+
+	/**
+	 * Set last updated
+	 * 
+	 * @param mixed $date
+	 */
+	public function set_updated_at( mixed $date ) : static {
+		return $this->set_date_prop( $date, 'updated_at' );
+	}
+
+	/**
+	 * Set When created
+	 * 
+	 * @param mixed $date
+	 */
+	public function set_created_at( mixed $date ) : static {
+		return $this->set_date_prop( $date, 'created_at' );
+	}
+
+	/**
+	 * Set Section
+	 * 
+	 * @param array{
+	 *  description: string, 
+	 *  installation: string, 
+	 *  faq: string, 
+	 *  screenshots: string, 
+	 *  changelog: string, 
+	 *  reviews: string
+	 * } $section_data An associative array containing each section information.
+	 */
+	public function set_section( array $section_data ) : static {
+		if ( isset( $section_data['description'] ) ) {
+			$this->sections['description'] = $section_data['description'];
+		}
+		
+		if ( isset( $section_data['installation'] ) ) {
+			$this->sections['installation'] = $section_data['installation'];
+		}
+		
+		if ( isset( $section_data['changelog'] ) ) {
+			$this->sections['changelog'] = $section_data['changelog'];
+		}
+
+		if ( isset( $section_data['screenshots'] ) ) {
+			$this->sections['screenshots'] = $section_data['screenshots'];
+		}
+		
+		if ( isset( $section_data['faq'] ) ) {
+			$this->sections['faq'] = $section_data['faq'];
+		}
+
+		if ( isset( $section_data['reviews'] ) ) {
+			$this->sections['reviews'] = $section_data['reviews'];
+		}
+
+		return $this;
+	}
+
+	/**
+	 *  Set the file
+	 * 
+	 * @param string|UploadedFile $file
+	 */
+	public function set_file( string|UploadedFile $file ) : static {
+		$this->file = $file;
+
+		return $this;
+	}
+
+	/**
+	 * Set ratings
+	 * 
+	 * @param array{5: int, 4: int, 3: int, 2: int, 1: int} $ratings
+	 */
+	public function set_ratings( $ratings ) : static {
+		$this->ratings = array_map(
+			[$this, 'sanitize_int'],
+			array_intersect_key( $ratings, $this->ratings )
+		);
+		return $this;
+	}
+
+	/**
+	 * Get number of rating
+	 * 
+	 * @param int $value
+	 */
+	public function set_num_ratings( int $value ) : static {
+		$this->num_ratings = static::sanitize_int( $value );
+
+		return $this;
+	}
+
+	/**
+	 * The number of active installations
+	 * @param int $value
+	 */
+	public function set_active_installs( mixed $value ) : static {
+		$this->active_installs = static::sanitize_int( $value );
+
+		return $this;
+	}
+
+	/**
+	 * Set the app support URL
+	 *
+	 * @param string|URL $url The support URL
+	 * @return static
+	 */
+	public function set_support_url( string|URL $url ) : static {
+		$this->support_url = ( $url instanceof URL ) ? $url : URL::from( $url );
+
+		return $this;
+	}
+
+	/**
+	 * Set the APP tags.
+	 * 
+	 * @param array $tags
+	 */
+	public function set_tags( array $tags ) : static {
+		$this->tags = array_map( [__CLASS__, 'sanitize_text'], (array) $tags );
+
+		return $this;
+	}
+
+	/**
+	 * Set the manifest property.
+	 * 
+	 * @param array $data
+	 * 
+	 */
+	public function set_manifest( array $data ) : static {
+		$defaults = [
+			'type'         => '',
+			'platforms'    => [],
+			'tech_stack'   => [],
+			'dependencies' => [],
+		];
+		
+		$this->manifest = $data + $defaults;
+
+		return $this;
+	}
+
+	/**
+	 * Set the software license underwhich this app is distributed
+	 * 
+	 * @param array $license
+	 */
+	public function set_license( array $license ) : static {
+		$this->license = $license + $this->license;
+
+		return $this;
+	}
+	
+	/**
+	|------------
+	| GETTERS
+	|------------
+	*/
+
+	/**
+	 * Get the app ID.
+	 * 
+	 * @return int
+	 */
+	public function get_id() : int {
+		return $this->id;
+	}
+
+	/**
+	 * Get the app owner ID
+	 * 
+	 * @return int
+	 */
+	public function get_owner_id() : int {
+		return $this->owner_id;
+	}
+
+
+	/**
+	 * Get the application name.
+	 * 
+	 * @return string
+	 */
+	public function get_name() : string {
+		return $this->name;
+	}
+
+	/**
+	 * Get the app status
+	 * 
+	 * @return string
+	 */
+	public function get_status() : string {
+		return $this->status;
+	}
+
+	/**
+	 * Get the application version.
+	 * 
+	 * @return string
+	 */
+	public function get_version() : string {
+		return $this->version;
+	}
+
+	/**
+	 * Get the application author.
+	 * 
+	 * @return string|array
+	 */
+	public function get_author() : string|array {
+		return $this->author;
+	}
+
+	/**
+	 * Get the application slug (URL-friendly name).
+	 * 
+	 * @return string
+	 */
+	public function get_slug() : string {
+		return $this->slug;
+	}
+
+	/**
+	 * Get the homepage URL
+	 * 
+	 * @return URL
+	 */
+	public function get_homepage() : URL {
+		if ( isset( $this->homepage ) && $this->homepage->is_valid() ) {
+			return $this->homepage;
+		}
+		
+		return $this->get_url();
+	}
+	
+	/**
+	 * Get app screenshots
+	 * 
+	 * @return array $screenshots
+	 */
+	public function get_screenshots() : array {
+		return $this->screenshots;
+
+	}
+
+	/**
+	 * Get plugin icons
+	 * 
+	 * @return array
+	 */
+	public function get_icons() : array {
+		return $this->icons;
+
+	}
+
+	/**
+	 * Get the application description.
+	 * 
+	 * @return string
+	 */
+	public function get_description() : string {
+		return $this->sections['description'];
+	}
+
+	/**
+	 * Get application short description.
+	 */
+	public function get_short_description() : string {
+		return $this->short_description;
+	}
+
+	/**
+	 * Get the application changelog.
+	 * 
+	 * @return string
+	 */
+	public function get_changelog() : string {
+		return $this->get_section( 'changelog' );
+	}
+
+	/**
+	 * Get the application's installation guide.
+	 * 
+	 * @return string a parsed HTML string from the readme file.
+	 */
+	public function get_installation() : string {
+		return $this->get_section( 'installation' );
+	}
+
+	/**
+	 * Get application support URL.
+	 */
+	public function get_support_url() : ?URL {
+		return $this->support_url;
+	}
+
+	/**
+	 * Get the value of a specific section property.
+	 * 
+	 * @param string $name  Section name.
+	 * @return string The particular section name
+	 */
+	public function get_section( string $name ) : string {
+		$name = strtolower( $name );
+
+		return $this->sections[$name] ?? '';
+	}
+
+
+	/**
+	 * Get ratings
+	 * 
+	 * @return array $ratings
+	 */
+	public function get_ratings() : array {
+		return $this->ratings;
+	}
+
+	/**
+	 * Get number of rating
+	 * 
+	 * @return int
+	 */
+	public function get_num_ratings() : int {
+		return $this->num_ratings;
+	}
+
+	/**
+	 * Get average rating
+	 * 
+	 * @return float
+	 */
+	public function get_average_rating() : float {
+		$total_ratings = array_sum( $this->ratings );
+		$num_ratings   = $this->get_num_ratings();
+
+		if ( $num_ratings > 0 ) {
+			return round( $total_ratings / $num_ratings, 2 );
+		}
+
+		return 0;
+	}
+
+	/**
+	 * The number of active installations
+	 */
+	public function get_active_installs() : int {
+		return $this->active_installs;
+	}
+
+	/**
+	 * Get the file.
+	 * 
+	 * @return string|UploadedFile
+	 */
+	public function get_file() : string|UploadedFile {
+		return $this->file;
+	}
+
+	/**
+	 * Get Sections
+	 * 
+	 * @return array $sections.
+	 */
+	public function get_sections() : array {
+		return $this->sections;
+	}
+	
+	/**
+	 * Get last updated
+	 */
+	public function get_updated_at() : DateTimeImmutable {
+		return $this->updated_at;
+	}
+	
+	/**
+	 * Get last updated
+	 */
+	public function get_last_updated() : DateTimeImmutable {
+		return $this->get_updated_at();
+	}
+
+	/**
+	 * Get when created.
+	 */
+	public function get_created_at() : DateTimeImmutable {
+		return $this->created_at;
+	}
+	/**
+	 * Get when created.
+	 */
+	public function get_date_created() {
+		return $this->get_created_at();
+	}
+
+	/**
+	 * Get the app tags.
+	 * 
+	 * @return array $tags
+	 */
+	public function get_tags() : array {
+		return $this->tags;
+	}
+
+	/**
+	 * Get the manifest property
+	 * 
+	 * @return array
+	 */
+	public function get_manifest() : array {
+		return $this->manifest;
+	}
+
+	/**
+	 * Get app destribution license
+	 * 
+	 * @return array
+	 */
+	public function get_license() : array {
+		return $this->license;
+	}
+
+	/**
+	|-------------------------------------------
+	| ABSTRACT METHODS THAT MUST BE IMPLEMENTED
+	|-------------------------------------------
+	*/
+
+	/**
+	 * Get the application type (e.g., 'plugin', 'theme', 'library').
+	 * 
+	 * @return string
+	 */
+	abstract public function get_type() : string;
+
+	/**
+	 * Get the app main icon
+	 * 
+	 * @return string
+	 */
+	abstract function get_icon() : string;
+
+	/**
+	 * Method to get the database table name.
+	 */
+	abstract public static function get_db_table() : string;
+
+	/**
+	 * Method to get the database meta table name.
+	 */
+	abstract public static function get_db_meta_table() : string;
+
+	/**
+	 * Get the foreign key column name for metadata table
+	 * 
+	 * @return string
+	 */
+	abstract protected function get_meta_foreign_key() : string;
+	
+	/**
+	 * Get an instance of this class from an array
+	 * @param array $data
+	 */
+	abstract public static function from_array( $data ) : static;
+
+	/**
+	 * Get database fields.
+	 * 
+	 * @return array<int, string>
+	 */
+	abstract public function get_fillable() : array;
+
+	/**
+	|---------------------
+	| SHARED CRUD METHODS
+	|---------------------
+	*/
+
+	/**
+	 * Save the app.
+	 * 
+	 * @return bool|Exception Does not throw.
+	 */
+	public function save() : bool|Exception {
+		$db_fields = $this->get_fillable();
+
+		$data = [];
+		foreach( $db_fields as $key ) {
+			$method = "get_{$key}";
+			if ( ! \is_callable( [$this, $method] ) ) {
+				continue;
+			}
+
+			$value = 'get_author' === $method ? $this->$method( '' ) : $this->$method();
+
+			$data[$key] = is_array( $value ) ? Format::encode( $value, Format::ENCODING_PHP ) : (string) $value;
+		}
+		/**
+		 * @var array{
+		 *  slug?: string,
+		 *  base_dir?: string,
+		 *  rollback_function?: \Closure,
+		 *  error?: \SmartLicenseServer\Exceptions\Exception
+		 *}|null $repo_result
+		 */
+		$repo_result = null;
+
+		try {
+			return static::$DB->transactional( function( Database $db ) use ( &$data, &$repo_result ) {
+				$file       = $this->file;
+				$repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( $this->get_type() );
+				$now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+				
+				$data['updated_at'] = $now->format( 'Y-m-d H:i:s' );
+
+				$lock_query = static::query()->select( 'id' )->from( static::get_db_table() )
+					->where( 'id', '=', static::sanitize_int( $this->get_id() ) )
+					->limit( 1 )->lock_for_update();
+				
+				$id = (int) $db->get_var( $lock_query->build(), $lock_query->get_bindings() );
+
+				// We have an ID, update!
+				if ( $id ) {
+
+					if ( ( $file instanceof UploadedFile ) && $file->is_upload_successful() ) {
+						$result      = $repo_class->upload_zip( $file, $this->get_slug(), true );
+						$repo_result = $result;
+						
+						if ( isset( $result['error'] ) ) {
+							throw $result['error'];
+						}
+
+					}
+
+					// Perform safe update query execution via builder context
+					$update_query = static::query()->update( static::get_db_table() )->set( $data )
+						->where( 'id', '=', $id );
+					
+					if ( false === $db->execute( $update_query->build(), $update_query->get_bindings() ) ) {
+						throw new Exception( 'db_update_error', $db->get_last_error() );
+					}
+
+				} else {
+					if ( ! ( $file instanceof UploadedFile ) || ! $file->is_upload_successful() ) {
+						throw new Exception( 'required_file', 'No plugin file provided for upload.', [ 'status' => 400 ] );
+					}
+
+					$filename    = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
+					$result      = $repo_class->upload_zip( $file, $filename );
+					$repo_result = $result;
+
+					if ( isset( $repo_result['error'] ) ) {
+						throw $result['error'];
+					}
+
+					if ( ! isset( $result['slug'] ) ) {
+						throw new Exception(
+							'slug_not_set',
+							\sprintf(
+								'No slug was acquired after uploading this %s.',
+								$this->get_type()
+							)
+						);
+					}
+					$this->set_slug( $result['slug'] );
+
+					$data['slug']       = $result['slug'];
+					$data['created_at'] = $now->format( 'Y-m-d H:i:s' );
+
+					$insert_query = static::query()->insert( $this->get_db_table() )->values( $data );
+					
+					if ( false === $db->execute( $insert_query->build(), $insert_query->get_bindings() ) ) {
+						throw new Exception( 'db_insert_error', $db->get_last_error() );
+					}
+
+					$this->set_id( $db->get_insert_id() );
+					$this->set_created_at( $now );
+				}
+
+				$this->set_updated_at( $now );
+				$new_file = $repo_class->locate( $this->get_slug() );
+
+				if ( ! $new_file instanceof Exception ) {
+					$this->set_file( $new_file );
+				}
+				
+				$repo_class->regenerate_app_dot_json( $this );
+				
+				return true;
+			} );
+
+		} catch ( Exception $e ) {
+			if ( isset( $repo_result ) ) {
+				if ( isset( $repo_result['rollback_function'] ) ) {
+					$repo_result['rollback_function']();
+				}
+			}
+			return $e;
+		}
+	}
+
+	/**
+	 * Delete an app, its associated metadata, and its physical files.
+	 * 
+	 * @return bool True on success, false otherwise.
+	 * @throws Exception If a concurrent modification is detected or database execution fails.
+	 */
+	public function delete() : bool {
+		if ( empty( $this->id ) ) {
+			return false;
+		}
+
+		$db          = static::$DB;
+		$table       = $this->get_db_table();
+		$meta_table  = $this->get_db_meta_table();
+		$foreign_key = $this->get_meta_foreign_key();
+
+		$delete_app_sql  = static::query()->delete( $table )->where( 'id', '=', $this->get_id() );
+		$delete_meta_sql = static::query()->delete( $meta_table )->where( $foreign_key, '=', $this->get_id() );
+		
+		$lock_query = static::query()->select( 'id', 'slug', 'type' )->from( $table )
+			->where( 'id', '=', $this->get_id() )
+			->limit( 1 );
+
+		$deleted  = false;
+		$app_slug = $this->get_slug();
+		$app_type = $this->get_type();
+
+		$db->transactional( function( Database $db ) use ( $lock_query, $delete_meta_sql, $delete_app_sql, &$deleted, &$app_slug, &$app_type ) {
+			$lock_sql = $lock_query->lock_for_update()->build();
+			$record   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
+
+			if ( ! $record ) {
+				throw new Exception( 'delete_error', 'The application record is locked or has already been removed.' );
+			}
+
+			if ( ! empty( $record['slug'] ) ) {
+				$app_slug = $record['slug'];
+			}
+			if ( ! empty( $record['type'] ) ) {
+				$app_type = $record['type'];
+			}
+
+			if ( false === $db->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) ) {
+				throw new Exception( 'delete_error', 'Database execution failure dropping application metadata rows.' );
+			}
+
+			if ( false === $db->execute( $delete_app_sql->build(), $delete_app_sql->get_bindings() ) ) {
+				throw new Exception( 'delete_error', 'Database execution failure dropping primary application entry.' );
+			}
+
+			$deleted = true;
+		} );
+
+		if ( $deleted && ! empty( $this->meta_data ) ) {
+			$this->meta_data = [];
+		}
+
+		return $deleted;
+	}
+
+	/**
+	 * Load all metadata for this app into internal cache.
+	 *
+	 * @return array Loaded metadata in key => value format.
+	 */
+	public function load_meta() : array {
+		if ( ! $this->get_id() ) {
+			return [];
+		}
+
+		$db        = static::$DB;
+		$table     = static::get_db_meta_table();
+		$app_id    = static::sanitize_int( $this->get_id() );
+		$fk_column = $this->get_meta_foreign_key();
+
+		$sql = static::query()->select( 'meta_key', 'meta_value' )
+			->from( $table )
+			->where( $fk_column, '=', $app_id )
+			->order_by( 'id', 'ASC' );
+		$results = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+		$meta = [];
+
+		if ( ! empty( $results ) ) {
+			foreach ( $results as $row ) {
+				$key   = self::sanitize_key( $row['meta_key'] );
+				$value = $row['meta_value'];
+
+				$value = Format::decode( $value );
+
+				$meta[ $key ] = $value;
+			}
+		}
+
+		$this->meta_data = $meta;
+
+		return $meta;
+	}
+
+	/**
+	 * Update existing metadata.
+	 *
+	 * @param mixed $key   Meta key.
+	 * @param mixed $value New value.
+	 * @return bool True on success, false on failure.
+	 */
+	public function update_meta( $key, $value ) : bool {
+
+		if ( ! $this->get_id() ) {
+			return false;
+		}
+
+		$db        = static::$DB;
+		$table     = static::get_db_meta_table();
+		$fk_column = $this->get_meta_foreign_key();
+
+		$key   = self::sanitize_key( $key );
+		$store = Format::encode( $value, Format::ENCODING_PHP );
+
+		$meta_id_sql = static::query()->select( 'id' )->from( $table )
+			->where( $fk_column, '=', $this->get_id() )
+			->where( 'meta_key', '=', $key )
+			->limit( 1 );
+		$meta_id = $db->get_var( $meta_id_sql->build(), $meta_id_sql->get_bindings() );
+
+		if ( null === $meta_id ) {
+			// INSERT
+			$inserted = $db->insert(
+				$table,
+				[
+					$fk_column   => $this->get_id(),
+					'meta_key'   => $key,
+					'meta_value' => $store,
+				]
+			);
+
+			if ( false !== $inserted ) {
+				$this->meta_data[ $key ] = $value;
+				return true;
+			}
+
+			return false;
+
+		} else {
+			// UPDATE existing meta
+			$updated = $db->update(
+				$table,
+				[ 'meta_value' => $store ],
+				[
+					$fk_column => $this->get_id(),
+					'id'       => $meta_id,
+					'meta_key' => $key,
+				]
+			);
+
+			if ( false !== $updated ) {
+				$this->meta_data[ $key ] = $value;
+				return true;
+			}
+
+			return false;
+		}
+	}
+
+	/**
+	 * Get the value of a metadata.
+	 *
+	 * @param string $meta_key   The meta key.
+	 * @param mixed  $default_to The fallback value.
+	 * @return mixed|null
+	 */
+	public function get_meta( string $meta_key, mixed $default_to = null ) : mixed {
+		$meta_key = self::sanitize_text( $meta_key );
+
+		if ( array_key_exists( $meta_key, $this->meta_data ) ) {
+			return $this->meta_data[ $meta_key ];
+		}
+
+		$db        = static::$DB;
+		$table     = static::get_db_meta_table();
+		$fk_column = $this->get_meta_foreign_key();
+
+		$sql = static::query()->select( 'meta_value' )
+			->from( $table )
+			->where( $fk_column, '=', static::sanitize_int( $this->get_id() ) )
+			->where( 'meta_key', '=', $meta_key )
+			->limit( 1 );
+
+		$result = $db->get_var( $sql->build(), $sql->get_bindings() );
+
+		$this->meta_data[ $meta_key ] = Format::decode( $result );
+
+		return $this->meta_data[ $meta_key ] ?? $default_to;
+	}
+
+	/**
+	 * Get the value of all metadata in key => value format.
+	 */
+	public function get_meta_data() : array {
+		if ( empty( $this->meta_data ) ) {
+			return $this->load_meta();
+		}
+
+		return $this->meta_data;
+	}
+
+	/**
+	 * Delete a metadata.
+	 *
+	 * @param string $meta_key The meta key.
+	 * @return bool True on success, false on failure.
+	 */
+	public function delete_meta( string $meta_key ) {
+		$app_id = $this->get_id();
+
+		if ( ! $app_id ) {
+			return false;
+		}
+
+		$db        = static::$DB;
+		$table     = static::get_db_meta_table();
+		$fk_column = $this->get_meta_foreign_key();
+		$meta_key  = self::sanitize_key( $meta_key );
+
+		// Delete from database
+		$deleted = $db->delete(
+			$table,
+			[
+				$fk_column => $app_id,
+				'meta_key' => $meta_key,
+			]
+		);
+
+		if ( false !== $deleted ) {
+			// Remove from instance cache if it exists
+			if ( isset( $this->meta_data[ $meta_key ] ) ) {
+				unset( $this->meta_data[ $meta_key ] );
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Move this app to trash
+	 * 
+	 * @return bool
+	 */
+	public function trash() {
+		$this->set_status( static::STATUS_TRASH );
+
+		return false === \is_smliser_error( $this->save() );
+	}
+
+	/*
+	|--------------
+	| URL METHODS
+	|--------------
+	*/
+
+	/**
+	 * Set Download url.
+	 * 
+	 * @param string|URL|null $url The download url.
+	 */
+	public function set_download_url( string|URL|null $url = '' ) : static {
+		$url = ( $url instanceof URL ) ? $url : URL::from( $url );
+		
+		if ( $url->is_valid() ) {
+			$this->download_link = $url->sanitize();
+		} else {
+			$this->download_link = static::$urlmanager->app_downloads_url(
+				$this->get_type(), $this->get_slug()
+			);
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Get the download URL for the application.
+	 */
+	public function get_download_url() : URL {
+		return $this->download_link ?? static::$urlmanager->app_downloads_url(
+				$this->get_type(), $this->get_slug()
+		);
+	}
+
+	/**
+	 * Get a sample of download URL for licensed app.
+	 */
+	public function monetized_url_sample() {
+		return sprintf( '%s?download_token=[TOKEN]', $this->get_download_url()->url() );
+	}
+
+	/**
+	 * Get the URL to view the app.
+	 * 
+	 * @return URL
+	 */
+	public function get_url() : URL {
+		return static::$urlmanager->app_repository_url( $this->get_type(), $this->get_slug() );
+	}
+
+	/**
+	 * Default app icon.
+	 * 
+	 * @return URL
+	 */
+	public function default_icon() : URL {
+		return static::$urlmanager->assets_url(
+			smliser_get_placeholder_icon( $this->get_type() )
+		);
+	}
+
+	/*
+	|------------------------
+	| SHARED UTILITY METHODS
+	|------------------------
+	*/
+
+	/**
+	 * Get the absolute path to the app zip file
+	 * 
+	 * @return string|Exception The file path or Exception on failure.
+	 */
+	public function get_zip_file() : string|Exception {
+		$file = $this->get_file();
+
+		if ( $file instanceof UploadedFile ) {
+			if ( $file->is_upload_successful() ) {
+				return $file->get_tmp_path();
+			} else {
+				return new Exception( 'file_upload_error', $file->get_error_message(), [ 'status' => 400 ] );
+			}
+		}
+
+		return $file;
+	}
+
+	/**
+	 * Get all available statuses with their labels.
+	 * 
+	 * @return array
+	 */
+	public static function get_statuses() {
+		return [
+			static::STATUS_ACTIVE    => 'Active',
+			static::STATUS_INACTIVE  => 'Inactive',
+			static::STATUS_SUSPENDED => 'Suspended',
+			static::STATUS_TRASH     => 'Trash',
+		];
+	}
+
+	/**
+	 * The app owner instance
+	 * 
+	 * @return ?Owner
+	 */
+	public function get_owner() : ?Owner {
+		return Owner::get_by_id( $this->get_owner_id() );
+	}
+
+	/**
+	 * Hydrate object from DB row with only core fields.
+	 * Does NOT load meta, assets, sections, or files.
+	 *
+	 * @param array $row Associative array from DB.
+	 * @return static
+	 */
+	public static function from_array_minimal( array $row ) : static {
+		$static = new static();
+
+		$static->set_id( $row['id'] ?? 0 );
+		$static->set_name( $row['name'] ?? '' );
+		$static->set_slug( $row['slug'] ?? '' );
+		$static->set_author( $row['author'] ?? '' );
+		$static->set_status( $row['status'] ?? static::STATUS_ACTIVE );
+		$static->set_download_url( (string) ( $row['download_link'] ?? '' ) );
+		$static->set_created_at( $row['created_at'] ?? '' );
+		$static->set_updated_at( $row['updated_at'] ?? '' );
+
+		return $static;
+	}
+	/*
+	|------------------------
+	| SHARED CONDITIONAL METHODS
+	|------------------------
+	*/
+	/**
+	 * Check if app is in trash
+	 * 
+	 * @return bool
+	 */
+	public function is_trashed() : bool {
+		return static::STATUS_TRASH === $this->get_status();
+	}
+
+	/**
+	 * Check if app is active
+	 * 
+	 * @return bool
+	 */
+	public function is_active() : bool {
+		return static::STATUS_ACTIVE === $this->get_status();
+	}
+
+
+	/**
+	 * Check if app is inactive
+	 * 
+	 * @return bool
+	 */
+	public function is_inactive() : bool {
+		return static::STATUS_INACTIVE === $this->get_status();
+	}
+
+	/**
+	 * Check if app is suspended
+	 * 
+	 * @return bool
+	 */
+	public function is_suspended() : bool {
+		return static::STATUS_SUSPENDED === $this->get_status();
+	}
+
+	/**
+	 * Check if app can be activated
+	 * 
+	 * @return bool
+	 */
+	public function can_be_activated() : bool {
+		return ! $this->is_active() && ! $this->is_trashed();
+	}
+
+	/**
+	 * Check if app can be restored from trash.
+	 * 
+	 * @return bool
+	 */
+	public function can_be_restored() : bool {
+		return $this->is_trashed();
+	}
+
+	/**
+	 * Check if app can be trashed.
+	 * 
+	 * @return bool
+	 */
+	public function can_be_trashed() : bool {
+		return ! $this->is_trashed();
+	}
+	
+	/**
+	 * Check if this app is monetized.
+	 * 
+	 * @return bool true if monetized, false otherwise.
+	 */
+	public function is_monetized() : bool {
+		$db         = static::$DB;
+		$table_name = TableName::MONETIZATION->table();
+		$query      = static::query()->select( 'COUNT(*)' )->from( $table_name )
+			->where( 'app_type', '=', $this->get_type() )
+			->where( 'app_id', '=', static::sanitize_int( $this->id ) )
+			->where( 'enabled', '=', '1' );
+		$count = (int) $db->get_var( $query->build(), $query->get_bindings() );
+		return $count > 0;
+	}
+
+	/**
+	 * Tells if the app exists.
+	 * 
+	 * @return bool
+	 */
+	public function exists() : bool {
+		return $this->get_id() > 0;
+	}
+
+	/**
+	 * Tells whether this app has an owner.
+	 * 
+	 * @return bool
+	 */
+	public function has_owner() : bool {
+		return ( $this->get_owner() instanceof Owner );
+	}
 }

@@ -30,670 +30,670 @@ use function compact;
  */
 class RepositoryPage implements AdminPageInterface {
 
-    public function __construct(
-        protected TemplateLocator $locator,
-        protected MonetizationRegistry $monetization_registry,
-        protected URLManager $urlmanager,
-        protected AppsAnalytics $apps_analytics,
-        protected AssetsManager $assets_manager
-    ) {
-        $this->register_scripts();
-    }
+	public function __construct(
+		protected TemplateLocator $locator,
+		protected MonetizationRegistry $monetization_registry,
+		protected URLManager $urlmanager,
+		protected AppsAnalytics $apps_analytics,
+		protected AssetsManager $assets_manager
+	) {
+		$this->register_scripts();
+	}
 
-    protected function register_scripts() : void {
-        $this->assets_manager->set_script_category( 'admin-repository', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
-        $this->assets_manager->set_script_category( 'apps-uploader', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
-    }
+	protected function register_scripts() : void {
+		$this->assets_manager->set_script_category( 'admin-repository', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+		$this->assets_manager->set_script_category( 'apps-uploader', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+	}
 
-    /**
-     * The repository dashboard page
-     * 
-     * @param Request $request
-     */
-    public function dashboard( Request $request ) : void {
-        $args = array(
-            'page'      => $request->get( 'paged', 1 ),
-            'limit'     => $request->get( 'limit', 10 ),
-        );
+	/**
+	 * The repository dashboard page
+	 * 
+	 * @param Request $request
+	 */
+	public function dashboard( Request $request ) : void {
+		$args = [
+			'page'  => $request->get( 'paged', 1 ),
+			'limit' => $request->get( 'limit', 10 ),
+		];
 
-        $type   = $request->get( 'type', null );
-        if ( $type ) {
-            $args['types']   = $type;
-        }
+		$type = $request->get( 'type', null );
+		if ( $type ) {
+			$args['types'] = $type;
+		}
 
-        $status     = $request->get( 'status', AbstractHostedApp::STATUS_ACTIVE );
-        $has_status = (bool) $request->get( 'status', false );
+		$status     = $request->get( 'status', AbstractHostedApp::STATUS_ACTIVE );
+		$has_status = (bool) $request->get( 'status', false );
 
-        if ( $status ) {
-            $args['status'] = $status;
-        }
+		if ( $status ) {
+			$args['status'] = $status;
+		}
 
-        $result     = HostedApplicationService::get_apps( $args );
+		$result = HostedApplicationService::get_apps( $args );
 
-        $apps           = $result['items'];
-        $pagination     = $result['pagination'];
-        $current_url    = smliser_get_current_url()->remove_query_param( 'message', 'tab' );
-        $add_url        = $this->urlmanager->admin_repo_url( 'add-new' );
+		$apps        = $result['items'];
+		$pagination  = $result['pagination'];
+		$current_url = smliser_get_current_url()->remove_query_param( 'message', 'tab' );
+		$add_url     = $this->urlmanager->admin_repo_url( 'add-new' );
 
-        if ( $current_url->has_query_param( 'type' ) ) {
-            $add_url    = $add_url->add_query_param( 'type', $current_url->get_query_param( 'type' ) );
-        }
+		if ( $current_url->has_query_param( 'type' ) ) {
+			$add_url = $add_url->add_query_param( 'type', $current_url->get_query_param( 'type' ) );
+		}
 
-        $page_title = \sprintf( '%s Repository', ucfirst( (string) $type ) );
+		$page_title = \sprintf( '%s Repository', ucfirst( (string) $type ) );
 
-        if ( $has_status ) {
-            $page_title = sprintf( 'Status: %s', $status );
-        }
+		if ( $has_status ) {
+			$page_title = sprintf( 'Status: %s', $status );
+		}
 
-        $urlmanager = $this->urlmanager;
-        $repo_page  = $this;
-        $vars   = compact( 'repo_page', 'urlmanager', 'add_url', 'apps', 'page_title',
-            'pagination', 'current_url', 'request', 'type', 'status'
-        );
-        $this->locator->render( 'admin.contents.repository.index', $vars );
+		$urlmanager = $this->urlmanager;
+		$repo_page  = $this;
+		$vars       = compact( 'repo_page', 'urlmanager', 'add_url', 'apps', 'page_title',
+			'pagination', 'current_url', 'request', 'type', 'status'
+		);
+		$this->locator->render( 'admin.contents.repository.index', $vars );
 
-    }
+	}
 
-    /**
-     * Page to search the entire repository.
-     */
-    public function search_page( Request $request ) : void {
-        $illigal        = ['app_search', 'tab', 'search_status', 's', 'app_types', 'message', 'type', 'status'];
-        $current_url    = smliser_get_current_url()->remove_query_param( ...$illigal );
-        $add_url        = $current_url
-        ->add_query_param( 'tab', 'add-new' )
-        ->remove_query_param( 'status' );
-        $post_url   = $current_url->add_query_param( 'tab', 'search' );
-        $app_types  = HostedApplicationService::get_allowed_app_types();
-        $limit      = $request->get( 'limit', 10 );
-        $page       = $request->get( 'paged', 1 );
-        $app_data   = [
-            'items' => [], 
-            'pagination' => [
-                'page'        => $page,
-                'limit'       => $limit,
-                'total'       => 0,
-                'total_pages' => 0,
-            ]
-        ];
-        
-        if ( $request->has( 'app_search' ) ) {           
-            $types          = $request->get( 'app_types' );
-            $types          = str_contains( $types, '|' ) ? explode( '|', $types ) : (array) $types;
-            $search_term    = $request->get( 'app_search', '' );
-            $search_status  = $request->get( 'search_status', 'active' );
-            $post_url       = $post_url->add_query_param( 's', $search_term );
+	/**
+	 * Page to search the entire repository.
+	 */
+	public function search_page( Request $request ) : void {
+		$illigal     = ['app_search', 'tab', 'search_status', 's', 'app_types', 'message', 'type', 'status'];
+		$current_url = smliser_get_current_url()->remove_query_param( ...$illigal );
+		$add_url     = $current_url
+		->add_query_param( 'tab', 'add-new' )
+		->remove_query_param( 'status' );
+		$post_url  = $current_url->add_query_param( 'tab', 'search' );
+		$app_types = HostedApplicationService::get_allowed_app_types();
+		$limit     = $request->get( 'limit', 10 );
+		$page      = $request->get( 'paged', 1 );
+		$app_data  = [
+			'items'      => [],
+			'pagination' => [
+				'page'        => $page,
+				'limit'       => $limit,
+				'total'       => 0,
+				'total_pages' => 0,
+			]
+		];
+		
+		if ( $request->has( 'app_search' ) ) {
+			$types         = $request->get( 'app_types' );
+			$types         = str_contains( $types, '|' ) ? explode( '|', $types ) : (array) $types;
+			$search_term   = $request->get( 'app_search', '' );
+			$search_status = $request->get( 'search_status', 'active' );
+			$post_url      = $post_url->add_query_param( 's', $search_term );
 
-            $app_data   = HostedApplicationService::search_apps([
-                'page'  => $page,
-                'term'  => $search_term,
-                'status'    => $search_status,
-                'types'     => $types,
-                'limit'     => $limit
-            ]);
-        }
+			$app_data = HostedApplicationService::search_apps( [
+				'page'   => $page,
+				'term'   => $search_term,
+				'status' => $search_status,
+				'types'  => $types,
+				'limit'  => $limit
+			] );
+		}
 
-        $apps       = $app_data['items'];
-        $pagination = $app_data['pagination'];
+		$apps       = $app_data['items'];
+		$pagination = $app_data['pagination'];
 
-        $menu_args  = array(
-            'breadcrumbs'   => array(
-                array(
-                    'title' => 'Repository',
-                    'label' => 'Repository',
-                    'url'   => $this->urlmanager->admin_repo_url()->url()
-                ),
+		$menu_args = [
+			'breadcrumbs' => [
+				[
+					'title' => 'Repository',
+					'label' => 'Repository',
+					'url'   => $this->urlmanager->admin_repo_url()->url()
+				],
 
-                array(
-                    'label' => 'Search Repository'
-                )
-            ),
+				[
+					'label' => 'Search Repository'
+				]
+			],
 
-            'actions'   => array(
-                array(
-                    'title'     => 'Upload New Application',
-                    'label'     => 'Upload New',
-                    'url'       => $add_url->url(),
-                    'icon'      => 'ti ti-upload',
-                ),
+			'actions' => [
+				[
+					'title' => 'Upload New Application',
+					'label' => 'Upload New',
+					'url'   => $add_url->url(),
+					'icon'  => 'ti ti-upload',
+				],
 
-                array(
-                    'title'     => 'Plugin Repository',
-                    'label'     => 'Plugins',
-                    'url'       => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'plugin' )->url(),
-                    'icon'      => 'ti ti-plug',
-                ),
-                
-                array(
-                    'title'     => 'Theme Repository',
-                    'label'     => 'Themes',
-                    'url'       => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'theme' )->url(),
-                    'icon'      => 'ti ti-palette',
-                ),
-                
-                array(
-                    'title'     => 'Software Repository',
-                    'label'     => 'Software',
-                    'url'       => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'software' )->url(),
-                    'icon'      => 'ti ti-device-desktop-code',
-                ),
-            )
-        );
-        
-        $urlmanager = $this->urlmanager;
-        $repo_page  = $this;
-        $vars   = compact( 'repo_page', 'urlmanager', 'add_url', 'apps', 'pagination', 'current_url', 'request', 'menu_args',
-        'app_types' );
-        $this->locator->render( 'admin.contents.repository.search', $vars );
-    }
+				[
+					'title' => 'Plugin Repository',
+					'label' => 'Plugins',
+					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'plugin' )->url(),
+					'icon'  => 'ti ti-plug',
+				],
+				
+				[
+					'title' => 'Theme Repository',
+					'label' => 'Themes',
+					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'theme' )->url(),
+					'icon'  => 'ti ti-palette',
+				],
+				
+				[
+					'title' => 'Software Repository',
+					'label' => 'Software',
+					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'software' )->url(),
+					'icon'  => 'ti ti-device-desktop-code',
+				],
+			]
+		];
+		
+		$urlmanager = $this->urlmanager;
+		$repo_page  = $this;
+		$vars       = compact( 'repo_page', 'urlmanager', 'add_url', 'apps', 'pagination', 'current_url', 'request', 'menu_args',
+		'app_types' );
+		$this->locator->render( 'admin.contents.repository.search', $vars );
+	}
 
-    /**
-     * The upload page
-     */
-    public function upload_page( Request $request ) {
-        $type = $request->get( 'type', null );
+	/**
+	 * The upload page
+	 */
+	public function upload_page( Request $request ) {
+		$type = $request->get( 'type', null );
 
-        $slug       = $type ? 'uploader' : 'upload';
+		$slug = $type ? 'uploader' : 'upload';
 
-        $type_title = $type ? ucfirst( $type ) : '';
-        $title      = \sprintf( 'Upload New %s', $type_title );
+		$type_title = $type ? ucfirst( $type ) : '';
+		$title      = \sprintf( 'Upload New %s', $type_title );
 
-        $essential_fields = self::prepare_essential_app_fields( $request );
-        $app_action = array(
-            'title' => 'Repository',
-            'label' => 'Repository',
-            'url'   => $this->urlmanager->admin_repo_url(),
-            'icon'  => 'ti ti-arrow-back'
-        );
+		$essential_fields = self::prepare_essential_app_fields( $request );
+		$app_action       = [
+			'title' => 'Repository',
+			'label' => 'Repository',
+			'url'   => $this->urlmanager->admin_repo_url(),
+			'icon'  => 'ti ti-arrow-back'
+		];
 
-        $urlmanager = $this->urlmanager;
-        $repo_page  = $this;
-        $vars   = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'title', 'request', 'essential_fields', 'type' );
-        $this->locator->render( "admin.contents.repository.{$slug}", $vars );
-    }
+		$urlmanager = $this->urlmanager;
+		$repo_page  = $this;
+		$vars       = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'title', 'request', 'essential_fields', 'type' );
+		$this->locator->render( "admin.contents.repository.{$slug}", $vars );
+	}
 
-    /**
-     * The edit page
-     */
-    public function edit_page( Request $request ) {
-        $registry   = HostedAppsRegistry::instance();
-        $id         = $request->get( 'app_id' );
-        $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
-    
-        if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container(
-                sprintf(
-                    'This application type "%s" is not supportd! <a href="%s">Go Back</a>',
-                    escHtml( $type ), 
-                    escUrl( $this->urlmanager->admin_repo_url()->url() )
-                )
-            );
-            return;
-        }
+	/**
+	 * The edit page
+	 */
+	public function edit_page( Request $request ) {
+		$registry = HostedAppsRegistry::instance();
+		$id       = $request->get( 'app_id' );
+		$type     = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
+	
+		if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
+			echo smliser_not_found_container(
+				sprintf(
+					'This application type "%s" is not supportd! <a href="%s">Go Back</a>',
+					escHtml( $type ),
+					escUrl( $this->urlmanager->admin_repo_url()->url() )
+				)
+			);
+			return;
+		}
 
-        $app = HostedApplicationService::get_app_by_id( $type, $id );
-        
-        if ( ! $app ) {
-            echo smliser_not_found_container( 
-                sprintf(
-                    'Invalid or deleted application! <a href="%s">Go Back</a>',
-                    escUrl( $this->urlmanager->admin_repo_url()->url() )
-                )
-            );
-            return;
-        }
+		$app = HostedApplicationService::get_app_by_id( $type, $id );
+		
+		if ( ! $app ) {
+			echo smliser_not_found_container(
+				sprintf(
+					'Invalid or deleted application! <a href="%s">Go Back</a>',
+					escUrl( $this->urlmanager->admin_repo_url()->url() )
+				)
+			);
+			return;
+		}
 
-        $app_action = array(
-            'title' => 'View App',
-            'label' => 'View App',
-            'url'   => smliser_get_current_url()->add_query_params( 
-                array(
-                    'app_id'    => $app->get_id(), 
-                    'type'      => $app->get_type(),
-                    'tab'       => 'view' 
-                ) 
-            ),
-            'icon'  => 'ti ti-eye'
-        );
-        $essential_fields   = self::prepare_essential_app_fields( $request, $app );
-        $type_title         = ucfirst( $type );
-        
-        $urlmanager = $this->urlmanager;
-        $repo_page  = $this;
-        $vars   = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'request', 'essential_fields', 'type', 'app' );
-        $this->locator->render( "admin.contents.repository.edit-{$type}", $vars );
-    }
+		$app_action = [
+			'title' => 'View App',
+			'label' => 'View App',
+			'url'   => smliser_get_current_url()->add_query_params(
+				[
+					'app_id' => $app->get_id(),
+					'type'   => $app->get_type(),
+					'tab'    => 'view'
+				]
+			),
+			'icon' => 'ti ti-eye'
+		];
+		$essential_fields = self::prepare_essential_app_fields( $request, $app );
+		$type_title       = ucfirst( $type );
+		
+		$urlmanager = $this->urlmanager;
+		$repo_page  = $this;
+		$vars       = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'request', 'essential_fields', 'type', 'app' );
+		$this->locator->render( "admin.contents.repository.edit-{$type}", $vars );
+	}
 
-    /**
-     * The edit page
-     */
-    public function edit_app_artifacts( Request $request ) {
-        $registry   = HostedAppsRegistry::instance();
-        $id         = $request->getTyped( 'app_id', 'int', 0 );
-        $type       = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
-    
-        if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container(
-                sprintf(
-                    'This application type "%s" is not supportd! <a href="%s">Go Back</a>',
-                    escHtml( $type ),
-                    escUrl( $this->urlmanager->admin_repo_url()->url() )
-                )
-            );
-            return;
-        }
+	/**
+	 * The edit page
+	 */
+	public function edit_app_artifacts( Request $request ) {
+		$registry = HostedAppsRegistry::instance();
+		$id       = $request->getTyped( 'app_id', 'int', 0 );
+		$type     = $registry->normalize_app_type( $request->getTyped( 'type', 'string', '' ) );
+	
+		if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
+			echo smliser_not_found_container(
+				sprintf(
+					'This application type "%s" is not supportd! <a href="%s">Go Back</a>',
+					escHtml( $type ),
+					escUrl( $this->urlmanager->admin_repo_url()->url() )
+				)
+			);
+			return;
+		}
 
-        $app = HostedApplicationService::get_app_by_id( $type, $id );
-        
-        if ( ! $app ) {
-            echo smliser_not_found_container(
-                sprintf(
-                    'Invalid or deleted application! <a href="%s">Go Back</a>',
-                    escUrl( $this->urlmanager->admin_repo_url()->url() )
-                )
-            );
-            return;
-        }
+		$app = HostedApplicationService::get_app_by_id( $type, $id );
+		
+		if ( ! $app ) {
+			echo smliser_not_found_container(
+				sprintf(
+					'Invalid or deleted application! <a href="%s">Go Back</a>',
+					escUrl( $this->urlmanager->admin_repo_url()->url() )
+				)
+			);
+			return;
+		}
 
-        $app_action = array(
-            'title' => 'View App',
-            'label' => 'View App',
-            'url'   => smliser_get_current_url()->add_query_params( 
-                array(
-                    'app_id'    => $app->get_id(), 
-                    'type'      => $app->get_type(),
-                    'tab'       => 'view' 
-                ) 
-            ),
-            'icon'  => 'ti ti-eye'
-        );
+		$app_action = [
+			'title' => 'View App',
+			'label' => 'View App',
+			'url'   => smliser_get_current_url()->add_query_params(
+				[
+					'app_id' => $app->get_id(),
+					'type'   => $app->get_type(),
+					'tab'    => 'view'
+				]
+			),
+			'icon' => 'ti ti-eye'
+		];
 
-        $type_title = ucfirst( $type );
-        $repo_class = $registry->get_app_type_directory_class( $type );
-        $app_files  = $repo_class->get_artifacts( $app->get_slug() );
-        
-        $urlmanager = $this->urlmanager;
-        $repo_page  = $this;
-        $vars   = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'request', 'type', 'app', 'app_files' );
-        $this->locator->render( "admin.contents.repository.edit-artifacts", $vars );
-    }
+		$type_title = ucfirst( $type );
+		$repo_class = $registry->get_app_type_directory_class( $type );
+		$app_files  = $repo_class->get_artifacts( $app->get_slug() );
+		
+		$urlmanager = $this->urlmanager;
+		$repo_page  = $this;
+		$vars       = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'request', 'type', 'app', 'app_files' );
+		$this->locator->render( "admin.contents.repository.edit-artifacts", $vars );
+	}
 
-    /**
-     * View hosted application page
-     */
-    public function view_page( Request $request ) {
-        $id     = $request->get( 'app_id' );
-        $type   = $request->get( 'type' );
-        
-        if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
-            echo smliser_not_found_container(
-                sprintf( 
-                    'This application type "%s" is not supportd! <a href="%s">Go Back</a>',
-                    escHtml( $type ), escUrl( $this->urlmanager->admin_repo_url()->url() )
-                )
-            );
-            return;
-        }
+	/**
+	 * View hosted application page
+	 */
+	public function view_page( Request $request ) {
+		$id   = $request->get( 'app_id' );
+		$type = $request->get( 'type' );
+		
+		if ( ! HostedApplicationService::app_type_is_allowed( $type ) ) {
+			echo smliser_not_found_container(
+				sprintf(
+					'This application type "%s" is not supportd! <a href="%s">Go Back</a>',
+					escHtml( $type ), escUrl( $this->urlmanager->admin_repo_url()->url() )
+				)
+			);
+			return;
+		}
 
-        $app = HostedApplicationService::get_app_by_id( $type, $id );
+		$app = HostedApplicationService::get_app_by_id( $type, $id );
 
-        if ( ! $app ) {
-            echo smliser_not_found_container(
-                sprintf(
-                    'This "%s" does not exist! <a href="%s">Go Back</a>',
-                    escHtml( $type ),
-                    escUrl( $this->urlmanager->admin_repo_url()->url() )
-                )
-            );
-            return;
-        }
+		if ( ! $app ) {
+			echo smliser_not_found_container(
+				sprintf(
+					'This "%s" does not exist! <a href="%s">Go Back</a>',
+					escHtml( $type ),
+					escUrl( $this->urlmanager->admin_repo_url()->url() )
+				)
+			);
+			return;
+		}
 
-        $repo_class = HostedApplicationService::get_app_repository_class( $app->get_type() );
+		$repo_class = HostedApplicationService::get_app_repository_class( $app->get_type() );
 
-        $url                    = $this->urlmanager->admin_repo_url();
+		$url = $this->urlmanager->admin_repo_url();
 
-        $download_url           = $this->urlmanager->admin_app_downloads_url( $app->get_type(), $app->get_id() );
-        $last_updated_string    = Format::time_ago( $app->get_updated_at()->getTimestamp() );
-        $file_size              = FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) );
+		$download_url        = $this->urlmanager->admin_app_downloads_url( $app->get_type(), $app->get_id() );
+		$last_updated_string = Format::time_ago( $app->get_updated_at()->getTimestamp() );
+		$file_size           = FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) );
 
-        $template_header    = [
-            'icon'              => $app->get_icon(),
-            'name'              => $app->get_name(),
-            'badges'            => [ $app->get_status(), $app->get_type(), $app->get_version() ],
-            'short_description' => $app->get_short_description(),
-            'buttons'           => [
-                [
-                    'text'  => 'Repository',
-                    'url'   => $url->url(),
-                    'icon'  => 'ti ti-home',
-                    'class' => ['smliser-btn', 'smliser-btn-glass'],
-                    'attr'  => []
-                ],
-                
-                [
-                    'text'  => 'Artifacts',
-                    'url'   => $this->urlmanager->admin_repo_url( 'edit-artifacts', ['app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
-                    'icon'  => 'ti ti-files',
-                    'class' => ['smliser-btn', 'smliser-btn-glass'],
-                    'attr'  => []
-                ],
+		$template_header = [
+			'icon'              => $app->get_icon(),
+			'name'              => $app->get_name(),
+			'badges'            => [ $app->get_status(), $app->get_type(), $app->get_version() ],
+			'short_description' => $app->get_short_description(),
+			'buttons'           => [
+				[
+					'text'  => 'Repository',
+					'url'   => $url->url(),
+					'icon'  => 'ti ti-home',
+					'class' => ['smliser-btn', 'smliser-btn-glass'],
+					'attr'  => []
+				],
+				
+				[
+					'text'  => 'Artifacts',
+					'url'   => $this->urlmanager->admin_repo_url( 'edit-artifacts', ['app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
+					'icon'  => 'ti ti-files',
+					'class' => ['smliser-btn', 'smliser-btn-glass'],
+					'attr'  => []
+				],
 
-                [
-                    'text'  => 'Monetization',
-                    'url'   => $this->urlmanager->admin_repo_url( 'monetization', ['app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
-                    'icon'  => 'ti ti-basket-dollar',
-                    'class' => ['smliser-btn', 'smliser-btn-glass'],
-                    'attr'  => []
-                ],
+				[
+					'text'  => 'Monetization',
+					'url'   => $this->urlmanager->admin_repo_url( 'monetization', ['app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
+					'icon'  => 'ti ti-basket-dollar',
+					'class' => ['smliser-btn', 'smliser-btn-glass'],
+					'attr'  => []
+				],
 
-                [
-                    'text'  => sprintf( 'Edit %s', ucfirst( $app->get_type() ) ),
-                    'url'   => $this->urlmanager->admin_repo_url( 'edit', ['app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
-                    'icon'  => 'ti ti-edit',
-                    'class' => ['smliser-btn', 'smliser-btn-glass'],
-                    'attr'  => []
-                ],
+				[
+					'text'  => sprintf( 'Edit %s', ucfirst( $app->get_type() ) ),
+					'url'   => $this->urlmanager->admin_repo_url( 'edit', ['app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
+					'icon'  => 'ti ti-edit',
+					'class' => ['smliser-btn', 'smliser-btn-glass'],
+					'attr'  => []
+				],
 
-                [
-                    'text'  => sprintf( 'Download %s', ucfirst( $app->get_type() ) ),
-                    'url'   => $download_url->url(),
-                    'icon'  => 'ti ti-download',
-                    'class' => ['smliser-btn', 'smliser-btn-glass'],
-                    'attr'  => []
-                ]
-            ]
-        ];
+				[
+					'text'  => sprintf( 'Download %s', ucfirst( $app->get_type() ) ),
+					'url'   => $download_url->url(),
+					'icon'  => 'ti ti-download',
+					'class' => ['smliser-btn', 'smliser-btn-glass'],
+					'attr'  => []
+				]
+			]
+		];
 
-        if ( $app->can_be_restored() ) {
-            $template_header['buttons'][] = [
-                'text'  => sprintf( 'Restore %s', ucfirst( $app->get_type() ) ),
-                'url'   => '',
-                'icon'  => 'ti ti-arrow-back-up',
-                'class' => ['smliser-btn', 'smliser-btn-glass', 'smliser-app-restore-button'],
-                'attr'  => ['data-action-args' => smliser_json_encode_attr( ['slug' => $app->get_slug(), 'type' => $app->get_type(), 'status' => AbstractHostedApp::STATUS_ACTIVE] )]
-            ];
-        } else if ( $app->can_be_trashed() ) {
-            $template_header['buttons'][] = [
-                'text'  => sprintf( 'Trash %s', ucfirst( $app->get_type() ) ),
-                'url'   => '',
-                'icon'  => 'ti ti-trash',
-                'class' => ['smliser-btn', 'smliser-btn-danger', 'smliser-app-delete-button'],
-                'attr'  => ['data-action-args' => smliser_json_encode_attr( ['slug' => $app->get_slug(), 'type' => $app->get_type(), 'status' => AbstractHostedApp::STATUS_TRASH] )]
-            ];
-        }
+		if ( $app->can_be_restored() ) {
+			$template_header['buttons'][] = [
+				'text'  => sprintf( 'Restore %s', ucfirst( $app->get_type() ) ),
+				'url'   => '',
+				'icon'  => 'ti ti-arrow-back-up',
+				'class' => ['smliser-btn', 'smliser-btn-glass', 'smliser-app-restore-button'],
+				'attr'  => ['data-action-args' => smliser_json_encode_attr( ['slug' => $app->get_slug(), 'type' => $app->get_type(), 'status' => AbstractHostedApp::STATUS_ACTIVE] )]
+			];
+		} else if ( $app->can_be_trashed() ) {
+			$template_header['buttons'][] = [
+				'text'  => sprintf( 'Trash %s', ucfirst( $app->get_type() ) ),
+				'url'   => '',
+				'icon'  => 'ti ti-trash',
+				'class' => ['smliser-btn', 'smliser-btn-danger', 'smliser-app-delete-button'],
+				'attr'  => ['data-action-args' => smliser_json_encode_attr( ['slug' => $app->get_slug(), 'type' => $app->get_type(), 'status' => AbstractHostedApp::STATUS_TRASH] )]
+			];
+		}
 
-        $template_content = [
-            'FAQ'           => $app->get_section( 'faq' ),
-            'Installation'  => $app->get_installation(),
-            'Changelog'     => $app->get_changelog(),
-        ];
+		$template_content = [
+			'FAQ'          => $app->get_section( 'faq' ),
+			'Installation' => $app->get_installation(),
+			'Changelog'    => $app->get_changelog(),
+		];
 
-        $template_sidebar   = [
-            'Author'    => [
-                'icon'      => 'ti ti-user',
-                'content'   => ''
-            ],
-            'Performance Metrics (30 days)'   => [
-                'icon'      => 'ti ti-chart-histogram',
-                'content'   => self::build_analytics_html( $app )
-            ], 
-            'Application Details'   => [
-                'icon'      => 'ti ti-info-circle',
-                'content'   => self::build_info_html( $app, $file_size, $last_updated_string )
-            ],
-            'Technical Details'     => [
-                'icon'      => 'ti ti-cpu',
-                'content'   => self::build_tech_details( $app->get_manifest() )
-            ],
-        ];
+		$template_sidebar = [
+			'Author' => [
+				'icon'    => 'ti ti-user',
+				'content' => ''
+			],
+			'Performance Metrics (30 days)' => [
+				'icon'    => 'ti ti-chart-histogram',
+				'content' => self::build_analytics_html( $app )
+			],
+			'Application Details' => [
+				'icon'    => 'ti ti-info-circle',
+				'content' => self::build_info_html( $app, $file_size, $last_updated_string )
+			],
+			'Technical Details' => [
+				'icon'    => 'ti ti-cpu',
+				'content' => self::build_tech_details( $app->get_manifest() )
+			],
+		];
 
-        $urlmanager = $this->urlmanager;
-        $repo_page  = $this;
-        $vars       = compact( 'repo_page', 'urlmanager', 'app', 'request', 'template_content',
-            'template_header', 'template_sidebar'
-        );
-        
-        $this->locator->render( "admin.contents.repository.view-{$type}", $vars );
-    }
+		$urlmanager = $this->urlmanager;
+		$repo_page  = $this;
+		$vars       = compact( 'repo_page', 'urlmanager', 'app', 'request', 'template_content',
+			'template_header', 'template_sidebar'
+		);
+		
+		$this->locator->render( "admin.contents.repository.view-{$type}", $vars );
+	}
 
-    /**
-     * Manage plugin monetization page
-     */
-    public function monetization_page( Request $request ) {
-        $url        = $this->urlmanager->admin_repo_url()->url();
-        $id         = $request->query( 'app_id' );
-        $app_type   = $request->query( 'type' );
-        $is_new     = false;
+	/**
+	 * Manage plugin monetization page
+	 */
+	public function monetization_page( Request $request ) {
+		$url      = $this->urlmanager->admin_repo_url()->url();
+		$id       = $request->query( 'app_id' );
+		$app_type = $request->query( 'type' );
+		$is_new   = false;
 
-        $monetization   = Monetization::get_by_app( $app_type, $id );
-        $providers      = $this->monetization_registry->all();
+		$monetization = Monetization::get_by_app( $app_type, $id );
+		$providers    = $this->monetization_registry->all();
 
-        if ( empty( $monetization ) ) {
-            $is_new         = true;
-            $monetization   = new Monetization();
-            $monetization->set_app_id( $id )
-                ->set_app_type( $app_type );
-        }
+		if ( empty( $monetization ) ) {
+			$is_new       = true;
+			$monetization = new Monetization();
+			$monetization->set_app_id( $id )
+				->set_app_type( $app_type );
+		}
 
-        
-        $urlmanager = $this->urlmanager;
-        $repo_page  = $this;
-        $app        = $monetization->get_app();
-        $vars       = compact( 'repo_page', 'urlmanager', 'request', 'monetization', 'is_new', 'app', 'url', 'providers', );
-        $this->locator->render( 'admin.contents.repository.monetization', $vars );
-    }
+		
+		$urlmanager = $this->urlmanager;
+		$repo_page  = $this;
+		$app        = $monetization->get_app();
+		$vars       = compact( 'repo_page', 'urlmanager', 'request', 'monetization', 'is_new', 'app', 'url', 'providers', );
+		$this->locator->render( 'admin.contents.repository.monetization', $vars );
+	}
 
-    /**
-     * Prepare essential application fields
-     * 
-     * @param Request $request
-     * @param AbstractHostedApp|null $app
-     */
-    private function prepare_essential_app_fields( Request $request, ?AbstractHostedApp $app = null, ) {
-        $type               = $request->getTyped( 'type', 'string', '' );
-        $manifest_filename  = match( $type ) {
-            'plugin'    => 'readme.txt',
-            'theme'     => 'style.css',
-            default     => 'app.json'
-        };
+	/**
+	 * Prepare essential application fields
+	 * 
+	 * @param Request $request
+	 * @param AbstractHostedApp|null $app
+	 */
+	private function prepare_essential_app_fields( Request $request, ?AbstractHostedApp $app = null, ) {
+		$type              = $request->getTyped( 'type', 'string', '' );
+		$manifest_filename = match( $type ) {
+			'plugin' => 'readme.txt',
+			'theme'  => 'style.css',
+			default  => 'app.json'
+		};
 
-        $owner_option  = [];
+		$owner_option = [];
 
-        if ( $app && $owner = $app->get_owner() ) {
-            $owner_option  = [
-                sprintf( '%s:%s', $owner->get_type(), $owner->get_id() ) => $owner->get_name()
-                
-            ];
-        }
+		if ( $app && $owner = $app->get_owner() ) {
+			$owner_option = [
+				sprintf( '%s:%s', $owner->get_type(), $owner->get_id() ) => $owner->get_name()
+				
+			];
+		}
 
-        return array(
-            array(
-                'label' => __( 'Name', 'smliser' ),
-                'help'  => 'The name of the application',
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'app_name',
-                    'value' => $app ? $app->get_name() : '',
-                    'class' => 'app-uploader-form-row',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off',
-                        'required'      => true
-                    )
-                )
-            ),
-            array(
-                'label' => __( 'Version', 'smliser' ),
-                'help'  => \sprintf( 'Use %s file to edit %s version', $manifest_filename, $type ),
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'app_version',
-                    'value' => $app ? $app->get_version() : '',
-                    'class' => 'app-uploader-form-row',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off',
-                        'readonly'      => true,
-                    )
-                )
-            ),
-            array(
-                'label' => __( 'Author Name', 'smliser' ),
-                'help'  => sprintf( 'Enter the name of the %s author.', $type ),
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'app_author',
-                    'value' => $app ? $app->get_author() : '',
-                    'class' => 'app-uploader-form-row',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
-                    )
-                )
-            ),
-            array(
-                'label' => __( 'Author Profile URL', 'smliser' ),
-                'help'  => sprintf( 'Enter the URL of the %s author profile.', $type ),
-                'input' => array(
-                    'type'  => 'text',
-                    'name'  => 'app_author_url',
-                    'value' => $app ? $app->get_author_profile() : '',
-                    'class' => 'app-uploader-form-row',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
-                    )
-                )
-            ),
-            array(
-                'label' => __( 'Owner', 'smliser' ),
-                'help'  => sprintf( 'Select the owner of the %s. %s Owner is the user or organization that host and maintain the %s in this repository.', $type, ucfirst( $type ), $type ),
-                'input' => array(
-                    'type'  => 'select',
-                    'name'  => 'app_owner_id',
-                    'value' => key( $owner_option ),
-                    'class' => 'app-uploader-form-row',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
-                    ),
-                    'options'   => $owner_option
-                ),
-            ),
-            array(
-                'label' => __( 'Status', 'smliser' ),
-                'help'  => sprintf( 'Enter the %s status', $type ),
-                'input' => array(
-                    'type'  => 'select',
-                    'name'  => 'app_status',
-                    'value' => $app ? $app->get_status() : 'active',
-                    'class' => 'app-uploader-form-row',
-                    'attr'  => array(
-                        'autocomplete'  => 'off',
-                        'spellcheck'    => 'off'
-                    ),
-                    'options'   => array_map( 'ucfirst', AbstractHostedApp::STATUSES )
-                )
-            ),
-        );
-    }
+		return [
+			[
+				'label' => __( 'Name', 'smliser' ),
+				'help'  => 'The name of the application',
+				'input' => [
+					'type'  => 'text',
+					'name'  => 'app_name',
+					'value' => $app ? $app->get_name() : '',
+					'class' => 'app-uploader-form-row',
+					'attr'  => [
+						'autocomplete' => 'off',
+						'spellcheck'   => 'off',
+						'required'     => true
+					]
+				]
+			],
+			[
+				'label' => __( 'Version', 'smliser' ),
+				'help'  => \sprintf( 'Use %s file to edit %s version', $manifest_filename, $type ),
+				'input' => [
+					'type'  => 'text',
+					'name'  => 'app_version',
+					'value' => $app ? $app->get_version() : '',
+					'class' => 'app-uploader-form-row',
+					'attr'  => [
+						'autocomplete' => 'off',
+						'spellcheck'   => 'off',
+						'readonly'     => true,
+					]
+				]
+			],
+			[
+				'label' => __( 'Author Name', 'smliser' ),
+				'help'  => sprintf( 'Enter the name of the %s author.', $type ),
+				'input' => [
+					'type'  => 'text',
+					'name'  => 'app_author',
+					'value' => $app ? $app->get_author() : '',
+					'class' => 'app-uploader-form-row',
+					'attr'  => [
+						'autocomplete' => 'off',
+						'spellcheck'   => 'off'
+					]
+				]
+			],
+			[
+				'label' => __( 'Author Profile URL', 'smliser' ),
+				'help'  => sprintf( 'Enter the URL of the %s author profile.', $type ),
+				'input' => [
+					'type'  => 'text',
+					'name'  => 'app_author_url',
+					'value' => $app ? $app->get_author_profile() : '',
+					'class' => 'app-uploader-form-row',
+					'attr'  => [
+						'autocomplete' => 'off',
+						'spellcheck'   => 'off'
+					]
+				]
+			],
+			[
+				'label' => __( 'Owner', 'smliser' ),
+				'help'  => sprintf( 'Select the owner of the %s. %s Owner is the user or organization that host and maintain the %s in this repository.', $type, ucfirst( $type ), $type ),
+				'input' => [
+					'type'  => 'select',
+					'name'  => 'app_owner_id',
+					'value' => key( $owner_option ),
+					'class' => 'app-uploader-form-row',
+					'attr'  => [
+						'autocomplete' => 'off',
+						'spellcheck'   => 'off'
+					],
+					'options' => $owner_option
+				],
+			],
+			[
+				'label' => __( 'Status', 'smliser' ),
+				'help'  => sprintf( 'Enter the %s status', $type ),
+				'input' => [
+					'type'  => 'select',
+					'name'  => 'app_status',
+					'value' => $app ? $app->get_status() : 'active',
+					'class' => 'app-uploader-form-row',
+					'attr'  => [
+						'autocomplete' => 'off',
+						'spellcheck'   => 'off'
+					],
+					'options' => array_map( 'ucfirst', AbstractHostedApp::STATUSES )
+				]
+			],
+		];
+	}
 
-    /**
-     * Get page menu args
-     * 
-     * @param Request $request
-     * @param HostedAppsInterface|null $app
-     * @return array
-     */
-    public function get_menu_args( Request $request, ?HostedAppsInterface $app = null ) : array {
-        $tab        = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
-        $app_type   = \ucfirst( $app?->get_type() ?? $request->get( 'type', '' ) );
-        $app_name   = $app?->get_name() ?? '';
+	/**
+	 * Get page menu args
+	 * 
+	 * @param Request $request
+	 * @param HostedAppsInterface|null $app
+	 * @return array
+	 */
+	public function get_menu_args( Request $request, ?HostedAppsInterface $app = null ) : array {
+		$tab      = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
+		$app_type = \ucfirst( $app?->get_type() ?? $request->get( 'type', '' ) );
+		$app_name = $app?->get_name() ?? '';
 
-        $title  = match( $tab ) {
-            'monetization'      => sprintf( '%s Monetization', $app_type ),
-            'edit'              => sprintf( 'Edit %s: %s', $app_type, $app_name ),
-            'view'              => $app_name,
-            'add-new'           => 'Add New',
-            'edit-artifacts'    => sprintf( '%s Distributable Artifacts', $app_type ),
-            default             => ''
-        };
-        
-        return [
-            'breadcrumbs'   => array(
-                array(
-                    'label' => 'Repository',
-                    'url'   => $this->urlmanager->admin_repo_url()->url(),
-                    'icon'  => 'ti ti-home-filled'
-                ),
+		$title = match( $tab ) {
+			'monetization'   => sprintf( '%s Monetization', $app_type ),
+			'edit'           => sprintf( 'Edit %s: %s', $app_type, $app_name ),
+			'view'           => $app_name,
+			'add-new'        => 'Add New',
+			'edit-artifacts' => sprintf( '%s Distributable Artifacts', $app_type ),
+			default          => ''
+		};
+		
+		return [
+			'breadcrumbs' => [
+				[
+					'label' => 'Repository',
+					'url'   => $this->urlmanager->admin_repo_url()->url(),
+					'icon'  => 'ti ti-home-filled'
+				],
 
-                array(
-                    'label' => smliser_pluralize( $app?->get_type() ?? $app_type ),
-                    'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', ( $app?->get_type() ?? $request->get( 'type', '' ) ) ),
-                    'icon'  => 'ti ti-folder-open'
-                ),
-                array(
-                    'label' => $title
-                )
-            ),
-            'actions'   => array(
-                array(
-                    'title' => 'Edit App',
-                    'label' => 'Edit',
-                    'url'   => $this->urlmanager->admin_repo_url( 'edit',
-                        array(
-                            'app_id'    => $app?->get_id() ?? 0, 
-                            'type'      => $app?->get_type() ?? $app_type,
-                        ) 
-                    ),
-                    'icon'  => 'ti ti-edit',
-                    'active'    => 'edit' === $tab
-                ),
+				[
+					'label' => smliser_pluralize( $app?->get_type() ?? $app_type ),
+					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', ( $app?->get_type() ?? $request->get( 'type', '' ) ) ),
+					'icon'  => 'ti ti-folder-open'
+				],
+				[
+					'label' => $title
+				]
+			],
+			'actions' => [
+				[
+					'title' => 'Edit App',
+					'label' => 'Edit',
+					'url'   => $this->urlmanager->admin_repo_url( 'edit',
+						[
+							'app_id' => $app?->get_id() ?? 0,
+							'type'   => $app?->get_type() ?? $app_type,
+						]
+					),
+					'icon'   => 'ti ti-edit',
+					'active' => 'edit' === $tab
+				],
 
-                array(
-                    'title' => 'View App',
-                    'label' => 'View',
-                    'url'   => $this->urlmanager->admin_repo_url( 'view',
-                        array(
-                            'app_id'    => $app?->get_id() ?? 0, 
-                            'type'      => $app?->get_type() ?? '',
-                        ) 
-                    ),
-                    'icon'  => 'ti ti-eye',
-                    'active'    => 'view' === $tab
-                ),
+				[
+					'title' => 'View App',
+					'label' => 'View',
+					'url'   => $this->urlmanager->admin_repo_url( 'view',
+						[
+							'app_id' => $app?->get_id() ?? 0,
+							'type'   => $app?->get_type() ?? '',
+						]
+					),
+					'icon'   => 'ti ti-eye',
+					'active' => 'view' === $tab
+				],
 
-                array(
-                    'title' => 'App monetization',
-                    'label' => 'Monetization',
-                    'url'   => $this->urlmanager->admin_repo_url( 'monetization',
-                        array(
-                            'app_id'    => $app?->get_id() ?? 0, 
-                            'type'      => $app?->get_type() ?? '',
-                        ) 
-                    ),
-                    'icon'  => 'ti ti-basket-dollar',
-                    'active'    => 'monetization' === $tab
-                )
-            )
-        ];
-    }
+				[
+					'title' => 'App monetization',
+					'label' => 'Monetization',
+					'url'   => $this->urlmanager->admin_repo_url( 'monetization',
+						[
+							'app_id' => $app?->get_id() ?? 0,
+							'type'   => $app?->get_type() ?? '',
+						]
+					),
+					'icon'   => 'ti ti-basket-dollar',
+					'active' => 'monetization' === $tab
+				]
+			]
+		];
+	}
 
-    /**
-     * Build the INFO list (common to all hosted apps)
-     *
-     * @param AbstractHostedApp $app Hosted app instance.
-     * @param string            $file_size Human-readable size.
-     * @param string            $last_updated_string Time string.
-     * @return string
-     */
-    private function build_info_html( $app, $file_size, $last_updated_string ) {
+	/**
+	 * Build the INFO list (common to all hosted apps)
+	 *
+	 * @param AbstractHostedApp $app Hosted app instance.
+	 * @param string            $file_size Human-readable size.
+	 * @param string            $last_updated_string Time string.
+	 * @return string
+	 */
+	private function build_info_html( $app, $file_size, $last_updated_string ) {
 
-        $license_uri    = $app->get_license()['license_uri'] ?? '';
-        $license        = $app->get_license()['license'] ?? '';
+		$license_uri = $app->get_license()['license_uri'] ?? '';
+		$license     = $app->get_license()['license'] ?? '';
 
-        return sprintf(
-            '<ul class="smliser-app-meta">
+		return sprintf(
+			'<ul class="smliser-app-meta">
                 <li><span>%1$s</span> <span>#%2$s</span></li>
                 <li><span>%3$s</span>
                     <span class="smliser-click-to-copy"
@@ -711,343 +711,343 @@ class RepositoryPage implements AdminPageInterface {
                 <li><span>%13$s</span> <span>%14$s</span></li>
                 <li><span>%15$s</span> <span>%16$s</span></li>
             </ul>',
-            __( 'APP ID', 'smliser' ),
-            $app->get_id(),
-            __( 'Slug', 'smliser' ),
-            $app->get_slug(),
-            __( 'License', 'smliser' ),
-            $license,
-            __( 'Status', 'smliser' ),
-            $app->get_status(),
-            __( 'Monetization', 'smliser' ),
-            $app->is_monetized() ? 'check' : 'x',
-            __( 'Public Download URL', 'smliser' ),//11
-            $app->is_monetized() ? $app->monetized_url_sample() : $app->get_download_url(),
-            __( 'File Size', 'smliser' ),
-            $file_size,
-            __( 'Last Updated', 'smliser' ),
-            $last_updated_string,
-            $license_uri
-        );
-    }
+			__( 'APP ID', 'smliser' ),
+			$app->get_id(),
+			__( 'Slug', 'smliser' ),
+			$app->get_slug(),
+			__( 'License', 'smliser' ),
+			$license,
+			__( 'Status', 'smliser' ),
+			$app->get_status(),
+			__( 'Monetization', 'smliser' ),
+			$app->is_monetized() ? 'check' : 'x',
+			__( 'Public Download URL', 'smliser' ),//11
+			$app->is_monetized() ? $app->monetized_url_sample() : $app->get_download_url(),
+			__( 'File Size', 'smliser' ),
+			$file_size,
+			__( 'Last Updated', 'smliser' ),
+			$last_updated_string,
+			$license_uri
+		);
+	}
 
-    /**
-     * Build the Technical Details section
-     * 
-     * @param array $data
-     */
-    private function build_tech_details( array $data ) : string {
+	/**
+	 * Build the Technical Details section
+	 * 
+	 * @param array $data
+	 */
+	private function build_tech_details( array $data ) : string {
 
-        unset( $data['name'], $data['slug'], $data['version'] );
-        $details = '<ul class="smliser-app-meta">';
+		unset( $data['name'], $data['slug'], $data['version'] );
+		$details = '<ul class="smliser-app-meta">';
 
-        foreach( $data as $key => $value ) {
+		foreach( $data as $key => $value ) {
 
-            if ( is_array( $value ) ) {
-                // Detect if associative array
-                $is_assoc = array_keys( $value) !== range(0, count( $value ) - 1 );
+			if ( is_array( $value ) ) {
+				// Detect if associative array
+				$is_assoc = array_keys( $value ) !== range( 0, count( $value ) - 1 );
 
-                $value = smliser_implode_deep_smart( $value );
-            }
+				$value = smliser_implode_deep_smart( $value );
+			}
 
-            $details .= sprintf(
-                '<li><span class="list-title">%1$s</span> <span class="list-value">%2$s</span></li>',
-                ucwords(str_replace('_', ' ', $key)),
-                $value
-            );
-        }
+			$details .= sprintf(
+				'<li><span class="list-title">%1$s</span> <span class="list-value">%2$s</span></li>',
+				ucwords( str_replace( '_', ' ', $key ) ),
+				$value
+			);
+		}
 
-        $details .= '</ul>';
+		$details .= '</ul>';
 
-        return $details;
-    }
+		return $details;
+	}
 
-    /**
-     * Build analytics HTML payload for an app.
-     *
-     * @param AbstractHostedApp $app
-     * @return string
-     */
-    private function build_analytics_html( AbstractHostedApp $app ) {
+	/**
+	 * Build analytics HTML payload for an app.
+	 *
+	 * @param AbstractHostedApp $app
+	 * @return string
+	 */
+	private function build_analytics_html( AbstractHostedApp $app ) {
 
-        // Downloads.
-        $downloads_daily   = $this->apps_analytics->get_downloads_per_day( $app, 30 );
-        ksort( $downloads_daily );
+		// Downloads.
+		$downloads_daily = $this->apps_analytics->get_downloads_per_day( $app, 30 );
+		ksort( $downloads_daily );
 
-        $download_days     = array_keys( $downloads_daily );
-        $download_values   = array_values( $downloads_daily );
+		$download_days   = array_keys( $downloads_daily );
+		$download_values = array_values( $downloads_daily );
 
-        // Client access.
-        $access_daily      = $this->apps_analytics->get_client_access_per_day( $app, 30 );
-        ksort( $access_daily );
+		// Client access.
+		$access_daily = $this->apps_analytics->get_client_access_per_day( $app, 30 );
+		ksort( $access_daily );
 
-        $access_days       = array_keys( $access_daily );
-        $access_values     = array_values( $access_daily );
+		$access_days   = array_keys( $access_daily );
+		$access_values = array_values( $access_daily );
 
-        // Aggregate KPIs.
-        $analytics = array(
-            'downloads' => array(
-                'total'        => $this->apps_analytics->get_total_downloads( $app ),
-                'today'        => $this->apps_analytics->get_todays_downloads( $app ),
-                'average'      => $this->apps_analytics->get_average_daily_downloads( $app, 30 ),
-                'growth'       => $this->apps_analytics->get_download_growth_percentage( $app, 30 ),
-                'peak_day'     => $this->apps_analytics->get_peak_download_day( $app, 365 ),
-                'timeline'     => array(
-                    'days'   => $download_days,
-                    'values' => $download_values,
-                ),
-            ),
-            'client_access' => array(
-                'total'        => $this->apps_analytics->get_total_client_accesses( $app ),
-                'average'      => $this->apps_analytics->get_average_daily_client_accesses( $app, 30 ),
-                'growth'       => $this->apps_analytics->get_client_access_growth_percentage( $app, 30 ),
-                'peak_day'     => $this->apps_analytics->get_peak_client_access_day( $app, 365 ),
-                'active_installs' => $this->apps_analytics->get_estimated_active_installations( $app, 30 ),
-                'timeline'     => array(
-                    'days'   => $access_days,
-                    'values' => $access_values,
-                ),
-            ),
-        );
+		// Aggregate KPIs.
+		$analytics = [
+			'downloads' => [
+				'total'    => $this->apps_analytics->get_total_downloads( $app ),
+				'today'    => $this->apps_analytics->get_todays_downloads( $app ),
+				'average'  => $this->apps_analytics->get_average_daily_downloads( $app, 30 ),
+				'growth'   => $this->apps_analytics->get_download_growth_percentage( $app, 30 ),
+				'peak_day' => $this->apps_analytics->get_peak_download_day( $app, 365 ),
+				'timeline' => [
+					'days'   => $download_days,
+					'values' => $download_values,
+				],
+			],
+			'client_access' => [
+				'total'           => $this->apps_analytics->get_total_client_accesses( $app ),
+				'average'         => $this->apps_analytics->get_average_daily_client_accesses( $app, 30 ),
+				'growth'          => $this->apps_analytics->get_client_access_growth_percentage( $app, 30 ),
+				'peak_day'        => $this->apps_analytics->get_peak_client_access_day( $app, 365 ),
+				'active_installs' => $this->apps_analytics->get_estimated_active_installations( $app, 30 ),
+				'timeline'        => [
+					'days'   => $access_days,
+					'values' => $access_values,
+				],
+			],
+		];
 
-        $json = smliser_json_encode_attr( $analytics );
+		$json = smliser_json_encode_attr( $analytics );
 
-        $html = '<div class="smliser-app-analytics">';
-        
-        $html .= '<div class="chart-container">';
-        $html .= sprintf(
-            '<canvas class="smliser-app-mini-analytics" data-analytics="%s"></canvas>',
-            escAttr( $json )
-        );
-        $html .= '</div>';
+		$html = '<div class="smliser-app-analytics">';
+		
+		$html .= '<div class="chart-container">';
+		$html .= sprintf(
+			'<canvas class="smliser-app-mini-analytics" data-analytics="%s"></canvas>',
+			escAttr( $json )
+		);
+		$html .= '</div>';
 
-        // Stats Footer
-        $html .= self::build_stats_footer( $analytics );
-        
-        $html .= '</div>';
+		// Stats Footer
+		$html .= self::build_stats_footer( $analytics );
+		
+		$html .= '</div>';
 
-        return $html;
-    }
+		return $html;
+	}
 
-    /**
-     * Build stats footer HTML.
-     *
-     * @param array $analytics Analytics data array.
-     * @return string HTML for stats footer.
-     */
-    private function build_stats_footer( array $analytics ) {
-        $stats = [];
+	/**
+	 * Build stats footer HTML.
+	 *
+	 * @param array $analytics Analytics data array.
+	 * @return string HTML for stats footer.
+	 */
+	private function build_stats_footer( array $analytics ) {
+		$stats = [];
 
-        // Downloads stats
-        if ( ! empty( $analytics['downloads'] ) ) {
-            $downloads = $analytics['downloads'];
+		// Downloads stats
+		if ( ! empty( $analytics['downloads'] ) ) {
+			$downloads = $analytics['downloads'];
 
-            if ( isset( $downloads['total'] ) ) {
-                $stats[] = array(
-                    'icon'  => 'ti ti-download',
-                    'label' => 'Total Downloads',
-                    'value' => Format::number( $downloads['total'] ),
-                    'color' => '#3b82f6',
-                );
-            }
+			if ( isset( $downloads['total'] ) ) {
+				$stats[] = [
+					'icon'  => 'ti ti-download',
+					'label' => 'Total Downloads',
+					'value' => Format::number( $downloads['total'] ),
+					'color' => '#3b82f6',
+				];
+			}
 
-            if ( isset( $downloads['today'] ) ) {
-                $stats[] = array(
-                    'icon'  => 'ti ti-chart-arrows',
-                    'label' => 'Today\'s Downloads',
-                    'value' => Format::number( $downloads['today'] ),
-                    'color' => '#3b82f6',
-                );
-            }
+			if ( isset( $downloads['today'] ) ) {
+				$stats[] = [
+					'icon'  => 'ti ti-chart-arrows',
+					'label' => 'Today\'s Downloads',
+					'value' => Format::number( $downloads['today'] ),
+					'color' => '#3b82f6',
+				];
+			}
 
-            if ( isset( $downloads['average'] ) ) {
-                $stats[] = array(
-                    'icon'  => 'ti ti-chart-infographic',
-                    'label' => 'Avg Downloads/Day',
-                    'value' => Format::number( $downloads['average'], 1 ),
-                    'color' => '#3b82f6',
-                );
-            }
+			if ( isset( $downloads['average'] ) ) {
+				$stats[] = [
+					'icon'  => 'ti ti-chart-infographic',
+					'label' => 'Avg Downloads/Day',
+					'value' => Format::number( $downloads['average'], 1 ),
+					'color' => '#3b82f6',
+				];
+			}
 
-            if ( isset( $downloads['growth'] ) ) {
-                $growth = (float) $downloads['growth'];
-                $stats[] = array(
-                    'icon'      => $growth >= 0 ? 'ti ti-chart-dots-2' : 'ti ti-chart-line',
-                    'label'     => 'Download Growth',
-                    'value'     => ( $growth >= 0 ? '+' : '' ) . Format::number( $growth, 1 ) . '%',
-                    'color'     => $growth >= 0 ? '#10b981' : '#ef4444',
-                    'highlight' => true,
-                );
-            }
+			if ( isset( $downloads['growth'] ) ) {
+				$growth  = (float) $downloads['growth'];
+				$stats[] = [
+					'icon'      => $growth >= 0 ? 'ti ti-chart-dots-2' : 'ti ti-chart-line',
+					'label'     => 'Download Growth',
+					'value'     => ( $growth >= 0 ? '+' : '' ) . Format::number( $growth, 1 ) . '%',
+					'color'     => $growth >= 0 ? '#10b981' : '#ef4444',
+					'highlight' => true,
+				];
+			}
 
-            if ( ! empty( $downloads['peak_day'] ) && isset( $downloads['peak_day']['count'] ) ) {
-                $stats[] = array(
-                    'icon'     => 'ti ti-trophy',
-                    'label'    => 'Peak Day',
-                    'value'    => Format::number( $downloads['peak_day']['count'] ),
-                    'subtitle' => date( 'M j, Y', strtotime( $downloads['peak_day']['date'] ) ),
-                    'color'    => '#8b5cf6',
-                );
-            }
-        }
+			if ( ! empty( $downloads['peak_day'] ) && isset( $downloads['peak_day']['count'] ) ) {
+				$stats[] = [
+					'icon'     => 'ti ti-trophy',
+					'label'    => 'Peak Day',
+					'value'    => Format::number( $downloads['peak_day']['count'] ),
+					'subtitle' => date( 'M j, Y', strtotime( $downloads['peak_day']['date'] ) ),
+					'color'    => '#8b5cf6',
+				];
+			}
+		}
 
-        // Client Access stats
-        if ( ! empty( $analytics['client_access'] ) ) {
-            $access = $analytics['client_access'];
+		// Client Access stats
+		if ( ! empty( $analytics['client_access'] ) ) {
+			$access = $analytics['client_access'];
 
-            if ( isset( $access['total'] ) ) {
-                $stats[] = array(
-                    'icon'  => 'ti ti-world-www',
-                    'label' => 'Total Client Access',
-                    'value' => Format::number( $access['total'] ),
-                    'color' => '#10b981',
-                );
-            }
+			if ( isset( $access['total'] ) ) {
+				$stats[] = [
+					'icon'  => 'ti ti-world-www',
+					'label' => 'Total Client Access',
+					'value' => Format::number( $access['total'] ),
+					'color' => '#10b981',
+				];
+			}
 
-            if ( isset( $access['average'] ) ) {
-                $stats[] = array(
-                    'icon'  => 'ti ti-percentage-33',
-                    'label' => 'Avg Access/Day',
-                    'value' => Format::number( $access['average'], 1 ),
-                    'color' => '#10b981',
-                );
-            }
+			if ( isset( $access['average'] ) ) {
+				$stats[] = [
+					'icon'  => 'ti ti-percentage-33',
+					'label' => 'Avg Access/Day',
+					'value' => Format::number( $access['average'], 1 ),
+					'color' => '#10b981',
+				];
+			}
 
-            if ( isset( $access['growth'] ) ) {
-                $growth = (float) $access['growth'];
-                $stats[] = array(
-                    'icon'      => $growth >= 0 ? 'ti ti-chart-dots-2' : 'ti ti-chart-line',
-                    'label'     => 'Access Growth',
-                    'value'     => ( $growth >= 0 ? '+' : '' ) . Format::number( $growth, 1 ) . '%',
-                    'color'     => $growth >= 0 ? '#10b981' : '#ef4444',
-                    'highlight' => true,
-                );
-            }
+			if ( isset( $access['growth'] ) ) {
+				$growth  = (float) $access['growth'];
+				$stats[] = [
+					'icon'      => $growth >= 0 ? 'ti ti-chart-dots-2' : 'ti ti-chart-line',
+					'label'     => 'Access Growth',
+					'value'     => ( $growth >= 0 ? '+' : '' ) . Format::number( $growth, 1 ) . '%',
+					'color'     => $growth >= 0 ? '#10b981' : '#ef4444',
+					'highlight' => true,
+				];
+			}
 
-            if ( isset( $access['active_installs'] ) ) {
-                $stats[] = array(
-                    'icon'      => 'ti ti-bolt',
-                    'label'     => 'Active Installs',
-                    'value'     => '~' . Format::number( $access['active_installs'] ),
-                    'color'     => '#f59e0b',
-                    'highlight' => true,
-                );
-            }
+			if ( isset( $access['active_installs'] ) ) {
+				$stats[] = [
+					'icon'      => 'ti ti-bolt',
+					'label'     => 'Active Installs',
+					'value'     => '~' . Format::number( $access['active_installs'] ),
+					'color'     => '#f59e0b',
+					'highlight' => true,
+				];
+			}
 
-            if ( ! empty( $access['peak_day'] ) && isset( $access['peak_day']['count'] ) ) {
-                $stats[] = array(
-                    'icon'     => 'ti ti-trophy',
-                    'label'    => 'Peak Access Day',
-                    'value'    => Format::number( $access['peak_day']['count'] ),
-                    'subtitle' => date( 'M j, Y', strtotime( $access['peak_day']['date'] ) ),
-                    'color'    => '#8b5cf6',
-                );
-            }
-        }
+			if ( ! empty( $access['peak_day'] ) && isset( $access['peak_day']['count'] ) ) {
+				$stats[] = [
+					'icon'     => 'ti ti-trophy',
+					'label'    => 'Peak Access Day',
+					'value'    => Format::number( $access['peak_day']['count'] ),
+					'subtitle' => date( 'M j, Y', strtotime( $access['peak_day']['date'] ) ),
+					'color'    => '#8b5cf6',
+				];
+			}
+		}
 
-        // No stats to display
-        if ( empty( $stats ) ) {
-            return '';
-        }
+		// No stats to display
+		if ( empty( $stats ) ) {
+			return '';
+		}
 
-        // Build HTML
-        $html = '<div class="analytics-stats-footer">';
+		// Build HTML
+		$html = '<div class="analytics-stats-footer">';
 
-        foreach ( $stats as $stat ) {
-            $highlight = ! empty( $stat['highlight'] ) ? ' highlight' : '';
-            
-            $html .= sprintf( '<div class="stat-card%s">', $highlight );
-            $html .= '<div class="stat-card_header">';
-            $html .= sprintf( '<span class="%s"></span>', $stat['icon'] );
-            $html .= sprintf( '<span class="stat-card_header-title">%s</span>', escHtml( $stat['label'] ) );
-            $html .= '</div>';
-            $html .= '<div class="stat-card_content">';
-            $html .= sprintf( '<span class="stat-card_content-value">%s</span>', escHtml( $stat['value'] ) );
-            
-            if ( ! empty( $stat['subtitle'] ) ) {
-                $html .= sprintf( '<span class="stat-card_content-subtitle">%s</span>', escHtml( $stat['subtitle'] ) );
-            }
-            $html .= '</div>';
-            
-            $html .= '</div>'; // Stat card.
-        }
+		foreach ( $stats as $stat ) {
+			$highlight = ! empty( $stat['highlight'] ) ? ' highlight' : '';
+			
+			$html .= sprintf( '<div class="stat-card%s">', $highlight );
+			$html .= '<div class="stat-card_header">';
+			$html .= sprintf( '<span class="%s"></span>', $stat['icon'] );
+			$html .= sprintf( '<span class="stat-card_header-title">%s</span>', escHtml( $stat['label'] ) );
+			$html .= '</div>';
+			$html .= '<div class="stat-card_content">';
+			$html .= sprintf( '<span class="stat-card_content-value">%s</span>', escHtml( $stat['value'] ) );
+			
+			if ( ! empty( $stat['subtitle'] ) ) {
+				$html .= sprintf( '<span class="stat-card_content-subtitle">%s</span>', escHtml( $stat['subtitle'] ) );
+			}
+			$html .= '</div>';
+			
+			$html .= '</div>'; // Stat card.
+		}
 
-        $html .= '</div>'; // Close footer
+		$html .= '</div>'; // Close footer
 
-        return $html;
-    }
+		return $html;
+	}
 
-    /*
-    |---------------------------
-    | INTERFACE IMPLEMENTATION
-    |---------------------------
-    */
+	/*
+	|---------------------------
+	| INTERFACE IMPLEMENTATION
+	|---------------------------
+	*/
 
-    public function index_page_handler() : callable {
-        return [$this, 'dashboard'];
-    }
+	public function index_page_handler() : callable {
+		return [$this, 'dashboard'];
+	}
 
-    /**
-     * @inheritdoc
-     */
-    public function get_submenu() : array {
-        return [
-            [
-                'title'         => 'Hosted apps',
-                'slug'          => 'index',
-                'callback'      => [ $this, 'dashboard'],
-                'visibility'    => true,
-            ],
-            [
-                'title'         => 'Add New',
-                'slug'          => 'add-new',
-                'callback'      => [ $this, 'upload_page'],
-                'visibility'    => true,
-            ],
-            [
-                'title'         => 'Search Repository',
-                'slug'          => 'search',
-                'callback'      => [$this, 'search_page'],
-                'visibility'    => true,
-            ],
-            [
-                'title'         => 'Edit App',
-                'slug'          => 'edit',
-                'callback'      => [$this, 'edit_page'],
-                'visibility'    => false,
-            ],
-            [
-                'title'         => 'View App',
-                'slug'          => 'view',
-                'callback'      => [$this, 'view_page'],
-                'visibility'    => false,
-            ],
-            [
-                'title'         => 'Monetize App',
-                'slug'          => 'monetization',
-                'callback'      => [$this, 'monetization_page'],
-                'visibility'    => false,
-            ],
-            [
-                'title'         => 'Edit App Artifacts',
-                'slug'          => 'edit-artifacts',
-                'callback'      => [$this, 'edit_app_artifacts'],
-                'visibility'    => false,
-            ],
-        ];
-    }
-    
-    public function get_menu_key() : string {
-        return 'repository';
-    }
+	/**
+	 * @inheritdoc
+	 */
+	public function get_submenu() : array {
+		return [
+			[
+				'title'      => 'Hosted apps',
+				'slug'       => 'index',
+				'callback'   => [ $this, 'dashboard'],
+				'visibility' => true,
+			],
+			[
+				'title'      => 'Add New',
+				'slug'       => 'add-new',
+				'callback'   => [ $this, 'upload_page'],
+				'visibility' => true,
+			],
+			[
+				'title'      => 'Search Repository',
+				'slug'       => 'search',
+				'callback'   => [$this, 'search_page'],
+				'visibility' => true,
+			],
+			[
+				'title'      => 'Edit App',
+				'slug'       => 'edit',
+				'callback'   => [$this, 'edit_page'],
+				'visibility' => false,
+			],
+			[
+				'title'      => 'View App',
+				'slug'       => 'view',
+				'callback'   => [$this, 'view_page'],
+				'visibility' => false,
+			],
+			[
+				'title'      => 'Monetize App',
+				'slug'       => 'monetization',
+				'callback'   => [$this, 'monetization_page'],
+				'visibility' => false,
+			],
+			[
+				'title'      => 'Edit App Artifacts',
+				'slug'       => 'edit-artifacts',
+				'callback'   => [$this, 'edit_app_artifacts'],
+				'visibility' => false,
+			],
+		];
+	}
+	
+	public function get_menu_key() : string {
+		return 'repository';
+	}
 
-    public function get_menu_data() : array {
-        return [
-            'title'         => 'Repository',
-            'slug'          => 'repository',
-            'handler'       => $this,
-            'icon'          => 'ti ti-folder-open',
-            'visibility'    => true
-        ];
-    }
+	public function get_menu_data() : array {
+		return [
+			'title'      => 'Repository',
+			'slug'       => 'repository',
+			'handler'    => $this,
+			'icon'       => 'ti ti-folder-open',
+			'visibility' => true
+		];
+	}
 }

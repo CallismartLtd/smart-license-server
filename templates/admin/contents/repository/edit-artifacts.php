@@ -18,7 +18,7 @@
 
 use SmartLicenseServer\Utils\Format;
 
-$args   = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
+$args = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
 ?>
 
 <div class="application-uploader-page artifact-editor">
@@ -28,8 +28,8 @@ $args   = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
     <div class="smliser-app-files-list">
         <div class="notice notice-info">
             <h2>
-                <?php printf( 'Manage all distributable artifacts for <a href="%s">%s</a>', 
-                $urlmanager->admin_repo_url( 'view', ['app_id' => $app->get_id(), 'type' => $app->get_type()] ), $app->get_name() ); ?>
+                <?php printf( 'Manage all distributable artifacts for <a href="%s">%s</a>',
+				$urlmanager->admin_repo_url( 'view', ['app_id' => $app->get_id(), 'type' => $app->get_type()] ), $app->get_name() ); ?>
             </h2>
             <em>
                 A distributable artifact is packaged version of your <strong><?php echo escHtml( $type ); ?></strong> that is ready for
@@ -38,24 +38,24 @@ $args   = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
         </div>
 
         <ul class="smliser-app-artifacts">
-            <?php 
-            $new_upload_config  = rawurlencode( smliser_json_encode_attr([
-                'app_slug'  => $app->get_slug(),
-                'app_type'  => $app->get_type(),
-                'isNew'     => true
-            ]));
-            foreach( $app_files as $file_data ) : 
-                $download_url   = 'main' === $file_data['slug'] ? $app->get_download_url() : $urlmanager->app_artifact_download_url( $app->get_type(), $app->get_slug(), $file_data['filename'] );
-                $config         = rawurlencode( smliser_json_encode_attr([
-                    'filename'  => $file_data['filename'],
-                    'slug'      => $file_data['slug'],
-                    'size'      => $file_data['size'],
-                    'app_slug'  => $app->get_slug(),
-                    'app_type'  => $app->get_type(),
-                    'isNew'     => false,
-                    'url'       => $download_url
-                ]));
-            ?>
+            <?php
+			$new_upload_config = rawurlencode( smliser_json_encode_attr( [
+				'app_slug' => $app->get_slug(),
+				'app_type' => $app->get_type(),
+				'isNew'    => true
+			] ) );
+			foreach( $app_files as $file_data ) :
+				$download_url = 'main' === $file_data['slug'] ? $app->get_download_url() : $urlmanager->app_artifact_download_url( $app->get_type(), $app->get_slug(), $file_data['filename'] );
+				$config       = rawurlencode( smliser_json_encode_attr( [
+					'filename' => $file_data['filename'],
+					'slug'     => $file_data['slug'],
+					'size'     => $file_data['size'],
+					'app_slug' => $app->get_slug(),
+					'app_type' => $app->get_type(),
+					'isNew'    => false,
+					'url'      => $download_url
+				] ) );
+			?>
                 <li class="smliser-app-artifacts_item <?php echo escHtml( str_replace( '.', '-', $file_data['slug'] ) ); ?>">
                     <div class="smliser-app-artifacts_item-heading">
                         <span>

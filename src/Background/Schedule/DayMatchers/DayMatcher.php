@@ -22,22 +22,22 @@ use DateTimeImmutable;
  */
 interface DayMatcher {
 
-    /**
-     * Whether $date qualifies as a run day under this pattern.
-     *
-     * Only the calendar date is considered — time-of-day is applied
-     * separately by ScheduledTask once a matching date is found.
-     *
-     * @param DateTimeImmutable $date
-     * @return bool
-     */
-    public function matches( DateTimeImmutable $date ): bool;
+	/**
+	 * Whether $date qualifies as a run day under this pattern.
+	 *
+	 * Only the calendar date is considered — time-of-day is applied
+	 * separately by ScheduledTask once a matching date is found.
+	 *
+	 * @param DateTimeImmutable $date
+	 * @return bool
+	 */
+	public function matches( DateTimeImmutable $date ) : bool;
 
-    /**
-     * Human-readable description for admin display, e.g.
-     * "Weekly on Monday, Thursday" or "Every 4 days".
-     *
-     * @return string
-     */
-    public function describe(): string;
+	/**
+	 * Human-readable description for admin display, e.g.
+	 * "Weekly on Monday, Thursday" or "Every 4 days".
+	 *
+	 * @return string
+	 */
+	public function describe() : string;
 }

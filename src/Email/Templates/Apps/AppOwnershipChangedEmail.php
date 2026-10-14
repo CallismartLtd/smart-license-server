@@ -20,77 +20,76 @@ use SmartLicenseServer\HostedApps\Plugin;
 
 class AppOwnershipChangedEmail extends EmailTemplate {
 
-    /**
-     * @param HostedAppsInterface $app            The application being transferred.
-     * @param string              $to             Recipient email address.
-     * @param string              $recipient_name Name of the recipient.
-     * @param string              $previous_owner Name of the previous owner.
-     * @param string              $new_owner      Name of the new owner.
-     * @param bool                $is_new_owner   True if recipient is the new owner,
-     *                                            false if they are the previous owner.
-     */
-    public function __construct(
-        private readonly HostedAppsInterface $app,
-        private readonly string              $to,
-        private readonly string              $recipient_name,
-        private readonly string              $previous_owner,
-        private readonly string              $new_owner,
-        private readonly bool                $is_new_owner = true
-    ) {}
+	/**
+	 * @param HostedAppsInterface $app            The application being transferred.
+	 * @param string              $to             Recipient email address.
+	 * @param string              $recipient_name Name of the recipient.
+	 * @param string              $previous_owner Name of the previous owner.
+	 * @param string              $new_owner      Name of the new owner.
+	 * @param bool                $is_new_owner   True if recipient is the new owner,
+	 *                                            false if they are the previous owner.
+	 */
+	public function __construct(
+		private readonly HostedAppsInterface $app,
+		private readonly string              $to,
+		private readonly string              $recipient_name,
+		private readonly string              $previous_owner,
+		private readonly string              $new_owner,
+		private readonly bool                $is_new_owner = true
+	) {}
 
-    static public function template_key(): string {
-        return 'app_ownership_changed';
-    }
+	static public function template_key() : string {
+		return 'app_ownership_changed';
+	}
 
-    protected function subject(): string {
-        return $this->is_new_owner
-            ? "Ownership of {$this->app->get_name()} Has Been Transferred to You"
-            : "You Are No Longer the Owner of {$this->app->get_name()}";
-    }
+	protected function subject() : string {
+		return $this->is_new_owner
+			? "Ownership of {$this->app->get_name()} Has Been Transferred to You"
+			: "You Are No Longer the Owner of {$this->app->get_name()}";
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return $this->is_new_owner
-            ? "You are now the owner of {$this->app->get_name()}."
-            : "Ownership of {$this->app->get_name()} has been transferred to {$this->new_owner}.";
-    }
+	protected function preheader() : string {
+		return $this->is_new_owner
+			? "You are now the owner of {$this->app->get_name()}."
+			: "Ownership of {$this->app->get_name()} has been transferred to {$this->new_owner}.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{recipient_name}}' => $this->recipient_name,
-            '{{app_name}}'       => $this->app->get_name(),
-            '{{app_type}}'       => ucfirst( $this->app->get_type() ),
-            '{{app_slug}}'       => $this->app->get_slug(),
-            '{{previous_owner}}' => $this->previous_owner,
-            '{{new_owner}}'      => $this->new_owner,
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{recipient_name}}' => $this->recipient_name,
+			'{{app_name}}'       => $this->app->get_name(),
+			'{{app_type}}'       => ucfirst( $this->app->get_type() ),
+			'{{app_slug}}'       => $this->app->get_slug(),
+			'{{previous_owner}}' => $this->previous_owner,
+			'{{new_owner}}'      => $this->new_owner,
+		] );
+	}
 
-    protected function body(): string {
-        $vars           = $this->variables();
-        $recipient_name = \escHtml( $vars['{{recipient_name}}'] );
-        $app_name       = \escHtml( $vars['{{app_name}}'] );
-        $app_type       = \escHtml( $vars['{{app_type}}'] );
-        $app_slug       = \escHtml( $vars['{{app_slug}}'] );
-        $previous_owner = \escHtml( $vars['{{previous_owner}}'] );
-        $new_owner      = \escHtml( $vars['{{new_owner}}'] );
-        $support        = \escHtml( $vars['{{support_email}}'] );
+	protected function body() : string {
+		$vars           = $this->variables();
+		$recipient_name = \escHtml( $vars['{{recipient_name}}'] );
+		$app_name       = \escHtml( $vars['{{app_name}}'] );
+		$app_type       = \escHtml( $vars['{{app_type}}'] );
+		$app_slug       = \escHtml( $vars['{{app_slug}}'] );
+		$previous_owner = \escHtml( $vars['{{previous_owner}}'] );
+		$new_owner      = \escHtml( $vars['{{new_owner}}'] );
+		$support        = \escHtml( $vars['{{support_email}}'] );
 
-        [ $banner_bg, $banner_border, $banner_text_color, $banner_icon, $banner_message ] =
-            $this->is_new_owner
-            ? [
-                '#f0fdf4', '#bbf7d0', '#166534', '&#10003;',
-                "You are now the owner of <strong>{$app_name}</strong>. You have full control over this application."
-              ]
-            : [
-                '#fffbeb', '#fde68a', '#92400e', '&#9888;',
-                "Ownership of <strong>{$app_name}</strong> has been transferred to <strong>{$new_owner}</strong>. You no longer have owner-level access."
-              ];
+		[ $banner_bg, $banner_border, $banner_text_color, $banner_icon, $banner_message ] = $this->is_new_owner
+			? [
+				'#f0fdf4', '#bbf7d0', '#166534', '&#10003;',
+				"You are now the owner of <strong>{$app_name}</strong>. You have full control over this application."
+			  ]
+			: [
+				'#fffbeb', '#fde68a', '#92400e', '&#9888;',
+				"Ownership of <strong>{$app_name}</strong> has been transferred to <strong>{$new_owner}</strong>. You no longer have owner-level access."
+			  ];
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$recipient_name},
         </p>
@@ -167,65 +166,65 @@ class AppOwnershipChangedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Application Ownership Changed';
-    }
-    public function description(): string {
-        return 'Sent to both the previous and new owner when application ownership is transferred.';
-    }
-    public static function preview(): static {
-        $app = Plugin::from_array_minimal([
-            'name' => 'My Awesome Plugin',
-            'type' => 'plugin',
-            'slug' => 'my-awesome-plugin',
-        ]);
-        return new static( $app, 'preview@example.com', 'Jane Doe', 'John Smith', 'Jane Doe', true );
-    }
+	public function label() : string {
+		return 'Application Ownership Changed';
+	}
+	public function description() : string {
+		return 'Sent to both the previous and new owner when application ownership is transferred.';
+	}
+	public static function preview() : static {
+		$app = Plugin::from_array_minimal( [
+			'name' => 'My Awesome Plugin',
+			'type' => 'plugin',
+			'slug' => 'my-awesome-plugin',
+		] );
+		return new static( $app, 'preview@example.com', 'Jane Doe', 'John Smith', 'Jane Doe', true );
+	}
 
-    public function get_blocks(): array {
-        $banner_content = $this->is_new_owner
-            ? 'You are now the owner of {{app_name}}. You have full control over this application.'
-            : 'Ownership of {{app_name}} has been transferred to {{new_owner}}. You no longer have owner-level access.';
+	public function get_blocks() : array {
+		$banner_content = $this->is_new_owner
+			? 'You are now the owner of {{app_name}}. You have full control over this application.'
+			: 'Ownership of {{app_name}} has been transferred to {{new_owner}}. You no longer have owner-level access.';
 
-        $banner_tone = $this->is_new_owner ? 'success' : 'warning';
+		$banner_tone = $this->is_new_owner ? 'success' : 'warning';
 
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{recipient_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => $banner_tone,
-                'content'   => $banner_content,
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Application',     'value' => '{{app_name}}' ],
-                    [ 'label' => 'Type',            'value' => '{{app_type}}' ],
-                    [ 'label' => 'Previous Owner',  'value' => '{{previous_owner}}' ],
-                    [ 'label' => 'New Owner',       'value' => '{{new_owner}}' ],
-                ],
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you did not expect this change or believe it was made in error, please contact us immediately at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{recipient_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => $banner_tone,
+				'content'   => $banner_content,
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Application',     'value' => '{{app_name}}' ],
+					[ 'label' => 'Type',            'value' => '{{app_type}}' ],
+					[ 'label' => 'Previous Owner',  'value' => '{{previous_owner}}' ],
+					[ 'label' => 'New Owner',       'value' => '{{new_owner}}' ],
+				],
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you did not expect this change or believe it was made in error, please contact us immediately at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

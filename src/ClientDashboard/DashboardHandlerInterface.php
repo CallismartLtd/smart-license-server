@@ -17,34 +17,34 @@ use SmartLicenseServer\Exceptions\RequestException;
 
 interface DashboardHandlerInterface {
 
-    /**
-     * Handle a dashboard content request.
-     *
-     * Called by the router when the REST endpoint path matches
-     * this handler's registered menu slug.
-     *
-     * @param Request $request
-     * @return Response
-     */
-    public function handle( Request $request ) : Response;
+	/**
+	 * Handle a dashboard content request.
+	 *
+	 * Called by the router when the REST endpoint path matches
+	 * this handler's registered menu slug.
+	 *
+	 * @param Request $request
+	 * @return Response
+	 */
+	public function handle( Request $request ) : Response;
 
-    /**
-     * Permission check for this handler.
-     *
-     * Called before handle(). Return true to allow, or a Response
-     * with an error status to reject.
-     *
-     * @param Request $request
-     * @return bool|RequestException
-     */
-    public function guard( Request $request ) : bool|RequestException;
+	/**
+	 * Permission check for this handler.
+	 *
+	 * Called before handle(). Return true to allow, or a Response
+	 * with an error status to reject.
+	 *
+	 * @param Request $request
+	 * @return bool|RequestException
+	 */
+	public function guard( Request $request ) : bool|RequestException;
 
-    /**
-     * Return the menu slug this handler owns.
-     *
-     * Must match the slug registered in ClientDashboardRegistry.
-     *
-     * @return string
-     */
-    public static function slug() : string;
+	/**
+	 * Return the menu slug this handler owns.
+	 *
+	 * Must match the slug registered in ClientDashboardRegistry.
+	 *
+	 * @return string
+	 */
+	public static function slug() : string;
 }

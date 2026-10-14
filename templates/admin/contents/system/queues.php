@@ -19,8 +19,8 @@
 
 use SmartLicenseServer\Background\Queue\JobDTO;
 
-$section    = $request->query( 'section' );
-$is_failed  = 'failed' === $section;
+$section   = $request->query( 'section' );
+$is_failed = 'failed' === $section;
 
 /**
  * JSON-encode a value for safe embedding in a data-* attribute.
@@ -28,33 +28,33 @@ $is_failed  = 'failed' === $section;
  * @param mixed $value
  * @return string
  */
-$encode_for_modal = static function ( mixed $value ): string {
-    if ( null === $value ) {
-        return '';
-    }
+$encode_for_modal = static function ( mixed $value ) : string {
+	if ( null === $value ) {
+		return '';
+	}
 
-    $text = is_scalar( $value ) ? (string) $value : smliser_safe_json_encode( $value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+	$text = is_scalar( $value ) ? (string) $value : smliser_safe_json_encode( $value, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
 
-    return $text ?? '';
+	return $text ?? '';
 };
 
-$menu_args  = $page_handler->get_top_menu_args( $request );
+$menu_args = $page_handler->get_top_menu_args( $request );
 
 $menu_args['actions'] = [
-    [
-        'label'     => 'Failed Jobs',
-        'url'       => $urlmanager->admin_tools_page_url( 'queues' )->add_query_param( 'section', 'failed' ),
-        'icon'      => 'ti ti-clock-exclamation',
-        'active'    => 'failed' === $request->query( 'section' )
-    ]
+	[
+		'label'  => 'Failed Jobs',
+		'url'    => $urlmanager->admin_tools_page_url( 'queues' )->add_query_param( 'section', 'failed' ),
+		'icon'   => 'ti ti-clock-exclamation',
+		'active' => 'failed' === $request->query( 'section' )
+	]
 ];
 
 if ( 'failed' === $request->query( 'section' ) ) {
-    $menu_args['breadcrumbs'][1]['url']     = $urlmanager->admin_tools_page_url( 'queues' );
-    $menu_args['breadcrumbs'][1]['icon']    = 'ti ti-clock';
-    $menu_args['breadcrumbs'][]             = [
-        'label' => 'Failed Jobs'
-    ];
+	$menu_args['breadcrumbs'][1]['url']  = $urlmanager->admin_tools_page_url( 'queues' );
+	$menu_args['breadcrumbs'][1]['icon'] = 'ti ti-clock';
+	$menu_args['breadcrumbs'][]          = [
+		'label' => 'Failed Jobs'
+	];
 }
 
 ?>
@@ -102,9 +102,9 @@ if ( 'failed' === $request->query( 'section' ) ) {
             <ul class="subsubsub smliser-status-filter">
                 <?php $current_status = $request->query( 'status', '' ); ?>
 
-                <?php foreach ( $queue_stats as $label => $total ) : 
-                    $is_active  = $label === $request->query( 'status' );
-                ?>
+                <?php foreach ( $queue_stats as $label => $total ) :
+					$is_active = $label === $request->query( 'status' );
+				?>
 
                     <li class="smliser-status-item">
                         <a 
@@ -155,10 +155,10 @@ if ( 'failed' === $request->query( 'section' ) ) {
                 <?php else : ?>
                     <?php foreach ( $jobs as $job ) : ?>
                         <?php
-                        $status        = (string) $job->get( JobDTO::KEY_STATUS );
-                        $result        = $job->get( JobDTO::KEY_RESULT );
-                        $error_message = $job->get( JobDTO::KEY_ERROR_MESSAGE );
-                        ?>
+						$status        = (string) $job->get( JobDTO::KEY_STATUS );
+						$result        = $job->get( JobDTO::KEY_RESULT );
+						$error_message = $job->get( JobDTO::KEY_ERROR_MESSAGE );
+						?>
                         <tr>
                             <td><?php echo escHtml( (string) $job->get( JobDTO::KEY_ID ) ); ?></td>
                             <td><?php echo escHtml( (string) $job->get( JobDTO::KEY_JOB_CLASS ) ); ?></td>
@@ -168,10 +168,10 @@ if ( 'failed' === $request->query( 'section' ) ) {
                                 <td><?php echo escHtml( (string) $job->get( JobDTO::KEY_PRIORITY ) ); ?></td>
                                 <td>
                                     <?php echo escHtml( sprintf(
-                                        '%d / %d',
-                                        (int) $job->get( JobDTO::KEY_ATTEMPTS ),
-                                        (int) $job->get( JobDTO::KEY_MAX_ATTEMPTS )
-                                    ) ); ?>
+										'%d / %d',
+										(int) $job->get( JobDTO::KEY_ATTEMPTS ),
+										(int) $job->get( JobDTO::KEY_MAX_ATTEMPTS )
+									) ); ?>
                                 </td>
                                 <td><?php echo escHtml( $job->get( JobDTO::KEY_CREATED_AT )->format( smliser_datetime_format() ) ); ?></td>
                                 <?php /* KEY_AVAILABLE_AT holds failed_at for archived rows — see adapter docblock. */ ?>
@@ -196,10 +196,10 @@ if ( 'failed' === $request->query( 'section' ) ) {
                                 </td>
                                 <td>
                                     <?php echo escHtml( sprintf(
-                                        '%d / %d',
-                                        (int) $job->get( JobDTO::KEY_ATTEMPTS ),
-                                        (int) $job->get( JobDTO::KEY_MAX_ATTEMPTS )
-                                    ) ); ?>
+										'%d / %d',
+										(int) $job->get( JobDTO::KEY_ATTEMPTS ),
+										(int) $job->get( JobDTO::KEY_MAX_ATTEMPTS )
+									) ); ?>
                                 </td>
                                 <td><?php echo escHtml( $job->get( JobDTO::KEY_AVAILABLE_AT )->format( smliser_datetime_format() ) ); ?></td>
                             <?php endif; ?>

@@ -22,70 +22,70 @@ use SmartLicenseServer\Monetization\License;
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$download_url   = $urlmanager->admin_document_download_url( $license_id );
-$args           = $page_handler->get_menu_args( $request );
+$download_url = $urlmanager->admin_document_download_url( $license_id );
+$args         = $page_handler->get_menu_args( $request );
 
 if ( $license ) {
-    \array_unshift(
-        $args['actions'],
-        array(
-            'title' => 'View logs for this license',
-            'label' => 'Logs',
-            'url'   => $urlmanager->admin_license_page_url( 'logs', ['filterBy' => $license_id] ),
-            'icon'  => 'ti ti-logs'
-        ),
+	\array_unshift(
+		$args['actions'],
+		[
+			'title' => 'View logs for this license',
+			'label' => 'Logs',
+			'url'   => $urlmanager->admin_license_page_url( 'logs', ['filterBy' => $license_id] ),
+			'icon'  => 'ti ti-logs'
+		],
 
-        array(
-            'title' => 'Edit License',
-            'label' => 'Edit license',
-            'url'   => $urlmanager->admin_license_page_url( 'edit', ['id' => $license_id] ),
-            'icon'  => 'ti ti-edit'
-        ),
-        
-        array(
-            'title' => 'Download License Document',
-            'label' => 'Download Document',
-            'url'   => $download_url,
-            'icon'  => 'ti ti-download'
-        ),
+		[
+			'title' => 'Edit License',
+			'label' => 'Edit license',
+			'url'   => $urlmanager->admin_license_page_url( 'edit', ['id' => $license_id] ),
+			'icon'  => 'ti ti-edit'
+		],
+		
+		[
+			'title' => 'Download License Document',
+			'label' => 'Download Document',
+			'url'   => $download_url,
+			'icon'  => 'ti ti-download'
+		],
 
-        array(
-            'title'     => 'Generate license download token',
-            'label'     => 'Generate Token',
-            'url'       => '#',
-            'class'     => 'smliser-generate-download-token-btn',
-            'icon'      => 'ti ti-cloud',
-            'attributes' => array(
-                'aria-label'    => 'Generate a one-time download token for this license.',
-                'aria-role'     => 'button',
-                'aria-haspopup' => 'dialog',
-                'disabled'      => \sprintf( '%s', ! $license->is_issued() ? 'disabled' : '' ),
-                'data-args'     => \smliser_json_encode_attr([
-                    'license_id'    => $license_id,
-                    'app_name'      => $licensed_app?->get_name() ?? '',
-                    'app_type'      => $licensed_app?->get_type() ?? '',
-                    'app_slug'      => $licensed_app?->get_slug() ?? '',
-                    'is_issued'     => $license->is_issued(),
-                ]),
-            )
-        ),
+		[
+			'title'      => 'Generate license download token',
+			'label'      => 'Generate Token',
+			'url'        => '#',
+			'class'      => 'smliser-generate-download-token-btn',
+			'icon'       => 'ti ti-cloud',
+			'attributes' => [
+				'aria-label'    => 'Generate a one-time download token for this license.',
+				'aria-role'     => 'button',
+				'aria-haspopup' => 'dialog',
+				'disabled'      => \sprintf( '%s', ! $license->is_issued() ? 'disabled' : '' ),
+				'data-args'     => \smliser_json_encode_attr( [
+					'license_id' => $license_id,
+					'app_name'   => $licensed_app?->get_name() ?? '',
+					'app_type'   => $licensed_app?->get_type() ?? '',
+					'app_slug'   => $licensed_app?->get_slug() ?? '',
+					'is_issued'  => $license->is_issued(),
+				] ),
+			]
+		],
 
-        array(
-            'title'     => 'Delete License',
-            'label'     => 'Delete license',
-            'url'       =>  '#',
-            'class'     => 'smliser-license-delete-btn',
-            'icon'      => 'ti ti-trash',
-            'attributes' => array(
-                'aria-label'    => 'Delete this license permanently.',
-                'disabled'      => empty( $license ),
-                'id'            => 'smliser-license-delete-button'
-            )
-        )
-    );
+		[
+			'title'      => 'Delete License',
+			'label'      => 'Delete license',
+			'url'        => '#',
+			'class'      => 'smliser-license-delete-btn',
+			'icon'       => 'ti ti-trash',
+			'attributes' => [
+				'aria-label' => 'Delete this license permanently.',
+				'disabled'   => empty( $license ),
+				'id'         => 'smliser-license-delete-button'
+			]
+		]
+	);
 }
 
-$public_download_url  = $urlmanager->document_download_url( $license ? $license->get_id() : 0 );
+$public_download_url = $urlmanager->document_download_url( $license ? $license->get_id() : 0 );
 ?>
 
 <div class="smliser-admin-page">
@@ -93,12 +93,12 @@ $public_download_url  = $urlmanager->document_download_url( $license ? $license-
     <?php if ( empty( $license ) ) : ?>
         
         <?php echo  \smliser_not_found_container(
-            \sprintf(
-                'Invalid or deleted license is "%s". <a href="%s"> <i class="ti ti-arrow-narrow-left"></i> Go Back</a>',
-                $license_id,
-                $urlmanager->admin_license_page_url()->url(),
-            )
-        );?>
+			\sprintf(
+				'Invalid or deleted license is "%s". <a href="%s"> <i class="ti ti-arrow-narrow-left"></i> Go Back</a>',
+				$license_id,
+				$urlmanager->admin_license_page_url()->url(),
+			)
+		);?>
     
     <?php else: ?>
         <div class="smliser-admin-view-page-wrapper">
@@ -225,27 +225,27 @@ $public_download_url  = $urlmanager->document_download_url( $license ? $license-
 
 <?php
 function format_active_domains( License $license ) {
-    $all_domains    = $license->get_active_domains( 'edit' );
-    $all_origins    = [];
+	$all_domains = $license->get_active_domains( 'edit' );
+	$all_origins = [];
 
-    foreach( $all_domains as $domain ) {
-        $all_origins[]  = $domain['origin'] ?? '';
-    }
+	foreach( $all_domains as $domain ) {
+		$all_origins[] = $domain['origin'] ?? '';
+	}
 
-    $all_origins    = array_filter( $all_origins );
+	$all_origins = array_filter( $all_origins );
 
 
-    $html   = '<div class="smliser-all-license-domains">';
+	$html = '<div class="smliser-all-license-domains">';
 
-    if ( empty( $all_origins ) ) {
-        $html .= '<span class="not-found">No active domain found.</span>';
-    } else {
-        foreach ( $all_origins as $origin ) {
+	if ( empty( $all_origins ) ) {
+		$html .= '<span class="not-found">No active domain found.</span>';
+	} else {
+		foreach ( $all_origins as $origin ) {
 
-            $url    = URL::from( $origin );
-           
-            $html .= sprintf(
-                '<div class="smliser-all-license-domains_domain" data-domain-value="%1$s">
+			$url = URL::from( $origin );
+		   
+			$html .= sprintf(
+				'<div class="smliser-all-license-domains_domain" data-domain-value="%1$s">
                     <a href="%2$s" target="_blank">%1$s
                         <i class="ti ti-external-link"></i>
                     </a>
@@ -253,15 +253,15 @@ function format_active_domains( License $license ) {
                         <i class="ti ti-trash remove"></i>
                     </span>
                 </div>',
-                $url->get_host(),
-                $url->url()
-            );
-        }
-    }
+				$url->get_host(),
+				$url->url()
+			);
+		}
+	}
 
-    $html .= '</div>';
-    
-    echo $html;
+	$html .= '</div>';
+	
+	echo $html;
 }
 
 /**
@@ -272,56 +272,56 @@ function format_active_domains( License $license ) {
  */
 function print_license_alert( License $license ) : void {
 
-    $messages = [];
+	$messages = [];
 
-    // Activation / serving error.
-    $activation_error = $license->can_serve_license( $license->get_app_id() );
+	// Activation / serving error.
+	$activation_error = $license->can_serve_license( $license->get_app_id() );
 
-    if ( $activation_error instanceof Exception ) {
-        $messages[] = [
-            'type'    => 'error',
-            'message' => $activation_error->get_error_message(),
-        ];
-    }
+	if ( $activation_error instanceof Exception ) {
+		$messages[] = [
+			'type'    => 'error',
+			'message' => $activation_error->get_error_message(),
+		];
+	}
 
-    // Max allowed domains reached.
-    if ( $license->has_reached_max_allowed_domains() ) {
-        $messages[] = [
-            'type'    => 'warning',
-            'message' => __( 'Maximum allowed domains has been reached', 'smart-license-server' ),
-        ];
-    }
+	// Max allowed domains reached.
+	if ( $license->has_reached_max_allowed_domains() ) {
+		$messages[] = [
+			'type'    => 'warning',
+			'message' => __( 'Maximum allowed domains has been reached', 'smart-license-server' ),
+		];
+	}
 
-    // Max allowed domains exceeded.
-    $max_allowed_domains = $license->get_max_allowed_domains( 'total' );
-    $total_active        = $license->get_total_active_domains();
+	// Max allowed domains exceeded.
+	$max_allowed_domains = $license->get_max_allowed_domains( 'total' );
+	$total_active        = $license->get_total_active_domains();
 
-    if ( $max_allowed_domains !== -1 && $total_active > $max_allowed_domains ) {
-        $messages[] = [
-            'type'    => 'error',
-            'message' => __( 'Maximum allowed domains has been exceeded', 'smart-license-server' ),
-        ];
-    }
+	if ( -1 !== $max_allowed_domains && $total_active > $max_allowed_domains ) {
+		$messages[] = [
+			'type'    => 'error',
+			'message' => __( 'Maximum allowed domains has been exceeded', 'smart-license-server' ),
+		];
+	}
 
-    if ( empty( $messages ) ) {
-        return;
-    }
+	if ( empty( $messages ) ) {
+		return;
+	}
 
-    printf(
-        '<div class="smliser-license-alerts">%s</div>',
-        implode(
-            '',
-            array_map(
-                static function ( array $item ) {
-                    return sprintf(
-                        '<div class="smliser-alert smliser-alert-%1$s"><span class="smliser-alert-message">%2$s</span></div>',
-                        escAttr( $item['type'] ),
-                        escHtml( $item['message'] )
-                    );
-                },
-                $messages
-            )
-        )
-    );
+	printf(
+		'<div class="smliser-license-alerts">%s</div>',
+		implode(
+			'',
+			array_map(
+				static function ( array $item ) {
+					return sprintf(
+						'<div class="smliser-alert smliser-alert-%1$s"><span class="smliser-alert-message">%2$s</span></div>',
+						escAttr( $item['type'] ),
+						escHtml( $item['message'] )
+					);
+				},
+				$messages
+			)
+		)
+	);
 
 }

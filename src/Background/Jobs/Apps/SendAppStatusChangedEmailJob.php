@@ -32,67 +32,67 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
  * Sends AppStatusChangedEmail to the app owner when status changes.
  */
 class SendAppStatusChangedEmailJob implements JobHandlerInterface {
-    use OwnerEmailResolverTrait;
+	use OwnerEmailResolverTrait;
 
-    public function __construct(
-        protected Mailer $mailer
-    ) {}
+	public function __construct(
+		protected Mailer $mailer
+	) {}
 
-    public static function get_job_name(): string {
-        return 'send_app_status_changed_email';
-    }
+	public static function get_job_name() : string {
+		return 'send_app_status_changed_email';
+	}
 
-    public static function get_job_description(): string {
-        return 'Sends a notification email to the app owner when an app status changes.';
-    }
+	public static function get_job_description() : string {
+		return 'Sends a notification email to the app owner when an app status changes.';
+	}
 
-    /**
-     * @param array $payload {
-     *     @type string $app_type   App type e.g. 'plugin'.
-     *     @type string $app_slug   App slug.
-     *     @type string $old_status Previous status.
-     *     @type string $new_status New status.
-     * }
-     * @return array{sent: int, skipped: int}
-     */
-    public function handle( array $payload = [] ): mixed {
-        $app_type   = (string) $payload['app_type']   ?? '';
-        $app_slug   = (string) $payload['app_slug']   ?? '';
-        $old_status = $payload['old_status'] ?? '';
-        $new_status = $payload['new_status'] ?? '';
-        $reason     = $payload['reason'] ?? null;
+	/**
+	 * @param array $payload {
+	 *     @type string $app_type   App type e.g. 'plugin'.
+	 *     @type string $app_slug   App slug.
+	 *     @type string $old_status Previous status.
+	 *     @type string $new_status New status.
+	 * }
+	 * @return array{sent: int, skipped: int}
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$app_type   = (string) $payload['app_type'] ?? '';
+		$app_slug   = (string) $payload['app_slug'] ?? '';
+		$old_status = $payload['old_status'] ?? '';
+		$new_status = $payload['new_status'] ?? '';
+		$reason     = $payload['reason'] ?? null;
 
-        $sent    = 0;
-        $skipped = 0;
+		$sent    = 0;
+		$skipped = 0;
 
-        $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+		$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
-        if ( ! $app ) {
-            return compact( 'sent', 'skipped' );
-        }
+		if ( ! $app ) {
+			return compact( 'sent', 'skipped' );
+		}
 
-        $emails = $this->resolve_owner_emails( $app->get_owner_id() );
+		$emails = $this->resolve_owner_emails( $app->get_owner_id() );
 
-        if ( empty( $emails ) ) {
-            return compact( 'sent', 'skipped' );
-        }
+		if ( empty( $emails ) ) {
+			return compact( 'sent', 'skipped' );
+		}
 
-        foreach ( $emails as $email ) {
-            $message = ( new AppStatusChangedEmail( $app, $email, $old_status, $new_status, $reason ) )->to_message();
+		foreach ( $emails as $email ) {
+			$message = ( new AppStatusChangedEmail( $app, $email, $old_status, $new_status, $reason ) )->to_message();
 
-            if ( $message === null ) {
-                $skipped++;
-                continue;
-            }
+			if ( null === $message ) {
+				$skipped++;
+				continue;
+			}
 
-            try {
-                $this->mailer->send( $message );
-                $sent++;
-            } catch ( \Throwable ) {
-                $skipped++;
-            }
-        }
+			try {
+				$this->mailer->send( $message );
+				$sent++;
+			} catch ( \Throwable ) {
+				$skipped++;
+			}
+		}
 
-        return compact( 'sent', 'skipped' );
-    }
+		return compact( 'sent', 'skipped' );
+	}
 }

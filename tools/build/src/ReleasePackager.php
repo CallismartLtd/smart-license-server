@@ -49,7 +49,7 @@ final class ReleasePackager {
 	 * @return void
 	 * @throws BuildException When an artifact cannot be written.
 	 */
-	public function run( AbstractTarget $target, int $time ): void {
+	public function run( AbstractTarget $target, int $time ) : void {
 		$this->console->step( 'Packaging release' );
 		$this->check_extensions();
 
@@ -64,10 +64,10 @@ final class ReleasePackager {
 		$files   = ReleaseManifest::files( $this->context->out_dir );
 		$dirs    = $this->directories( $this->context->out_dir );
 
-		$artifacts = array(
+		$artifacts = [
 			$this->zip( "{$dir}/{$base}.zip", $dirs, $files, $time ),
 			$this->tar_gz( "{$dir}/{$base}.tar.gz", $dirs, $files, $time ),
-		);
+		];
 
 		$artifacts[] = $this->setup( "{$dir}/{$base}-setup.php", $artifacts[0] );
 
@@ -84,13 +84,13 @@ final class ReleasePackager {
 	 * @return void
 	 * @throws BuildException
 	 */
-	private function check_extensions(): void {
+	private function check_extensions() : void {
 		$missing = array_filter(
-			array( 'zip' => \ZipArchive::class, 'zlib' => 'gzopen' ),
-			static fn ( string $symbol ): bool => ! class_exists( $symbol ) && ! function_exists( $symbol )
+			[ 'zip' => \ZipArchive::class, 'zlib' => 'gzopen' ],
+			static fn ( string $symbol ) : bool => ! class_exists( $symbol ) && ! function_exists( $symbol )
 		);
 
-		if ( array() !== $missing ) {
+		if ( [] !== $missing ) {
 			throw new BuildException( sprintf( 'Packaging needs the PHP extension(s) %s on the build machine.', implode( ', ', array_keys( $missing ) ) ) );
 		}
 	}
@@ -108,7 +108,7 @@ final class ReleasePackager {
 	 * @return string The archive path.
 	 * @throws BuildException
 	 */
-	private function zip( string $path, array $dirs, array $files, int $time ): string {
+	private function zip( string $path, array $dirs, array $files, int $time ) : string {
 		@unlink( $path );
 
 		$zip  = new \ZipArchive();
@@ -163,7 +163,7 @@ final class ReleasePackager {
 	 * @return string The archive path.
 	 * @throws BuildException
 	 */
-	private function tar_gz( string $path, array $dirs, array $files, int $time ): string {
+	private function tar_gz( string $path, array $dirs, array $files, int $time ) : string {
 		@unlink( $path );
 
 		$out  = @gzopen( $path, 'wb9' );
@@ -211,7 +211,7 @@ final class ReleasePackager {
 	 * @param string   $type     Type flag: "0" file, "5" directory.
 	 * @return void
 	 */
-	private function tar_entry( $out, string $name, string $contents, int $mode, int $time, string $type = '0' ): void {
+	private function tar_entry( $out, string $name, string $contents, int $mode, int $time, string $type = '0' ) : void {
 		[ $prefix, $short ] = $this->tar_split_name( $name );
 
 		// Too long for ustar: a GNU long-name entry carries the full path first.
@@ -219,7 +219,7 @@ final class ReleasePackager {
 			$data = $name . "\0";
 			gzwrite( $out, $this->tar_header( '././@LongLink', '', strlen( $data ), 0644, 0, 'L' ) );
 			gzwrite( $out, $this->tar_pad( $data ) );
-			[ $prefix, $short ] = array( '', substr( $name, 0, 100 ) );
+			[ $prefix, $short ] = [ '', substr( $name, 0, 100 ) ];
 		}
 
 		gzwrite( $out, $this->tar_header( $short, $prefix, strlen( $contents ), $mode, $time, $type ) );
@@ -232,19 +232,19 @@ final class ReleasePackager {
 	 * @param string $name Path.
 	 * @return array{0: string, 1: string|null} Prefix and name; name is null when the path does not fit.
 	 */
-	private function tar_split_name( string $name ): array {
+	private function tar_split_name( string $name ) : array {
 		if ( strlen( $name ) <= 100 ) {
-			return array( '', $name );
+			return [ '', $name ];
 		}
 
 		// Split at a slash so the name part is at most 100 and the prefix at most 155 bytes.
 		for ( $i = strlen( $name ) - 1; $i > 0; $i-- ) {
 			if ( '/' === $name[ $i ] && $i <= 155 && strlen( $name ) - $i - 1 <= 100 ) {
-				return array( substr( $name, 0, $i ), substr( $name, $i + 1 ) );
+				return [ substr( $name, 0, $i ), substr( $name, $i + 1 ) ];
 			}
 		}
 
-		return array( '', null );
+		return [ '', null ];
 	}
 
 	/**
@@ -258,7 +258,7 @@ final class ReleasePackager {
 	 * @param string $type   Type flag ("0" file, "5" directory, "L" GNU long name).
 	 * @return string
 	 */
-	private function tar_header( string $name, string $prefix, int $size, int $mode, int $time, string $type ): string {
+	private function tar_header( string $name, string $prefix, int $size, int $mode, int $time, string $type ) : string {
 		$header = pack(
 			'a100a8a8a8a12a12a8a1a100a6a2a32a32a8a8a155a12',
 			$name,
@@ -291,7 +291,7 @@ final class ReleasePackager {
 	 * @param string $data Data.
 	 * @return string
 	 */
-	private function tar_pad( string $data ): string {
+	private function tar_pad( string $data ) : string {
 		$remainder = strlen( $data ) % 512;
 
 		return 0 === $remainder ? $data : $data . str_repeat( "\0", 512 - $remainder );
@@ -305,7 +305,7 @@ final class ReleasePackager {
 	 * @return string The installer path.
 	 * @throws BuildException
 	 */
-	private function setup( string $path, string $zip ): string {
+	private function setup( string $path, string $zip ) : string {
 		$stub = dirname( __DIR__ ) . '/stubs/setup.php';
 
 		if ( ! is_file( $stub ) ) {
@@ -313,14 +313,14 @@ final class ReleasePackager {
 		}
 
 		$project = $this->context->project;
-		$values  = array(
+		$values  = [
 			'TITLE'      => $project->title(),
 			'VERSION'    => $project->version,
 			'ROOT'       => $project->name,
 			'SHA256'     => (string) hash_file( 'sha256', $zip ),
 			'PHP'        => (string) $project->php_minor(),
 			'EXTENSIONS' => $project->extensions,
-		);
+		];
 
 		$script = rtrim( (string) file_get_contents( $stub ) );
 
@@ -357,7 +357,7 @@ final class ReleasePackager {
 	 * @return void
 	 * @throws BuildException
 	 */
-	private function checksums( string $path, array $artifacts ): void {
+	private function checksums( string $path, array $artifacts ) : void {
 		$lines = '';
 
 		foreach ( $artifacts as $artifact ) {
@@ -377,8 +377,8 @@ final class ReleasePackager {
 	 * @param string $dir Directory.
 	 * @return string[]
 	 */
-	private function directories( string $dir ): array {
-		$dirs     = array();
+	private function directories( string $dir ) : array {
+		$dirs     = [];
 		$iterator = new \RecursiveIteratorIterator(
 			new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS ),
 			\RecursiveIteratorIterator::SELF_FIRST
@@ -402,7 +402,7 @@ final class ReleasePackager {
 	 * @param string $path Artifact path.
 	 * @return void
 	 */
-	private function report( string $path ): void {
+	private function report( string $path ) : void {
 		$bytes = (int) filesize( $path );
 
 		$this->console->success(

@@ -23,37 +23,37 @@
 
 declare( strict_types=1 );
 
-const MAP = array(
-	'SMLISER_LICENSE_TABLE'             => 'LICENSES',
-	'SMLISER_LICENSE_META_TABLE'        => 'LICENSE_META',
-	'SMLISER_PLUGINS_TABLE'             => 'PLUGINS',
-	'SMLISER_PLUGINS_META_TABLE'        => 'PLUGIN_META',
-	'SMLISER_THEMES_TABLE'              => 'THEMES',
-	'SMLISER_THEMES_META_TABLE'         => 'THEME_META',
-	'SMLISER_SOFTWARE_TABLE'            => 'SOFTWARE',
-	'SMLISER_SOFTWARE_META_TABLE'       => 'SOFTWARE_META',
-	'SMLISER_DOWNLOAD_TOKEN_TABLE'      => 'ITEM_DOWNLOAD_TOKEN',
-	'SMLISER_APP_DOWNLOAD_TOKEN_TABLE'  => 'APP_DOWNLOAD_TOKENS',
-	'SMLISER_MONETIZATION_TABLE'        => 'MONETIZATION',
-	'SMLISER_PRICING_TIER_TABLE'        => 'PRICING_TIERS',
-	'SMLISER_BULK_MESSAGES_TABLE'       => 'BULK_MESSAGES',
-	'SMLISER_BULK_MESSAGES_APPS_TABLE'  => 'BULK_MESSAGES_APPS',
-	'SMLISER_OPTIONS_TABLE'             => 'OPTIONS',
-	'SMLISER_ANALYTICS_LOGS_TABLE'      => 'ANALYTICS_LOG',
-	'SMLISER_ANALYTICS_DAILY_TABLE'     => 'ANALYTICS_DAILY',
-	'SMLISER_OWNERS_TABLE'              => 'RESOURCE_OWNERS',
-	'SMLISER_USERS_TABLE'               => 'USERS',
-	'SMLISER_USER_OPTIONS_TABLE'        => 'USER_OPTIONS',
-	'SMLISER_SERVICE_ACCOUNTS_TABLE'    => 'SERVICE_ACCOUNTS',
-	'SMLISER_ROLES_TABLE'               => 'ROLES',
-	'SMLISER_ROLE_CAPABILITIES_TABLE'   => 'ROLE_CAPS',
-	'SMLISER_ROLE_ASSIGNMENT_TABLE'     => 'PRINCIPAL_ROLES',
-	'SMLISER_ORGANIZATIONS_TABLE'       => 'ORGANIZATIONS',
+const MAP = [
+	'SMLISER_LICENSE_TABLE'              => 'LICENSES',
+	'SMLISER_LICENSE_META_TABLE'         => 'LICENSE_META',
+	'SMLISER_PLUGINS_TABLE'              => 'PLUGINS',
+	'SMLISER_PLUGINS_META_TABLE'         => 'PLUGIN_META',
+	'SMLISER_THEMES_TABLE'               => 'THEMES',
+	'SMLISER_THEMES_META_TABLE'          => 'THEME_META',
+	'SMLISER_SOFTWARE_TABLE'             => 'SOFTWARE',
+	'SMLISER_SOFTWARE_META_TABLE'        => 'SOFTWARE_META',
+	'SMLISER_DOWNLOAD_TOKEN_TABLE'       => 'ITEM_DOWNLOAD_TOKEN',
+	'SMLISER_APP_DOWNLOAD_TOKEN_TABLE'   => 'APP_DOWNLOAD_TOKENS',
+	'SMLISER_MONETIZATION_TABLE'         => 'MONETIZATION',
+	'SMLISER_PRICING_TIER_TABLE'         => 'PRICING_TIERS',
+	'SMLISER_BULK_MESSAGES_TABLE'        => 'BULK_MESSAGES',
+	'SMLISER_BULK_MESSAGES_APPS_TABLE'   => 'BULK_MESSAGES_APPS',
+	'SMLISER_OPTIONS_TABLE'              => 'OPTIONS',
+	'SMLISER_ANALYTICS_LOGS_TABLE'       => 'ANALYTICS_LOG',
+	'SMLISER_ANALYTICS_DAILY_TABLE'      => 'ANALYTICS_DAILY',
+	'SMLISER_OWNERS_TABLE'               => 'RESOURCE_OWNERS',
+	'SMLISER_USERS_TABLE'                => 'USERS',
+	'SMLISER_USER_OPTIONS_TABLE'         => 'USER_OPTIONS',
+	'SMLISER_SERVICE_ACCOUNTS_TABLE'     => 'SERVICE_ACCOUNTS',
+	'SMLISER_ROLES_TABLE'                => 'ROLES',
+	'SMLISER_ROLE_CAPABILITIES_TABLE'    => 'ROLE_CAPS',
+	'SMLISER_ROLE_ASSIGNMENT_TABLE'      => 'PRINCIPAL_ROLES',
+	'SMLISER_ORGANIZATIONS_TABLE'        => 'ORGANIZATIONS',
 	'SMLISER_ORGANIZATION_MEMBERS_TABLE' => 'ORGANIZATION_MEMBERS',
-	'SMLISER_IDENTITY_FEDERATION_TABLE' => 'IDENTITY_PROVIDER_LOOKUP',
-	'SMLISER_BACKGROUND_JOBS_TABLE'     => 'BACKGROUND_JOBS',
-	'SMLISER_FAILED_JOBS_TABLE'         => 'FAILED_JOBS',
-);
+	'SMLISER_IDENTITY_FEDERATION_TABLE'  => 'IDENTITY_PROVIDER_LOOKUP',
+	'SMLISER_BACKGROUND_JOBS_TABLE'      => 'BACKGROUND_JOBS',
+	'SMLISER_FAILED_JOBS_TABLE'          => 'FAILED_JOBS',
+];
 
 const ENUM_FQCN      = 'SmartLicenseServer\\Schema\\TableName';
 const ENUM_NAMESPACE = 'SmartLicenseServer\\Schema';
@@ -87,7 +87,7 @@ foreach ( $iterator as $file ) {
 
 	$is_schema = str_contains( $path, '/Schema/Definitions/' );
 	$replaced  = 0;
-	$notes     = array();
+	$notes     = [];
 
 	// 1. Drop the constants from `use const …;` statements.
 	$source = preg_replace_callback(
@@ -102,14 +102,14 @@ foreach ( $iterator as $file ) {
 
 			$replaced += count( $names ) - count( $keep );
 
-			return array() === $keep ? '' : $m[1] . 'use const ' . implode( ', ', $keep ) . ";\n";
+			return [] === $keep ? '' : $m[1] . 'use const ' . implode( ', ', $keep ) . ";\n";
 		},
 		$source
 	);
 
 	// 2. Replace code references, token by token (strings and comments untouched).
 	$out          = '';
-	$statement    = array(); // Significant tokens since the last ;, { or }.
+	$statement    = []; // Significant tokens since the last ;, { or }.
 	$parens       = 0;
 	$await_params = false;   // A function or fn keyword was seen; its "(" opens the parameter list.
 	$param_depth  = null;    // Parenthesis depth of the open parameter list, if any.
@@ -118,8 +118,8 @@ foreach ( $iterator as $file ) {
 		if ( ! is_array( $token ) ) {
 			$out .= $token;
 
-			if ( in_array( $token, array( ';', '{', '}' ), true ) ) {
-				$statement    = array();
+			if ( in_array( $token, [ ';', '{', '}' ], true ) ) {
+				$statement    = [];
 				$parens       = 0;
 				$await_params = false;
 				$param_depth  = null;
@@ -146,14 +146,14 @@ foreach ( $iterator as $file ) {
 		}
 
 		[ $id, $text, $line ] = $token;
-		$name = ltrim( $text, '\\' );
+		$name                 = ltrim( $text, '\\' );
 
 		if ( ( T_STRING === $id || T_NAME_FULLY_QUALIFIED === $id ) && isset( MAP[ $name ] ) ) {
 			// ->table() is a method call, which PHP does not allow in constant
 			// expressions; ->value (schema files) is allowed there.
 			if ( ! $is_schema && in_constant_expression( $statement, null !== $param_depth ) ) {
-				$notes[]     = sprintf( 'line %d: %s is a const, property or parameter default; a method call is not allowed there. Resolve the name at runtime instead.', $line, $name );
-				$out        .= $text;
+				$notes[] = sprintf( 'line %d: %s is a const, property or parameter default; a method call is not allowed there. Resolve the name at runtime instead.', $line, $name );
+				$out .= $text;
 				$statement[] = $id;
 				continue;
 			}
@@ -168,11 +168,11 @@ foreach ( $iterator as $file ) {
 			$await_params = true;
 		}
 
-		if ( ! in_array( $id, array( T_WHITESPACE, T_COMMENT, T_DOC_COMMENT ), true ) ) {
+		if ( ! in_array( $id, [ T_WHITESPACE, T_COMMENT, T_DOC_COMMENT ], true ) ) {
 			$statement[] = $id;
 		}
 
-		if ( in_array( $id, array( T_CONSTANT_ENCAPSED_STRING, T_ENCAPSED_AND_WHITESPACE, T_COMMENT, T_DOC_COMMENT ), true )
+		if ( in_array( $id, [ T_CONSTANT_ENCAPSED_STRING, T_ENCAPSED_AND_WHITESPACE, T_COMMENT, T_DOC_COMMENT ], true )
 			&& preg_match_all( '/SMLISER_\w+_TABLE\b/', $text, $found )
 		) {
 			foreach ( array_unique( $found[0] ) as $constant ) {
@@ -192,7 +192,7 @@ foreach ( $iterator as $file ) {
 
 		if ( ENUM_NAMESPACE !== $namespace && ! $imported ) {
 			if ( '' === $namespace ) {
-				$out    = preg_replace( '/TableName::/', '\\' . ENUM_FQCN . '::', $out );
+				$out     = preg_replace( '/TableName::/', '\\' . ENUM_FQCN . '::', $out );
 				$notes[] = 'no namespace: used the fully qualified enum name';
 			} elseif ( preg_match( '/^use\s/m', $out ) ) {
 				// Next to the existing imports.
@@ -203,12 +203,12 @@ foreach ( $iterator as $file ) {
 		}
 	}
 
-	if ( 0 === $replaced && array() === $notes ) {
+	if ( 0 === $replaced && [] === $notes ) {
 		continue;
 	}
 
 	$files++;
-	$changes  += $replaced;
+	$changes += $replaced;
 	$warnings += count( $notes );
 
 	printf( "%s  (%d replaced)\n", $path, $replaced );
@@ -245,9 +245,9 @@ function in_constant_expression( array $statement, bool $in_parameters ) : bool 
 	}
 
 	// Property or static variable default: modifiers, optional type, $name, =.
-	$modifiers = array( T_PUBLIC, T_PROTECTED, T_PRIVATE, T_STATIC, T_VAR, T_READONLY );
+	$modifiers = [ T_PUBLIC, T_PROTECTED, T_PRIVATE, T_STATIC, T_VAR, T_READONLY ];
 
-	if ( array() === $statement || ! in_array( $statement[0], $modifiers, true ) ) {
+	if ( [] === $statement || ! in_array( $statement[0], $modifiers, true ) ) {
 		return false;
 	}
 

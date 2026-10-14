@@ -37,17 +37,17 @@ final class ReleaseSignature {
 	 *
 	 * @var array<string|int, string>
 	 */
-	public const PUBLIC_KEYS = array(
+	public const PUBLIC_KEYS = [
 		'release'  => 'gWdFBlGnnabdKn1QY0KswecDiLaKFPvQ31j9624B2eI=',
 		'recovery' => 'ckTouIv9PH6UNasGWnxiI2kK61tKF3+t+dBfQOwuEEc=',
-	);
+	];
 
 	/**
 	 * Decoded public keys, keyed by label (or the base64 key when unlabelled).
 	 *
 	 * @var array<string, string>
 	 */
-	private array $keys = array();
+	private array $keys = [];
 
 	/**
 	 * Constructor.
@@ -73,7 +73,7 @@ final class ReleaseSignature {
 	 *
 	 * @return bool
 	 */
-	public function configured(): bool {
+	public function configured() : bool {
 		return ! empty( $this->keys );
 	}
 
@@ -84,7 +84,7 @@ final class ReleaseSignature {
 	 * @param string $signature Contents of its .sig file (base64; surrounding whitespace ignored).
 	 * @return bool
 	 */
-	public function verify( string $data, string $signature ): bool {
+	public function verify( string $data, string $signature ) : bool {
 		return null !== $this->signer( $data, $signature );
 	}
 
@@ -95,7 +95,7 @@ final class ReleaseSignature {
 	 * @param string $signature Contents of its .sig file (base64; surrounding whitespace ignored).
 	 * @return string|null The key's label (or base64 value when unlabelled); null when no key matches.
 	 */
-	public function signer( string $data, string $signature ): ?string {
+	public function signer( string $data, string $signature ) : ?string {
 		$signature = base64_decode( trim( $signature ), true );
 
 		if ( false === $signature || SODIUM_CRYPTO_SIGN_BYTES !== strlen( $signature ) ) {

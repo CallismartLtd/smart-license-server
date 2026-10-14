@@ -8,51 +8,51 @@ use SmartLicenseServer\Security\Actors\User;
 
 class AdminNewUserNotificationEmail extends EmailTemplate {
 
-    public function __construct(
-        private readonly User   $user,
-        private readonly string $to,
-        private readonly string $ip_address,
-        private readonly string $account_type,
-        private readonly string $signup_time
-    ) {}
+	public function __construct(
+		private readonly User   $user,
+		private readonly string $to,
+		private readonly string $ip_address,
+		private readonly string $account_type,
+		private readonly string $signup_time
+	) {}
 
-    public static function template_key(): string {
-        return 'admin_new_user_notification';
-    }
+	public static function template_key() : string {
+		return 'admin_new_user_notification';
+	}
 
-    protected function subject(): string {
-        return 'New User Signup Notification';
-    }
+	protected function subject() : string {
+		return 'New User Signup Notification';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return 'A new user has registered on your platform.';
-    }
+	protected function preheader() : string {
+		return 'A new user has registered on your platform.';
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{display_name}}' => $this->user->get_display_name(),
-            '{{email}}'        => $this->user->get_email(),
-            '{{ip_address}}'   => $this->ip_address,
-            '{{account_type}}' => $this->account_type,
-            '{{signup_time}}'  => $this->signup_time,
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{display_name}}' => $this->user->get_display_name(),
+			'{{email}}'        => $this->user->get_email(),
+			'{{ip_address}}'   => $this->ip_address,
+			'{{account_type}}' => $this->account_type,
+			'{{signup_time}}'  => $this->signup_time,
+		] );
+	}
 
-    protected function body(): string {
-        $vars = $this->variables();
+	protected function body() : string {
+		$vars = $this->variables();
 
-        $display_name = \escHtml( $vars['{{display_name}}']  );
-        $email        = \escHtml( $vars['{{email}}'] );
-        $ip           = \escHtml( $vars['{{ip_address}}'] );
-        $type         = \escHtml( $vars['{{account_type}}'] );
-        $time         = \escHtml( $vars['{{signup_time}}'] );
-        $app_name     = \escHtml( $vars['{{app_name}}'] );
+		$display_name = \escHtml( $vars['{{display_name}}'] );
+		$email        = \escHtml( $vars['{{email}}'] );
+		$ip           = \escHtml( $vars['{{ip_address}}'] );
+		$type         = \escHtml( $vars['{{account_type}}'] );
+		$time         = \escHtml( $vars['{{signup_time}}'] );
+		$app_name     = \escHtml( $vars['{{app_name}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             New User Registration
         </p>
@@ -131,60 +131,60 @@ class AdminNewUserNotificationEmail extends EmailTemplate {
             This is an automated notification for administrative awareness.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Admin: New User Signup';
-    }
+	public function label() : string {
+		return 'Admin: New User Signup';
+	}
 
-    public function description(): string {
-        return 'Sent to administrators when a new user account is created.';
-    }
+	public function description() : string {
+		return 'Sent to administrators when a new user account is created.';
+	}
 
-    public static function preview(): static {
-        $user = User::from_array([
-            'display_name' => 'Jane Doe',
-            'email'        => 'jane@example.com',
-        ]);
+	public static function preview() : static {
+		$user = User::from_array( [
+			'display_name' => 'Jane Doe',
+			'email'        => 'jane@example.com',
+		] );
 
-        return new static(
-            $user,
-            'admin@example.com',
-            '127.0.0.1',
-            'resource_owner',
-            date('Y-m-d H:i:s')
-        );
-    }
+		return new static(
+			$user,
+			'admin@example.com',
+			'127.0.0.1',
+			'resource_owner',
+			date( 'Y-m-d H:i:s' )
+		);
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'heading',
-                'type'      => 'text',
-                'content'   => 'New User Registration',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'intro',
-                'type'      => 'text',
-                'content'   => 'A new user has registered on {{app_name}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Full Name',     'value' => '{{display_name}}' ],
-                    [ 'label' => 'Email Address', 'value' => '{{email}}' ],
-                    [ 'label' => 'Account Type',  'value' => '{{account_type}}' ],
-                    [ 'label' => 'Signup Time',   'value' => '{{signup_time}}' ],
-                    [ 'label' => 'IP Address',    'value' => '{{ip_address}}' ],
-                ],
-                'editable'  => true,
-                'removable' => true,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'heading',
+				'type'      => 'text',
+				'content'   => 'New User Registration',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'intro',
+				'type'      => 'text',
+				'content'   => 'A new user has registered on {{app_name}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Full Name',     'value' => '{{display_name}}' ],
+					[ 'label' => 'Email Address', 'value' => '{{email}}' ],
+					[ 'label' => 'Account Type',  'value' => '{{account_type}}' ],
+					[ 'label' => 'Signup Time',   'value' => '{{signup_time}}' ],
+					[ 'label' => 'IP Address',    'value' => '{{ip_address}}' ],
+				],
+				'editable'  => true,
+				'removable' => true,
+			],
+		];
+	}
 }

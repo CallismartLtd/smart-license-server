@@ -44,327 +44,327 @@ use SmartLicenseServer\SettingsAPI\Settings;
  * 
  */
 class EmailProvidersRegistry  extends AbstractRegistry {
-    /**
-     * The settings storage abstraction.
-     * 
-     * @var Settings $settings
-     */
-    protected Settings $settings;
+	/**
+	 * The settings storage abstraction.
+	 * 
+	 * @var Settings $settings
+	 */
+	protected Settings $settings;
 
-    protected URLManager $urlmanager;
+	protected URLManager $urlmanager;
 
-    /**
-     * Singleton instance.
-     *
-     * @var self|null
-     */
-    protected static ?self $instance = null;
+	/**
+	 * Singleton instance.
+	 *
+	 * @var self|null
+	 */
+	protected static ?self $instance = null;
 
-    /**
-     * Core email service providers.
-     * 
-     * @var array<int, class-string<EmailProviderInterface>>
-     */
-    private $core_providers = [
-        PHPMailProvider::class,
-        SMTPProvider::class,
-        BrevoProvider::class,
-        SendGridProvider::class,
-        MailgunProvider::class,
-        PostmarkProvider::class,
-        ResendProvider::class,
-        AmazonSESProvider::class,
-    ];
+	/**
+	 * Core email service providers.
+	 * 
+	 * @var array<int, class-string<EmailProviderInterface>>
+	 */
+	private $core_providers = [
+		PHPMailProvider::class,
+		SMTPProvider::class,
+		BrevoProvider::class,
+		SendGridProvider::class,
+		MailgunProvider::class,
+		PostmarkProvider::class,
+		ResendProvider::class,
+		AmazonSESProvider::class,
+	];
 
-    /**
-     * In-memory cache for persisted provider options.
-     *
-     * Keyed by adapter ID. Busted whenever update_option() is called.
-     *
-     * @var array<string, array<string, mixed>>
-     */
-    protected static array $settings_store = [];
+	/**
+	 * In-memory cache for persisted provider options.
+	 *
+	 * Keyed by adapter ID. Busted whenever update_option() is called.
+	 *
+	 * @var array<string, array<string, mixed>>
+	 */
+	protected static array $settings_store = [];
 
-    const DEFAULT_PROVIDER_KEY      = 'email_default_provider';
-    const SETTINGS_KEY              = 'email_providers_options';
-    const DEFAULT_SENDER_NAME_KEY   = 'email_from_name';
-    const DEFAULT_SENDER_EMAIL_KEY  = 'email_from_address';
+	const DEFAULT_PROVIDER_KEY     = 'email_default_provider';
+	const SETTINGS_KEY             = 'email_providers_options';
+	const DEFAULT_SENDER_NAME_KEY  = 'email_from_name';
+	const DEFAULT_SENDER_EMAIL_KEY = 'email_from_address';
 
-    /**
-     * Class constructor.
-     * 
-     * @param Container $container The DI container.
-     * 
-     */
-    private function __construct( protected Container $container ) {
-        $this->settings     = $container->get( Settings::class );
-        $this->urlmanager   = $container->get( URLManager::class );
+	/**
+	 * Class constructor.
+	 * 
+	 * @param Container $container The DI container.
+	 * 
+	 */
+	private function __construct( protected Container $container ) {
+		$this->settings   = $container->get( Settings::class );
+		$this->urlmanager = $container->get( URLManager::class );
 
-    }
+	}
 
-    /*
-    |------------------
-    | SINGLETON ACCESS
-    |------------------
-    */
+	/*
+	|------------------
+	| SINGLETON ACCESS
+	|------------------
+	*/
 
-    /**
-     * Return the singleton instance, creating and loading it if needed.
-     *
-     * @param Container|null $container
-     * @return static
-     */
-    public static function instance( ?Container $container = null ): static {
-        if ( static::$instance === null ) {
-            if ( ! $container ) {
-                throw new EmailTransportException(
-                    sprintf( '%s requires %s on first bootstrap.', static::class, Container::class )
-                );
-            }
+	/**
+	 * Return the singleton instance, creating and loading it if needed.
+	 *
+	 * @param Container|null $container
+	 * @return static
+	 */
+	public static function instance( ?Container $container = null ) : static {
+		if ( null === static::$instance ) {
+			if ( ! $container ) {
+				throw new EmailTransportException(
+					sprintf( '%s requires %s on first bootstrap.', static::class, Container::class )
+				);
+			}
 
-            static::$instance = new static( $container );
-        }
+			static::$instance = new static( $container );
+		}
 
-        return static::$instance;
-    }
+		return static::$instance;
+	}
 
-    /*
-    |---------------------
-    | PROVIDER MANAGEMENT
-    |---------------------
-    */
+	/*
+	|---------------------
+	| PROVIDER MANAGEMENT
+	|---------------------
+	*/
 
-    /**
-     * Return a provider with its persisted settings applied.
-     *
-     * If no provider ID is given, the default provider is used.
-     *
-     *
-     * @param string|null $provider_id
-     * @param bool $with_settings
-     * @return EmailProviderInterface|null
-     * @throws InvalidArgumentException If settings validation fails.
-     */
-    public function get_provider( ?string $provider_id = null, bool $with_settings = true ): ?EmailProviderInterface {
-        $provider_id    = ( $provider_id ?? static::get_default_provider_id() );
-        $class_string   = $this->get( $provider_id );
-        $provider       = null;
-        if ( $class_string ) {
-            $provider = $this->container->get( $class_string );
+	/**
+	 * Return a provider with its persisted settings applied.
+	 *
+	 * If no provider ID is given, the default provider is used.
+	 *
+	 *
+	 * @param string|null $provider_id
+	 * @param bool $with_settings
+	 * @return EmailProviderInterface|null
+	 * @throws InvalidArgumentException If settings validation fails.
+	 */
+	public function get_provider( ?string $provider_id = null, bool $with_settings = true ) : ?EmailProviderInterface {
+		$provider_id  = ( $provider_id ?? static::get_default_provider_id() );
+		$class_string = $this->get( $provider_id );
+		$provider     = null;
+		if ( $class_string ) {
+			$provider = $this->container->get( $class_string );
 
-            if ( $with_settings ) {
-                $settings = [];
+			if ( $with_settings ) {
+				$settings = [];
 
-                foreach ( $provider->get_settings_schema() as $key => $data ) {
-                    $settings[ $key ] = static::get_option( $provider_id, $key, $data['default'] ?? null );
-                }
+				foreach ( $provider->get_settings_schema() as $key => $data ) {
+					$settings[ $key ] = static::get_option( $provider_id, $key, $data['default'] ?? null );
+				}
 
-                $provider->set_settings( $settings );                  
-            }
-        }
+				$provider->set_settings( $settings );
+			}
+		}
 
-        return $provider;
-    }
+		return $provider;
+	}
 
-    #[Override]
-    public function all( bool $assoc = true, bool $instantiate = false ): array {
-        $this->ensure_core();
-        /** @var array<string, class-string<EmailProviderInterface>> $all */
-        $all    = array_merge( $this->custom, $this->core );
+	#[Override]
+	public function all( bool $assoc = true, bool $instantiate = false ) : array {
+		$this->ensure_core();
+		/** @var array<string, class-string<EmailProviderInterface>> $all */
+		$all = array_merge( $this->custom, $this->core );
 
-        if ( $instantiate ) {
-            foreach ( $all as $_ => &$value ) {
-                $value = $this->container->get( $value );
-            }
-        }
+		if ( $instantiate ) {
+			foreach ( $all as $_ => &$value ) {
+				$value = $this->container->get( $value );
+			}
+		}
 
-        return $assoc ? $all : array_values( $all );
-    }
+		return $assoc ? $all : array_values( $all );
+	}
 
-    /*
-    |------------------
-    | DEFAULT PROVIDER
-    |------------------
-    */
+	/*
+	|------------------
+	| DEFAULT PROVIDER
+	|------------------
+	*/
 
-    /**
-     * Return the default provider ID, or null if none is set.
-     *
-     * @return string
-     */
-    public static function get_default_provider_id(): string {
-        $default    = (string)( $_ENV['SMLISER_EMAIL_PROVIDER'] ?? 'php_mail' );
-        $value      = (string) static::instance()->settings->get( static::DEFAULT_PROVIDER_KEY, $default );
+	/**
+	 * Return the default provider ID, or null if none is set.
+	 *
+	 * @return string
+	 */
+	public static function get_default_provider_id() : string {
+		$default = (string) ( $_ENV['SMLISER_EMAIL_PROVIDER'] ?? 'php_mail' );
+		$value   = (string) static::instance()->settings->get( static::DEFAULT_PROVIDER_KEY, $default );
 
-        if ( ! static::instance()->has( $value ) ) {
-            $value  = $default;
-        }
+		if ( ! static::instance()->has( $value ) ) {
+			$value = $default;
+		}
 
-        return  $value;
-    }
+		return  $value;
+	}
 
-    /**
-     * Set the default email provider.
-     *
-     * @param string $provider_id
-     * @return bool True if saved successfully.
-     * @throws InvalidArgumentException If the provider is not registered.
-     */
-    public static function set_default_provider( string $provider_id ): bool {
-        if ( ! static::instance()->has( $provider_id ) ) {
-            throw new InvalidArgumentException(
-                "EmailProvidersRegistry: cannot set default — provider '{$provider_id}' is not registered."
-            );
-        }
+	/**
+	 * Set the default email provider.
+	 *
+	 * @param string $provider_id
+	 * @return bool True if saved successfully.
+	 * @throws InvalidArgumentException If the provider is not registered.
+	 */
+	public static function set_default_provider( string $provider_id ) : bool {
+		if ( ! static::instance()->has( $provider_id ) ) {
+			throw new InvalidArgumentException(
+				"EmailProvidersRegistry: cannot set default — provider '{$provider_id}' is not registered."
+			);
+		}
 
-        return static::instance()->settings->set( static::DEFAULT_PROVIDER_KEY, $provider_id );
-    }
+		return static::instance()->settings->set( static::DEFAULT_PROVIDER_KEY, $provider_id );
+	}
 
-    /**
-     * Get the ids of all registered providers.
-     * 
-     * @return string[]
-     */
-    public function get_registered_ids() : array {
-        $this->ensure_core();
-        return array_keys( array_merge( $this->custom , $this->core ) );
-    }
+	/**
+	 * Get the ids of all registered providers.
+	 * 
+	 * @return string[]
+	 */
+	public function get_registered_ids() : array {
+		$this->ensure_core();
+		return array_keys( array_merge( $this->custom , $this->core ) );
+	}
 
-    /*
-    |---------------------
-    | OPTIONS PERSISTENCE
-    |---------------------
-    */
+	/*
+	|---------------------
+	| OPTIONS PERSISTENCE
+	|---------------------
+	*/
 
-    /**
-     * Return a persisted option value for a provider.
-     *
-     * Results are cached in memory for the duration of the request.
-     * The cache is keyed by provider ID and busted on write.
-     *
-     * @param string $provider_id
-     * @param string $option_name
-     * @param mixed  $default
-     * @return mixed
-     */
-    public static function get_option( string $provider_id, string $option_name, $default = null ): mixed {
-        if ( ! isset( static::$settings_store[ $provider_id ] ) ) {
-            $all_options    = static::instance()->settings->get( static::SETTINGS_KEY, [] );
-            static::$settings_store[ $provider_id ] = $all_options[ $provider_id ] ?? [];
-        }
+	/**
+	 * Return a persisted option value for a provider.
+	 *
+	 * Results are cached in memory for the duration of the request.
+	 * The cache is keyed by provider ID and busted on write.
+	 *
+	 * @param string $provider_id
+	 * @param string $option_name
+	 * @param mixed  $default
+	 * @return mixed
+	 */
+	public static function get_option( string $provider_id, string $option_name, $default = null ) : mixed {
+		if ( ! isset( static::$settings_store[ $provider_id ] ) ) {
+			$all_options                            = static::instance()->settings->get( static::SETTINGS_KEY, [] );
+			static::$settings_store[ $provider_id ] = $all_options[ $provider_id ] ?? [];
+		}
 
-        return static::$settings_store[$provider_id][ $option_name ] ?? $default;
-    }
+		return static::$settings_store[$provider_id][ $option_name ] ?? $default;
+	}
 
-    /**
-     * Persist an option value for a provider.
-     *
-     * @param string $provider_id
-     * @param string $option_name
-     * @param mixed  $value
-     * @return bool
-     */
-    public static function update_option( string $provider_id, string $option_name, mixed $value ): bool {
-        $settings       = static::instance()->settings;
-        $all_options    = $settings->get( static::SETTINGS_KEY, [] );
+	/**
+	 * Persist an option value for a provider.
+	 *
+	 * @param string $provider_id
+	 * @param string $option_name
+	 * @param mixed  $value
+	 * @return bool
+	 */
+	public static function update_option( string $provider_id, string $option_name, mixed $value ) : bool {
+		$settings    = static::instance()->settings;
+		$all_options = $settings->get( static::SETTINGS_KEY, [] );
 
-        if ( ! is_array( $all_options ) ) {
-            $all_options    = [];
-        }
+		if ( ! is_array( $all_options ) ) {
+			$all_options = [];
+		}
 
-        $all_options[ $provider_id ][ $option_name ] = $value;
+		$all_options[ $provider_id ][ $option_name ] = $value;
 
-        $saved = $settings->set( static::SETTINGS_KEY, $all_options );
+		$saved = $settings->set( static::SETTINGS_KEY, $all_options );
 
-        if ( $saved ) {
-            // Bust the cache for this adapter so the next get_option() reads fresh data.
-            unset( static::$settings_store[ $provider_id ] );
-        }
+		if ( $saved ) {
+			// Bust the cache for this adapter so the next get_option() reads fresh data.
+			unset( static::$settings_store[ $provider_id ] );
+		}
 
-        return $saved;
-    }
+		return $saved;
+	}
 
-    /**
-     * Persist all settings for a provider at once.
-     *
-     * More efficient than calling update_option() per key when saving
-     * an entire settings form submission.
-     *
-     * @param string               $provider_id
-     * @param array<string, mixed> $settings
-     * @return bool
-     */
-    public static function update_provider_settings( string $provider_id, array $settings ): bool {
-        $storage                        = static::instance()->settings;
-        $all_options                    = (array) $storage->get( static::SETTINGS_KEY, [] );
-        $all_options[ $provider_id ]    = $settings;
-        
-        return $storage->set( static::SETTINGS_KEY, $all_options );
-    }
+	/**
+	 * Persist all settings for a provider at once.
+	 *
+	 * More efficient than calling update_option() per key when saving
+	 * an entire settings form submission.
+	 *
+	 * @param string               $provider_id
+	 * @param array<string, mixed> $settings
+	 * @return bool
+	 */
+	public static function update_provider_settings( string $provider_id, array $settings ) : bool {
+		$storage                     = static::instance()->settings;
+		$all_options                 = (array) $storage->get( static::SETTINGS_KEY, [] );
+		$all_options[ $provider_id ] = $settings;
+		
+		return $storage->set( static::SETTINGS_KEY, $all_options );
+	}
 
-    /**
-     * Get the default sender name settings.
-     * 
-     * This is the default system overriding name.
-     */
-    public function get_default_sender_name() : string {
-        return (string) $this->settings->get( static::DEFAULT_SENDER_NAME_KEY, SMLISER_APP_NAME );
-    }
+	/**
+	 * Get the default sender name settings.
+	 * 
+	 * This is the default system overriding name.
+	 */
+	public function get_default_sender_name() : string {
+		return (string) $this->settings->get( static::DEFAULT_SENDER_NAME_KEY, SMLISER_APP_NAME );
+	}
 
-    /**
-     * Get the default sender email address settings.
-     * 
-     * This is the default system overriding name.
-     */
-    public function get_default_sender_email() : string {
-        $url        = $this->urlmanager->url();
-        $default    = \sprintf( 'smliser@%s', $url->get_host() );
-        return (string) $this->settings->get( static::DEFAULT_SENDER_EMAIL_KEY, $default );
-    }
+	/**
+	 * Get the default sender email address settings.
+	 * 
+	 * This is the default system overriding name.
+	 */
+	public function get_default_sender_email() : string {
+		$url     = $this->urlmanager->url();
+		$default = \sprintf( 'smliser@%s', $url->get_host() );
+		return (string) $this->settings->get( static::DEFAULT_SENDER_EMAIL_KEY, $default );
+	}
 
-    /**
-     * Set the default sender name.
-     * 
-     * @param string $name Default system overriding name.
-     */
-    public function set_default_sender_name( string $name ) : bool {
-        return $this->settings->set( static::DEFAULT_SENDER_NAME_KEY, $name );
-    }
+	/**
+	 * Set the default sender name.
+	 * 
+	 * @param string $name Default system overriding name.
+	 */
+	public function set_default_sender_name( string $name ) : bool {
+		return $this->settings->set( static::DEFAULT_SENDER_NAME_KEY, $name );
+	}
 
-    /**
-     * Set the default sender email address.
-     * 
-     * @param string $email Default system overriding name.
-     */
-    public function set_default_sender_email( string $email ) : bool {
-        return $this->settings->set( static::DEFAULT_SENDER_EMAIL_KEY, $email );
-    }
+	/**
+	 * Set the default sender email address.
+	 * 
+	 * @param string $email Default system overriding name.
+	 */
+	public function set_default_sender_email( string $email ) : bool {
+		return $this->settings->set( static::DEFAULT_SENDER_EMAIL_KEY, $email );
+	}
 
-    /*
-    |----------------
-    | CORE PROVIDERS
-    |----------------
-    */
+	/*
+	|----------------
+	| CORE PROVIDERS
+	|----------------
+	*/
 
-    /**
-     * Register all built-in providers.
-     *
-     * Called once by instance() on first access. Third-party providers
-     * can be registered afterward via register_provider().
-     *
-     * @return void
-     */
-    protected function load_core(): void {
-        if ( $this->core_loaded ) {
-            return;
-        }
+	/**
+	 * Register all built-in providers.
+	 *
+	 * Called once by instance() on first access. Third-party providers
+	 * can be registered afterward via register_provider().
+	 *
+	 * @return void
+	 */
+	protected function load_core() : void {
+		if ( $this->core_loaded ) {
+			return;
+		}
 
-        foreach ( $this->core_providers as $provider ) {
-            $this->core[$provider::get_id()] = $provider;
-        }
+		foreach ( $this->core_providers as $provider ) {
+			$this->core[$provider::get_id()] = $provider;
+		}
 
-        unset( $this->core_providers );
+		unset( $this->core_providers );
 
-        $this->core_loaded = true;
-    }
+		$this->core_loaded = true;
+	}
 }

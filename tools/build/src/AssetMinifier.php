@@ -40,7 +40,7 @@ final class AssetMinifier {
 	 * unsupported before Safari 14.1 and cannot lower it, so a "safari12"
 	 * entry makes every file that destructures fail to build.
 	 */
-	public const JS_TARGET = array( 'es2018' );
+	public const JS_TARGET = [ 'es2018' ];
 
 	/**
 	 * CSS output target: the browsers of the ES2018 era.
@@ -48,12 +48,12 @@ final class AssetMinifier {
 	 * CSS ignores "es" targets, so the browsers are listed. With them, esbuild
 	 * avoids newer CSS (e.g. it expands `inset` for Safari 12).
 	 */
-	public const CSS_TARGET = array( 'chrome64', 'edge79', 'firefox62', 'safari12' );
+	public const CSS_TARGET = [ 'chrome64', 'edge79', 'firefox62', 'safari12' ];
 
 	/**
 	 * Extensions to minify.
 	 */
-	private const EXTENSIONS = array( 'js', 'css' );
+	private const EXTENSIONS = [ 'js', 'css' ];
 
 	/**
 	 * Constructor.
@@ -72,50 +72,50 @@ final class AssetMinifier {
 	 * @param string $dir Absolute directory in the build output.
 	 * @throws BuildException When esbuild is unavailable or fails.
 	 */
-	public function run( string $dir ): void {
+	public function run( string $dir ) : void {
 		$this->console->step( 'Minifying assets' );
 
-		$files = is_dir( $dir ) ? $this->find_files( $dir ) : array();
+		$files = is_dir( $dir ) ? $this->find_files( $dir ) : [];
 
-		if ( array() === $files ) {
+		if ( [] === $files ) {
 			$this->console->info( 'No JavaScript or CSS files to minify.' );
 			return;
 		}
 
 		$this->ensure_esbuild();
 
-		$builds = array();
+		$builds = [];
 
-		foreach ( array( 'js' => self::JS_TARGET, 'css' => self::CSS_TARGET ) as $extension => $target ) {
-			$entries = array_values( array_filter( $files, static fn ( string $file ): bool => str_ends_with( strtolower( $file ), '.' . $extension ) ) );
+		foreach ( [ 'js' => self::JS_TARGET, 'css' => self::CSS_TARGET ] as $extension => $target ) {
+			$entries = array_values( array_filter( $files, static fn ( string $file ) : bool => str_ends_with( strtolower( $file ), '.' . $extension ) ) );
 
-			if ( array() === $entries ) {
+			if ( [] === $entries ) {
 				continue;
 			}
 
-			$builds[] = array(
+			$builds[] = [
 				'entryPoints'   => $entries,
 				'absWorkingDir' => $dir,
 				'outdir'        => $dir,
 				'outbase'       => $dir,
-				'outExtension'  => array( '.' . $extension => '.min.' . $extension ),
+				'outExtension'  => [ '.' . $extension => '.min.' . $extension ],
 				'minify'        => true,
 				'target'        => $target,
 				'charset'       => 'utf8',
 				'legalComments' => 'inline',
 				'logLevel'      => 'warning',
-			);
+			];
 		}
 
 		// Runs from tools/build so require() resolves its node_modules.
 		// esbuild prints build errors itself; anything else is printed here.
 		$this->execute(
-			array(
+			[
 				$this->context->node,
 				'-e',
 				"try{const b=require('esbuild');for(const o of JSON.parse(process.argv[1])){b.buildSync(o)}}catch(e){if(!e.errors){console.error(e.message)}process.exit(1)}",
 				json_encode( $builds, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR ),
-			),
+			],
 			$this->tool_dir(),
 			'esbuild',
 			'Pass --node=<path> if Node.js is not on your PATH, or build with --no-minify.',
@@ -133,9 +133,9 @@ final class AssetMinifier {
 				throw new BuildException( "esbuild did not produce {$minified}." );
 			}
 
-			$size    = (int) filesize( $dir . '/' . $minified );
+			$size = (int) filesize( $dir . '/' . $minified );
 			$before += $original;
-			$after  += $size;
+			$after += $size;
 
 			$this->console->success(
 				sprintf( '%s  %s → %s%s', $minified, $this->bytes( $original ), $this->bytes( $size ), $this->saving( $original, $size ) )
@@ -162,7 +162,7 @@ final class AssetMinifier {
 	 * @return void
 	 * @throws BuildException When it cannot be installed.
 	 */
-	private function ensure_esbuild(): void {
+	private function ensure_esbuild() : void {
 		$package = $this->tool_dir() . '/node_modules/esbuild/package.json';
 
 		if ( is_file( $package ) ) {
@@ -172,7 +172,7 @@ final class AssetMinifier {
 		$this->console->info( 'esbuild is not installed yet; running npm ci in tools/build (one time).' );
 
 		$this->execute(
-			array( $this->context->npm, 'ci', '--no-audit', '--no-fund', '--loglevel=error' ),
+			[ $this->context->npm, 'ci', '--no-audit', '--no-fund', '--loglevel=error' ],
 			$this->tool_dir(),
 			'npm',
 			'Install Node.js and npm, pass --npm=<path>, or build with --no-minify.',
@@ -189,7 +189,7 @@ final class AssetMinifier {
 	 *
 	 * @return string
 	 */
-	private function tool_dir(): string {
+	private function tool_dir() : string {
 		return dirname( __DIR__ );
 	}
 
@@ -203,8 +203,8 @@ final class AssetMinifier {
 	 * @param string   $exit_hint  Advice when the command fails.
 	 * @throws BuildException When it cannot start or exits non-zero.
 	 */
-	private function execute( array $command, string $cwd, string $label, string $start_hint = '', string $exit_hint = '' ): void {
-		$process = @proc_open( $command, array( 0 => STDIN, 1 => STDOUT, 2 => STDERR ), $pipes, $cwd );
+	private function execute( array $command, string $cwd, string $label, string $start_hint = '', string $exit_hint = '' ) : void {
+		$process = @proc_open( $command, [ 0 => STDIN, 1 => STDOUT, 2 => STDERR ], $pipes, $cwd );
 
 		if ( ! is_resource( $process ) ) {
 			throw new BuildException( trim( "Could not start {$label} ({$command[0]}). {$start_hint}" ) );
@@ -235,8 +235,8 @@ final class AssetMinifier {
 	 * @param string $dir Directory.
 	 * @return string[] Sorted relative paths with forward slashes.
 	 */
-	private function find_files( string $dir ): array {
-		$all      = array();
+	private function find_files( string $dir ) : array {
+		$all      = [];
 		$iterator = new \RecursiveIteratorIterator(
 			new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS )
 		);
@@ -248,7 +248,7 @@ final class AssetMinifier {
 			}
 		}
 
-		$files   = array();
+		$files   = [];
 		$shipped = 0;
 
 		foreach ( array_keys( $all ) as $file ) {
@@ -279,7 +279,7 @@ final class AssetMinifier {
 	 * @param int $bytes Size in bytes.
 	 * @return string
 	 */
-	private function bytes( int $bytes ): string {
+	private function bytes( int $bytes ) : string {
 		return $bytes >= 1024 ? sprintf( '%.1f KB', $bytes / 1024 ) : $bytes . ' B';
 	}
 
@@ -290,7 +290,7 @@ final class AssetMinifier {
 	 * @param int $after  Minified size.
 	 * @return string
 	 */
-	private function saving( int $before, int $after ): string {
+	private function saving( int $before, int $after ) : string {
 		if ( 0 === $before ) {
 			return '';
 		}

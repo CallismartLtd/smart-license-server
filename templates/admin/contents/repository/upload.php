@@ -13,29 +13,29 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 
 <div class="application-uploader-page">
     <?php smliser_print_admin_content_header(
-        [
-            'breadcrumbs'   => array(
-                array(
-                    'label' => 'Repository',
-                    'url'   => $urlmanager->admin_repo_url(),
-                    'icon'  => 'ti ti-home-filled'
-                ),
+		[
+			'breadcrumbs' => [
+				[
+					'label' => 'Repository',
+					'url'   => $urlmanager->admin_repo_url(),
+					'icon'  => 'ti ti-home-filled'
+				],
 
-                array(
-                    'label' => $title
-                )
-            ),
-            'actions'   => array(
-                $app_action,
-                array(
-                    'title' => 'Settings',
-                    'label' => 'Settings',
-                    'url'   => $urlmanager->admin_options_url(),
-                    'icon'  => 'ti ti-settings'
-                )
-            )
-        ]
-    ); ?>
+				[
+					'label' => $title
+				]
+			],
+			'actions' => [
+				$app_action,
+				[
+					'title' => 'Settings',
+					'label' => 'Settings',
+					'url'   => $urlmanager->admin_options_url(),
+					'icon'  => 'ti ti-settings'
+				]
+			]
+		]
+	); ?>
     <div class="smliser-admin-page smliser-upload-page ">
 
         <header class="smliser-page-header">

@@ -10,21 +10,21 @@
  * @var \SmartLicenseServer\Monetization\License|null $license
  */
 
-defined( 'SMLISER_ROOT' ) ||  exit; 
+defined( 'SMLISER_ROOT' ) || exit;
 
 /** @var array $args */
-$args   = $page_handler->get_menu_args( $request );
+$args = $page_handler->get_menu_args( $request );
 
 if ( 'add-new' !== $tab ) {
-    \array_unshift(
-        $args['actions'],
-        array(
-            'title' => 'View License',
-            'label' => 'View license',
-            'url'   => $urlmanager->admin_license_page_url( 'view', ['id' => $license_id] ),
-            'icon'  => 'ti ti-eye'
-        )
-    );
+	\array_unshift(
+		$args['actions'],
+		[
+			'title' => 'View License',
+			'label' => 'View license',
+			'url'   => $urlmanager->admin_license_page_url( 'view', ['id' => $license_id] ),
+			'icon'  => 'ti ti-eye'
+		]
+	);
 }
 ?>
 

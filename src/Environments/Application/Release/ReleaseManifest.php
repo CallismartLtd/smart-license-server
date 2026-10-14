@@ -66,7 +66,7 @@ final class ReleaseManifest {
 	 *
 	 * @throws RuntimeException When the manifest exists but cannot be read or is malformed.
 	 */
-	public static function load( FileSystem $fs, string $root ): ?self {
+	public static function load( FileSystem $fs, string $root ) : ?self {
 		$path = rtrim( $root, '/\\' ) . '/' . self::FILE;
 
 		if ( ! $fs->is_file( $path ) ) {
@@ -80,7 +80,7 @@ final class ReleaseManifest {
 			throw new RuntimeException( sprintf( '%s is damaged or not a release manifest.', $path ) );
 		}
 
-		$files = array();
+		$files = [];
 
 		foreach ( $data['files'] as $relative => $hash ) {
 			if ( ! is_string( $relative ) || ! self::is_safe_path( $relative ) || ! is_string( $hash ) || 1 !== preg_match( '/^[a-f0-9]{64}$/', $hash ) ) {
@@ -95,7 +95,7 @@ final class ReleaseManifest {
 			$data['version'],
 			(string) ( $data['target'] ?? '' ),
 			(string) ( $data['built_at'] ?? '' ),
-			is_array( $data['requires'] ?? null ) ? $data['requires'] : array(),
+			is_array( $data['requires'] ?? null ) ? $data['requires'] : [],
 			$files
 		);
 	}
@@ -112,10 +112,10 @@ final class ReleaseManifest {
 	 * @param callable|null $progress Optional fn( int $done, int $total ), called every 250 files and at the end.
 	 * @return ReleaseCheck
 	 */
-	public function verify( FileSystem $fs, string $root, ?callable $progress = null ): ReleaseCheck {
+	public function verify( FileSystem $fs, string $root, ?callable $progress = null ) : ReleaseCheck {
 		$root     = rtrim( $root, '/\\' ) . '/';
-		$missing  = array();
-		$modified = array();
+		$missing  = [];
+		$modified = [];
 		$done     = 0;
 		$total    = count( $this->files );
 
@@ -149,7 +149,7 @@ final class ReleaseManifest {
 	 * @param string $relative Path from the manifest.
 	 * @return bool
 	 */
-	private static function is_safe_path( string $relative ): bool {
+	private static function is_safe_path( string $relative ) : bool {
 		return '' !== $relative
 			&& '/' !== $relative[0]
 			&& ! str_contains( $relative, '\\' )

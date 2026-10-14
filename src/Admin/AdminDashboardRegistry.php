@@ -21,94 +21,94 @@ use SmartLicenseServer\Core\URLManager;
 
 final class AdminDashboardRegistry extends AbstractDashboardRegistry {
 
-    public function __construct(
-        protected URLManager $urlmanager,
-        protected Container $container
-    ) {}
+	public function __construct(
+		protected URLManager $urlmanager,
+		protected Container $container
+	) {}
 
-    protected function boot() : void {
-        if ( $this->booted ) {
-            return;
-        }
+	protected function boot() : void {
+		if ( $this->booted ) {
+			return;
+		}
 
-        $this->booted   = true;
+		$this->booted = true;
    
-        $core_menu  = [
-            DashboardPage::class,
-            RepositoryPage::class,
-            LicensePage::class,
-            BulkMessagePage::class,
-            AccessControlPage::class,
-            ToolsPage::class,
-            OptionsPage::class
-        ];
+		$core_menu = [
+			DashboardPage::class,
+			RepositoryPage::class,
+			LicensePage::class,
+			BulkMessagePage::class,
+			AccessControlPage::class,
+			ToolsPage::class,
+			OptionsPage::class
+		];
 
-        foreach( $core_menu as $id ) {
-            /** @var AdminPageInterface */
-            $class   = $this->container->get( $id );
-            $this->register( $class->get_menu_key(), $class->get_menu_data() );
-            
-            foreach( $class->get_submenu() as $value ) {
-                $this->add_submenu( $class->get_menu_key(), $value );
-            }
-        }
+		foreach( $core_menu as $id ) {
+			/** @var AdminPageInterface */
+			$class = $this->container->get( $id );
+			$this->register( $class->get_menu_key(), $class->get_menu_data() );
+			
+			foreach( $class->get_submenu() as $value ) {
+				$this->add_submenu( $class->get_menu_key(), $value );
+			}
+		}
 
-        $this->add_top_menu( 'theme_toggle', [
-            'type'  => 'button',
-            'icons' => [
-                [ 'class' => 'dashboard-theme-icon dashboard-theme-icon-light ti ti-moon', 'attributes' => [ 'aria-hidden' => 'true' ] ],
-                [ 'class' => 'dashboard-theme-icon dashboard-theme-icon-dark ti ti-sun', 'attributes' => [ 'aria-hidden' => 'true' ] ],
-            ],
-            'attributes' => [
-                'id'         => 'dashboard-theme-toggle',
-                'class'      => 'dashboard-theme-toggle',
-                'aria-label' => 'Toggle theme',
-            ],
-            'visibility' => true,
-        ] );
+		$this->add_top_menu( 'theme_toggle', [
+			'type'  => 'button',
+			'icons' => [
+				[ 'class' => 'dashboard-theme-icon dashboard-theme-icon-light ti ti-moon', 'attributes' => [ 'aria-hidden' => 'true' ] ],
+				[ 'class' => 'dashboard-theme-icon dashboard-theme-icon-dark ti ti-sun', 'attributes' => [ 'aria-hidden' => 'true' ] ],
+			],
+			'attributes' => [
+				'id'         => 'dashboard-theme-toggle',
+				'class'      => 'dashboard-theme-toggle',
+				'aria-label' => 'Toggle theme',
+			],
+			'visibility' => true,
+		] );
 
-        $this->add_top_menu( 'logout_button', [
-            'title'         => 'Logout',
-            'type'          => 'link',
-            'href'          => $this->urlmanager->logout_url(),
-            'visibility'    => true,
-            'icon'          => 'ti ti-logout',
-            'attributes'    => [
-                'class' => 'smliser-logout-link-btn'
-            ]
-        ]);
-        
-        $this->add_top_menu( 'client_dashboard', [
-            'title'         => 'Client Dashboard',
-            'type'          => 'link',
-            'href'          => $this->urlmanager->client_dashboard_url(),
-            'visibility'    => true,
-            'icon'          => 'ti ti-user',
-            'attributes'    => [
-                'class' => 'dashboard-home-url smliser-btn-glass'
-            ]
-        ]);
+		$this->add_top_menu( 'logout_button', [
+			'title'      => 'Logout',
+			'type'       => 'link',
+			'href'       => $this->urlmanager->logout_url(),
+			'visibility' => true,
+			'icon'       => 'ti ti-logout',
+			'attributes' => [
+				'class' => 'smliser-logout-link-btn'
+			]
+		] );
+		
+		$this->add_top_menu( 'client_dashboard', [
+			'title'      => 'Client Dashboard',
+			'type'       => 'link',
+			'href'       => $this->urlmanager->client_dashboard_url(),
+			'visibility' => true,
+			'icon'       => 'ti ti-user',
+			'attributes' => [
+				'class' => 'dashboard-home-url smliser-btn-glass'
+			]
+		] );
 
-        $this->add_top_menu( 'home_url', [
-            'title'         => 'Home',
-            'type'          => 'link',
-            'href'          => $this->urlmanager->url( '/' ),
-            'visibility'    => true,
-            'icon'          => 'ti ti-home',
-            'attributes'    => [
-                'class' => 'dashboard-home-url smliser-btn-glass'
-            ]
-        ]);
-    }
+		$this->add_top_menu( 'home_url', [
+			'title'      => 'Home',
+			'type'       => 'link',
+			'href'       => $this->urlmanager->url( '/' ),
+			'visibility' => true,
+			'icon'       => 'ti ti-home',
+			'attributes' => [
+				'class' => 'dashboard-home-url smliser-btn-glass'
+			]
+		] );
+	}
 
-    /**
-     * Determine whether a key represents the root/overview menu item.
-     *
-     * @param string $key Already canonicalized.
-     * @return bool
-     */
-    public function is_root_menu( string $key ) : bool {
-        $key    = $this->canonical_key( $key );
-        return 'overview' === $key;
-    }
+	/**
+	 * Determine whether a key represents the root/overview menu item.
+	 *
+	 * @param string $key Already canonicalized.
+	 * @return bool
+	 */
+	public function is_root_menu( string $key ) : bool {
+		$key = $this->canonical_key( $key );
+		return 'overview' === $key;
+	}
 }

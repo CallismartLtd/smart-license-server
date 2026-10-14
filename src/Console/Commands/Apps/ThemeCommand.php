@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Console\Commands\Apps;
  * Theme command
  */
 class ThemeCommand extends AbstractHostedAppCommand {
-    protected static function get_type() : string {
-        return 'theme';
-    }
+	protected static function get_type() : string {
+		return 'theme';
+	}
 }

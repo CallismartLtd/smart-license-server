@@ -64,7 +64,7 @@ class UpdateNotificationJob implements JobHandlerInterface {
 	 * @param array<string, mixed> $payload
 	 * @return array|bool The mailer response, or true when nothing was sent (no address, or the email is switched off).
 	 */
-	public function handle( array $payload = [] ): mixed {
+	public function handle( array $payload = [] ) : mixed {
 		$to = trim( (string) $this->settings->get( Settings::ADMIN_EMAIL, '' ) );
 
 		if ( '' === $to ) {
@@ -94,7 +94,7 @@ class UpdateNotificationJob implements JobHandlerInterface {
 	 * @param array  $payload Job payload.
 	 * @return UpdateEmail|null Null for an unknown event.
 	 */
-	protected function email( string $to, array $payload ): ?UpdateEmail {
+	protected function email( string $to, array $payload ) : ?UpdateEmail {
 		$url      = (string) $this->urlmanager->admin_tools_page_url( 'updates' );
 		$current  = (string) ( $payload['current_version'] ?? '' );
 		$new      = (string) ( $payload['new_version'] ?? '' );
@@ -103,7 +103,7 @@ class UpdateNotificationJob implements JobHandlerInterface {
 
 		return match ( $payload['event'] ?? null ) {
 			self::EVENT_AVAILABLE => new UpdateAvailableEmail( $to, $current, $new, $security, $url, $detail ),
-			self::EVENT_INSTALLED => new UpdateInstalledEmail( $to, $current, $new, $security, $url, $detail, (array) ( $payload['package'] ?? array() ) ),
+			self::EVENT_INSTALLED => new UpdateInstalledEmail( $to, $current, $new, $security, $url, $detail, (array) ( $payload['package'] ?? [] ) ),
 			self::EVENT_FAILED    => new UpdateFailedEmail( $to, $current, $new, $security, $url, $detail, 'rollback' === ( $payload['action'] ?? '' ) ? 'rollback' : 'install' ),
 			default               => null,
 		};
@@ -112,14 +112,14 @@ class UpdateNotificationJob implements JobHandlerInterface {
 	/**
 	 * {@inheritdoc}
 	 */
-	public static function get_job_name(): string {
+	public static function get_job_name() : string {
 		return 'Send Update Notification';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	public static function get_job_description(): string {
+	public static function get_job_description() : string {
 		return 'Emails the site administration address when an update is available, installed automatically, or failed.';
 	}
 }

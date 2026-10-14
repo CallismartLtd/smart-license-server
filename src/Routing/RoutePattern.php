@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Routing
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Routing;
 
@@ -68,12 +68,12 @@ final class RoutePattern {
 	 *
 	 * @var array<string,string>
 	 */
-	private const DEFAULT_CONSTRAINTS = array(
+	private const DEFAULT_CONSTRAINTS = [
 		'int'  => '[0-9]+',
 		'slug' => '[A-Za-z0-9_-]+',
 		'uuid' => '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
 		'path' => '.+',
-	);
+	];
 
 	/**
 	 * Compiles a full pattern (group prefix already applied) into a CompiledPattern.
@@ -83,7 +83,7 @@ final class RoutePattern {
 	 *                                                 merged over (and able to override) the built-in aliases.
 	 * @throws InvalidRouteException On any malformed pattern or invariant violation.
 	 */
-	public static function compile( string $pattern, array $customConstraints = [] ): CompiledPattern {
+	public static function compile( string $pattern, array $customConstraints = [] ) : CompiledPattern {
 		$pattern     = trim( $pattern, '/' );
 		$constraints = $customConstraints + self::DEFAULT_CONSTRAINTS;
 		$rawSegments = self::splitSegments( $pattern );
@@ -128,7 +128,7 @@ final class RoutePattern {
 	 *
 	 * @return string[]
 	 */
-	private static function splitSegments( string $pattern ): array {
+	private static function splitSegments( string $pattern ) : array {
 		if ( '' === $pattern ) {
 			return [];
 		}
@@ -168,7 +168,7 @@ final class RoutePattern {
 	 *                                          seen so far in this pattern, for duplicate detection.
 	 * @throws InvalidRouteException
 	 */
-	private static function compileSegment( string $rawSegment, array $constraints, array &$seenParams ): RouteSegment {
+	private static function compileSegment( string $rawSegment, array $constraints, array &$seenParams ) : RouteSegment {
 		if ( '' === $rawSegment ) {
 			throw new InvalidRouteException(
 				'Route pattern contains an empty segment (check for "//" or a stray slash).'
@@ -200,7 +200,7 @@ final class RoutePattern {
 			[ $fullMatchText, $fullOffset ] = $match[0];
 
 			$literalBefore = substr( $rawSegment, $cursor, $fullOffset - $cursor );
-			$regex        .= preg_quote( $literalBefore, '#' );
+			$regex .= preg_quote( $literalBefore, '#' );
 
 			$name       = $match[1][0];
 			$isExt      = isset( $match[2] ) && '' !== $match[2][0];
@@ -258,7 +258,7 @@ final class RoutePattern {
 	 * @param string[] $seenParams
 	 * @throws InvalidRouteException
 	 */
-	private static function assertValidParamName( string $name, array $seenParams ): void {
+	private static function assertValidParamName( string $name, array $seenParams ) : void {
 		if ( in_array( $name, $seenParams, true ) ) {
 			throw new InvalidRouteException( sprintf( 'Duplicate route parameter "%s".', $name ) );
 		}
@@ -271,7 +271,7 @@ final class RoutePattern {
 	 * @param array<string,string> $constraints
 	 * @throws InvalidRouteException If a literal regex fragment is invalid.
 	 */
-	private static function resolveConstraint( string $constraint, array $constraints, string $paramName ): string {
+	private static function resolveConstraint( string $constraint, array $constraints, string $paramName ) : string {
 		if ( isset( $constraints[ $constraint ] ) ) {
 			return $constraints[ $constraint ];
 		}
@@ -294,7 +294,7 @@ final class RoutePattern {
 	 *
 	 * @param RouteSegment[] $segments
 	 */
-	private static function buildRegex( array $segments, int $index ): string {
+	private static function buildRegex( array $segments, int $index ) : string {
 		if ( $index >= count( $segments ) ) {
 			return '';
 		}

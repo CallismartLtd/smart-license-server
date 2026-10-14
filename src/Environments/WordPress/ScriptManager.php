@@ -20,119 +20,119 @@ use function wp_register_script, wp_register_style, is_admin, wp_enqueue_script,
 
 final class ScriptManager {
 
-    public function __construct( private Request $request ) {}
+	public function __construct( private Request $request ) {}
 
-    /**
-     * Get script suffix depending on debug.
-     */
-    private function script_suffix() : string {
-        return defined( 'SCRIPT_DEBUG' ) && \SCRIPT_DEBUG ? '' : '.min';
-    }
+	/**
+	 * Get script suffix depending on debug.
+	 */
+	private function script_suffix() : string {
+		return defined( 'SCRIPT_DEBUG' ) && \SCRIPT_DEBUG ? '' : '.min';
+	}
 
-    /**
-     * Registers CSS files.
-     */
-    public function register_styles() : void {
-        foreach ( CSS::all( $this->script_suffix() ) as $handle => $style ) {
-            wp_register_style( $handle, $style['url'], $style['dependencies'], $style['version'], $style['media-type'] );
-        }
-    }
+	/**
+	 * Registers CSS files.
+	 */
+	public function register_styles() : void {
+		foreach ( CSS::all( $this->script_suffix() ) as $handle => $style ) {
+			wp_register_style( $handle, $style['url'], $style['dependencies'], $style['version'], $style['media-type'] );
+		}
+	}
 
-    /**
-     * Registers JS files.
-     */
-    public function register_scripts() : void {
-        foreach ( JS::all( $this->script_suffix() ) as $handle => $script ) {
-            wp_register_script( $handle, $script['url'], $script['dependencies'], $script['version'], $script['footer'] );
-        }
-    }
+	/**
+	 * Registers JS files.
+	 */
+	public function register_scripts() : void {
+		foreach ( JS::all( $this->script_suffix() ) as $handle => $script ) {
+			wp_register_script( $handle, $script['url'], $script['dependencies'], $script['version'], $script['footer'] );
+		}
+	}
 
-    /**
-     * Enqueue scripts (WordPress specific).
-     */
-    public function enqueue_scripts() {
-        wp_enqueue_script( 'datetime-picker' );
-        wp_enqueue_script( 'select2' );
-        wp_enqueue_script( 'smliser-script' );
+	/**
+	 * Enqueue scripts (WordPress specific).
+	 */
+	public function enqueue_scripts() {
+		wp_enqueue_script( 'datetime-picker' );
+		wp_enqueue_script( 'select2' );
+		wp_enqueue_script( 'smliser-script' );
 
-        if ( is_admin() ) {
-            wp_enqueue_script( 'modal' );
-        }
+		if ( is_admin() ) {
+			wp_enqueue_script( 'modal' );
+		}
 
-        $enqueue_chart = is_admin() && in_array( $this->request->get( 'page' ), ['smliser-overview', 'smliser-repository'] );
-        if ( $enqueue_chart ) {
-            wp_enqueue_script( 'chart' );
-        }
+		$enqueue_chart = is_admin() && in_array( $this->request->get( 'page' ), ['smliser-overview', 'smliser-repository'] );
+		if ( $enqueue_chart ) {
+			wp_enqueue_script( 'chart' );
+		}
 
-        if ( 'smliser-repository' === $this->request->get( 'page' ) ) {
-            wp_enqueue_media();
-            wp_enqueue_script( 'apps-uploader' );
-            wp_enqueue_script( 'json-editor' );
-            wp_enqueue_script( 'admin-repository' );
-        }
+		if ( 'smliser-repository' === $this->request->get( 'page' ) ) {
+			wp_enqueue_media();
+			wp_enqueue_script( 'apps-uploader' );
+			wp_enqueue_script( 'json-editor' );
+			wp_enqueue_script( 'admin-repository' );
+		}
 
-        if ( 'smliser-accounts' === $this->request->get( 'page' ) ) {
-            wp_enqueue_script( 'role-builder' );
-        }
+		if ( 'smliser-accounts' === $this->request->get( 'page' ) ) {
+			wp_enqueue_script( 'role-builder' );
+		}
 
-        if ( 'smliser-settings' === $this->request->get( 'page' ) ) {
-            wp_enqueue_script( 'cache-stats' );
-        }
+		if ( 'smliser-settings' === $this->request->get( 'page' ) ) {
+			wp_enqueue_script( 'cache-stats' );
+		}
 
-        // Localize main script
-        wp_localize_script( 'smliser-script', 'smliser_var', $this->allVars() );
-    }
+		// Localize main script
+		wp_localize_script( 'smliser-script', 'smliser_var', $this->allVars() );
+	}
 
-    /**
-     * Enqueue CSS (WordPress specific)
-     */
-    public function enqueue_styles() {
-        wp_enqueue_style( 'datetime-picker' );
-        wp_enqueue_style( 'select2' );
-        wp_enqueue_style( 'core-admin' );
-        wp_enqueue_style( 'form-styles' );
-        wp_enqueue_style( 'modal' );
+	/**
+	 * Enqueue CSS (WordPress specific)
+	 */
+	public function enqueue_styles() {
+		wp_enqueue_style( 'datetime-picker' );
+		wp_enqueue_style( 'select2' );
+		wp_enqueue_style( 'core-admin' );
+		wp_enqueue_style( 'form-styles' );
+		wp_enqueue_style( 'modal' );
 
-        if ( 'smliser-repository' === $this->request->get( 'page' ) ) {
-            wp_enqueue_style( 'apps-uploader' );
-            wp_enqueue_style( 'json-editor' );
-        }
+		if ( 'smliser-repository' === $this->request->get( 'page' ) ) {
+			wp_enqueue_style( 'apps-uploader' );
+			wp_enqueue_style( 'json-editor' );
+		}
 
-        if ( is_admin() ) {
-            wp_enqueue_style( 'tabler-icons' );
-        }
+		if ( is_admin() ) {
+			wp_enqueue_style( 'tabler-icons' );
+		}
 
-        if ( 'smliser-accounts' === $this->request->get( 'page' ) ) {
-            wp_enqueue_style( 'role-builder' );
-        }
+		if ( 'smliser-accounts' === $this->request->get( 'page' ) ) {
+			wp_enqueue_style( 'role-builder' );
+		}
 
-        if ( 'smliser-settings' === $this->request->get( 'page' ) ) {
-            wp_enqueue_style( 'cache-stats' );
-        }
+		if ( 'smliser-settings' === $this->request->get( 'page' ) ) {
+			wp_enqueue_style( 'cache-stats' );
+		}
 
-        if ( 'smliser-broadcasts' === $this->request->get( 'page' ) ) {
-            wp_enqueue_script( 'tinymce' );
-        }
-    }
+		if ( 'smliser-broadcasts' === $this->request->get( 'page' ) ) {
+			wp_enqueue_script( 'tinymce' );
+		}
+	}
 
-    /**
-     * App configuration data used to build JS object `smliser_var`
-     */
-    private function allVars() : array {
-        return [
-            'ajaxURL'           => adminUrl( 'admin-ajax.php' )->url(),
-            'csrf_token'        => wp_create_nonce( 'smliser_nonce' ),
-            'spinner_gif'       => \admin_url( 'images/spinner.gif' ),
-            'spinner_gif_2x'    => \admin_url( 'images/spinner-2x.gif' ),
-            'app_search_api'    => \restAPIUrl( '/repository/' ),
-            'default_roles'     => [
-                'roles'         => Role::all( true ),
-                'capabilities'  => Capability::get_caps()
-            ],
-            'uploads'            => [
-                'max_upload_size'           => smliser_max_upload_size(),
-                'max_upload_size_readable'  => Format::bytes( smliser_max_upload_size() ) 
-            ]
-        ];
-    }
+	/**
+	 * App configuration data used to build JS object `smliser_var`
+	 */
+	private function allVars() : array {
+		return [
+			'ajaxURL'        => adminUrl( 'admin-ajax.php' )->url(),
+			'csrf_token'     => wp_create_nonce( 'smliser_nonce' ),
+			'spinner_gif'    => \admin_url( 'images/spinner.gif' ),
+			'spinner_gif_2x' => \admin_url( 'images/spinner-2x.gif' ),
+			'app_search_api' => \restAPIUrl( '/repository/' ),
+			'default_roles'  => [
+				'roles'        => Role::all( true ),
+				'capabilities' => Capability::get_caps()
+			],
+			'uploads' => [
+				'max_upload_size'          => smliser_max_upload_size(),
+				'max_upload_size_readable' => Format::bytes( smliser_max_upload_size() )
+			]
+		];
+	}
 }

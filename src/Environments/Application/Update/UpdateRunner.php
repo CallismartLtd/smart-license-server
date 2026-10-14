@@ -116,10 +116,10 @@ final class UpdateRunner {
 		$prepared = $this->locked( fn() => $this->prepare_and_apply( $package, $reinstall, $trust_unsigned, $progress, $confirm ) );
 
 		if ( ! is_array( $prepared ) ) {
-			return array( 'status' => $prepared );
+			return [ 'status' => $prepared ];
 		}
 
-		return array( 'prepared' => $prepared ) + $this->complete( $progress, $passthrough );
+		return [ 'prepared' => $prepared ] + $this->complete( $progress, $passthrough );
 	}
 
 	/**
@@ -176,7 +176,7 @@ final class UpdateRunner {
 	 */
 	public function complete( ?callable $progress = null, bool $passthrough = false ) : array {
 		if ( Updater::STAGE_SWAPPED !== ( $this->updater->status()['stage'] ?? null ) ) {
-			return array( 'status' => self::FINISHED, 'finish' => array( 'method' => 'none' ) );
+			return [ 'status' => self::FINISHED, 'finish' => [ 'method' => 'none' ] ];
 		}
 
 		$php = PhpCli::find();
@@ -184,7 +184,7 @@ final class UpdateRunner {
 		if ( null === $php ) {
 			$this->report( $progress, 'finish', self::STATUS_WARNING, 'This server cannot start a new PHP process; the update finishes on the next request to the site.' );
 
-			return array( 'status' => self::PENDING, 'finish' => array( 'method' => 'next_boot' ) );
+			return [ 'status' => self::PENDING, 'finish' => [ 'method' => 'next_boot' ] ];
 		}
 
 		$this->report( $progress, 'finish', self::STATUS_INFO, sprintf( 'Finishing with the new version (%s %ssmliser update finish).', $php, $this->root ) );
@@ -195,7 +195,7 @@ final class UpdateRunner {
 		// The process may have failed to start or crashed; the next boot finishes it then.
 		$status = Updater::STAGE_SWAPPED === $stage ? self::PENDING : self::FINISHED;
 
-		return array( 'status' => $status, 'finish' => array( 'method' => 'process' ) + $result );
+		return [ 'status' => $status, 'finish' => [ 'method' => 'process' ] + $result ];
 	}
 
 	/**
@@ -361,11 +361,11 @@ final class UpdateRunner {
 	 * @return array{exit_code: int, output?: string}
 	 */
 	private function run_finish_process( string $php, bool $passthrough ) : array {
-		$command = array( $php, $this->root . 'smliser', 'update', 'finish' );
+		$command = [ $php, $this->root . 'smliser', 'update', 'finish' ];
 
 		$descriptors = $passthrough && defined( 'STDOUT' )
-			? array( 0 => array( 'pipe', 'r' ), 1 => STDOUT, 2 => STDERR )
-			: array( 0 => array( 'pipe', 'r' ), 1 => array( 'pipe', 'w' ), 2 => array( 'redirect', 1 ) );
+			? [ 0 => [ 'pipe', 'r' ], 1 => STDOUT, 2 => STDERR ]
+			: [ 0 => [ 'pipe', 'r' ], 1 => [ 'pipe', 'w' ], 2 => [ 'redirect', 1 ] ];
 
 		try {
 			$process = proc_open( $command, $descriptors, $pipes, $this->root );
@@ -374,7 +374,7 @@ final class UpdateRunner {
 		}
 
 		if ( ! is_resource( $process ) ) {
-			return array( 'exit_code' => -1, 'output' => 'The finish process could not be started.' );
+			return [ 'exit_code' => -1, 'output' => 'The finish process could not be started.' ];
 		}
 
 		isset( $pipes[0] ) && fclose( $pipes[0] );
@@ -393,7 +393,7 @@ final class UpdateRunner {
 
 		$code = proc_close( $process );
 
-		return array( 'exit_code' => $code ) + ( isset( $pipes[1] ) ? array( 'output' => trim( $output ) ) : array() );
+		return [ 'exit_code' => $code ] + ( isset( $pipes[1] ) ? [ 'output' => trim( $output ) ] : [] );
 	}
 
 	/**

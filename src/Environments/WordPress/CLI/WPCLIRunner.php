@@ -78,221 +78,221 @@ use WP_CLI;
  */
 class WPCLIRunner extends AbstractCommandRouter implements RunnerInterface {
 
-    /*
-    |----------------------
-    | CONSTANTS
-    |----------------------
-    */
+	/*
+	|----------------------
+	| CONSTANTS
+	|----------------------
+	*/
 
-    /**
-     * WP-CLI top-level command group.
-     *
-     * @var string
-     */
-    const SMLISER_CLI_NAMESPACE = 'smliser';
+	/**
+	 * WP-CLI top-level command group.
+	 *
+	 * @var string
+	 */
+	const SMLISER_CLI_NAMESPACE = 'smliser';
 
-    /**
-     * Map of WordPress environment types to .env filenames.
-     *
-     * @var array<string, string>
-     */
-    const ENV_FILE_MAP = [
-        'production'  => '.env',
-        'staging'     => '.env.staging',
-        'development' => '.env.development',
-        'local'       => '.env.local',
-    ];
+	/**
+	 * Map of WordPress environment types to .env filenames.
+	 *
+	 * @var array<string, string>
+	 */
+	const ENV_FILE_MAP = [
+		'production'  => '.env',
+		'staging'     => '.env.staging',
+		'development' => '.env.development',
+		'local'       => '.env.local',
+	];
 
-    /*
-    |----------------------
-    | CONSTRUCTOR
-    |----------------------
-    */
+	/*
+	|----------------------
+	| CONSTRUCTOR
+	|----------------------
+	*/
 
-    /**
-     * @param CommandRegistry $registry
-     * @param InputInterface  $io
-     * @param OutputInterface $output
-     * @param OptionParser    $parser Shared with NonInteractiveRunner/InteractiveShell —
-     *                                the same instance/class either way, so
-     *                                option normalization behaves identically
-     *                                regardless of entry point.
-     */
-    public function __construct(
-        CommandRegistry $registry,
-        InputInterface $io,
-        OutputInterface $output,
-        Terminal $terminal,
-        protected OptionParser $parser,
-        protected Guard $guard,
-    ) {
-        parent::__construct(
-            registry: $registry,
-            io: $io,
-            output: $output,
-            terminal: $terminal,
-            script_name: $this->get_script_name(),
-            signal: new SignalManager( $terminal ),
-            guard: $guard
-        );
-    }
+	/**
+	 * @param CommandRegistry $registry
+	 * @param InputInterface  $io
+	 * @param OutputInterface $output
+	 * @param OptionParser    $parser Shared with NonInteractiveRunner/InteractiveShell —
+	 *                                the same instance/class either way, so
+	 *                                option normalization behaves identically
+	 *                                regardless of entry point.
+	 */
+	public function __construct(
+		CommandRegistry $registry,
+		InputInterface $io,
+		OutputInterface $output,
+		Terminal $terminal,
+		protected OptionParser $parser,
+		protected Guard $guard,
+	) {
+		parent::__construct(
+			registry: $registry,
+			io: $io,
+			output: $output,
+			terminal: $terminal,
+			script_name: $this->get_script_name(),
+			signal: new SignalManager( $terminal ),
+			guard: $guard
+		);
+	}
 
-    /*
-    |----------------------
-    | RunnerInterface
-    |----------------------
-    */
+	/*
+	|----------------------
+	| RunnerInterface
+	|----------------------
+	*/
 
-    /**
-     * {@inheritdoc}
-     *
-     * Authenticates once via CLIIdentityProvider, then registers a
-     * single top-level command with WP-CLI. Does nothing if WP-CLI is
-     * not loaded.
-     */
-    public function init(): int {
-        if ( ! $this->is_wpcli() ) {
-            return 1;
-        }
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Authenticates once via CLIIdentityProvider, then registers a
+	 * single top-level command with WP-CLI. Does nothing if WP-CLI is
+	 * not loaded.
+	 */
+	public function init() : int {
+		if ( ! $this->is_wpcli() ) {
+			return 1;
+		}
 
-        $this->load_env();
+		$this->load_env();
 
-        // Registered exactly once — not per-command. WP-CLI dispatches
-        // every `wp smliser ...` invocation to exec_command(), which
-        // resolves the actual subcommand itself via the registry.
-        WP_CLI::add_command(
-            static::SMLISER_CLI_NAMESPACE,
-            [ $this, 'exec_command' ],
-            [ 'before_invoke' => null ]
-        );
+		// Registered exactly once — not per-command. WP-CLI dispatches
+		// every `wp smliser ...` invocation to exec_command(), which
+		// resolves the actual subcommand itself via the registry.
+		WP_CLI::add_command(
+			static::SMLISER_CLI_NAMESPACE,
+			[ $this, 'exec_command' ],
+			[ 'before_invoke' => null ]
+		);
 
-        return 0;
-    }
+		return 0;
+	}
 
-    /*
-    |----------------------
-    | DISPATCH
-    |----------------------
-    */
+	/*
+	|----------------------
+	| DISPATCH
+	|----------------------
+	*/
 
-    /**
-     * Manage Smart License Server from the command-line.
-     *
-     * Bare `wp smliser` or `wp smliser help [command]` print the same
-     * listing NonInteractiveRunner prints for a bare invocation. Anything else
-     * resolves the first token against the command registry and
-     * dispatches through the shared OptionParser -> CommandInput ->
-     * CommandInterface::execute() pipeline.
-     *
-     * ## EXAMPLES
-     *
-     *     wp smliser app list --limit=20 --force
-     *     wp smliser help cache clear
-     *
-     * @param array<int, string>    $args       Positional tokens after `smliser`.
-     * @param array<string, mixed>  $assoc_args Named flags, as split by WP-CLI.
-     * @return void
-     */
-    public function exec_command( array $args, array $assoc_args ): void {
-        
-        if ( empty( $args ) || 'help' === $args[0] ) {
-            $target = $args[1] ?? null;
+	/**
+	 * Manage Smart License Server from the command-line.
+	 *
+	 * Bare `wp smliser` or `wp smliser help [command]` print the same
+	 * listing NonInteractiveRunner prints for a bare invocation. Anything else
+	 * resolves the first token against the command registry and
+	 * dispatches through the shared OptionParser -> CommandInput ->
+	 * CommandInterface::execute() pipeline.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp smliser app list --limit=20 --force
+	 *     wp smliser help cache clear
+	 *
+	 * @param array<int, string>    $args       Positional tokens after `smliser`.
+	 * @param array<string, mixed>  $assoc_args Named flags, as split by WP-CLI.
+	 * @return void
+	 */
+	public function exec_command( array $args, array $assoc_args ) : void {
+		
+		if ( empty( $args ) || 'help' === $args[0] ) {
+			$target = $args[1] ?? null;
 
-            if ( $target && $this->registry->has( $target ) ) {
-                $this->print_command_help( $this->registry->get( $target ) );
-            } else {
-                $this->print_contextual_help();
-            }
+			if ( $target && $this->registry->has( $target ) ) {
+				$this->print_command_help( $this->registry->get( $target ) );
+			} else {
+				$this->print_contextual_help();
+			}
 
-            return;
-        }
+			return;
+		}
 
-        [ $command, $subcommand, $args ] = $this->split_invocation( $args );
+		[ $command, $subcommand, $args ] = $this->split_invocation( $args );
 
-        $parsed  = $this->parser->parse( $this->tokenize( $args, $assoc_args ) );
+		$parsed = $this->parser->parse( $this->tokenize( $args, $assoc_args ) );
 
-        $input   = new CommandInput( $parsed['arguments'], $parsed['options'] );
-        $exit    = $this->route_command( $input, $command, $subcommand );
+		$input = new CommandInput( $parsed['arguments'], $parsed['options'] );
+		$exit  = $this->route_command( $input, $command, $subcommand );
 
-        if ( 0 !== $exit ) {
-            WP_CLI::halt( $exit );
-        }
-    }
+		if ( 0 !== $exit ) {
+			WP_CLI::halt( $exit );
+		}
+	}
 
-    /*
-    |----------------------
-    | PRIVATE HELPERS
-    |----------------------
-    */
+	/*
+	|----------------------
+	| PRIVATE HELPERS
+	|----------------------
+	*/
 
-    /**
-     * Reconstruct raw argv-style tokens from WP-CLI's pre-split arrays
-     * so they can be run through the same OptionParser used by
-     * NonInteractiveRunner and InteractiveShell — one normalization
-     * implementation, not a second one reimplemented for WP-CLI.
-     *
-     * Lossy at the edges described in the class docblock: a repeated
-     * flag has already been collapsed to its last value by the time
-     * $assoc_args reaches this method, and space-separated
-     * "--key value" was never valid syntax through this entry point.
-     *
-     * @param array<int, string>   $positional_args WP-CLI's $args.
-     * @param array<string, mixed> $assoc_args      WP-CLI's $assoc_args.
-     * @return array<int, string> Raw tokens, ready for OptionParser::parse().
-     */
-    private function tokenize( array $positional_args, array $assoc_args ): array {
-        $tokens = $positional_args;
+	/**
+	 * Reconstruct raw argv-style tokens from WP-CLI's pre-split arrays
+	 * so they can be run through the same OptionParser used by
+	 * NonInteractiveRunner and InteractiveShell — one normalization
+	 * implementation, not a second one reimplemented for WP-CLI.
+	 *
+	 * Lossy at the edges described in the class docblock: a repeated
+	 * flag has already been collapsed to its last value by the time
+	 * $assoc_args reaches this method, and space-separated
+	 * "--key value" was never valid syntax through this entry point.
+	 *
+	 * @param array<int, string>   $positional_args WP-CLI's $args.
+	 * @param array<string, mixed> $assoc_args      WP-CLI's $assoc_args.
+	 * @return array<int, string> Raw tokens, ready for OptionParser::parse().
+	 */
+	private function tokenize( array $positional_args, array $assoc_args ) : array {
+		$tokens = $positional_args;
 
-        foreach ( $assoc_args as $key => $value ) {
-            if ( true === $value ) {
-                $tokens[] = "--{$key}";
-                continue;
-            }
+		foreach ( $assoc_args as $key => $value ) {
+			if ( true === $value ) {
+				$tokens[] = "--{$key}";
+				continue;
+			}
 
-            $tokens[] = "--{$key}={$value}";
-        }
+			$tokens[] = "--{$key}={$value}";
+		}
 
-        return $tokens;
-    }
+		return $tokens;
+	}
 
-    /**
-     * Load the correct .env file for the current WordPress environment.
-     *
-     * Resolution order:
-     *   1. Environment-specific file (e.g. .env.development)
-     *   2. Base .env fallback
-     *
-     * @return void
-     */
-    private function load_env(): void {
-        $env_type = function_exists( 'wp_get_environment_type' )
-            ? wp_get_environment_type()
-            : 'production';
+	/**
+	 * Load the correct .env file for the current WordPress environment.
+	 *
+	 * Resolution order:
+	 *   1. Environment-specific file (e.g. .env.development)
+	 *   2. Base .env fallback
+	 *
+	 * @return void
+	 */
+	private function load_env() : void {
+		$env_type = function_exists( 'wp_get_environment_type' )
+			? wp_get_environment_type()
+			: 'production';
 
-        $env_file = static::ENV_FILE_MAP[ $env_type ] ?? '.env';
+		$env_file = static::ENV_FILE_MAP[ $env_type ] ?? '.env';
 
-        ( new DotEnv( SMLISER_ROOT ) )->load( $env_file );
-    }
+		( new DotEnv( SMLISER_ROOT ) )->load( $env_file );
+	}
 
-    /**
-     * Whether WP-CLI is the current runtime.
-     *
-     * @return bool
-     */
-    private function is_wpcli(): bool {
-        return defined( 'WP_CLI' ) && constant( 'WP_CLI' );
-    }
+	/**
+	 * Whether WP-CLI is the current runtime.
+	 *
+	 * @return bool
+	 */
+	private function is_wpcli() : bool {
+		return defined( 'WP_CLI' ) && constant( 'WP_CLI' );
+	}
 
 
-    protected function print_contextual_help(): void {
-        $this->print_global_help();
-    }
+	protected function print_contextual_help() : void {
+		$this->print_global_help();
+	}
 
-    protected function get_script_name() : string {
-        $tokens     = smliser_request()->server()['argv'];
-        $base       = basename( $tokens[0]  ?? 'wp' );
-        $command    = $tokens[1];
-        
-        return "{$base} {$command}";
-    }
+	protected function get_script_name() : string {
+		$tokens  = smliser_request()->server()['argv'];
+		$base    = basename( $tokens[0] ?? 'wp' );
+		$command = $tokens[1];
+		
+		return "{$base} {$command}";
+	}
 }

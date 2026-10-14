@@ -20,17 +20,17 @@
 
 defined( 'SMLISER_ROOT' ) || exit;
 
-$current_tab        = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
-$current_section    = $request->query( 'section', '' );
-$render_roles       = in_array( $current_tab, ['service-accounts', 'users', ], true )
-    || in_array( $current_section, ['add-new-member', 'edit-member'], true );
+$current_tab     = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
+$current_section = $request->query( 'section', '' );
+$render_roles    = in_array( $current_tab, ['service-accounts', 'users', ], true )
+	|| in_array( $current_section, ['add-new-member', 'edit-member'], true );
 
-$render_avatar      = 'owners' !== $current_tab;
+$render_avatar = 'owners' !== $current_tab;
 
-$render_image_only  = in_array( $current_section, ['add-new-member', 'edit-member'], true );
+$render_image_only = in_array( $current_section, ['add-new-member', 'edit-member'], true );
 
 if ( $render_image_only ) {
-    $render_avatar = false;
+	$render_avatar = false;
 }
 
 ?>
@@ -125,7 +125,7 @@ if ( $render_image_only ) {
                             <img
                                 class="smliser-avatar-upload_image-preview avatar-only"
                                 src="<?php echo escUrl( $avatar_url->url() ); ?>"
-                                alt="<?php echo escAttr( 'Current avatar image'  ); ?>"
+                                alt="<?php echo escAttr( 'Current avatar image' ); ?>"
                             >
                         </div>
                     </div>
@@ -160,9 +160,9 @@ if ( $render_image_only ) {
 
                             <div class="smliser-org-member_header">
                                 <img 
-                                    src="<?php 
-                                        echo escUrl( $avatar_manager->url( $member->get_unique_identifier(), $member->get_type() )->url() );
-                                        ?>" 
+                                    src="<?php
+										echo escUrl( $avatar_manager->url( $member->get_unique_identifier(), $member->get_type() )->url() );
+										?>" 
                                     alt="<?php echo escAttr( 'Member avatar' ); ?>" 
                                     width="38" 
                                     height="38"

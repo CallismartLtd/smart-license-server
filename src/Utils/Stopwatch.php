@@ -23,41 +23,41 @@ namespace SmartLicenseServer\Utils;
  */
 class Stopwatch {
 
-    /**
-     * @var float|null
-     */
-    private ?float $started_at = null;
+	/**
+	 * @var float|null
+	 */
+	private ?float $started_at = null;
 
-    /**
-     * Mark the start of a timed operation.
-     *
-     * @return void
-     */
-    public function start(): void {
-        $this->started_at = microtime( true );
-    }
+	/**
+	 * Mark the start of a timed operation.
+	 *
+	 * @return void
+	 */
+	public function start() : void {
+		$this->started_at = microtime( true );
+	}
 
-    /**
-     * Elapsed seconds since start(), rounded to milliseconds.
-     *
-     * Returns 0.0 if start() has not been called.
-     *
-     * @return float
-     */
-    public function elapsed(): float {
-        if ( null === $this->started_at ) {
-            return 0.0;
-        }
+	/**
+	 * Elapsed seconds since start(), rounded to milliseconds.
+	 *
+	 * Returns 0.0 if start() has not been called.
+	 *
+	 * @return float
+	 */
+	public function elapsed() : float {
+		if ( null === $this->started_at ) {
+			return 0.0;
+		}
 
-        return round( microtime( true ) - $this->started_at, 3 );
-    }
+		return round( microtime( true ) - $this->started_at, 3 );
+	}
 
-    /**
-     * Reset timer.
-     * 
-     * @return void
-     */
-    public function reset() : void {
-        $this->started_at = null;
-    }
+	/**
+	 * Reset timer.
+	 * 
+	 * @return void
+	 */
+	public function reset() : void {
+		$this->started_at = null;
+	}
 }

@@ -91,8 +91,8 @@ $assets = $assets_manager->get_email_editor_assets();
                 </span>
 
                 <span class="smliser-editor-badge <?php echo $is_enabled
-                        ? 'smliser-editor-badge--enabled'
-                        : 'smliser-editor-badge--disabled'; ?>"
+						? 'smliser-editor-badge--enabled'
+						: 'smliser-editor-badge--disabled'; ?>"
                       id="smliser-status-badge">
                     <span class="smliser-editor-badge__dot"></span>
                     <span id="smliser-status-label">

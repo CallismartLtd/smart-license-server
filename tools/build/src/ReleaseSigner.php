@@ -49,7 +49,7 @@ final class ReleaseSigner {
 	 * @return void
 	 * @throws BuildException When the key cannot be used, or the file cannot be read or the signature written.
 	 */
-	public function sign( string $path ): void {
+	public function sign( string $path ) : void {
 		if ( null === $this->context->sign_key ) {
 			$this->console->warn( 'Unsigned build (--allow-unsigned): installations will refuse it. Do not publish it.' );
 			return;
@@ -84,7 +84,7 @@ final class ReleaseSigner {
 	 * @return string
 	 * @throws BuildException When the file is missing or does not hold a key.
 	 */
-	public static function public_key( string $path ): string {
+	public static function public_key( string $path ) : string {
 		self::require_sodium();
 
 		$secret = self::read_key( $path );
@@ -102,7 +102,7 @@ final class ReleaseSigner {
 	 * @return string The base64 public key, for ReleaseSignature::PUBLIC_KEYS.
 	 * @throws BuildException When the file exists or cannot be written.
 	 */
-	public static function generate_key( string $path ): string {
+	public static function generate_key( string $path ) : string {
 		self::require_sodium();
 
 		if ( file_exists( $path ) ) {
@@ -134,7 +134,7 @@ final class ReleaseSigner {
 	 * @return string The 64-byte secret key.
 	 * @throws BuildException When the file is missing or does not hold a key.
 	 */
-	private static function read_key( string $path ): string {
+	private static function read_key( string $path ) : string {
 		$contents = is_file( $path ) ? file_get_contents( $path ) : false;
 
 		if ( false === $contents ) {
@@ -156,7 +156,7 @@ final class ReleaseSigner {
 	 * @return void
 	 * @throws BuildException When sodium is unavailable.
 	 */
-	private static function require_sodium(): void {
+	private static function require_sodium() : void {
 		if ( ! function_exists( 'sodium_crypto_sign_detached' ) ) {
 			throw new BuildException( 'Signing needs the sodium extension.' );
 		}

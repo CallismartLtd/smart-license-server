@@ -15,278 +15,278 @@ namespace SmartLicenseServer\Security\Permission;
 
 final class DefaultRoles {
 
-    /**
-     * System default role definitions.
-     *
-     * @var array<string, array{
-     *     label: string,
-     *     is_canonical: bool,
-     *     slug: string,
-     *     capabilities: string[]|callable(): string[]
-     * }>
-     */
-    protected static array $roles = [
+	/**
+	 * System default role definitions.
+	 *
+	 * @var array<string, array{
+	 *     label: string,
+	 *     is_canonical: bool,
+	 *     slug: string,
+	 *     capabilities: string[]|callable(): string[]
+	 * }>
+	 */
+	protected static array $roles = [
 
-        /**
-         * System Administrator.
-         *
-         * Full unrestricted access.
-         * Automatically inherits ALL registered capabilities.
-         */
-        'system_admin' => [
-            'label'        => 'System Administrator',
-            'is_canonical' => true,
-            'slug'         => 'system_admin',
-            'capabilities' => [ self::class, 'all_capabilities' ],
-        ],
+		/**
+		 * System Administrator.
+		 *
+		 * Full unrestricted access.
+		 * Automatically inherits ALL registered capabilities.
+		 */
+		'system_admin' => [
+			'label'        => 'System Administrator',
+			'is_canonical' => true,
+			'slug'         => 'system_admin',
+			'capabilities' => [ self::class, 'all_capabilities' ],
+		],
 
-        /**
-         * Resource Owner.
-         *
-         * Owns hosted applications.
-         */
-        'resource_owner' => [
-            'label'        => 'Resource Owner',
-            'is_canonical' => true,
-            'slug'         => 'resource_owner',
-            'capabilities' => [
-                // Hosted applications.
-                'hosted_apps.create',
-                'hosted_apps.update',
-                'hosted_apps.delete',
-                'hosted_apps.change_status',
-                'hosted_apps.upload_assets',
-                'hosted_apps.edit_assets',
-                'hosted_apps.delete_assets',
-                'hosted_apps.access_files',
+		/**
+		 * Resource Owner.
+		 *
+		 * Owns hosted applications.
+		 */
+		'resource_owner' => [
+			'label'        => 'Resource Owner',
+			'is_canonical' => true,
+			'slug'         => 'resource_owner',
+			'capabilities' => [
+				// Hosted applications.
+				'hosted_apps.create',
+				'hosted_apps.update',
+				'hosted_apps.delete',
+				'hosted_apps.change_status',
+				'hosted_apps.upload_assets',
+				'hosted_apps.edit_assets',
+				'hosted_apps.delete_assets',
+				'hosted_apps.access_files',
 
-                // Monetization.
-                'monetization.pricing.create',
-                'monetization.pricing.update',
-                'monetization.pricing.delete',
+				// Monetization.
+				'monetization.pricing.create',
+				'monetization.pricing.update',
+				'monetization.pricing.delete',
 
-                'monetization.license.create',
-                'monetization.license.update',
-                'monetization.license.revoke',
-                'monetization.license.issue',
-                'monetization.license.delete',
+				'monetization.license.create',
+				'monetization.license.update',
+				'monetization.license.revoke',
+				'monetization.license.issue',
+				'monetization.license.delete',
 
-                // Visibility.
-                'repository.view',
-                'repository.download',
-                'analytics.view',
+				// Visibility.
+				'repository.view',
+				'repository.download',
+				'analytics.view',
 
-                // Security.
-                'security.organization.create',
-                'security.organization.update',
-                'security.organization.delete',
-                'security.organization.view',
+				// Security.
+				'security.organization.create',
+				'security.organization.update',
+				'security.organization.delete',
+				'security.organization.view',
 
-                'security.service_account.create',
-                'security.service_account.update',
-                'security.service_account.delete',
-                'security.service_account.view',
+				'security.service_account.create',
+				'security.service_account.update',
+				'security.service_account.delete',
+				'security.service_account.view',
 
-                'security.user.invite',
-            ],
-        ],
+				'security.user.invite',
+			],
+		],
 
-        /**
-         * Resource Administrator.
-         *
-         * Manages applications, monetization, and visibility layers.
-         */
-        'resource_admin' => [
-            'label'        => 'Resource Administrator',
-            'is_canonical' => true,
-            'slug'         => 'resource_admin',
-            'capabilities' => [
-                // Hosted applications
-                'hosted_apps.create',
-                'hosted_apps.update',
-                'hosted_apps.delete',
-                'hosted_apps.change_status',
-                'hosted_apps.upload_assets',
-                'hosted_apps.access_files',
+		/**
+		 * Resource Administrator.
+		 *
+		 * Manages applications, monetization, and visibility layers.
+		 */
+		'resource_admin' => [
+			'label'        => 'Resource Administrator',
+			'is_canonical' => true,
+			'slug'         => 'resource_admin',
+			'capabilities' => [
+				// Hosted applications
+				'hosted_apps.create',
+				'hosted_apps.update',
+				'hosted_apps.delete',
+				'hosted_apps.change_status',
+				'hosted_apps.upload_assets',
+				'hosted_apps.access_files',
 
-                // Monetization
-                'monetization.pricing.create',
-                'monetization.pricing.update',
-                'monetization.pricing.delete',
+				// Monetization
+				'monetization.pricing.create',
+				'monetization.pricing.update',
+				'monetization.pricing.delete',
 
-                'monetization.license.create',
-                'monetization.license.update',
-                'monetization.license.revoke',
-                'monetization.license.issue',
-                'monetization.license.delete',
+				'monetization.license.create',
+				'monetization.license.update',
+				'monetization.license.revoke',
+				'monetization.license.issue',
+				'monetization.license.delete',
 
-                // Visibility
-                'repository.view',
-                'repository.download',
-                'analytics.view',
-            ],
-        ],
+				// Visibility
+				'repository.view',
+				'repository.download',
+				'analytics.view',
+			],
+		],
 
-        /**
-         * Security Administrator.
-         *
-         * Identity, access control, and role management.
-         */
-        'security_admin' => [
-            'label'        => 'Security Administrator',
-            'is_canonical' => true,
-            'slug'         => 'security_admin',
-            'capabilities' => [
-                'security.owner.create',
-                'security.organization.create',
-                'security.user.create',
-                'security.service_account.create',
+		/**
+		 * Security Administrator.
+		 *
+		 * Identity, access control, and role management.
+		 */
+		'security_admin' => [
+			'label'        => 'Security Administrator',
+			'is_canonical' => true,
+			'slug'         => 'security_admin',
+			'capabilities' => [
+				'security.owner.create',
+				'security.organization.create',
+				'security.user.create',
+				'security.service_account.create',
 
-                'security.role.create',
-                'security.role.update',
-                'security.role.delete',
+				'security.role.create',
+				'security.role.update',
+				'security.role.delete',
 
-                'security.capability.assign',
-            ],
-        ],
+				'security.capability.assign',
+			],
+		],
 
-        /**
-         * Application Manager.
-         */
-        'app_manager' => [
-            'label'        => 'Application Manager',
-            'is_canonical' => true,
-            'slug'         => 'app_manager',
-            'capabilities' => [
-                'hosted_apps.create',
-                'hosted_apps.update',
-                'hosted_apps.upload_assets',
-                'hosted_apps.change_status',
-            ],
-        ],
+		/**
+		 * Application Manager.
+		 */
+		'app_manager' => [
+			'label'        => 'Application Manager',
+			'is_canonical' => true,
+			'slug'         => 'app_manager',
+			'capabilities' => [
+				'hosted_apps.create',
+				'hosted_apps.update',
+				'hosted_apps.upload_assets',
+				'hosted_apps.change_status',
+			],
+		],
 
-        /**
-         * License & Pricing Manager.
-         */
-        'license_manager' => [
-            'label'        => 'License Manager',
-            'is_canonical' => true,
-            'slug'         => 'license_manager',
-            'capabilities' => [
-                'monetization.pricing.create',
-                'monetization.pricing.update',
+		/**
+		 * License & Pricing Manager.
+		 */
+		'license_manager' => [
+			'label'        => 'License Manager',
+			'is_canonical' => true,
+			'slug'         => 'license_manager',
+			'capabilities' => [
+				'monetization.pricing.create',
+				'monetization.pricing.update',
 
-                'monetization.license.create',
-                'monetization.license.update',
-                'monetization.license.issue',
-                'monetization.license.revoke',
-                'monetization.license.deactivate',
-            ],
-        ],
+				'monetization.license.create',
+				'monetization.license.update',
+				'monetization.license.issue',
+				'monetization.license.revoke',
+				'monetization.license.deactivate',
+			],
+		],
 
-        /**
-         * Analyst.
-         */
-        'analyst' => [
-            'label'        => 'Analyst',
-            'is_canonical' => true,
-            'slug'         => 'analyst',
-            'capabilities' => [
-                'analytics.view',
-            ],
-        ],
+		/**
+		 * Analyst.
+		 */
+		'analyst' => [
+			'label'        => 'Analyst',
+			'is_canonical' => true,
+			'slug'         => 'analyst',
+			'capabilities' => [
+				'analytics.view',
+			],
+		],
 
-        /**
-         * Viewer.
-         */
-        'viewer' => [
-            'label'        => 'Viewer',
-            'is_canonical' => true,
-            'slug'         => 'viewer',
-            'capabilities' => [
-                'repository.view',
-                'repository.download',
-            ],
-        ],
-    ];
+		/**
+		 * Viewer.
+		 */
+		'viewer' => [
+			'label'        => 'Viewer',
+			'is_canonical' => true,
+			'slug'         => 'viewer',
+			'capabilities' => [
+				'repository.view',
+				'repository.download',
+			],
+		],
+	];
 
-    /**
-     * Prevent instantiation.
-     */
-    private function __construct() {}
+	/**
+	 * Prevent instantiation.
+	 */
+	private function __construct() {}
 
-    /**
-     * Get all default role definitions.
-     *
-     * @return array<string, array{
-     *      label: string, 
-     *      is_canonical: bool,
-     *      slug: string,
-     *      capabilities: string[]
-     * }>
-     */
-    public static function all(): array {
-        $roles = [];
+	/**
+	 * Get all default role definitions.
+	 *
+	 * @return array<string, array{
+	 *      label: string, 
+	 *      is_canonical: bool,
+	 *      slug: string,
+	 *      capabilities: string[]
+	 * }>
+	 */
+	public static function all() : array {
+		$roles = [];
 
-        foreach ( static::$roles as $key => $role ) {
-            $roles[ $key ] = [
-                'label'        => $role['label'],
-                'is_canonical' => $role['is_canonical'],
-                'slug'         => $role['slug'],
-                'capabilities' => static::resolve_capabilities( $role['capabilities'] ),
-            ];
-        }
+		foreach ( static::$roles as $key => $role ) {
+			$roles[ $key ] = [
+				'label'        => $role['label'],
+				'is_canonical' => $role['is_canonical'],
+				'slug'         => $role['slug'],
+				'capabilities' => static::resolve_capabilities( $role['capabilities'] ),
+			];
+		}
 
-        return $roles;
-    }
+		return $roles;
+	}
 
-    /**
-     * Resolve role capabilities.
-     *
-     * @param string[]|callable(): string[] $caps
-     * @return string[]
-     */
-    protected static function resolve_capabilities( mixed $caps ): array {
-        return is_callable( $caps ) ? (array) call_user_func( $caps ) : (array) $caps;
-    }
+	/**
+	 * Resolve role capabilities.
+	 *
+	 * @param string[]|callable(): string[] $caps
+	 * @return string[]
+	 */
+	protected static function resolve_capabilities( mixed $caps ) : array {
+		return is_callable( $caps ) ? (array) call_user_func( $caps ) : (array) $caps;
+	}
 
-    /**
-     * Get all registered capabilities.
-     *
-     * Used by the highest-privilege role.
-     *
-     * @return string[]
-     */
-    protected static function all_capabilities(): array {
-        return array_keys( Capability::all() );
-    }
+	/**
+	 * Get all registered capabilities.
+	 *
+	 * Used by the highest-privilege role.
+	 *
+	 * @return string[]
+	 */
+	protected static function all_capabilities() : array {
+		return array_keys( Capability::all() );
+	}
 
-    /**
-     * Check if a default role exists.
-     */
-    public static function exists( string $name ): bool {
-        return isset( static::$roles[ $name ] );
-    }
+	/**
+	 * Check if a default role exists.
+	 */
+	public static function exists( string $name ) : bool {
+		return isset( static::$roles[ $name ] );
+	}
 
-    /**
-     * Retrieve a default role definition.
-     *
-     * @param string $name
-     * @return array{
-     *      label: string, 
-     *      is_canonical: bool,
-     *      slug: string,
-     *      capabilities: string[]
-     * }
-     * @throws \InvalidArgumentException
-     */
-    public static function get( string $name ): array {
-        if ( ! static::exists( $name ) ) {
-            throw new \InvalidArgumentException(
-                sprintf( 'Unknown default role "%s".', $name )
-            );
-        }
+	/**
+	 * Retrieve a default role definition.
+	 *
+	 * @param string $name
+	 * @return array{
+	 *      label: string, 
+	 *      is_canonical: bool,
+	 *      slug: string,
+	 *      capabilities: string[]
+	 * }
+	 * @throws \InvalidArgumentException
+	 */
+	public static function get( string $name ) : array {
+		if ( ! static::exists( $name ) ) {
+			throw new \InvalidArgumentException(
+				sprintf( 'Unknown default role "%s".', $name )
+			);
+		}
 
-        return static::all()[ $name ];
-    }
+		return static::all()[ $name ];
+	}
 }

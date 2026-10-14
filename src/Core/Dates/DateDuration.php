@@ -35,7 +35,7 @@ class DateDuration {
 	 * Initialize unit conversion factors once.
 	 * This approach avoids hardcoding and allows future extensibility.
 	 */
-	private static function initializeUnits( ) : void {
+	private static function initializeUnits() : void {
 		if ( self::$unitsInitialized ) {
 			return;
 		}
@@ -54,20 +54,20 @@ class DateDuration {
 		// Aliases for convenience
 		self::$units['microseconds'] = self::$units['microsecond'];
 		self::$units['milliseconds'] = self::$units['millisecond'];
-		self::$units['seconds'] = self::$units['second'];
-		self::$units['minutes'] = self::$units['minute'];
-		self::$units['hours'] = self::$units['hour'];
-		self::$units['days'] = self::$units['day'];
-		self::$units['weeks'] = self::$units['week'];
+		self::$units['seconds']      = self::$units['second'];
+		self::$units['minutes']      = self::$units['minute'];
+		self::$units['hours']        = self::$units['hour'];
+		self::$units['days']         = self::$units['day'];
+		self::$units['weeks']        = self::$units['week'];
 
 		// Abbreviated forms
 		self::$units['μs'] = self::$units['microsecond'];
 		self::$units['ms'] = self::$units['millisecond'];
-		self::$units['s'] = self::$units['second'];
-		self::$units['m'] = self::$units['minute'];
-		self::$units['h'] = self::$units['hour'];
-		self::$units['d'] = self::$units['day'];
-		self::$units['w'] = self::$units['week'];
+		self::$units['s']  = self::$units['second'];
+		self::$units['m']  = self::$units['minute'];
+		self::$units['h']  = self::$units['hour'];
+		self::$units['d']  = self::$units['day'];
+		self::$units['w']  = self::$units['week'];
 
 		self::$unitsInitialized = true;
 	}
@@ -78,8 +78,8 @@ class DateDuration {
 	 * @param float $seconds
 	 */
 	private function __construct( float $seconds = 0 ) {
-		self::initializeUnits( );
-		$this->seconds = ( float ) $seconds;
+		self::initializeUnits();
+		$this->seconds = (float) $seconds;
 	}
 
 	/**
@@ -99,7 +99,7 @@ class DateDuration {
 	 * @return self
 	 */
 	public static function fromMinutes( float $value ) : self {
-		self::initializeUnits( );
+		self::initializeUnits();
 		return new self( $value * self::$units['minute'] );
 	}
 
@@ -110,7 +110,7 @@ class DateDuration {
 	 * @return self
 	 */
 	public static function fromHours( float $value ) : self {
-		self::initializeUnits( );
+		self::initializeUnits();
 		return new self( $value * self::$units['hour'] );
 	}
 
@@ -121,7 +121,7 @@ class DateDuration {
 	 * @return self
 	 */
 	public static function fromDays( float $value ) : self {
-		self::initializeUnits( );
+		self::initializeUnits();
 		return new self( $value * self::$units['day'] );
 	}
 
@@ -132,7 +132,7 @@ class DateDuration {
 	 * @return self
 	 */
 	public static function fromWeeks( float $value ) : self {
-		self::initializeUnits( );
+		self::initializeUnits();
 		return new self( $value * self::$units['week'] );
 	}
 
@@ -143,7 +143,7 @@ class DateDuration {
 	 * @return self
 	 */
 	public static function fromMilliseconds( float $value ) : self {
-		self::initializeUnits( );
+		self::initializeUnits();
 		return new self( $value * self::$units['millisecond'] );
 	}
 
@@ -154,7 +154,7 @@ class DateDuration {
 	 * @return self
 	 */
 	public static function fromMicroseconds( float $value ) : self {
-		self::initializeUnits( );
+		self::initializeUnits();
 		return new self( $value * self::$units['microsecond'] );
 	}
 
@@ -167,7 +167,7 @@ class DateDuration {
 	 * @throws InvalidArgumentException
 	 */
 	public static function from( string $value, string $unit ) : self {
-		self::initializeUnits( );
+		self::initializeUnits();
 
 		$unit = strtolower( trim( $unit ) );
 
@@ -177,7 +177,7 @@ class DateDuration {
 			);
 		}
 
-		$numericValue = ( float ) $value;
+		$numericValue = (float) $value;
 
 		return new self( $numericValue * self::$units[ $unit ] );
 	}
@@ -191,7 +191,7 @@ class DateDuration {
 	 * @throws InvalidArgumentException
 	 */
 	public function add( float $value, string $unit ) : self {
-		self::initializeUnits( );
+		self::initializeUnits();
 
 		$unit = strtolower( trim( $unit ) );
 
@@ -274,7 +274,7 @@ class DateDuration {
 	 *
 	 * @return float
 	 */
-	public function toSeconds( ) : float {
+	public function toSeconds() : float {
 		return $this->seconds;
 	}
 
@@ -283,8 +283,8 @@ class DateDuration {
 	 *
 	 * @return float
 	 */
-	public function toMinutes( ) : float {
-		self::initializeUnits( );
+	public function toMinutes() : float {
+		self::initializeUnits();
 		return $this->seconds / self::$units['minute'];
 	}
 
@@ -293,8 +293,8 @@ class DateDuration {
 	 *
 	 * @return float
 	 */
-	public function toHours( ) : float {
-		self::initializeUnits( );
+	public function toHours() : float {
+		self::initializeUnits();
 		return $this->seconds / self::$units['hour'];
 	}
 
@@ -303,8 +303,8 @@ class DateDuration {
 	 *
 	 * @return float
 	 */
-	public function toDays( ) : float {
-		self::initializeUnits( );
+	public function toDays() : float {
+		self::initializeUnits();
 		return $this->seconds / self::$units['day'];
 	}
 
@@ -313,8 +313,8 @@ class DateDuration {
 	 *
 	 * @return float
 	 */
-	public function toWeeks( ) : float {
-		self::initializeUnits( );
+	public function toWeeks() : float {
+		self::initializeUnits();
 		return $this->seconds / self::$units['week'];
 	}
 
@@ -323,8 +323,8 @@ class DateDuration {
 	 *
 	 * @return float
 	 */
-	public function toMilliseconds( ) : float {
-		self::initializeUnits( );
+	public function toMilliseconds() : float {
+		self::initializeUnits();
 		return $this->seconds / self::$units['millisecond'];
 	}
 
@@ -336,7 +336,7 @@ class DateDuration {
 	 * @throws InvalidArgumentException
 	 */
 	public function to( string $unit ) : float {
-		self::initializeUnits( );
+		self::initializeUnits();
 
 		$unit = strtolower( trim( $unit ) );
 
@@ -355,21 +355,21 @@ class DateDuration {
 	 *
 	 * @return array<string, int>
 	 */
-	public function breakdown( ) : array {
-		self::initializeUnits( );
+	public function breakdown() : array {
+		self::initializeUnits();
 
-		$remaining = ( int ) $this->seconds;
+		$remaining = (int) $this->seconds;
 
-		$days = ( int ) floor( $remaining / self::$units['day'] );
+		$days = (int) floor( $remaining / self::$units['day'] );
 		$remaining -= $days * self::$units['day'];
 
-		$hours = ( int ) floor( $remaining / self::$units['hour'] );
+		$hours = (int) floor( $remaining / self::$units['hour'] );
 		$remaining -= $hours * self::$units['hour'];
 
-		$minutes = ( int ) floor( $remaining / self::$units['minute'] );
+		$minutes = (int) floor( $remaining / self::$units['minute'] );
 		$remaining -= $minutes * self::$units['minute'];
 
-		$seconds = ( int ) $remaining;
+		$seconds = (int) $remaining;
 
 		return [
 			'days'    => $days,
@@ -386,13 +386,13 @@ class DateDuration {
 	 * @return string
 	 */
 	public function format( bool $includeZero = false ) : string {
-		$breakdown = $this->breakdown( );
-		$parts = [];
+		$breakdown = $this->breakdown();
+		$parts     = [];
 
 		foreach ( $breakdown as $unit => $value ) {
 			if ( $value > 0 || $includeZero ) {
 				$shortUnit = substr( $unit, 0, 1 );
-				$parts[] = "{$value}{$shortUnit}";
+				$parts[]   = "{$value}{$shortUnit}";
 			}
 		}
 
@@ -404,15 +404,15 @@ class DateDuration {
 	 *
 	 * @return string
 	 */
-	public function formatDetailed( ) : string {
-		$breakdown = $this->breakdown( );
-		$parts = [];
+	public function formatDetailed() : string {
+		$breakdown = $this->breakdown();
+		$parts     = [];
 
 		foreach ( $breakdown as $unit => $value ) {
 			if ( $value > 0 ) {
 				$singular = rtrim( $unit, 's' );
-				$label = $value === 1 ? $singular : $unit;
-				$parts[] = "{$value} {$label}";
+				$label    = 1 === $value ? $singular : $unit;
+				$parts[]  = "{$value} {$label}";
 			}
 		}
 
@@ -499,8 +499,8 @@ class DateDuration {
 	 *
 	 * @return array<string, float>
 	 */
-	public static function getSupportedUnits( ) : array {
-		self::initializeUnits( );
+	public static function getSupportedUnits() : array {
+		self::initializeUnits();
 		return self::$units;
 	}
 
@@ -509,7 +509,7 @@ class DateDuration {
 	 *
 	 * @return string
 	 */
-	public function __toString( ) : string {
-		return $this->format( );
+	public function __toString() : string {
+		return $this->format();
 	}
 }

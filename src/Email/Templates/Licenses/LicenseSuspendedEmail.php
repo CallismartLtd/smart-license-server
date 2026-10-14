@@ -18,50 +18,50 @@ use SmartLicenseServer\Monetization\License;
 
 class LicenseSuspendedEmail extends EmailTemplate {
 
-    /**
-     * @param License     $license The suspended license.
-     * @param string      $to      Recipient email address.
-     * @param string|null $reason  Optional reason for suspension.
-     */
-    public function __construct(
-        private readonly License  $license,
-        private readonly string   $to,
-        private readonly ?string  $reason = null
-    ) {}
+	/**
+	 * @param License     $license The suspended license.
+	 * @param string      $to      Recipient email address.
+	 * @param string|null $reason  Optional reason for suspension.
+	 */
+	public function __construct(
+		private readonly License  $license,
+		private readonly string   $to,
+		private readonly ?string  $reason = null
+	) {}
 
-    static public function template_key(): string {
-        return 'license_suspended';
-    }
+	static public function template_key() : string {
+		return 'license_suspended';
+	}
 
-    protected function subject(): string {
-        return 'Your License Has Been Suspended';
-    }
+	protected function subject() : string {
+		return 'Your License Has Been Suspended';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return 'Your license has been suspended. Please contact support for more information.';
-    }
+	protected function preheader() : string {
+		return 'Your license has been suspended. Please contact support for more information.';
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{licensee_name}}' => $this->license->get_licensee_fullname(),
-            '{{license_key}}'   => $this->license->get_license_key(),
-            '{{reason}}'        => $this->reason ?? 'No reason provided.',
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{licensee_name}}' => $this->license->get_licensee_fullname(),
+			'{{license_key}}'   => $this->license->get_license_key(),
+			'{{reason}}'        => $this->reason ?? 'No reason provided.',
+		] );
+	}
 
-    protected function body(): string {
-        $vars = $this->variables();
+	protected function body() : string {
+		$vars = $this->variables();
 
-        $licensee_name = \escHtml( $vars['{{licensee_name}}']  );
-        $license_key   = \escHtml( $vars['{{license_key}}'] );
-        $reason        = \escHtml( $vars['{{reason}}'] );
-        $support       = \escHtml( $vars['{{support_email}}'] );
+		$licensee_name = \escHtml( $vars['{{licensee_name}}'] );
+		$license_key   = \escHtml( $vars['{{license_key}}'] );
+		$reason        = \escHtml( $vars['{{reason}}'] );
+		$support       = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$licensee_name},
         </p>
@@ -121,56 +121,56 @@ class LicenseSuspendedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'License Suspended';
-    }
-    public function description(): string {
-        return 'Sent when a license is suspended by an administrator.';
-    }
-    public static function preview(): static {
-        $license = License::from_array([
-            'licensee_fullname' => 'Jane Doe',
-            'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
-        ]);
-        return new static( $license, 'preview@example.com', 'Suspicious activity detected.' );
-    }
+	public function label() : string {
+		return 'License Suspended';
+	}
+	public function description() : string {
+		return 'Sent when a license is suspended by an administrator.';
+	}
+	public static function preview() : static {
+		$license = License::from_array( [
+			'licensee_fullname' => 'Jane Doe',
+			'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
+		] );
+		return new static( $license, 'preview@example.com', 'Suspicious activity detected.' );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{licensee_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'error',
-                'content'   => 'Your license has been suspended and is currently inactive. Please contact support to resolve this.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'License Key', 'value' => '{{license_key}}' ],
-                    [ 'label' => 'Reason',      'value' => '{{reason}}' ],
-                ],
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you believe this suspension was made in error or need further assistance, please contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{licensee_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'error',
+				'content'   => 'Your license has been suspended and is currently inactive. Please contact support to resolve this.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'License Key', 'value' => '{{license_key}}' ],
+					[ 'label' => 'Reason',      'value' => '{{reason}}' ],
+				],
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you believe this suspension was made in error or need further assistance, please contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

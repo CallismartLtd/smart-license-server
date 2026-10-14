@@ -65,21 +65,21 @@ final class Updater {
 	 *
 	 * @var string[]
 	 */
-	public const OWNED_DIRS = array( 'system', 'server' );
+	public const OWNED_DIRS = [ 'system', 'server' ];
 
 	/**
 	 * Root files that belong to the installation, never replaced.
 	 *
 	 * @var string[]
 	 */
-	public const PROTECTED_FILES = array( '.env', '.htaccess' );
+	public const PROTECTED_FILES = [ '.env', '.htaccess' ];
 
 	/**
 	 * Files outside the root an update may replace.
 	 *
 	 * @var string[]
 	 */
-	public const PUBLIC_FILES = array( 'public/index.php' );
+	public const PUBLIC_FILES = [ 'public/index.php' ];
 
 	/**
 	 * Journal stages.
@@ -216,7 +216,7 @@ final class Updater {
 	 * @return void
 	 * @throws UpdateException When the swap fails (after restoring).
 	 */
-	public function apply( ReleaseManifest $manifest, array $package = array(), ?callable $progress = null ) : void {
+	public function apply( ReleaseManifest $manifest, array $package = [], ?callable $progress = null ) : void {
 		$this->assert_idle();
 
 		$staged = $this->staged_root();
@@ -225,17 +225,17 @@ final class Updater {
 		$this->remove( $backup );
 		$this->make_dir( $backup );
 
-		$journal = array(
+		$journal = [
 			'from'          => \SMLISER_VER,
 			'to'            => $manifest->version,
 			'stage'         => self::STAGE_APPLYING,
 			'started_at'    => gmdate( DATE_ATOM ),
 			'previous_flag' => $this->flag->read(),
-			'package'       => array_intersect_key( $package, array_flip( array( 'source', 'sha256', 'signed_by' ) ) ),
-			'dirs'          => array(),
-			'replaced'      => array(),
-			'added'         => array(),
-		);
+			'package'       => array_intersect_key( $package, array_flip( [ 'source', 'sha256', 'signed_by' ] ) ),
+			'dirs'          => [],
+			'replaced'      => [],
+			'added'         => [],
+		];
 
 		$this->flag->write(
 			MaintenanceFlag::REASON_UPDATE,
@@ -256,7 +256,7 @@ final class Updater {
 				$live     = $this->root . $dir;
 				$had_live = $this->fs->is_dir( $live );
 
-				$journal['dirs'][] = array( 'dir' => $dir, 'had_live' => $had_live );
+				$journal['dirs'][] = [ 'dir' => $dir, 'had_live' => $had_live ];
 				$this->write_journal( $journal );
 
 				if ( $had_live ) {
@@ -375,7 +375,7 @@ final class Updater {
 			}
 		}
 
-		$this->state->mark_installed( array( 'app' => \SMLISER_VER, 'schema' => $schema_to ) );
+		$this->state->mark_installed( [ 'app' => \SMLISER_VER, 'schema' => $schema_to ] );
 
 		$journal['stage']          = self::STAGE_FINISHED;
 		$journal['finished_at']    = gmdate( DATE_ATOM );
@@ -387,12 +387,12 @@ final class Updater {
 
 		$this->report( $progress, 'finish', self::STATUS_OK, sprintf( 'Recorded version %s (schema %s); maintenance mode is off.', \SMLISER_VER, $schema_to ) );
 
-		return array(
+		return [
 			'from'           => (string) $journal['from'],
 			'to'             => (string) $journal['to'],
 			'schema_changed' => $changed,
-			'package'        => is_array( $journal['package'] ?? null ) ? $journal['package'] : array(),
-		);
+			'package'        => is_array( $journal['package'] ?? null ) ? $journal['package'] : [],
+		];
 	}
 
 	/*
@@ -416,7 +416,7 @@ final class Updater {
 		$journal = $this->read_journal();
 		$stage   = $journal['stage'] ?? null;
 
-		if ( null === $journal || ! in_array( $stage, array( self::STAGE_APPLYING, self::STAGE_SWAPPED, self::STAGE_FINISHED ), true ) ) {
+		if ( null === $journal || ! in_array( $stage, [ self::STAGE_APPLYING, self::STAGE_SWAPPED, self::STAGE_FINISHED ], true ) ) {
 			throw new UpdateException( 'There is no update to roll back.' );
 		}
 
@@ -439,7 +439,7 @@ final class Updater {
 			$state  = $this->state->read();
 			$schema = is_array( $state ) ? (string) ( $state['versions']['schema'] ?? \SMLISER_DB_VER ) : \SMLISER_DB_VER;
 
-			$this->state->mark_installed( array( 'app' => (string) $journal['from'], 'schema' => $schema ) );
+			$this->state->mark_installed( [ 'app' => (string) $journal['from'], 'schema' => $schema ] );
 		}
 
 		$this->report( $progress, 'rollback', self::STATUS_OK, sprintf( 'Version %s is back in place.', $journal['from'] ) );
@@ -506,19 +506,19 @@ final class Updater {
 		$backup = $this->path( 'backup' );
 		$failed = $this->path( 'failed' );
 
-		foreach ( array_reverse( $journal['added'] ?? array() ) as $relative ) {
+		foreach ( array_reverse( $journal['added'] ?? [] ) as $relative ) {
 			if ( $this->fs->is_file( $this->root . $relative ) ) {
 				$this->fs->delete( $this->root . $relative );
 			}
 		}
 
-		foreach ( array_reverse( $journal['replaced'] ?? array() ) as $relative ) {
+		foreach ( array_reverse( $journal['replaced'] ?? [] ) as $relative ) {
 			if ( $this->fs->is_file( $backup . '/' . $relative ) ) {
 				$this->rename( $backup . '/' . $relative, $this->root . $relative );
 			}
 		}
 
-		foreach ( array_reverse( $journal['dirs'] ?? array() ) as $entry ) {
+		foreach ( array_reverse( $journal['dirs'] ?? [] ) as $entry ) {
 			$live = $this->root . $entry['dir'];
 
 			if ( $this->fs->is_dir( $backup . '/' . $entry['dir'] ) || ! $entry['had_live'] ) {
@@ -570,7 +570,7 @@ final class Updater {
 	 * @return string[] Relative paths.
 	 */
 	private function root_files( ReleaseManifest $manifest ) : array {
-		$files = array();
+		$files = [];
 
 		foreach ( array_keys( $manifest->files ) as $relative ) {
 			$top_level = ! str_contains( $relative, '/' );
@@ -600,7 +600,7 @@ final class Updater {
 		}
 
 		$missing = array_filter(
-			(array) ( $requires['extensions'] ?? array() ),
+			(array) ( $requires['extensions'] ?? [] ),
 			static fn( $extension ) : bool => is_string( $extension ) && ! extension_loaded( $extension )
 		);
 
@@ -620,10 +620,10 @@ final class Updater {
 	 * @return bool|null Null when the constraint cannot be read (treated as met).
 	 */
 	public static function php_satisfies( string $constraint, string $version ) : ?bool {
-		foreach ( preg_split( '/\s*\|\|?\s*/', trim( $constraint ) ) ?: array() as $alternative ) {
+		foreach ( preg_split( '/\s*\|\|?\s*/', trim( $constraint ) ) ?: [] as $alternative ) {
 			$all = true;
 
-			foreach ( preg_split( '/[\s,]+/', trim( $alternative ) ) ?: array() as $condition ) {
+			foreach ( preg_split( '/[\s,]+/', trim( $alternative ) ) ?: [] as $condition ) {
 				if ( 1 !== preg_match( '/^(>=|<=|!=|==|>|<|=|\^|~)?v?(\d+(?:\.\d+){0,2})$/', $condition, $m ) ) {
 					return null;
 				}
@@ -841,7 +841,7 @@ final class Updater {
 			return null;
 		}
 
-		return array( 'version' => (string) $journal['from'], 'made_at' => (string) ( $journal['started_at'] ?? '' ) );
+		return [ 'version' => (string) $journal['from'], 'made_at' => (string) ( $journal['started_at'] ?? '' ) ];
 	}
 
 	/**

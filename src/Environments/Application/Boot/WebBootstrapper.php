@@ -47,129 +47,129 @@ use SmartLicenseServer\Templates\TemplateDiscovery;
  */
 class WebBootstrapper implements BootstrapperInterface {
 
-    /**
-     * {@inheritdoc}
-     */
-    public function isEligible() : bool {
-        return ! \is_cli();
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function isEligible() : bool {
+		return ! \is_cli();
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function register( Container $container ) : void {
-        $container->singleton(
-            Request::class,
-            fn () : Request => Request::createFromGlobals()
-        );
+	/**
+	 * {@inheritdoc}
+	 */
+	public function register( Container $container ) : void {
+		$container->singleton(
+			Request::class,
+			fn () : Request => Request::createFromGlobals()
+		);
 
-        $container->singleton(
-            HttpDispatcher::class,
-            fn ( Container $c ) : HttpDispatcher => new HttpDispatcher(
-                $c->get( Router::class ),
-                $c
-            )
-        );
+		$container->singleton(
+			HttpDispatcher::class,
+			fn ( Container $c ) : HttpDispatcher => new HttpDispatcher(
+				$c->get( Router::class ),
+				$c
+			)
+		);
 
-        $container->singleton(
-            ExecutionHandlerInterface::class,
-            fn ( Container $c ) : HttpExecutionHandler => new HttpExecutionHandler(
-                $c->get( HttpDispatcher::class ),
-                $c->get( Request::class )
-            )
-        );
+		$container->singleton(
+			ExecutionHandlerInterface::class,
+			fn ( Container $c ) : HttpExecutionHandler => new HttpExecutionHandler(
+				$c->get( HttpDispatcher::class ),
+				$c->get( Request::class )
+			)
+		);
 
-        $container->singleton(
-            IdentityService::class,
-            fn ( Container $c ) : IdentityService => new IdentityService(
-                $c->get( Guard::class ),
-                $c->get( WebIdentityProvider::class )
-            )
-        );
+		$container->singleton(
+			IdentityService::class,
+			fn ( Container $c ) : IdentityService => new IdentityService(
+				$c->get( Guard::class ),
+				$c->get( WebIdentityProvider::class )
+			)
+		);
 
-        $container->singleton(
-            CSRF::class,
-            function( Container $c ) : CSRF {
-                $is_secure          = $c->get( Request::class )->isSecure();
-                $guest_cookie_name  = sprintf( '%ssmliser-csrf', $is_secure ? '__Host-' : '' );
-                return new CSRF(
-                    secret: $c->get( RuntimeConfig::class )->secret,
-                    salt: $c->get( RuntimeConfig::class )->salt,
-                    sessions: $c->get( SessionManager::class ),
-                    secure: $is_secure,
-                    guest_cookie: $guest_cookie_name
-                );
-            } 
-        );
+		$container->singleton(
+			CSRF::class,
+			function( Container $c ) : CSRF {
+				$is_secure         = $c->get( Request::class )->isSecure();
+				$guest_cookie_name = sprintf( '%ssmliser-csrf', $is_secure ? '__Host-' : '' );
+				return new CSRF(
+					secret: $c->get( RuntimeConfig::class )->secret,
+					salt: $c->get( RuntimeConfig::class )->salt,
+					sessions: $c->get( SessionManager::class ),
+					secure: $is_secure,
+					guest_cookie: $guest_cookie_name
+				);
+			}
+		);
 
-        $container->singleton(
-            RestAPIProvider::class,
-            fn ( Container $c ) : RestAPIProvider => RestAPIProvider::init(
-                identity: $c->get( IdentityService::class ),
-                guard: $c->get( Guard::class ),
-                csrf: $c->get( CSRF::class ),
-                urls: $c->get( URLManager::class ),
-                versions: $c->get( V1::class )   
-            )
-        );
-        
-        $container->singleton(
-            AssetsManager::class,
-            fn ( Container $c ) : AssetsManager => new AssetsManager(
-                $c->get( Guard::class ),
-                $c->get( URLManager::class ),
-                $c->get( CSS::class ),
-                $c->get( JS::class ),
-                $c->get( CSRF::class )
-            )
-        );
+		$container->singleton(
+			RestAPIProvider::class,
+			fn ( Container $c ) : RestAPIProvider => RestAPIProvider::init(
+				identity: $c->get( IdentityService::class ),
+				guard: $c->get( Guard::class ),
+				csrf: $c->get( CSRF::class ),
+				urls: $c->get( URLManager::class ),
+				versions: $c->get( V1::class )
+			)
+		);
+		
+		$container->singleton(
+			AssetsManager::class,
+			fn ( Container $c ) : AssetsManager => new AssetsManager(
+				$c->get( Guard::class ),
+				$c->get( URLManager::class ),
+				$c->get( CSS::class ),
+				$c->get( JS::class ),
+				$c->get( CSRF::class )
+			)
+		);
 
-        $container->singleton( UserSessionCutoff::class,
-            fn() : UserSessionCutoff => new UserSessionCutoff()
-        );
+		$container->singleton( UserSessionCutoff::class,
+			fn() : UserSessionCutoff => new UserSessionCutoff()
+		);
 
-        $container->singleton(
-            SessionManager::class,
-            function( Container $c ) : SessionManager {
-                $is_secure      = $c->get( Request::class )->isSecure();
-                $cookie_name    = sprintf( '%ssmliser-sid', $is_secure ? '__Host-' : '' );
-                return new SessionManager(
-                    secret: $c->get( RuntimeConfig::class )->secret,
-                    salt: $c->get( RuntimeConfig::class )->salt,
-                    revocation_check: $c->get( UserSessionCutoff::class ),
-                    secure: $is_secure,
-                    cookie_name: $cookie_name
-                );
-            }
-        );
-        
-    }
+		$container->singleton(
+			SessionManager::class,
+			function( Container $c ) : SessionManager {
+				$is_secure   = $c->get( Request::class )->isSecure();
+				$cookie_name = sprintf( '%ssmliser-sid', $is_secure ? '__Host-' : '' );
+				return new SessionManager(
+					secret: $c->get( RuntimeConfig::class )->secret,
+					salt: $c->get( RuntimeConfig::class )->salt,
+					revocation_check: $c->get( UserSessionCutoff::class ),
+					secure: $is_secure,
+					cookie_name: $cookie_name
+				);
+			}
+		);
+		
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function boot( Container $container ) : void {
-        // Force evaluation of FileSystem API initialization.
-        $container->get( FileSystem::class );
+	/**
+	 * {@inheritdoc}
+	 */
+	public function boot( Container $container ) : void {
+		// Force evaluation of FileSystem API initialization.
+		$container->get( FileSystem::class );
 
-        $guard = $container->get( Guard::class );
-        if ( $guard->has_principal() ) {
-            $container->singleton(
-                UserSettings::class,
-                UserSettings::for( $guard->principal()->get_actor() )
-            );
-        }
+		$guard = $container->get( Guard::class );
+		if ( $guard->has_principal() ) {
+			$container->singleton(
+				UserSettings::class,
+				UserSettings::for( $guard->principal()->get_actor() )
+			);
+		}
 
-        $defaultPage  = $container->get( DefaultPage::class );
-        
-        $container->get( HttpDispatcher::class )
-            ->homeHandler( [ $defaultPage, 'home' ] )
-            ->notFound( [ $defaultPage, 'not_found' ] )
-            ->methodNotAllowed( [ $defaultPage, 'method_not_allowed' ] )
-            ->registerCoreRoutes()
-            ->registerProvider( $container->get( RESTProviderInterface::class ) );
-        
-        $container->get( TemplateDiscovery::class )
-            ->discover( 'core', \SMLISER_RUNTIME_DIR . '/templates/', 0 );
-    }
+		$defaultPage = $container->get( DefaultPage::class );
+		
+		$container->get( HttpDispatcher::class )
+			->homeHandler( [ $defaultPage, 'home' ] )
+			->notFound( [ $defaultPage, 'not_found' ] )
+			->methodNotAllowed( [ $defaultPage, 'method_not_allowed' ] )
+			->registerCoreRoutes()
+			->registerProvider( $container->get( RESTProviderInterface::class ) );
+		
+		$container->get( TemplateDiscovery::class )
+			->discover( 'core', \SMLISER_RUNTIME_DIR . '/templates/', 0 );
+	}
 }

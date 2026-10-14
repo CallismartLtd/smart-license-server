@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Console\Commands\Apps;
  * Software command
  */
 class SoftwareCommand extends AbstractHostedAppCommand {
-    protected static function get_type() : string {
-        return 'software';
-    }
+	protected static function get_type() : string {
+		return 'software';
+	}
 }

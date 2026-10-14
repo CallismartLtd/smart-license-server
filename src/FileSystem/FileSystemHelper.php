@@ -19,572 +19,572 @@ defined( 'SMLISER_ROOT' ) || exit; // phpcs:ignore
  * Provides static helpers for file inspection and validation.
  */
 class FileSystemHelper {
-    /**
-     * File extension to mime type map
-     *
-     * @var array $ext_mime_type_map
-     */
-    protected static $ext_mime_type_map;
-
-    /**
-     * File content mime type to exension map
-     * @var array $mimes_to_ext_map
-     */
-    protected static $mimes_to_ext_map;
-
-    /**
-     * Initializes the map properties.
-     */
-    protected static function init_maps(): void {
-        if ( ! isset( static::$ext_mime_type_map ) ) {
-            static::$ext_mime_type_map = include_once __DIR__ . '/bundles/ext-2-mime-type-map.php';
-        }
-
-        if ( ! isset( static::$mimes_to_ext_map  ) ) {
-            static::$mimes_to_ext_map  = include_once __DIR__ . '/bundles/mime-type-2-ext-map.php';
-
-        }
-    }
-
-    /**
-     * Get file extension (lowercased, no leading dot).
-     *
-     * @param string $path Absolute path.
-     * @return string
-     */
-    public static function get_extension( string $path ): string {
-        $ext = pathinfo( $path, PATHINFO_EXTENSION );
-        return $ext ? strtolower( $ext ) : '';
-    }
-
-    /**
-     * Get the canonical extension of the given file.
-     * 
-     * @param string $path Path to the file.
-     * @return string
-     */
-    public static function get_canonical_extension( $path ) {
-        if ( empty( $path ) || ! is_string( $path ) ) {
-            return '';
-        }
-        
-        static::init_maps();
-
-        $mime   = static::get_mime_type( $path );
-
-        if ( ! $mime ) {
-            return '';
-        }
-
-        return static::$mimes_to_ext_map[$mime] ?? '';
-    }
-
-    /**
-     * Get the MIME type of a file in a portable way.
-     *
-     * @param string $path Absolute path.
-     * @return string|null
-     */
-    public static function get_mime_type( string $path ): ?string {
-        if ( ! \file_exists( $path ) || ! is_readable( $path ) ) {
-            return null;
-        }
-
-        // Try finfo first (most accurate).
-        if ( function_exists( 'finfo_open' ) ) {
-            $finfo = @finfo_open( FILEINFO_MIME_TYPE );
-
-            if ( $finfo ) {
-                $mime = strtolower( (string) finfo_file( $finfo, $path ) );
-
-                if ( '' !== $mime ) {
-                    // libmagic often reports source files as text/plain.
-                    // If we know the extension, prefer the mapped MIME type.
-                    if ( 'text/plain' === $mime ) {
-                        $ext = static::get_extension( $path );
-
-                        if ( '' !== $ext ) {
-                            $mapped = static::guess_mime_from_extension( $ext );
-
-                            if ( null !== $mapped ) {
-                                return strtolower( $mapped );
-                            }
-                        }
-                    }
-
-                    return $mime;
-                }
-            }
-        }
-
-        // Fallback to mime_content_type()
-        if ( function_exists( 'mime_content_type' ) ) {
-            $mime   = mime_content_type( $path );
-
-            if ( $mime ) {
-                return strtolower( $mime );
-            }
-        }
-
-        // Last fallback: use extension map
-        $ext = static::get_extension( $path );
-        return $ext ? static::guess_mime_from_extension( $ext ) : null;
-    }
-
-    /**
-     * Guess a MIME type based on file extension.
-     *
-     * @param string $ext File extension (no dot).
-     * @return string
-     */
-    public static function guess_mime_from_extension( string $ext ): string {
-        static::init_maps();
-
-        $ext    = strtolower( basename( $ext ) );
-
-        return static::$ext_mime_type_map[ $ext ] ?? 'application/octet-stream';
-    }
-
-    /**
-     * Check if file extension is among allowed types.
-     *
-     * @param string $path
-     * @param array  $allowed_extensions
-     * @return bool
-     */
-    public static function has_allowed_extension( string $path, array $allowed_extensions ): bool {
-        $ext = static::get_extension( $path );
-        return $ext && in_array( $ext, array_map( 'strtolower', $allowed_extensions ), true );
-    }
-
-    /**
-     * Remove file extension.
-     * 
-     * @param string $filename
-     * @return string
-     * @since 0.0.6
-     * @since 0.2.0 Now using pathinfo() for better handling of complex filenames.
-     */
-    public static function remove_extension( string $filename ) : string {
-        $dir  = dirname( $filename );
-        $name = pathinfo( $filename, PATHINFO_FILENAME );
-
-        if ( '.' === $dir ) {
-            return $name;
-        }
-
-        return static::join_path( $dir, $name );
-    }
-
-    /**
-     * Check if a file is of given MIME type.
-     *
-     * @param string $path
-     * @param string|array $mimes
-     * @return bool
-     */
-    public static function has_mime( string $path, $mimes ): bool {
-        $mime = static::get_mime_type( $path );
-        if ( ! $mime ) {
-            return false;
-        }
-
-        $mimes = (array) $mimes;
-        foreach ( $mimes as $check ) {
-            if ( str_starts_with( $check, '*' ) ) {
-                $suffix = substr( $check, 1 );
-                if ( str_ends_with( $mime, $suffix ) ) {
-                    return true;
-                }
-            } elseif ( str_ends_with( $check, '/*' ) ) {
-                $prefix = rtrim( $check, '/*' );
-                if ( str_starts_with( $mime, $prefix . '/' ) ) {
-                    return true;
-                }
-            } elseif ( strtolower( $mime ) === strtolower( $check ) ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Basic validity check for a file.
-     *
-     * Ensures existence, readability, non-zero size, and optionally allowed type.
-     *
-     * @param string $path Absolute path
-     * @param array  $allowed_extensions Optional
-     * @return bool
-     */
-    public static function is_valid_file( string $path, array $allowed_extensions = [] ): bool {
-
-        if ( ! file_exists( $path ) || ! is_readable( $path ) || is_dir( $path ) ) {
-            return false;
-        }
-
-        $size = filesize( $path );
-        if ( $size === false || $size <= 0 ) {
-            return false;
-        }
-
-        if ( ! empty( $allowed_extensions ) ) {
-            return static::has_allowed_extension( $path, $allowed_extensions );
-        }
-
-        return true;
-    }
-
-    /**
-     * Check if a file looks like an image.
-     *
-     * @param string $path
-     * @return bool
-     */
-    public static function is_image( string $path ): bool {
-        $mime = static::get_mime_type( $path );
-        return $mime && str_starts_with( $mime, 'image/' );
-    }
-
-    /**
-     * Check if a file looks like a compressed archive (ZIP, RAR, etc.)
-     *
-     * @param string $path
-     * @return bool
-     */
-    public static function is_archive( string $path ): bool {
-        $mime = static::get_mime_type( $path );
-        return $mime && preg_match( '/(zip|rar|7z|tar|gzip|x-gzip)/i', $mime );
-    }
-
-    /**
-     * Generate a checksum for a file using the given algorithm.
-     *
-     * @param string $path Absolute path.
-     * @param string $algo Hash algorithm (e.g., md5, sha1, sha256).
-     * @return string|null
-     */
-    public static function checksum( string $path, string $algo = 'sha256' ): ?string {
-
-        if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
-            return null;
-        }
-
-        if ( ! in_array( strtolower( $algo ), hash_algos(), true ) ) {
-            return null;
-        }
-
-        return @hash_file( $algo, $path ) ?: null;
-    }
-
-    /**
-     * Verify a file against a known checksum value.
-     *
-     * @param string $path Absolute path.
-     * @param string $expected_hash Expected hash value.
-     * @param string $algo Algorithm used (default sha256).
-     * @return bool
-     */
-    public static function verify_checksum( string $path, string $expected_hash, string $algo = 'sha256' ): bool {
-        $actual = static::checksum( $path, $algo );
-        return $actual && hash_equals( $expected_hash, $actual );
-    }
-
-    /**
-     * Compare two files by checksum.
-     *
-     * @param string $file1
-     * @param string $file2
-     * @param string $algo
-     * @return bool
-     */
-    public static function compare_files( string $file1, string $file2, string $algo = 'sha256' ): bool {
-        $hash1 = static::checksum( $file1, $algo );
-        $hash2 = static::checksum( $file2, $algo );
-        return $hash1 && $hash2 && hash_equals( $hash1, $hash2 );
-    }
-
-    /**
-     * Get a safe summary of file properties.
-     *
-     * @param string $path
-     * @return array|null
-     */
-    public static function inspect( string $path ): ?array {
-        if ( ! file_exists( $path ) ) {
-            return null;
-        }
-
-        return [
-            'path'          => $path,
-            'exists'        => true,
-            'is_dir'        => is_dir( $path ),
-            'is_file'       => is_file( $path ),
-            'size'          => filesize( $path ),
-            'mtime'         => filemtime( $path ),
-            'extension'     => static::get_extension( $path ),
-            'mime_type'     => static::get_mime_type( $path ),
-            'checksum'      => static::checksum( $path ),
-            'is_image'      => static::is_image( $path ),
-            'is_archive'    => static::is_archive( $path ),
-            'is_valid_file' => static::is_valid_file( $path ),
-        ];
-    }
-
-    /**
-     * Sanitizes a file name string for safe cross-platform filesystem use.
-     *
-     * - Removes traversal sequences (../, ..\, ./, .\)
-     * - Decodes URL-encoded characters
-     * - Normalizes Unicode (if intl extension exists) + transliteration (iconv)
-     * - Removes invalid OS characters
-     * - Collapses separators (spaces, dots, underscores, hyphens)
-     * - Preserves extension optionally
-     * - Removes leading dots, prevents hidden/system files (.env, .htaccess)
-     * - Handles Windows reserved device names
-     * - Multibyte-safe
-     *
-     * @param string $filename           Raw file name.
-     *
-     * @return string Sanitized file name.
-     */
-    public static function sanitize_filename( string $filename ): string {
-        $max_length = 255;
-
-        $filename   = rawurldecode( $filename );
-        $filename   = trim( $filename );
-        
-        $extension  = static::get_extension( $filename );
-        $filename   = static::remove_extension( $filename );
-
-        // Remove traversal sequences.
-        $filename = preg_replace( '#(\.\./|\.\.\\\\|\.\/|\\\\\.)+#u', '', $filename );
-
-        if ( class_exists( 'Normalizer' ) ) {
-            $filename = Normalizer::normalize( $filename, Normalizer::FORM_C );
-        }
-
-        // Transliteration (fixes full-width, accents, symbols).
-        if ( function_exists( 'iconv' ) ) {
-            $converted = @iconv( 'UTF-8', 'ASCII//TRANSLIT', $filename );
-            if ( $converted !== false ) {
-                $filename = $converted;
-            }
-        }
-
-        $filename = preg_replace( '/[\x00-\x1F\x7F]/u', '', $filename );
-
-        // Replace invalid OS characters.
-        $invalid = array( '\\', '/', ':', '*', '?', '"', '<', '>', '|' );
-        $filename = str_replace( $invalid, '-', $filename );
-
-        // Remove emojis and invalid unicode symbols.
-        $filename = preg_replace( '/[^\p{L}\p{N}\.\-\_ ]/u', '', $filename );
-
-        $filename = str_replace(
-            array( '–', '—', '−' ),
-            '-',
-            $filename
-        );
-
-        // Convert spaces, and underscores to hyphens.
-        $filename = preg_replace( '/[\s\_]+/u', '-', $filename );
-
-        // Collapse repeated hyphens.
-        $filename = preg_replace( '/-+/u', '-', $filename );
-
-        $filename = trim( $filename, ".-_" );
-
-        // Windows reserved device names.
-        $reserved = smliser_get_windows_reserved_names();
-
-        if ( in_array( strtolower( $filename ), $reserved, true ) ) {
-            $filename .= '_';
-        }
-
-        $name_len = mb_strlen( $filename, 'UTF-8' );
-        $ext_len  = mb_strlen( $extension, 'UTF-8' );
-
-        if ( ( $name_len + $ext_len ) > $max_length ) {
-            $filename = mb_substr( $filename, 0, $max_length - $ext_len, 'UTF-8' );
-        }
-
-        if ( empty( $filename ) ) {
-            $filename = 'untitle';
-        }
-
-        return $filename . ( $extension ? ".$extension" : '' );
-    }
-
-    /**
-     * Safely join multiple path segments into a single path using aggressive cleaning.
-     *
-     * @param string ...$segments Path segments to join.
-     * @return string Normalized path or empty string.
-     */
-    public static function join_path( string ...$segments ) : string {
-        if ( empty( $segments ) ) {
-            return '';
-        }
-
-        $cleaned_segments   = [];
-        $segments           = array_filter( $segments );
-
-        $first_segment = \str_replace( '\\', '/', $segments[0] ?? '' );
-        $last_segment  = str_replace( '\\', '/', $segments[count( $segments ) - 1] ?? '' );
-
-        $has_leading_slash  = str_starts_with( $first_segment, '/' ) || ( preg_match( '/^[A-Za-z]:\\\\/', $first_segment ) === 1 );
-        $has_trailing_slash = str_ends_with( $last_segment, '/' ) || str_ends_with( $last_segment, '\\' );
-
-        foreach( $segments as $segment ) {
-            $part = trim( $segment, "/\\ " );
-            if ( $part === '' || $part === '.' || $part === '\\' || $part === '/' ) {
-                continue;
-            }
-            
-            $cleaned_segments[] = $part;
-        }
-        $joined = implode( '/', $cleaned_segments );
-        $cleaned = static::sanitize_path( $joined );
-
-        if ( $cleaned instanceof Exception ) {
-            return '';
-        }
-
-        if ( $has_leading_slash ) {
-            $cleaned = \sprintf( '/%s', \ltrim( $cleaned, '/' ) );
-        }
-
-        if ( $has_trailing_slash ) {
-            $cleaned = \sprintf( '%s/', rtrim( $cleaned, '/' ) );
-        }
-
-        return $cleaned;
-    }
-
-    /**
-     * Sanitize and normalize a filesystem path.
-     *
-     * Prevents directory traversal, encoded traversal, null bytes, and unsafe characters.
-     * Supports absolute paths on Linux (/foo) and Windows (C:/foo).
-     *
-     * @param  string $path
-     * @return string|Exception
-     */
-    public static function sanitize_path( string $path ): string|Exception {
-        if ( trim( $path ) === '' ) {
-            return new Exception( 'invalid_path', 'Path must be a non-empty string.' );
-        }
-
-        if ( strpos( $path, "\0" ) !== false ) {
-            return new Exception( 'invalid_path', 'Null bytes are not allowed.' );
-        }
-
-        // Catch encoded traversal attempts on raw input: %2e, %252e, &#46;, &#x2e; etc.
-        if ( preg_match( '/(%[0-9a-fA-F]{2}|&#\d+;|&#x[0-9a-fA-F]+;)/i', $path ) ) {
-            return new Exception( 'invalid_path', 'Encoded characters are not allowed.' );
-        }
-
-        $path                   = str_replace( '\\', '/', $path );
-        [ $prefix, $remainder ] = static::extract_path_prefix( $path );
-        $segments               = static::parse_segments( $remainder );
-
-        if ( $segments instanceof Exception ) {
-            return $segments;
-        }
-
-        return $prefix . implode( '/', $segments );
-    }
-
-    /**
-     * Detect and strip an absolute path prefix (Linux or Windows).
-     *
-     * @param  string $path
-     * @return array{ string, string } [ prefix, remainder ]
-     */
-    private static function extract_path_prefix( string $path ): array {
-        // Windows absolute path: C:/, D:/, etc.
-        if ( preg_match( '#^([A-Za-z]:/)(.*)#', $path, $m ) ) {
-            return [ $m[1], $m[2] ];
-        }
-
-        // Linux absolute path.
-        if ( str_starts_with( $path, '/' ) ) {
-            return [ '/', ltrim( $path, '/' ) ];
-        }
-
-        return [ '', $path ];
-    }
-
-    /**
-     * Validate and collect safe path segments.
-     *
-     * Rejects traversal sequences, dot-only segments, trailing dots, and unsafe characters.
-     *
-     * @param  string $path
-     * @return list<string>|Exception
-     */
-    private static function parse_segments( string $path ): array|Exception {
-        $safe = [];
-
-        foreach ( explode( '/', $path ) as $segment ) {
-            $segment = trim( $segment );
-
-            // Skip empty and current-directory markers.
-            if ( $segment === '' || $segment === '.' ) {
-                continue;
-            }
-
-            // Block any segment containing ".." (e.g., "..", "wp-content..", "..foo").
-            if ( str_contains( $segment, '..' ) ) {
-                return new Exception( 'invalid_path', 'Directory traversal sequences are not allowed.' );
-            }
-
-            // Block dot-only segments (catches "...", "....", etc. not caught above).
-            if ( preg_match( '/^\.+$/', $segment ) ) {
-                return new Exception( 'invalid_path', 'Dot-only path segments are not allowed.' );
-            }
-
-            // Block trailing dots ("wp-content.", "file.png." etc.).
-            if ( str_ends_with( $segment, '.' ) ) {
-                return new Exception( 'invalid_path', 'Path segments may not end with a dot.' );
-            }
-
-            // Allowlist: must start with alphanumeric or underscore, followed by safe characters.
-            if ( ! preg_match( '/^[A-Za-z0-9_.][A-Za-z0-9._\-]*$/', $segment ) ) {
-                return new Exception( 'invalid_chars', "Illegal characters in path segment: {$segment}" );
-            }
-
-            $safe[] = $segment;
-        }
-
-        return $safe;
-    }
-
-    /**
-     * Formats a filesize into a human-readable string.
-     *
-     * @param int|float $bytes     The size in bytes.
-     * @param int       $decimals  Number of decimals to include.
-     *
-     * @return string Formatted size string.
-     */
-    public static function format_file_size( $bytes, $decimals = 2 ) {
-       if ( $bytes <= 0 ) {
-            return sprintf( '%.' . (int) $decimals . 'f %s', 0, 'B' );
-        }
-
-        $units = array( 'B', 'KB', 'MB', 'GB', 'TB', 'PB' );
-        $factor = 0;
-
-        if ( $bytes > 0 ) {
-            $factor = (int) floor( log( $bytes, 1024 ) );
-            $factor = min( $factor, count( $units ) - 1 ); // Safety bound.
-        }
-
-        $size = $bytes / pow( 1024, $factor );
-
-        return sprintf( '%.' . (int) $decimals . 'f %s', $size, $units[ $factor ] );
-    }
+	/**
+	 * File extension to mime type map
+	 *
+	 * @var array $ext_mime_type_map
+	 */
+	protected static $ext_mime_type_map;
+
+	/**
+	 * File content mime type to exension map
+	 * @var array $mimes_to_ext_map
+	 */
+	protected static $mimes_to_ext_map;
+
+	/**
+	 * Initializes the map properties.
+	 */
+	protected static function init_maps() : void {
+		if ( ! isset( static::$ext_mime_type_map ) ) {
+			static::$ext_mime_type_map = include_once __DIR__ . '/bundles/ext-2-mime-type-map.php';
+		}
+
+		if ( ! isset( static::$mimes_to_ext_map ) ) {
+			static::$mimes_to_ext_map = include_once __DIR__ . '/bundles/mime-type-2-ext-map.php';
+
+		}
+	}
+
+	/**
+	 * Get file extension (lowercased, no leading dot).
+	 *
+	 * @param string $path Absolute path.
+	 * @return string
+	 */
+	public static function get_extension( string $path ) : string {
+		$ext = pathinfo( $path, PATHINFO_EXTENSION );
+		return $ext ? strtolower( $ext ) : '';
+	}
+
+	/**
+	 * Get the canonical extension of the given file.
+	 * 
+	 * @param string $path Path to the file.
+	 * @return string
+	 */
+	public static function get_canonical_extension( $path ) {
+		if ( empty( $path ) || ! is_string( $path ) ) {
+			return '';
+		}
+		
+		static::init_maps();
+
+		$mime = static::get_mime_type( $path );
+
+		if ( ! $mime ) {
+			return '';
+		}
+
+		return static::$mimes_to_ext_map[$mime] ?? '';
+	}
+
+	/**
+	 * Get the MIME type of a file in a portable way.
+	 *
+	 * @param string $path Absolute path.
+	 * @return string|null
+	 */
+	public static function get_mime_type( string $path ) : ?string {
+		if ( ! \file_exists( $path ) || ! is_readable( $path ) ) {
+			return null;
+		}
+
+		// Try finfo first (most accurate).
+		if ( function_exists( 'finfo_open' ) ) {
+			$finfo = @finfo_open( FILEINFO_MIME_TYPE );
+
+			if ( $finfo ) {
+				$mime = strtolower( (string) finfo_file( $finfo, $path ) );
+
+				if ( '' !== $mime ) {
+					// libmagic often reports source files as text/plain.
+					// If we know the extension, prefer the mapped MIME type.
+					if ( 'text/plain' === $mime ) {
+						$ext = static::get_extension( $path );
+
+						if ( '' !== $ext ) {
+							$mapped = static::guess_mime_from_extension( $ext );
+
+							if ( null !== $mapped ) {
+								return strtolower( $mapped );
+							}
+						}
+					}
+
+					return $mime;
+				}
+			}
+		}
+
+		// Fallback to mime_content_type()
+		if ( function_exists( 'mime_content_type' ) ) {
+			$mime = mime_content_type( $path );
+
+			if ( $mime ) {
+				return strtolower( $mime );
+			}
+		}
+
+		// Last fallback: use extension map
+		$ext = static::get_extension( $path );
+		return $ext ? static::guess_mime_from_extension( $ext ) : null;
+	}
+
+	/**
+	 * Guess a MIME type based on file extension.
+	 *
+	 * @param string $ext File extension (no dot).
+	 * @return string
+	 */
+	public static function guess_mime_from_extension( string $ext ) : string {
+		static::init_maps();
+
+		$ext = strtolower( basename( $ext ) );
+
+		return static::$ext_mime_type_map[ $ext ] ?? 'application/octet-stream';
+	}
+
+	/**
+	 * Check if file extension is among allowed types.
+	 *
+	 * @param string $path
+	 * @param array  $allowed_extensions
+	 * @return bool
+	 */
+	public static function has_allowed_extension( string $path, array $allowed_extensions ) : bool {
+		$ext = static::get_extension( $path );
+		return $ext && in_array( $ext, array_map( 'strtolower', $allowed_extensions ), true );
+	}
+
+	/**
+	 * Remove file extension.
+	 * 
+	 * @param string $filename
+	 * @return string
+	 * @since 0.0.6
+	 * @since 0.2.0 Now using pathinfo() for better handling of complex filenames.
+	 */
+	public static function remove_extension( string $filename ) : string {
+		$dir  = dirname( $filename );
+		$name = pathinfo( $filename, PATHINFO_FILENAME );
+
+		if ( '.' === $dir ) {
+			return $name;
+		}
+
+		return static::join_path( $dir, $name );
+	}
+
+	/**
+	 * Check if a file is of given MIME type.
+	 *
+	 * @param string $path
+	 * @param string|array $mimes
+	 * @return bool
+	 */
+	public static function has_mime( string $path, $mimes ) : bool {
+		$mime = static::get_mime_type( $path );
+		if ( ! $mime ) {
+			return false;
+		}
+
+		$mimes = (array) $mimes;
+		foreach ( $mimes as $check ) {
+			if ( str_starts_with( $check, '*' ) ) {
+				$suffix = substr( $check, 1 );
+				if ( str_ends_with( $mime, $suffix ) ) {
+					return true;
+				}
+			} elseif ( str_ends_with( $check, '/*' ) ) {
+				$prefix = rtrim( $check, '/*' );
+				if ( str_starts_with( $mime, $prefix . '/' ) ) {
+					return true;
+				}
+			} elseif ( strtolower( $mime ) === strtolower( $check ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Basic validity check for a file.
+	 *
+	 * Ensures existence, readability, non-zero size, and optionally allowed type.
+	 *
+	 * @param string $path Absolute path
+	 * @param array  $allowed_extensions Optional
+	 * @return bool
+	 */
+	public static function is_valid_file( string $path, array $allowed_extensions = [] ) : bool {
+
+		if ( ! file_exists( $path ) || ! is_readable( $path ) || is_dir( $path ) ) {
+			return false;
+		}
+
+		$size = filesize( $path );
+		if ( false === $size || $size <= 0 ) {
+			return false;
+		}
+
+		if ( ! empty( $allowed_extensions ) ) {
+			return static::has_allowed_extension( $path, $allowed_extensions );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Check if a file looks like an image.
+	 *
+	 * @param string $path
+	 * @return bool
+	 */
+	public static function is_image( string $path ) : bool {
+		$mime = static::get_mime_type( $path );
+		return $mime && str_starts_with( $mime, 'image/' );
+	}
+
+	/**
+	 * Check if a file looks like a compressed archive (ZIP, RAR, etc.)
+	 *
+	 * @param string $path
+	 * @return bool
+	 */
+	public static function is_archive( string $path ) : bool {
+		$mime = static::get_mime_type( $path );
+		return $mime && preg_match( '/(zip|rar|7z|tar|gzip|x-gzip)/i', $mime );
+	}
+
+	/**
+	 * Generate a checksum for a file using the given algorithm.
+	 *
+	 * @param string $path Absolute path.
+	 * @param string $algo Hash algorithm (e.g., md5, sha1, sha256).
+	 * @return string|null
+	 */
+	public static function checksum( string $path, string $algo = 'sha256' ) : ?string {
+
+		if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
+			return null;
+		}
+
+		if ( ! in_array( strtolower( $algo ), hash_algos(), true ) ) {
+			return null;
+		}
+
+		return @hash_file( $algo, $path ) ?: null;
+	}
+
+	/**
+	 * Verify a file against a known checksum value.
+	 *
+	 * @param string $path Absolute path.
+	 * @param string $expected_hash Expected hash value.
+	 * @param string $algo Algorithm used (default sha256).
+	 * @return bool
+	 */
+	public static function verify_checksum( string $path, string $expected_hash, string $algo = 'sha256' ) : bool {
+		$actual = static::checksum( $path, $algo );
+		return $actual && hash_equals( $expected_hash, $actual );
+	}
+
+	/**
+	 * Compare two files by checksum.
+	 *
+	 * @param string $file1
+	 * @param string $file2
+	 * @param string $algo
+	 * @return bool
+	 */
+	public static function compare_files( string $file1, string $file2, string $algo = 'sha256' ) : bool {
+		$hash1 = static::checksum( $file1, $algo );
+		$hash2 = static::checksum( $file2, $algo );
+		return $hash1 && $hash2 && hash_equals( $hash1, $hash2 );
+	}
+
+	/**
+	 * Get a safe summary of file properties.
+	 *
+	 * @param string $path
+	 * @return array|null
+	 */
+	public static function inspect( string $path ) : ?array {
+		if ( ! file_exists( $path ) ) {
+			return null;
+		}
+
+		return [
+			'path'          => $path,
+			'exists'        => true,
+			'is_dir'        => is_dir( $path ),
+			'is_file'       => is_file( $path ),
+			'size'          => filesize( $path ),
+			'mtime'         => filemtime( $path ),
+			'extension'     => static::get_extension( $path ),
+			'mime_type'     => static::get_mime_type( $path ),
+			'checksum'      => static::checksum( $path ),
+			'is_image'      => static::is_image( $path ),
+			'is_archive'    => static::is_archive( $path ),
+			'is_valid_file' => static::is_valid_file( $path ),
+		];
+	}
+
+	/**
+	 * Sanitizes a file name string for safe cross-platform filesystem use.
+	 *
+	 * - Removes traversal sequences (../, ..\, ./, .\)
+	 * - Decodes URL-encoded characters
+	 * - Normalizes Unicode (if intl extension exists) + transliteration (iconv)
+	 * - Removes invalid OS characters
+	 * - Collapses separators (spaces, dots, underscores, hyphens)
+	 * - Preserves extension optionally
+	 * - Removes leading dots, prevents hidden/system files (.env, .htaccess)
+	 * - Handles Windows reserved device names
+	 * - Multibyte-safe
+	 *
+	 * @param string $filename           Raw file name.
+	 *
+	 * @return string Sanitized file name.
+	 */
+	public static function sanitize_filename( string $filename ) : string {
+		$max_length = 255;
+
+		$filename = rawurldecode( $filename );
+		$filename = trim( $filename );
+		
+		$extension = static::get_extension( $filename );
+		$filename  = static::remove_extension( $filename );
+
+		// Remove traversal sequences.
+		$filename = preg_replace( '#(\.\./|\.\.\\\\|\.\/|\\\\\.)+#u', '', $filename );
+
+		if ( class_exists( 'Normalizer' ) ) {
+			$filename = Normalizer::normalize( $filename, Normalizer::FORM_C );
+		}
+
+		// Transliteration (fixes full-width, accents, symbols).
+		if ( function_exists( 'iconv' ) ) {
+			$converted = @iconv( 'UTF-8', 'ASCII//TRANSLIT', $filename );
+			if ( false !== $converted ) {
+				$filename = $converted;
+			}
+		}
+
+		$filename = preg_replace( '/[\x00-\x1F\x7F]/u', '', $filename );
+
+		// Replace invalid OS characters.
+		$invalid  = [ '\\', '/', ':', '*', '?', '"', '<', '>', '|' ];
+		$filename = str_replace( $invalid, '-', $filename );
+
+		// Remove emojis and invalid unicode symbols.
+		$filename = preg_replace( '/[^\p{L}\p{N}\.\-\_ ]/u', '', $filename );
+
+		$filename = str_replace(
+			[ '–', '—', '−' ],
+			'-',
+			$filename
+		);
+
+		// Convert spaces, and underscores to hyphens.
+		$filename = preg_replace( '/[\s\_]+/u', '-', $filename );
+
+		// Collapse repeated hyphens.
+		$filename = preg_replace( '/-+/u', '-', $filename );
+
+		$filename = trim( $filename, ".-_" );
+
+		// Windows reserved device names.
+		$reserved = smliser_get_windows_reserved_names();
+
+		if ( in_array( strtolower( $filename ), $reserved, true ) ) {
+			$filename .= '_';
+		}
+
+		$name_len = mb_strlen( $filename, 'UTF-8' );
+		$ext_len  = mb_strlen( $extension, 'UTF-8' );
+
+		if ( ( $name_len + $ext_len ) > $max_length ) {
+			$filename = mb_substr( $filename, 0, $max_length - $ext_len, 'UTF-8' );
+		}
+
+		if ( empty( $filename ) ) {
+			$filename = 'untitle';
+		}
+
+		return $filename . ( $extension ? ".$extension" : '' );
+	}
+
+	/**
+	 * Safely join multiple path segments into a single path using aggressive cleaning.
+	 *
+	 * @param string ...$segments Path segments to join.
+	 * @return string Normalized path or empty string.
+	 */
+	public static function join_path( string ...$segments ) : string {
+		if ( empty( $segments ) ) {
+			return '';
+		}
+
+		$cleaned_segments = [];
+		$segments         = array_filter( $segments );
+
+		$first_segment = \str_replace( '\\', '/', $segments[0] ?? '' );
+		$last_segment  = str_replace( '\\', '/', $segments[count( $segments ) - 1] ?? '' );
+
+		$has_leading_slash  = str_starts_with( $first_segment, '/' ) || ( 1 === preg_match( '/^[A-Za-z]:\\\\/', $first_segment ) );
+		$has_trailing_slash = str_ends_with( $last_segment, '/' ) || str_ends_with( $last_segment, '\\' );
+
+		foreach( $segments as $segment ) {
+			$part = trim( $segment, "/\\ " );
+			if ( '' === $part || '.' === $part || '\\' === $part || '/' === $part ) {
+				continue;
+			}
+			
+			$cleaned_segments[] = $part;
+		}
+		$joined  = implode( '/', $cleaned_segments );
+		$cleaned = static::sanitize_path( $joined );
+
+		if ( $cleaned instanceof Exception ) {
+			return '';
+		}
+
+		if ( $has_leading_slash ) {
+			$cleaned = \sprintf( '/%s', \ltrim( $cleaned, '/' ) );
+		}
+
+		if ( $has_trailing_slash ) {
+			$cleaned = \sprintf( '%s/', rtrim( $cleaned, '/' ) );
+		}
+
+		return $cleaned;
+	}
+
+	/**
+	 * Sanitize and normalize a filesystem path.
+	 *
+	 * Prevents directory traversal, encoded traversal, null bytes, and unsafe characters.
+	 * Supports absolute paths on Linux (/foo) and Windows (C:/foo).
+	 *
+	 * @param  string $path
+	 * @return string|Exception
+	 */
+	public static function sanitize_path( string $path ) : string|Exception {
+		if ( '' === trim( $path ) ) {
+			return new Exception( 'invalid_path', 'Path must be a non-empty string.' );
+		}
+
+		if ( false !== strpos( $path, "\0" ) ) {
+			return new Exception( 'invalid_path', 'Null bytes are not allowed.' );
+		}
+
+		// Catch encoded traversal attempts on raw input: %2e, %252e, &#46;, &#x2e; etc.
+		if ( preg_match( '/(%[0-9a-fA-F]{2}|&#\d+;|&#x[0-9a-fA-F]+;)/i', $path ) ) {
+			return new Exception( 'invalid_path', 'Encoded characters are not allowed.' );
+		}
+
+		$path                   = str_replace( '\\', '/', $path );
+		[ $prefix, $remainder ] = static::extract_path_prefix( $path );
+		$segments               = static::parse_segments( $remainder );
+
+		if ( $segments instanceof Exception ) {
+			return $segments;
+		}
+
+		return $prefix . implode( '/', $segments );
+	}
+
+	/**
+	 * Detect and strip an absolute path prefix (Linux or Windows).
+	 *
+	 * @param  string $path
+	 * @return array{ string, string } [ prefix, remainder ]
+	 */
+	private static function extract_path_prefix( string $path ) : array {
+		// Windows absolute path: C:/, D:/, etc.
+		if ( preg_match( '#^([A-Za-z]:/)(.*)#', $path, $m ) ) {
+			return [ $m[1], $m[2] ];
+		}
+
+		// Linux absolute path.
+		if ( str_starts_with( $path, '/' ) ) {
+			return [ '/', ltrim( $path, '/' ) ];
+		}
+
+		return [ '', $path ];
+	}
+
+	/**
+	 * Validate and collect safe path segments.
+	 *
+	 * Rejects traversal sequences, dot-only segments, trailing dots, and unsafe characters.
+	 *
+	 * @param  string $path
+	 * @return list<string>|Exception
+	 */
+	private static function parse_segments( string $path ) : array|Exception {
+		$safe = [];
+
+		foreach ( explode( '/', $path ) as $segment ) {
+			$segment = trim( $segment );
+
+			// Skip empty and current-directory markers.
+			if ( '' === $segment || '.' === $segment ) {
+				continue;
+			}
+
+			// Block any segment containing ".." (e.g., "..", "wp-content..", "..foo").
+			if ( str_contains( $segment, '..' ) ) {
+				return new Exception( 'invalid_path', 'Directory traversal sequences are not allowed.' );
+			}
+
+			// Block dot-only segments (catches "...", "....", etc. not caught above).
+			if ( preg_match( '/^\.+$/', $segment ) ) {
+				return new Exception( 'invalid_path', 'Dot-only path segments are not allowed.' );
+			}
+
+			// Block trailing dots ("wp-content.", "file.png." etc.).
+			if ( str_ends_with( $segment, '.' ) ) {
+				return new Exception( 'invalid_path', 'Path segments may not end with a dot.' );
+			}
+
+			// Allowlist: must start with alphanumeric or underscore, followed by safe characters.
+			if ( ! preg_match( '/^[A-Za-z0-9_.][A-Za-z0-9._\-]*$/', $segment ) ) {
+				return new Exception( 'invalid_chars', "Illegal characters in path segment: {$segment}" );
+			}
+
+			$safe[] = $segment;
+		}
+
+		return $safe;
+	}
+
+	/**
+	 * Formats a filesize into a human-readable string.
+	 *
+	 * @param int|float $bytes     The size in bytes.
+	 * @param int       $decimals  Number of decimals to include.
+	 *
+	 * @return string Formatted size string.
+	 */
+	public static function format_file_size( $bytes, $decimals = 2 ) {
+	   if ( $bytes <= 0 ) {
+			return sprintf( '%.' . (int) $decimals . 'f %s', 0, 'B' );
+		}
+
+		$units  = [ 'B', 'KB', 'MB', 'GB', 'TB', 'PB' ];
+		$factor = 0;
+
+		if ( $bytes > 0 ) {
+			$factor = (int) floor( log( $bytes, 1024 ) );
+			$factor = min( $factor, count( $units ) - 1 ); // Safety bound.
+		}
+
+		$size = $bytes / pow( 1024, $factor );
+
+		return sprintf( '%.' . (int) $decimals . 'f %s', $size, $units[ $factor ] );
+	}
 }

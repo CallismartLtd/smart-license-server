@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Environments\Application\Routing
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Middlewares;
 
@@ -23,5 +23,5 @@ interface MiddlewareInterface {
 	 * @param callable(Request $request) $next    Next middleware or route handler closure in the pipeline.
 	 * @return mixed
 	 */
-	public function handle( Request $request, callable $next ): mixed;
+	public function handle( Request $request, callable $next ) : mixed;
 }

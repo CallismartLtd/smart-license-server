@@ -16,25 +16,25 @@
 defined( 'SMLISER_ROOT' ) || exit;
 
 /** @var array $args */
-$args   = $page_handler->get_menu_args( $request );
+$args = $page_handler->get_menu_args( $request );
 
 unset( $args['breadcrumbs'][0] ); // Remove the home link.
 
 \array_unshift(
-    $args['actions'],
-    array(
-        'title'     => 'Add New License',
-        'label'     => 'Add New',
-        'url'       => $add_url,
-        'icon'      => 'ti ti-plus',
-    ),
+	$args['actions'],
+	[
+		'title' => 'Add New License',
+		'label' => 'Add New',
+		'url'   => $add_url,
+		'icon'  => 'ti ti-plus',
+	],
 
-    array(
-        'title'     => 'View Activity Logs',
-        'label'     => 'Activity Logs',
-        'url'       => $urlmanager->admin_license_page_url( 'logs' ),
-        'icon'      => 'ti ti-activity',
-    )
+	[
+		'title' => 'View Activity Logs',
+		'label' => 'Activity Logs',
+		'url'   => $urlmanager->admin_license_page_url( 'logs' ),
+		'icon'  => 'ti ti-activity',
+	]
 
 );
 ?>
@@ -82,20 +82,20 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
                     <tbody>
             
                         <?php foreach ( $licenses as $license ) :
-                            ?>        
+							?>        
                             <tr>
                                 <td><input type="checkbox" class="smliser-license-checkbox" name="ids[]" value="<?php echo escAttr( $license->get_id() ); ?>"> </td>
                                 <td class="smliser-edit-row">
                                     <?php echo escHtml( $license->get_id() ); ?>
                                     <p class="smliser-edit-link">
-                                        <a href="<?php echo 
-                                            escUrl( $urlmanager->admin_license_page_url(
-                                                'edit',['id' => $license->get_id()]
-                                            )->url() ); ?>">edit</a>|
-                                        <a href="<?php echo 
-                                            escUrl( $urlmanager->admin_license_page_url(
-                                                'view', ['id' => $license->get_id()]
-                                            )->url() ); ?>">view</a>
+                                        <a href="<?php echo
+											escUrl( $urlmanager->admin_license_page_url(
+												'edit',['id' => $license->get_id()]
+											)->url() ); ?>">edit</a>|
+                                        <a href="<?php echo
+											escUrl( $urlmanager->admin_license_page_url(
+												'view', ['id' => $license->get_id()]
+											)->url() ); ?>">view</a>
                                     </p>
                                 </td>
                             
@@ -104,7 +104,7 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
                                     <div class="smliser-license-obfuscation">
                                         <div class="smliser-license-obfuscation_data">
                                             <span class="smliser-license-input">
-                                                <input type="text" id="<?php echo escHtml( $license->get_id() ); ?>" value="<?php echo escHtml( $license->get_license_key()) ?>" readonly class="smliser-license-text" />
+                                                <input type="text" id="<?php echo escHtml( $license->get_id() ); ?>" value="<?php echo escHtml( $license->get_license_key() ) ?>" readonly class="smliser-license-text" />
                                                 <span class="ti ti-copy copy-key smliser-tooltip" title="copy license key"></span>
                                             </span>
 

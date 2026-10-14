@@ -18,45 +18,45 @@ use SmartLicenseServer\Security\Actors\User;
 
 class PasswordChangedEmail extends EmailTemplate {
 
-    /**
-     * @param User   $user  The user whose password was changed.
-     * @param string $to    Recipient email address.
-     */
-    public function __construct(
-        private readonly User   $user,
-        private readonly string $to
-    ) {}
+	/**
+	 * @param User   $user  The user whose password was changed.
+	 * @param string $to    Recipient email address.
+	 */
+	public function __construct(
+		private readonly User   $user,
+		private readonly string $to
+	) {}
 
-    static public function template_key(): string {
-        return 'password_changed';
-    }
+	static public function template_key() : string {
+		return 'password_changed';
+	}
 
-    protected function subject(): string {
-        return 'Your Password Has Been Changed';
-    }
+	protected function subject() : string {
+		return 'Your Password Has Been Changed';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return 'Your password was changed successfully. If this was not you, contact support immediately.';
-    }
+	protected function preheader() : string {
+		return 'Your password was changed successfully. If this was not you, contact support immediately.';
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{display_name}}' => $this->user->get_display_name(),
-            '{{changed_at}}'   => gmdate( 'D, d M Y H:i T' ),
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{display_name}}' => $this->user->get_display_name(),
+			'{{changed_at}}'   => gmdate( 'D, d M Y H:i T' ),
+		] );
+	}
 
-    protected function body(): string {
-        $vars         = $this->variables();
-        $display_name = \escHtml( $vars['{{display_name}}'] );
-        $changed_at   = \escHtml( $vars['{{changed_at}}'] );
-        $support      = \escHtml( $vars['{{support_email}}'] );
+	protected function body() : string {
+		$vars         = $this->variables();
+		$display_name = \escHtml( $vars['{{display_name}}'] );
+		$changed_at   = \escHtml( $vars['{{changed_at}}'] );
+		$support      = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$display_name},
         </p>
@@ -103,58 +103,58 @@ class PasswordChangedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Password Changed';
-    }
-    public function description(): string {
-        return 'Sent after a user\'s password has been successfully changed.';
-    }
-    public static function preview(): static {
-        $user = User::from_array( [ 'display_name' => 'Jane Doe' ] );
-        return new static( $user, 'preview@example.com' );
-    }
+	public function label() : string {
+		return 'Password Changed';
+	}
+	public function description() : string {
+		return 'Sent after a user\'s password has been successfully changed.';
+	}
+	public static function preview() : static {
+		$user = User::from_array( [ 'display_name' => 'Jane Doe' ] );
+		return new static( $user, 'preview@example.com' );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{display_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'success',
-                'content'   => 'Your password was changed successfully on {{changed_at}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'intro',
-                'type'      => 'text',
-                'content'   => 'This is a confirmation that your account password has been updated. No further action is needed.',
-                'editable'  => true,
-                'removable' => true,
-            ],
-            [
-                'id'        => 'security_notice',
-                'type'      => 'banner',
-                'tone'      => 'error',
-                'content'   => 'If you did not make this change, your account may be compromised. Please contact us immediately at {{support_email}} so we can secure your account.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you made this change yourself, you can safely ignore this email. For any other questions, contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{display_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'success',
+				'content'   => 'Your password was changed successfully on {{changed_at}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'intro',
+				'type'      => 'text',
+				'content'   => 'This is a confirmation that your account password has been updated. No further action is needed.',
+				'editable'  => true,
+				'removable' => true,
+			],
+			[
+				'id'        => 'security_notice',
+				'type'      => 'banner',
+				'tone'      => 'error',
+				'content'   => 'If you did not make this change, your account may be compromised. Please contact us immediately at {{support_email}} so we can secure your account.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you made this change yourself, you can safely ignore this email. For any other questions, contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

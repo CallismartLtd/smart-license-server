@@ -23,72 +23,72 @@ use Callismart\DBPrism\Utils\ColumnType;
  */
 class MonetizationSchema implements DatabaseSchemaInterface {
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_label() : string {
-        return 'Monetization';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_label() : string {
+		return 'Monetization';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_description() : string {
-        return 'Stores monetization settings.';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_description() : string {
+		return 'Stores monetization settings.';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_table_name() : string {
-        return TableName::MONETIZATION->value;
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_table_name() : string {
+		return TableName::MONETIZATION->value;
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_columns() : array {
-        return [
-            Column::make( 'id' )
-                ->type( ColumnType::BIG_INT )
-                ->auto_increment()
-                ->required(),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_columns() : array {
+		return [
+			Column::make( 'id' )
+				->type( ColumnType::BIG_INT )
+				->auto_increment()
+				->required(),
 
-            Column::make( 'app_type' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 50 )
-                ->required(),
+			Column::make( 'app_type' )
+				->type( ColumnType::VARCHAR )
+				->size( 50 )
+				->required(),
 
-            Column::make( 'app_id' )
-                ->type( ColumnType::BIG_INT )
-                ->required(),
+			Column::make( 'app_id' )
+				->type( ColumnType::BIG_INT )
+				->required(),
 
-            Column::make( 'enabled' )
-                ->type( ColumnType::INTEGER )
-                ->size( 1 )
-                ->default( 0 ),
+			Column::make( 'enabled' )
+				->type( ColumnType::INTEGER )
+				->size( 1 )
+				->default( 0 ),
 
-            Column::make( 'created_at' )
-                ->type( ColumnType::DATETIME ),
+			Column::make( 'created_at' )
+				->type( ColumnType::DATETIME ),
 
-            Column::make( 'updated_at' )
-                ->type( ColumnType::DATETIME )
-                ->required(),
-        ];
-    }
+			Column::make( 'updated_at' )
+				->type( ColumnType::DATETIME )
+				->required(),
+		];
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_constraints() : array {
-        $prefx  = static::constraintPrefix();
-        return [
-            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
-            Constraint::unique( "{$prefx}unique_app" )->on( 'app_type', 'app_id' ),
-        ];
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_constraints() : array {
+		$prefx = static::constraintPrefix();
+		return [
+			Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+			Constraint::unique( "{$prefx}unique_app" )->on( 'app_type', 'app_id' ),
+		];
+	}
 
-    protected static function constraintPrefix() {
-        return 'smliser_monetization_';
-    }
+	protected static function constraintPrefix() {
+		return 'smliser_monetization_';
+	}
 }

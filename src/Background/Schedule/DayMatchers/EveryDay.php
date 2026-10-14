@@ -18,17 +18,17 @@ use DateTimeImmutable;
  */
 final class EveryDay implements DayMatcher {
 
-    /**
-     * {@inheritdoc}
-     */
-    public function matches( DateTimeImmutable $date ): bool {
-        return true;
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function matches( DateTimeImmutable $date ) : bool {
+		return true;
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function describe(): string {
-        return 'Daily';
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function describe() : string {
+		return 'Daily';
+	}
 }

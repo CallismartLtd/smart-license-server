@@ -54,7 +54,7 @@ final readonly class Session {
 	 *
 	 * @return bool
 	 */
-	public function expired(): bool {
+	public function expired() : bool {
 		return $this->expires_at <= time();
 	}
 
@@ -69,7 +69,7 @@ final readonly class Session {
 	public function claim(
 		string $name,
 		mixed $default = null
-	): mixed {
+	) : mixed {
 		return $this->claims[ $name ] ?? $default;
 	}
 }

@@ -17,44 +17,44 @@ use Callismart\DBPrism\Utils\ColumnType;
  */
 class RoleCapabilitiesSchema implements DatabaseSchemaInterface {
 
-    public static function get_label() : string {
-        return 'Role Capabilities';
-    }
+	public static function get_label() : string {
+		return 'Role Capabilities';
+	}
 
-    public static function get_description() : string {
-        return 'Stores role capabilities.';
-    }
+	public static function get_description() : string {
+		return 'Stores role capabilities.';
+	}
 
-    public static function get_table_name() : string {
-        return TableName::ROLE_CAPS->value;
-    }
+	public static function get_table_name() : string {
+		return TableName::ROLE_CAPS->value;
+	}
 
-    public static function get_columns() : array {
-        return [
-            Column::make( 'id' )
-                ->type( ColumnType::BIG_INT )
-                ->unsigned()
-                ->auto_increment()
-                ->required(),
+	public static function get_columns() : array {
+		return [
+			Column::make( 'id' )
+				->type( ColumnType::BIG_INT )
+				->unsigned()
+				->auto_increment()
+				->required(),
 
-            Column::make( 'role_id' )
-                ->type( ColumnType::BIG_INT )
-                ->unsigned()
-                ->required(),
+			Column::make( 'role_id' )
+				->type( ColumnType::BIG_INT )
+				->unsigned()
+				->required(),
 
-            Column::make( 'capabilities' )
-                ->type( ColumnType::LONG_TEXT ),
-        ];
-    }
+			Column::make( 'capabilities' )
+				->type( ColumnType::LONG_TEXT ),
+		];
+	}
 
-    public static function get_constraints() : array {
-        $prefx  = static::constraintPrefix();
-        return [
-            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
-        ];
-    }
+	public static function get_constraints() : array {
+		$prefx = static::constraintPrefix();
+		return [
+			Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+		];
+	}
 
-    protected static function constraintPrefix() {
-        return 'smliser_capsschema_';
-    }
+	protected static function constraintPrefix() {
+		return 'smliser_capsschema_';
+	}
 }

@@ -21,10 +21,10 @@ namespace SmartLicenseServer\Environments\Application\Kernel;
  */
 interface ExecutionHandlerInterface {
 
-    /**
-     * Execute the current environment request or command.
-     *
-     * @return int Exit code (0 for success, non-zero for error).
-     */
-    public function handle() : int;
+	/**
+	 * Execute the current environment request or command.
+	 *
+	 * @return int Exit code (0 for success, non-zero for error).
+	 */
+	public function handle() : int;
 }

@@ -34,126 +34,126 @@ use SmartLicenseServer\Monetization\License;
  * Bulk-expire licenses past their end_date and notify licensees.
  */
 class ExpireLicensesJob implements JobHandlerInterface {
-    use QueueAwareTrait;
+	use QueueAwareTrait;
 
-    public function __construct(
-        protected Database $db,
-        protected Mailer $mailer
-    ) {}
+	public function __construct(
+		protected Database $db,
+		protected Mailer $mailer
+	) {}
 
-    /*
-    |--------------------------------------------
-    | JobHandlerInterface
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| JobHandlerInterface
+	|--------------------------------------------
+	*/
 
-    public static function get_job_name(): string {
-        return 'expire_licenses';
-    }
+	public static function get_job_name() : string {
+		return 'expire_licenses';
+	}
 
-    public static function get_job_description(): string {
-        return 'Marks licenses past their end date as expired and notifies licensees.';
-    }
+	public static function get_job_description() : string {
+		return 'Marks licenses past their end date as expired and notifies licensees.';
+	}
 
-    /**
-     * Execute the job.
-     *
-     * Queries licenses that have passed their end_date and are not
-     * already in a terminal status, updates each to expired, and
-     * dispatches a notification email when the service_id is a valid
-     * email address.
-     *
-     * @param array $payload {
-     *     @type int $batch_size Maximum licenses to process. Default 100.
-     * }
-     * @return array{expired: int, notified: int, skipped: int}
-     */
-    public function handle( array $payload = [] ): mixed {
-        $batch_size = max( 1, (int) ( $payload['batch_size'] ?? 100 ) );
-        $table      = TableName::LICENSES->table();
+	/**
+	 * Execute the job.
+	 *
+	 * Queries licenses that have passed their end_date and are not
+	 * already in a terminal status, updates each to expired, and
+	 * dispatches a notification email when the service_id is a valid
+	 * email address.
+	 *
+	 * @param array $payload {
+	 *     @type int $batch_size Maximum licenses to process. Default 100.
+	 * }
+	 * @return array{expired: int, notified: int, skipped: int}
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$batch_size = max( 1, (int) ( $payload['batch_size'] ?? 100 ) );
+		$table      = TableName::LICENSES->table();
 
-        $terminal_statuses = [
-            License::STATUS_EXPIRED,
-            License::STATUS_REVOKED,
-            License::STATUS_SUSPENDED,
-            License::STATUS_LIFETIME,
-        ];
+		$terminal_statuses = [
+			License::STATUS_EXPIRED,
+			License::STATUS_REVOKED,
+			License::STATUS_SUSPENDED,
+			License::STATUS_LIFETIME,
+		];
 
-        $now    = gmdate( 'Y-m-d H:i:s' );
-        $sql    = \smliserQueryBuilder( $this->db->get_driver() )
-            ->select( '*' )->from( $table )
-            ->where( 'end_date', '<', $now )
-            ->where_group( fn( SelectionIntent $q ) => $q
-                ->where_not_in( 'status', $terminal_statuses )
-                ->or_where_null( 'status' )
-                ->or_where( 'status', '=', '' )
-            )
-            ->limit( $batch_size );
+		$now = gmdate( 'Y-m-d H:i:s' );
+		$sql = \smliserQueryBuilder( $this->db->get_driver() )
+			->select( '*' )->from( $table )
+			->where( 'end_date', '<', $now )
+			->where_group( fn( SelectionIntent $q ) => $q
+				->where_not_in( 'status', $terminal_statuses )
+				->or_where_null( 'status' )
+				->or_where( 'status', '=', '' )
+			)
+			->limit( $batch_size );
 
-        $rows   = $this->db->get_results( $sql->build(), $sql->get_bindings() );
+		$rows = $this->db->get_results( $sql->build(), $sql->get_bindings() );
 
-        $expired   = 0;
-        $notified  = 0;
-        $skipped   = 0;
+		$expired  = 0;
+		$notified = 0;
+		$skipped  = 0;
 
-        if ( empty( $rows ) ) {
-            return compact( 'expired', 'notified', 'skipped' );
-        }
+		if ( empty( $rows ) ) {
+			return compact( 'expired', 'notified', 'skipped' );
+		}
 
-        foreach ( $rows as $row ) {
-            $license = License::from_array( $row );
+		foreach ( $rows as $row ) {
+			$license = License::from_array( $row );
 
-            // Update status in the database.
-            $updated = $this->db->update(
-                $table,
-                [
-                    'status'     => License::STATUS_EXPIRED,
-                    'updated_at' => gmdate( 'Y-m-d H:i:s' ),
-                ],
-                [ 'id' => $license->get_id() ]
-            );
+			// Update status in the database.
+			$updated = $this->db->update(
+				$table,
+				[
+					'status'     => License::STATUS_EXPIRED,
+					'updated_at' => gmdate( 'Y-m-d H:i:s' ),
+				],
+				[ 'id' => $license->get_id() ]
+			);
 
-            if ( false === $updated ) {
-                $skipped++;
-                continue;
-            }
+			if ( false === $updated ) {
+				$skipped++;
+				continue;
+			}
 
-            $expired++;
+			$expired++;
 
-            // Send notification if service_id is a valid email.
-            $service_id = $license->get_service_id();
+			// Send notification if service_id is a valid email.
+			$service_id = $license->get_service_id();
 
-            if ( ! filter_var( $service_id, FILTER_VALIDATE_EMAIL ) ) {
-                continue;
-            }
+			if ( ! filter_var( $service_id, FILTER_VALIDATE_EMAIL ) ) {
+				continue;
+			}
 
-            if ( $license->get_end_date() === null ) {
-                continue;
-            }
+			if ( null === $license->get_end_date() ) {
+				continue;
+			}
 
-            $message = ( new LicenseExpiredEmail( $license, $service_id ) )->to_message();
+			$message = ( new LicenseExpiredEmail( $license, $service_id ) )->to_message();
 
-            if ( $message === null ) {
-                // Template is disabled — skip silently.
-                continue;
-            }
+			if ( null === $message ) {
+				// Template is disabled — skip silently.
+				continue;
+			}
 
-            try {
-                $this->mailer->send( $message );
-                $notified++;
-            } catch ( \Throwable ) {
-                // Email failure must never abort license expiry processing.
-            }
-        }
+			try {
+				$this->mailer->send( $message );
+				$notified++;
+			} catch ( \Throwable ) {
+				// Email failure must never abort license expiry processing.
+			}
+		}
 
-        // If there may be more licenses to process, dispatch another batch.
-        if ( count( $rows ) === $batch_size ) {
-            $this->dispatch_job(
-                static::class,
-                [ 'batch_size' => $batch_size ],
-            );
-        }
+		// If there may be more licenses to process, dispatch another batch.
+		if ( count( $rows ) === $batch_size ) {
+			$this->dispatch_job(
+				static::class,
+				[ 'batch_size' => $batch_size ],
+			);
+		}
 
-        return compact( 'expired', 'notified', 'skipped' );
-    }
+		return compact( 'expired', 'notified', 'skipped' );
+	}
 }

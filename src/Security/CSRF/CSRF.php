@@ -124,7 +124,7 @@ final class CSRF {
 	 *
 	 * @throws RuntimeException When a guest cookie is needed but headers are already sent.
 	 */
-	public function token( string $action = '' ): string {
+	public function token( string $action = '' ) : string {
 		return $this->sign( (string) $this->binding( true ), $action );
 	}
 
@@ -135,7 +135,7 @@ final class CSRF {
 	 * @param string      $action Action the token must have been made for.
 	 * @return bool
 	 */
-	public function verify( ?string $token, string $action = '' ): bool {
+	public function verify( ?string $token, string $action = '' ) : bool {
 		$binding = $this->binding( false );
 
 		if ( null === $binding || null === $token || '' === $token ) {
@@ -154,7 +154,7 @@ final class CSRF {
 	 * @param Request $request The request.
 	 * @return string|null
 	 */
-	public function token_from( Request $request ): ?string {
+	public function token_from( Request $request ) : ?string {
 		$header = $request->get_header( self::HEADER );
 
 		if ( '' !== $header ) {
@@ -177,7 +177,7 @@ final class CSRF {
 	 * @param string  $action  Action the token must have been made for.
 	 * @return bool
 	 */
-	public function verify_request( Request $request, string $action = '' ): bool {
+	public function verify_request( Request $request, string $action = '' ) : bool {
 		return $this->verify( $this->token_from( $request ), $action );
 	}
 
@@ -203,7 +203,7 @@ final class CSRF {
 	 *
 	 * @throws RuntimeException When a guest cookie is needed but headers are already sent.
 	 */
-	public function url( URL|string $url, string $action = '', string $param = self::PARAM ): URL {
+	public function url( URL|string $url, string $action = '', string $param = self::PARAM ) : URL {
 		$url = is_string( $url ) ? URL::from( $url ) : $url;
 
 		return $url->add_query_param( $param, $this->token( $this->url_action( $action, (string) $url->get_path() ) ) );
@@ -220,7 +220,7 @@ final class CSRF {
 	 * @param string  $param   Query parameter that carries the token.
 	 * @return bool
 	 */
-	public function verify_url( Request $request, string $action = '', string $param = self::PARAM ): bool {
+	public function verify_url( Request $request, string $action = '', string $param = self::PARAM ) : bool {
 		$token = $request->query( $param );
 
 		return is_string( $token ) && $this->verify( $token, $this->url_action( $action, $request->path() ) );
@@ -235,7 +235,7 @@ final class CSRF {
 	 * @param string $path   URL path, used when no action is named.
 	 * @return string
 	 */
-	private function url_action( string $action, string $path ): string {
+	private function url_action( string $action, string $path ) : string {
 		return '' !== $action ? $action : 'path:' . '/' . trim( $path, '/' );
 	}
 
@@ -256,7 +256,7 @@ final class CSRF {
 	 * @param string  $app_url The canonical application URL (SMLISER_APP_URL).
 	 * @return bool
 	 */
-	public function same_origin( Request $request, string $app_url ): bool {
+	public function same_origin( Request $request, string $app_url ) : bool {
 		$site = strtolower( $request->get_header( 'Sec-Fetch-Site' ) );
 
 		if ( '' !== $site ) {
@@ -289,7 +289,7 @@ final class CSRF {
 	 * @param string $action Optional action the token is limited to.
 	 * @return string
 	 */
-	public function field( string $action = '' ): string {
+	public function field( string $action = '' ) : string {
 		return sprintf(
 			'<input type="hidden" name="%s" value="%s">',
 			self::FIELD,
@@ -305,7 +305,7 @@ final class CSRF {
 	 * @param string $action Optional action the token is limited to.
 	 * @return string
 	 */
-	public function meta( string $action = '' ): string {
+	public function meta( string $action = '' ) : string {
 		return sprintf(
 			'<meta name="csrf-token" content="%s">',
 			\escHtml( $this->token( $action ) )
@@ -326,7 +326,7 @@ final class CSRF {
 	 *
 	 * @throws RuntimeException When the guest cookie must be set but headers are already sent.
 	 */
-	private function binding( bool $create ): ?string {
+	private function binding( bool $create ) : ?string {
 		$session = $this->sessions->resolve();
 
 		if ( null !== $session ) {
@@ -373,7 +373,7 @@ final class CSRF {
 	 * @param string $action  Action, or "".
 	 * @return string Hex HMAC-SHA256.
 	 */
-	private function sign( string $binding, string $action ): string {
+	private function sign( string $binding, string $action ) : string {
 		return static::hmac_hash( $binding . "\n" . $action, $this->key );
 	}
 
@@ -384,7 +384,7 @@ final class CSRF {
 	 * @param string $url URL or origin.
 	 * @return string|null Null when the URL has no host, including the literal "null" origin.
 	 */
-	private function origin_of( string $url ): ?string {
+	private function origin_of( string $url ) : ?string {
 		$url = URL::from( $url );
 
 		if ( null === $url->get_host() || ! $url->has_scheme() ) {

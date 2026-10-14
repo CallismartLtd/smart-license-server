@@ -40,176 +40,176 @@ use function sprintf;
  * @method string get_email() Get the principals' email address. Always check that actor is human.
  */
 final class Principal {
-    /**
-     * System administrator role key.
-     */
-    private const SYS_ADMIN = 'system_admin';
+	/**
+	 * System administrator role key.
+	 */
+	private const SYS_ADMIN = 'system_admin';
 
-    
-    /**
-     * The underlying actor implementation (User or Service Account).
-     * @var ActorInterface
-     */
-    private ActorInterface $actor;
+	
+	/**
+	 * The underlying actor implementation (User or Service Account).
+	 * @var ActorInterface
+	 */
+	private ActorInterface $actor;
 
-    /**
-     * The validated role assigned to the actor for the current context.
-     * @var Role
-     */
-    private Role $role;
+	/**
+	 * The validated role assigned to the actor for the current context.
+	 * @var Role
+	 */
+	private Role $role;
 
-    /**
-     * The resource owner (Individual or Organization) the actor is acting upon.
-     * @var Owner|null
-     */
-    private ?Owner $owner;
+	/**
+	 * The resource owner (Individual or Organization) the actor is acting upon.
+	 * @var Owner|null
+	 */
+	private ?Owner $owner;
 
-    /**
-     * Principal constructor.
-     *
-     * Initializes the principal with a locked security context.
-     * @param ActorInterface $actor The authenticated identity.
-     * @param Role           $role  The resolved role for this request context.
-     * @param Owner|null          $owner The resource owner context.
-     */
-    public function __construct( ActorInterface $actor, Role $role, ?Owner $owner = null ) {
-        $this->actor = $actor;
-        $this->role  = $role;
-        $this->owner = $owner;
-    }
+	/**
+	 * Principal constructor.
+	 *
+	 * Initializes the principal with a locked security context.
+	 * @param ActorInterface $actor The authenticated identity.
+	 * @param Role           $role  The resolved role for this request context.
+	 * @param Owner|null          $owner The resource owner context.
+	 */
+	public function __construct( ActorInterface $actor, Role $role, ?Owner $owner = null ) {
+		$this->actor = $actor;
+		$this->role  = $role;
+		$this->owner = $owner;
+	}
 
-    /**
-     * Check the role of the principal.
-     * 
-     * @param string $role_slug
-     * @return bool
-     */
-    public function is( string $role_slug ) : bool {
-        return $role_slug === $this->role->get_slug();
-    }
+	/**
+	 * Check the role of the principal.
+	 * 
+	 * @param string $role_slug
+	 * @return bool
+	 */
+	public function is( string $role_slug ) : bool {
+		return $role_slug === $this->role->get_slug();
+	}
 
-    /**
-     * Check if the principal has the permission to perform a specific action.
-     *
-     * This method validates the capability against the system registry. If the 
-     * capability is unknown/invalid, it returns false rather than throwing an exception.
-     * @param string $capability The machine name of the capability (e.g., 'license.revoke').
-     * @return bool True if permitted, false otherwise.
-     */
-    public function can( string $capability ) : bool {
-        if ( $this->is( self::SYS_ADMIN ) ) {
-            return true;
-        }
+	/**
+	 * Check if the principal has the permission to perform a specific action.
+	 *
+	 * This method validates the capability against the system registry. If the 
+	 * capability is unknown/invalid, it returns false rather than throwing an exception.
+	 * @param string $capability The machine name of the capability (e.g., 'license.revoke').
+	 * @return bool True if permitted, false otherwise.
+	 */
+	public function can( string $capability ) : bool {
+		if ( $this->is( self::SYS_ADMIN ) ) {
+			return true;
+		}
 
-        try {
-            Capability::assert_exists( $capability );
-        } catch ( InvalidArgumentException $e ) {
-            return false;
-        }
+		try {
+			Capability::assert_exists( $capability );
+		} catch ( InvalidArgumentException $e ) {
+			return false;
+		}
 
-        return $this->role->has_capability( $capability );
-    }
+		return $this->role->has_capability( $capability );
+	}
 
-    /**
-     * Determine if the principal has at least one of the given capabilities.
-     *
-     * @param array<int, string> $capabilities
-     * @return bool
-     */
-    public function can_any( array $capabilities ) : bool {
-        if ( $this->is( self::SYS_ADMIN ) ) {
-            return true;
-        }
+	/**
+	 * Determine if the principal has at least one of the given capabilities.
+	 *
+	 * @param array<int, string> $capabilities
+	 * @return bool
+	 */
+	public function can_any( array $capabilities ) : bool {
+		if ( $this->is( self::SYS_ADMIN ) ) {
+			return true;
+		}
 
-        if ( empty( $capabilities ) ) {
-            return false;
-        }
+		if ( empty( $capabilities ) ) {
+			return false;
+		}
 
-        foreach ( $capabilities as $capability ) {
-            if ( $this->can( $capability ) ) {
-                return true;
-            }
-        }
+		foreach ( $capabilities as $capability ) {
+			if ( $this->can( $capability ) ) {
+				return true;
+			}
+		}
 
-        return false;
-    }
+		return false;
+	}
 
-    /**
-     * Determine if the principal has all of the given capabilities.
-     *
-     * @param array<int, string> $capabilities
-     * @return bool
-     */
-    public function can_all( array $capabilities ) : bool {
-        if ( $this->is( self::SYS_ADMIN ) ) {
-            return true;
-        }
+	/**
+	 * Determine if the principal has all of the given capabilities.
+	 *
+	 * @param array<int, string> $capabilities
+	 * @return bool
+	 */
+	public function can_all( array $capabilities ) : bool {
+		if ( $this->is( self::SYS_ADMIN ) ) {
+			return true;
+		}
 
-        if ( empty( $capabilities ) ) {
-            return false;
-        }
+		if ( empty( $capabilities ) ) {
+			return false;
+		}
 
-        foreach ( $capabilities as $capability ) {
-            if ( ! $this->can( $capability ) ) {
-                return false;
-            }
-        }
+		foreach ( $capabilities as $capability ) {
+			if ( ! $this->can( $capability ) ) {
+				return false;
+			}
+		}
 
-        return true;
-    }
+		return true;
+	}
 
 
-    /**
-     * Get the Resource Owner context for this principal.
-     * @return Owner|null
-     */
-    public function get_owner() : ?Owner {
-        return $this->owner;
-    }
+	/**
+	 * Get the Resource Owner context for this principal.
+	 * @return Owner|null
+	 */
+	public function get_owner() : ?Owner {
+		return $this->owner;
+	}
 
-    /**
-     * Get the active Role object for this principal.
-     * @return Role
-     */
-    public function get_role() : Role {
-        return $this->role;
-    }
+	/**
+	 * Get the active Role object for this principal.
+	 * @return Role
+	 */
+	public function get_role() : Role {
+		return $this->role;
+	}
 
-    /**
-     * Get the underlying Actor object.
-     * @return ActorInterface
-     */
-    public function get_actor() : ActorInterface {
-        return $this->actor;
-    }
+	/**
+	 * Get the underlying Actor object.
+	 * @return ActorInterface
+	 */
+	public function get_actor() : ActorInterface {
+		return $this->actor;
+	}
 
-    /**
-     * Proxy method calls to the underlying actor.
-     *
-     * @param string $method Method name.
-     * @param array  $args   Method arguments.
-     * @return mixed
-     *
-     * @throws BadMethodCallException If method does not exist or bad mutator methis is called
-     * on the actor.
-     */
-    public function __call( string $method, array $args ) {
+	/**
+	 * Proxy method calls to the underlying actor.
+	 *
+	 * @param string $method Method name.
+	 * @param array  $args   Method arguments.
+	 * @return mixed
+	 *
+	 * @throws BadMethodCallException If method does not exist or bad mutator methis is called
+	 * on the actor.
+	 */
+	public function __call( string $method, array $args ) {
 
-        // Block mutator methods.
-        if ( str_starts_with( $method, 'set' ) ) {
-            throw new BadMethodCallException(
-                sprintf(
-                    'Mutator method %s::%s cannot be called via Principal.',
-                    get_class( $this->actor ),
-                    $method
-                )
-            );
-        }
+		// Block mutator methods.
+		if ( str_starts_with( $method, 'set' ) ) {
+			throw new BadMethodCallException(
+				sprintf(
+					'Mutator method %s::%s cannot be called via Principal.',
+					get_class( $this->actor ),
+					$method
+				)
+			);
+		}
 
-        if ( method_exists( $this->actor, $method ) ) {
-            return $this->actor->$method( ...$args );
-        }
+		if ( method_exists( $this->actor, $method ) ) {
+			return $this->actor->$method( ...$args );
+		}
 
-        throw new ProxyMethodException( static::class, $method );
-    }
+		throw new ProxyMethodException( static::class, $method );
+	}
 }

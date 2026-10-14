@@ -29,51 +29,51 @@ use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
  * Removes orphaned rows from the license meta table.
  */
 class PruneLicenseMetaJob implements JobHandlerInterface {
-    public function __construct(
-        protected Database $db,
-    ) {}
+	public function __construct(
+		protected Database $db,
+	) {}
 
-    /*
-    |--------------------------------------------
-    | JobHandlerInterface
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| JobHandlerInterface
+	|--------------------------------------------
+	*/
 
-    public static function get_job_name(): string {
-        return 'prune_license_meta';
-    }
+	public static function get_job_name() : string {
+		return 'prune_license_meta';
+	}
 
-    public static function get_job_description(): string {
-        return 'Deletes orphaned rows from the license meta table.';
-    }
+	public static function get_job_description() : string {
+		return 'Deletes orphaned rows from the license meta table.';
+	}
 
-    /**
-     * Execute the job.
-     *
-     * Uses a single DELETE ... WHERE NOT EXISTS query — no PHP-side
-     * iteration, no loading of License objects. Efficient regardless
-     * of table size.
-     *
-     * @param array $payload Unused.
-     * @return array{deleted: int}
-     */
-    public function handle( array $payload = [] ): mixed {
-        $meta_table = TableName::LICENSE_META->table();
-        $table      = TableName::LICENSES->table();
+	/**
+	 * Execute the job.
+	 *
+	 * Uses a single DELETE ... WHERE NOT EXISTS query — no PHP-side
+	 * iteration, no loading of License objects. Efficient regardless
+	 * of table size.
+	 *
+	 * @param array $payload Unused.
+	 * @return array{deleted: int}
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$meta_table = TableName::LICENSE_META->table();
+		$table      = TableName::LICENSES->table();
 
-        $sql = \smliserQueryBuilder( $this->db->get_driver() )
-            ->delete( $meta_table . ' AS meta' )
-            ->where_not_exists( fn( SelectionIntent $select ) => $select
-                ->select_raw( '1' )
-                ->from( $table . ' AS main' )
-                // CRITICAL CORRELATION: Links the subquery back to the
-                // outer target table row scope.
-                ->where_column( 'meta.license_id', '=', 'main.id' ) 
-            );
+		$sql = \smliserQueryBuilder( $this->db->get_driver() )
+			->delete( $meta_table . ' AS meta' )
+			->where_not_exists( fn( SelectionIntent $select ) => $select
+				->select_raw( '1' )
+				->from( $table . ' AS main' )
+				// CRITICAL CORRELATION: Links the subquery back to the
+				// outer target table row scope.
+				->where_column( 'meta.license_id', '=', 'main.id' )
+			);
 
 
-        $deleted    = $this->db->execute( $sql->build(), $sql->get_bindings() );
+		$deleted = $this->db->execute( $sql->build(), $sql->get_bindings() );
 
-        return [ 'deleted' => $deleted ];
-    }
+		return [ 'deleted' => $deleted ];
+	}
 }

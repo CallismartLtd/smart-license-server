@@ -54,7 +54,7 @@ final class PasswordResetToken {
 	 * @param User $user The user resetting their password.
 	 * @return string URL-safe token.
 	 */
-	public function issue( User $user ): string {
+	public function issue( User $user ) : string {
 		$payload = \smliser_safe_json_encode(
 			[
 				'id'        => $user->get_id(),
@@ -77,7 +77,7 @@ final class PasswordResetToken {
 	 * @param string $token Token from the reset link.
 	 * @return array{valid: bool, user?: User, reason?: string}
 	 */
-	public function verify( #[\SensitiveParameter] string $token ): array {
+	public function verify( #[\SensitiveParameter] string $token ) : array {
 		$decoded = static::base64url_decode( $token );
 
 		if ( ! $decoded || ! str_contains( $decoded, '.' ) ) {
@@ -121,7 +121,7 @@ final class PasswordResetToken {
 	 * @param User $user The user.
 	 * @return void
 	 */
-	public function consume( User $user ): void {
+	public function consume( User $user ) : void {
 		$this->cache->delete( $this->key( (int) $user->get_id() ) );
 	}
 
@@ -131,7 +131,7 @@ final class PasswordResetToken {
 	 * @param int $user_id User ID.
 	 * @return string
 	 */
-	private function key( int $user_id ): string {
+	private function key( int $user_id ) : string {
 		return sprintf( '%s_%d', UserSettings::PWD_RESET_NAME, $user_id );
 	}
 }

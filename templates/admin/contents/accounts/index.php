@@ -21,7 +21,7 @@ defined( 'SMLISER_ROOT' ) || exit;
  * Helper: Render icon based on metric type.
  */
 function smliser_get_metric_icon( string $label ) {
-	$icons = array(
+	$icons = [
 		'users'                => 'ti ti-users',
 		'organizations'        => 'ti ti-building',
 		'service_accounts'     => 'ti ti-user-cog',
@@ -34,7 +34,7 @@ function smliser_get_metric_icon( string $label ) {
 		'never_used'           => 'ti ti-circle-x',
 		'most_recent_use'      => 'ti ti-clock',
 		'oldest_use'           => 'ti ti-calendar',
-	);
+	];
 
 	$label_lower = strtolower( str_replace( ' ', '_', $label ) );
 
@@ -122,7 +122,7 @@ function smliser_get_status_class( bool $has_issues ) {
 					<div class="smliser-account-domain-content">
 						<div class="smliser-account-metrics-grid">
 							<?php foreach ( $account_summaries['integrity'] as $label => $value ) : ?>
-								<?php if ( $label === 'has_issues' ) continue; ?>
+								<?php if ( 'has_issues' === $label ) continue; ?>
 
 								<div class="smliser-account-metric-card">
 									<div class="smliser-account-metric-icon">

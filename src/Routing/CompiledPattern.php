@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Routing
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Routing;
 
@@ -30,8 +30,7 @@ final class CompiledPattern {
 		public readonly string $regex,
 		public readonly array $paramNames,
 		public readonly string $template
-	) {
-	}
+	) {}
 
 	/**
 	 * Same regex, with every capturing group turned into a named one —
@@ -45,7 +44,7 @@ final class CompiledPattern {
 	 * parenthesis (`\(`, produced by preg_quote() on literal text) — a blind
 	 * find-and-replace on `(` would mis-tag any of those.
 	 */
-	public function namedRegex(): string {
+	public function namedRegex() : string {
 		$result     = '';
 		$paramIndex = 0;
 		$length     = strlen( $this->regex );

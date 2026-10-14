@@ -10,36 +10,36 @@ use DateTimeZone;
 use Throwable;
 
 trait DatePropertyAwareTrait {
-    use SanitizeAwareTrait;
-    private function set_date_prop( mixed $date, string $prop ) : static {
-        if ( ! property_exists( $this, $prop ) ) {
-            return $this;
-        }
-        
-        if ( $date instanceof DateTimeImmutable ) {
-            $this->{$prop} = $date;
-            return $this;
-        }
+	use SanitizeAwareTrait;
+	private function set_date_prop( mixed $date, string $prop ) : static {
+		if ( ! property_exists( $this, $prop ) ) {
+			return $this;
+		}
+		
+		if ( $date instanceof DateTimeImmutable ) {
+			$this->{$prop} = $date;
+			return $this;
+		}
 
-        if ( ! is_string( $date ) ){
-            return $this;
-        }
+		if ( ! is_string( $date ) ) {
+			return $this;
+		}
 
-        $date   = static::sanitize_date( $date, null, 'Y-m-d H:i:s' );
+		$date = static::sanitize_date( $date, null, 'Y-m-d H:i:s' );
 
-        if ( null === $date ) {
-            $this->{$prop} = null;
-            return $this;
-        }
+		if ( null === $date ) {
+			$this->{$prop} = null;
+			return $this;
+		}
 
-        try {
-            $date   = new DateTimeImmutable( $date, new DateTimeZone( 'UTC' ) );
-        } catch ( Throwable ) {
-            return $this;
-        }
+		try {
+			$date = new DateTimeImmutable( $date, new DateTimeZone( 'UTC' ) );
+		} catch ( Throwable ) {
+			return $this;
+		}
 
-        $this->{$prop} = $date;
+		$this->{$prop} = $date;
 
-        return $this;
-    }
+		return $this;
+	}
 }

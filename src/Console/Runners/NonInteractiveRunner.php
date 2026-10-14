@@ -33,69 +33,69 @@ use SmartLicenseServer\Security\Context\Guard;
  */
 class NonInteractiveRunner extends AbstractCommandRouter implements RunnerInterface {
 
-    /**
-     * @param CommandRegistry $registry
-     * @param array<int, string> $tokens The raw argument vector array from the CLI
-     *                                 entry point, script name included
-     *                                 at index 0.
-     * @param InputInterface  $io
-     * @param OutputInterface $output
-     * @param Terminal $terminal
-     * @param SignalManager $signal
-     * @param Guard $guard The security orchestrator used to manage the current
-     *                     actor — needed for pseudo-commands such as
-     *                     `--info` that print session/auth state.
-     */
-    public function __construct(
-        CommandRegistry $registry,
-        private array $tokens,
-        InputInterface $io,
-        OutputInterface $output,
-        Terminal $terminal,
-        SignalManager $signal,
-        Guard $guard,
-    ) {
-        $this->guard = $guard;
+	/**
+	 * @param CommandRegistry $registry
+	 * @param array<int, string> $tokens The raw argument vector array from the CLI
+	 *                                 entry point, script name included
+	 *                                 at index 0.
+	 * @param InputInterface  $io
+	 * @param OutputInterface $output
+	 * @param Terminal $terminal
+	 * @param SignalManager $signal
+	 * @param Guard $guard The security orchestrator used to manage the current
+	 *                     actor — needed for pseudo-commands such as
+	 *                     `--info` that print session/auth state.
+	 */
+	public function __construct(
+		CommandRegistry $registry,
+		private array $tokens,
+		InputInterface $io,
+		OutputInterface $output,
+		Terminal $terminal,
+		SignalManager $signal,
+		Guard $guard,
+	) {
+		$this->guard = $guard;
 
-        parent::__construct(
-            registry: $registry,
-            io: $io,
-            output: $output, 
-            terminal: $terminal, 
-            signal: $signal
-        );
-    }
+		parent::__construct(
+			registry: $registry,
+			io: $io,
+			output: $output,
+			terminal: $terminal,
+			signal: $signal
+		);
+	}
 
-    /*
-    |----------------------
-    | RunnerInterface
-    |----------------------
-    */
+	/*
+	|----------------------
+	| RunnerInterface
+	|----------------------
+	*/
 
-    /**
-     * {@inheritdoc}
-     */
-    public function init(): int {
-        // Strip the script name (token[0]) before splitting — everything
-        // AbstractCommandRouter deals with is relative to the command
-        // name, not the invoking script.
-        [ $command, $subcommand, $args ] = $this->split_invocation( array_slice( $this->tokens, 1 ) );
+	/**
+	 * {@inheritdoc}
+	 */
+	public function init() : int {
+		// Strip the script name (token[0]) before splitting — everything
+		// AbstractCommandRouter deals with is relative to the command
+		// name, not the invoking script.
+		[ $command, $subcommand, $args ] = $this->split_invocation( array_slice( $this->tokens, 1 ) );
 
-        $option_parser = new OptionParser();
-        $parsed        = $option_parser->parse( $args );
+		$option_parser = new OptionParser();
+		$parsed        = $option_parser->parse( $args );
 
-        $command_input = new CommandInput(
-            (array) ( $parsed['arguments'] ?? [] ),
-            (array) ( $parsed['options'] ?? [] )
-        );
+		$command_input = new CommandInput(
+			(array) ( $parsed['arguments'] ?? [] ),
+			(array) ( $parsed['options'] ?? [] )
+		);
 
-        return $this->route_command( $command_input, $command, $subcommand );
-    }
+		return $this->route_command( $command_input, $command, $subcommand );
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function print_contextual_help(): void {
-        $this->print_global_help();
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	protected function print_contextual_help() : void {
+		$this->print_global_help();
+	}
 }

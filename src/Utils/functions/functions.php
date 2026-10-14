@@ -31,7 +31,7 @@ use SmartLicenseServer\Utils\Sanitizer;
  * @return bool
  */
 function smliser_debug_enabled() : bool {
-    return ( defined( 'APP_DEBUG' ) && APP_DEBUG ) || false;
+	return ( defined( 'APP_DEBUG' ) && APP_DEBUG ) || false;
 }
 
 /**
@@ -41,21 +41,21 @@ function smliser_debug_enabled() : bool {
  * @return string   $notice Formatted Notice to show 
  */
 function smliser_form_message( mixed $messages ) : string {
-    $notice = '<div class="smliser-form-notice-container">';
+	$notice = '<div class="smliser-form-notice-container">';
 
-    if ( is_array( $messages ) ) {
-        $count = 1;
-        foreach ( $messages as $message ) {
-            $notice .= '<p>' . $count . ' ' . $message . '</p>';
-            $count++;
-        }
-    } else {
-        $notice .= '<p>' . $messages . '</p>';
+	if ( is_array( $messages ) ) {
+		$count = 1;
+		foreach ( $messages as $message ) {
+			$notice .= '<p>' . $count . ' ' . $message . '</p>';
+			$count++;
+		}
+	} else {
+		$notice .= '<p>' . $messages . '</p>';
 
-    }
-    $notice .= '</div>';
+	}
+	$notice .= '</div>';
 
-    return $notice;
+	return $notice;
 }
 
 /**
@@ -65,7 +65,7 @@ function smliser_form_message( mixed $messages ) : string {
  * @return string Description in the format: "Browser Version on OS (Device)".
  */
 function smliser_parse_user_agent( $user_agent_string ) : string {
-    return UserAgent::parse( $user_agent_string )->get_description();
+	return UserAgent::parse( $user_agent_string )->get_description();
 }
 
 /**
@@ -77,7 +77,7 @@ function smliser_parse_user_agent( $user_agent_string ) : string {
  * @param bool $for_update Whether the request goes to the update server.
  * @return string
  */
-function smliser_http_ua( bool $for_update = false ): string {
+function smliser_http_ua( bool $for_update = false ) : string {
 	$can_uname = function_exists( 'php_uname' );
 
 	$os = match ( PHP_OS_FAMILY ) {
@@ -96,7 +96,7 @@ function smliser_http_ua( bool $for_update = false ): string {
 		$site_url = url()->sanitize()->remove_credentials()->url();
 
 		// "(", ")" and "\" are comment delimiters in a User-Agent and survive sanitize(); percent-encode them.
-		$comment .= '; ' . str_replace( array( '(', ')', '\\' ), array( '%28', '%29', '%5C' ), $site_url );
+		$comment .= '; ' . str_replace( [ '(', ')', '\\' ], [ '%28', '%29', '%5C' ], $site_url );
 	}
 
 	return sprintf( 'smliser/%s (%s) PHP/%d.%d', SMLISER_VER, $comment, PHP_MAJOR_VERSION, PHP_MINOR_VERSION );
@@ -110,13 +110,13 @@ function smliser_http_ua( bool $for_update = false ): string {
  * @return string|false     The signed, base64url-encoded token or false on failure.
  */
 function smliser_generate_item_token( License $license, int $expiry = 864000 ) {
-    try {
-        // Create a new download token
-        $token = DownloadToken::create_token( $license, $expiry );
-        return $token;
-    } catch ( Exception $e ) {
-        return false;
-    }
+	try {
+		// Create a new download token
+		$token = DownloadToken::create_token( $license, $expiry );
+		return $token;
+	} catch ( Exception $e ) {
+		return false;
+	}
 }
 
 /**
@@ -127,18 +127,18 @@ function smliser_generate_item_token( License $license, int $expiry = 864000 ) {
  * @return DownloadToken|Exception                  Returns the DownloadToken object on success, false on failure.
  */
 function smliser_verify_item_token( string $client_token, HostedAppsInterface $app ) : DownloadToken|Exception {
-    if ( empty( $client_token ) ) {
-        return new Exception( 'empty_token', 'Download token cannot be empty' );
-    }
+	if ( empty( $client_token ) ) {
+		return new Exception( 'empty_token', 'Download token cannot be empty' );
+	}
 
-    try {
-        // Verify token within the app context
-        $download_token = DownloadToken::verify_token_for_app( $client_token, $app );
-        return $download_token;
-    } catch ( Exception $e ) {
-        // Invalid or expired token
-        return $e;
-    }
+	try {
+		// Verify token within the app context
+		$download_token = DownloadToken::verify_token_for_app( $client_token, $app );
+		return $download_token;
+	} catch ( Exception $e ) {
+		// Invalid or expired token
+		return $e;
+	}
 }
 
 /**
@@ -150,10 +150,10 @@ function smliser_verify_item_token( string $client_token, HostedAppsInterface $a
  * @return array
  */
 function parse_args( $args, $defaults ) {
-    $args     = (array) $args;
-    $defaults = (array) $defaults;
+	$args     = (array) $args;
+	$defaults = (array) $defaults;
 
-    return array_intersect_key( array_merge( $defaults, $args ), $defaults );
+	return array_intersect_key( array_merge( $defaults, $args ), $defaults );
 }
 
 /**
@@ -164,32 +164,32 @@ function parse_args( $args, $defaults ) {
  * @return array
  */
 function parse_args_recursive( $args, $defaults ) {
-    $args     = is_array( $args ) || is_object( $args ) ? (array) $args : [];
-    $defaults = is_array( $defaults ) || is_object( $defaults ) ? (array) $defaults : [];
+	$args     = is_array( $args ) || is_object( $args ) ? (array) $args : [];
+	$defaults = is_array( $defaults ) || is_object( $defaults ) ? (array) $defaults : [];
 
-    foreach ( $defaults as $key => $default ) {
+	foreach ( $defaults as $key => $default ) {
 
-        if ( array_key_exists( $key, $args ) ) {
-            $value = $args[ $key ];
+		if ( array_key_exists( $key, $args ) ) {
+			$value = $args[ $key ];
 
-            if ( is_array( $default ) ) {
+			if ( is_array( $default ) ) {
 
-                // Empty default array means "accept anything".
-                if ( empty( $default ) ) {
-                    $value = (array) $value;
-                } elseif ( is_array( $value ) ) {
-                    $value = parse_args_recursive( $value, $default );
-                }
-            }
+				// Empty default array means "accept anything".
+				if ( empty( $default ) ) {
+					$value = (array) $value;
+				} elseif ( is_array( $value ) ) {
+					$value = parse_args_recursive( $value, $default );
+				}
+			}
 
-        } else {
-            $value = $default;
-        }
+		} else {
+			$value = $default;
+		}
 
-        $defaults[ $key ] = $value;
-    }
+		$defaults[ $key ] = $value;
+	}
 
-    return $defaults;
+	return $defaults;
 }
 
 /**
@@ -200,28 +200,28 @@ function parse_args_recursive( $args, $defaults ) {
  */
 function smliser_get_placeholder_icon( string $type = '' ) : string {
 
-    static $cache = [];
+	static $cache = [];
 
-    $type = strtolower( trim( $type ) );
+	$type = strtolower( trim( $type ) );
 
-    if ( isset( $cache[ $type ] ) ) {
-        return $cache[ $type ];
-    }
+	if ( isset( $cache[ $type ] ) ) {
+		return $cache[ $type ];
+	}
 
-    $relative_path = match ( $type ) {
-        'plugin', 'plugins'         => 'images/plugins-placeholder.svg',
-        'license', 'licenses'       => 'images/license-placeholder.svg',
-        'theme', 'themes'           => 'images/themes-placeholder.svg',
-        'app', 'apps' , 'all'       => 'images/apps-placeholder.svg',
-        'software', 'softwares'     => 'images/software-placeholder.svg',
-        'download', 'downloads'     => 'images/downloads-icon.svg',
-        'avatar', 'default-avatar'  => 'images/default-avatar.svg',
-        'api-key', 'apikey', 'api'  => 'images/api-key.svg',
-        'org', 'organization'       => 'images/organization.svg',
-        default                     => 'images/software-placeholder.svg',
-    };
+	$relative_path = match ( $type ) {
+		'plugin', 'plugins'        => 'images/plugins-placeholder.svg',
+		'license', 'licenses'      => 'images/license-placeholder.svg',
+		'theme', 'themes'          => 'images/themes-placeholder.svg',
+		'app', 'apps' , 'all'      => 'images/apps-placeholder.svg',
+		'software', 'softwares'    => 'images/software-placeholder.svg',
+		'download', 'downloads'    => 'images/downloads-icon.svg',
+		'avatar', 'default-avatar' => 'images/default-avatar.svg',
+		'api-key', 'apikey', 'api' => 'images/api-key.svg',
+		'org', 'organization'      => 'images/organization.svg',
+		default                    => 'images/software-placeholder.svg',
+	};
 
-    return $cache[ $type ] = $relative_path;
+	return $cache[ $type ] = $relative_path;
 }
 
 /**
@@ -234,90 +234,90 @@ function smliser_get_placeholder_icon( string $type = '' ) : string {
  * @return string The pluralized word.
  */
 function smliser_pluralize( string $string ) : string {
-    $string = trim( $string );
-    
-    if ( empty( $string ) ) {
-        return '';
-    }
+	$string = trim( $string );
+	
+	if ( empty( $string ) ) {
+		return '';
+	}
 
-    $lower = strtolower( $string );
+	$lower = strtolower( $string );
 
-    // Irregular plurals (common cases)
-    $irregulars = [
-        'child'         => 'children',
-        'person'        => 'people',
-        'man'           => 'men',
-        'woman'         => 'women',
-        'tooth'         => 'teeth',
-        'foot'          => 'feet',
-        'mouse'         => 'mice',
-        'goose'         => 'geese',
-        'ox'            => 'oxen',
-        'quiz'          => 'quizzes',
-        'axis'          => 'axes',
-        'analysis'      => 'analyses',
-        'basis'         => 'bases',
-        'crisis'        => 'crises',
-        'thesis'        => 'theses',
-        'phenomenon'    => 'phenomena',
-        'criterion'     => 'criteria',
-        'datum'         => 'data',
-        'organization'  => 'organizations',
-        'organizations' => 'organizations',
-    ];
+	// Irregular plurals (common cases)
+	$irregulars = [
+		'child'         => 'children',
+		'person'        => 'people',
+		'man'           => 'men',
+		'woman'         => 'women',
+		'tooth'         => 'teeth',
+		'foot'          => 'feet',
+		'mouse'         => 'mice',
+		'goose'         => 'geese',
+		'ox'            => 'oxen',
+		'quiz'          => 'quizzes',
+		'axis'          => 'axes',
+		'analysis'      => 'analyses',
+		'basis'         => 'bases',
+		'crisis'        => 'crises',
+		'thesis'        => 'theses',
+		'phenomenon'    => 'phenomena',
+		'criterion'     => 'criteria',
+		'datum'         => 'data',
+		'organization'  => 'organizations',
+		'organizations' => 'organizations',
+	];
 
-    if ( isset( $irregulars[ $lower ] ) ) {
-        return smliser_preserve_case( $string, $irregulars[ $lower ] );
-    }
+	if ( isset( $irregulars[ $lower ] ) ) {
+		return smliser_preserve_case( $string, $irregulars[ $lower ] );
+	}
 
-    // Uncountable nouns (return as-is)
-    $uncountable = [
-        'information', 'equipment', 'rice', 'money', 'species', 'series',
-        'fish', 'sheep', 'deer', 'moose', 'aircraft', 'software', 'hardware',
-        'data', 'news', 'advice', 'furniture', 'luggage', 'evidence', 'users',
-        'houses'
-    ];
+	// Uncountable nouns (return as-is)
+	$uncountable = [
+		'information', 'equipment', 'rice', 'money', 'species', 'series',
+		'fish', 'sheep', 'deer', 'moose', 'aircraft', 'software', 'hardware',
+		'data', 'news', 'advice', 'furniture', 'luggage', 'evidence', 'users',
+		'houses'
+	];
 
-    if ( in_array( $lower, $uncountable, true ) ) {
-        return $string;
-    }
+	if ( in_array( $lower, $uncountable, true ) ) {
+		return $string;
+	}
 
-    // Regular pluralization rules (order matters!)
-    $rules = [
-        // Words ending in s, x, z, ch, sh -> add 'es'
-        '/(s|ss|x|z|ch|sh)$/i' => '$1es',
-        
-        // Words ending in consonant + y -> ies
-        '/([^aeiouy])y$/i' => '$1ies',
-        
-        // Words ending in fe -> ves
-        '/([^f])fe$/i' => '$1ves',
-        
-        // Words ending in f -> ves (leaf, half, etc.)
-        '/([lr])f$/i' => '$1ves',
-        
-        // Words ending in consonant + o -> oes (hero, potato, tomato)
-        // BUT: Exclude common exceptions (photo, piano, halo)
-        '/(?<!photo)(?<!piano)(?<!halo)([^aeiou])o$/i' => '$1oes',
-        
-        // Words ending in is -> es (analysis -> analyses)
-        '/is$/i' => 'es',
-        
-        // Words ending in us -> i (cactus -> cacti)
-        '/us$/i' => 'i',
-        
-        // Words ending in on -> a (criterion -> criteria)
-        '/on$/i' => 'a',
-    ];
+	// Regular pluralization rules (order matters!)
+	$rules = [
+		// Words ending in s, x, z, ch, sh -> add 'es'
+		'/(s|ss|x|z|ch|sh)$/i' => '$1es',
+		
+		// Words ending in consonant + y -> ies
+		'/([^aeiouy])y$/i' => '$1ies',
+		
+		// Words ending in fe -> ves
+		'/([^f])fe$/i' => '$1ves',
+		
+		// Words ending in f -> ves (leaf, half, etc.)
+		'/([lr])f$/i' => '$1ves',
+		
+		// Words ending in consonant + o -> oes (hero, potato, tomato)
+		// BUT: Exclude common exceptions (photo, piano, halo)
+		'/(?<!photo)(?<!piano)(?<!halo)([^aeiou])o$/i' => '$1oes',
+		
+		// Words ending in is -> es (analysis -> analyses)
+		'/is$/i' => 'es',
+		
+		// Words ending in us -> i (cactus -> cacti)
+		'/us$/i' => 'i',
+		
+		// Words ending in on -> a (criterion -> criteria)
+		'/on$/i' => 'a',
+	];
 
-    foreach ( $rules as $pattern => $replacement ) {
-        if ( preg_match( $pattern, $string ) ) {
-            return preg_replace( $pattern, $replacement, $string );
-        }
-    }
+	foreach ( $rules as $pattern => $replacement ) {
+		if ( preg_match( $pattern, $string ) ) {
+			return preg_replace( $pattern, $replacement, $string );
+		}
+	}
 
-    // Default: just add 's'
-    return $string . 's';
+	// Default: just add 's'
+	return $string . 's';
 }
 
 /**
@@ -328,18 +328,18 @@ function smliser_pluralize( string $string ) : string {
  * @return string The replacement with original case pattern applied.
  */
 function smliser_preserve_case( string $original, string $replacement ) : string {
-    // All uppercase
-    if ( $original === strtoupper( $original ) ) {
-        return strtoupper( $replacement );
-    }
-    
-    // First letter uppercase (Title Case)
-    if ( $original[0] === strtoupper( $original[0] ) ) {
-        return ucfirst( $replacement );
-    }
-    
-    // All lowercase
-    return $replacement;
+	// All uppercase
+	if ( $original === strtoupper( $original ) ) {
+		return strtoupper( $replacement );
+	}
+	
+	// First letter uppercase (Title Case)
+	if ( $original[0] === strtoupper( $original[0] ) ) {
+		return ucfirst( $replacement );
+	}
+	
+	// All lowercase
+	return $replacement;
 }
 
 /**
@@ -349,67 +349,67 @@ function smliser_preserve_case( string $original, string $replacement ) : string
  * @return string The singularized word.
  */
 function smliser_singularize( string $string ) : string {
-    $string = trim( $string );
-    
-    if ( empty( $string ) ) {
-        return '';
-    }
+	$string = trim( $string );
+	
+	if ( empty( $string ) ) {
+		return '';
+	}
 
-    $lower = strtolower( $string );
+	$lower = strtolower( $string );
 
-    // Irregular reverse mapping
-    $irregulars = [
-        'children'   => 'child',
-        'people'     => 'person',
-        'men'        => 'man',
-        'women'      => 'woman',
-        'teeth'      => 'tooth',
-        'feet'       => 'foot',
-        'mice'       => 'mouse',
-        'geese'      => 'goose',
-        'oxen'       => 'ox',
-        'quizzes'    => 'quiz',
-        'axes'       => 'axis',
-        'analyses'   => 'analysis',
-        'bases'      => 'basis',
-        'crises'     => 'crisis',
-        'theses'     => 'thesis',
-        'phenomena'  => 'phenomenon',
-        'criteria'   => 'criterion',
-    ];
+	// Irregular reverse mapping
+	$irregulars = [
+		'children'  => 'child',
+		'people'    => 'person',
+		'men'       => 'man',
+		'women'     => 'woman',
+		'teeth'     => 'tooth',
+		'feet'      => 'foot',
+		'mice'      => 'mouse',
+		'geese'     => 'goose',
+		'oxen'      => 'ox',
+		'quizzes'   => 'quiz',
+		'axes'      => 'axis',
+		'analyses'  => 'analysis',
+		'bases'     => 'basis',
+		'crises'    => 'crisis',
+		'theses'    => 'thesis',
+		'phenomena' => 'phenomenon',
+		'criteria'  => 'criterion',
+	];
 
-    if ( isset( $irregulars[ $lower ] ) ) {
-        return smliser_preserve_case( $string, $irregulars[ $lower ] );
-    }
+	if ( isset( $irregulars[ $lower ] ) ) {
+		return smliser_preserve_case( $string, $irregulars[ $lower ] );
+	}
 
-    // Uncountable
-    $uncountable = [
-        'information', 'equipment', 'rice', 'money', 'species', 'series',
-        'fish', 'sheep', 'deer', 'moose', 'aircraft', 'software', 'hardware',
-        'data', 'news', 'advice', 'furniture', 'luggage', 'evidence'
-    ];
+	// Uncountable
+	$uncountable = [
+		'information', 'equipment', 'rice', 'money', 'species', 'series',
+		'fish', 'sheep', 'deer', 'moose', 'aircraft', 'software', 'hardware',
+		'data', 'news', 'advice', 'furniture', 'luggage', 'evidence'
+	];
 
-    if ( in_array( $lower, $uncountable, true ) ) {
-        return $string;
-    }
+	if ( in_array( $lower, $uncountable, true ) ) {
+		return $string;
+	}
 
-    // Singularization rules
-    $rules = [
-        '/ies$/i' => 'y',       // categories -> category
-        '/ves$/i' => 'f',       // leaves -> leaf
-        '/oes$/i' => 'o',       // heroes -> hero
-        '/(ss|x|ch|sh)es$/i' => '$1', // boxes -> box
-        '/ses$/i' => 's',       // buses -> bus
-        '/s$/i' => '',          // cats -> cat
-    ];
+	// Singularization rules
+	$rules = [
+		'/ies$/i'            => 'y',       // categories -> category
+		'/ves$/i'            => 'f',       // leaves -> leaf
+		'/oes$/i'            => 'o',       // heroes -> hero
+		'/(ss|x|ch|sh)es$/i' => '$1', // boxes -> box
+		'/ses$/i'            => 's',       // buses -> bus
+		'/s$/i'              => '',          // cats -> cat
+	];
 
-    foreach ( $rules as $pattern => $replacement ) {
-        if ( preg_match( $pattern, $string ) ) {
-            return preg_replace( $pattern, $replacement, $string );
-        }
-    }
+	foreach ( $rules as $pattern => $replacement ) {
+		if ( preg_match( $pattern, $string ) ) {
+			return preg_replace( $pattern, $replacement, $string );
+		}
+	}
 
-    return $string;
+	return $string;
 }
 
 /**
@@ -424,7 +424,7 @@ function smliser_singularize( string $string ) : string {
  * @param bool  $use_object_vars Whether to fallback to get_object_vars().
  * @return array
  */
-function smliser_value_to_array( mixed $value, bool $use_object_vars = false ): array {
+function smliser_value_to_array( mixed $value, bool $use_object_vars = false ) : array {
 	if ( is_object( $value ) ) {
 		if ( method_exists( $value, 'toArray' ) ) {
 			return $value->toArray();
@@ -454,18 +454,18 @@ function smliser_value_to_array( mixed $value, bool $use_object_vars = false ): 
  * @param mixed $array The value to check.
  * @return bool True if it's a non-empty array of only scalar values, false otherwise.
  */
-function smliser_is_scalar_array( mixed $array ): bool {
-    if ( empty( $array ) || ! is_array( $array ) ) {
-        return false;
-    }
-    return count( array_filter( $array, 'is_array' ) ) === 0;
+function smliser_is_scalar_array( mixed $array ) : bool {
+	if ( empty( $array ) || ! is_array( $array ) ) {
+		return false;
+	}
+	return 0 === count( array_filter( $array, 'is_array' ) );
 }
 
 /**
  * Global translation helper.
  */
-function smliser__( string $text, string $domain = 'default' ): string {
-    return $text; //@TODO: Build a translation engine.
+function smliser__( string $text, string $domain = 'default' ) : string {
+	return $text; //@TODO: Build a translation engine.
 }
 
 /**
@@ -475,19 +475,19 @@ function smliser__( string $text, string $domain = 'default' ): string {
  * @param bool $force
  */
 function smliser_log_error( Throwable|string $error, bool $force = false ) : void {
-    
-    if ( $force ) {
-        $log_status = GlobalErrorHandler::instance()->isLoggingErrors();
-        
-        GlobalErrorHandler::instance()->enableLogging( true );
-        GlobalErrorHandler::instance()->log( $error );
-        
-        GlobalErrorHandler::instance()->enableLogging( $log_status );
-    } else {
-        GlobalErrorHandler::instance()->log( $error );
-    }
+	
+	if ( $force ) {
+		$log_status = GlobalErrorHandler::instance()->isLoggingErrors();
+		
+		GlobalErrorHandler::instance()->enableLogging( true );
+		GlobalErrorHandler::instance()->log( $error );
+		
+		GlobalErrorHandler::instance()->enableLogging( $log_status );
+	} else {
+		GlobalErrorHandler::instance()->log( $error );
+	}
 
-    
+	
 }
 
 /**
@@ -500,21 +500,21 @@ function smliser_log_error( Throwable|string $error, bool $force = false ) : voi
  *
  * @return int Memory limit in MB to pass to QueueWorker.
  */
-function safe_worker_memory_limit_mb(): int {
-    $raw = ini_get( 'memory_limit' );
+function safe_worker_memory_limit_mb() : int {
+	$raw = ini_get( 'memory_limit' );
 
-    // Parse shorthand notation (128M, 256M, 1G etc.) to bytes.
-    $bytes = Format::parse_bytes( (string) $raw );
+	// Parse shorthand notation (128M, 256M, 1G etc.) to bytes.
+	$bytes = Format::parse_bytes( (string) $raw );
 
-    // -1 means unlimited — be conservative on unknown environments.
-    if ( $bytes <= 0 ) {
-        return 64;
-    }
+	// -1 means unlimited — be conservative on unknown environments.
+	if ( $bytes <= 0 ) {
+		return 64;
+	}
 
-    $mb = (int) ( $bytes / 1024 / 1024 );
+	$mb = (int) ( $bytes / 1024 / 1024 );
 
-    // Apply 80% safety factor and floor at 32MB.
-    return max( 32, (int) ( $mb * 0.8 ) );
+	// Apply 80% safety factor and floor at 32MB.
+	return max( 32, (int) ( $mb * 0.8 ) );
 }
 
 /**
@@ -523,19 +523,19 @@ function safe_worker_memory_limit_mb(): int {
  * @param string $default Fallback protocol if invalid or missing (default: 'HTTP/1.1').
  * @return string Validated protocol string (e.g., 'HTTP/1.1', 'HTTP/2', 'HTTP/3').
  */
-function smliser_get_server_protocol( string $default = 'HTTP/1.0' ): string {
-    if ( empty( $_SERVER['SERVER_PROTOCOL'] ) || ! is_string( $_SERVER['SERVER_PROTOCOL'] ) ) {
-        return $default;
-    }
+function smliser_get_server_protocol( string $default = 'HTTP/1.0' ) : string {
+	if ( empty( $_SERVER['SERVER_PROTOCOL'] ) || ! is_string( $_SERVER['SERVER_PROTOCOL'] ) ) {
+		return $default;
+	}
 
-    $protocol = strtoupper( trim( $_SERVER['SERVER_PROTOCOL'] ) );
+	$protocol = strtoupper( trim( $_SERVER['SERVER_PROTOCOL'] ) );
 
-    // Strictly validate against standard HTTP protocol patterns (HTTP/1.0, HTTP/1.1, HTTP/2, HTTP/3, etc.)
-    if ( preg_match( '/^HTTP\/(0\.9|1\.0|1\.1|2(\.0)?|3)$/', $protocol ) ) {
-        return $protocol;
-    }
+	// Strictly validate against standard HTTP protocol patterns (HTTP/1.0, HTTP/1.1, HTTP/2, HTTP/3, etc.)
+	if ( preg_match( '/^HTTP\/(0\.9|1\.0|1\.1|2(\.0)?|3)$/', $protocol ) ) {
+		return $protocol;
+	}
 
-    return $default;
+	return $default;
 }
 
 /**
@@ -556,7 +556,7 @@ function smliser_generate_password(
 	bool $use_symbols = true,
 	bool $use_numbers = true,
 	bool $use_uppercase = true
-): string {
+) : string {
 	$length = max( 8, $length );
 
 	$lowercase = 'abcdefghijklmnopqrstuvwxyz';
@@ -571,17 +571,17 @@ function smliser_generate_password(
 	$password[] = $lowercase[ random_int( 0, strlen( $lowercase ) - 1 ) ];
 
 	if ( $use_uppercase ) {
-		$pool       .= $uppercase;
+		$pool .= $uppercase;
 		$password[] = $uppercase[ random_int( 0, strlen( $uppercase ) - 1 ) ];
 	}
 
 	if ( $use_numbers ) {
-		$pool       .= $numbers;
+		$pool .= $numbers;
 		$password[] = $numbers[ random_int( 0, strlen( $numbers ) - 1 ) ];
 	}
 
 	if ( $use_symbols ) {
-		$pool       .= $symbols;
+		$pool .= $symbols;
 		$password[] = $symbols[ random_int( 0, strlen( $symbols ) - 1 ) ];
 	}
 

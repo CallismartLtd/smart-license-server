@@ -30,62 +30,62 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
  * Sends AppPublishedEmail to the app owner when a new app is published.
  */
 class SendAppPublishedEmailJob implements JobHandlerInterface {
-    use OwnerEmailResolverTrait;
+	use OwnerEmailResolverTrait;
 
-    public function __construct(
-        protected Mailer $mailer
-    ) {}
+	public function __construct(
+		protected Mailer $mailer
+	) {}
 
-    public static function get_job_name(): string {
-        return 'send_app_published_email';
-    }
+	public static function get_job_name() : string {
+		return 'send_app_published_email';
+	}
 
-    public static function get_job_description(): string {
-        return 'Sends a notification email to the app owner when a new app is published.';
-    }
+	public static function get_job_description() : string {
+		return 'Sends a notification email to the app owner when a new app is published.';
+	}
 
-    /**
-     * @param array $payload {
-     *     @type string $app_type App type e.g. 'plugin'.
-     *     @type string $app_slug App slug.
-     * }
-     * @return array{sent: int, skipped: int}
-     */
-    public function handle( array $payload = [] ): mixed {
-        $app_type = (string) $payload['app_type'] ?? '';
-        $app_slug = (string) $payload['app_slug'] ?? '';
+	/**
+	 * @param array $payload {
+	 *     @type string $app_type App type e.g. 'plugin'.
+	 *     @type string $app_slug App slug.
+	 * }
+	 * @return array{sent: int, skipped: int}
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$app_type = (string) $payload['app_type'] ?? '';
+		$app_slug = (string) $payload['app_slug'] ?? '';
 
-        $sent       = 0;
-        $skipped    = 0;
+		$sent    = 0;
+		$skipped = 0;
 
-        $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+		$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
-        if ( ! $app ) {
-            return compact( 'sent', 'skipped' );
-        }
+		if ( ! $app ) {
+			return compact( 'sent', 'skipped' );
+		}
 
-        $emails = $this->resolve_owner_emails( $app->get_owner_id() );
+		$emails = $this->resolve_owner_emails( $app->get_owner_id() );
 
-        if ( empty( $emails ) ) {
-            return compact( 'sent', 'skipped' );
-        }
+		if ( empty( $emails ) ) {
+			return compact( 'sent', 'skipped' );
+		}
 
-        foreach ( $emails as $email ) {
-            $message = ( new AppPublishedEmail( $app, $email ) )->to_message();
+		foreach ( $emails as $email ) {
+			$message = ( new AppPublishedEmail( $app, $email ) )->to_message();
 
-            if ( $message === null ) {
-                $skipped++;
-                continue;
-            }
+			if ( null === $message ) {
+				$skipped++;
+				continue;
+			}
 
-            try {
-                $this->mailer->send( $message );
-                $sent++;
-            } catch ( \Throwable ) {
-                $skipped++;
-            }
-        }
+			try {
+				$this->mailer->send( $message );
+				$sent++;
+			} catch ( \Throwable ) {
+				$skipped++;
+			}
+		}
 
-        return compact( 'sent', 'skipped' );
-    }
+		return compact( 'sent', 'skipped' );
+	}
 }

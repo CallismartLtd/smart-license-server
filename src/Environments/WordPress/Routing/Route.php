@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Environments\WordPress\Routing
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\WordPress\Routing;
 
@@ -49,8 +49,7 @@ final class Route {
 		private readonly ?string $rawRegex = null,
 		private readonly ?string $rawQuery = null,
 		private readonly array $rawQueryVarNames = []
-	) {
-	}
+	) {}
 
 	/**
 	 * @param array<string,string> $extraVars
@@ -63,7 +62,7 @@ final class Route {
 		bool $optionalTrailingSlash,
 		CompiledPattern $compiled,
 		mixed $handler = null
-	): self {
+	) : self {
 		return new self( $pattern, $pagename, $extraVars, $priority, $optionalTrailingSlash, $compiled, $handler );
 	}
 
@@ -71,7 +70,7 @@ final class Route {
 	 * @param string[] $queryVarNames Query var names this raw rule populates, so
 	 *                                query_vars() still knows to register them.
 	 */
-	public static function raw( string $regex, string $query, RoutePriority $priority, array $queryVarNames = [], mixed $handler = null ): self {
+	public static function raw( string $regex, string $query, RoutePriority $priority, array $queryVarNames = [], mixed $handler = null ) : self {
 		return new self( null, '', [], $priority, false, null, $handler, $regex, $query, $queryVarNames );
 	}
 
@@ -81,7 +80,7 @@ final class Route {
 	 *
 	 * @throws InvalidRouteException If the route is already named, or is a raw route.
 	 */
-	public function name( string $name ): self {
+	public function name( string $name ) : self {
 		if ( null === $this->compiled ) {
 			throw new InvalidRouteException(
 				sprintf( 'Route "%s" was registered via Router::raw() and has no pattern template, so it cannot be named for URL generation.', $name )
@@ -99,7 +98,7 @@ final class Route {
 		return $this;
 	}
 
-	public function getName(): ?string {
+	public function getName() : ?string {
 		return $this->name;
 	}
 
@@ -108,13 +107,13 @@ final class Route {
 	 *
 	 * @return array{regex: string, query: string, priority: string}
 	 */
-	public function toRewriteRule(): array {
+	public function toRewriteRule() : array {
 		if ( null !== $this->rawRegex ) {
-			return array(
+			return [
 				'regex'    => $this->rawRegex,
 				'query'    => (string) $this->rawQuery,
 				'priority' => $this->priority->value,
-			);
+			];
 		}
 
 		$regex = $this->compiled->regex . ( $this->optionalTrailingSlash ? '/?' : '' );
@@ -133,11 +132,11 @@ final class Route {
 			$queryParts[] = $varName . '=' . $value;
 		}
 
-		return array(
+		return [
 			'regex'    => '^' . $regex . '$',
 			'query'    => 'index.php?' . implode( '&', $queryParts ),
 			'priority' => $this->priority->value,
-		);
+		];
 	}
 
 	/**
@@ -146,7 +145,7 @@ final class Route {
 	 *
 	 * @return string[]
 	 */
-	public function queryVarNames(): array {
+	public function queryVarNames() : array {
 		if ( null !== $this->rawRegex ) {
 			return $this->rawQueryVarNames;
 		}
@@ -166,7 +165,7 @@ final class Route {
 	 *
 	 * @return array<string,string>|null Named params, or null if this route doesn't match.
 	 */
-	public function match( string $path ): ?array {
+	public function match( string $path ) : ?array {
 		if ( null === $this->compiled ) {
 			return null;
 		}

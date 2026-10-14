@@ -23,70 +23,70 @@ use Callismart\DBPrism\Utils\ColumnType;
  */
 class OrganizationMembersSchema implements DatabaseSchemaInterface {
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_label() : string {
-        return 'Organization Members';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_label() : string {
+		return 'Organization Members';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_description() : string {
-        return 'Maps members to organizations.';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_description() : string {
+		return 'Maps members to organizations.';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_table_name() : string {
-        return TableName::ORGANIZATION_MEMBERS->value;
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_table_name() : string {
+		return TableName::ORGANIZATION_MEMBERS->value;
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_columns() : array {
-        return [
-            Column::make( 'id' )
-                ->type( ColumnType::BIG_INT )
-                ->unsigned()
-                ->auto_increment()
-                ->required(),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_columns() : array {
+		return [
+			Column::make( 'id' )
+				->type( ColumnType::BIG_INT )
+				->unsigned()
+				->auto_increment()
+				->required(),
 
-            Column::make( 'organization_id' )
-                ->type( ColumnType::BIG_INT )
-                ->unsigned()
-                ->required(),
+			Column::make( 'organization_id' )
+				->type( ColumnType::BIG_INT )
+				->unsigned()
+				->required(),
 
-            Column::make( 'member_id' )
-                ->type( ColumnType::BIG_INT )
-                ->unsigned()
-                ->required(),
+			Column::make( 'member_id' )
+				->type( ColumnType::BIG_INT )
+				->unsigned()
+				->required(),
 
-            Column::make( 'created_at' )
-                ->type( ColumnType::DATETIME ),
+			Column::make( 'created_at' )
+				->type( ColumnType::DATETIME ),
 
-            Column::make( 'updated_at' )
-                ->type( ColumnType::DATETIME )
-                ->required(),
-        ];
-    }
+			Column::make( 'updated_at' )
+				->type( ColumnType::DATETIME )
+				->required(),
+		];
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_constraints() : array {
-        $prefx  = static::constraintPrefix();
-        return [
-            Constraint::primary( "{$prefx}primary" )->on( 'id' ),
-            Constraint::index( "{$prefx}id" )->on( 'member_id' ),
-            Constraint::index( "{$prefx}org_id" )->on( 'organization_id' ),
-        ];
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_constraints() : array {
+		$prefx = static::constraintPrefix();
+		return [
+			Constraint::primary( "{$prefx}primary" )->on( 'id' ),
+			Constraint::index( "{$prefx}id" )->on( 'member_id' ),
+			Constraint::index( "{$prefx}org_id" )->on( 'organization_id' ),
+		];
+	}
 
-    protected static function constraintPrefix() {
-        return 'smliser_orgmember_';
-    }
+	protected static function constraintPrefix() {
+		return 'smliser_orgmember_';
+	}
 }

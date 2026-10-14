@@ -21,29 +21,29 @@ namespace SmartLicenseServer\Console;
  */
 final readonly class ScriptName {
 
-    /**
-     * Class constructor.
-     *
-     * @param string $value The script invocation name.
-     */
-    public function __construct( public string $value ) {}
+	/**
+	 * Class constructor.
+	 *
+	 * @param string $value The script invocation name.
+	 */
+	public function __construct( public string $value ) {}
 
-    /**
-     * Resolve default invocation name from global $argv server variable.
-     *
-     * @return self
-     */
-    public static function fromGlobals() : self {
-        $script = $_SERVER['argv'][0] ?? 'smliser';
-        return new self( \basename( $script ) );
-    }
+	/**
+	 * Resolve default invocation name from global $argv server variable.
+	 *
+	 * @return self
+	 */
+	public static function fromGlobals() : self {
+		$script = $_SERVER['argv'][0] ?? 'smliser';
+		return new self( \basename( $script ) );
+	}
 
-    /**
-     * Magic string cast.
-     *
-     * @return string
-     */
-    public function __toString() : string {
-        return $this->value;
-    }
+	/**
+	 * Magic string cast.
+	 *
+	 * @return string
+	 */
+	public function __toString() : string {
+		return $this->value;
+	}
 }

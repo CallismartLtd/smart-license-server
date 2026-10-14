@@ -19,295 +19,295 @@ use SmartLicenseServer\Exceptions\Exception;
  */
 class RequestException extends Exception {
 
-    protected static array $error_map = [
+	protected static array $error_map = [
 
-        // 400 Bad Request Errors.
-        'invalid_input' => [
-            'status'  => 400,
-            'title'   => 'Invalid Request',
-            'message' => 'One or more required parameters are missing or invalid.'
-        ],
-        'malformed_json' => [
-            'status'  => 400,
-            'title'   => 'Invalid Syntax',
-            'message' => 'The request body could not be parsed as valid JSON.'
-        ],
-        'missing_data' => [
-            'status'  => 400,
-            'title'   => 'Missing Data',
-            'message' => 'Required request data (body, header, or query parameter) is missing.'
-        ],
-        'required_param' => [
-            'status'  => 400,
-            'title'   => 'Invalid Parameter',
-            'message' => 'The please provide the missing request parameter.'
-        ],
-        'required_file' => [
-            'status'  => 400,
-            'title'   => 'Missing File',
-            'message' => 'The please provide the required file.'
-        ],
-        'invalid_parameter_type' => [
-            'status'  => 400,
-            'title'   => 'Type Mismatch',
-            'message' => 'A parameter has an unexpected type or format.'
-        ],
+		// 400 Bad Request Errors.
+		'invalid_input' => [
+			'status'  => 400,
+			'title'   => 'Invalid Request',
+			'message' => 'One or more required parameters are missing or invalid.'
+		],
+		'malformed_json' => [
+			'status'  => 400,
+			'title'   => 'Invalid Syntax',
+			'message' => 'The request body could not be parsed as valid JSON.'
+		],
+		'missing_data' => [
+			'status'  => 400,
+			'title'   => 'Missing Data',
+			'message' => 'Required request data (body, header, or query parameter) is missing.'
+		],
+		'required_param' => [
+			'status'  => 400,
+			'title'   => 'Invalid Parameter',
+			'message' => 'The please provide the missing request parameter.'
+		],
+		'required_file' => [
+			'status'  => 400,
+			'title'   => 'Missing File',
+			'message' => 'The please provide the required file.'
+		],
+		'invalid_parameter_type' => [
+			'status'  => 400,
+			'title'   => 'Type Mismatch',
+			'message' => 'A parameter has an unexpected type or format.'
+		],
 
-        // 401 Unauthorized Errors.
-        'missing_auth' => [
-            'status'  => 401,
-            'title'   => 'Unauthorized',
-            'message' => 'Authentication is required for this request but was not provided.'
-        ],
-        'invalid_credentials' => [
-            'status'  => 401,
-            'title'   => 'Invalid Credentials',
-            'message' => 'The provided API key or token is incorrect or expired.'
-        ],
-        'token_expired' => [
-            'status'  => 401,
-            'title'   => 'Session Expired',
-            'message' => 'Your session or authentication token has expired. Please log in again.'
-        ],
-        'invalid_signature' => [
-            'status'  => 401,
-            'title'   => 'Invalid Signature',
-            'message' => 'The request signature could not be verified.'
-        ],
-        'incorrect_password' => [
-            'status'  => 401,
-            'title'   => 'Incorrect Password',
-            'message' => 'The password you entered is incorrect.'
-        ],
+		// 401 Unauthorized Errors.
+		'missing_auth' => [
+			'status'  => 401,
+			'title'   => 'Unauthorized',
+			'message' => 'Authentication is required for this request but was not provided.'
+		],
+		'invalid_credentials' => [
+			'status'  => 401,
+			'title'   => 'Invalid Credentials',
+			'message' => 'The provided API key or token is incorrect or expired.'
+		],
+		'token_expired' => [
+			'status'  => 401,
+			'title'   => 'Session Expired',
+			'message' => 'Your session or authentication token has expired. Please log in again.'
+		],
+		'invalid_signature' => [
+			'status'  => 401,
+			'title'   => 'Invalid Signature',
+			'message' => 'The request signature could not be verified.'
+		],
+		'incorrect_password' => [
+			'status'  => 401,
+			'title'   => 'Incorrect Password',
+			'message' => 'The password you entered is incorrect.'
+		],
 
-        // 403 Forbidden Errors.
-        'unauthorized_scope' => [
-            'status'  => 403,
-            'title'   => 'Insufficient Scope',
-            'message' => 'The provided credentials do not grant access to this resource.'
-        ],
-        'unuathorized_app_access' => [
-            'status'  => 403,
-            'title'   => 'Unathorized App Access',
-            'message' => 'Sorry, you do not have the correct app ownership permission.'
-        ],
-        'permission_denied' => [
-            'status'  => 403,
-            'title'   => 'Forbidden',
-            'message' => 'The authenticated user does not have permission to perform this action.'
-        ],
-        'ip_blocked' => [
-            'status'  => 403,
-            'title'   => 'Access Denied',
-            'message' => 'Access from your IP address has been blocked for security reasons.'
-        ],
-        'csrf_violation' => [
-            'status'  => 403,
-            'title'   => 'CSRF Verification Failed',
-            'message' => 'Security token verification failed for this request.'
-        ],
-        'license_suspended' => [
-            'status'  => 403,
-            'title'   => 'License Suspended',
-            'message' => 'The license or subscription for this request has been suspended.'
-        ],
-        'access_restricted' => [
-            'status'  => 403,
-            'title'   => 'Restricted Access',
-            'message' => 'This operation is restricted under current system settings.'
-        ],
+		// 403 Forbidden Errors.
+		'unauthorized_scope' => [
+			'status'  => 403,
+			'title'   => 'Insufficient Scope',
+			'message' => 'The provided credentials do not grant access to this resource.'
+		],
+		'unuathorized_app_access' => [
+			'status'  => 403,
+			'title'   => 'Unathorized App Access',
+			'message' => 'Sorry, you do not have the correct app ownership permission.'
+		],
+		'permission_denied' => [
+			'status'  => 403,
+			'title'   => 'Forbidden',
+			'message' => 'The authenticated user does not have permission to perform this action.'
+		],
+		'ip_blocked' => [
+			'status'  => 403,
+			'title'   => 'Access Denied',
+			'message' => 'Access from your IP address has been blocked for security reasons.'
+		],
+		'csrf_violation' => [
+			'status'  => 403,
+			'title'   => 'CSRF Verification Failed',
+			'message' => 'Security token verification failed for this request.'
+		],
+		'license_suspended' => [
+			'status'  => 403,
+			'title'   => 'License Suspended',
+			'message' => 'The license or subscription for this request has been suspended.'
+		],
+		'access_restricted' => [
+			'status'  => 403,
+			'title'   => 'Restricted Access',
+			'message' => 'This operation is restricted under current system settings.'
+		],
 
-        // 404 Not Found Errors.
-        'endpoint_not_found' => [
-            'status'  => 404,
-            'title'   => 'Not Found',
-            'message' => 'The requested API endpoint does not exist.'
-        ],
-        'resource_not_found' => [
-            'status'  => 404,
-            'title'   => 'Resource Not Found',
-            'message' => 'The requested resource could not be located.'
-        ],
-        'app_not_found' => [
-            'status'  => 404,
-            'title'   => 'Application Not Found',
-            'message' => 'The requested application could not be located.'
-        ],
-        'resource_owner_not_found' => [
-            'status'  => 404,
-            'title'   => 'Resource Owner Not Found',
-            'message' => 'The resource owner does not exist.'
-        ],
+		// 404 Not Found Errors.
+		'endpoint_not_found' => [
+			'status'  => 404,
+			'title'   => 'Not Found',
+			'message' => 'The requested API endpoint does not exist.'
+		],
+		'resource_not_found' => [
+			'status'  => 404,
+			'title'   => 'Resource Not Found',
+			'message' => 'The requested resource could not be located.'
+		],
+		'app_not_found' => [
+			'status'  => 404,
+			'title'   => 'Application Not Found',
+			'message' => 'The requested application could not be located.'
+		],
+		'resource_owner_not_found' => [
+			'status'  => 404,
+			'title'   => 'Resource Owner Not Found',
+			'message' => 'The resource owner does not exist.'
+		],
 
-        // 405 Method Not Allowed.
-        'method_not_allowed' => [
-            'status'  => 405,
-            'title'   => 'Method Not Allowed',
-            'message' => 'The request method is not supported for this resource.'
-        ],
+		// 405 Method Not Allowed.
+		'method_not_allowed' => [
+			'status'  => 405,
+			'title'   => 'Method Not Allowed',
+			'message' => 'The request method is not supported for this resource.'
+		],
 
-        // 408 Request Timeout
-        'request_timeout' => [
-            'status'  => 408,
-            'title'   => 'Request Timeout',
-            'message' => 'The server timed out waiting for the request to complete.'
-        ],
+		// 408 Request Timeout
+		'request_timeout' => [
+			'status'  => 408,
+			'title'   => 'Request Timeout',
+			'message' => 'The server timed out waiting for the request to complete.'
+		],
 
-        // 409 Conflict
-        'resource_conflict' => [
-            'status'  => 409,
-            'title'   => 'Conflict',
-            'message' => 'The request could not be completed due to a resource conflict.'
-        ],
-        'duplicate_entry' => [
-            'status'  => 409,
-            'title'   => 'Duplicate Entry',
-            'message' => 'A resource with the same unique identifier already exists.'
-        ],
-        'email_exists' => [
-            'status'  => 409,
-            'title'   => 'Email Conflict',
-            'message' => 'The provided email is not available.'
-        ],
-        'app_slug_exists' => [
-            'status'  => 409,
-            'title'   => 'App Slug Conflict',
-            'message' => 'The provided slug for this application is not available.'
-        ],
+		// 409 Conflict
+		'resource_conflict' => [
+			'status'  => 409,
+			'title'   => 'Conflict',
+			'message' => 'The request could not be completed due to a resource conflict.'
+		],
+		'duplicate_entry' => [
+			'status'  => 409,
+			'title'   => 'Duplicate Entry',
+			'message' => 'A resource with the same unique identifier already exists.'
+		],
+		'email_exists' => [
+			'status'  => 409,
+			'title'   => 'Email Conflict',
+			'message' => 'The provided email is not available.'
+		],
+		'app_slug_exists' => [
+			'status'  => 409,
+			'title'   => 'App Slug Conflict',
+			'message' => 'The provided slug for this application is not available.'
+		],
 
-        // 412 Precondition Failed
-        'precondition_failed' => [
-            'status'  => 412,
-            'title'   => 'Precondition Failed',
-            'message' => 'A required precondition for this request was not met.'
-        ],
+		// 412 Precondition Failed
+		'precondition_failed' => [
+			'status'  => 412,
+			'title'   => 'Precondition Failed',
+			'message' => 'A required precondition for this request was not met.'
+		],
 
-        // 413 Payload Too Large
-        'payload_too_large' => [
-            'status'  => 413,
-            'title'   => 'Payload Too Large',
-            'message' => 'The request payload exceeded the maximum required size.'
-        ],
+		// 413 Payload Too Large
+		'payload_too_large' => [
+			'status'  => 413,
+			'title'   => 'Payload Too Large',
+			'message' => 'The request payload exceeded the maximum required size.'
+		],
 
-        // 415 Unsupported Media Type
-        'unsupported_media_type' => [
-            'status'  => 415,
-            'title'   => 'Unsupported Media Type',
-            'message' => 'The request content type is not supported by this endpoint.'
-        ],
-        'requires_multipart_form_data' => [
-            'status'  => 415,
-            'title'   => 'Unsupported Content Type',
-            'message' => 'Content-Type header value must be multipart/form-data.'
-        ],
+		// 415 Unsupported Media Type
+		'unsupported_media_type' => [
+			'status'  => 415,
+			'title'   => 'Unsupported Media Type',
+			'message' => 'The request content type is not supported by this endpoint.'
+		],
+		'requires_multipart_form_data' => [
+			'status'  => 415,
+			'title'   => 'Unsupported Content Type',
+			'message' => 'Content-Type header value must be multipart/form-data.'
+		],
 
-        // 422 Unprocessable Entity
-        'validation_failed' => [
-            'status'  => 422,
-            'title'   => 'Validation Failed',
-            'message' => 'Some input fields did not pass validation checks.'
-        ],
+		// 422 Unprocessable Entity
+		'validation_failed' => [
+			'status'  => 422,
+			'title'   => 'Validation Failed',
+			'message' => 'Some input fields did not pass validation checks.'
+		],
 
-        // 429 Rate Limiting
-        'rate_limited' => [
-            'status'  => 429,
-            'title'   => 'Rate Limit Exceeded',
-            'message' => 'You have exceeded the maximum allowed requests in this time window.'
-        ],
-        'quota_exceeded' => [
-            'status'  => 429,
-            'title'   => 'Quota Exceeded',
-            'message' => 'You have used all available quota for this operation.'
-        ],
+		// 429 Rate Limiting
+		'rate_limited' => [
+			'status'  => 429,
+			'title'   => 'Rate Limit Exceeded',
+			'message' => 'You have exceeded the maximum allowed requests in this time window.'
+		],
+		'quota_exceeded' => [
+			'status'  => 429,
+			'title'   => 'Quota Exceeded',
+			'message' => 'You have used all available quota for this operation.'
+		],
 
-        // 500 Internal Errors
-        'internal_server_error' => [
-            'status'  => 500,
-            'title'   => 'Internal Server Error',
-            'message' => 'An unexpected server error occurred while processing the request.'
-        ],
-        'database_error' => [
-            'status'  => 500,
-            'title'   => 'Database Error',
-            'message' => 'A database error occurred while handling the request.'
-        ],
-        'filesystem_error' => [
-            'status'  => 500,
-            'title'   => 'Filesystem Error',
-            'message' => 'A file or directory operation failed unexpectedly.'
-        ],
+		// 500 Internal Errors
+		'internal_server_error' => [
+			'status'  => 500,
+			'title'   => 'Internal Server Error',
+			'message' => 'An unexpected server error occurred while processing the request.'
+		],
+		'database_error' => [
+			'status'  => 500,
+			'title'   => 'Database Error',
+			'message' => 'A database error occurred while handling the request.'
+		],
+		'filesystem_error' => [
+			'status'  => 500,
+			'title'   => 'Filesystem Error',
+			'message' => 'A file or directory operation failed unexpectedly.'
+		],
 
-        // 501 Not Implemented
-        'not_implemented' => [
-            'status'  => 501,
-            'title'   => 'Method not implemented',
-            'message' => 'The server does not support the action requested.'
-        ],
+		// 501 Not Implemented
+		'not_implemented' => [
+			'status'  => 501,
+			'title'   => 'Method not implemented',
+			'message' => 'The server does not support the action requested.'
+		],
 
-        // 502 Bad Gateway
-        'dependency_failure' => [
-            'status'  => 502,
-            'title'   => 'Bad Gateway',
-            'message' => 'An external dependency or microservice failed to respond correctly.'
-        ],
+		// 502 Bad Gateway
+		'dependency_failure' => [
+			'status'  => 502,
+			'title'   => 'Bad Gateway',
+			'message' => 'An external dependency or microservice failed to respond correctly.'
+		],
 
-        // 503 Service Unavailable
-        'service_unavailable' => [
-            'status'  => 503,
-            'title'   => 'Service Unavailable',
-            'message' => 'The service is temporarily unavailable or under maintenance.'
-        ],
+		// 503 Service Unavailable
+		'service_unavailable' => [
+			'status'  => 503,
+			'title'   => 'Service Unavailable',
+			'message' => 'The service is temporarily unavailable or under maintenance.'
+		],
 
-        // 504 Gateway Timeout
-        'gateway_timeout' => [
-            'status'  => 504,
-            'title'   => 'Gateway Timeout',
-            'message' => 'The upstream service did not respond in time.'
-        ],
+		// 504 Gateway Timeout
+		'gateway_timeout' => [
+			'status'  => 504,
+			'title'   => 'Gateway Timeout',
+			'message' => 'The upstream service did not respond in time.'
+		],
 
-    ];
+	];
 
-    /**
-     * Constructor for RequestException.
-     *
-     * Creates the exception by passing a known error slug, which automatically
-     * loads the correct HTTP status code, title, and default message.
-     *
-     * @param string $error_slug The known error code (must exist in $error_map keys).
-     * @param string|null $custom_message Optional custom message.
-     * @param mixed $custom_data Optional custom data array to merge with defaults.
-     */
-    public function __construct( string $error_slug, ?string $custom_message = null, $custom_data = [] ) {
+	/**
+	 * Constructor for RequestException.
+	 *
+	 * Creates the exception by passing a known error slug, which automatically
+	 * loads the correct HTTP status code, title, and default message.
+	 *
+	 * @param string $error_slug The known error code (must exist in $error_map keys).
+	 * @param string|null $custom_message Optional custom message.
+	 * @param mixed $custom_data Optional custom data array to merge with defaults.
+	 */
+	public function __construct( string $error_slug, ?string $custom_message = null, $custom_data = [] ) {
 
-        $has_map = isset( static::$error_map[ $error_slug ] );
+		$has_map = isset( static::$error_map[ $error_slug ] );
 
-        $default_data = $has_map
-            ? static::$error_map[ $error_slug ]
-            : static::$error_map['invalid_input'];
+		$default_data = $has_map
+			? static::$error_map[ $error_slug ]
+			: static::$error_map['invalid_input'];
 
-        $resolved_slug = $error_slug;
+		$resolved_slug = $error_slug;
 
-        $message = $custom_message ?? $default_data['message'];
-        
-        $data = array_merge(
-            [
-                'status' => $default_data['status'],
-                'title'  => $default_data['title'],
-            ],
-            (array) $custom_data
-        );
+		$message = $custom_message ?? $default_data['message'];
+		
+		$data = array_merge(
+			[
+				'status' => $default_data['status'],
+				'title'  => $default_data['title'],
+			],
+			(array) $custom_data
+		);
 
-        parent::__construct( $resolved_slug, $message, $data );
-    }
+		parent::__construct( $resolved_slug, $message, $data );
+	}
 
-    /**
-     * Static factory.
-     * 
-     * @param string $error_slug The known error code (must exist in $error_map keys).
-     * @param string|null $custom_message Optional custom message.
-     * @param mixed $custom_data Optional custom data array to merge with defaults.
-     */
-    public static function make( string $error_slug, ?string $custom_message, mixed $custom_data ) : static {
-        return new static( $error_slug, $custom_message, $custom_data );
-    }
+	/**
+	 * Static factory.
+	 * 
+	 * @param string $error_slug The known error code (must exist in $error_map keys).
+	 * @param string|null $custom_message Optional custom message.
+	 * @param mixed $custom_data Optional custom data array to merge with defaults.
+	 */
+	public static function make( string $error_slug, ?string $custom_message, mixed $custom_data ) : static {
+		return new static( $error_slug, $custom_message, $custom_data );
+	}
 }

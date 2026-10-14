@@ -160,12 +160,12 @@ final class UpdateService {
 
 		try {
 			$latest = $this->server->latest( $progress );
-			$check  = array( 'latest' => $latest['version'], 'security' => $latest['security'], 'error' => null );
+			$check  = [ 'latest' => $latest['version'], 'security' => $latest['security'], 'error' => null ];
 		} catch ( UpdateException $e ) {
-			$check = array( 'latest' => $last['latest'] ?? null, 'security' => (bool) ( $last['security'] ?? false ), 'error' => $e->getMessage() );
+			$check = [ 'latest' => $last['latest'] ?? null, 'security' => (bool) ( $last['security'] ?? false ), 'error' => $e->getMessage() ];
 		}
 
-		$check = array( 'checked_at' => gmdate( DATE_ATOM ) ) + $check + array_intersect_key( (array) $last, array_flip( array( 'queued' ) ) );
+		$check = [ 'checked_at' => gmdate( DATE_ATOM ) ] + $check + array_intersect_key( (array) $last, array_flip( [ 'queued' ] ) );
 
 		try {
 			$this->state->set_update_section( InstallationState::UPDATE_CHECK, $check );
@@ -213,7 +213,7 @@ final class UpdateService {
 			$problems += $this->web_limits();
 		}
 
-		foreach ( array( '', 'system', 'server' ) as $dir ) {
+		foreach ( [ '', 'system', 'server' ] as $dir ) {
 			$path = $this->root . $dir;
 
 			if ( $this->fs->exists( $path ) && ! $this->fs->is_writable( $path ) ) {
@@ -327,11 +327,11 @@ final class UpdateService {
 
 			$verified = $this->verifier->verify( $package, $this->sibling( $package, '.sha256' ), $this->sibling( $package, '.sha256.sig' ), $trust_unsigned, $progress );
 
-			return array(
+			return [
 				'manifest' => $this->updater->stage( $package, null, $reinstall, $progress ),
 				'package'  => ['source' => $source, 'sha256' => $verified['sha256'], 'signed_by' => $verified['signed_by'] ],
 				'warnings' => $verified['warnings'],
-			);
+			];
 		}
 
 		$check = $this->check( true, $progress );
@@ -387,7 +387,7 @@ final class UpdateService {
 	 * @return array{ok: bool, version: ?string, installed: string, package: ?array, blockers: array<string, string>, warnings: string[], error: ?string}
 	 */
 	public function dry_run( ?callable $progress = null ) : array {
-		$result = array(
+		$result = [
 			'ok'        => false,
 			'version'   => null,
 			'installed' => \SMLISER_VER,
@@ -395,7 +395,7 @@ final class UpdateService {
 			'blockers'  => $this->blockers(),
 			'warnings'  => [],
 			'error'     => null,
-		);
+		];
 
 		if ( ! empty( $result['blockers'] ) ) {
 			return $result;
@@ -435,7 +435,7 @@ final class UpdateService {
 	public function auto_mode() : string {
 		$mode = $this->settings->get( self::SETTING_AUTO, self::AUTO_SECURITY );
 
-		return in_array( $mode, array( self::AUTO_OFF, self::AUTO_SECURITY, self::AUTO_ALL ), true ) ? $mode : self::AUTO_SECURITY;
+		return in_array( $mode, [ self::AUTO_OFF, self::AUTO_SECURITY, self::AUTO_ALL ], true ) ? $mode : self::AUTO_SECURITY;
 	}
 
 	/**
@@ -446,7 +446,7 @@ final class UpdateService {
 	 * @throws UpdateException For an unknown mode.
 	 */
 	public function set_auto_mode( string $mode ) : void {
-		if ( ! in_array( $mode, array( self::AUTO_OFF, self::AUTO_SECURITY, self::AUTO_ALL ), true ) ) {
+		if ( ! in_array( $mode, [ self::AUTO_OFF, self::AUTO_SECURITY, self::AUTO_ALL ], true ) ) {
 			throw new UpdateException( sprintf( 'Unknown automatic update mode "%s"; use off, security or all.', $mode ) );
 		}
 
@@ -493,7 +493,7 @@ final class UpdateService {
 				fn() => $this->notify_failed(
 					'install',
 					"Automatic updates cannot install this release on this server:\n" . implode( "\n", $blockers ),
-					array( 'version' => $check['latest'] ),
+					[ 'version' => $check['latest'] ],
 					$check,
 					'blocked:' . implode( ',', array_keys( $blockers ) )
 				)
@@ -536,7 +536,7 @@ final class UpdateService {
 	public function mark_queued( string $version, string $by ) : void {
 		$this->state->change(
 			static function ( array $state ) use ( $version, $by ) : array {
-				$state['update']['check']['queued'] = array( 'version' => $version, 'by' => $by, 'at' => gmdate( DATE_ATOM ) );
+				$state['update']['check']['queued'] = [ 'version' => $version, 'by' => $by, 'at' => gmdate( DATE_ATOM ) ];
 
 				return $state;
 			}
@@ -572,12 +572,12 @@ final class UpdateService {
 					unset( $state['update']['check']['queued'] );
 				}
 
-				$state['update']['attempt'] = array(
+				$state['update']['attempt'] = [
 					'action'  => $action,
 					'ok'      => $ok,
 					'message' => $message,
 					'at'      => gmdate( DATE_ATOM ),
-				);
+				];
 
 				return $state;
 			}
@@ -626,7 +626,7 @@ final class UpdateService {
 
 		$this->dispatch_job(
 			UpdateNotificationJob::class,
-			array(
+			[
 				'event'           => UpdateNotificationJob::EVENT_AVAILABLE,
 				'current_version' => \SMLISER_VER,
 				'new_version'     => $version,
@@ -634,12 +634,12 @@ final class UpdateService {
 				'detail'          => self::AUTO_OFF === $mode
 					? 'Automatic updates are off on this site, so it will not be installed automatically.'
 					: 'Automatic updates on this site install security releases only, so this release will not be installed automatically.',
-			)
+			]
 		);
 
 		$this->state->set_update_section(
 			InstallationState::UPDATE_NOTIFIED,
-			array( 'available' => $version, 'at' => gmdate( DATE_ATOM ) ) + (array) $notified
+			[ 'available' => $version, 'at' => gmdate( DATE_ATOM ) ] + (array) $notified
 		);
 
 		return true;
@@ -665,13 +665,13 @@ final class UpdateService {
 
 		$this->dispatch_job(
 			UpdateNotificationJob::class,
-			array(
+			[
 				'event'           => UpdateNotificationJob::EVENT_INSTALLED,
 				'current_version' => (string) ( $result['from'] ?? '' ),
 				'new_version'     => (string) $result['to'],
 				'security'        => $result['to'] === ( $check['latest'] ?? null ) && ! empty( $check['security'] ),
 				'package'         => (array) ( $result['package'] ?? [] ),
-			)
+			]
 		);
 
 		return true;
@@ -725,19 +725,19 @@ final class UpdateService {
 
 		$this->dispatch_job(
 			UpdateNotificationJob::class,
-			array(
+			[
 				'event'           => UpdateNotificationJob::EVENT_FAILED,
 				'action'          => $action,
 				'current_version' => \SMLISER_VER,
 				'new_version'     => $version,
 				'security'        => $version === ( $check['latest'] ?? null ) && ! empty( $check['security'] ),
 				'detail'          => '' !== $output ? $output : 'The update ended without output.',
-			)
+			]
 		);
 
 		$this->state->set_update_section(
 			InstallationState::UPDATE_NOTIFIED,
-			array( 'failed' => $key, 'failed_at' => gmdate( DATE_ATOM ) ) + $notified
+			[ 'failed' => $key, 'failed_at' => gmdate( DATE_ATOM ) ] + $notified
 		);
 	}
 
@@ -762,7 +762,7 @@ final class UpdateService {
 		$run   = $this->updater->status();
 		$state = $this->state->read();
 
-		return array(
+		return [
 			'installed'   => \SMLISER_VER,
 			'check'       => $check,
 			'blockers'    => array_values( $this->blockers() ),
@@ -771,9 +771,9 @@ final class UpdateService {
 			'ready'       => $this->state->update_section( InstallationState::UPDATE_READY ),
 			'queued'      => is_array( $check['queued'] ?? null ) ? $check['queued'] : null,
 			'attempt'     => is_array( $state ) && is_array( $state['update']['attempt'] ?? null ) ? $state['update']['attempt'] : null,
-			'run'         => null === $run ? null : array_intersect_key( $run, array_flip( array( 'from', 'to', 'stage', 'started_at', 'finished_at', 'rolled_back_at' ) ) ),
-			'in_progress' => in_array( $run['stage'] ?? null, array( Updater::STAGE_APPLYING, Updater::STAGE_SWAPPED ), true ),
-		);
+			'run'         => null === $run ? null : array_intersect_key( $run, array_flip( [ 'from', 'to', 'stage', 'started_at', 'finished_at', 'rolled_back_at' ] ) ),
+			'in_progress' => in_array( $run['stage'] ?? null, [ Updater::STAGE_APPLYING, Updater::STAGE_SWAPPED ], true ),
+		];
 	}
 
 	/*
@@ -803,7 +803,7 @@ final class UpdateService {
 	 * @return array
 	 */
 	private function with_availability( array $check ) : array {
-		$check += array( 'checked_at' => '', 'latest' => null, 'security' => false, 'error' => null );
+		$check += [ 'checked_at' => '', 'latest' => null, 'security' => false, 'error' => null ];
 
 		$check['available'] = is_string( $check['latest'] ) && version_compare( $check['latest'], \SMLISER_VER, '>' );
 

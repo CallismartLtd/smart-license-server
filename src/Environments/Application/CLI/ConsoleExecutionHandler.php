@@ -24,21 +24,21 @@ use SmartLicenseServer\Environments\Application\Kernel\ExecutionHandlerInterface
  */
 class ConsoleExecutionHandler implements ExecutionHandlerInterface {
 
-    /**
-     * Class constructor.
-     *
-     * @param ConsoleDispatcher $dispatcher The CLI console dispatcher.
-     */
-    public function __construct(
-        protected ConsoleDispatcher $dispatcher
-    ) {}
+	/**
+	 * Class constructor.
+	 *
+	 * @param ConsoleDispatcher $dispatcher The CLI console dispatcher.
+	 */
+	public function __construct(
+		protected ConsoleDispatcher $dispatcher
+	) {}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function handle() : int {
-        $runner = $this->dispatcher->dispatch();
+	/**
+	 * {@inheritdoc}
+	 */
+	public function handle() : int {
+		$runner = $this->dispatcher->dispatch();
 
-        return $runner->init();
-    }
+		return $runner->init();
+	}
 }

@@ -70,7 +70,7 @@ final class CronExecutionHandler implements ExecutionHandlerInterface {
 		$base      = (string) ( $app_url instanceof URL ? $app_url->get_path() : URL::from( $app_url )->get_path() );
 
 		// "/" at the site root, "/smliser/" in a subdirectory: drop the trailing slash before appending.
-		$base      = rtrim( $base, '/' );
+		$base = rtrim( $base, '/' );
 
 		return rtrim( $requested, '/' ) === $base . '/' . self::PATH;
 	}
@@ -82,7 +82,7 @@ final class CronExecutionHandler implements ExecutionHandlerInterface {
 		$method = strtoupper( (string) ( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) );
 
 		if ( 'GET' !== $method && 'HEAD' !== $method ) {
-			RequestFinisher::finish( 405, '', array( 'Allow' => 'GET, HEAD' ) );
+			RequestFinisher::finish( 405, '', [ 'Allow' => 'GET, HEAD' ] );
 			return 1;
 		}
 
@@ -94,7 +94,7 @@ final class CronExecutionHandler implements ExecutionHandlerInterface {
 		}
 
 		try {
-			$this->container->get( BackgroundRunner::class )->run( BackgroundStatus::SOURCE_CRON_URL, array( 'release' => $released ) );
+			$this->container->get( BackgroundRunner::class )->run( BackgroundStatus::SOURCE_CRON_URL, [ 'release' => $released ] );
 		} catch ( Throwable $e ) {
 			\smliser_log_error( sprintf( '[CronExecutionHandler] %s in %s:%d', $e->getMessage(), $e->getFile(), $e->getLine() ) );
 		}

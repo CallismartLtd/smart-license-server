@@ -14,7 +14,7 @@ use SmartLicenseServer\Core\Container\Container;
  * Attempts to resolve a mixed data to a callable.
  */
 final class CallableResolver {
-    public function __construct( protected Container $container ) {}
+	public function __construct( protected Container $container ) {}
 
 	/**
 	 * Resolve a middleware definition to an executable callable.
@@ -23,7 +23,7 @@ final class CallableResolver {
 	 * @return callable
 	 * @throws InvalidArgumentException
 	 */
-	public function resolveMiddleware( mixed $middleware ): callable {
+	public function resolveMiddleware( mixed $middleware ) : callable {
 		$resolved = $middleware;
 
 		if ( is_string( $middleware ) && class_exists( $middleware ) ) {
@@ -50,7 +50,7 @@ final class CallableResolver {
 	 * @return callable
 	 * @throws InvalidArgumentException
 	 */
-	public function resolve( mixed $data ): callable {
+	public function resolve( mixed $data ) : callable {
 		// Direct callable check (Closures, functions, valid array [$obj, 'method'], etc.).
 		if ( is_callable( $data ) ) {
 			return $data;
@@ -75,7 +75,7 @@ final class CallableResolver {
 		}
 
 		// Array notation with class string: ['Class', 'method'].
-		if ( is_array( $data ) && count( $data ) === 2 ) {
+		if ( is_array( $data ) && 2 === count( $data ) ) {
 			[ $class, $method ] = $data;
 			if ( is_string( $class ) && class_exists( $class ) ) {
 				return $this->resolveInstanceMethod( $class, $method );
@@ -101,7 +101,7 @@ final class CallableResolver {
 	 * @return callable
 	 * @throws InvalidArgumentException
 	 */
-	public function resolveInstanceMethod( string $class, string $method ): callable {
+	public function resolveInstanceMethod( string $class, string $method ) : callable {
 		if ( ! class_exists( $class ) ) {
 			throw new InvalidArgumentException(
 				sprintf( 'Class [%s] does not exist.', $class )
@@ -135,7 +135,7 @@ final class CallableResolver {
 	 * @return callable
 	 * @throws InvalidArgumentException
 	 */
-	public function resolveStaticMethod( string $class, string $method ): callable {
+	public function resolveStaticMethod( string $class, string $method ) : callable {
 		if ( ! class_exists( $class ) ) {
 			throw new InvalidArgumentException(
 				sprintf( 'Class [%s] does not exist.', $class )

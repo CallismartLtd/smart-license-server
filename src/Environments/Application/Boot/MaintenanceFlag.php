@@ -95,7 +95,7 @@ final class MaintenanceFlag {
 	public function read() : ?array {
 		$flag = $this->read_json( $this->file );
 
-		return false === $flag ? array() : $flag;
+		return false === $flag ? [] : $flag;
 	}
 
 	/**
@@ -135,12 +135,12 @@ final class MaintenanceFlag {
 		$this->write_json(
 			$this->file,
 			array_filter(
-				array(
+				[
 					'reason'      => $reason,
 					'message'     => $message,
 					'retry_after' => $retry_after,
 					'since'       => gmdate( DATE_ATOM ),
-				)
+				]
 			)
 		);
 	}

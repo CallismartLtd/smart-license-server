@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Routing
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Routing;
 
@@ -38,8 +38,7 @@ final class Route {
 		public readonly bool $optionalTrailingSlash,
 		public readonly CompiledPattern $compiled,
 		public readonly array $middleware = []
-	) {
-	}
+	) {}
 
 	/**
 	 * Appends one or more middleware items directly to this route instance.
@@ -47,7 +46,7 @@ final class Route {
 	 * @param mixed ...$middleware Middleware items to append.
 	 * @return self
 	 */
-	public function middleware( mixed ...$middleware ): self {
+	public function middleware( mixed ...$middleware ) : self {
 		$this->middleware = array_merge( $this->middleware, $middleware );
 
 		return $this;
@@ -58,7 +57,7 @@ final class Route {
 	 *
 	 * @throws InvalidRouteException If the route is already named.
 	 */
-	public function name( string $name ): self {
+	public function name( string $name ) : self {
 		if ( null !== $this->name ) {
 			throw new InvalidRouteException(
 				sprintf( 'Route already named "%s"; cannot rename to "%s".', $this->name, $name )
@@ -70,7 +69,7 @@ final class Route {
 		return $this;
 	}
 
-	public function getName(): ?string {
+	public function getName() : ?string {
 		return $this->name;
 	}
 
@@ -84,7 +83,7 @@ final class Route {
 	 *
 	 * @return array<string,string>|null Named params, or null if the path doesn't match.
 	 */
-	public function match( string $path ): ?array {
+	public function match( string $path ) : ?array {
 		$regex = $this->compiled->namedRegex() . ( $this->optionalTrailingSlash ? '/?' : '' );
 
 		if ( ! preg_match( '#^' . $regex . '$#', trim( $path, '/' ), $matches ) ) {

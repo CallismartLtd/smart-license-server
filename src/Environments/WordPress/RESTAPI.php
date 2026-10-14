@@ -87,13 +87,13 @@ class RESTAPI implements RESTProviderInterface {
 	) {
 		$this->index = new RESTIndex( $versions, static fn( string $path ) : string => rest_url( $path ) );
 
-		add_filter( 'rest_exposed_cors_headers', array( $this, 'set_current_route' ), 10, 2 );
-		add_filter( 'rest_authentication_errors', array( $this, 'authentication_errors' ), 5 );
-		add_filter( 'rest_pre_dispatch', array( $this, 'enforce_https' ), 1, 3 );
-		add_filter( 'rest_pre_dispatch', array( $this, 'describe' ), 5, 3 );
-		add_filter( 'rest_request_before_callbacks', array( $this, 'rest_request_before_callbacks' ), -1, 3 );
-		add_filter( 'rest_post_dispatch', array( $this, 'filter_response' ), 10, 3 );
-		add_action( 'rest_api_init', array( $this, 'register' ), 30 );
+		add_filter( 'rest_exposed_cors_headers', [ $this, 'set_current_route' ], 10, 2 );
+		add_filter( 'rest_authentication_errors', [ $this, 'authentication_errors' ], 5 );
+		add_filter( 'rest_pre_dispatch', [ $this, 'enforce_https' ], 1, 3 );
+		add_filter( 'rest_pre_dispatch', [ $this, 'describe' ], 5, 3 );
+		add_filter( 'rest_request_before_callbacks', [ $this, 'rest_request_before_callbacks' ], -1, 3 );
+		add_filter( 'rest_post_dispatch', [ $this, 'filter_response' ], 10, 3 );
+		add_action( 'rest_api_init', [ $this, 'register' ], 30 );
 	}
 
 	/**
@@ -132,14 +132,14 @@ class RESTAPI implements RESTProviderInterface {
 				register_rest_route(
 					$namespace,
 					'/' . RoutePattern::compile( $route_config['route'] )->namedRegex() . '/?',
-					array(
+					[
 						'methods'             => (array) $route_config['methods'],
 						'callback'            => fn( WP_REST_Request $wp_request ) => $this->main_dispatcher( $wp_request, $handler ),
 						'permission_callback' => null === $guard
 							? '__return_true'
 							: fn( WP_REST_Request $wp_request ) => $this->permission_dispatcher( $wp_request, $guard ),
-						'args'                => $this->prepare_rest_args( $route_config['args'] ?? array() ),
-					)
+						'args' => $this->prepare_rest_args( $route_config['args'] ?? [] ),
+					]
 				);
 			}
 		}
@@ -297,7 +297,7 @@ class RESTAPI implements RESTProviderInterface {
 			return new RequestException(
 				$result->error_code ?? 'rest_authentication_failed',
 				$result->message ?? 'The API key could not be verified.',
-				array( 'status' => AuthenticationResult::STATUS_UNAUTHORIZED === $result->status ? 403 : 401 )
+				[ 'status' => AuthenticationResult::STATUS_UNAUTHORIZED === $result->status ? 403 : 401 ]
 			);
 		}
 
@@ -319,7 +319,7 @@ class RESTAPI implements RESTProviderInterface {
 	 * @return mixed The given result, or a WP_Error.
 	 */
 	public function enforce_https( mixed ...$params ) : mixed {
-		[ $result, , $wp_request ] = $params + array( null, null, null );
+		[ $result, , $wp_request ] = $params + [ null, null, null ];
 
 		if ( null !== $result || ! $wp_request instanceof WP_REST_Request || ! $this->in_api( $wp_request->get_route() ) ) {
 			return $result;
@@ -329,7 +329,7 @@ class RESTAPI implements RESTProviderInterface {
 			return $result;
 		}
 
-		return new WP_Error( 'rest_https_required', 'The REST API requires a secure (HTTPS) connection.', array( 'status' => 403 ) );
+		return new WP_Error( 'rest_https_required', 'The REST API requires a secure (HTTPS) connection.', [ 'status' => 403 ] );
 	}
 
 	/**
@@ -374,7 +374,7 @@ class RESTAPI implements RESTProviderInterface {
 					? new WP_Error(
 						'rest_unknown_category',
 						sprintf( 'There is no "%s" category in %s.', $category, $namespace ),
-						array( 'status' => 404, 'categories' => $this->index->catalog( $namespace )->categories() )
+						[ 'status' => 404, 'categories' => $this->index->catalog( $namespace )->categories() ]
 					)
 					: $this->description( $description, $this->index->allow( $namespace ) );
 			}
@@ -456,7 +456,7 @@ class RESTAPI implements RESTProviderInterface {
 		}
 
 		if ( is_array( $data ) ) {
-			$response->set_data( array( 'success' => ! $response->is_error() ) + $data );
+			$response->set_data( [ 'success' => ! $response->is_error() ] + $data );
 		}
 
 		return $response;
@@ -500,16 +500,16 @@ class RESTAPI implements RESTProviderInterface {
 
 			if ( 'string' === $type ) {
 				if ( 'domain' === $key ) {
-					$arg['sanitize_callback'] = array( __CLASS__, 'sanitize_url' );
-					$arg['validate_callback'] = array( __CLASS__, 'is_url' );
+					$arg['sanitize_callback'] = [ __CLASS__, 'sanitize_url' ];
+					$arg['validate_callback'] = [ __CLASS__, 'is_url' ];
 				} else {
-					$arg['sanitize_callback'] = array( __CLASS__, 'sanitize' );
-					$arg['validate_callback'] = array( __CLASS__, 'not_empty' );
+					$arg['sanitize_callback'] = [ __CLASS__, 'sanitize' ];
+					$arg['validate_callback'] = [ __CLASS__, 'not_empty' ];
 				}
 			} elseif ( 'integer' === $type ) {
-				$arg['sanitize_callback'] = array( __CLASS__, 'sanitize' );
+				$arg['sanitize_callback'] = [ __CLASS__, 'sanitize' ];
 			} elseif ( 'array' === $type ) {
-				$arg['sanitize_callback'] = array( __CLASS__, 'sanitize' );
+				$arg['sanitize_callback'] = [ __CLASS__, 'sanitize' ];
 				$arg['validate_callback'] ??= '__return_true';
 			}
 		}
@@ -555,7 +555,7 @@ class RESTAPI implements RESTProviderInterface {
 	 */
 	public static function not_empty( $value ) : WP_Error|bool {
 		if ( empty( $value ) ) {
-			return new WP_Error( 'rest_invalid_param', __( 'The value cannot be empty.', 'smliser' ), array( 'status' => 400 ) );
+			return new WP_Error( 'rest_invalid_param', __( 'The value cannot be empty.', 'smliser' ), [ 'status' => 400 ] );
 		}
 
 		return true;
@@ -571,21 +571,21 @@ class RESTAPI implements RESTProviderInterface {
 	 */
 	public static function is_url( $url, $wp_request, $param ) : bool|WP_Error {
 		if ( empty( $url ) ) {
-			return new WP_Error( 'rest_invalid_param', __( 'The domain parameter is required.', 'smliser' ), array( 'status' => 400 ) );
+			return new WP_Error( 'rest_invalid_param', __( 'The domain parameter is required.', 'smliser' ), [ 'status' => 400 ] );
 		}
 
 		$url = URL::from( $url );
 
 		if ( ! $url->has_scheme() ) {
-			return new WP_Error( 'rest_invalid_param', __( 'Invalid URL format.', 'smliser' ), array( 'status' => 400 ) );
+			return new WP_Error( 'rest_invalid_param', __( 'Invalid URL format.', 'smliser' ), [ 'status' => 400 ] );
 		}
 
 		if ( ! $url->is_ssl() ) {
-			return new WP_Error( 'rest_invalid_param', __( 'Only HTTPS URLs are allowed.', 'smliser' ), array( 'status' => 400 ) );
+			return new WP_Error( 'rest_invalid_param', __( 'Only HTTPS URLs are allowed.', 'smliser' ), [ 'status' => 400 ] );
 		}
 
 		if ( ! $url->validate() ) {
-			return new WP_Error( 'rest_invalid_param', __( 'The URL does not resolve to a valid host.', 'smliser' ), array( 'status' => 400 ) );
+			return new WP_Error( 'rest_invalid_param', __( 'The URL does not resolve to a valid host.', 'smliser' ), [ 'status' => 400 ] );
 		}
 
 		return true;
@@ -601,7 +601,7 @@ class RESTAPI implements RESTProviderInterface {
 	 */
 	public static function is_int( $value, $wp_request, $key ) : bool|WP_Error {
 		if ( ! is_numeric( $value ) || intval( $value ) != $value ) {
-			return new WP_Error( 'rest_invalid_param', __( 'The value must be an integer.', 'smliser' ), array( 'status' => 400 ) );
+			return new WP_Error( 'rest_invalid_param', __( 'The value must be an integer.', 'smliser' ), [ 'status' => 400 ] );
 		}
 
 		return true;

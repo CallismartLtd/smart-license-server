@@ -17,66 +17,66 @@ use SmartLicenseServer\Email\Templates\EmailTemplate;
 
 class SubscriptionCancelledEmail extends EmailTemplate {
 
-    /**
-     * @param string      $to               Recipient email address.
-     * @param string      $recipient_name   Name of the recipient.
-     * @param string      $plan_name        Name of the cancelled subscription plan.
-     * @param string      $cancelled_on     Date the subscription was cancelled.
-     * @param string      $access_until     Date until access remains active.
-     * @param bool        $self_cancelled   True if the user cancelled themselves,
-     *                                      false if cancelled by an administrator.
-     * @param string|null $reason           Optional reason for cancellation.
-     */
-    public function __construct(
-        private readonly string  $to,
-        private readonly string  $recipient_name,
-        private readonly string  $plan_name,
-        private readonly string  $cancelled_on,
-        private readonly string  $access_until,
-        private readonly bool    $self_cancelled = true,
-        private readonly ?string $reason         = null
-    ) {}
+	/**
+	 * @param string      $to               Recipient email address.
+	 * @param string      $recipient_name   Name of the recipient.
+	 * @param string      $plan_name        Name of the cancelled subscription plan.
+	 * @param string      $cancelled_on     Date the subscription was cancelled.
+	 * @param string      $access_until     Date until access remains active.
+	 * @param bool        $self_cancelled   True if the user cancelled themselves,
+	 *                                      false if cancelled by an administrator.
+	 * @param string|null $reason           Optional reason for cancellation.
+	 */
+	public function __construct(
+		private readonly string  $to,
+		private readonly string  $recipient_name,
+		private readonly string  $plan_name,
+		private readonly string  $cancelled_on,
+		private readonly string  $access_until,
+		private readonly bool    $self_cancelled = true,
+		private readonly ?string $reason = null
+	) {}
 
-    static public function template_key(): string {
-        return 'subscription_cancelled';
-    }
+	static public function template_key() : string {
+		return 'subscription_cancelled';
+	}
 
-    protected function subject(): string {
-        return 'Your Subscription Has Been Cancelled';
-    }
+	protected function subject() : string {
+		return 'Your Subscription Has Been Cancelled';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "Your {$this->plan_name} subscription has been cancelled. Your access continues until {$this->access_until}.";
-    }
+	protected function preheader() : string {
+		return "Your {$this->plan_name} subscription has been cancelled. Your access continues until {$this->access_until}.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{recipient_name}}' => $this->recipient_name,
-            '{{plan_name}}'      => $this->plan_name,
-            '{{cancelled_on}}'   => $this->cancelled_on,
-            '{{access_until}}'   => $this->access_until,
-            '{{reason}}'         => $this->reason ?? 'No reason provided.',
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{recipient_name}}' => $this->recipient_name,
+			'{{plan_name}}'      => $this->plan_name,
+			'{{cancelled_on}}'   => $this->cancelled_on,
+			'{{access_until}}'   => $this->access_until,
+			'{{reason}}'         => $this->reason ?? 'No reason provided.',
+		] );
+	}
 
-    protected function body(): string {
-        $vars           = $this->variables();
-        $recipient_name = \escHtml( $vars['{{recipient_name}}'] );
-        $plan_name      = \escHtml( $vars['{{plan_name}}'] );
-        $cancelled_on   = \escHtml( $vars['{{cancelled_on}}'] );
-        $access_until   = \escHtml( $vars['{{access_until}}'] );
-        $reason         = \escHtml( $vars['{{reason}}'] );
-        $support        = \escHtml( $vars['{{support_email}}'] );
+	protected function body() : string {
+		$vars           = $this->variables();
+		$recipient_name = \escHtml( $vars['{{recipient_name}}'] );
+		$plan_name      = \escHtml( $vars['{{plan_name}}'] );
+		$cancelled_on   = \escHtml( $vars['{{cancelled_on}}'] );
+		$access_until   = \escHtml( $vars['{{access_until}}'] );
+		$reason         = \escHtml( $vars['{{reason}}'] );
+		$support        = \escHtml( $vars['{{support_email}}'] );
 
-        $cancelled_by = $this->self_cancelled
-            ? 'You have cancelled your subscription.'
-            : 'Your subscription has been cancelled by an administrator.';
+		$cancelled_by = $this->self_cancelled
+			? 'You have cancelled your subscription.'
+			: 'Your subscription has been cancelled by an administrator.';
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$recipient_name},
         </p>
@@ -158,71 +158,71 @@ class SubscriptionCancelledEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Subscription Cancelled';
-    }
-    public function description(): string {
-        return 'Sent when a subscription is cancelled by the user or an administrator.';
-    }
-    public static function preview(): static {
-        return new static(
-            'preview@example.com',
-            'Jane Doe',
-            'My Awesome Plugin — Pro Plan',
-            gmdate( 'D, d M Y' ),
-            gmdate( 'D, d M Y', strtotime( '+30 days' ) ),
-            true,
-            'Switching to a different plan.'
-        );
-    }
+	public function label() : string {
+		return 'Subscription Cancelled';
+	}
+	public function description() : string {
+		return 'Sent when a subscription is cancelled by the user or an administrator.';
+	}
+	public static function preview() : static {
+		return new static(
+			'preview@example.com',
+			'Jane Doe',
+			'My Awesome Plugin — Pro Plan',
+			gmdate( 'D, d M Y' ),
+			gmdate( 'D, d M Y', strtotime( '+30 days' ) ),
+			true,
+			'Switching to a different plan.'
+		);
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{recipient_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'intro',
-                'type'      => 'text',
-                'content'   => $this->self_cancelled
-                    ? 'You have cancelled your subscription.'
-                    : 'Your subscription has been cancelled by an administrator.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'warning',
-                'content'   => 'Your access to {{plan_name}} features will remain active until {{access_until}}, after which your account will be downgraded.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Plan',          'value' => '{{plan_name}}' ],
-                    [ 'label' => 'Cancelled On',  'value' => '{{cancelled_on}}' ],
-                    [ 'label' => 'Access Until',  'value' => '{{access_until}}' ],
-                    [ 'label' => 'Reason',        'value' => '{{reason}}' ],
-                ],
-                'editable'  => true,
-                'removable' => true,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you did not request this cancellation or would like to reactivate your subscription, please contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{recipient_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'      => 'intro',
+				'type'    => 'text',
+				'content' => $this->self_cancelled
+					? 'You have cancelled your subscription.'
+					: 'Your subscription has been cancelled by an administrator.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'warning',
+				'content'   => 'Your access to {{plan_name}} features will remain active until {{access_until}}, after which your account will be downgraded.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Plan',          'value' => '{{plan_name}}' ],
+					[ 'label' => 'Cancelled On',  'value' => '{{cancelled_on}}' ],
+					[ 'label' => 'Access Until',  'value' => '{{access_until}}' ],
+					[ 'label' => 'Reason',        'value' => '{{reason}}' ],
+				],
+				'editable'  => true,
+				'removable' => true,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you did not request this cancellation or would like to reactivate your subscription, please contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

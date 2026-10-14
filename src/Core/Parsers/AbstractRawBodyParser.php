@@ -39,14 +39,14 @@ abstract class AbstractRawBodyParser implements RequestBodyParserInterface {
 	/**
 	 * @inheritDoc
 	 */
-	public function get_bytes_read(): int {
+	public function get_bytes_read() : int {
 		return $this->bytes_read;
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public function get_temp_files(): array {
+	public function get_temp_files() : array {
 		return [];
 	}
 
@@ -57,7 +57,7 @@ abstract class AbstractRawBodyParser implements RequestBodyParserInterface {
 	 * @return string
 	 * @throws Exception
 	 */
-	protected function read_raw_body(): string {
+	protected function read_raw_body() : string {
 		$stream = @fopen( 'php://input', 'rb' );
 
 		if ( ! $stream ) {

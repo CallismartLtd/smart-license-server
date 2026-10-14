@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Routing
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Routing;
 
@@ -24,7 +24,7 @@ final class RouteUrlBuilder {
 	 * @param array<string,scalar> $params
 	 * @throws InvalidRouteException If a required parameter is missing.
 	 */
-	public static function build( Route $route, array $params ): string {
+	public static function build( Route $route, array $params ) : string {
 		$template = $route->compiled->template;
 		$segments = '' === $template ? [] : explode( '/', $template );
 		$built    = [];
@@ -54,7 +54,7 @@ final class RouteUrlBuilder {
 	 * @return string|null Rendered segment, or null if it's an omitted optional segment.
 	 * @throws InvalidRouteException If a required parameter is missing.
 	 */
-	private static function renderSegment( string $segment, array $params, Route $route ): ?string {
+	private static function renderSegment( string $segment, array $params, Route $route ) : ?string {
 		$omitted = false;
 
 		$rendered = preg_replace_callback(
@@ -89,7 +89,7 @@ final class RouteUrlBuilder {
 	/**
 	 * @throws InvalidRouteException
 	 */
-	private static function missing( string $name, bool $isOptional, Route $route, bool &$omitted ): string {
+	private static function missing( string $name, bool $isOptional, Route $route, bool &$omitted ) : string {
 		if ( $isOptional ) {
 			$omitted = true;
 

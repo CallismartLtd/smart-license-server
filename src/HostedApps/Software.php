@@ -21,245 +21,245 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * A hosted software is any other application type that is not a plugin or theme.
  */
 class Software extends AbstractHostedApp {
-    use SanitizeAwareTrait;
-    /**
-     * The database table for software.
-     * 
-     * @var TableName
-     */
-    const MAIN = TableName::SOFTWARE;
+	use SanitizeAwareTrait;
+	/**
+	 * The database table for software.
+	 * 
+	 * @var TableName
+	 */
+	const MAIN = TableName::SOFTWARE;
 
-    /**
-     * The software metadata table
-     * 
-     * @var TableName
-     */
-    const META  = TableName::SOFTWARE_META;
+	/**
+	 * The software metadata table
+	 * 
+	 * @var TableName
+	 */
+	const META = TableName::SOFTWARE_META;
 
-    /**
-     * Software cover URL
-     * 
-     * @var string
-     */
-    protected $cover = '';
+	/**
+	 * Software cover URL
+	 * 
+	 * @var string
+	 */
+	protected $cover = '';
 
-    /**
-     * Class constructor
-     */
-    public function __construct() {}
+	/**
+	 * Class constructor
+	 */
+	public function __construct() {}
 
-    /**
-     * Get the application type.
-     * 
-     * @return string Application type.
-     */
-    public function get_type() : string {
-        return 'software';
-    }
+	/**
+	 * Get the application type.
+	 * 
+	 * @return string Application type.
+	 */
+	public function get_type() : string {
+		return 'software';
+	}
 
-    /**
-     * Get the database table for software.
-     * 
-     * @return string Database table name.
-     */
-    public static function get_db_table() : string {
-        return static::MAIN->table();
-    }
+	/**
+	 * Get the database table for software.
+	 * 
+	 * @return string Database table name.
+	 */
+	public static function get_db_table() : string {
+		return static::MAIN->table();
+	}
 
-    /**
-     * Get database fields.
-     * 
-     * @return array<int, string>
-     */
-    public function get_fillable() : array{
-        return ['name', 'owner_id', 'author', 'status', 'download_link' ];
-    }
+	/**
+	 * Get database fields.
+	 * 
+	 * @return array<int, string>
+	 */
+	public function get_fillable() : array {
+		return ['name', 'owner_id', 'author', 'status', 'download_link' ];
+	}
 
-    /**
-     * Get the metadata table for software.
-     * 
-     * @return string Metadata table name.
-     */
-    public static function get_db_meta_table() : string {
-        return self::META->table();
-    }
+	/**
+	 * Get the metadata table for software.
+	 * 
+	 * @return string Metadata table name.
+	 */
+	public static function get_db_meta_table() : string {
+		return self::META->table();
+	}
 
-    /**
-     * Get meta foriegn key.
-     * 
-     * @return string Foreign key column name.
-     */
-    protected function get_meta_foreign_key() : string {
-        return 'software_id';
-    }
+	/**
+	 * Get meta foriegn key.
+	 * 
+	 * @return string Foreign key column name.
+	 */
+	protected function get_meta_foreign_key() : string {
+		return 'software_id';
+	}
 
-    /**
-     * Get the application icon URL.
-     * 
-     * @return string Icon URL.
-     */
-    public function get_icon() : string {
-        foreach ( $this->get_icons() as $icon ) {
-            if ( ! empty( $icon ) ) {
-                return $icon;
-            }
-        }
+	/**
+	 * Get the application icon URL.
+	 * 
+	 * @return string Icon URL.
+	 */
+	public function get_icon() : string {
+		foreach ( $this->get_icons() as $icon ) {
+			if ( ! empty( $icon ) ) {
+				return $icon;
+			}
+		}
 
-        return $this->default_icon()->url();
-    }
+		return $this->default_icon()->url();
+	}
 
-    /**
-     * Get cover image
-     * 
-     * @return string
-     */
-    public function get_cover() : string {
-        return $this->cover;
-    }
+	/**
+	 * Get cover image
+	 * 
+	 * @return string
+	 */
+	public function get_cover() : string {
+		return $this->cover;
+	}
 
-    /**
-     * Get author profile
-     * 
-     * @return URL|null
-     */
-    public function get_author_profile() : ?URL {
-        return URL::from( $this->author );
-    }
+	/**
+	 * Get author profile
+	 * 
+	 * @return URL|null
+	 */
+	public function get_author_profile() : ?URL {
+		return URL::from( $this->author );
+	}
 
-    /*
-    |-------------
-    | SETTERS
-    |-------------
-    */
+	/*
+	|-------------
+	| SETTERS
+	|-------------
+	*/
 
-    /**
-     * Set software cover image
-     * 
-     * @param string $cover
-     */
-    public function set_cover( $cover ) {
-        $this->cover = self::sanitize_web_url( $cover );
-    }
+	/**
+	 * Set software cover image
+	 * 
+	 * @param string $cover
+	 */
+	public function set_cover( $cover ) {
+		$this->cover = self::sanitize_web_url( $cover );
+	}
 
-    /**
-     * Set the software manifest file.
-     * 
-     * This method allows us to populate important properties from the app.json file.
-     * 
-     * @param array $manifest
-     */
-    public function set_manifest( array $manifest ) : static {
-        if ( isset( $manifest['version'] ) ) {
-            $this->set_version( $manifest['version'] );
-        }
+	/**
+	 * Set the software manifest file.
+	 * 
+	 * This method allows us to populate important properties from the app.json file.
+	 * 
+	 * @param array $manifest
+	 */
+	public function set_manifest( array $manifest ) : static {
+		if ( isset( $manifest['version'] ) ) {
+			$this->set_version( $manifest['version'] );
+		}
 
-        if ( isset( $manifest['short_description'] ) ) {
-            $this->short_description = self::sanitize_text( $manifest['short_description'] );
-        }
+		if ( isset( $manifest['short_description'] ) ) {
+			$this->short_description = self::sanitize_text( $manifest['short_description'] );
+		}
 
-        return parent::set_manifest( $manifest );
+		return parent::set_manifest( $manifest );
 
-    }
+	}
 
-    /*
-    |---------------------
-    | UTILITY METHODS
-    |---------------------
-    */
+	/*
+	|---------------------
+	| UTILITY METHODS
+	|---------------------
+	*/
 
-    /**
-     * Converts associative array to object of this class.
-     */
-    public static function from_array( $result ) : static {
-        $self = new static();
+	/**
+	 * Converts associative array to object of this class.
+	 */
+	public static function from_array( $result ) : static {
+		$self = new static();
 
-        $self->set_id( $result['id'] ?? 0 );
-        $self->set_owner_id( $result['owner_id'] ?? 0 );
-        $self->set_name( $result['name'] ?? '' );
-        $self->set_slug( $result['slug'] ?? '' );
-        $self->set_author( $result['author'] ?? '' );
-        $self->set_author_profile( $result['author_profile'] ?? '' );
-        $self->set_status( $result['status'] ?? self::STATUS_ACTIVE );
-        $self->set_download_url( (string) $result['download_link'] ?? '' );
-        $self->set_created_at( $result['created_at'] ?? '' );
-        $self->set_updated_at( $result['updated_at'] ?? '' );
+		$self->set_id( $result['id'] ?? 0 );
+		$self->set_owner_id( $result['owner_id'] ?? 0 );
+		$self->set_name( $result['name'] ?? '' );
+		$self->set_slug( $result['slug'] ?? '' );
+		$self->set_author( $result['author'] ?? '' );
+		$self->set_author_profile( $result['author_profile'] ?? '' );
+		$self->set_status( $result['status'] ?? self::STATUS_ACTIVE );
+		$self->set_download_url( (string) $result['download_link'] ?? '' );
+		$self->set_created_at( $result['created_at'] ?? '' );
+		$self->set_updated_at( $result['updated_at'] ?? '' );
 
-        /** @var SoftwareRepository */
-        $repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( 'software' );
+		/** @var SoftwareRepository */
+		$repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( 'software' );
 
-        $app_json   = $repo_class->get_app_dot_json( $self );
+		$app_json = $repo_class->get_app_dot_json( $self );
 
-        $self->set_manifest( $app_json );
-        $self->set_version( $app_json['version'] ?? '' );
-        $self->set_tags( $app_json['tags'] ?? [] );
+		$self->set_manifest( $app_json );
+		$self->set_version( $app_json['version'] ?? '' );
+		$self->set_tags( $app_json['tags'] ?? [] );
 
-        $self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
-        $self->set_cover( $repo_class->get_assets( $self->get_slug(), 'cover' ) );
-        $self->set_icons( $repo_class->get_assets( $self->get_slug(), 'icons' ) );
-        $self->set_file( $repo_class->locate( $self->get_slug() ) );
-        
-        /** 
-         * Section informations 
-         */
-        $sections = array(
-            'description'   => $repo_class->get_description( $self->get_slug() ),
-            'changelog'     => $repo_class->get_changelog( $self->get_slug() ),
-            'installation'  => $repo_class->get_installation( $self->get_slug() ),
-            // 'screenshots'   => $repo_class->get_screenshot_html( $self->get_slug() ),
-            'faq'           => $repo_class->get_faq( $self ),
-        );
-        $self->set_section( $sections );
-        $self->short_description = $repo_class->get_short_description( $self );
-        
+		$self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
+		$self->set_cover( $repo_class->get_assets( $self->get_slug(), 'cover' ) );
+		$self->set_icons( $repo_class->get_assets( $self->get_slug(), 'icons' ) );
+		$self->set_file( $repo_class->locate( $self->get_slug() ) );
+		
+		/** 
+		 * Section informations 
+		 */
+		$sections = [
+			'description'  => $repo_class->get_description( $self->get_slug() ),
+			'changelog'    => $repo_class->get_changelog( $self->get_slug() ),
+			'installation' => $repo_class->get_installation( $self->get_slug() ),
+			// 'screenshots'   => $repo_class->get_screenshot_html( $self->get_slug() ),
+			'faq' => $repo_class->get_faq( $self ),
+		];
+		$self->set_section( $sections );
+		$self->short_description = $repo_class->get_short_description( $self );
+		
 
 
 
-        return $self;
-    }
+		return $self;
+	}
 
-    /**
-     * Concrete implementation of rest response for software.
-     * 
-     * @return array
-     */
-    public function get_rest_response(): array {
-        $data = array(
-            'name'              => $this->get_name(),
-            'type'              => $this->get_type(),
-            'slug'              => $this->get_slug() ,
-            'status'            => $this->get_status(),
-            'version'           => $this->get_version(),
-            'author'            => sprintf( '<a href="%s">%s</a>', $this->get_author_profile(), $this->get_author() ),
-            'author_profile'    => $this->get_author_profile()->url(),
-            'manifest'          => $this->get_manifest(),
-            'homepage'          => $this->get_homepage()->url(),
-            'package'           => $this->get_download_url()->url(),
-            'download_link'     => $this->get_download_url()->url(),
-            'cover'             => $this->get_cover(),
-            'screenshots'       => $this->get_screenshots(),
-            'icons'             => $this->get_icons(),
-            'icon'              => $this->get_icon(),
-            'tags'              => $this->get_tags(),
-            'short_description' => $this->get_short_description(),
-            'sections'          => $this->get_sections(),
-            'num_ratings'       => $this->get_num_ratings(),
-            'rating'            => $this->get_average_rating(),
-            'ratings'           => $this->get_ratings(),
-            'support_url'       => $this->get_support_url(),
-            'active_installs'   => $this->get_active_installs(),
-            'is_monetized'      => $this->is_monetized(),
-            'monetization'      => [],
-            'created_at'        => $this->get_created_at()->format( 'Y-m-d H:i:s' ),
-            'updated_at'        => $this->get_updated_at()->format( 'Y-m-d H:i:s' ),
-        );
+	/**
+	 * Concrete implementation of rest response for software.
+	 * 
+	 * @return array
+	 */
+	public function get_rest_response() : array {
+		$data = [
+			'name'              => $this->get_name(),
+			'type'              => $this->get_type(),
+			'slug'              => $this->get_slug() ,
+			'status'            => $this->get_status(),
+			'version'           => $this->get_version(),
+			'author'            => sprintf( '<a href="%s">%s</a>', $this->get_author_profile(), $this->get_author() ),
+			'author_profile'    => $this->get_author_profile()->url(),
+			'manifest'          => $this->get_manifest(),
+			'homepage'          => $this->get_homepage()->url(),
+			'package'           => $this->get_download_url()->url(),
+			'download_link'     => $this->get_download_url()->url(),
+			'cover'             => $this->get_cover(),
+			'screenshots'       => $this->get_screenshots(),
+			'icons'             => $this->get_icons(),
+			'icon'              => $this->get_icon(),
+			'tags'              => $this->get_tags(),
+			'short_description' => $this->get_short_description(),
+			'sections'          => $this->get_sections(),
+			'num_ratings'       => $this->get_num_ratings(),
+			'rating'            => $this->get_average_rating(),
+			'ratings'           => $this->get_ratings(),
+			'support_url'       => $this->get_support_url(),
+			'active_installs'   => $this->get_active_installs(),
+			'is_monetized'      => $this->is_monetized(),
+			'monetization'      => [],
+			'created_at'        => $this->get_created_at()->format( 'Y-m-d H:i:s' ),
+			'updated_at'        => $this->get_updated_at()->format( 'Y-m-d H:i:s' ),
+		];
 
-        if ( $this->is_monetized() ) {
-            $monetization = Monetization::get_by_app( $this->get_type(), $this->get_id() );
+		if ( $this->is_monetized() ) {
+			$monetization = Monetization::get_by_app( $this->get_type(), $this->get_id() );
 
-            $data['monetization'] = $monetization->to_array();
-        }
+			$data['monetization'] = $monetization->to_array();
+		}
 
-        return $data;
-    }
+		return $data;
+	}
 
 }

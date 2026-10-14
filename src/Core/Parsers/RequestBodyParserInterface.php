@@ -21,14 +21,14 @@ interface RequestBodyParserInterface {
 	 * @return array{post: array, files: array}
 	 * @throws Exception
 	 */
-	public function parse(): array;
+	public function parse() : array;
 
 	/**
 	 * Total bytes read from the request stream.
 	 *
 	 * @return int
 	 */
-	public function get_bytes_read(): int;
+	public function get_bytes_read() : int;
 
 	/**
 	 * Temporary files created while parsing. Empty for parsers that
@@ -36,5 +36,5 @@ interface RequestBodyParserInterface {
 	 *
 	 * @return string[]
 	 */
-	public function get_temp_files(): array;
+	public function get_temp_files() : array;
 }

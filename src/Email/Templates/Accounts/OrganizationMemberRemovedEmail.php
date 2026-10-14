@@ -18,47 +18,47 @@ use SmartLicenseServer\Security\Owner;
 
 class OrganizationMemberRemovedEmail extends EmailTemplate {
 
-    /**
-     * @param Owner  $organization The organization the member was removed from.
-     * @param string $to           Recipient email address.
-     * @param string $member_name  The name of the member being removed.
-     */
-    public function __construct(
-        private readonly Owner  $organization,
-        private readonly string $to,
-        private readonly string $member_name
-    ) {}
+	/**
+	 * @param Owner  $organization The organization the member was removed from.
+	 * @param string $to           Recipient email address.
+	 * @param string $member_name  The name of the member being removed.
+	 */
+	public function __construct(
+		private readonly Owner  $organization,
+		private readonly string $to,
+		private readonly string $member_name
+	) {}
 
-    static public function template_key(): string {
-        return 'organization_member_removed';
-    }
+	static public function template_key() : string {
+		return 'organization_member_removed';
+	}
 
-    protected function subject(): string {
-        return "You Have Been Removed from {$this->organization->get_name()}";
-    }
+	protected function subject() : string {
+		return "You Have Been Removed from {$this->organization->get_name()}";
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "Your membership in {$this->organization->get_name()} has been ended.";
-    }
+	protected function preheader() : string {
+		return "Your membership in {$this->organization->get_name()} has been ended.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{member_name}}'       => $this->member_name,
-            '{{organization_name}}' => $this->organization->get_name(),
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{member_name}}'       => $this->member_name,
+			'{{organization_name}}' => $this->organization->get_name(),
+		] );
+	}
 
-    protected function body(): string {
-        $vars              = $this->variables();
-        $member_name       = \escHtml( $vars['{{member_name}}'] );
-        $organization_name = \escHtml( $vars['{{organization_name}}'] );
-        $support           = \escHtml( $vars['{{support_email}}'] );
+	protected function body() : string {
+		$vars              = $this->variables();
+		$member_name       = \escHtml( $vars['{{member_name}}'] );
+		$organization_name = \escHtml( $vars['{{organization_name}}'] );
+		$support           = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$member_name},
         </p>
@@ -85,43 +85,43 @@ class OrganizationMemberRemovedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Organization Member Removed';
-    }
-    public function description(): string {
-        return 'Sent when a member is removed from an organization.';
-    }
-    public static function preview(): static {
-        $org = Owner::from_array([ 'name' => 'Acme Corporation' ]);
-        return new static( $org, 'preview@example.com', 'Jane Doe' );
-    }
+	public function label() : string {
+		return 'Organization Member Removed';
+	}
+	public function description() : string {
+		return 'Sent when a member is removed from an organization.';
+	}
+	public static function preview() : static {
+		$org = Owner::from_array( [ 'name' => 'Acme Corporation' ] );
+		return new static( $org, 'preview@example.com', 'Jane Doe' );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{member_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'error',
-                'content'   => 'Your membership in {{organization_name}} has been ended. You no longer have access to this organization\'s resources.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you believe this was done in error or would like more information, please contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{member_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'error',
+				'content'   => 'Your membership in {{organization_name}} has been ended. You no longer have access to this organization\'s resources.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you believe this was done in error or would like more information, please contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

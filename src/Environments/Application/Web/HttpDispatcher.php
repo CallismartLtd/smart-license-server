@@ -53,329 +53,328 @@ use SmartLicenseServer\SettingsAPI\SettingsController;
 final class HttpDispatcher {
 
 	/** 
-     * The 404 page response callback.
-     * 
-     * @var callable
-     */
+	 * The 404 page response callback.
+	 * 
+	 * @var callable
+	 */
 	private $notFoundHandler;
 
 	/**
-     * The 405 method not allowed page response callback. 
-     * 
-     * @var callable
-     */
+	 * The 405 method not allowed page response callback. 
+	 * 
+	 * @var callable
+	 */
 	private $methodNotAllowedHandler;
 
-    /**
-     * The default home page response callback. 
-     * 
-     * @var callable
-     */
-    private $defaultHomeHandler;
+	/**
+	 * The default home page response callback. 
+	 * 
+	 * @var callable
+	 */
+	private $defaultHomeHandler;
 
 	public function __construct(
-        protected CoreRouter $router,
-        protected Container $container
+		protected CoreRouter $router,
+		protected Container $container
 
-    ) {}
+	) {}
 
 	/**
 	 * Direct access to the underlying core Router - group()/add()/get()/
 	 * post()/etc. all work exactly as documented there.
 	 */
-	public function router(): CoreRouter {
+	public function router() : CoreRouter {
 		return $this->router;
 	}
 
-    /**
-     * Registers core routes onto the underlying core Router.
-     * 
-     * @return self Fluent
-     */
-    public function registerCoreRoutes() : self {
-        $this->router->any( '/', $this->defaultHomeHandler );
-        
-        $urlmanager = $this->container->get( URLManager::class );
+	/**
+	 * Registers core routes onto the underlying core Router.
+	 * 
+	 * @return self Fluent
+	 */
+	public function registerCoreRoutes() : self {
+		$this->router->any( '/', $this->defaultHomeHandler );
+		
+		$urlmanager = $this->container->get( URLManager::class );
 
 		/*
 		|--------------------------
 		| Authentication routes.
 		|--------------------------
 		*/
-        $this->router->group( $urlmanager->login_url_prefix(),
-            function() {                
-                $this->router->any(
-                    pattern: '/',
-                    handler: [AuthForms::class, 'render_login_form_shell'],
-                );
+		$this->router->group( $urlmanager->login_url_prefix(),
+			function() {
+				$this->router->any(
+					pattern: '/',
+					handler: [AuthForms::class, 'render_login_form_shell'],
+				);
 
-                // Forms GET route.
-                $this->router->get(
-                    pattern: 'form/login',
-                    handler: [AuthForms::class, 'render_json_login_form']
-                );
-                $this->router->get(
-                    pattern: 'form/signup',
-                    handler: [AuthForms::class, 'render_json_signup_form']
-                );
-                $this->router->get(
-                    pattern: 'form/forgot-password',
-                    handler: [AuthForms::class, 'render_json_forgot_password_form']
-                );
+				// Forms GET route.
+				$this->router->get(
+					pattern: 'form/login',
+					handler: [AuthForms::class, 'render_json_login_form']
+				);
+				$this->router->get(
+					pattern: 'form/signup',
+					handler: [AuthForms::class, 'render_json_signup_form']
+				);
+				$this->router->get(
+					pattern: 'form/forgot-password',
+					handler: [AuthForms::class, 'render_json_forgot_password_form']
+				);
 
-                // Forms POST route.
-                $this->router->post(
-                    pattern: 'form/login',
-                    handler: [AuthController::class, 'handle_login']
-                );
-                $this->router->post(
-                    pattern: 'form/signup',
-                    handler: [AuthController::class, 'handle_signup']
-                );
-                $this->router->post(
-                    pattern: 'form/forgot-password',
-                    handler: [AuthController::class, 'handle_forgot_password']
-                );
-            },
-            // Guest forms: the POSTs need the guest CSRF token; the GETs pass through.
-            middleware: [
-                CSRFMiddleware::class
-            ]
-        );
+				// Forms POST route.
+				$this->router->post(
+					pattern: 'form/login',
+					handler: [AuthController::class, 'handle_login']
+				);
+				$this->router->post(
+					pattern: 'form/signup',
+					handler: [AuthController::class, 'handle_signup']
+				);
+				$this->router->post(
+					pattern: 'form/forgot-password',
+					handler: [AuthController::class, 'handle_forgot_password']
+				);
+			},
+			// Guest forms: the POSTs need the guest CSRF token; the GETs pass through.
+			middleware: [
+				CSRFMiddleware::class
+			]
+		);
  
 		/*
 		|----------------
 		| Logout routes.
 		|----------------
 		*/
-        $this->router->group( $urlmanager->logout_url_prefix(),
-            function() {
-                // This device only.
-                $this->router->get(
-                    pattern: '/',
-                    handler: [AuthController::class, 'handle_logout']
-                );
+		$this->router->group( $urlmanager->logout_url_prefix(),
+			function() {
+				// This device only.
+				$this->router->get(
+					pattern: '/',
+					handler: [AuthController::class, 'handle_logout']
+				);
 
-                // Every device: POST only, so it needs a CSRF token.
-                $this->router->post(
-                    pattern: 'everywhere',
-                    handler: [AuthController::class, 'handle_logout_everywhere']
-                );
-            },
-            middleware: [
-                CSRFMiddleware::class
-            ]
-        );
+				// Every device: POST only, so it needs a CSRF token.
+				$this->router->post(
+					pattern: 'everywhere',
+					handler: [AuthController::class, 'handle_logout_everywhere']
+				);
+			},
+			middleware: [
+				CSRFMiddleware::class
+			]
+		);
 
 		/*
 		|------------------------------
 		| The admin dashboard routes.
 		|------------------------------
 		*/
-        $this->router->group( $urlmanager->admin_url_prefix(),
-            function() {
-                // Main page.
-                $this->router->get(
-                    pattern: '/',
-                    handler: [AdminDispatcher::class, 'render_admin_dashboard']
-                );
+		$this->router->group( $urlmanager->admin_url_prefix(),
+			function() {
+				// Main page.
+				$this->router->get(
+					pattern: '/',
+					handler: [AdminDispatcher::class, 'render_admin_dashboard']
+				);
 
-                // The main page slug.
-                $this->router->get(
-                    pattern: '/{page:slug}',
-                    handler: [AdminDispatcher::class, 'render_admin_dashboard']
-                );
+				// The main page slug.
+				$this->router->get(
+					pattern: '/{page:slug}',
+					handler: [AdminDispatcher::class, 'render_admin_dashboard']
+				);
 
-                // The submmenu tabs.
-                $this->router->get(
-                    pattern: '/{page:slug}/{tab:slug}',
-                    handler: [AdminDispatcher::class, 'render_admin_dashboard']
-                );
+				// The submmenu tabs.
+				$this->router->get(
+					pattern: '/{page:slug}/{tab:slug}',
+					handler: [AdminDispatcher::class, 'render_admin_dashboard']
+				);
 
-                /*
-                |---------------------------------------------------------------------
-                | ADMIN FORM SUBMISSIONS AND BUTTON ACTIONS
-                |
-                | POST, PUT, PATCH routes for form submissions and button clicks.
-                |---------------------------------------------------------------------
-                */
-                $this->router->group( 'admin/json', function() {
-                    // Base tab without form slug or action.
-                    $this->router->any( '/', fn () : Response => 
-                        Response::json(
-                            [
-                                'success'   => false,
-                                'data'      => [
-                                    'message'   => 'Form slug or action path is required.'
-                                ]
-                            ],
-                            400
-                        )
-                    );
+				/*
+				|---------------------------------------------------------------------
+				| ADMIN FORM SUBMISSIONS AND BUTTON ACTIONS
+				|
+				| POST, PUT, PATCH routes for form submissions and button clicks.
+				|---------------------------------------------------------------------
+				*/
+				$this->router->group( 'admin/json', function() {
+					// Base tab without form slug or action.
+					$this->router->any( '/', fn () : Response => Response::json(
+							[
+								'success' => false,
+								'data'    => [
+									'message' => 'Form slug or action path is required.'
+								]
+							],
+							400
+						)
+					);
 
-                    /*
-                    |-------------------------
-                    | HOSTED APPS MANAGEMENT
-                    |-------------------------
-                    */
-                    $this->router->post(
-                        pattern: 'save-app',
-                        handler: [AppManagement::class, 'handle_save_app_request'],
-                        middleware: []
-                    );
+					/*
+					|-------------------------
+					| HOSTED APPS MANAGEMENT
+					|-------------------------
+					*/
+					$this->router->post(
+						pattern: 'save-app',
+						handler: [AppManagement::class, 'handle_save_app_request'],
+						middleware: []
+					);
 
-                    $this->router->patch(
-                        pattern: 'set-status',
-                        handler: [AppManagement::class, 'handle_app_status_action_request']
-                    );
+					$this->router->patch(
+						pattern: 'set-status',
+						handler: [AppManagement::class, 'handle_app_status_action_request']
+					);
 
-                    $this->router->add(
-                        pattern: 'upload-app-assets',
-                        methods: [Request::POST, Request::PATCH, Request::PUT],
-                        handler: [AppManagement::class, 'handle_app_asset_upload_request'],
-                        middleware: []
-                    );
+					$this->router->add(
+						pattern: 'upload-app-assets',
+						methods: [Request::POST, Request::PATCH, Request::PUT],
+						handler: [AppManagement::class, 'handle_app_asset_upload_request'],
+						middleware: []
+					);
 
-                    $this->router->delete(
-                        pattern: 'app-asset',
-                        handler: [AppManagement::class, 'handle_app_asset_delete_request'],
-                        middleware: []
-                    );
+					$this->router->delete(
+						pattern: 'app-asset',
+						handler: [AppManagement::class, 'handle_app_asset_delete_request'],
+						middleware: []
+					);
 
-                    $this->router->add(
-                        methods: [ Request::POST, Request::PUT, Request::PATCH ],
-                        pattern: 'app-artifacts',
-                        handler: [AppManagement::class, 'handle_app_artifact_upload_request'],
-                        middleware: []
-                    );
+					$this->router->add(
+						methods: [ Request::POST, Request::PUT, Request::PATCH ],
+						pattern: 'app-artifacts',
+						handler: [AppManagement::class, 'handle_app_artifact_upload_request'],
+						middleware: []
+					);
 
-                    $this->router->delete(
-                        pattern: 'app-artifact',
-                        handler: [AppManagement::class, 'handle_app_artifact_delete_request'],
-                        middleware: []
-                    );
+					$this->router->delete(
+						pattern: 'app-artifact',
+						handler: [AppManagement::class, 'handle_app_artifact_delete_request'],
+						middleware: []
+					);
 
-                    $this->router->post(
-                        pattern: 'proxy-asset',
-                        handler: [FileRequestController::class, 'get_proxy_asset'],
-                        middleware: []
-                    );
+					$this->router->post(
+						pattern: 'proxy-asset',
+						handler: [FileRequestController::class, 'get_proxy_asset'],
+						middleware: []
+					);
 
-                    $this->router->post(
-                        pattern: 'toggle-monetization-status',
-                        handler: [AppMonetization::class, 'handle_toggle_monetization_request'],
-                        middleware: []
-                    );
+					$this->router->post(
+						pattern: 'toggle-monetization-status',
+						handler: [AppMonetization::class, 'handle_toggle_monetization_request'],
+						middleware: []
+					);
 
-                    $this->router->post(
-                        pattern: 'save-monetization',
-                        handler: [AppMonetization::class, 'handle_monetization_tier_form_request'],
-                        middleware: []
-                    );
+					$this->router->post(
+						pattern: 'save-monetization',
+						handler: [AppMonetization::class, 'handle_monetization_tier_form_request'],
+						middleware: []
+					);
 
-                    $this->router->get(
-                        pattern: 'tier-product',
-                        handler: [AppMonetization::class, 'handle_monetization_provider_product_request'],
-                        middleware: []
-                    );
+					$this->router->get(
+						pattern: 'tier-product',
+						handler: [AppMonetization::class, 'handle_monetization_provider_product_request'],
+						middleware: []
+					);
 
-                    $this->router->delete(
-                        pattern: 'pricing-tier',
-                        handler: [AppMonetization::class, 'handle_monetization_tier_deletion_request'],
-                        middleware: []
-                    );
+					$this->router->delete(
+						pattern: 'pricing-tier',
+						handler: [AppMonetization::class, 'handle_monetization_tier_deletion_request'],
+						middleware: []
+					);
 
-                    /*
-                    |------------------------------------------------
-                    | LICENSE FORM SUBMISSIONS AND BUTTON ACTIONS
-                    |------------------------------------------------
-                    */
-                    $this->router->post(
-                        pattern: 'license-save',
-                        handler: [AppMonetization::class, 'handle_save_license_request'],
-                        middleware: []
-                    );
+					/*
+					|------------------------------------------------
+					| LICENSE FORM SUBMISSIONS AND BUTTON ACTIONS
+					|------------------------------------------------
+					*/
+					$this->router->post(
+						pattern: 'license-save',
+						handler: [AppMonetization::class, 'handle_save_license_request'],
+						middleware: []
+					);
 
-                    $this->router->post(
-                        pattern: 'generate-app-download-token',
-                        handler: [AppMonetization::class, 'handle_download_token_generation_request'],
-                        middleware: []
-                    );
+					$this->router->post(
+						pattern: 'generate-app-download-token',
+						handler: [AppMonetization::class, 'handle_download_token_generation_request'],
+						middleware: []
+					);
 
-                    $this->router->delete(
-                        pattern: 'license-delete',
-                        handler: [AppMonetization::class, 'handle_license_delete_request']
-                    );
+					$this->router->delete(
+						pattern: 'license-delete',
+						handler: [AppMonetization::class, 'handle_license_delete_request']
+					);
 
-                    $this->router->post(
-                        pattern: 'broadcast-save',
-                        handler: [OtherFormsActions::class, 'handle_bulk_message_publish_request'],
-                    );
+					$this->router->post(
+						pattern: 'broadcast-save',
+						handler: [OtherFormsActions::class, 'handle_bulk_message_publish_request'],
+					);
 
-                    /*
-                    |------------------------------
-                    | ACCESS CONTROL/ACCOUNTS FORM.
-                    |------------------------------
-                    */
-                    $this->router->post(
-                        pattern: 'accounts-form-save',
-                        handler: [AccountManagements::class, 'handle_access_control_save_request'],
-                        middleware: []
-                    );
+					/*
+					|------------------------------
+					| ACCESS CONTROL/ACCOUNTS FORM.
+					|------------------------------
+					*/
+					$this->router->post(
+						pattern: 'accounts-form-save',
+						handler: [AccountManagements::class, 'handle_access_control_save_request'],
+						middleware: []
+					);
 
-                    $this->router->delete(
-                        pattern: 'delete-account',
-                        handler: [AccountManagements::class, 'handle_access_control_delete_request'],
-                        middleware: []
-                    );
+					$this->router->delete(
+						pattern: 'delete-account',
+						handler: [AccountManagements::class, 'handle_access_control_delete_request'],
+						middleware: []
+					);
 
-                    $this->router->delete(
-                        pattern: 'delete-organization-member',
-                        handler: [AccountManagements::class, 'handle_delete_org_memeber_request'],
-                        middleware: []
-                    );
+					$this->router->delete(
+						pattern: 'delete-organization-member',
+						handler: [AccountManagements::class, 'handle_delete_org_memeber_request'],
+						middleware: []
+					);
 
-                    $this->router->get(
-                        pattern: 'search/{entity_type:slug}',
-                        handler: [AccountManagements::class, 'handle_admin_security_entity_search_request']
-                    );
+					$this->router->get(
+						pattern: 'search/{entity_type:slug}',
+						handler: [AccountManagements::class, 'handle_admin_security_entity_search_request']
+					);
 
-                    /*
-                    |----------------------------
-                    | SETTINGS FORMS AND ACTIONS
-                    |----------------------------
-                    */
-                    $this->router->group(
-                        prefix: 'options-form',
-                        callback: function() {
-                            $forms  = [
-                                'general-settings-save'         => [SettingsController::class, 'save_general_settings'],
-                                'monetization-provider-save'    => [AppMonetization::class, 'handle_save_provider_options_request'],
-                                'default-email-save'            => [EmailRequestController::class, 'save_default_email_options'],
-                                'email-provider-test'           => [EmailRequestController::class, 'send_test_email'],
-                                'email-provider-settings'       => [EmailRequestController::class, 'save_provider_settings'],
-                                'email-template-status-toggle'  => [SettingsController::class, 'toggle_email_template'],
-                                'email-template-save'           => [SettingsController::class, 'save_email_template'],
-                                'email-template-preview'        => [SettingsController::class, 'preview_email_template'],
-                                'email-template-reset'          => [SettingsController::class, 'reset_email_template'],
-                                'cache-adapter-save'            => [CacheRequestController::class, 'save_adapter_settings'],
-                                'cache-test-adapter'            => [CacheRequestController::class, 'test_cache_adapter_settings'],
-                                'cache-reset-adapter'           => [CacheRequestController::class, 'reset_cache_adapter_settings'],
-                                'cache-stats-fetch'             => [CacheRequestController::class, 'get_cache_stats'],
-                                'cache-flush'                   => [CacheRequestController::class, 'clear_all_cache'],
-                                'cache-flush-stale'             => [CacheRequestController::class, 'flush_expired_cache'],
-                                'route-url-prefixes'            => [SettingsController::class, 'save_routing_settings']
-                            ];
+					/*
+					|----------------------------
+					| SETTINGS FORMS AND ACTIONS
+					|----------------------------
+					*/
+					$this->router->group(
+						prefix: 'options-form',
+						callback: function() {
+							$forms = [
+								'general-settings-save'        => [SettingsController::class, 'save_general_settings'],
+								'monetization-provider-save'   => [AppMonetization::class, 'handle_save_provider_options_request'],
+								'default-email-save'           => [EmailRequestController::class, 'save_default_email_options'],
+								'email-provider-test'          => [EmailRequestController::class, 'send_test_email'],
+								'email-provider-settings'      => [EmailRequestController::class, 'save_provider_settings'],
+								'email-template-status-toggle' => [SettingsController::class, 'toggle_email_template'],
+								'email-template-save'          => [SettingsController::class, 'save_email_template'],
+								'email-template-preview'       => [SettingsController::class, 'preview_email_template'],
+								'email-template-reset'         => [SettingsController::class, 'reset_email_template'],
+								'cache-adapter-save'           => [CacheRequestController::class, 'save_adapter_settings'],
+								'cache-test-adapter'           => [CacheRequestController::class, 'test_cache_adapter_settings'],
+								'cache-reset-adapter'          => [CacheRequestController::class, 'reset_cache_adapter_settings'],
+								'cache-stats-fetch'            => [CacheRequestController::class, 'get_cache_stats'],
+								'cache-flush'                  => [CacheRequestController::class, 'clear_all_cache'],
+								'cache-flush-stale'            => [CacheRequestController::class, 'flush_expired_cache'],
+								'route-url-prefixes'           => [SettingsController::class, 'save_routing_settings']
+							];
 
-                            foreach( $forms as $pattern => $callback ) {
-                                $this->router->post(
-                                    pattern: $pattern,
-                                    handler: $callback
-                                );
-                            }
-                        },
-                        middleware: []
-                    );
+							foreach( $forms as $pattern => $callback ) {
+								$this->router->post(
+									pattern: $pattern,
+									handler: $callback
+								);
+							}
+						},
+						middleware: []
+					);
 
 					/*
 					|------------------------------
@@ -467,147 +466,147 @@ final class HttpDispatcher {
 							);
 						}
 					);
-                    
-                });
-                
-            },
+					
+				} );
+				
+			},
 
-            middleware: [
-                AdminAccessMiddleware::class,
-                CSRFMiddleware::class
-            ]
-        );
+			middleware: [
+				AdminAccessMiddleware::class,
+				CSRFMiddleware::class
+			]
+		);
 
 		/*
 		|------------------------------
 		| The client dashboard routes.
 		|------------------------------
 		*/
-        $this->router->group( $urlmanager->client_dashboard_url_prefix(),
-            callback: function () {
-                $this->router->get(
-                    pattern: '',
-                    handler: [ClientDashboardRenderer::class, 'render_client_dashboard'],
-                    middleware: []
-                );
-            },
-            middleware: []
-        
-        );
+		$this->router->group( $urlmanager->client_dashboard_url_prefix(),
+			callback: function () {
+				$this->router->get(
+					pattern: '',
+					handler: [ClientDashboardRenderer::class, 'render_client_dashboard'],
+					middleware: []
+				);
+			},
+			middleware: []
+		
+		);
 
 		/*
 		|---------------------------
 		| The documentation routes
 		|---------------------------
 		*/
-        $this->router->group( 'documentation', function () {
-            $this->router->get( '/', [DefaultPage::class, 'doc_page'] );
-            $this->router->get( '{category:slug}', [DefaultPage::class, 'doc_page'] );
-        });
+		$this->router->group( 'documentation', function () {
+			$this->router->get( '/', [DefaultPage::class, 'doc_page'] );
+			$this->router->get( '{category:slug}', [DefaultPage::class, 'doc_page'] );
+		} );
 
 		/*
 		|---------------------------
 		| Uploads directory serving
 		|---------------------------
 		*/
-        $this->router->get(
-            pattern: "{$urlmanager->uploads_url_prefix()}/{file_path:path}",
-            handler: [FileRequestController::class, 'get_uploads_dir_asset'],
-            middleware: []
-        );
+		$this->router->get(
+			pattern: "{$urlmanager->uploads_url_prefix()}/{file_path:path}",
+			handler: [FileRequestController::class, 'get_uploads_dir_asset'],
+			middleware: []
+		);
 
 		/*
 		|-------------------
 		| Repository routes
 		|-------------------
 		*/
-        $this->router->group( $urlmanager->repository_url_prefix(),
-            function() {
-                // Base.
-                $this->router->get( '', [] );
+		$this->router->group( $urlmanager->repository_url_prefix(),
+			function() {
+				// Base.
+				$this->router->get( '', [] );
 
-                $this->router->get(
-                    pattern: '{app_type}/{app_slug}',
-                    handler: [],
-                    middleware: []
-                );
+				$this->router->get(
+					pattern: '{app_type}/{app_slug}',
+					handler: [],
+					middleware: []
+				);
 
-                $this->router->get(
-                    pattern: '{app_type}/{app_slug}/assets/{asset_name:.+}',
-                    handler: [FileRequestController::class, 'get_app_static_asset']
-                );
+				$this->router->get(
+					pattern: '{app_type}/{app_slug}/assets/{asset_name:.+}',
+					handler: [FileRequestController::class, 'get_app_static_asset']
+				);
 
 
-            },
-            middleware: []
-        );
+			},
+			middleware: []
+		);
 
 		/*
-        |-----------------------
-        | File download routes
-        |-----------------------
-        */
-        $hosted_apps_registry = $this->container->get( HostedAppsRegistry::class );
-            
-        // Escape types safely and implode with pipe.
-        $app_types = implode( '|', array_map( 'preg_quote', $hosted_apps_registry->app_types() ) );
+		|-----------------------
+		| File download routes
+		|-----------------------
+		*/
+		$hosted_apps_registry = $this->container->get( HostedAppsRegistry::class );
+			
+		// Escape types safely and implode with pipe.
+		$app_types = implode( '|', array_map( 'preg_quote', $hosted_apps_registry->app_types() ) );
 
-        $this->router->group(
-            prefix: $urlmanager->downloads_url_prefix(),
-            callback: function () use ( $app_types ){
-                // License document download.
-                $this->router->get(
-                    pattern: 'document/license-document-{license_id:int}.txt',
-                    handler: [FileRequestController::class, 'get_license_document']
-                );
+		$this->router->group(
+			prefix: $urlmanager->downloads_url_prefix(),
+			callback: function () use ( $app_types ) {
+				// License document download.
+				$this->router->get(
+					pattern: 'document/license-document-{license_id:int}.txt',
+					handler: [FileRequestController::class, 'get_license_document']
+				);
 
-                // App Zip Download.
-                // app_type matches: theme|plugin|addon.
-                // app_slug.ext:zip matches: {app_slug}.zip -> captures 'app_slug' & 'app_slug_ext'.
-                $this->router->get(
-                    pattern: "{app_type:{$app_types}}/{app_slug.ext:zip}",
-                    handler: [FileRequestController::class, 'get_application_zip_file'],
-                    middleware: [AppDownloadMiddleware::class]
-                );
+				// App Zip Download.
+				// app_type matches: theme|plugin|addon.
+				// app_slug.ext:zip matches: {app_slug}.zip -> captures 'app_slug' & 'app_slug_ext'.
+				$this->router->get(
+					pattern: "{app_type:{$app_types}}/{app_slug.ext:zip}",
+					handler: [FileRequestController::class, 'get_application_zip_file'],
+					middleware: [AppDownloadMiddleware::class]
+				);
 
-                // App artifact download route.
-                $this->router->get(
-                    pattern: "{app_type:{$app_types}}/{app_slug}/artifacts/{artifact_filename:.+}",
-                    handler: [FileRequestController::class, 'get_application_artifact_file']
-                );
-            },
-            middleware: []
-        );
+				// App artifact download route.
+				$this->router->get(
+					pattern: "{app_type:{$app_types}}/{app_slug}/artifacts/{artifact_filename:.+}",
+					handler: [FileRequestController::class, 'get_application_artifact_file']
+				);
+			},
+			middleware: []
+		);
 
-        $this->router->group(
-            prefix: $urlmanager->admin_downloads_url_prefix(),
-            callback: function () use ( $app_types ) {
-                $this->router->get(
-                    pattern: 'license-document-{license_id:int}.txt',
-                    handler: [FileRequestController::class, 'get_admin_license_document']
-                );
+		$this->router->group(
+			prefix: $urlmanager->admin_downloads_url_prefix(),
+			callback: function () use ( $app_types ) {
+				$this->router->get(
+					pattern: 'license-document-{license_id:int}.txt',
+					handler: [FileRequestController::class, 'get_admin_license_document']
+				);
 
-                // App Zip Download.
-                // app_type matches: theme|plugin|addon.
-                // app_slug.ext:zip matches: {app_slug}.zip -> captures 'app_slug' & 'app_slug_ext'.
-                $this->router->get(
-                    pattern: "{app_type:{$app_types}}/{app_id:int}",
-                    handler: [FileRequestController::class, 'get_admin_application_zip_file'],
-                    middleware: [AppDownloadMiddleware::class]
-                );
+				// App Zip Download.
+				// app_type matches: theme|plugin|addon.
+				// app_slug.ext:zip matches: {app_slug}.zip -> captures 'app_slug' & 'app_slug_ext'.
+				$this->router->get(
+					pattern: "{app_type:{$app_types}}/{app_id:int}",
+					handler: [FileRequestController::class, 'get_admin_application_zip_file'],
+					middleware: [AppDownloadMiddleware::class]
+				);
 
-                // App artifact download route.
-                $this->router->get(
-                    pattern: "{app_type:{$app_types}}/{app_slug}/artifacts/{artifact_filename:.+}",
-                    handler: [FileRequestController::class, 'get_application_artifact_file']
-                );
-            },
-            middleware: [AdminDownloadMiddleware::class]
-        );
+				// App artifact download route.
+				$this->router->get(
+					pattern: "{app_type:{$app_types}}/{app_slug}/artifacts/{artifact_filename:.+}",
+					handler: [FileRequestController::class, 'get_application_artifact_file']
+				);
+			},
+			middleware: [AdminDownloadMiddleware::class]
+		);
 
 
-        return $this;
-    }
+		return $this;
+	}
 
 	/**
 	 * Mount the REST API on the router.
@@ -618,7 +617,7 @@ final class HttpDispatcher {
 	 * @param RestAPIProvider $rest_provider The standalone REST API provider.
 	 * @return self Fluent
 	 */
-	public function registerProvider( RestAPIProvider $rest_provider ): self {
+	public function registerProvider( RestAPIProvider $rest_provider ) : self {
 		$rest_provider->register( $this->router, $this->container->get( CallableResolver::class ) );
 
 		return $this;
@@ -627,35 +626,35 @@ final class HttpDispatcher {
 	/**
 	 * Sets the callback invoked when no route matches the path at all.
 	 * Receives `($request)`.
-     * 
-     * @param callable( Request ): Response $handler The callback to invoke when no route matches.
-     * @return self
+	 * 
+	 * @param callable( Request ): Response $handler The callback to invoke when no route matches.
+	 * @return self
 	 */
-	public function notFound( callable $handler ): self {
+	public function notFound( callable $handler ) : self {
 		$this->notFoundHandler = $handler;
 
 		return $this;
 	}
 
-    /**
-     * Sets the callback handler for the homepage.
-     * 
-     * @param callable( Request ) : Response $callback
-     */
-    public function homeHandler( callable $callback ) : self {
-        $this->defaultHomeHandler = $callback;
+	/**
+	 * Sets the callback handler for the homepage.
+	 * 
+	 * @param callable( Request ) : Response $callback
+	 */
+	public function homeHandler( callable $callback ) : self {
+		$this->defaultHomeHandler = $callback;
 
-        return $this;
-    }
+		return $this;
+	}
 
 	/**
 	 * Sets the callback invoked when a route matches the path but not the
 	 * method. Receives `($request, string[] $allowedMethods)`.
-     * 
-     * @param callable( Request, string[] ): Response $handler The callback to invoke when a route matches the path but not the method.
-     * @return self
+	 * 
+	 * @param callable( Request, string[] ): Response $handler The callback to invoke when a route matches the path but not the method.
+	 * @return self
 	 */
-	public function methodNotAllowed( callable $handler ): self {
+	public function methodNotAllowed( callable $handler ) : self {
 		$this->methodNotAllowedHandler = $handler;
 
 		return $this;
@@ -671,19 +670,19 @@ final class HttpDispatcher {
 	 * no assumption about what that is (a Response object, void, anything),
 	 * since that's the handler's decision, not the router's.
 	 */
-	public function dispatch( Request $request ): Response {
+	public function dispatch( Request $request ) : Response {
 		$result = $this->router->dispatch( $request->method(), $this->app_path( $request->path() ) );
 
-        $request->set_route_param( $result->params );
+		$request->set_route_param( $result->params );
 
 		$response = match ( $result->status ) {
-			DispatchStatus::Found       => MiddlewarePipeline::run(
-                $this->container->get( CallableResolver::class ),
+			DispatchStatus::Found => MiddlewarePipeline::run(
+				$this->container->get( CallableResolver::class ),
 				$result->middleware,
 				$result->handler,
 				$request,
 			),
-			DispatchStatus::NotFound    => null !== $this->notFoundHandler
+			DispatchStatus::NotFound => null !== $this->notFoundHandler
 				? ( $this->notFoundHandler )( $request )
 				: null,
 			DispatchStatus::MethodNotAllowed => null !== $this->methodNotAllowedHandler
@@ -691,7 +690,7 @@ final class HttpDispatcher {
 				: null,
 		};
 
-        return $this->ensure_response( $response );
+		return $this->ensure_response( $response );
 	}
 
 	/**
@@ -717,120 +716,120 @@ final class HttpDispatcher {
 		return '' === $path ? '/' : $path;
 	}
 
-    /**
-     * Normalizes arbitrary route handler return values into a unified Response object.
-     *
-     * @param mixed $data Raw value returned from a route handler.
-     * @return Response Fully populated framework Response object.
-     * @throws \RuntimeException If the data type cannot be safely converted to a response.
-     */
-    private function ensure_response( mixed $data ) : Response {
-        // Direct pass-through if it's already a Response instance.
-        if ( $data instanceof Response ) {
-            return $data;
-        }
+	/**
+	 * Normalizes arbitrary route handler return values into a unified Response object.
+	 *
+	 * @param mixed $data Raw value returned from a route handler.
+	 * @return Response Fully populated framework Response object.
+	 * @throws \RuntimeException If the data type cannot be safely converted to a response.
+	 */
+	private function ensure_response( mixed $data ) : Response {
+		// Direct pass-through if it's already a Response instance.
+		if ( $data instanceof Response ) {
+			return $data;
+		}
 
-        // Handle empty/null returns (e.g., HTTP 204 No Content).
-        if ( null === $data ) {
-            return Response::make( '', 204 );
-        }
+		// Handle empty/null returns (e.g., HTTP 204 No Content).
+		if ( null === $data ) {
+			return Response::make( '', 204 );
+		}
 
-        // Handle arrays and JsonSerializable objects as JSON responses.
-        if ( is_array( $data ) || $data instanceof \JsonSerializable ) {
-            $encoded = \smliser_safe_json_encode( $data );
-            
-            if ( false === $encoded ) {
-                throw new \RuntimeException( 'Failed to encode route response data to JSON.' );
-            }
+		// Handle arrays and JsonSerializable objects as JSON responses.
+		if ( is_array( $data ) || $data instanceof \JsonSerializable ) {
+			$encoded = \smliser_safe_json_encode( $data );
+			
+			if ( false === $encoded ) {
+				throw new \RuntimeException( 'Failed to encode route response data to JSON.' );
+			}
 
-            return Response::make( $encoded )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
-        }
+			return Response::make( $encoded )
+				->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+		}
 
-        // Handle standard strings.
-        if ( is_string( $data ) ) {
-            return Response::make( $data )
-                ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
-        }
+		// Handle standard strings.
+		if ( is_string( $data ) ) {
+			return Response::make( $data )
+				->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+		}
 
-        // Handle Stringable objects (PHP 8.0+ or custom __toString implementers).
-        if ( is_object( $data ) && ( $data instanceof \Stringable || method_exists( $data, '__toString' ) ) ) {
-            return Response::make( (string) $data )
-                ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
-        }
+		// Handle Stringable objects (PHP 8.0+ or custom __toString implementers).
+		if ( is_object( $data ) && ( $data instanceof \Stringable || method_exists( $data, '__toString' ) ) ) {
+			return Response::make( (string) $data )
+				->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+		}
 
-        // Handle scalar values (booleans, integers, floats).
-        if ( is_scalar( $data ) ) {
-            $content = is_bool( $data ) ? ( $data ? 'true' : 'false' ) : (string) $data;
+		// Handle scalar values (booleans, integers, floats).
+		if ( is_scalar( $data ) ) {
+			$content = is_bool( $data ) ? ( $data ? 'true' : 'false' ) : (string) $data;
 
-            return Response::make( $content )
-                ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
-        }
+			return Response::make( $content )
+				->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+		}
 
-        // Handle invokable objects/callables (e.g., dynamic response generators).
-        if ( is_callable( $data ) ) {
-            if ( $this->returns_response( $data ) ) {
-                return $this->ensure_response( $data() );
-            }
+		// Handle invokable objects/callables (e.g., dynamic response generators).
+		if ( is_callable( $data ) ) {
+			if ( $this->returns_response( $data ) ) {
+				return $this->ensure_response( $data() );
+			}
 
-            return Response::make( $this->capture( $data ) )
-                ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
-        }
+			return Response::make( $this->capture( $data ) )
+				->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+		}
 
-        // Unsupported type safety check.
-        $type = is_object( $data ) ? $data::class : gettype( $data );
-        throw new \RuntimeException( sprintf( 'Route handler returned unsupported response type: %s', $type ) );
-    }
+		// Unsupported type safety check.
+		$type = is_object( $data ) ? $data::class : gettype( $data );
+		throw new \RuntimeException( sprintf( 'Route handler returned unsupported response type: %s', $type ) );
+	}
 
-    private function returns_response( callable $callable ) : bool {
-        try {
-            if ( is_array( $callable ) ) {
-                $reflection = new \ReflectionMethod( $callable[0], $callable[1] );
-            } elseif ( is_string( $callable ) && str_contains( $callable, '::' ) ) {
-                $reflection = new \ReflectionMethod( $callable );
-            } else {
-                $reflection = new \ReflectionFunction( $callable );
-            }
+	private function returns_response( callable $callable ) : bool {
+		try {
+			if ( is_array( $callable ) ) {
+				$reflection = new \ReflectionMethod( $callable[0], $callable[1] );
+			} elseif ( is_string( $callable ) && str_contains( $callable, '::' ) ) {
+				$reflection = new \ReflectionMethod( $callable );
+			} else {
+				$reflection = new \ReflectionFunction( $callable );
+			}
 
-            $returnType = $reflection->getReturnType();
+			$returnType = $reflection->getReturnType();
 
-            if ( $returnType instanceof \ReflectionNamedType ) {
-                return $returnType->getName() === Response::class;
-            }
+			if ( $returnType instanceof \ReflectionNamedType ) {
+				return Response::class === $returnType->getName();
+			}
 
-            if ( $returnType instanceof \ReflectionUnionType ) {
-                foreach ( $returnType->getTypes() as $type ) {
-                    if ( $type instanceof \ReflectionNamedType && $type->getName() === Response::class ) {
-                        return true;
-                    }
-                }
-            }
+			if ( $returnType instanceof \ReflectionUnionType ) {
+				foreach ( $returnType->getTypes() as $type ) {
+					if ( $type instanceof \ReflectionNamedType && Response::class === $type->getName() ) {
+						return true;
+					}
+				}
+			}
 
-            return false;
-        } catch ( \ReflectionException ) {
-            return false;
-        }
-    }
+			return false;
+		} catch ( \ReflectionException ) {
+			return false;
+		}
+	}
 
-    private function capture( callable $callable ) : string {
-        ob_start();
-        try {
-            $callable();
+	private function capture( callable $callable ) : string {
+		ob_start();
+		try {
+			$callable();
 
-            // Check if the callback itself forced a header flush or called flush() during execution
-            if ( headers_sent( $file, $line ) ) {
-                ob_end_clean();
-                throw new \LogicException(
-                    sprintf( 'Route callback flushed output prematurely at %s on line %d.', $file, $line )
-                );
-            }
+			// Check if the callback itself forced a header flush or called flush() during execution
+			if ( headers_sent( $file, $line ) ) {
+				ob_end_clean();
+				throw new \LogicException(
+					sprintf( 'Route callback flushed output prematurely at %s on line %d.', $file, $line )
+				);
+			}
 
-            return (string) ob_get_clean();
-        } catch ( \Throwable $e ) {
-            if ( ob_get_level() > 0 ) {
-                ob_end_clean();
-            }
-            throw $e;
-        }
-    }
+			return (string) ob_get_clean();
+		} catch ( \Throwable $e ) {
+			if ( ob_get_level() > 0 ) {
+				ob_end_clean();
+			}
+			throw $e;
+		}
+	}
 }

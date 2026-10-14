@@ -24,13 +24,13 @@ defined( 'SMLISER_ROOT' ) || exit;
     <div class="smliser-admin-body">
         <div class="notice notice-info" style="margin: 15px;">
             <p>
-                <?php 
-                    printf( 
-                        'Logs over %s days are automatically deleted.',
-                        escHtml( $log_duration )
-                    )
-                
-                ?>
+                <?php
+					printf(
+						'Logs over %s days are automatically deleted.',
+						escHtml( $log_duration )
+					)
+				
+				?>
             </p>
         </div>
         
@@ -59,12 +59,12 @@ defined( 'SMLISER_ROOT' ) || exit;
                     <td><?php echo escHtml( $task_data['ip_address'] ?? 'N/A' );?></td>
                     <td><?php echo escHtml( $task_data['comment'] ?? 'N/A' );?></td>
                     <td><?php echo escHtml( smliser_readable_duration( $task_data['duration'] ?? 0 ) );?></td>
-                    <td><?php echo escHtml( smliser_url_origin( $task_data['website']?? 'N/A' ) );?></td>
+                    <td><?php echo escHtml( smliser_url_origin( $task_data['website'] ?? 'N/A' ) );?></td>
                     <td><a href="<?php echo escUrl( $urlmanager->admin_license_page_url( 'view', [ 'id' => $task_data['license_id'] ?? 0] )->url() ) ?>">View License</a></td>
                 </tr>
                 <?php endforeach; endif;?>
             </table>
-            <p class="smliser-table-count"><?php echo intval( count( $logs ) ); echo ' Item'. ( count( $logs ) > 1 ? 's' : '' ); ?></p>
+            <p class="smliser-table-count"><?php echo intval( count( $logs ) ); echo ' Item' . ( count( $logs ) > 1 ? 's' : '' ); ?></p>
         <?php endif; ?>      
     </div>
 

@@ -18,52 +18,52 @@ use SmartLicenseServer\Monetization\License;
 
 class LicenseExpiryReminderEmail extends EmailTemplate {
 
-    /**
-     * @param License $license     The license nearing expiry.
-     * @param string  $to          Recipient email address.
-     * @param int     $days_left   Number of days remaining before expiry.
-     */
-    public function __construct(
-        private readonly License $license,
-        private readonly string  $to,
-        private readonly int     $days_left
-    ) {}
+	/**
+	 * @param License $license     The license nearing expiry.
+	 * @param string  $to          Recipient email address.
+	 * @param int     $days_left   Number of days remaining before expiry.
+	 */
+	public function __construct(
+		private readonly License $license,
+		private readonly string  $to,
+		private readonly int     $days_left
+	) {}
 
-    static public function template_key(): string {
-        return 'license_expiry_reminder';
-    }
+	static public function template_key() : string {
+		return 'license_expiry_reminder';
+	}
 
-    protected function subject(): string {
-        return "Your License Expires in {$this->days_left} Day(s)";
-    }
+	protected function subject() : string {
+		return "Your License Expires in {$this->days_left} Day(s)";
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "Action required — your license expires in {$this->days_left} day(s). Renew now to avoid interruption.";
-    }
+	protected function preheader() : string {
+		return "Action required — your license expires in {$this->days_left} day(s). Renew now to avoid interruption.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{licensee_name}}' => $this->license->get_licensee_fullname(),
-            '{{license_key}}'   => $this->license->get_license_key(),
-            '{{end_date}}'      => $this->license->get_end_date()->format( \smliser_datetime_format() ),
-            '{{days_left}}'     => (string) $this->days_left,
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{licensee_name}}' => $this->license->get_licensee_fullname(),
+			'{{license_key}}'   => $this->license->get_license_key(),
+			'{{end_date}}'      => $this->license->get_end_date()->format( \smliser_datetime_format() ),
+			'{{days_left}}'     => (string) $this->days_left,
+		] );
+	}
 
-    protected function body(): string {
-        $vars = $this->variables();
+	protected function body() : string {
+		$vars = $this->variables();
 
-        $licensee_name = \escHtml( $vars['{{licensee_name}}'] );
-        $license_key   = \escHtml( $vars['{{license_key}}'] );
-        $end_date      = \escHtml( $vars['{{end_date}}'] );
-        $days_left     = \escHtml( $vars['{{days_left}}'] );
-        $support       = \escHtml( $vars['{{support_email}}'] );
+		$licensee_name = \escHtml( $vars['{{licensee_name}}'] );
+		$license_key   = \escHtml( $vars['{{license_key}}'] );
+		$end_date      = \escHtml( $vars['{{end_date}}'] );
+		$days_left     = \escHtml( $vars['{{days_left}}'] );
+		$support       = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$licensee_name},
         </p>
@@ -123,58 +123,58 @@ class LicenseExpiryReminderEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'License Expiry Reminder';
-    }
-    public function description(): string {
-        return 'Sent a set number of days before a license is due to expire.';
-    }
-    public static function preview(): static {
-        $license = License::from_array([
-            'licensee_fullname' => 'Jane Doe',
-            'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
-            'end_date'          => gmdate( 'Y-m-d', strtotime( '+7 days' ) ),
-        ]);
-        return new static( $license, 'preview@example.com', 7 );
-    }
+	public function label() : string {
+		return 'License Expiry Reminder';
+	}
+	public function description() : string {
+		return 'Sent a set number of days before a license is due to expire.';
+	}
+	public static function preview() : static {
+		$license = License::from_array( [
+			'licensee_fullname' => 'Jane Doe',
+			'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
+			'end_date'          => gmdate( 'Y-m-d', strtotime( '+7 days' ) ),
+		] );
+		return new static( $license, 'preview@example.com', 7 );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{licensee_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'warning',
-                'content'   => 'Your license expires in {{days_left}} day(s) on {{end_date}}. Renew now to avoid any interruption to your service.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'License Key',   'value' => '{{license_key}}' ],
-                    [ 'label' => 'Expiry Date',   'value' => '{{end_date}}' ],
-                    [ 'label' => 'Days Remaining','value' => '{{days_left}}' ],
-                ],
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you have already renewed or have any questions, please contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{licensee_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'warning',
+				'content'   => 'Your license expires in {{days_left}} day(s) on {{end_date}}. Renew now to avoid any interruption to your service.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'License Key',   'value' => '{{license_key}}' ],
+					[ 'label' => 'Expiry Date',   'value' => '{{end_date}}' ],
+					[ 'label' => 'Days Remaining','value' => '{{days_left}}' ],
+				],
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you have already renewed or have any questions, please contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

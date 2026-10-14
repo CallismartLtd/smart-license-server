@@ -29,61 +29,61 @@ use SmartLicenseServer\Security\CSRF\CSRF;
  */
 class CSRFMiddleware implements MiddlewareInterface {
 
-    /**
-     * Methods that pass without a token.
-     *
-     * @var string[]
-     */
-    private const SAFE_METHODS = [ Request::GET, Request::HEAD, Request::OPTIONS ];
+	/**
+	 * Methods that pass without a token.
+	 *
+	 * @var string[]
+	 */
+	private const SAFE_METHODS = [ Request::GET, Request::HEAD, Request::OPTIONS ];
 
-    /**
-     * Class constructor.
-     *
-     * @param CSRF       $csrf       The CSRF token service.
-     * @param URLManager $urlmanager The URL manager.
-     */
-    public function __construct( protected CSRF $csrf, protected URLManager $urlmanager ) {}
+	/**
+	 * Class constructor.
+	 *
+	 * @param CSRF       $csrf       The CSRF token service.
+	 * @param URLManager $urlmanager The URL manager.
+	 */
+	public function __construct( protected CSRF $csrf, protected URLManager $urlmanager ) {}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function handle( Request $request, callable $next ) : mixed {
-        if ( in_array( $request->method(), self::SAFE_METHODS, true ) ) {
-            return $next( $request );
-        }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function handle( Request $request, callable $next ) : mixed {
+		if ( in_array( $request->method(), self::SAFE_METHODS, true ) ) {
+			return $next( $request );
+		}
 
-        if ( ! $this->csrf->same_origin( $request, $this->urlmanager->url()->url() ) ) {
-            return $this->reject( $request, 'CROSS_SITE_REQUEST', 'This request did not come from this site.' );
-        }
+		if ( ! $this->csrf->same_origin( $request, $this->urlmanager->url()->url() ) ) {
+			return $this->reject( $request, 'CROSS_SITE_REQUEST', 'This request did not come from this site.' );
+		}
 
-        if ( ! $this->csrf->verify_request( $request ) ) {
-            return $this->reject( $request, 'INVALID_CSRF_TOKEN', 'Your session security token is missing or has expired. Reload the page and try again.' );
-        }
+		if ( ! $this->csrf->verify_request( $request ) ) {
+			return $this->reject( $request, 'INVALID_CSRF_TOKEN', 'Your session security token is missing or has expired. Reload the page and try again.' );
+		}
 
-        return $next( $request );
-    }
+		return $next( $request );
+	}
 
-    /**
-     * The 403 response for a rejected request.
-     *
-     * @param Request $request The request.
-     * @param string  $code    Error code.
-     * @param string  $message Message for the user.
-     * @return Response
-     */
-    protected function reject( Request $request, string $code, string $message ) : Response {
-        if ( $request->expectsJson() ) {
-            return Response::json(
-                [
-                    'success' => false,
-                    'message' => $message,
-                    'code'    => $code,
-                ],
-                403
-            );
-        }
+	/**
+	 * The 403 response for a rejected request.
+	 *
+	 * @param Request $request The request.
+	 * @param string  $code    Error code.
+	 * @param string  $message Message for the user.
+	 * @return Response
+	 */
+	protected function reject( Request $request, string $code, string $message ) : Response {
+		if ( $request->expectsJson() ) {
+			return Response::json(
+				[
+					'success' => false,
+					'message' => $message,
+					'code'    => $code,
+				],
+				403
+			);
+		}
 
-        return Response::make( \escHtml( $message ), 403 )
-            ->set_header( 'Content-Type', 'text/html; charset=utf-8' );
-    }
+		return Response::make( \escHtml( $message ), 403 )
+			->set_header( 'Content-Type', 'text/html; charset=utf-8' );
+	}
 }

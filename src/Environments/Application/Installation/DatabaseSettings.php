@@ -32,26 +32,26 @@ final class DatabaseSettings {
 	 * The charset values follow each engine's naming: MySQL "utf8mb4" (full
 	 * Unicode; its "utf8" lacks emoji), PostgreSQL "UTF8". SQLite has none.
 	 */
-	public const DRIVERS = array(
-		'mysql'  => array(
+	public const DRIVERS = [
+		'mysql' => [
 			'label'   => 'MySQL / MariaDB',
 			'help'    => 'Offered by most hosting plans.',
 			'port'    => 3306,
 			'charset' => 'utf8mb4',
-		),
-		'pgsql'  => array(
+		],
+		'pgsql' => [
 			'label'   => 'PostgreSQL',
 			'help'    => 'Choose it if your host gave you a PostgreSQL database.',
 			'port'    => 5432,
 			'charset' => 'UTF8',
-		),
-		'sqlite' => array(
+		],
+		'sqlite' => [
 			'label'   => 'SQLite',
 			'help'    => 'A single file; no database server needed. Good for small sites and testing.',
 			'port'    => null,
 			'charset' => null,
-		),
-	);
+		],
+	];
 
 	/**
 	 * Host used when the server address is left empty.
@@ -61,12 +61,12 @@ final class DatabaseSettings {
 	/**
 	 * Fields accepted by normalize(), named as in DBConfigDTO.
 	 */
-	public const FIELDS = array( 'driver', 'host', 'port', 'dbname', 'username', 'password', 'prefix', 'charset', 'path', 'encryption_key' );
+	public const FIELDS = [ 'driver', 'host', 'port', 'dbname', 'username', 'password', 'prefix', 'charset', 'path', 'encryption_key' ];
 
 	/**
 	 * Fields used exactly as typed: never trimmed, never shown back.
 	 */
-	public const SECRET_FIELDS = array( 'password', 'encryption_key' );
+	public const SECRET_FIELDS = [ 'password', 'encryption_key' ];
 
 	/**
 	 * Static class.
@@ -88,7 +88,7 @@ final class DatabaseSettings {
 	 *                                   When DBConfigDTO rejects a value, its message is the previous exception.
 	 */
 	public static function normalize( array $input ) : DBConfigDTO {
-		$values = array();
+		$values = [];
 
 		foreach ( self::FIELDS as $field ) {
 			$value = $input[ $field ] ?? '';
@@ -137,7 +137,7 @@ final class DatabaseSettings {
 			}
 		}
 
-		$env = array();
+		$env = [];
 
 		foreach ( \smliser_db_env_keys() as $field => $key ) {
 			$env[ $key ] = $values[ $field ] ?? '';
@@ -170,7 +170,7 @@ final class DatabaseSettings {
 	 * @return array<string, string>
 	 */
 	public static function values( DBConfigDTO $config ) : array {
-		$values = array();
+		$values = [];
 
 		foreach ( array_diff( self::FIELDS, self::SECRET_FIELDS ) as $field ) {
 			$value            = $config->{$field};

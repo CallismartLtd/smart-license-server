@@ -275,10 +275,10 @@ class UpdateManagement {
 	 */
 	private function ok( ?string $message = null ) : Response {
 		return Response::json(
-			data: array(
+			data: [
 				'success' => true,
-				'data'    => array_filter( array( 'message' => $message ) ) + array( 'overview' => $this->updates->overview() ),
-			),
+				'data'    => array_filter( [ 'message' => $message ] ) + [ 'overview' => $this->updates->overview() ],
+			],
 			status_code: 200
 		);
 	}
@@ -292,7 +292,7 @@ class UpdateManagement {
 	 */
 	private function fail( string $message, int $status ) : Response {
 		return Response::json(
-			data: array( 'success' => false, 'data' => array( 'message' => $message ) ),
+			data: [ 'success' => false, 'data' => [ 'message' => $message ] ],
 			status_code: $status
 		);
 	}

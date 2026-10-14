@@ -23,39 +23,39 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'provid
  * Keeps the template class itself free of group metadata.
  */
 $group_map = [
-    'license_issued'                  => 'License',
-    'license_activated'               => 'License',
-    'license_deactivated'             => 'License',
-    'license_expiry_reminder'         => 'License',
-    'license_expired'                 => 'License',
-    'license_suspended'               => 'License',
-    'license_renewed'                 => 'License',
-    'welcome'                         => 'Account',
-    'password_reset'                  => 'Account',
-    'password_changed'                => 'Account',
-    'organization_invite'             => 'Organization',
-    'organization_member_removed'     => 'Organization',
-    'app_published'                   => 'Apps',
-    'app_updated'                     => 'Apps',
-    'new_app_version_notification'    => 'Apps',
-    'app_status_changed'              => 'Apps',
-    'app_ownership_changed'           => 'Apps',
-    'payment_received'                => 'Monetization',
-    'payment_failed'                  => 'Monetization',
-    'subscription_cancelled'          => 'Monetization',
-    'bulk_message'                    => 'Messaging',
-    'test_email'                      => 'System',
-    'system_alert'                    => 'System',
+	'license_issued'               => 'License',
+	'license_activated'            => 'License',
+	'license_deactivated'          => 'License',
+	'license_expiry_reminder'      => 'License',
+	'license_expired'              => 'License',
+	'license_suspended'            => 'License',
+	'license_renewed'              => 'License',
+	'welcome'                      => 'Account',
+	'password_reset'               => 'Account',
+	'password_changed'             => 'Account',
+	'organization_invite'          => 'Organization',
+	'organization_member_removed'  => 'Organization',
+	'app_published'                => 'Apps',
+	'app_updated'                  => 'Apps',
+	'new_app_version_notification' => 'Apps',
+	'app_status_changed'           => 'Apps',
+	'app_ownership_changed'        => 'Apps',
+	'payment_received'             => 'Monetization',
+	'payment_failed'               => 'Monetization',
+	'subscription_cancelled'       => 'Monetization',
+	'bulk_message'                 => 'Messaging',
+	'test_email'                   => 'System',
+	'system_alert'                 => 'System',
 ];
 
 $group_colors = [
-    'License'      => [ 'bg' => '#eef2ff', 'color' => '#4f46e5' ],
-    'Account'      => [ 'bg' => '#f0fdf4', 'color' => '#16a34a' ],
-    'Organization' => [ 'bg' => '#fdf4ff', 'color' => '#9333ea' ],
-    'Apps'         => [ 'bg' => '#eff6ff', 'color' => '#2563eb' ],
-    'Monetization' => [ 'bg' => '#fff7ed', 'color' => '#ea580c' ],
-    'Messaging'    => [ 'bg' => '#fefce8', 'color' => '#ca8a04' ],
-    'System'       => [ 'bg' => '#f8fafc', 'color' => '#475569' ],
+	'License'      => [ 'bg' => '#eef2ff', 'color' => '#4f46e5' ],
+	'Account'      => [ 'bg' => '#f0fdf4', 'color' => '#16a34a' ],
+	'Organization' => [ 'bg' => '#fdf4ff', 'color' => '#9333ea' ],
+	'Apps'         => [ 'bg' => '#eff6ff', 'color' => '#2563eb' ],
+	'Monetization' => [ 'bg' => '#fff7ed', 'color' => '#ea580c' ],
+	'Messaging'    => [ 'bg' => '#fefce8', 'color' => '#ca8a04' ],
+	'System'       => [ 'bg' => '#f8fafc', 'color' => '#475569' ],
 ];
 ?>
 
@@ -74,14 +74,14 @@ $group_colors = [
                 All <i class="smliser-filter-count"><?php echo count( $templates ); ?></i>
             </button>
             <?php
-            $groups = array_unique( array_values( $group_map ) );
-            foreach ( $groups as $group ) :
-                $count = count( array_filter(
-                    array_keys( $templates ),
-                    fn( $k ) => ( $group_map[ $k ] ?? '' ) === $group
-                ) );
-                if ( $count === 0 ) continue;
-            ?>
+			$groups = array_unique( array_values( $group_map ) );
+			foreach ( $groups as $group ) :
+				$count = count( array_filter(
+					array_keys( $templates ),
+					fn( $k ) => ( $group_map[ $k ] ?? '' ) === $group
+				) );
+				if ( 0 === $count ) continue;
+			?>
                 <button type="button"
                         class="smliser-filter-btn"
                         data-group="<?php echo escAttr( $group ); ?>">
@@ -105,16 +105,16 @@ $group_colors = [
             </thead>
             <tbody>
                 <?php foreach ( $templates as $key => $entry ) :
-                    $group       = $group_map[ $key ] ?? 'System';
-                    $colors      = $group_colors[ $group ];
-                    $detail_url  = $current_url
-                        ->add_query_param( 'section', 'templates' )
-                        ->add_query_param( 'template', $key );
-                    $toggle_url  = $current_url
-                        ->add_query_param( 'section', 'templates' )
-                        ->add_query_param( 'template', $key )
-                        ->add_query_param( 'action', $entry['is_enabled'] ? 'disable' : 'enable' );
-                ?>
+					$group      = $group_map[ $key ] ?? 'System';
+					$colors     = $group_colors[ $group ];
+					$detail_url = $current_url
+						->add_query_param( 'section', 'templates' )
+						->add_query_param( 'template', $key );
+					$toggle_url = $current_url
+						->add_query_param( 'section', 'templates' )
+						->add_query_param( 'template', $key )
+						->add_query_param( 'action', $entry['is_enabled'] ? 'disable' : 'enable' );
+				?>
                     <tr data-group="<?php echo escAttr( $group ); ?>">
 
                         <!-- Template name + group badge -->

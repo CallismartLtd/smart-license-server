@@ -31,7 +31,7 @@ final readonly class ReleaseCheck {
 	 *
 	 * @return bool
 	 */
-	public function passed(): bool {
+	public function passed() : bool {
 		return empty( $this->missing ) && empty( $this->modified );
 	}
 
@@ -41,8 +41,8 @@ final readonly class ReleaseCheck {
 	 * @param int $limit Names listed per kind before "and N more".
 	 * @return string[]
 	 */
-	public function messages( int $limit = 10 ): array {
-		$messages = array();
+	public function messages( int $limit = 10 ) : array {
+		$messages = [];
 
 		if ( ! empty( $this->missing ) ) {
 			$messages[] = sprintf( '%d file(s) are missing: %s', count( $this->missing ), self::names( $this->missing, $limit ) );
@@ -62,7 +62,7 @@ final readonly class ReleaseCheck {
 	 * @param int      $limit Maximum listed.
 	 * @return string
 	 */
-	private static function names( array $names, int $limit ): string {
+	private static function names( array $names, int $limit ) : string {
 		$listed = implode( ', ', array_slice( $names, 0, $limit ) );
 		$more   = count( $names ) - $limit;
 

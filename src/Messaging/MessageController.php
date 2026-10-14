@@ -21,131 +21,131 @@ use SmartLicenseServer\Security\SecurityAwareTrait;
  * The bulk messaging controller class
  */
 class MessageController {
-    use SecurityAwareTrait;
+	use SecurityAwareTrait;
 
-    public function __construct(
-        protected URLManager $urlmanager,
-        protected Cache $cache,
-        Guard $guard
-    ) {
-        $this->guard = $guard;
-    }
-    /**
-     * Savw a bulk message.
-     * 
-     * @param Request $request The request object.
-     * @return Response The response object.
-     */
-    public function save_bulk_message( Request $request ) : Response {
-        try {
-            $this->is_system_admin();
+	public function __construct(
+		protected URLManager $urlmanager,
+		protected Cache $cache,
+		Guard $guard
+	) {
+		$this->guard = $guard;
+	}
+	/**
+	 * Savw a bulk message.
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response The response object.
+	 */
+	public function save_bulk_message( Request $request ) : Response {
+		try {
+			$this->is_system_admin();
 
-            $subject    = $request->post( 'subject', '' );
+			$subject = $request->post( 'subject', '' );
 
-            if ( empty( $subject ) ) {
-                throw new RequestException( 'required_param', 'The message subject is required.', ['status' => 400] );
-            }
+			if ( empty( $subject ) ) {
+				throw new RequestException( 'required_param', 'The message subject is required.', ['status' => 400] );
+			}
 
-            $body   = $request->get( 'message_body', '', false );
-            
-            if ( empty( $body ) ) {
-                throw new RequestException( 'required_param', 'The message body is required.', ['status' => 400] );
-            }
+			$body = $request->get( 'message_body', '', false );
+			
+			if ( empty( $body ) ) {
+				throw new RequestException( 'required_param', 'The message body is required.', ['status' => 400] );
+			}
 
-            $message_id         = $request->post( 'message_id', 0 );
-            $associated_apps    = $request->post( 'associated_apps', [] );
-            $is_new_message     = true;
+			$message_id      = $request->post( 'message_id', 0 );
+			$associated_apps = $request->post( 'associated_apps', [] );
+			$is_new_message  = true;
 
-            if ( $message_id ) {
-                $message    = BulkMessageService::raw()->get_message( $message_id );
+			if ( $message_id ) {
+				$message = BulkMessageService::raw()->get_message( $message_id );
 
-                if ( ! $message ) {
-                    throw new RequestException( 'not_found', 'The specified message was not found.', ['status' => 404] );
-                }
+				if ( ! $message ) {
+					throw new RequestException( 'not_found', 'The specified message was not found.', ['status' => 404] );
+				}
 
-                $is_new_message = false;
-                
-            } else {
-                $message    = new BulkMessage();
-            }
+				$is_new_message = false;
+				
+			} else {
+				$message = new BulkMessage();
+			}
 
-            $message->set_subject( $subject );
-            $message->set_body( $body );
-            $message->set_associated_apps( $associated_apps, true );
-            $service    = BulkMessageService::with_message( $message );
+			$message->set_subject( $subject );
+			$message->set_body( $body );
+			$message->set_associated_apps( $associated_apps, true );
+			$service = BulkMessageService::with_message( $message );
 
-            if ( ! $service->save() ) {
-                throw new RequestException( 'save_failed', 'Failed to save the bulk message.', ['status' => 500] );
-            }
+			if ( ! $service->save() ) {
+				throw new RequestException( 'save_failed', 'Failed to save the bulk message.', ['status' => 500] );
+			}
 
-            $request->set( 'message_id', $message->get_message_id() );
+			$request->set( 'message_id', $message->get_message_id() );
 
-            return Response::json([
-                'success'   => true,
-                'data'      => [
-                    'message'       => $is_new_message ? 'Message has been published.' : 'Message has been updated.',
-                    'message_id'    => $message->get_message_id(),
-                    'redirect_url'  => $this->urlmanager->admin_broadcasts_page_url( 'edit',
-                        [
-                            'msg_id' => $message->get_message_id()
-                        ]
-                    )
-                ],
-            ]);
+			return Response::json( [
+				'success' => true,
+				'data'    => [
+					'message'      => $is_new_message ? 'Message has been published.' : 'Message has been updated.',
+					'message_id'   => $message->get_message_id(),
+					'redirect_url' => $this->urlmanager->admin_broadcasts_page_url( 'edit',
+						[
+							'msg_id' => $message->get_message_id()
+						]
+					)
+				],
+			] );
 
-        } catch ( RequestException $e ) {
-            return Response::error( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
-        }
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+		}
 
-    }
+	}
 
-    /**
-     * Handle bulk action on bulk messages
-     * 
-     * @param Request $request The request object.
-     * @return Response The response object.
-     */
-    public function bulk_message_action( Request $request ) : Response {
-        try {
-            $this->is_system_admin();
+	/**
+	 * Handle bulk action on bulk messages
+	 * 
+	 * @param Request $request The request object.
+	 * @return Response The response object.
+	 */
+	public function bulk_message_action( Request $request ) : Response {
+		try {
+			$this->is_system_admin();
 
-            $message_ids    = $request->get( 'ids', [] );
-            $action         = $request->get( 'bulk_action', '' );
+			$message_ids = $request->get( 'ids', [] );
+			$action      = $request->get( 'bulk_action', '' );
 
-            $allowed_actions = ['delete'];
+			$allowed_actions = ['delete'];
 
-            if ( ! in_array( $action, $allowed_actions, true ) ) {
-                throw new RequestException( 'invalid_action', 'The specified action is not allowed.', ['status' => 400] );
-            }
-            $affected   = 0;
+			if ( ! in_array( $action, $allowed_actions, true ) ) {
+				throw new RequestException( 'invalid_action', 'The specified action is not allowed.', ['status' => 400] );
+			}
+			$affected = 0;
 
-            switch( $action ) {
+			switch( $action ) {
 
-                case 'delete': 
-                    foreach( (array) $message_ids as $id ) {
-                        $message = BulkMessageService::raw()->get_message( $id );
+				case 'delete':
+					foreach( (array) $message_ids as $id ) {
+						$message = BulkMessageService::raw()->get_message( $id );
 
-                        if ( $message && BulkMessageService::with_message( $message )->delete() ) {
-                            $affected++;
-                        }
+						if ( $message && BulkMessageService::with_message( $message )->delete() ) {
+							$affected++;
+						}
 
-                    }
-            }
+					}
+			}
 
-            $url    = $this->urlmanager->admin_broadcasts_page_url()
-                ->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
+			$url = $this->urlmanager->admin_broadcasts_page_url()
+				->add_query_param( 'message', \sprintf( '%s affected!', $affected ) );
 
-            $response = ( new Response( 200, [], '' ) )
-                ->set_header( 'Location', $url->url() );
+			$response = ( new Response( 200, [], '' ) )
+				->set_header( 'Location', $url->url() );
 
-            $this->cache->clear();
-            return $response;
+			$this->cache->clear();
+			return $response;
 
-        } catch ( RequestException $e ) {
-            return ( new Response() )
-                ->set_exception( $e )
-                ->set_header( 'Content-Type', 'application/json; charset=utf-8' );
-        }
-    }
+		} catch ( RequestException $e ) {
+			return ( new Response() )
+				->set_exception( $e )
+				->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+		}
+	}
 }

@@ -25,251 +25,251 @@ use SmartLicenseServer\SettingsAPI\Settings;
  * monetization providers integrated with the Smart License Server.
  */
 final class MonetizationRegistry extends AbstractRegistry {
-    protected static Settings $storage;
-    protected static ?self $instance =  null;
+	protected static Settings $storage;
+	protected static ?self $instance = null;
 
-    /**
-     * Monetization providers.
-     * 
-     * @var class-string<MonetizationProviderInterface>[]
-     */
-    private array $core_providers = [
-        WooCommerceProvider::class,
-    ];
+	/**
+	 * Monetization providers.
+	 * 
+	 * @var class-string<MonetizationProviderInterface>[]
+	 */
+	private array $core_providers = [
+		WooCommerceProvider::class,
+	];
 
-    /**
-     * In-memory cache for persisted provider options.
-     *
-     * Keyed by provider ID. Busted whenever update_option() is called.
-     *
-     * @var array<string, array<string, mixed>>
-     */
-    protected static array $settings_store = [];
+	/**
+	 * In-memory cache for persisted provider options.
+	 *
+	 * Keyed by provider ID. Busted whenever update_option() is called.
+	 *
+	 * @var array<string, array<string, mixed>>
+	 */
+	protected static array $settings_store = [];
 
-    /**
-     * Private constructor to prevent direct instantiation.
-     * 
-     * @param Container $container
-     */
-    private function __construct(
-        protected Container $container
-    ) {
-        static::$storage = $container->get( Settings::class );
-    }
+	/**
+	 * Private constructor to prevent direct instantiation.
+	 * 
+	 * @param Container $container
+	 */
+	private function __construct(
+		protected Container $container
+	) {
+		static::$storage = $container->get( Settings::class );
+	}
 
-    /**
-     * Get or set class instance.
-     * 
-     * @param Container|null $container
-     * @return self
-     */
-    public static function instance( Container|null $container = null ) : self {
-        if ( null === static::$instance ) {
-            if ( null === $container ) {
-                throw new EnvironmentBootstrapException(
-                    'misconfiguration',
-                    'The monetization provider registry must be initialized early with the DIC instance.'
-                );    
-            }
-            
-            static::$instance = new self( $container );
-        }
+	/**
+	 * Get or set class instance.
+	 * 
+	 * @param Container|null $container
+	 * @return self
+	 */
+	public static function instance( Container|null $container = null ) : self {
+		if ( null === static::$instance ) {
+			if ( null === $container ) {
+				throw new EnvironmentBootstrapException(
+					'misconfiguration',
+					'The monetization provider registry must be initialized early with the DIC instance.'
+				);
+			}
+			
+			static::$instance = new self( $container );
+		}
 
-        return self::$instance;
-    }
+		return self::$instance;
+	}
 
 
-    /**
-     * Load core monetization providers into the registry.
-     * 
-     * @return void
-     */
-    protected function load_core() : void {
-        if ( $this->core_loaded ) {
-            return;
-        }
+	/**
+	 * Load core monetization providers into the registry.
+	 * 
+	 * @return void
+	 */
+	protected function load_core() : void {
+		if ( $this->core_loaded ) {
+			return;
+		}
 
-        foreach ( $this->core_providers as $class_string ) {
-            $this->assert_implements_interface( $class_string );
+		foreach ( $this->core_providers as $class_string ) {
+			$this->assert_implements_interface( $class_string );
 
-            $this->core[$class_string::get_id()] = $class_string;
-        }
+			$this->core[$class_string::get_id()] = $class_string;
+		}
 
-        $this->core_loaded = true;
-    }
+		$this->core_loaded = true;
+	}
 
-    /**
-     * Validate and normalize a product data array against the declared schema.
-     *
-     * @param array $product
-     * @return array|Exception Normalized product array or Exception if invalid.
-     */
-    public static function validate_product_data( $product ) {
-        if ( ! is_array( $product ) ) {
-            return new Exception( 'invalid_product', 'Product data must be an array.' );
-        }
+	/**
+	 * Validate and normalize a product data array against the declared schema.
+	 *
+	 * @param array $product
+	 * @return array|Exception Normalized product array or Exception if invalid.
+	 */
+	public static function validate_product_data( $product ) {
+		if ( ! is_array( $product ) ) {
+			return new Exception( 'invalid_product', 'Product data must be an array.' );
+		}
 
-        // Required top-level fields
-        $required_top = [ 'id', 'url', 'currency', 'pricing', 'checkout_url' ];
-        foreach ( $required_top as $key ) {
-            if ( ! array_key_exists( $key, $product ) ) {
-                return new Exception(
-                    'missing_field',
-                    sprintf( 'Missing required product field: %s', $key )
-                );
-            }
-        }
+		// Required top-level fields
+		$required_top = [ 'id', 'url', 'currency', 'pricing', 'checkout_url' ];
+		foreach ( $required_top as $key ) {
+			if ( ! array_key_exists( $key, $product ) ) {
+				return new Exception(
+					'missing_field',
+					sprintf( 'Missing required product field: %s', $key )
+				);
+			}
+		}
 
-        // Validate currency block
-        $currency = $product['currency'];
-        if ( ! is_array( $currency ) ) {
-            return new Exception( 'invalid_currency', 'Currency must be an array.' );
-        }
+		// Validate currency block
+		$currency = $product['currency'];
+		if ( ! is_array( $currency ) ) {
+			return new Exception( 'invalid_currency', 'Currency must be an array.' );
+		}
 
-        $currency_required = [ 'code', 'symbol', 'symbol_position', 'decimals', 'decimal_separator', 'thousand_separator' ];
-        foreach ( $currency_required as $key ) {
-            if ( ! array_key_exists( $key, $currency ) ) {
-                return new Exception(
-                    'missing_currency_field',
-                    sprintf( 'Missing required currency field: %s', $key )
-                );
-            }
-        }
+		$currency_required = [ 'code', 'symbol', 'symbol_position', 'decimals', 'decimal_separator', 'thousand_separator' ];
+		foreach ( $currency_required as $key ) {
+			if ( ! array_key_exists( $key, $currency ) ) {
+				return new Exception(
+					'missing_currency_field',
+					sprintf( 'Missing required currency field: %s', $key )
+				);
+			}
+		}
 
-        // Validate pricing block
-        $pricing = $product['pricing'];
-        if ( ! is_array( $pricing ) ) {
-            return new Exception( 'invalid_pricing', 'Pricing must be an array.' );
-        }
+		// Validate pricing block
+		$pricing = $product['pricing'];
+		if ( ! is_array( $pricing ) ) {
+			return new Exception( 'invalid_pricing', 'Pricing must be an array.' );
+		}
 
-        $pricing_required = [ 'price', 'regular_price', 'sale_price', 'is_on_sale' ];
-        foreach ( $pricing_required as $key ) {
-            if ( ! array_key_exists( $key, $pricing ) ) {
-                return new Exception(
-                    'missing_pricing_field',
-                    sprintf( 'Missing required pricing field: %s', $key )
-                );
-            }
-        }
+		$pricing_required = [ 'price', 'regular_price', 'sale_price', 'is_on_sale' ];
+		foreach ( $pricing_required as $key ) {
+			if ( ! array_key_exists( $key, $pricing ) ) {
+				return new Exception(
+					'missing_pricing_field',
+					sprintf( 'Missing required pricing field: %s', $key )
+				);
+			}
+		}
 
-        // Enforce schema: keep only allowed keys
-        $allowed_keys = [ 'id', 'url', 'checkout_url', 'currency', 'pricing', 'images', 'categories' ];
-        $product      = array_intersect_key( $product, array_flip( $allowed_keys ) );
+		// Enforce schema: keep only allowed keys
+		$allowed_keys = [ 'id', 'url', 'checkout_url', 'currency', 'pricing', 'images', 'categories' ];
+		$product      = array_intersect_key( $product, array_flip( $allowed_keys ) );
 
-        // Normalize images
-        $images         = $product['images'] ?? [];
-        $placeholder    = smliser_get_placeholder_icon();
-        if ( ! is_array( $images ) || empty( $images ) ) {
-            // Fallback placeholder
-            $images = [
-                [
-                    'id'        => 0,
-                    'src'       => $placeholder,
-                    'thumbnail' => $placeholder,
-                    'srcset'    => '',
-                    'sizes'     => '',
-                    'name'      => 'Placeholder',
-                    'alt'       => 'Product image not available',
-                ]
-            ];
-        } else {
-            // Ensure each image has required keys
-            $normalized_images = [];
-            foreach ( $images as $img ) {
-                $normalized_images[] = [
-                    'id'        => $img['id'] ?? 0,
-                    'src'       => $img['src'] ?? $placeholder,
-                    'thumbnail' => $img['thumbnail'] ?? ( $img['src'] ?? $placeholder ),
-                    'srcset'    => $img['srcset'] ?? '',
-                    'sizes'     => $img['sizes'] ?? '',
-                    'name'      => $img['name'] ?? '',
-                    'alt'       => $img['alt'] ?? '',
-                ];
-            }
-            $images = $normalized_images;
-        }
-        $product['images'] = $images;
+		// Normalize images
+		$images      = $product['images'] ?? [];
+		$placeholder = smliser_get_placeholder_icon();
+		if ( ! is_array( $images ) || empty( $images ) ) {
+			// Fallback placeholder
+			$images = [
+				[
+					'id'        => 0,
+					'src'       => $placeholder,
+					'thumbnail' => $placeholder,
+					'srcset'    => '',
+					'sizes'     => '',
+					'name'      => 'Placeholder',
+					'alt'       => 'Product image not available',
+				]
+			];
+		} else {
+			// Ensure each image has required keys
+			$normalized_images = [];
+			foreach ( $images as $img ) {
+				$normalized_images[] = [
+					'id'        => $img['id'] ?? 0,
+					'src'       => $img['src'] ?? $placeholder,
+					'thumbnail' => $img['thumbnail'] ?? ( $img['src'] ?? $placeholder ),
+					'srcset'    => $img['srcset'] ?? '',
+					'sizes'     => $img['sizes'] ?? '',
+					'name'      => $img['name'] ?? '',
+					'alt'       => $img['alt'] ?? '',
+				];
+			}
+			$images = $normalized_images;
+		}
+		$product['images'] = $images;
 
-        // Normalize categories
-        $categories = $product['categories'] ?? [];
-        if ( ! is_array( $categories ) ) {
-            $categories = [];
-        }
-        $product['categories'] = $categories;
+		// Normalize categories
+		$categories = $product['categories'] ?? [];
+		if ( ! is_array( $categories ) ) {
+			$categories = [];
+		}
+		$product['categories'] = $categories;
 
-        return $product;
-    }
+		return $product;
+	}
 
-    /**
-     * Get options for a monetization provider.
-     * 
-     * @param string $provider_id  The provider ID.
-     * @param string $option_name  The option name.
-     * @return mixed The option value or empty string if not set.
-     */
-    public static function get_option( $provider_id, $option_name ) {
-        if ( ! isset( static::$settings_store[ $provider_id ] ) ) {
-            $all_options = self::$storage->get( 'smliser_monetization_providers_options', [] );
-            static::$settings_store[ $provider_id ] = $all_options[ $provider_id ] ?? [];
-        }
+	/**
+	 * Get options for a monetization provider.
+	 * 
+	 * @param string $provider_id  The provider ID.
+	 * @param string $option_name  The option name.
+	 * @return mixed The option value or empty string if not set.
+	 */
+	public static function get_option( $provider_id, $option_name ) {
+		if ( ! isset( static::$settings_store[ $provider_id ] ) ) {
+			$all_options                            = self::$storage->get( 'smliser_monetization_providers_options', [] );
+			static::$settings_store[ $provider_id ] = $all_options[ $provider_id ] ?? [];
+		}
 
-        return static::$settings_store[ $provider_id ][ $option_name ] ?? null;
-    }
+		return static::$settings_store[ $provider_id ][ $option_name ] ?? null;
+	}
 
-    /**
-     * Update an option for a monetization provider.
-     * 
-     * @param string $provider_id  The provider ID.
-     * @param string $option_name  The option name.
-     * @param mixed  $value        The option value to set.
-     * @return bool True if option value has changed, false if not or if update failed.
-     */
-    public static function update_option( $provider_id, $option_name, $value ) {
-        $all_options = self::$storage->get( 'smliser_monetization_providers_options', [] );
+	/**
+	 * Update an option for a monetization provider.
+	 * 
+	 * @param string $provider_id  The provider ID.
+	 * @param string $option_name  The option name.
+	 * @param mixed  $value        The option value to set.
+	 * @return bool True if option value has changed, false if not or if update failed.
+	 */
+	public static function update_option( $provider_id, $option_name, $value ) {
+		$all_options = self::$storage->get( 'smliser_monetization_providers_options', [] );
 
-        if ( ! isset( $all_options[ $provider_id ] ) || ! is_array( $all_options[ $provider_id ] ) ) {
-            $all_options[ $provider_id ] = [];
-        }
+		if ( ! isset( $all_options[ $provider_id ] ) || ! is_array( $all_options[ $provider_id ] ) ) {
+			$all_options[ $provider_id ] = [];
+		}
 
-        $all_options[ $provider_id ][ $option_name ] = $value;
-        $updated = self::$storage->set( 'smliser_monetization_providers_options', $all_options );
+		$all_options[ $provider_id ][ $option_name ] = $value;
+		$updated                                     = self::$storage->set( 'smliser_monetization_providers_options', $all_options );
 
-        if ( $updated ) {
-            unset( static::$settings_store[ $provider_id ] );
-        }
+		if ( $updated ) {
+			unset( static::$settings_store[ $provider_id ] );
+		}
 
-        return $updated;
-    }
+		return $updated;
+	}
 
-    /**
-     * Get a monetization provider.
-     * 
-     * @param string $provider_id The provider ID
-     * @return MonetizationProviderInterface|null
-     */
-    public function get_provider( string $provider_id ) : ?MonetizationProviderInterface {
-        if ( '' === $provider_id ) {
-            return null;
-        }
+	/**
+	 * Get a monetization provider.
+	 * 
+	 * @param string $provider_id The provider ID
+	 * @return MonetizationProviderInterface|null
+	 */
+	public function get_provider( string $provider_id ) : ?MonetizationProviderInterface {
+		if ( '' === $provider_id ) {
+			return null;
+		}
 
-        $class_string   = $this->get( $provider_id );
+		$class_string = $this->get( $provider_id );
 
-        if ( ! $class_string ) {
-            return null;
-        }
+		if ( ! $class_string ) {
+			return null;
+		}
 
-        
-        /** @var MonetizationProviderInterface $provider */
-        $provider   = $this->container->get( $class_string );
-        $settings   = [];
+		
+		/** @var MonetizationProviderInterface $provider */
+		$provider = $this->container->get( $class_string );
+		$settings = [];
 
-        foreach ( $provider->get_settings_schema() as $key => $_  ) {
-            $settings[$key] = static::get_option( $provider::get_id(), $key );
-        }
+		foreach ( $provider->get_settings_schema() as $key => $_ ) {
+			$settings[$key] = static::get_option( $provider::get_id(), $key );
+		}
 
-        $provider->set_settings( $settings );
-        
+		$provider->set_settings( $settings );
+		
 
-        return $provider;
-    }
+		return $provider;
+	}
 }

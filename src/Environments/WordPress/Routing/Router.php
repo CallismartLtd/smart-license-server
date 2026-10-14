@@ -5,7 +5,7 @@
  * @package SmartLicenseServer\Environments\WordPress\Routing
  */
 
-declare(strict_types=1);
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\WordPress\Routing;
 
@@ -88,7 +88,7 @@ final class Router {
 	 * Registers a custom constraint alias usable as `{name:alias}`.
 	 * Overrides a built-in alias of the same name if one exists.
 	 */
-	public function constraint( string $alias, string $regex ): self {
+	public function constraint( string $alias, string $regex ) : self {
 		$this->constraints[ $alias ] = $regex;
 
 		return $this;
@@ -101,7 +101,7 @@ final class Router {
 	 * @param callable(self): void $callback Receives this Router so nested
 	 *                                       add()/group() calls read naturally.
 	 */
-	public function group( string $prefix, callable $callback ): void {
+	public function group( string $prefix, callable $callback ) : void {
 		$this->groupStack[] = trim( $prefix, '/' );
 
 		try {
@@ -135,7 +135,7 @@ final class Router {
 		string $priority = 'top',
 		bool $optionalTrailingSlash = true,
 		mixed $handler = null
-	): Route {
+	) : Route {
 		$fullPattern = $this->applyGroupPrefix( $pattern );
 		$compiled    = RoutePattern::compile( $fullPattern, $this->constraints );
 
@@ -189,12 +189,12 @@ final class Router {
 	 *
 	 * @return array{route: Route, handler: mixed, params: array<string,string>}|null
 	 */
-	public function match( string $path ): ?array {
+	public function match( string $path ) : ?array {
 		foreach ( $this->routes->all() as $route ) {
 			$params = $route->match( $path );
 
 			if ( null !== $params ) {
-				return array( 'route' => $route, 'handler' => $route->handler, 'params' => $params );
+				return [ 'route' => $route, 'handler' => $route->handler, 'params' => $params ];
 			}
 		}
 
@@ -211,7 +211,7 @@ final class Router {
 	 *
 	 * @return array{route: Route, handler: mixed, params: array<string,string>}|null
 	 */
-	public function matchForPagename( string $pagename, string $path ): ?array {
+	public function matchForPagename( string $pagename, string $path ) : ?array {
 		foreach ( $this->routes->all() as $route ) {
 			if ( $route->pagename !== $pagename ) {
 				continue;
@@ -220,7 +220,7 @@ final class Router {
 			$params = $route->match( $path );
 
 			if ( null !== $params ) {
-				return array( 'route' => $route, 'handler' => $route->handler, 'params' => $params );
+				return [ 'route' => $route, 'handler' => $route->handler, 'params' => $params ];
 			}
 		}
 
@@ -251,7 +251,7 @@ final class Router {
 	 * @return Route The registered route. Note: Route::name() is not supported on raw
 	 *               routes, since there's no pattern template to render a URL from.
 	 */
-	public function raw( string $regex, string $query, string $priority = 'top', array $queryVarNames = [] ): Route {
+	public function raw( string $regex, string $query, string $priority = 'top', array $queryVarNames = [] ) : Route {
 		$route = Route::raw( $regex, $query, RoutePriority::fromString( $priority ), $queryVarNames );
 
 		$this->routes->add( $route );
@@ -262,7 +262,7 @@ final class Router {
 	/**
 	 * Registers all compiled routes with WordPress. Hook to `init`.
 	 */
-	public function register(): void {
+	public function register() : void {
 		foreach ( $this->routes->all() as $route ) {
 			$rule = $route->toRewriteRule();
 
@@ -277,7 +277,7 @@ final class Router {
 	 * @param string[] $vars
 	 * @return string[]
 	 */
-	public function query_vars( array $vars ): array {
+	public function query_vars( array $vars ) : array {
 		foreach ( $this->routes->all() as $route ) {
 			$vars = array_merge( $vars, $route->queryVarNames() );
 		}
@@ -294,7 +294,7 @@ final class Router {
 	 * @return string Relative URL path (no leading slash, no site URL prepended).
 	 * @throws InvalidRouteException If the route is unknown or a required parameter is missing.
 	 */
-	public function url( string $name, array $params = [] ): string {
+	public function url( string $name, array $params = [] ) : string {
 		$route = $this->routes->find( $name );
 
 		if ( null === $route ) {
@@ -310,11 +310,11 @@ final class Router {
 	 *
 	 * @return array<int, array{regex: string, query: string, priority: string}>
 	 */
-	public function getCompiledRules(): array {
+	public function getCompiledRules() : array {
 		return array_map( static fn( Route $route ) => $route->toRewriteRule(), $this->routes->all() );
 	}
 
-	private function applyGroupPrefix( string $pattern ): string {
+	private function applyGroupPrefix( string $pattern ) : string {
 		$prefix  = implode( '/', array_filter( $this->groupStack, static fn( string $p ) => '' !== $p ) );
 		$pattern = trim( $pattern, '/' );
 
@@ -335,7 +335,7 @@ final class Router {
 	 *
 	 * @var string[]
 	 */
-	private const RESERVED_QUERY_VARS = array(
+	private const RESERVED_QUERY_VARS = [
 		'page',
 		'paged',
 		'p',
@@ -348,13 +348,13 @@ final class Router {
 		'preview',
 		's',
 		'pagename',
-	);
+	];
 
 	/**
 	 * @param array<string,string> $extraVars
 	 * @throws InvalidRouteException
 	 */
-	private function assertNoReservedCollision( array $extraVars, CompiledPattern $compiled ): void {
+	private function assertNoReservedCollision( array $extraVars, CompiledPattern $compiled ) : void {
 		$candidates = array_merge( array_keys( $extraVars ), $compiled->paramNames );
 
 		foreach ( $candidates as $name ) {

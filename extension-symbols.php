@@ -28,7 +28,7 @@
  */
 
 return [
-	'curl'        => [
+	'curl' => [
 		'functions' => [
 			'curl_close', 'curl_copy_handle', 'curl_errno', 'curl_error',
 			'curl_escape', 'curl_exec', 'curl_file_create', 'curl_getinfo',
@@ -40,9 +40,9 @@ return [
 			'curl_share_init', 'curl_share_setopt', 'curl_strerror',
 			'curl_unescape', 'curl_upkeep', 'curl_version',
 		],
-		'classes'   => [ 'CurlHandle', 'CurlMultiHandle', 'CurlShareHandle', 'CURLFile', 'CURLStringFile' ],
+		'classes' => [ 'CurlHandle', 'CurlMultiHandle', 'CurlShareHandle', 'CURLFile', 'CURLStringFile' ],
 	],
-	'gd'          => [
+	'gd' => [
 		'functions' => [
 			'gd_info', 'imageaffine', 'imagealphablending', 'imageantialias',
 			'imagearc', 'imagechar', 'imagecharup', 'imagecolorallocate',
@@ -74,13 +74,13 @@ return [
 			'imagetypes', 'imagewbmp', 'imagewebp', 'imagexbm',
 			'iptcembed', 'iptcparse', 'jpeg2wbmp', 'png2wbmp',
 		],
-		'classes'   => [ 'GdImage', 'GdFont' ],
+		'classes' => [ 'GdImage', 'GdFont' ],
 	],
-	'imagick'     => [
+	'imagick' => [
 		'functions' => [],
 		'classes'   => [ 'Imagick', 'ImagickDraw', 'ImagickPixel', 'ImagickPixelIterator', 'ImagickKernel', 'ImagickException', 'ImagickDrawException', 'ImagickPixelException', 'ImagickPixelIteratorException' ],
 	],
-	'mbstring'    => [
+	'mbstring' => [
 		'functions' => [
 			'mb_check_encoding', 'mb_chr', 'mb_convert_case', 'mb_convert_encoding',
 			'mb_convert_kana', 'mb_convert_variables', 'mb_decode_mimeheader',
@@ -102,13 +102,13 @@ return [
 			'mb_strtoupper', 'mb_strwidth', 'mb_substitute_character',
 			'mb_substr_count', 'mb_substr', 'mb_ucfirst', 'mb_ucwords',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'zip'         => [
+	'zip' => [
 		'functions' => [ 'zip_close', 'zip_entry_close', 'zip_entry_compressedsize', 'zip_entry_compressionmethod', 'zip_entry_filesize', 'zip_entry_name', 'zip_entry_open', 'zip_entry_read', 'zip_open', 'zip_read' ],
 		'classes'   => [ 'ZipArchive', 'PharData' ],
 	],
-	'intl'        => [
+	'intl' => [
 		'functions' => [
 			'collator_asort', 'collator_compare', 'collator_create',
 			'collator_get_attribute', 'collator_get_error_code',
@@ -136,7 +136,7 @@ return [
 			'resourcebundle_locales', 'transliterator_create',
 			'transliterator_transliterate',
 		],
-		'classes'   => [
+		'classes' => [
 			'Collator', 'DateFormatter', 'IntlCalendar', 'IntlChar',
 			'IntlDateFormatter', 'IntlTimeZone', 'Locale', 'MessageFormatter',
 			'NumberFormatter', 'ResourceBundle', 'Spoofchecker', 'Transliterator',
@@ -144,15 +144,15 @@ return [
 			'IntlCodePointBreakIterator', 'IntlRuleBasedBreakIterator', 'IntlIterator',
 		],
 	],
-	'fileinfo'    => [
+	'fileinfo' => [
 		'functions' => [ 'finfo_buffer', 'finfo_close', 'finfo_open', 'finfo_set_flags', 'mime_content_type' ],
 		'classes'   => [ 'finfo' ],
 	],
-	'exif'        => [
+	'exif' => [
 		'functions' => [ 'exif_imagetype', 'exif_read_data', 'exif_tagname', 'exif_thumbnail', 'read_exif_data' ],
 		'classes'   => [],
 	],
-	'ftp'         => [
+	'ftp' => [
 		'functions' => [
 			'ftp_alloc', 'ftp_append', 'ftp_cdup', 'ftp_chdir', 'ftp_chmod',
 			'ftp_close', 'ftp_connect', 'ftp_delete', 'ftp_exec', 'ftp_fget',
@@ -163,9 +163,9 @@ return [
 			'ftp_rename', 'ftp_rmdir', 'ftp_set_option', 'ftp_site', 'ftp_size',
 			'ftp_ssl_connect', 'ftp_systype',
 		],
-		'classes'   => [ 'FTP\\Connection' ],
+		'classes' => [ 'FTP\\Connection' ],
 	],
-	'sockets'     => [
+	'sockets' => [
 		'functions' => [
 			'socket_accept', 'socket_addrinfo_bind', 'socket_addrinfo_connect',
 			'socket_addrinfo_explain', 'socket_addrinfo_lookup', 'socket_bind',
@@ -181,9 +181,9 @@ return [
 			'socket_wsaprotocol_info_export', 'socket_wsaprotocol_info_import',
 			'socket_wsaprotocol_info_release',
 		],
-		'classes'   => [ 'Socket', 'AddressInfo' ],
+		'classes' => [ 'Socket', 'AddressInfo' ],
 	],
-	'ldap'        => [
+	'ldap' => [
 		'functions' => [
 			'ldap_add_ext', 'ldap_add', 'ldap_bind_ext', 'ldap_bind',
 			'ldap_close', 'ldap_compare', 'ldap_connect', 'ldap_control_paged_result',
@@ -202,9 +202,9 @@ return [
 			'ldap_set_option', 'ldap_set_rebind_proc', 'ldap_start_tls',
 			'ldap_unbind',
 		],
-		'classes'   => [ 'LDAP\\Connection', 'LDAP\\Result', 'LDAP\\ResultEntry' ],
+		'classes' => [ 'LDAP\\Connection', 'LDAP\\Result', 'LDAP\\ResultEntry' ],
 	],
-	'imap'        => [
+	'imap' => [
 		'functions' => [
 			'imap_8bit', 'imap_alerts', 'imap_append', 'imap_base64',
 			'imap_binary', 'imap_body', 'imap_bodystruct', 'imap_check',
@@ -228,17 +228,17 @@ return [
 			'imap_unsubscribe', 'imap_utf7_decode', 'imap_utf7_encode',
 			'imap_utf8',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'bcmath'      => [
+	'bcmath' => [
 		'functions' => [
 			'bcadd', 'bccomp', 'bcdiv', 'bcmod', 'bcmul', 'bcpow', 'bcpowmod',
 			'bcscale', 'bcsqrt', 'bcsub', 'bcceil', 'bcfloor', 'bcround',
 			'bcdivmod',
 		],
-		'classes'   => [ 'BcMath\\Number' ],
+		'classes' => [ 'BcMath\\Number' ],
 	],
-	'gmp'         => [
+	'gmp' => [
 		'functions' => [
 			'gmp_abs', 'gmp_add', 'gmp_and', 'gmp_binomial', 'gmp_clrbit',
 			'gmp_cmp', 'gmp_com', 'gmp_div_q', 'gmp_div_qr', 'gmp_div_r',
@@ -252,9 +252,9 @@ return [
 			'gmp_scan0', 'gmp_scan1', 'gmp_setbit', 'gmp_sign', 'gmp_sqrt',
 			'gmp_sqrtrem', 'gmp_strval', 'gmp_sub', 'gmp_testbit', 'gmp_xor',
 		],
-		'classes'   => [ 'GMP' ],
+		'classes' => [ 'GMP' ],
 	],
-	'sodium'      => [
+	'sodium' => [
 		'functions' => [
 			'sodium_add', 'sodium_base642bin', 'sodium_bin2base64', 'sodium_bin2hex',
 			'sodium_compare', 'sodium_crypto_aead_aes256gcm_decrypt',
@@ -279,32 +279,32 @@ return [
 			'sodium_crypto_stream_xor', 'sodium_hex2bin', 'sodium_increment',
 			'sodium_memcmp', 'sodium_memzero', 'sodium_pad', 'sodium_unpad',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'apcu'        => [
+	'apcu' => [
 		'functions' => [
 			'apcu_add', 'apcu_cache_info', 'apcu_cas', 'apcu_clear_cache',
 			'apcu_dec', 'apcu_delete', 'apcu_enabled', 'apcu_entry', 'apcu_exists',
 			'apcu_fetch', 'apcu_inc', 'apcu_key_info', 'apcu_sma_info', 'apcu_store',
 		],
-		'classes'   => [ 'APCUIterator' ],
+		'classes' => [ 'APCUIterator' ],
 	],
-	'redis'       => [
+	'redis' => [
 		'functions' => [],
 		'classes'   => [ 'Redis', 'RedisCluster', 'RedisSentinel', 'RedisArray', 'RedisException', 'RedisClusterException' ],
 	],
-	'memcached'   => [
+	'memcached' => [
 		'functions' => [],
 		'classes'   => [ 'Memcached', 'MemcachedException' ],
 	],
-	'memcache'    => [
+	'memcache' => [
 		'functions' => [
 			'memcache_add', 'memcache_connect', 'memcache_debug', 'memcache_delete',
 			'memcache_get', 'memcache_pconnect', 'memcache_set',
 		],
-		'classes'   => [ 'Memcache' ],
+		'classes' => [ 'Memcache' ],
 	],
-	'mongodb'     => [
+	'mongodb' => [
 		'functions' => [],
 		'classes'   => [
 			'MongoDB\\Driver\\Manager', 'MongoDB\\Driver\\Query', 'MongoDB\\Driver\\BulkWrite',
@@ -313,27 +313,27 @@ return [
 			'MongoDB\\BSON\\ObjectId', 'MongoDB\\BSON\\UTCDateTime', 'MongoDB\\BSON\\Document',
 		],
 	],
-	'amqp'        => [
+	'amqp' => [
 		'functions' => [],
 		'classes'   => [ 'AMQPConnection', 'AMQPChannel', 'AMQPExchange', 'AMQPQueue', 'AMQPEnvelope', 'AMQPException' ],
 	],
-	'yaml'        => [
+	'yaml' => [
 		'functions' => [ 'yaml_emit_file', 'yaml_emit', 'yaml_parse_file', 'yaml_parse_url', 'yaml_parse' ],
 		'classes'   => [],
 	],
-	'msgpack'     => [
+	'msgpack' => [
 		'functions' => [ 'msgpack_pack', 'msgpack_serialize', 'msgpack_unpack', 'msgpack_unserialize', 'msgpack_unpacker' ],
 		'classes'   => [ 'MessagePack', 'MessagePackUnpacker' ],
 	],
-	'event'       => [
+	'event' => [
 		'functions' => [],
 		'classes'   => [ 'Event', 'EventBase', 'EventBuffer', 'EventBufferEvent', 'EventConfig', 'EventListener', 'EventSslContext', 'EventHttp', 'EventHttpConnection', 'EventHttpRequest' ],
 	],
-	'swoole'      => [
+	'swoole' => [
 		'functions' => [],
 		'classes'   => [ 'Swoole\\Server', 'Swoole\\Client', 'Swoole\\Http\\Server', 'Swoole\\WebSocket\\Server', 'Swoole\\Coroutine', 'Swoole\\Process', 'Swoole\\Table', 'Swoole\\Timer' ],
 	],
-	'xdebug'      => [
+	'xdebug' => [
 		'functions' => [
 			'xdebug_break', 'xdebug_call_class', 'xdebug_call_file',
 			'xdebug_call_function', 'xdebug_call_line', 'xdebug_code_coverage_started',
@@ -348,13 +348,13 @@ return [
 			'xdebug_start_trace', 'xdebug_stop_code_coverage', 'xdebug_stop_error_collection',
 			'xdebug_stop_function_monitor', 'xdebug_stop_trace', 'xdebug_time_index',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'pdo_mysql'   => [ 'functions' => [], 'classes' => [] ],
-	'pdo_pgsql'   => [ 'functions' => [], 'classes' => [] ],
-	'pdo_sqlite'  => [ 'functions' => [], 'classes' => [] ],
-	'pdo_sqlsrv'  => [ 'functions' => [], 'classes' => [] ],
-	'mysqli'      => [
+	'pdo_mysql'  => [ 'functions' => [], 'classes' => [] ],
+	'pdo_pgsql'  => [ 'functions' => [], 'classes' => [] ],
+	'pdo_sqlite' => [ 'functions' => [], 'classes' => [] ],
+	'pdo_sqlsrv' => [ 'functions' => [], 'classes' => [] ],
+	'mysqli'     => [
 		'functions' => [
 			'mysqli_affected_rows', 'mysqli_autocommit', 'mysqli_begin_transaction',
 			'mysqli_change_user', 'mysqli_character_set_name', 'mysqli_close',
@@ -390,9 +390,9 @@ return [
 			'mysqli_stmt_sqlstate', 'mysqli_store_result', 'mysqli_thread_id',
 			'mysqli_thread_safe', 'mysqli_use_result', 'mysqli_warning_count',
 		],
-		'classes'   => [ 'mysqli', 'mysqli_stmt', 'mysqli_result', 'mysqli_driver', 'mysqli_warning', 'mysqli_sql_exception' ],
+		'classes' => [ 'mysqli', 'mysqli_stmt', 'mysqli_result', 'mysqli_driver', 'mysqli_warning', 'mysqli_sql_exception' ],
 	],
-	'pgsql'       => [
+	'pgsql' => [
 		'functions' => [
 			'pg_affected_rows', 'pg_cancel_query', 'pg_client_encoding',
 			'pg_close', 'pg_connect', 'pg_connection_status', 'pg_convert',
@@ -416,17 +416,17 @@ return [
 			'pg_set_error_verbosity', 'pg_trace', 'pg_transaction_status',
 			'pg_tty', 'pg_unescape_bytea', 'pg_untrace', 'pg_update', 'pg_version',
 		],
-		'classes'   => [ 'PgSql\\Connection', 'PgSql\\Result', 'PgSql\\Lob' ],
+		'classes' => [ 'PgSql\\Connection', 'PgSql\\Result', 'PgSql\\Lob' ],
 	],
-	'sqlite3'     => [
+	'sqlite3' => [
 		'functions' => [ 'sqlite_escape_string' ],
 		'classes'   => [ 'SQLite3', 'SQLite3Stmt', 'SQLite3Result', 'SQLite3Exception' ],
 	],
-	'soap'        => [
+	'soap' => [
 		'functions' => [ 'use_soap_error_handler', 'is_soap_fault' ],
 		'classes'   => [ 'SoapClient', 'SoapServer', 'SoapFault', 'SoapHeader', 'SoapParam', 'SoapVar' ],
 	],
-	'dom'         => [
+	'dom' => [
 		'functions' => [],
 		'classes'   => [
 			'DOMDocument', 'DOMElement', 'DOMNode', 'DOMNodeList', 'DOMAttr',
@@ -436,11 +436,11 @@ return [
 			'DOMException', 'DOMStringExtend', 'DOMDocumentType',
 		],
 	],
-	'simplexml'   => [
+	'simplexml' => [
 		'functions' => [ 'simplexml_import_dom', 'simplexml_load_file', 'simplexml_load_string' ],
 		'classes'   => [ 'SimpleXMLElement', 'SimpleXMLIterator' ],
 	],
-	'xml'         => [
+	'xml' => [
 		'functions' => [
 			'utf8_decode', 'utf8_encode', 'xml_error_string', 'xml_get_current_byte_index',
 			'xml_get_current_column_number', 'xml_get_current_line_number',
@@ -453,9 +453,9 @@ return [
 			'xml_set_object', 'xml_set_processing_instruction_handler',
 			'xml_set_start_namespace_decl_handler', 'xml_set_unparsed_entity_decl_handler',
 		],
-		'classes'   => [ 'XMLParser' ],
+		'classes' => [ 'XMLParser' ],
 	],
-	'xmlwriter'   => [
+	'xmlwriter' => [
 		'functions' => [
 			'xmlwriter_end_attribute', 'xmlwriter_end_cdata', 'xmlwriter_end_comment',
 			'xmlwriter_end_document', 'xmlwriter_end_dtd_attlist', 'xmlwriter_end_dtd_element',
@@ -474,26 +474,26 @@ return [
 			'xmlwriter_write_dtd', 'xmlwriter_write_element_ns', 'xmlwriter_write_element',
 			'xmlwriter_write_pi', 'xmlwriter_write_raw',
 		],
-		'classes'   => [ 'XMLWriter' ],
+		'classes' => [ 'XMLWriter' ],
 	],
-	'xmlreader'   => [
+	'xmlreader' => [
 		'functions' => [],
 		'classes'   => [ 'XMLReader' ],
 	],
-	'xsl'         => [
+	'xsl' => [
 		'functions' => [],
 		'classes'   => [ 'XSLTProcessor' ],
 	],
-	'tidy'        => [
+	'tidy' => [
 		'functions' => [
 			'ob_tidyhandler', 'tidy_access_count', 'tidy_config_count',
 			'tidy_error_count', 'tidy_get_error_buffer', 'tidy_get_output',
 			'tidy_load_config', 'tidy_reset_config', 'tidy_save_config',
 			'tidy_set_encoding', 'tidy_setopt', 'tidy_warning_count',
 		],
-		'classes'   => [ 'tidy', 'tidyNode' ],
+		'classes' => [ 'tidy', 'tidyNode' ],
 	],
-	'gnupg'       => [
+	'gnupg' => [
 		'functions' => [
 			'gnupg_adddecryptkey', 'gnupg_addencryptkey', 'gnupg_addsignkey',
 			'gnupg_cleardecryptkeys', 'gnupg_clearencryptkeys', 'gnupg_clearsignkeys',
@@ -502,43 +502,43 @@ return [
 			'gnupg_import', 'gnupg_init', 'gnupg_keyinfo', 'gnupg_setarmor',
 			'gnupg_seterrormode', 'gnupg_setsignmode', 'gnupg_sign', 'gnupg_verify',
 		],
-		'classes'   => [ 'gnupg' ],
+		'classes' => [ 'gnupg' ],
 	],
-	'bz2'         => [
+	'bz2' => [
 		'functions' => [
 			'bzclose', 'bzcompress', 'bzdecompress', 'bzerrno', 'bzerror',
 			'bzerrstr', 'bzflush', 'bzopen', 'bzread', 'bzwrite',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'ctype'       => [
+	'ctype' => [
 		'functions' => [
 			'ctype_alnum', 'ctype_alpha', 'ctype_cntrl', 'ctype_digit',
 			'ctype_graph', 'ctype_lower', 'ctype_print', 'ctype_punct',
 			'ctype_space', 'ctype_upper', 'ctype_xdigit',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'iconv'       => [
+	'iconv' => [
 		'functions' => [
 			'iconv_get_encoding', 'iconv_mime_decode_headers', 'iconv_mime_decode',
 			'iconv_mime_encode', 'iconv_set_encoding', 'iconv_strlen', 'iconv_strpos',
 			'iconv_strrpos', 'iconv_substr', 'iconv',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'gettext'     => [
+	'gettext' => [
 		'functions' => [
 			'bind_textdomain_codeset', 'bindtextdomain', 'dcgettext', 'dcngettext',
 			'dgettext', 'dngettext', 'gettext', 'ngettext', 'textdomain',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'fpm'         => [
+	'fpm' => [
 		'functions' => [ 'fastcgi_finish_request', 'fpm_get_status' ],
 		'classes'   => [],
 	],
-	'posix'       => [
+	'posix' => [
 		'functions' => [
 			'posix_access', 'posix_ctermid', 'posix_errno', 'posix_get_last_error',
 			'posix_getcwd', 'posix_getegid', 'posix_geteuid', 'posix_getgid',
@@ -551,25 +551,25 @@ return [
 			'posix_setuid', 'posix_strerror', 'posix_times', 'posix_ttyname',
 			'posix_uname',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'shmop'       => [
+	'shmop' => [
 		'functions' => [ 'shmop_close', 'shmop_delete', 'shmop_open', 'shmop_read', 'shmop_size', 'shmop_write' ],
 		'classes'   => [],
 	],
-	'sysvmsg'     => [
+	'sysvmsg' => [
 		'functions' => [ 'msg_get_queue', 'msg_queue_exists', 'msg_receive', 'msg_remove_queue', 'msg_send', 'msg_set_queue', 'msg_stat_queue' ],
 		'classes'   => [ 'SysvMessageQueue' ],
 	],
-	'sysvsem'     => [
+	'sysvsem' => [
 		'functions' => [ 'sem_acquire', 'sem_get', 'sem_release', 'sem_remove' ],
 		'classes'   => [ 'SysvSemaphore' ],
 	],
-	'sysvshm'     => [
+	'sysvshm' => [
 		'functions' => [ 'shm_attach', 'shm_detach', 'shm_get_var', 'shm_has_var', 'shm_put_var', 'shm_remove_var', 'shm_remove' ],
 		'classes'   => [ 'SysvSharedMemory' ],
 	],
-	'pcntl'       => [
+	'pcntl' => [
 		'functions' => [
 			'pcntl_alarm', 'pcntl_async_signals', 'pcntl_errno', 'pcntl_exec',
 			'pcntl_fork', 'pcntl_get_last_error', 'pcntl_getpriority',
@@ -580,9 +580,9 @@ return [
 			'pcntl_wifcontinued', 'pcntl_wifexited', 'pcntl_wifsignaled',
 			'pcntl_wifstopped', 'pcntl_wstopsig', 'pcntl_wtermsig',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'readline'    => [
+	'readline' => [
 		'functions' => [
 			'readline_add_history', 'readline_callback_handler_install',
 			'readline_callback_handler_remove', 'readline_callback_read_char',
@@ -591,9 +591,9 @@ return [
 			'readline_read_history', 'readline_redisplay', 'readline_write_history',
 			'readline',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'ssh2'        => [
+	'ssh2' => [
 		'functions' => [
 			'ssh2_auth_agent', 'ssh2_auth_hostbased_file', 'ssh2_auth_none',
 			'ssh2_auth_password', 'ssh2_auth_pubkey_file', 'ssh2_connect',
@@ -605,10 +605,10 @@ return [
 			'ssh2_sftp_symlink', 'ssh2_sftp_unlink', 'ssh2_sftp', 'ssh2_shell',
 			'ssh2_tunnel',
 		],
-		'classes'   => [],
+		'classes' => [],
 	],
-	'yaf'         => [ 'functions' => [], 'classes' => [ 'Yaf_Application', 'Yaf_Controller_Abstract', 'Yaf_Dispatcher' ] ],
-	'oci8'        => [
+	'yaf'  => [ 'functions' => [], 'classes' => [ 'Yaf_Application', 'Yaf_Controller_Abstract', 'Yaf_Dispatcher' ] ],
+	'oci8' => [
 		'functions' => [
 			'oci_bind_array_by_name', 'oci_bind_by_name', 'oci_cancel', 'oci_client_version',
 			'oci_close', 'oci_commit', 'oci_connect', 'oci_define_by_name', 'oci_error',
@@ -625,6 +625,6 @@ return [
 			'oci_set_module_name', 'oci_set_prefetch_lob_size', 'oci_set_prefetch',
 			'oci_statement_type',
 		],
-		'classes'   => [ 'OCI_Lob', 'OCI_Collection' ],
+		'classes' => [ 'OCI_Lob', 'OCI_Collection' ],
 	],
 ];

@@ -33,8 +33,8 @@ use SmartLicenseServer\Events\EventDispatcher;
  *
  * @return EventDispatcher
  */
-function smliser_events(): EventDispatcher {
-    return EventDispatcher::instance();
+function smliser_events() : EventDispatcher {
+	return EventDispatcher::instance();
 }
 
 /**
@@ -47,8 +47,8 @@ function smliser_events(): EventDispatcher {
  * @param  AbstractEvent $event
  * @return AbstractEvent
  */
-function smliser_dispatch_event( AbstractEvent $event ): AbstractEvent {
-    return EventDispatcher::instance()->dispatch( $event );
+function smliser_dispatch_event( AbstractEvent $event ) : AbstractEvent {
+	return EventDispatcher::instance()->dispatch( $event );
 }
 
 
@@ -66,6 +66,6 @@ function smliser_dispatch_event( AbstractEvent $event ): AbstractEvent {
  * @param  AbstractEvent $event
  * @return void
  */
-function smliser_dispatch_event_async( AbstractEvent $event ): void {
-    EventDispatcher::instance()->dispatch_async( $event );
+function smliser_dispatch_event_async( AbstractEvent $event ) : void {
+	EventDispatcher::instance()->dispatch_async( $event );
 }

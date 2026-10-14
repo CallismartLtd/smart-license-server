@@ -21,29 +21,29 @@ use SmartLicenseServer\Core\Container\Container;
  * and executed for that interface.
  */
 abstract class Kernel {
-    /**
-     * The DIC.
-     */
-    protected Container $container;
+	/**
+	 * The DIC.
+	 */
+	protected Container $container;
 
-    /**
-     * Bootstrap the application.
-     *
-     * @return static The kernel instance.
-     */
-    abstract public function boot(): static;
+	/**
+	 * Bootstrap the application.
+	 *
+	 * @return static The kernel instance.
+	 */
+	abstract public function boot() : static;
 
-    /**
-     * Execute the application lifecycle.
-     *
-     * @return static The kernel instance.
-     */
-    abstract public function run(): static;
+	/**
+	 * Execute the application lifecycle.
+	 *
+	 * @return static The kernel instance.
+	 */
+	abstract public function run() : static;
 
-    /**
-     * Terminate the current request.
-     * 
-     * @return never
-     */
-    abstract public function terminate() : never;
+	/**
+	 * Terminate the current request.
+	 * 
+	 * @return never
+	 */
+	abstract public function terminate() : never;
 }

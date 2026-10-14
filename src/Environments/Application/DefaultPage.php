@@ -92,7 +92,7 @@ final class DefaultPage {
 		string $heading,
 		string $description,
 		string $content
-	): self {
+	) : self {
 		$this->status      = $status;
 		$this->title       = $title;
 		$this->heading     = $heading;
@@ -108,7 +108,7 @@ final class DefaultPage {
 	 *
 	 * @return Response
 	 */
-	public function render(): Response {
+	public function render() : Response {
 		$html = sprintf(
 			'<!DOCTYPE html><html lang="en">%s%s</html>',
 			$this->render_head(),
@@ -126,7 +126,7 @@ final class DefaultPage {
 	 *
 	 * @return string
 	 */
-	private function render_head(): string {
+	private function render_head() : string {
 		return sprintf(
 			'
 			<head>
@@ -617,7 +617,7 @@ final class DefaultPage {
 	 *
 	 * @return string
 	 */
-	private function render_body(): string {
+	private function render_body() : string {
 		return sprintf(
 			'<body>
 				<div class="glow-bg"></div>
@@ -643,45 +643,45 @@ final class DefaultPage {
 	 *
 	 * @return string
 	 */
-	private function render_navigation(): string {
-		$navs	= [
+	private function render_navigation() : string {
+		$navs = [
 			[
-				'url'	=> $this->urlmanager->url( '/' ),
-				'text'	=> 'Home'
+				'url'  => $this->urlmanager->url( '/' ),
+				'text' => 'Home'
 			]
 
 		];
 
 		if ( $this->guard->has_principal() ) {
 			$navs[] = [
-				'url'	=> $this->urlmanager->client_dashboard_url(),
-				'text'	=> 'Client Area'
+				'url'  => $this->urlmanager->client_dashboard_url(),
+				'text' => 'Client Area'
 			];
 
 			if ( $this->guard->principal()->is( 'system_admin' ) ) {
-				$navs[]	= [
-					'url'	=> $this->urlmanager->admin_url(),
-					'text'	=> 'Admin Area'
+				$navs[] = [
+					'url'  => $this->urlmanager->admin_url(),
+					'text' => 'Admin Area'
 				];
 			}
 
 			$navs[] = [
-				'url'	=> $this->urlmanager->logout_url(),
-				'text'	=> 'Logout'
+				'url'  => $this->urlmanager->logout_url(),
+				'text' => 'Logout'
 			];
 		} else {
 			$navs[] = [
-				'url'	=> $this->urlmanager->login_url(),
-				'text'	=> 'Login'
+				'url'  => $this->urlmanager->login_url(),
+				'text' => 'Login'
 			];
 		}
 
 		$navs[] = [
-			'url'	=> $this->urlmanager->url( 'documentation' ),
-			'text'	=> 'Documentation'
+			'url'  => $this->urlmanager->url( 'documentation' ),
+			'text' => 'Documentation'
 		];
 
-		$links	= '';
+		$links = '';
 		foreach( $navs as $nav ) {
 			$links .= sprintf( '<a href="%s">%s</a>', $nav['url'], $nav['text'] );
 		}
@@ -704,7 +704,7 @@ final class DefaultPage {
 	 *
 	 * @return string
 	 */
-	private function render_header(): string {
+	private function render_header() : string {
 		return sprintf(
 			'
 			<header>
@@ -728,7 +728,7 @@ final class DefaultPage {
 	 *
 	 * @return string
 	 */
-	private function render_content(): string {
+	private function render_content() : string {
 		return sprintf(
 			'<section class="content">%s</section>',
 			$this->content
@@ -741,7 +741,7 @@ final class DefaultPage {
 	 *
 	 * @return string
 	 */
-	private function render_footer(): string {
+	private function render_footer() : string {
 		return sprintf(
 			'<footer>
 				Smart License Server &copy; %s —
@@ -760,7 +760,7 @@ final class DefaultPage {
 	 *
 	 * @return Response
 	 */
-	public function home(): Response {
+	public function home() : Response {
 		$php_version = \PHP_VERSION;
 
 
@@ -825,15 +825,15 @@ final class DefaultPage {
 	 *
 	 * @return Response
 	 */
-	public function not_found( Request $request ): Response {
+	public function not_found( Request $request ) : Response {
 		if ( $request->wantsJson() ) {
-			$message	= 'The requested resource could not be found.';
+			$message = 'The requested resource could not be found.';
 			smliser_send_json(
 				[
-					'error'	=> 'Not found',
-					'message'	=> $message,
-					'data'	=> [
-						'message'	=> $message
+					'error'   => 'Not found',
+					'message' => $message,
+					'data'    => [
+						'message' => $message
 					]
 				],
 				404
@@ -868,13 +868,13 @@ final class DefaultPage {
 	 *
 	 * @return Response
 	 */
-	public function method_not_allowed( Request $request ): Response {
+	public function method_not_allowed( Request $request ) : Response {
 		if ( $request->wantsJson() ) {
 			\smliser_send_json(
 				[
-					'error'	=> 'Not Allowed',
-					'data'	=> [
-						'message'	=> 'The request method is not allowed on this server.'
+					'error' => 'Not Allowed',
+					'data'  => [
+						'message' => 'The request method is not allowed on this server.'
 					]
 				],
 				405
@@ -916,7 +916,7 @@ final class DefaultPage {
 	 *                         `category` route param.
 	 * @return Response
 	 */
-	public function doc_page( Request $request ): Response {
+	public function doc_page( Request $request ) : Response {
 		$versions = $this->api_provider->version_instances();
 
 		$catalogs = [];
@@ -956,7 +956,7 @@ final class DefaultPage {
 	 * @param string|null $category Active category key, or null on the unfiltered index.
 	 * @return string
 	 */
-	private function render_breadcrumb( ?string $category ): string {
+	private function render_breadcrumb( ?string $category ) : string {
 		if ( null === $category ) {
 			return '<nav class="api-breadcrumb"><span>Documentation</span></nav>';
 		}
@@ -978,7 +978,7 @@ final class DefaultPage {
 	 * @param string|null                 $active   Currently active category key, if any.
 	 * @return string
 	 */
-	private function render_category_nav( array $catalogs, ?string $active ): string {
+	private function render_category_nav( array $catalogs, ?string $active ) : string {
 		$categories = [];
 
 		foreach ( $catalogs as $catalog ) {
@@ -1020,7 +1020,7 @@ final class DefaultPage {
 	 * @param string|null                 $category Category key to filter by, or null for all.
 	 * @return string
 	 */
-	private function render_catalogs( array $catalogs, ?string $category ): string {
+	private function render_catalogs( array $catalogs, ?string $category ) : string {
 		$sections = '';
 
 		foreach ( $catalogs as $namespace => $catalog ) {
@@ -1053,7 +1053,7 @@ final class DefaultPage {
 	 *                                instead of every category the version has.
 	 * @return string
 	 */
-	private function render_version_section( string $namespace, RouteCatalog $catalog, ?string $category ): string {
+	private function render_version_section( string $namespace, RouteCatalog $catalog, ?string $category ) : string {
 		$categories = null !== $category ? [ $category ] : $catalog->categories();
 
 		$category_sections = '';
@@ -1090,7 +1090,7 @@ final class DefaultPage {
 	 * @param array  $routes   Route descriptors from RouteCatalog::list_by_category().
 	 * @return string
 	 */
-	private function render_category_section( string $category, array $routes ): string {
+	private function render_category_section( string $category, array $routes ) : string {
 		$route_cards = implode( '', array_map( [ $this, 'render_route_card' ], $routes ) );
 
 		return sprintf(
@@ -1111,7 +1111,7 @@ final class DefaultPage {
 	 * @param array $route Route descriptor from RouteCatalog.
 	 * @return string
 	 */
-	private function render_route_card( array $route ): string {
+	private function render_route_card( array $route ) : string {
 		$method_blocks = implode( '', array_map(
 			fn( string $method ) => $this->render_method_block( $method, $route['methods'][ $method ] ),
 			array_keys( $route['methods'] )
@@ -1140,7 +1140,7 @@ final class DefaultPage {
 	 * @param array  $method_data Method descriptor: ['name' => ..., 'args' => ...].
 	 * @return string
 	 */
-	private function render_method_block( string $method, array $method_data ): string {
+	private function render_method_block( string $method, array $method_data ) : string {
 		$args = $method_data['args'];
 
 		$args_html = empty( $args )
@@ -1169,7 +1169,7 @@ final class DefaultPage {
 	 * @param array{name: string, type: string, required: bool, description: string, default: mixed} $arg
 	 * @return string
 	 */
-	private function render_argument( array $arg ): string {
+	private function render_argument( array $arg ) : string {
 		$required_badge = $arg['required']
 			? '<span class="api-argument-required">Required</span>'
 			: '<span class="api-argument-optional">Optional</span>';
@@ -1209,7 +1209,7 @@ final class DefaultPage {
 	 * @param string $category
 	 * @return string
 	 */
-	private function humanize_category( string $category ): string {
+	private function humanize_category( string $category ) : string {
 		return ucwords( str_replace( [ '-', '_' ], ' ', $category ) );
 	}
 
@@ -1221,7 +1221,7 @@ final class DefaultPage {
 	 * @param string $text
 	 * @return string
 	 */
-	private function esc_js( string $text ): string {
+	private function esc_js( string $text ) : string {
 		return addslashes( $text );
 	}
 }

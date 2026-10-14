@@ -27,38 +27,38 @@ use SmartLicenseServer\Security\CSRF\CSRF;
  */
 class URLCSRFMiddleware extends CSRFMiddleware {
 
-    /**
-     * {@inheritdoc}
-     */
-    public function handle( Request $request, callable $next ) : mixed {
-        if ( ! $this->csrf->verify_url( $request, $this->action( $request ), $this->param( $request ) ) ) {
-            return $this->reject( $request, 'INVALID_URL_TOKEN', 'This link has expired or is not valid for you. Go back, reload the page and try again.' );
-        }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function handle( Request $request, callable $next ) : mixed {
+		if ( ! $this->csrf->verify_url( $request, $this->action( $request ), $this->param( $request ) ) ) {
+			return $this->reject( $request, 'INVALID_URL_TOKEN', 'This link has expired or is not valid for you. Go back, reload the page and try again.' );
+		}
 
-        return $next( $request );
-    }
+		return $next( $request );
+	}
 
-    /**
-     * The action the token must have been made for.
-     *
-     * Returns "" by default: the token is bound to the request path.
-     * Override to bind it to a named action, usually built from route
-     * parameters ($request->route_param()).
-     *
-     * @param Request $request The request.
-     * @return string
-     */
-    protected function action( Request $request ) : string {
-        return '';
-    }
+	/**
+	 * The action the token must have been made for.
+	 *
+	 * Returns "" by default: the token is bound to the request path.
+	 * Override to bind it to a named action, usually built from route
+	 * parameters ($request->route_param()).
+	 *
+	 * @param Request $request The request.
+	 * @return string
+	 */
+	protected function action( Request $request ) : string {
+		return '';
+	}
 
-    /**
-     * The query parameter that carries the token.
-     *
-     * @param Request $request The request.
-     * @return string
-     */
-    protected function param( Request $request ) : string {
-        return CSRF::PARAM;
-    }
+	/**
+	 * The query parameter that carries the token.
+	 *
+	 * @param Request $request The request.
+	 * @return string
+	 */
+	protected function param( Request $request ) : string {
+		return CSRF::PARAM;
+	}
 }

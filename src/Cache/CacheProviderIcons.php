@@ -17,90 +17,90 @@ use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 class CacheProviderIcons {
-    use SanitizeAwareTrait;
+	use SanitizeAwareTrait;
 
-    /**
-     * Custom icons registered at runtime by third-party providers.
-     * Keyed by provider ID.
-     *
-     * @var array<string, string>
-     */
-    protected array $custom = [];
+	/**
+	 * Custom icons registered at runtime by third-party providers.
+	 * Keyed by provider ID.
+	 *
+	 * @var array<string, string>
+	 */
+	protected array $custom = [];
 
-    protected array $core_icons = [
-        'apcu'          => 'images/cache-adapters/apcu-cache.svg',
-        'redis'         => 'images/cache-adapters/redis-cache.svg',
-        'memcached'     => 'images/cache-adapters/memcached.svg',
-        'sqlitecache'   => 'images/cache-adapters/sqlite-cache.svg',
-        'runtime'       => 'images/cache-adapters/runtime-cache.svg',
-        'wpcache'       => 'images/cache-adapters/wp-cache.svg',
-    ];
+	protected array $core_icons = [
+		'apcu'        => 'images/cache-adapters/apcu-cache.svg',
+		'redis'       => 'images/cache-adapters/redis-cache.svg',
+		'memcached'   => 'images/cache-adapters/memcached.svg',
+		'sqlitecache' => 'images/cache-adapters/sqlite-cache.svg',
+		'runtime'     => 'images/cache-adapters/runtime-cache.svg',
+		'wpcache'     => 'images/cache-adapters/wp-cache.svg',
+	];
 
-    public function __construct(
-        protected URLManager $urlmanager
-    ) {}
+	public function __construct(
+		protected URLManager $urlmanager
+	) {}
 
-    /**
-     * Register an icon for a third-party provider.
-     *
-     * Must be called before get() is invoked for the given provider ID.
-     * Cannot override built-in provider icons.
-     *
-     * @param string $provider_id
-     * @param string $icon  Asset URL or CSS class string.
-     * @return void
-     */
-    public function register( string $provider_id, string $icon ): void {
-        static::$custom[ $provider_id ] = $icon;
-    }
+	/**
+	 * Register an icon for a third-party provider.
+	 *
+	 * Must be called before get() is invoked for the given provider ID.
+	 * Cannot override built-in provider icons.
+	 *
+	 * @param string $provider_id
+	 * @param string $icon  Asset URL or CSS class string.
+	 * @return void
+	 */
+	public function register( string $provider_id, string $icon ) : void {
+		static::$custom[ $provider_id ] = $icon;
+	}
 
-    /**
-     * Return the icon for a provider ID.
-     *
-     * Built-in icons take precedence over registered custom icons.
-     * Falls back to a generic mail icon if no match is found.
-     *
-     * @param  string $provider_id
-     * @return string
-     */
-    public function get( string $provider_id ): string {
-        // Built-ins take precedence.
-        if ( isset( $this->core_icons[ $provider_id ] ) ) {
-            return $this->urlmanager
-                ->assets_url( $this->core_icons[ $provider_id ] )
-                ->url();
-        }
+	/**
+	 * Return the icon for a provider ID.
+	 *
+	 * Built-in icons take precedence over registered custom icons.
+	 * Falls back to a generic mail icon if no match is found.
+	 *
+	 * @param  string $provider_id
+	 * @return string
+	 */
+	public function get( string $provider_id ) : string {
+		// Built-ins take precedence.
+		if ( isset( $this->core_icons[ $provider_id ] ) ) {
+			return $this->urlmanager
+				->assets_url( $this->core_icons[ $provider_id ] )
+				->url();
+		}
 
-        return $this->urlmanager
-            ->assets_url( $this->custom[ $provider_id ] )->url() ?? '';
-    }
+		return $this->urlmanager
+			->assets_url( $this->custom[ $provider_id ] )->url() ?? '';
+	}
 
-    /**
-     * Render the icon for a provider as an HTML string.
-     *
-     * Returns an <img> tag for URL-based icons and a <span> for
-     * CSS class-based icons.
-     *
-     * @param  string $provider_id
-     * @param  string $alt  Alt text for img tags. Defaults to provider ID.
-     * @return string
-     */
-    public function render( string $provider_id, string $alt = '' ): string {
-        $icon = static::get( $provider_id );
-        $alt  = $alt !== '' ? $alt : $provider_id;
+	/**
+	 * Render the icon for a provider as an HTML string.
+	 *
+	 * Returns an <img> tag for URL-based icons and a <span> for
+	 * CSS class-based icons.
+	 *
+	 * @param  string $provider_id
+	 * @param  string $alt  Alt text for img tags. Defaults to provider ID.
+	 * @return string
+	 */
+	public function render( string $provider_id, string $alt = '' ) : string {
+		$icon = static::get( $provider_id );
+		$alt  = '' !== $alt ? $alt : $provider_id;
 
-        if ( filter_var( $icon, FILTER_VALIDATE_URL ) ) {
-            return sprintf(
-                '<img src="%s" alt="%s" class="smliser-provider-icon" width="24" height="24" />',
-                static::sanitize_web_url( $icon ),
-                static::sanitize_text( $alt )
-            );
-        }
+		if ( filter_var( $icon, FILTER_VALIDATE_URL ) ) {
+			return sprintf(
+				'<img src="%s" alt="%s" class="smliser-provider-icon" width="24" height="24" />',
+				static::sanitize_web_url( $icon ),
+				static::sanitize_text( $alt )
+			);
+		}
 
-        return sprintf(
-            '<span class="%s smliser-provider-icon" aria-label="%s"></span>',
-            static::sanitize_text( $icon ),
-            static::sanitize_text( $alt )
-        );
-    }
+		return sprintf(
+			'<span class="%s smliser-provider-icon" aria-label="%s"></span>',
+			static::sanitize_text( $icon ),
+			static::sanitize_text( $alt )
+		);
+	}
 }

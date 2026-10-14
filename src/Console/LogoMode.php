@@ -19,51 +19,51 @@ namespace SmartLicenseServer\Console;
  * the output verbosity level. Every other case is an explicit
  * operator/config override that takes priority over verbosity.
  */
-enum LogoMode: string {
+enum LogoMode : string {
 
-    /** Derive the logo from the current output verbosity. */
-    case AUTO       = 'auto';
+	/** Derive the logo from the current output verbosity. */
+	case AUTO = 'auto';
 
-    /** Print the large logo. */
-    case LARGE      = 'large';
+	/** Print the large logo. */
+	case LARGE = 'large';
 
-    /** Print the compact monospaced logo. */
-    case MONOSPACED = 'monospaced';
-    /** Print the short logo */
-    case SHORT      = 'short';
+	/** Print the compact monospaced logo. */
+	case MONOSPACED = 'monospaced';
+	/** Print the short logo */
+	case SHORT = 'short';
 
-    /** Never print a logo. */
-    case NONE   = 'none';
+	/** Never print a logo. */
+	case NONE = 'none';
 
-    /**
-     * Resolve a mode from a loose string, e.g. a CLI flag value or an
-     * environment variable — `--logo=large`, `--logo=none`,
-     * `SMLISER_CLI_LOGO=none`. Unrecognized/empty values fall back to
-     * AUTO rather than throwing, since a malformed override shouldn't
-     * crash the shell over something as trivial as a banner.
-     *
-     * @param string|null $value
-     * @return self
-     */
-    public static function from_loose_string( ?string $value ): self {
-        if ( null === $value || '' === $value ) {
-            return self::AUTO;
-        }
+	/**
+	 * Resolve a mode from a loose string, e.g. a CLI flag value or an
+	 * environment variable — `--logo=large`, `--logo=none`,
+	 * `SMLISER_CLI_LOGO=none`. Unrecognized/empty values fall back to
+	 * AUTO rather than throwing, since a malformed override shouldn't
+	 * crash the shell over something as trivial as a banner.
+	 *
+	 * @param string|null $value
+	 * @return self
+	 */
+	public static function from_loose_string( ?string $value ) : self {
+		if ( null === $value || '' === $value ) {
+			return self::AUTO;
+		}
 
-        return self::tryFrom( strtolower( trim( $value ) ) ) ?? self::AUTO;
-    }
+		return self::tryFrom( strtolower( trim( $value ) ) ) ?? self::AUTO;
+	}
 
-    /**
-     * Convenience constructor that checks the `SMLISER_CLI_LOGO`
-     * environment variable. Lets operators suppress or pin the logo
-     * globally (e.g. in CI, or a `--no-logo`-style wrapper script)
-     * without every caller having to thread a CLI flag through.
-     *
-     * @return self
-     */
-    public static function from_env(): self {
-        $value = getenv( 'SMLISER_CLI_LOGO' );
+	/**
+	 * Convenience constructor that checks the `SMLISER_CLI_LOGO`
+	 * environment variable. Lets operators suppress or pin the logo
+	 * globally (e.g. in CI, or a `--no-logo`-style wrapper script)
+	 * without every caller having to thread a CLI flag through.
+	 *
+	 * @return self
+	 */
+	public static function from_env() : self {
+		$value = getenv( 'SMLISER_CLI_LOGO' );
 
-        return self::from_loose_string( false === $value ? null : $value );
-    }
+		return self::from_loose_string( false === $value ? null : $value );
+	}
 }

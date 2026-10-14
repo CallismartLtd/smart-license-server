@@ -21,53 +21,53 @@ use SmartLicenseServer\Monetization\License;
 
 class NewAppVersionNotificationEmail extends EmailTemplate {
 
-    /**
-     * @param HostedAppsInterface $app      The updated application.
-     * @param License             $license  The licensee's license.
-     * @param string              $to       Recipient email address.
-     */
-    public function __construct(
-        private readonly HostedAppsInterface $app,
-        private readonly License             $license,
-        private readonly string              $to
-    ) {}
+	/**
+	 * @param HostedAppsInterface $app      The updated application.
+	 * @param License             $license  The licensee's license.
+	 * @param string              $to       Recipient email address.
+	 */
+	public function __construct(
+		private readonly HostedAppsInterface $app,
+		private readonly License             $license,
+		private readonly string              $to
+	) {}
 
-    static public function template_key(): string {
-        return 'new_app_version_notification';
-    }
+	static public function template_key() : string {
+		return 'new_app_version_notification';
+	}
 
-    protected function subject(): string {
-        return "Update Available — {$this->app->get_name()} {$this->app->get_version()}";
-    }
+	protected function subject() : string {
+		return "Update Available — {$this->app->get_name()} {$this->app->get_version()}";
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "A new version of {$this->app->get_name()} is available for your license.";
-    }
+	protected function preheader() : string {
+		return "A new version of {$this->app->get_name()} is available for your license.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{licensee_name}}' => $this->license->get_licensee_fullname(),
-            '{{app_name}}'      => $this->app->get_name(),
-            '{{app_version}}'   => $this->app->get_version(),
-            '{{app_type}}'      => ucfirst( $this->app->get_type() ),
-            '{{license_key}}'   => $this->license->get_license_key(),
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{licensee_name}}' => $this->license->get_licensee_fullname(),
+			'{{app_name}}'      => $this->app->get_name(),
+			'{{app_version}}'   => $this->app->get_version(),
+			'{{app_type}}'      => ucfirst( $this->app->get_type() ),
+			'{{license_key}}'   => $this->license->get_license_key(),
+		] );
+	}
 
-    protected function body(): string {
-        $vars          = $this->variables();
-        $licensee_name = \escHtml( $vars['{{licensee_name}}'] );
-        $app_name      = \escHtml( $vars['{{app_name}}'] );
-        $app_version   = \escHtml( $vars['{{app_version}}'] );
-        $app_type      = \escHtml( $vars['{{app_type}}'] );
-        $license_key   = \escHtml( $vars['{{license_key}}'] );
-        $support       = \escHtml( $vars['{{support_email}}'] );
+	protected function body() : string {
+		$vars          = $this->variables();
+		$licensee_name = \escHtml( $vars['{{licensee_name}}'] );
+		$app_name      = \escHtml( $vars['{{app_name}}'] );
+		$app_version   = \escHtml( $vars['{{app_version}}'] );
+		$app_type      = \escHtml( $vars['{{app_type}}'] );
+		$license_key   = \escHtml( $vars['{{license_key}}'] );
+		$support       = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$licensee_name},
         </p>
@@ -136,64 +136,64 @@ class NewAppVersionNotificationEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'New Application Version Available';
-    }
-    public function description(): string {
-        return 'Sent to licensees when an application they hold a license for is updated.';
-    }
-    public static function preview(): static {
-        $app = Software::from_array_minimal([
-            'name'    => 'My Awesome Plugin',
-            'version' => '2.0.0',
-            'type'    => 'plugin',
-            'slug'    => 'my-awesome-plugin',
-        ]);
+	public function label() : string {
+		return 'New Application Version Available';
+	}
+	public function description() : string {
+		return 'Sent to licensees when an application they hold a license for is updated.';
+	}
+	public static function preview() : static {
+		$app = Software::from_array_minimal( [
+			'name'    => 'My Awesome Plugin',
+			'version' => '2.0.0',
+			'type'    => 'plugin',
+			'slug'    => 'my-awesome-plugin',
+		] );
 
-        $license = License::from_array([
-            'licensee_fullname' => 'Jane Doe',
-            'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
-        ]);
-        return new static( $app, $license, 'preview@example.com' );
-    }
+		$license = License::from_array( [
+			'licensee_fullname' => 'Jane Doe',
+			'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
+		] );
+		return new static( $app, $license, 'preview@example.com' );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{licensee_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'intro',
-                'type'      => 'text',
-                'content'   => 'A new version of {{app_name}} is now available. Your active license entitles you to this update.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Application',      'value' => '{{app_name}}' ],
-                    [ 'label' => 'Type',             'value' => '{{app_type}}' ],
-                    [ 'label' => 'New Version',      'value' => '{{app_version}}' ],
-                    [ 'label' => 'Your License Key', 'value' => '{{license_key}}' ],
-                ],
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'To download the update, use your license key through the standard update mechanism on your site. If you need help, contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{licensee_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'intro',
+				'type'      => 'text',
+				'content'   => 'A new version of {{app_name}} is now available. Your active license entitles you to this update.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Application',      'value' => '{{app_name}}' ],
+					[ 'label' => 'Type',             'value' => '{{app_type}}' ],
+					[ 'label' => 'New Version',      'value' => '{{app_version}}' ],
+					[ 'label' => 'Your License Key', 'value' => '{{license_key}}' ],
+				],
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'To download the update, use your license key through the standard update mechanism on your site. If you need help, contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

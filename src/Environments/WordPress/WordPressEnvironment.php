@@ -35,340 +35,340 @@ use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
  */
 class WordPressEnvironment extends Environment {
 
-    protected ScriptManager $script_manager;
-    protected AdminMenu $menu;
-    protected RoutesManager $routes_manager;
+	protected ScriptManager $script_manager;
+	protected AdminMenu $menu;
+	protected RoutesManager $routes_manager;
 
-    /**
-     * Class constructor
-     */
-    private function __construct( protected RuntimeConfig $runtime ) {
-        $this->bind_instance();
+	/**
+	 * Class constructor
+	 */
+	private function __construct( protected RuntimeConfig $runtime ) {
+		$this->bind_instance();
 
-        Autoloader::add_function_dir( __DIR__ . '/functions' );
-        
-        $this->setProps();
-        $this->route_register();
+		Autoloader::add_function_dir( __DIR__ . '/functions' );
+		
+		$this->setProps();
+		$this->route_register();
 
-        $this->register_action_hooks();
-        $this->register_filters();
+		$this->register_action_hooks();
+		$this->register_filters();
 
-        register_activation_hook( SMLISER_FILE, [Installer::class, 'install'] );
-    }
+		register_activation_hook( SMLISER_FILE, [Installer::class, 'install'] );
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function bind_instance() : void {
-        static::$envProvider = $this;
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	protected function bind_instance() : void {
+		static::$envProvider = $this;
+	}
 
-    /**
-     * Bootstrap the class properties.
-     */
-    private function setProps() : void {
-        $this->setup([
-            'filesystem_adapter'   => new WPFileSystemAdapter(),
-            'settings_provider'    => new WPSettingsProvider(),
-            'database_adapter'     => new WPDBAdapter( $GLOBALS['wpdb'] ),
-            'rest_api_provider'    => $this->container->get( RESTAPI::class ),
-        ]);
-        
-        $this->identityProvider = $this->container->get( IdentityService::class );
-        $this->script_manager   = $this->container->get( ScriptManager::class );
-        $this->menu             = new AdminMenu( $this->adminDashboardRegistry(), $this->request() );
+	/**
+	 * Bootstrap the class properties.
+	 */
+	private function setProps() : void {
+		$this->setup( [
+			'filesystem_adapter' => new WPFileSystemAdapter(),
+			'settings_provider'  => new WPSettingsProvider(),
+			'database_adapter'   => new WPDBAdapter( $GLOBALS['wpdb'] ),
+			'rest_api_provider'  => $this->container->get( RESTAPI::class ),
+		] );
+		
+		$this->identityProvider = $this->container->get( IdentityService::class );
+		$this->script_manager   = $this->container->get( ScriptManager::class );
+		$this->menu             = new AdminMenu( $this->adminDashboardRegistry(), $this->request() );
 
-        CacheAdapterRegistry::instance( $this->settings() )->add( WPCacheAdapter::class );
-    }
+		CacheAdapterRegistry::instance( $this->settings() )->add( WPCacheAdapter::class );
+	}
 
-    /**
-     * Register action hooks
-     */
-    protected function register_action_hooks() : void {
-        add_action( 'set_current_user', [$this->identityProvider, 'authenticate'] );
-        add_action( 'deleted_user', [IdentityService::class, 'desync_user'] );
-        add_action( 'admin_menu', [$this->menu, 'register_menus'] );
-        add_action( 'admin_menu', [$this->menu, 'submenu_index_name'], 999 );
+	/**
+	 * Register action hooks
+	 */
+	protected function register_action_hooks() : void {
+		add_action( 'set_current_user', [$this->identityProvider, 'authenticate'] );
+		add_action( 'deleted_user', [IdentityService::class, 'desync_user'] );
+		add_action( 'admin_menu', [$this->menu, 'register_menus'] );
+		add_action( 'admin_menu', [$this->menu, 'submenu_index_name'], 999 );
 
-        add_action( 'admin_notices', [ $this, 'check_filesystem_errors'] );
-        add_action( 'admin_notices', [$this, 'print_admin_notices'] );
-        add_action( 'init', [$this->routes_manager, 'route_register'] );
+		add_action( 'admin_notices', [ $this, 'check_filesystem_errors'] );
+		add_action( 'admin_notices', [$this, 'print_admin_notices'] );
+		add_action( 'init', [$this->routes_manager, 'route_register'] );
 
-        add_action( 'init', [$this, 'schedule_events'], 10 );
-        add_action( 'init', [$this->script_manager, 'register_scripts'], 10 );
-        add_action( 'init', [$this->script_manager, 'register_styles'], 10 );
-        
-        add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
-        add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
+		add_action( 'init', [$this, 'schedule_events'], 10 );
+		add_action( 'init', [$this->script_manager, 'register_scripts'], 10 );
+		add_action( 'init', [$this->script_manager, 'register_styles'], 10 );
+		
+		add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
+		add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
 
-        add_action( 'admin_init', [Dispatcher::class, 'init_request'] );
-        add_action( 'template_redirect', [Dispatcher::class, 'init_request'] );
-        
-        add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
-        add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
-        add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
-        add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
+		add_action( 'admin_init', [Dispatcher::class, 'init_request'] );
+		add_action( 'template_redirect', [Dispatcher::class, 'init_request'] );
+		
+		add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
+		add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
+		add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
+		add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
 
-        add_action( 'smliser_process_queue', [$this->queue_worker(), 'process_within_time_budget'] );
-        add_action( 'smliser_run_scheduler', [$this->scheduler(), 'run_due_tasks'] );
+		add_action( 'smliser_process_queue', [$this->queue_worker(), 'process_within_time_budget'] );
+		add_action( 'smliser_run_scheduler', [$this->scheduler(), 'run_due_tasks'] );
 
-        add_action( 'cli_init', [$this, 'setup_cli'] );
-    }
+		add_action( 'cli_init', [$this, 'setup_cli'] );
+	}
 
-    /**
-     * Register filters
-     */
-    protected function register_filters() : void {
-        add_filter( 'redirect_canonical', [$this, 'disable_redirect_on_downloads'], 10, 2 );
-        add_filter( 'template_include', __NAMESPACE__ . '\\load_auth_template' );
-        add_filter( 'cron_schedules', [$this, 'register_cron'] );
-        add_filter( 'query_vars', [$this->routes_manager, 'query_vars'] );
-    }
+	/**
+	 * Register filters
+	 */
+	protected function register_filters() : void {
+		add_filter( 'redirect_canonical', [$this, 'disable_redirect_on_downloads'], 10, 2 );
+		add_filter( 'template_include', __NAMESPACE__ . '\\load_auth_template' );
+		add_filter( 'cron_schedules', [$this, 'register_cron'] );
+		add_filter( 'query_vars', [$this->routes_manager, 'query_vars'] );
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function boot( RuntimeConfig $runtime ) : static {
-        
-        if ( ! isset( static::$envProvider ) ) {
-            new static( $runtime );
-        }
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function boot( RuntimeConfig $runtime ) : static {
+		
+		if ( ! isset( static::$envProvider ) ) {
+			new static( $runtime );
+		}
 
-        return static::$envProvider;
-    }
+		return static::$envProvider;
+	}
 
-    public static function url( string $path = '', array $qv = [] ) : URL {
-        return URL::from( site_url() )
-            ->append_path( $path )
-            ->add_query_params( $qv );
-    }
-    
-    public static function adminUrl( string $path = '', array $qv = [] ) : URL {
-        return URL::from( admin_url( 'admin.php' ) )
-            ->append_path( $path )
-            ->add_query_params( $qv );
-    }
+	public static function url( string $path = '', array $qv = [] ) : URL {
+		return URL::from( site_url() )
+			->append_path( $path )
+			->add_query_params( $qv );
+	}
+	
+	public static function adminUrl( string $path = '', array $qv = [] ) : URL {
+		return URL::from( admin_url( 'admin.php' ) )
+			->append_path( $path )
+			->add_query_params( $qv );
+	}
 
-    public static function restAPIUrl( string $path = '', array $qv = [] ) : URL {
-        $namespace = 'smliser/v1'; // WordPress uses only the V1 REST.
+	public static function restAPIUrl( string $path = '', array $qv = [] ) : URL {
+		$namespace = 'smliser/v1'; // WordPress uses only the V1 REST.
 
-        return URL::from( rest_url( $namespace ) )
-            ->append_path( $path )
-            ->add_query_params( $qv );
-    }
-    
-    public static function assetsUrl( string $path = '', array $qv = [] ) : URL {
-        $path   = FileSystemHelper::join_path( '/assets/', $path );
-        return URL::from( plugin_dir_url( SMLISER_FILE ) )
-            ->append_path( $path )
-            ->add_query_params( $qv );
-    }
+		return URL::from( rest_url( $namespace ) )
+			->append_path( $path )
+			->add_query_params( $qv );
+	}
+	
+	public static function assetsUrl( string $path = '', array $qv = [] ) : URL {
+		$path = FileSystemHelper::join_path( '/assets/', $path );
+		return URL::from( plugin_dir_url( SMLISER_FILE ) )
+			->append_path( $path )
+			->add_query_params( $qv );
+	}
 
-    /**
-     * Get the routes manager instance.
-     * 
-     * @return RoutesManager
-     */
-    public function get_routes_manager() : RoutesManager {
-        return $this->routes_manager;
-    }
+	/**
+	 * Get the routes manager instance.
+	 * 
+	 * @return RoutesManager
+	 */
+	public function get_routes_manager() : RoutesManager {
+		return $this->routes_manager;
+	}
 
-    /**
-     * {@inheritdoc}
-     * 
-     * Check key filesystem directories for read/write access and print admin notice if not writable.
-     *
-     * Uses a transient to avoid repeated expensive filesystem checks.
-     *
-     * @return void
-     */
-    public function check_filesystem_errors(): void {
-        $transient_key  = 'smliser_fs_check_results';
-        $cached_results = get_transient( $transient_key );
+	/**
+	 * {@inheritdoc}
+	 * 
+	 * Check key filesystem directories for read/write access and print admin notice if not writable.
+	 *
+	 * Uses a transient to avoid repeated expensive filesystem checks.
+	 *
+	 * @return void
+	 */
+	public function check_filesystem_errors() : void {
+		$transient_key  = 'smliser_fs_check_results';
+		$cached_results = get_transient( $transient_key );
 
-        if ( false === $cached_results ) {
-            $dirs_to_check = [
-                \SMLISER_REPO_DIR,
-                \SMLISER_UPLOADS_DIR,
-                \SMLISER_PLUGINS_REPO_DIR,
-                \SMLISER_THEMES_REPO_DIR,
-                \SMLISER_SOFTWARE_REPO_DIR,
-            ];
+		if ( false === $cached_results ) {
+			$dirs_to_check = [
+				\SMLISER_REPO_DIR,
+				\SMLISER_UPLOADS_DIR,
+				\SMLISER_PLUGINS_REPO_DIR,
+				\SMLISER_THEMES_REPO_DIR,
+				\SMLISER_SOFTWARE_REPO_DIR,
+			];
 
-            $cached_results = $this->filesystem()->test_dirs_read_write( $dirs_to_check );
-            set_transient( $transient_key, $cached_results, HOUR_IN_SECONDS );
-        }
+			$cached_results = $this->filesystem()->test_dirs_read_write( $dirs_to_check );
+			set_transient( $transient_key, $cached_results, HOUR_IN_SECONDS );
+		}
 
-        $errors = [];
+		$errors = [];
 
-        foreach ( $cached_results as $dir => $status ) {
-            $issues = [];
+		foreach ( $cached_results as $dir => $status ) {
+			$issues = [];
 
-            if ( ! $status['readable'] ) {
-                $issues[] = __( 'not readable', 'smliser' );
-            }
-            if ( ! $status['writable'] ) {
-                $issues[] = __( 'not writable', 'smliser' );
-            }
+			if ( ! $status['readable'] ) {
+				$issues[] = __( 'not readable', 'smliser' );
+			}
+			if ( ! $status['writable'] ) {
+				$issues[] = __( 'not writable', 'smliser' );
+			}
 
-            if ( ! empty( $issues ) ) {
-                $errors[ $dir ] = $issues;
-            }
-        }
+			if ( ! empty( $issues ) ) {
+				$errors[ $dir ] = $issues;
+			}
+		}
 
-        if ( empty( $errors ) ) {
-            return;
-        }
+		if ( empty( $errors ) ) {
+			return;
+		}
 
-        $rows = '';
-        foreach ( $errors as $dir => $issues ) {
-            $badge_html = '';
-            foreach ( $issues as $issue ) {
-                $badge_html .= sprintf(
-                    '<span style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:3px;background:#b32d2e;color:#fff;font-size:11px;font-weight:600;vertical-align:middle;">%s</span>',
-                    esc_html( $issue )
-                );
-            }
+		$rows = '';
+		foreach ( $errors as $dir => $issues ) {
+			$badge_html = '';
+			foreach ( $issues as $issue ) {
+				$badge_html .= sprintf(
+					'<span style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:3px;background:#b32d2e;color:#fff;font-size:11px;font-weight:600;vertical-align:middle;">%s</span>',
+					esc_html( $issue )
+				);
+			}
 
-            $rows .= sprintf(
-                '<tr><td style="padding:4px 0;font-family:monospace;font-size:13px;color:#3c434a;">%s</td><td style="padding:4px 0 4px 12px;white-space:nowrap;">%s</td></tr>',
-                esc_html( $dir ),
-                $badge_html
-            );
-        }
+			$rows .= sprintf(
+				'<tr><td style="padding:4px 0;font-family:monospace;font-size:13px;color:#3c434a;">%s</td><td style="padding:4px 0 4px 12px;white-space:nowrap;">%s</td></tr>',
+				esc_html( $dir ),
+				$badge_html
+			);
+		}
 
-        $dir_count = count( $errors );
-        $heading   = sprintf(
-            /* translators: 1: Plugin name, 2: Number of affected directories */
-            _n(
-                '%1$s detected a filesystem permission problem in %2$d directory.',
-                '%1$s detected filesystem permission problems in %2$d directories.',
-                $dir_count,
-                'smliser'
-            ),
-            '<strong>' . SMLISER_APP_NAME . '</strong>',
-            $dir_count
-        );
+		$dir_count = count( $errors );
+		$heading   = sprintf(
+			/* translators: 1: Plugin name, 2: Number of affected directories */
+			_n(
+				'%1$s detected a filesystem permission problem in %2$d directory.',
+				'%1$s detected filesystem permission problems in %2$d directories.',
+				$dir_count,
+				'smliser'
+			),
+			'<strong>' . SMLISER_APP_NAME . '</strong>',
+			$dir_count
+		);
 
-        $message = sprintf(
-            '<p>%s</p>
+		$message = sprintf(
+			'<p>%s</p>
             <table style="border-collapse:collapse;margin:4px 0 8px;">%s</table>
             <p style="margin:0;">%s</p>',
-            $heading,
-            $rows,
-            sprintf(
-                /* translators: %s: chmod command example */
-                __( 'Please check directory ownership and permissions. You may need to run %s or contact your hosting provider.', 'smliser' ),
-                '<code>chmod -R 755</code>'
-            )
-        );
+			$heading,
+			$rows,
+			sprintf(
+				/* translators: %s: chmod command example */
+				__( 'Please check directory ownership and permissions. You may need to run %s or contact your hosting provider.', 'smliser' ),
+				'<code>chmod -R 755</code>'
+			)
+		);
 
-        wp_admin_notice( $message, [ 'type' => 'error', 'dismissible' => true ] );
-    }
+		wp_admin_notice( $message, [ 'type' => 'error', 'dismissible' => true ] );
+	}
 
-    /**
-     * Print admin notices
-     */
-    public function print_admin_notices() {
-        $repo_version = \smliser_settings()->get( 'smliser_repo_version', 0 );
-        if ( SMLISER_VER === $repo_version ) {
-            return;
-        }
-        ?>
+	/**
+	 * Print admin notices
+	 */
+	public function print_admin_notices() {
+		$repo_version = \smliser_settings()->get( 'smliser_repo_version', 0 );
+		if ( SMLISER_VER === $repo_version ) {
+			return;
+		}
+		?>
         <div class="notice notice-info">
             <p>
                 <?php printf(
-                    /* translators: %s: plugin name */
-                    escHtml( '%s requires an update.' ) . ' <a id="smliser-update-btn" style="cursor:pointer;">' . escHtml( 'Click here to update now.' ) . '</a>',
-                    esc_html( SMLISER_APP_NAME )
-                );?>              
+					/* translators: %s: plugin name */
+					escHtml( '%s requires an update.' ) . ' <a id="smliser-update-btn" style="cursor:pointer;">' . escHtml( 'Click here to update now.' ) . '</a>',
+					esc_html( SMLISER_APP_NAME )
+				);?>              
                 
             </p>
             <p id="smliser-click-notice" style="display: none">Update started in the backgroud <span class="ti ti-circle-check" style="color: blue"></span></p>
         </div>
         <?php
-    }
+	}
 
-    /**
-     * Disable unintended http 301 redirect code during file downloads, this ensures
-     * we handle the responses to the download url the proper way instead of the default 301 returned initially
-     * by WordPress.
-     * 
-     * @param string $redirect_url The redirected url.
-     * @param string $requested_url The client requested url.
-     * @return false|string False when accessing downloads page, perform redirect when not.
-     * @since 0.2.0
-     */
-    public function disable_redirect_on_downloads( $redirect_url, $requested_url ) {
-        $download_slug = (string) $this->url( smliser_get_download_url_prefix() );
-        if ( strpos( $requested_url, $download_slug ) !== false ) {
-            return false;
-        }
+	/**
+	 * Disable unintended http 301 redirect code during file downloads, this ensures
+	 * we handle the responses to the download url the proper way instead of the default 301 returned initially
+	 * by WordPress.
+	 * 
+	 * @param string $redirect_url The redirected url.
+	 * @param string $requested_url The client requested url.
+	 * @return false|string False when accessing downloads page, perform redirect when not.
+	 * @since 0.2.0
+	 */
+	public function disable_redirect_on_downloads( $redirect_url, $requested_url ) {
+		$download_slug = (string) $this->url( smliser_get_download_url_prefix() );
+		if ( false !== strpos( $requested_url, $download_slug ) ) {
+			return false;
+		}
 
-        return $redirect_url;
-    }
+		return $redirect_url;
+	}
 
-    /**
-     * Sets up custom routes.
-     */
-    public function route_register() :void {
-        $this->routes_manager   = new RoutesManager();
-    }
+	/**
+	 * Sets up custom routes.
+	 */
+	public function route_register() : void {
+		$this->routes_manager = new RoutesManager();
+	}
 
-    /**
-     * Register Custom WordPress Cron Intervals.
-     * 
-     * @param array $schedules
-     */
-    public function register_cron( $schedules ) : array {
-        // Safety checks.
-        if ( ! is_array( $schedules ) ) {
-            $schedules  = (array) $schedules;
-        }
+	/**
+	 * Register Custom WordPress Cron Intervals.
+	 * 
+	 * @param array $schedules
+	 */
+	public function register_cron( $schedules ) : array {
+		// Safety checks.
+		if ( ! is_array( $schedules ) ) {
+			$schedules = (array) $schedules;
+		}
 
-        $schedules['smliser_every_minute'] = array(
-            'interval' => MINUTE_IN_SECONDS,
-            'display'  => 'Every Minute',
-        );
+		$schedules['smliser_every_minute'] = [
+			'interval' => MINUTE_IN_SECONDS,
+			'display'  => 'Every Minute',
+		];
 
-        $schedules['smliser_three_minutely'] = array(
-            'interval' => 3 * MINUTE_IN_SECONDS,
-            'display'  => 'Three Minutely',
-        );
+		$schedules['smliser_three_minutely'] = [
+			'interval' => 3 * MINUTE_IN_SECONDS,
+			'display'  => 'Three Minutely',
+		];
 
-        $schedules['smliser_4_hourly'] = array(
-            'interval' => 4 * HOUR_IN_SECONDS,
-            'display'  => 'Four Hourly',
-        );
+		$schedules['smliser_4_hourly'] = [
+			'interval' => 4 * HOUR_IN_SECONDS,
+			'display'  => 'Four Hourly',
+		];
 
-        return $schedules;
-    }
+		return $schedules;
+	}
 
-    /**
-     * Schedules events.
-     */
-    public function schedule_events() {
-        if ( ! wp_next_scheduled( 'smliser_process_queue' ) ) {
-            wp_schedule_event( time(), 'smliser_every_minute', 'smliser_process_queue' );
-        }
-        
-        if ( ! wp_next_scheduled( 'smliser_run_scheduler' ) ) {
-            wp_schedule_event( time(), 'smliser_every_minute', 'smliser_run_scheduler' );
-        }
-    }
+	/**
+	 * Schedules events.
+	 */
+	public function schedule_events() {
+		if ( ! wp_next_scheduled( 'smliser_process_queue' ) ) {
+			wp_schedule_event( time(), 'smliser_every_minute', 'smliser_process_queue' );
+		}
+		
+		if ( ! wp_next_scheduled( 'smliser_run_scheduler' ) ) {
+			wp_schedule_event( time(), 'smliser_every_minute', 'smliser_run_scheduler' );
+		}
+	}
 
-    /**
-     * Bootstraps in WP_CLI environment.
-     *
-     * This method runs on `cli_init` action.
-     */
-    public function setup_cli(): void {
-        // ( new WPCLIRunner(
-        //     CommandRegistry::instance(),
-        //     new WPCLIInput(),
-        //     new WPCLIOutput(),
-        //     new Terminal(),
-        //     new OptionParser()
-        // ) )->init();
-    }
+	/**
+	 * Bootstraps in WP_CLI environment.
+	 *
+	 * This method runs on `cli_init` action.
+	 */
+	public function setup_cli() : void {
+		// ( new WPCLIRunner(
+		//     CommandRegistry::instance(),
+		//     new WPCLIInput(),
+		//     new WPCLIOutput(),
+		//     new Terminal(),
+		//     new OptionParser()
+		// ) )->init();
+	}
 }

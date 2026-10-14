@@ -65,12 +65,12 @@ final class AuthenticationMonitor {
 	/**
 	 * Detection thresholds.
 	 */
-	private const ACCOUNT_FAILURE_THRESHOLD  = 5;
-	private const SOURCE_FAILURE_THRESHOLD   = 15;
-	private const ACCOUNT_SOURCE_THRESHOLD   = 8;
-	private const SOURCE_ACCOUNT_THRESHOLD   = 10;
+	private const ACCOUNT_FAILURE_THRESHOLD   = 5;
+	private const SOURCE_FAILURE_THRESHOLD    = 15;
+	private const ACCOUNT_SOURCE_THRESHOLD    = 8;
+	private const SOURCE_ACCOUNT_THRESHOLD    = 10;
 	private const SOURCE_CREDENTIAL_THRESHOLD = 10;
-	private const VELOCITY_THRESHOLD         = 8;
+	private const VELOCITY_THRESHOLD          = 8;
 
 	/**
 	 * Constructor.
@@ -99,7 +99,7 @@ final class AuthenticationMonitor {
 		string $source,
 		?string $credential = null,
 		?int $timestamp = null
-	): array {
+	) : array {
 
 		$timestamp = $timestamp ?? time();
 
@@ -109,12 +109,12 @@ final class AuthenticationMonitor {
 			? $this->identifier( 'credential', $credential )
 			: null;
 
-		$event = array(
+		$event = [
 			'timestamp'  => $timestamp,
 			'account'    => $account_key,
 			'source'     => $source_key,
 			'credential' => $credential_key,
-		);
+		];
 
 		/*
 		 * append_event() now returns the post-write, window-filtered event
@@ -152,13 +152,13 @@ final class AuthenticationMonitor {
 			$credential_events
 		);
 
-		return array(
+		return [
 			'detected' => ! empty( $result['threats'] ),
 			'threats'  => $result['threats'],
 			'score'    => $result['score'],
 			'severity' => $result['severity'],
 			'window'   => self::DEFAULT_WINDOW,
-		);
+		];
 	}
 
 	/**
@@ -178,9 +178,9 @@ final class AuthenticationMonitor {
 		string $account,
 		string $source,
 		?int $timestamp = null
-	): array {
+	) : array {
 
-		$timestamp  = $timestamp ?? time();
+		$timestamp   = $timestamp ?? time();
 		$account_key = $this->identifier( 'account', $account );
 		$source_key  = $this->identifier( 'source', $source );
 
@@ -192,12 +192,12 @@ final class AuthenticationMonitor {
 
 		$recent_failures = count( $failures );
 
-		$event = array(
+		$event = [
 			'timestamp' => $timestamp,
 			'account'   => $account_key,
 			'source'    => $source_key,
 			'failures'  => $recent_failures,
-		);
+		];
 
 		$this->append_event(
 			'success',
@@ -206,10 +206,10 @@ final class AuthenticationMonitor {
 			$timestamp
 		);
 
-		return array(
+		return [
 			'suspicious'      => $recent_failures >= self::ACCOUNT_FAILURE_THRESHOLD,
 			'recent_failures' => $recent_failures,
-		);
+		];
 	}
 
 	/**
@@ -223,7 +223,7 @@ final class AuthenticationMonitor {
 	public function is_account_under_attack(
 		string $account,
 		?int $timestamp = null
-	): bool {
+	) : bool {
 
 		$timestamp = $timestamp ?? time();
 
@@ -249,7 +249,7 @@ final class AuthenticationMonitor {
 	public function is_source_suspicious(
 		string $source,
 		?int $timestamp = null
-	): bool {
+	) : bool {
 
 		$timestamp = $timestamp ?? time();
 
@@ -286,7 +286,7 @@ final class AuthenticationMonitor {
 		array $account_events,
 		array $source_events,
 		?array $credential_events
-	): array {
+	) : array {
 
 		$threats = [];
 		$score   = 0;
@@ -299,7 +299,7 @@ final class AuthenticationMonitor {
 		if ( count( $account_events ) >= self::ACCOUNT_FAILURE_THRESHOLD ) {
 
 			$threats[] = 'account_bruteforce';
-			$score    += 3;
+			$score += 3;
 		}
 
 		/*
@@ -310,7 +310,7 @@ final class AuthenticationMonitor {
 		if ( count( $source_events ) >= self::SOURCE_FAILURE_THRESHOLD ) {
 
 			$threats[] = 'source_bruteforce';
-			$score    += 3;
+			$score += 3;
 		}
 
 		/*
@@ -326,7 +326,7 @@ final class AuthenticationMonitor {
 		if ( count( $account_sources ) >= self::ACCOUNT_SOURCE_THRESHOLD ) {
 
 			$threats[] = 'distributed_account_attack';
-			$score    += 4;
+			$score += 4;
 		}
 
 		/*
@@ -342,7 +342,7 @@ final class AuthenticationMonitor {
 		if ( count( $source_accounts ) >= self::SOURCE_ACCOUNT_THRESHOLD ) {
 
 			$threats[] = 'password_spraying';
-			$score    += 4;
+			$score += 4;
 		}
 
 		/*
@@ -363,7 +363,7 @@ final class AuthenticationMonitor {
 			) {
 
 				$threats[] = 'credential_stuffing';
-				$score    += 5;
+				$score += 5;
 			}
 		}
 
@@ -375,7 +375,7 @@ final class AuthenticationMonitor {
 		if ( $this->is_high_velocity( $source_events ) ) {
 
 			$threats[] = 'high_velocity';
-			$score    += 2;
+			$score += 2;
 		}
 
 		$severity = match ( true ) {
@@ -385,11 +385,11 @@ final class AuthenticationMonitor {
 			default     => 'low',
 		};
 
-		return array(
+		return [
 			'threats'  => array_values( array_unique( $threats ) ),
 			'score'    => $score,
 			'severity' => $severity,
-		);
+		];
 	}
 
 	/**
@@ -399,10 +399,10 @@ final class AuthenticationMonitor {
 	 *
 	 * @return bool
 	 */
-	private function is_high_velocity( array $events ): bool {
+	private function is_high_velocity( array $events ) : bool {
 
-		$recent   = 0;
-		$now      = time();
+		$recent = 0;
+		$now    = time();
 
 		foreach ( $events as $event ) {
 
@@ -440,13 +440,13 @@ final class AuthenticationMonitor {
 		string $identifier,
 		array $event,
 		int $timestamp
-	): array {
+	) : array {
 
 		$key = $this->cache_key( $type, $identifier );
 
 		$events = $this->cache->modify(
 			$key,
-			static function ( $current ) use ( $event, $timestamp ): array {
+			static function ( $current ) use ( $event, $timestamp ) : array {
 
 				$events = is_array( $current ) ? $current : [];
 
@@ -458,7 +458,7 @@ final class AuthenticationMonitor {
 				$events = array_values(
 					array_filter(
 						$events,
-						static function ( $item ) use ( $timestamp ): bool {
+						static function ( $item ) use ( $timestamp ) : bool {
 
 							return is_array( $item )
 								&& isset( $item['timestamp'] )
@@ -498,7 +498,7 @@ final class AuthenticationMonitor {
 			 * so this attempt is still visible to detect() even though
 			 * prior history for this key is temporarily unavailable.
 			 */
-			$events = array( $event );
+			$events = [ $event ];
 		}
 
 		return $events;
@@ -517,7 +517,7 @@ final class AuthenticationMonitor {
 		string $type,
 		string $identifier,
 		int $timestamp
-	): array {
+	) : array {
 
 		$key    = $this->cache_key( $type, $identifier );
 		$events = $this->cache->get( $key );
@@ -529,7 +529,7 @@ final class AuthenticationMonitor {
 		$events = array_values(
 			array_filter(
 				$events,
-				static function ( $event ) use ( $timestamp ): bool {
+				static function ( $event ) use ( $timestamp ) : bool {
 
 					return is_array( $event )
 						&& isset( $event['timestamp'] )
@@ -553,7 +553,7 @@ final class AuthenticationMonitor {
 	private function unique_event_values(
 		array $events,
 		string $field
-	): array {
+	) : array {
 
 		$values = [];
 
@@ -581,7 +581,7 @@ final class AuthenticationMonitor {
 	private function identifier(
 		string $type,
 		string $value
-	): string {
+	) : string {
 
 		return hash_hmac(
 			'sha256',
@@ -601,7 +601,7 @@ final class AuthenticationMonitor {
 	private function cache_key(
 		string $type,
 		string $identifier
-	): string {
+	) : string {
 
 		return sprintf(
 			'%s:%s:%s',

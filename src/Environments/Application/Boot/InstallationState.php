@@ -64,7 +64,7 @@ final class InstallationState {
 		FileSystem $fs,
 		private readonly string $file
 	) {
-		$this->fs	= $fs;
+		$this->fs = $fs;
 	}
 
 	/**
@@ -150,7 +150,7 @@ final class InstallationState {
 	public function set_update_section( string $section, ?array $value ) : void {
 		$this->change(
 			static function ( array $state ) use ( $section, $value ) : array {
-				$update = is_array( $state['update'] ?? null ) ? $state['update'] : array();
+				$update = is_array( $state['update'] ?? null ) ? $state['update'] : [];
 
 				if ( null === $value ) {
 					unset( $update[ $section ] );
@@ -183,8 +183,8 @@ final class InstallationState {
 	 * @throws \RuntimeException When the state cannot be locked, read or written.
 	 */
 	public function change( callable $change ) : array {
-		$lock_file	= $this->file . '.lock';
-		$lock		= @fopen( $lock_file, 'c' );
+		$lock_file = $this->file . '.lock';
+		$lock      = @fopen( $lock_file, 'c' );
 
 		if ( false === $lock || ! flock( $lock, LOCK_EX ) ) {
 			throw new \RuntimeException( sprintf( 'Could not lock "%s". Check that the storage directory is writable.', $this->file ) );
@@ -197,7 +197,7 @@ final class InstallationState {
 				throw new \RuntimeException( sprintf( '"%s" is damaged and was left unchanged; repair or restore it first.', $this->file ) );
 			}
 
-			$state = $change( $current ?? array() );
+			$state = $change( $current ?? [] );
 
 			$this->write_json( $this->file, $state );
 

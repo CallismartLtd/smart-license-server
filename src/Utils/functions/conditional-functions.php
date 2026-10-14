@@ -5,26 +5,26 @@
 use SmartLicenseServer\Exceptions\Exception;
 
 if ( ! function_exists( 'is_json' ) ) {
-    /**
-     * Check if a given string is a valid JSON.
-     *
-     * @param  mixed  $value  The value to test.
-     * @return bool
-     */
-    function is_json( mixed $value ) : bool {
-        
-        if ( ! is_string( $value ) ) {
-            return false;
-        }
+	/**
+	 * Check if a given string is a valid JSON.
+	 *
+	 * @param  mixed  $value  The value to test.
+	 * @return bool
+	 */
+	function is_json( mixed $value ) : bool {
+		
+		if ( ! is_string( $value ) ) {
+			return false;
+		}
 
-        if ( function_exists( 'json_validate' ) ) {
-            return json_validate( $value );
-        }
+		if ( function_exists( 'json_validate' ) ) {
+			return json_validate( $value );
+		}
 
-        json_decode( $value );
+		json_decode( $value );
 
-        return ( json_last_error() === JSON_ERROR_NONE );
-    }    
+		return ( JSON_ERROR_NONE === json_last_error() );
+	}
 }
 
 if ( ! function_exists( 'is_wp' ) ) {
@@ -39,27 +39,27 @@ if ( ! function_exists( 'is_wp' ) ) {
 }
 
 if ( ! function_exists( 'is_base64_encoded' ) ) {
-    /**
-     * Check if a string is base64 encoded.
-     *
-     * @param  mixed  $value
-     * @return bool
-     */
-    function is_base64_encoded( $value ) {
-        if ( ! is_string( $value ) ) {
-            return false;
-        }
+	/**
+	 * Check if a string is base64 encoded.
+	 *
+	 * @param  mixed  $value
+	 * @return bool
+	 */
+	function is_base64_encoded( $value ) {
+		if ( ! is_string( $value ) ) {
+			return false;
+		}
 
-        // Basic pattern: only A-Z, a-z, 0-9, +, /, and =
-        if ( ! preg_match( '/^[A-Za-z0-9\/\r\n+]*={0,2}$/', $value ) ) {
-            return false;
-        }
+		// Basic pattern: only A-Z, a-z, 0-9, +, /, and =
+		if ( ! preg_match( '/^[A-Za-z0-9\/\r\n+]*={0,2}$/', $value ) ) {
+			return false;
+		}
 
-        // Validate by decoding and re-encoding
-        $decoded = base64_decode( $value, true );
+		// Validate by decoding and re-encoding
+		$decoded = base64_decode( $value, true );
 
-        return $decoded !== false && base64_encode( $decoded ) === $value;
-    }
+		return false !== $decoded && base64_encode( $decoded ) === $value;
+	}
 }
 
 /**
@@ -71,34 +71,34 @@ if ( ! function_exists( 'is_base64_encoded' ) ) {
  * @phpstan-assert-if-true Exception|WP_Error $value
  * @psalm-assert-if-true Exception|WP_Error $value
  */
-function is_smliser_error( $value ): bool {
-    if ( function_exists( 'is_wp_error' ) && is_wp_error( $value ) ) {
-        return true;
-    } elseif ( class_exists( WP_Error::class ) && $value instanceof \WP_Error ) {
-        return true;
-    }
+function is_smliser_error( $value ) : bool {
+	if ( function_exists( 'is_wp_error' ) && is_wp_error( $value ) ) {
+		return true;
+	} elseif ( class_exists( WP_Error::class ) && $value instanceof \WP_Error ) {
+		return true;
+	}
 
-    return ( $value instanceof Exception );
+	return ( $value instanceof Exception );
 }
 
 if ( ! function_exists( '__' ) ) {
-    /**
-     * Retrieves the translation of $text.
-     */
-    function __( string $text, string $domain = 'default' ): string {
-        return smliser__( $text, $domain );
-    }
+	/**
+	 * Retrieves the translation of $text.
+	 */
+	function __( string $text, string $domain = 'default' ) : string {
+		return smliser__( $text, $domain );
+	}
 }
 
 if ( ! function_exists( 'is_interactive_shell' ) ) {
-    /**
-     * Tells whether the current request is an intercative shell session
-     * 
-     * @return bool True when in interactive shell, false otherwise.
-     */
-    function is_interactive_shell() : bool {
-        return defined( 'SMLISER_INTERACTIVE_SHELL' ) && SMLISER_INTERACTIVE_SHELL;
-    }
+	/**
+	 * Tells whether the current request is an intercative shell session
+	 * 
+	 * @return bool True when in interactive shell, false otherwise.
+	 */
+	function is_interactive_shell() : bool {
+		return defined( 'SMLISER_INTERACTIVE_SHELL' ) && SMLISER_INTERACTIVE_SHELL;
+	}
 }
 
 if ( ! function_exists( 'is_utf8' ) ) {
@@ -111,7 +111,7 @@ if ( ! function_exists( 'is_utf8' ) ) {
 	 * @param string $value The string to validate.
 	 * @return bool True if the string is valid UTF-8, otherwise false.
 	 */
-	function is_utf8( string $value ): bool {
+	function is_utf8( string $value ) : bool {
 		// Empty strings are valid UTF-8.
 		if ( '' === $value ) {
 			return true;
@@ -229,7 +229,7 @@ if ( ! function_exists( 'is_email' ) ) {
 	 */
 	function is_email( string $email, bool $check_dns = false ) : bool {
 		// Sanitize and check total length boundaries (RFC 5321 max length is 254 octets).
-		$email	= trim( $email );
+		$email  = trim( $email );
 		$length = strlen( $email );
 
 		if ( $length < 6 || $length > 254 ) {
@@ -243,7 +243,7 @@ if ( ! function_exists( 'is_email' ) ) {
 
 		// Must contain exactly one '@' symbol.
 		$parts = explode( '@', $email );
-		if ( count( $parts ) !== 2 ) {
+		if ( 2 !== count( $parts ) ) {
 			return false;
 		}
 
@@ -294,103 +294,103 @@ if ( ! function_exists( 'is_email' ) ) {
 }
 
 if ( ! function_exists( 'is_url' ) ) {
-    /**
-     * Validate whether a given string is a syntactically valid URL.
-     *
-     * @param string $url                The URL string to validate.
-     * @param array  $allowed_protocols  List of allowed schemes/protocols (default: http, https).
-     * @return bool True if valid, false otherwise.
-     */
-    function is_url( string $url, array $allowed_protocols = [ 'http', 'https' ] ) : bool {
-        // Basic sanity checks and boundaries.
-        $url	= trim( $url );
-        $length = strlen( $url );
+	/**
+	 * Validate whether a given string is a syntactically valid URL.
+	 *
+	 * @param string $url                The URL string to validate.
+	 * @param array  $allowed_protocols  List of allowed schemes/protocols (default: http, https).
+	 * @return bool True if valid, false otherwise.
+	 */
+	function is_url( string $url, array $allowed_protocols = [ 'http', 'https' ] ) : bool {
+		// Basic sanity checks and boundaries.
+		$url    = trim( $url );
+		$length = strlen( $url );
 
-        if ( $length < 8 || $length > 2083 ) {
-            return false;
-        }
+		if ( $length < 8 || $length > 2083 ) {
+			return false;
+		}
 
-        // Protect against CRLF / header injection attacks.
-        if ( preg_match( '/[\r\n\t]/', $url ) ) {
-            return false;
-        }
+		// Protect against CRLF / header injection attacks.
+		if ( preg_match( '/[\r\n\t]/', $url ) ) {
+			return false;
+		}
 
-        // Extract and check scheme.
-        $scheme_end = strpos( $url, '://' );
-        if ( $scheme_end === false ) {
-            return false;
-        }
+		// Extract and check scheme.
+		$scheme_end = strpos( $url, '://' );
+		if ( false === $scheme_end ) {
+			return false;
+		}
 
-        $scheme = strtolower( substr( $url, 0, $scheme_end ) );
-        if ( ! in_array( $scheme, $allowed_protocols, true ) ) {
-            return false;
-        }
+		$scheme = strtolower( substr( $url, 0, $scheme_end ) );
+		if ( ! in_array( $scheme, $allowed_protocols, true ) ) {
+			return false;
+		}
 
-        // Parse components.
-        $parsed = parse_url( $url );
-        if ( ! is_array( $parsed ) || empty( $parsed['host'] ) ) {
-            return false;
-        }
+		// Parse components.
+		$parsed = parse_url( $url );
+		if ( ! is_array( $parsed ) || empty( $parsed['host'] ) ) {
+			return false;
+		}
 
-        // Convert Internationalized Domain Names (IDN) to ASCII / Punycode if intl is installed.
-        $host = $parsed['host'];
-        if ( function_exists( 'idn_to_ascii' ) ) {
-            $ascii_host = idn_to_ascii( $host, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46 );
-            if ( false !== $ascii_host ) {
-                $host = $ascii_host;
-                $url  = str_replace( $parsed['host'], $host, $url );
-            }
-        }
+		// Convert Internationalized Domain Names (IDN) to ASCII / Punycode if intl is installed.
+		$host = $parsed['host'];
+		if ( function_exists( 'idn_to_ascii' ) ) {
+			$ascii_host = idn_to_ascii( $host, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46 );
+			if ( false !== $ascii_host ) {
+				$host = $ascii_host;
+				$url  = str_replace( $parsed['host'], $host, $url );
+			}
+		}
 
-        // Validate port boundary if specified.
-        if ( isset( $parsed['port'] ) && ( $parsed['port'] < 1 || $parsed['port'] > 65535 ) ) {
-            return false;
-        }
+		// Validate port boundary if specified.
+		if ( isset( $parsed['port'] ) && ( $parsed['port'] < 1 || $parsed['port'] > 65535 ) ) {
+			return false;
+		}
 
-        // Validate host format (IPv4, IPv6 enclosed in brackets, or standard hostname with TLD).
-        $is_ip = filter_var( $host, FILTER_VALIDATE_IP );
-        if ( ! $is_ip ) {
-            // Require a dot for non-IP hosts (filters out single-word hostnames like 'localhost')
-            if ( ! str_contains( $host, '.' ) ) {
-                return false;
-            }
+		// Validate host format (IPv4, IPv6 enclosed in brackets, or standard hostname with TLD).
+		$is_ip = filter_var( $host, FILTER_VALIDATE_IP );
+		if ( ! $is_ip ) {
+			// Require a dot for non-IP hosts (filters out single-word hostnames like 'localhost')
+			if ( ! str_contains( $host, '.' ) ) {
+				return false;
+			}
 
-            // Prevent leading/trailing dots or double dots in host
-            if ( str_starts_with( $host, '.' ) || str_ends_with( $host, '.' ) || str_contains( $host, '..' ) ) {
-                return false;
-            }
-        }
+			// Prevent leading/trailing dots or double dots in host
+			if ( str_starts_with( $host, '.' ) || str_ends_with( $host, '.' ) || str_contains( $host, '..' ) ) {
+				return false;
+			}
+		}
 
-        // Canonical native filter check.
-        return filter_var( $url, FILTER_VALIDATE_URL ) !== false;
-    }
+		// Canonical native filter check.
+		return false !== filter_var( $url, FILTER_VALIDATE_URL );
+	}
 }
 
 if ( ! function_exists( 'is_cli' ) ) {
-    /**
-     * Determine whether the current PHP process is running in a Command Line Interface (CLI).
-     *
-     * Evaluates PHP's SAPI name alongside STDIN, HTTP, and environment variables
-     * to safely handle edge cases like Web-cron runners or embedded SAPI environments.
-     *
-     * @return bool True if running in a CLI environment, false otherwise.
-     */
-    function is_cli(): bool {
-        // Direct Server API check (covers standard terminal, cron, and interactive shell)
-        if ( \in_array( \PHP_SAPI, [ 'cli', 'phpdbg' ], true ) ) {
-            return true;
-        }
+	/**
+	 * Determine whether the current PHP process is running in a Command Line Interface (CLI).
+	 *
+	 * Evaluates PHP's SAPI name alongside STDIN, HTTP, and environment variables
+	 * to safely handle edge cases like Web-cron runners or embedded SAPI environments.
+	 *
+	 * @return bool True if running in a CLI environment, false otherwise.
+	 */
+	function is_cli() : bool {
+		// Direct Server API check (covers standard terminal, cron, and interactive shell)
+		if ( \in_array( \PHP_SAPI, [ 'cli', 'phpdbg' ], true ) ) {
+			return true;
+		}
 
-        // Fallback check for missing HTTP server context while running under standard stream handlers
-        if ( ! isset( $_SERVER['HTTP_HOST'] ) && \defined( 'STDIN' ) ) {
-            return true;
-        }
+		// Fallback check for missing HTTP server context while running under standard stream handlers
+		if ( ! isset( $_SERVER['HTTP_HOST'] ) && \defined( 'STDIN' ) ) {
+			return true;
+		}
 
-        // Fallback for environment flags in custom CLI runners or pipeline tools
-        if ( ( \getenv( 'TERM' ) !== false || isset( $_SERVER['TERM'] ) ) && ! isset( $_SERVER['REQUEST_METHOD'] ) ) {
-            return true;
-        }
+		// Fallback for environment flags in custom CLI runners or pipeline tools
+		if ( ( false !== \getenv( 'TERM' ) || isset( $_SERVER['TERM'] ) ) && ! isset( $_SERVER['REQUEST_METHOD'] ) ) {
+			return true;
+		}
 
-        return false;
-    }
+		return false;
+	}
 }

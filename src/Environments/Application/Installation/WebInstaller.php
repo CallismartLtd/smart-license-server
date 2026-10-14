@@ -340,7 +340,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		if ( self::STEP_DATABASE === $assessment['step'] ) {
 			$problems = $this->preflight( $assessment );
 
-			if ( array() !== $problems ) {
+			if ( [] !== $problems ) {
 				return $this->respond( $this->page->not_ready( $problems ), 500 );
 			}
 		}
@@ -359,7 +359,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	 */
 	private function preflight( array &$assessment ) : array {
 		$server   = $this->installer->verify_environment_sanity();
-		$problems = array();
+		$problems = [];
 
 		foreach ( $server['errors'] as $check => $message ) {
 			$problems[] = sprintf( '%s: %s', $check, $message );
@@ -368,21 +368,21 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		$warnings = array_values( $server['warnings'] );
 
 		// Hashing the files is pointless on a server that cannot run the application.
-		if ( array() === $problems ) {
+		if ( [] === $problems ) {
 			$files    = $this->installer->verify_release_files();
 			$problems = $files['errors'];
 			$warnings = array_merge( $warnings, $files['warnings'] );
 		}
 
-		if ( array() !== $problems ) {
+		if ( [] !== $problems ) {
 			\smliser_log_error( '[WebInstaller] Preflight failed: ' . implode( ' | ', $problems ) );
 		}
 
 		foreach ( $warnings as $warning ) {
-			$assessment['notices'][] = array(
+			$assessment['notices'][] = [
 				'type'    => 'warning',
 				'message' => $warning,
-			);
+			];
 		}
 
 		return $problems;
@@ -455,12 +455,12 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	 * @return array{step: string, issues: string[], notices: array, config: array<string, mixed>}
 	 */
 	private function assess() : array {
-		$result = array(
+		$result = [
 			'step'    => self::STEP_DATABASE,
-			'issues'  => array(),
-			'notices' => array(),
-			'config'  => array(),
-		);
+			'issues'  => [],
+			'notices' => [],
+			'config'  => [],
+		];
 
 		try {
 			$config = $this->installer->read_database_config();
@@ -472,16 +472,16 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			return $result;
 		}
 
-		$result['config'] = array(
-			'db_driver' => (string) $config->driver,
-			'db_host'   => (string) ( $config->host ?? '' ),
-			'db_port'   => null === $config->port ? '' : (string) $config->port,
-			'db_name'   => (string) $config->dbname,
-			'db_user'   => (string) ( $config->username ?? '' ),
-			'db_prefix' => (string) ( $config->prefix ?? '' ),
+		$result['config'] = [
+			'db_driver'  => (string) $config->driver,
+			'db_host'    => (string) ( $config->host ?? '' ),
+			'db_port'    => null === $config->port ? '' : (string) $config->port,
+			'db_name'    => (string) $config->dbname,
+			'db_user'    => (string) ( $config->username ?? '' ),
+			'db_prefix'  => (string) ( $config->prefix ?? '' ),
 			'db_charset' => (string) ( $config->charset ?? '' ),
-			'db_path'   => (string) ( $config->path ?? '' ),
-		);
+			'db_path'    => (string) ( $config->path ?? '' ),
+		];
 
 		try {
 			if ( ! $this->installer->has_database_connection() ) {
@@ -499,9 +499,9 @@ final class WebInstaller implements ExecutionHandlerInterface {
 
 		$result['issues'] = $issues;
 
-		if ( array() === $issues ) {
+		if ( [] === $issues ) {
 			$result['step'] = self::STEP_FINISH;
-		} elseif ( array( 'No user account exists.' ) === $issues ) {
+		} elseif ( [ 'No user account exists.' ] === $issues ) {
 			$result['step'] = self::STEP_ADMIN;
 		} else {
 			$result['step'] = self::STEP_SETUP;
@@ -519,27 +519,27 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	 * @param int                   $status  HTTP status.
 	 * @return Response
 	 */
-	private function render_step( array $assessment, array $values = array(), array $notices = array(), int $status = 200 ) : Response {
-		$context = array(
+	private function render_step( array $assessment, array $values = [], array $notices = [], int $status = 200 ) : Response {
+		$context = [
 			'action_url' => $this->installer_url(),
 			'csrf'       => $this->session->csrf(),
 			'notices'    => array_merge( $this->session->pull_flash(), $assessment['notices'], $notices ),
-		);
+		];
 
 		$page = match ( $assessment['step'] ) {
 			self::STEP_DATABASE => $this->page->database(
 				$context,
-				$values + $assessment['config'] + array( 'db_driver' => 'mysql' ),
+				$values + $assessment['config'] + [ 'db_driver' => 'mysql' ],
 				DatabaseSettings::DRIVERS,
 				DatabaseSettings::default_sqlite_dir()
 			),
-			self::STEP_SETUP    => $this->page->setup(
+			self::STEP_SETUP => $this->page->setup(
 				$context,
 				$assessment['issues'],
 				$values['app_url'] ?? $this->installer->read_app_url() ?? $this->detect_app_url()
 			),
-			self::STEP_ADMIN    => $this->page->admin( $context, $values, AppInstaller::MIN_ADMIN_PASSWORD_LENGTH ),
-			default             => $this->page->finish( $context ),
+			self::STEP_ADMIN => $this->page->admin( $context, $values, AppInstaller::MIN_ADMIN_PASSWORD_LENGTH ),
+			default          => $this->page->finish( $context ),
 		};
 
 		return $this->respond( $page, $status );
@@ -555,7 +555,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	 * @return Response
 	 */
 	private function save_database( array $assessment ) : Response {
-		$fields = array(
+		$fields = [
 			'db_driver'         => 'driver',
 			'db_host'           => 'host',
 			'db_port'           => 'port',
@@ -566,10 +566,10 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			'db_charset'        => 'charset',
 			'db_path'           => 'path',
 			'db_encryption_key' => 'encryption_key',
-		);
+		];
 
-		$input  = array();
-		$values = array();
+		$input  = [];
+		$values = [];
 
 		foreach ( $fields as $name => $field ) {
 			$value = $_POST[ $name ] ?? '';
@@ -584,11 +584,11 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			$input[ $field ] = $value;
 		}
 
-		$assessment['notices'] = array();
+		$assessment['notices'] = [];
 		$retry                 = fn ( string $message, ?string $detail = null ) : Response => $this->render_step(
 			$assessment,
 			$values,
-			array( $this->error( $message, $detail ) ),
+			[ $this->error( $message, $detail ) ],
 			422
 		);
 
@@ -633,9 +633,9 @@ final class WebInstaller implements ExecutionHandlerInterface {
 
 		if ( $this->wants_json() && isset( InstallerPage::SETUP_TASKS[ $task ] ) ) {
 			return Response::json(
-				array( 'task' => $this->run_task( $task ) ),
+				[ 'task' => $this->run_task( $task ) ],
 				200,
-				array( 'Cache-Control' => 'no-store' )
+				[ 'Cache-Control' => 'no-store' ]
 			);
 		}
 
@@ -670,14 +670,14 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	private function run_task( string $task ) : array {
 		$created  = 0;
 		$existing = 0;
-		$failures = array();
+		$failures = [];
 
 		$collect = static function ( string ...$args ) use ( &$created, &$existing, &$failures ) : void {
 			$message = (string) end( $args );
 
-			if ( in_array( $message, array( 'Exists', 'Role Exists' ), true ) ) {
+			if ( in_array( $message, [ 'Exists', 'Role Exists' ], true ) ) {
 				++$existing;
-			} elseif ( in_array( $message, array( 'Created', '✔ Installed' ), true ) ) {
+			} elseif ( in_array( $message, [ 'Created', '✔ Installed' ], true ) ) {
 				++$created;
 			} else {
 				$failures[] = $args[0] . ': ' . $message;
@@ -685,14 +685,14 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		};
 
 		$summary = static function ( string $noun ) use ( &$created, &$existing, &$failures ) : array {
-			if ( array() !== $failures ) {
-				return array(
+			if ( [] !== $failures ) {
+				return [
 					'status' => 'failed',
 					'detail' => implode( ' ', $failures ),
-				);
+				];
 			}
 
-			$parts = array();
+			$parts = [];
 			if ( $created > 0 ) {
 				$parts[] = sprintf( '%d %s created', $created, $noun );
 			}
@@ -700,10 +700,10 @@ final class WebInstaller implements ExecutionHandlerInterface {
 				$parts[] = sprintf( '%d already existed', $existing );
 			}
 
-			return array(
+			return [
 				'status' => 'done',
 				'detail' => implode( ', ', $parts ),
-			);
+			];
 		};
 
 		try {
@@ -713,20 +713,20 @@ final class WebInstaller implements ExecutionHandlerInterface {
 					$input = is_string( $input ) && '' !== trim( $input ) ? $input : $this->detect_app_url();
 
 					try {
-						return array(
+						return [
 							'status' => 'done',
 							'detail' => $this->installer->write_app_url( $input ),
-						);
+						];
 					} catch ( \InvalidArgumentException $e ) {
-						return array(
+						return [
 							'status' => 'failed',
 							'detail' => $e->getMessage() . ' Correct the site address above and run setup again.',
-						);
+						];
 					} catch ( \RuntimeException $e ) {
-						return array(
+						return [
 							'status' => 'failed',
 							'detail' => 'The site address could not be saved to the .env file. Make sure the application folder is writable by the web server. ' . $e->getMessage(),
-						);
+						];
 					}
 
 				case 'directories':
@@ -743,17 +743,17 @@ final class WebInstaller implements ExecutionHandlerInterface {
 					try {
 						$result = $this->installer->link_public_assets();
 					} catch ( \RuntimeException $e ) {
-						return array(
+						return [
 							'status' => 'failed',
 							'detail' => $e->getMessage(),
-						);
+						];
 					}
 
 					return match ( $result ) {
-						AppInstaller::ASSETS_LINKED    => array( 'status' => 'done', 'detail' => 'Linked public/assets to system/assets.' ),
-						AppInstaller::ASSETS_COPIED    => array( 'status' => 'done', 'detail' => 'Your server does not allow links, so the assets were copied. Run setup again after each update.' ),
-						AppInstaller::ASSETS_UNCHANGED => array( 'status' => 'done', 'detail' => 'Already linked.' ),
-						default                        => array( 'status' => 'warning', 'detail' => 'public/assets already exists and was not created by the installer, so it was left as it is. Remove or rename it and run setup again to use the bundled assets.' ),
+						AppInstaller::ASSETS_LINKED    => [ 'status' => 'done', 'detail' => 'Linked public/assets to system/assets.' ],
+						AppInstaller::ASSETS_COPIED    => [ 'status' => 'done', 'detail' => 'Your server does not allow links, so the assets were copied. Run setup again after each update.' ],
+						AppInstaller::ASSETS_UNCHANGED => [ 'status' => 'done', 'detail' => 'Already linked.' ],
+						default                        => [ 'status' => 'warning', 'detail' => 'public/assets already exists and was not created by the installer, so it was left as it is. Remove or rename it and run setup again to use the bundled assets.' ],
 					};
 
 				case 'tables':
@@ -768,28 +768,28 @@ final class WebInstaller implements ExecutionHandlerInterface {
 					try {
 						$this->installer->make_htaccess_file();
 					} catch ( \RuntimeException $e ) {
-						return array(
+						return [
 							'status' => 'warning',
 							'detail' => 'Skipped: ' . $e->getMessage() . ' Not needed unless your server is Apache; otherwise point your web server at public/index.php.',
-						);
+						];
 					}
 
-					return array(
+					return [
 						'status' => 'done',
 						'detail' => '',
-					);
+					];
 			}
 		} catch ( DatabaseException $e ) {
-			return array(
+			return [
 				'status' => 'failed',
 				'detail' => $e->getMessage(),
-			);
+			];
 		}
 
-		return array(
+		return [
 			'status' => 'failed',
 			'detail' => 'Unknown task.',
-		);
+		];
 	}
 
 	/**
@@ -803,10 +803,10 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		$email    = trim( is_string( $_POST['admin_email'] ?? null ) ? $_POST['admin_email'] : '' );
 		$password = is_string( $_POST['admin_password'] ?? null ) ? $_POST['admin_password'] : '';
 		$confirm  = is_string( $_POST['admin_password_confirm'] ?? null ) ? $_POST['admin_password_confirm'] : '';
-		$values   = array(
+		$values   = [
 			'admin_name'  => $name,
 			'admin_email' => $email,
-		);
+		];
 		$messages = $this->installer->validate_admin( $name, $email, $password );
 
 		if ( ! isset( $messages['password'] ) && ! hash_equals( $password, $confirm ) ) {
@@ -815,14 +815,14 @@ final class WebInstaller implements ExecutionHandlerInterface {
 
 		$errors = array_map( fn ( string $message ) : array => $this->error( $message ), array_values( $messages ) );
 
-		if ( array() !== $errors ) {
+		if ( [] !== $errors ) {
 			return $this->render_step( $assessment, $values, $errors, 422 );
 		}
 
 		try {
 			$this->installer->create_admin( $name, $email, $password );
 		} catch ( DatabaseException | \InvalidArgumentException $e ) {
-			return $this->render_step( $assessment, $values, array( $this->error( 'The account could not be created.', $e->getMessage() ) ), 422 );
+			return $this->render_step( $assessment, $values, [ $this->error( 'The account could not be created.', $e->getMessage() ) ], 422 );
 		}
 
 		if ( self::STEP_FINISH === $this->assess()['step'] ) {
@@ -868,11 +868,11 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			\smliser_log_error( sprintf( '[WebInstaller] %s %s', $message, $detail ) );
 		}
 
-		return array(
+		return [
 			'type'    => 'error',
 			'message' => $message,
 			'detail'  => $detail,
-		);
+		];
 	}
 
 	/*
@@ -891,12 +891,12 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	private function respond( array $page, int $status = 200 ) : Response {
 		if ( $this->wants_json() ) {
 			return Response::json(
-				array( 'page' => $page ),
+				[ 'page' => $page ],
 				$status,
-				array(
+				[
 					'Cache-Control'          => 'no-store',
 					'X-Content-Type-Options' => 'nosniff',
-				)
+				]
 			);
 		}
 
@@ -905,7 +905,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		return Response::make(
 			$this->page->document( $page, $nonce ),
 			$status,
-			array(
+			[
 				'Content-Type'            => 'text/html; charset=utf-8',
 				'Cache-Control'           => 'no-store, no-cache, must-revalidate',
 				'Content-Security-Policy' => "default-src 'none'; script-src 'nonce-{$nonce}'; connect-src 'self'; style-src 'unsafe-inline'; img-src data:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
@@ -913,7 +913,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 				'X-Content-Type-Options'  => 'nosniff',
 				'Referrer-Policy'         => 'same-origin',
 				'X-Robots-Tag'            => 'noindex, nofollow',
-			)
+			]
 		);
 	}
 
@@ -1018,9 +1018,9 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		return match ( true ) {
 			$base . self::PATH === $path                => self::URL_PATH,
 			$this->script_path() . self::PATH === $path => self::URL_PATH_INFO,
-			array_key_exists( self::QUERY_VAR, $_GET ) && in_array( $path, array( $base, $this->script_path() ), true )
-				=> self::URL_QUERY,
-			default                                     => null,
+			array_key_exists( self::QUERY_VAR, $_GET ) && in_array( $path, [ $base, $this->script_path() ], true )
+				       => self::URL_QUERY,
+			default => null,
 		};
 	}
 
@@ -1080,13 +1080,13 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		setcookie(
 			InstallerSession::COOKIE,
 			$value,
-			array(
+			[
 				'expires'  => 0,
 				'path'     => $this->base_path() . '/',
 				'secure'   => $this->is_https(),
 				'httponly' => true,
 				'samesite' => 'Strict',
-			)
+			]
 		);
 	}
 
@@ -1099,13 +1099,13 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		setcookie(
 			InstallerSession::COOKIE,
 			'',
-			array(
+			[
 				'expires'  => 1,
 				'path'     => $this->base_path() . '/',
 				'secure'   => $this->is_https(),
 				'httponly' => true,
 				'samesite' => 'Strict',
-			)
+			]
 		);
 	}
 

@@ -23,420 +23,420 @@ use function is_smliser_error, in_array, sprintf, basename, is_string, dirname, 
 trim, str_replace;
 
 class ThemeRepository extends Repository {
-    use WPRepoUtils, RepoFilesAwareTrait;
+	use WPRepoUtils, RepoFilesAwareTrait;
 
-    /**
-     * Allowed additional screenshots file extensions.
-     */
-    const ALLOWED_THEME_SCREENSHOT_EXTS = ['png', 'gif', 'avif', 'webp', 'jpg', 'jpeg'];
+	/**
+	 * Allowed additional screenshots file extensions.
+	 */
+	const ALLOWED_THEME_SCREENSHOT_EXTS = ['png', 'gif', 'avif', 'webp', 'jpg', 'jpeg'];
 
-    /**
-     * Constructor.
-     *
-     * Always binds to the `themes` subdirectory.
-     * 
-     * @param MDParser $mdparser        The markdown parser.
-     * @param URLManager $urlmanager    The URL manager.
-     */
-    public function __construct(
-        protected MDParser $mdparser,
-        protected URLManager $urlmanager,
-        FileSystem $file_system
-    ) {
-        parent::__construct( $file_system, 'themes' );
-    }
+	/**
+	 * Constructor.
+	 *
+	 * Always binds to the `themes` subdirectory.
+	 * 
+	 * @param MDParser $mdparser        The markdown parser.
+	 * @param URLManager $urlmanager    The URL manager.
+	 */
+	public function __construct(
+		protected MDParser $mdparser,
+		protected URLManager $urlmanager,
+		FileSystem $file_system
+	) {
+		parent::__construct( $file_system, 'themes' );
+	}
 
-    /**
-     * Locate a theme zip file in the repository and enter the theme slug directory.
-     *
-     * This method ensures:
-     * 1. The slug is valid and normalized.
-     * 2. The theme directory exists and is entered (sandboxing the scope).
-     * 3. The theme ZIP file ({slug}.zip) exists inside that directory.
-     *
-     * @param string $theme_slug The theme slug (e.g., "my-awesome-theme").
-     * @return string|Exception Absolute file path to the ZIP or Exception on failure.
-     */
-    public function locate( $theme_slug ) : string| Exception {
-        if ( empty( $theme_slug ) || ! is_string( $theme_slug ) ) {
-            return new Exception(
-                'invalid_slug',
-                __( 'Theme slug must be a non-empty string.', 'smliser' ),
-                [ 'status' => 400 ]
-            );
-        }
+	/**
+	 * Locate a theme zip file in the repository and enter the theme slug directory.
+	 *
+	 * This method ensures:
+	 * 1. The slug is valid and normalized.
+	 * 2. The theme directory exists and is entered (sandboxing the scope).
+	 * 3. The theme ZIP file ({slug}.zip) exists inside that directory.
+	 *
+	 * @param string $theme_slug The theme slug (e.g., "my-awesome-theme").
+	 * @return string|Exception Absolute file path to the ZIP or Exception on failure.
+	 */
+	public function locate( $theme_slug ) : string| Exception {
+		if ( empty( $theme_slug ) || ! is_string( $theme_slug ) ) {
+			return new Exception(
+				'invalid_slug',
+				__( 'Theme slug must be a non-empty string.', 'smliser' ),
+				[ 'status' => 400 ]
+			);
+		}
 
-        try {
-            $slug = $this->real_slug( $theme_slug );
-            $this->enter_slug( $slug );
-        } catch ( FileSystemException $e ) {
-            return new Exception(
-                'invalid_slug',
-                $e->get_error_message(),
-                [ 'status' => 400 ]
-            );
-        }
+		try {
+			$slug = $this->real_slug( $theme_slug );
+			$this->enter_slug( $slug );
+		} catch ( FileSystemException $e ) {
+			return new Exception(
+				'invalid_slug',
+				$e->get_error_message(),
+				[ 'status' => 400 ]
+			);
+		}
 
-        // Theme files MUST be a .zip file named after the theme slug.
-        $theme_file = $this->path( sprintf( '%s.zip', $slug ) );
+		// Theme files MUST be a .zip file named after the theme slug.
+		$theme_file = $this->path( sprintf( '%s.zip', $slug ) );
 
-        if ( ! $this->exists( $theme_file ) ) {
-            return new Exception(
-                'file_not_found',
-                __( 'Theme file not found.', 'smliser' ),
-                [ 'status'=> 404]
-            );
-        }
+		if ( ! $this->exists( $theme_file ) ) {
+			return new Exception(
+				'file_not_found',
+				__( 'Theme file not found.', 'smliser' ),
+				[ 'status' => 404]
+			);
+		}
 
-        return $theme_file;
-    }
+		return $theme_file;
+	}
 
-    /**
-     * {@inheritdoc}
-     *
-     * - Post-upload: validates the theme style.css and metadata.
-     */
-    public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) : array {
-        // Core upload via `Repository::safe_zip_upload()`.
-        $stored_path = $this->safe_zip_upload( $file, $new_name, $update );
-        if ( $stored_path instanceof Exception ) {
-            return [
-                'error' => $stored_path
-            ];
-        }
+	/**
+	 * {@inheritdoc}
+	 *
+	 * - Post-upload: validates the theme style.css and metadata.
+	 */
+	public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) : array {
+		// Core upload via `Repository::safe_zip_upload()`.
+		$stored_path = $this->safe_zip_upload( $file, $new_name, $update );
+		if ( $stored_path instanceof Exception ) {
+			return [
+				'error' => $stored_path
+			];
+		}
 
-        $base_folder    = dirname( $stored_path );
-        $slug           = basename( $stored_path, '.zip' );
+		$base_folder = dirname( $stored_path );
+		$slug        = basename( $stored_path, '.zip' );
 
-        $cleanup_func = function() use ( $update, $stored_path, $base_folder ) {
-            if ( $update ) {
-                $this->delete( $stored_path ); // only remove bad zip.
-            } else {
-                $this->rmdir( $base_folder, true ); // remove new folder completely.
-            }
-        };
+		$cleanup_func = function() use ( $update, $stored_path, $base_folder ) {
+			if ( $update ) {
+				$this->delete( $stored_path ); // only remove bad zip.
+			} else {
+				$this->rmdir( $base_folder, true ); // remove new folder completely.
+			}
+		};
 
-        // Post-upload validation: Check style.css and metadata.
-        $zip = new ZipArchive();
+		// Post-upload validation: Check style.css and metadata.
+		$zip = new ZipArchive();
 
-        if ( true !== $zip->open( $stored_path ) ) {
-            return [
-                'error' => new Exception(
-                    'zip_invalid',
-                    'Uploaded ZIP could not be opened.',
-                    [ 'status' => 400 ]
-                ),
-                'rollback_function' => $cleanup_func,
-                'base_dir'          => $base_folder,
-                'slug'              => $slug
-            ];
-        }
-        $firstEntry         = $zip->getNameIndex(0);
-        $rootDir            = explode( '/', $firstEntry )[0];
-        $style_css_index    = $zip->locateName( $rootDir . '/style.css', \ZipArchive::FL_NOCASE );
+		if ( true !== $zip->open( $stored_path ) ) {
+			return [
+				'error' => new Exception(
+					'zip_invalid',
+					'Uploaded ZIP could not be opened.',
+					[ 'status' => 400 ]
+				),
+				'rollback_function' => $cleanup_func,
+				'base_dir'          => $base_folder,
+				'slug'              => $slug
+			];
+		}
+		$firstEntry      = $zip->getNameIndex( 0 );
+		$rootDir         = explode( '/', $firstEntry )[0];
+		$style_css_index = $zip->locateName( $rootDir . '/style.css', \ZipArchive::FL_NOCASE );
 
-        if ( false === $style_css_index ) {
-            $zip->close();
-            return [
-                'error' => new Exception(
-                    'style_missing',
-                    'The theme zip file must contain a style.css file',
-                    [ 'status' => 400 ]
-                ),
-                'rollback_function' => $cleanup_func,
-                'base_dir'          => $base_folder,
-                'slug'              => $slug
-            ];
-        }
+		if ( false === $style_css_index ) {
+			$zip->close();
+			return [
+				'error' => new Exception(
+					'style_missing',
+					'The theme zip file must contain a style.css file',
+					[ 'status' => 400 ]
+				),
+				'rollback_function' => $cleanup_func,
+				'base_dir'          => $base_folder,
+				'slug'              => $slug
+			];
+		}
 
-        $style_css_content = $zip->getFromIndex( $style_css_index );
+		$style_css_content = $zip->getFromIndex( $style_css_index );
 
-        // Find changelog.txt file(not required).
-        $changelog_md_index = $zip->locateName( $rootDir . '/changelog.txt', ZipArchive::FL_NOCASE );
-        $changelog_content  = '';
+		// Find changelog.txt file(not required).
+		$changelog_md_index = $zip->locateName( $rootDir . '/changelog.txt', ZipArchive::FL_NOCASE );
+		$changelog_content  = '';
 
-        if ( false !== $changelog_md_index ) {
-            $changelog_content  = $zip->getFromIndex( $changelog_md_index );
-        }
+		if ( false !== $changelog_md_index ) {
+			$changelog_content = $zip->getFromIndex( $changelog_md_index );
+		}
 
-        // Find installation.txt file(not required).
-        $install_md_index   = $zip->locateName( $rootDir . '/installation.txt', ZipArchive::FL_NOCASE );
-        $install_md_content = '';
+		// Find installation.txt file(not required).
+		$install_md_index   = $zip->locateName( $rootDir . '/installation.txt', ZipArchive::FL_NOCASE );
+		$install_md_content = '';
 
-        if ( false !== $install_md_index ) {
-            $install_md_content  = $zip->getFromIndex( $install_md_index );
-        }
+		if ( false !== $install_md_index ) {
+			$install_md_content = $zip->getFromIndex( $install_md_index );
+		}
 
-        $zip->close();
+		$zip->close();
 
-        $style_css_path = FileSystemHelper::join_path( $base_folder, 'style.css' );
+		$style_css_path = FileSystemHelper::join_path( $base_folder, 'style.css' );
 
-        if ( ! $this->put_contents( $style_css_path, $style_css_content ) ) {
-            return [
-                'error' => new Exception(
-                    'style_css_save_faild',
-                    'Could not save the theme style.css file',
-                    [ 'status' => 500 ]
-                ),
-                'rollback_function' => $cleanup_func,
-                'base_dir'          => $base_folder,
-                'slug'              => $slug
-            ];
-        }
+		if ( ! $this->put_contents( $style_css_path, $style_css_content ) ) {
+			return [
+				'error' => new Exception(
+					'style_css_save_faild',
+					'Could not save the theme style.css file',
+					[ 'status' => 500 ]
+				),
+				'rollback_function' => $cleanup_func,
+				'base_dir'          => $base_folder,
+				'slug'              => $slug
+			];
+		}
 
-        if ( $changelog_content ) {
-            $changelog_path = FileSystemHelper::join_path( $base_folder, 'changelog.txt' );
-            $this->put_contents( $changelog_path, $changelog_content );
-        }
+		if ( $changelog_content ) {
+			$changelog_path = FileSystemHelper::join_path( $base_folder, 'changelog.txt' );
+			$this->put_contents( $changelog_path, $changelog_content );
+		}
 
-        if ( $install_md_content ) {
-            $install_md_path    = FileSystemHelper::join_path( $base_folder, 'installation.txt' );
-            $this->put_contents( $install_md_path, $install_md_content );
-        }
+		if ( $install_md_content ) {
+			$install_md_path = FileSystemHelper::join_path( $base_folder, 'installation.txt' );
+			$this->put_contents( $install_md_path, $install_md_content );
+		}
 
-        return [
-            'rollback_function' => $cleanup_func,
-            'base_dir'          => $base_folder,
-            'slug'              => $slug
-        ];
-    }
+		return [
+			'rollback_function' => $cleanup_func,
+			'base_dir'          => $base_folder,
+			'slug'              => $slug
+		];
+	}
 
-    /**
-     * Validate names and types of asset that can be uploaded for a theme.
-     * 
-     * @param UploadedFile $file The uploaded file instance.
-     * @param string $type       The asset type.
-     * @return Exception|string On error, file name otherwise.
-     */
-    public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : Exception|string {
-        $ext    = $file->get_canonical_extension();
-        $validation = $this->is_valid_image( $file->get_tmp_path() );
+	/**
+	 * Validate names and types of asset that can be uploaded for a theme.
+	 * 
+	 * @param UploadedFile $file The uploaded file instance.
+	 * @param string $type       The asset type.
+	 * @return Exception|string On error, file name otherwise.
+	 */
+	public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : Exception|string {
+		$ext        = $file->get_canonical_extension();
+		$validation = $this->is_valid_image( $file->get_tmp_path() );
 
-        if ( is_smliser_error( $validation ) ) {
-            return $validation;
-        }
+		if ( is_smliser_error( $validation ) ) {
+			return $validation;
+		}
 
-        switch ( $type ) {
-            case 'screenshot':
-                if ( ! in_array( $ext, static::ALLOWED_THEME_SCREENSHOT_EXTS, true ) ) {
-                    return new Exception( 'invalid_type', sprintf( 'Main theme screenshot must be one of: %s', implode( ', ', static::ALLOWED_THEME_SCREENSHOT_EXTS ) ) );
-                }
+		switch ( $type ) {
+			case 'screenshot':
+				if ( ! in_array( $ext, static::ALLOWED_THEME_SCREENSHOT_EXTS, true ) ) {
+					return new Exception( 'invalid_type', sprintf( 'Main theme screenshot must be one of: %s', implode( ', ', static::ALLOWED_THEME_SCREENSHOT_EXTS ) ) );
+				}
 
-                return sprintf( 'screenshot.%s', $ext );
-            case 'screenshots':
-                if ( preg_match( '/screenshot-(\d+)/', $file->get_name(), $m ) ) {
-                    $screenshot = sprintf( 'screenshot-%d.%s', $m[1], $ext );
-                    
-                } else {
-                    // Auto-generate next index.
-                    $screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
-                }
+				return sprintf( 'screenshot.%s', $ext );
+			case 'screenshots':
+				if ( preg_match( '/screenshot-(\d+)/', $file->get_name(), $m ) ) {
+					$screenshot = sprintf( 'screenshot-%d.%s', $m[1], $ext );
+					
+				} else {
+					// Auto-generate next index.
+					$screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
+				}
 
-                return $screenshot;
+				return $screenshot;
 
-            default:
-                return new Exception( 'invalid_type', 'Themes only supports screenshot and screenshots as asset type.', [ 'status' => 400 ] );
-        }
+			default:
+				return new Exception( 'invalid_type', 'Themes only supports screenshot and screenshots as asset type.', [ 'status' => 400 ] );
+		}
 
-    }
+	}
 
-    /**
-     * Abstract Implementation: Get theme assets as URLs.
-     *
-     * Theme assets includes screenshots (screenshot.png, etc.).
-     *
-     * @param string $slug Theme slug.
-     * @param string $type Asset type (e.g., 'screenshots').
-     * @return URL[]|URL URLs of assets.
-     */
-    public function get_assets( string $slug, string $type ) : array|URL|string {
-        // Normalize slug and ensure it is valid inside the repo.
-        $slug = $this->real_slug( $slug );
+	/**
+	 * Abstract Implementation: Get theme assets as URLs.
+	 *
+	 * Theme assets includes screenshots (screenshot.png, etc.).
+	 *
+	 * @param string $slug Theme slug.
+	 * @param string $type Asset type (e.g., 'screenshots').
+	 * @return URL[]|URL URLs of assets.
+	 */
+	public function get_assets( string $slug, string $type ) : array|URL|string {
+		// Normalize slug and ensure it is valid inside the repo.
+		$slug = $this->real_slug( $slug );
 
-        try {
-            $base_dir = $this->enter_slug( $slug );
-        } catch ( FileSystemException $e ) {
-            return ( 'screenshot' === $type ) ? URL::from( '' ) : [];
-        }
+		try {
+			$base_dir = $this->enter_slug( $slug );
+		} catch ( FileSystemException $e ) {
+			return ( 'screenshot' === $type ) ? URL::from( '' ) : [];
+		}
 
-        $assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
+		$assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
 
-        if ( ! $this->is_dir( $assets_dir ) ) {
-            return ( 'screenshot' === $type ) ? URL::from( '' ) : [];
-        }
+		if ( ! $this->is_dir( $assets_dir ) ) {
+			return ( 'screenshot' === $type ) ? URL::from( '' ) : [];
+		}
 
-        switch ( $type ) {
-            case 'screenshot':
-                // screenshot.{ext}.
-                $path           = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
-                $pattern        = sprintf( '%s.{%s}', $path, implode( ',', static::ALLOWED_THEME_SCREENSHOT_EXTS ) );
-                $screenshots    = glob( $pattern, \GLOB_BRACE );
-                
-                foreach( $screenshots as $screenshot ) {
-                    if ( $this->is_file( $screenshot ) ) {
-                        return $this->urlmanager->app_asset_url( 'theme', $slug, basename( $screenshot ) );
-                    }
-                }
-                
-                return URL::from( '' );
+		switch ( $type ) {
+			case 'screenshot':
+				// screenshot.{ext}.
+				$path        = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
+				$pattern     = sprintf( '%s.{%s}', $path, implode( ',', static::ALLOWED_THEME_SCREENSHOT_EXTS ) );
+				$screenshots = glob( $pattern, \GLOB_BRACE );
+				
+				foreach( $screenshots as $screenshot ) {
+					if ( $this->is_file( $screenshot ) ) {
+						return $this->urlmanager->app_asset_url( 'theme', $slug, basename( $screenshot ) );
+					}
+				}
+				
+				return URL::from( '' );
 
-            case 'screenshots':
-                // screenshot-{index}.{ext}.
-                $path           = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
-                $pattern        = sprintf( '%s-*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
-                $screenshots    = glob( $pattern, GLOB_BRACE );
-                
-                usort( $screenshots, function( $a, $b ) {
-                    return strnatcmp( basename( $a ), basename( $b ) );
-                } );
-                
-                $urls   = [];
+			case 'screenshots':
+				// screenshot-{index}.{ext}.
+				$path        = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
+				$pattern     = sprintf( '%s-*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
+				$screenshots = glob( $pattern, GLOB_BRACE );
+				
+				usort( $screenshots, function( $a, $b ) {
+					return strnatcmp( basename( $a ), basename( $b ) );
+				} );
+				
+				$urls = [];
 
-                foreach ( $screenshots as $screenshot ) {
-                    $name   = basename( $screenshot );
+				foreach ( $screenshots as $screenshot ) {
+					$name = basename( $screenshot );
 
-                    $url    = $this->urlmanager->app_asset_url( 'theme', $slug, $name );
+					$url = $this->urlmanager->app_asset_url( 'theme', $slug, $name );
 
-                    if ( preg_match( '/screenshot-(\d+)\./i', $name, $m ) ) {
-                       $urls[ (int) $m[1] ] = $url;
-                    } else {
-                        $urls[] = $url;
-                    }
-                }
+					if ( preg_match( '/screenshot-(\d+)\./i', $name, $m ) ) {
+					   $urls[ (int) $m[1] ] = $url;
+					} else {
+						$urls[] = $url;
+					}
+				}
 
-                ksort( $urls );
+				ksort( $urls );
 
-                return $urls;
+				return $urls;
 
-            default:
-                return [];
-        }
-    }
+			default:
+				return [];
+		}
+	}
 
-    /**
-     * Get main theme screenshot URL.
-     * 
-     * @return URL|string URL of the main screenshot or empty string if not found.
-     */
-    public function get_screenshot( string $slug ) : URL|string {
-        return $this->get_assets( $slug, 'screenshot' );
-    }
+	/**
+	 * Get main theme screenshot URL.
+	 * 
+	 * @return URL|string URL of the main screenshot or empty string if not found.
+	 */
+	public function get_screenshot( string $slug ) : URL|string {
+		return $this->get_assets( $slug, 'screenshot' );
+	}
 
-    /**
-     * Get the theme descriptions.
-     * 
-     * @return string The theme description in HTML format.
-     */
-    public function get_description( string $slug ) : string {
-        $metadata = $this->get_metadata( $slug );
+	/**
+	 * Get the theme descriptions.
+	 * 
+	 * @return string The theme description in HTML format.
+	 */
+	public function get_description( string $slug ) : string {
+		$metadata = $this->get_metadata( $slug );
 
-        if ( ! isset( $metadata['description'] ) ) {
-            return '';
-        }
+		if ( ! isset( $metadata['description'] ) ) {
+			return '';
+		}
 
-        return $this->mdparser->parse( $metadata['description'] );
-    }
+		return $this->mdparser->parse( $metadata['description'] );
+	}
 
-    /**
-     * Get short description.
-     * 
-     * @return string $slug The theme slug.
-     */
-    public function get_short_description( string $slug ) : string {
-        return \substr( $this->get_description( $slug ), 0, 800 );
-    }
+	/**
+	 * Get short description.
+	 * 
+	 * @return string $slug The theme slug.
+	 */
+	public function get_short_description( string $slug ) : string {
+		return \substr( $this->get_description( $slug ), 0, 800 );
+	}
 
-    /**
-     * Get the content of the theme style.css file.
-     * 
-     * @param string $slug The theme slug.
-     * @return string Style.css contents or empty string if not found.
-     */
-    public function get_style_css( string $slug ): string {
-        return $this->file_get_contents( $slug, 'style.css' );
-    }
-    
-    /**
-     * Get theme metadata from the style.css header.
-     *
-     * This method would parse the style.css file for theme headers (Theme Name, Version, etc.)
-     *
-     * @param string $slug The theme slug.
-     * @return array<string, mixed>
-     */
-    
-    public function get_metadata( string $slug ): array {
-        $style_contents = $this->get_style_css( $slug );
+	/**
+	 * Get the content of the theme style.css file.
+	 * 
+	 * @param string $slug The theme slug.
+	 * @return string Style.css contents or empty string if not found.
+	 */
+	public function get_style_css( string $slug ) : string {
+		return $this->file_get_contents( $slug, 'style.css' );
+	}
+	
+	/**
+	 * Get theme metadata from the style.css header.
+	 *
+	 * This method would parse the style.css file for theme headers (Theme Name, Version, etc.)
+	 *
+	 * @param string $slug The theme slug.
+	 * @return array<string, mixed>
+	 */
+	
+	public function get_metadata( string $slug ) : array {
+		$style_contents = $this->get_style_css( $slug );
 
-        if ( ! $style_contents ) {
-            return [];
-        }
+		if ( ! $style_contents ) {
+			return [];
+		}
 
-        $metadata = [];
-        $lines    = preg_split( '/\r\n|\r|\n/', $style_contents );
+		$metadata = [];
+		$lines    = preg_split( '/\r\n|\r|\n/', $style_contents );
 
-        /**
-         * Expected header block looks like:
-         *
-         * /*
-         * Theme Name: My Theme
-         * Description: Example theme
-         * Version: 1.0
-         * Tags: blog, clean, minimal
-         * * /
-         */
+		/**
+		 * Expected header block looks like:
+		 *
+		 * /*
+		 * Theme Name: My Theme
+		 * Description: Example theme
+		 * Version: 1.0
+		 * Tags: blog, clean, minimal
+		 * * /
+		 */
 
-        $header_started = false;
+		$header_started = false;
 
-        foreach ( $lines as $line ) {
-            $line = trim( $line );
+		foreach ( $lines as $line ) {
+			$line = trim( $line );
 
-            // Detect beginning of comment block.
-            if ( ! $header_started && preg_match( '/^\/\*/', $line ) ) {
-                $header_started = true;
-                continue;
-            }
+			// Detect beginning of comment block.
+			if ( ! $header_started && preg_match( '/^\/\*/', $line ) ) {
+				$header_started = true;
+				continue;
+			}
 
-            // Stop when comment block closes.
-            if ( $header_started && preg_match( '/\*\//', $line ) ) {
-                break;
-            }
+			// Stop when comment block closes.
+			if ( $header_started && preg_match( '/\*\//', $line ) ) {
+				break;
+			}
 
-            if ( ! $header_started || '' === $line ) {
-                continue;
-            }
+			if ( ! $header_started || '' === $line ) {
+				continue;
+			}
 
-            /*
-            * Parse key: value fields
-            * Example:
-            *   Theme Name: Smart Portal
-            *   Version: 0.2.0
-            *   Tags: dashboard, smart-woo
-            */
-            if ( preg_match( '/^([^:]+):\s*(.+)$/', $line, $matches ) ) {
+			/*
+			* Parse key: value fields
+			* Example:
+			*   Theme Name: Smart Portal
+			*   Version: 0.2.0
+			*   Tags: dashboard, smart-woo
+			*/
+			if ( preg_match( '/^([^:]+):\s*(.+)$/', $line, $matches ) ) {
 
-                $raw_key = trim( $matches[1] );
-                $value   = trim( $matches[2] );
+				$raw_key = trim( $matches[1] );
+				$value   = trim( $matches[2] );
 
-                $normalized_key = strtolower(
-                    str_replace( ' ', '_', $raw_key )
-                );
+				$normalized_key = strtolower(
+					str_replace( ' ', '_', $raw_key )
+				);
 
-                switch ( $normalized_key ) {
-                    case 'tags':
-                        $metadata[ $normalized_key ] = array_map(
-                            'trim',
-                            explode( ',', $value )
-                        );
-                        break;
+				switch ( $normalized_key ) {
+					case 'tags':
+						$metadata[ $normalized_key ] = array_map(
+							'trim',
+							explode( ',', $value )
+						);
+						break;
 
-                    default:
-                        $metadata[ $normalized_key ] = $value;
-                }
-            }
-        }
+					default:
+						$metadata[ $normalized_key ] = $value;
+				}
+			}
+		}
 
-        return $metadata;
-    }
+		return $metadata;
+	}
 
 }

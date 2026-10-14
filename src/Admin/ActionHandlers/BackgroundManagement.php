@@ -97,15 +97,15 @@ class BackgroundManagement {
 			return $this->fail( sprintf( 'No scheduled task "%s" is registered.', $task_id ), 404 );
 		}
 
-		$task_ids = '' !== $task_id ? array( $task_id ) : array_keys( $this->scheduler->get_due_tasks() );
+		$task_ids = '' !== $task_id ? [ $task_id ] : array_keys( $this->scheduler->get_due_tasks() );
 
 		if ( empty( $task_ids ) ) {
-			return $this->ok( 'No tasks are due.', array() );
+			return $this->ok( 'No tasks are due.', [] );
 		}
 
 		$this->allow_time();
 
-		$results = array();
+		$results = [];
 		$stopped = false;
 
 		foreach ( $task_ids as $id ) {
@@ -116,12 +116,12 @@ class BackgroundManagement {
 			}
 
 			$error     = $this->scheduler->run_task( $id );
-			$results[] = array(
+			$results[] = [
 				'id'    => $id,
 				'label' => $this->scheduler->get_task( $id )?->get_label() ?? $id,
 				'ok'    => null === $error,
 				'error' => $error,
-			);
+			];
 		}
 
 		$failed = count( array_filter( $results, static fn( array $result ) : bool => ! $result['ok'] ) );
@@ -163,7 +163,7 @@ class BackgroundManagement {
 
 		$this->allow_time();
 
-		$log = array();
+		$log = [];
 
 		$this->worker->set_logger(
 			static function ( string $line ) use ( &$log ) : void {
@@ -287,7 +287,7 @@ class BackgroundManagement {
 	 * @return bool
 	 */
 	private function update_job_queued() : bool {
-		foreach ( array( 'pending', JobDTO::STATUS_RETRYING ) as $status ) {
+		foreach ( [ 'pending', JobDTO::STATUS_RETRYING ] as $status ) {
 			if ( $this->job_queue->count_jobs( null, $status, ApplyUpdateJob::class ) > 0 ) {
 				return true;
 			}
@@ -314,10 +314,10 @@ class BackgroundManagement {
 	 */
 	private function ok( string $message, ?array $results = null ) : Response {
 		return Response::json(
-			data: array(
+			data: [
 				'success' => true,
-				'data'    => array( 'message' => $message ) + ( null === $results ? array() : array( 'results' => $results ) ),
-			),
+				'data'    => [ 'message' => $message ] + ( null === $results ? [] : [ 'results' => $results ] ),
+			],
 			status_code: 200
 		);
 	}
@@ -332,10 +332,10 @@ class BackgroundManagement {
 	 */
 	private function fail( string $message, int $status, ?array $results = null ) : Response {
 		return Response::json(
-			data: array(
+			data: [
 				'success' => false,
-				'data'    => array( 'message' => $message ) + ( null === $results ? array() : array( 'results' => $results ) ),
-			),
+				'data'    => [ 'message' => $message ] + ( null === $results ? [] : [ 'results' => $results ] ),
+			],
 			status_code: $status
 		);
 	}

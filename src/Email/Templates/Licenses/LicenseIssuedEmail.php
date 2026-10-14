@@ -18,52 +18,52 @@ use SmartLicenseServer\Monetization\License;
 
 class LicenseIssuedEmail extends EmailTemplate {
 
-    /**
-     * @param License $license   The issued license.
-     * @param string  $to Recipient email address.
-     */
-    public function __construct(
-        private readonly License $license,
-        private readonly string  $to
-    ) {}
+	/**
+	 * @param License $license   The issued license.
+	 * @param string  $to Recipient email address.
+	 */
+	public function __construct(
+		private readonly License $license,
+		private readonly string  $to
+	) {}
 
-    static public function template_key(): string {
-        return 'license_issued';
-    }
+	static public function template_key() : string {
+		return 'license_issued';
+	}
 
-    protected function subject(): string {
-        return 'Your License Key is Ready';
-    }
+	protected function subject() : string {
+		return 'Your License Key is Ready';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return 'Your license key has been issued. Find your key and activation details inside.';
-    }
+	protected function preheader() : string {
+		return 'Your license key has been issued. Find your key and activation details inside.';
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{licensee_name}}'   => $this->license->get_licensee_fullname(),
-            '{{license_key}}'     => $this->license->get_license_key(),
-            '{{start_date}}'      => $this->license->get_start_date()->format( \smliser_datetime_format() ),
-            '{{end_date}}'        => $this->license->get_end_date()->format( \smliser_datetime_format() ),
-            '{{activation_limit}}' => (string) $this->license->get_max_allowed_domains(),
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{licensee_name}}'    => $this->license->get_licensee_fullname(),
+			'{{license_key}}'      => $this->license->get_license_key(),
+			'{{start_date}}'       => $this->license->get_start_date()->format( \smliser_datetime_format() ),
+			'{{end_date}}'         => $this->license->get_end_date()->format( \smliser_datetime_format() ),
+			'{{activation_limit}}' => (string) $this->license->get_max_allowed_domains(),
+		] );
+	}
 
-    protected function body(): string {
-        $vars = $this->variables();
+	protected function body() : string {
+		$vars = $this->variables();
 
-        $licensee_name    = \escHtml( $vars['{{licensee_name}}'] );
-        $license_key      = \escHtml( $vars['{{license_key}}'] );
-        $start_date       = \escHtml( $vars['{{start_date}}'] );
-        $end_date         = \escHtml( $vars['{{end_date}}'] );
-        $activation_limit = \escHtml( $vars['{{activation_limit}}'] );
-        $support          = \escHtml( $vars['{{support_email}}'] );
+		$licensee_name    = \escHtml( $vars['{{licensee_name}}'] );
+		$license_key      = \escHtml( $vars['{{license_key}}'] );
+		$start_date       = \escHtml( $vars['{{start_date}}'] );
+		$end_date         = \escHtml( $vars['{{end_date}}'] );
+		$activation_limit = \escHtml( $vars['{{activation_limit}}'] );
+		$support          = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$licensee_name},
         </p>
@@ -133,64 +133,64 @@ class LicenseIssuedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'License Issued';
-    }
-    
-    public function description(): string {
-        return 'Sent when a new license is created and assigned to a licensee.';
-    }
+	public function label() : string {
+		return 'License Issued';
+	}
+	
+	public function description() : string {
+		return 'Sent when a new license is created and assigned to a licensee.';
+	}
 
-    public static function preview(): static {
-        $license = License::from_array([
-            'licensee_fullname'   => 'Jane Doe',
-            'license_key'         => 'SMLISER-XXXX-XXXX-XXXX',
-            'start_date'          => gmdate( 'Y-m-d' ),
-            'end_date'            => gmdate( 'Y-m-d', strtotime( '+1 year' ) ),
-            'max_allowed_domains' => 3,
-        ]);
+	public static function preview() : static {
+		$license = License::from_array( [
+			'licensee_fullname'   => 'Jane Doe',
+			'license_key'         => 'SMLISER-XXXX-XXXX-XXXX',
+			'start_date'          => gmdate( 'Y-m-d' ),
+			'end_date'            => gmdate( 'Y-m-d', strtotime( '+1 year' ) ),
+			'max_allowed_domains' => 3,
+		] );
 
-        return new static( $license, 'preview@example.com' );
-    }
+		return new static( $license, 'preview@example.com' );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{licensee_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'intro',
-                'type'      => 'text',
-                'content'   => 'Your license has been successfully issued. Below are your license details. Please keep this information safe.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'License Key',       'value' => '{{license_key}}' ],
-                    [ 'label' => 'Start Date',        'value' => '{{start_date}}' ],
-                    [ 'label' => 'Expiry Date',       'value' => '{{end_date}}' ],
-                    [ 'label' => 'Activation Limit',  'value' => '{{activation_limit}} site(s)' ],
-                ],
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you did not request this license or believe this was issued in error, please contact us immediately at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{licensee_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'intro',
+				'type'      => 'text',
+				'content'   => 'Your license has been successfully issued. Below are your license details. Please keep this information safe.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'License Key',       'value' => '{{license_key}}' ],
+					[ 'label' => 'Start Date',        'value' => '{{start_date}}' ],
+					[ 'label' => 'Expiry Date',       'value' => '{{end_date}}' ],
+					[ 'label' => 'Activation Limit',  'value' => '{{activation_limit}} site(s)' ],
+				],
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you did not request this license or believe this was issued in error, please contact us immediately at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 
 }

@@ -48,7 +48,7 @@ final class BuildContext {
 	 * @param string $relative Repository-relative path.
 	 * @return string
 	 */
-	public function source( string $relative ): string {
+	public function source( string $relative ) : string {
 		return self::join( $this->repo_root, $relative );
 	}
 
@@ -58,7 +58,7 @@ final class BuildContext {
 	 * @param string $relative Build-relative path.
 	 * @return string
 	 */
-	public function target( string $relative ): string {
+	public function target( string $relative ) : string {
 		return self::join( $this->out_dir, $relative );
 	}
 
@@ -68,8 +68,8 @@ final class BuildContext {
 	 * @param string ...$segments Path segments.
 	 * @return string
 	 */
-	public static function join( string ...$segments ): string {
-		$parts = array();
+	public static function join( string ...$segments ) : string {
+		$parts = [];
 
 		foreach ( $segments as $index => $segment ) {
 			$segment = 0 === $index ? rtrim( $segment, '/\\' ) : trim( $segment, '/\\' );

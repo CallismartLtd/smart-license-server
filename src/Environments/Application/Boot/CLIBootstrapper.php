@@ -37,62 +37,62 @@ use SmartLicenseServer\Security\Context\Guard;
  */
 class CLIBootstrapper implements BootstrapperInterface {
 
-    /**
-     * {@inheritdoc}
-     */
-    public function isEligible() : bool {
-        return \is_cli();
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function isEligible() : bool {
+		return \is_cli();
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function register( Container $container ) : void {
-        $container->singleton(
-            IdentityService::class,
-            fn ( Container $c ) : IdentityService => new IdentityService(
-                $c->get( Guard::class ),
-                $c->get( ConsoleIdentityProvider::class )
-            )
-        );
+	/**
+	 * {@inheritdoc}
+	 */
+	public function register( Container $container ) : void {
+		$container->singleton(
+			IdentityService::class,
+			fn ( Container $c ) : IdentityService => new IdentityService(
+				$c->get( Guard::class ),
+				$c->get( ConsoleIdentityProvider::class )
+			)
+		);
 
-        $container->singleton(
-            CommandRegistry::class,
-            fn ( Container $c ) : CommandRegistry => CommandRegistry::instance( $c )
-        );
+		$container->singleton(
+			CommandRegistry::class,
+			fn ( Container $c ) : CommandRegistry => CommandRegistry::instance( $c )
+		);
 
-        $container->set(
-            ConsoleInput::class,
-            fn ( Container $c ) : ConsoleInput => new ConsoleInput(
-                $c->get( Terminal::class )
-            )
-        );
+		$container->set(
+			ConsoleInput::class,
+			fn ( Container $c ) : ConsoleInput => new ConsoleInput(
+				$c->get( Terminal::class )
+			)
+		);
 
-        $container->set(
-            ConsoleOutput::class,
-            fn ( Container $c ) : ConsoleOutput => new ConsoleOutput(
-                $c->get( Terminal::class )
-            )
-        );
+		$container->set(
+			ConsoleOutput::class,
+			fn ( Container $c ) : ConsoleOutput => new ConsoleOutput(
+				$c->get( Terminal::class )
+			)
+		);
 
-        $container->singleton(
-            ScriptName::class,
-            fn () : ScriptName => ScriptName::fromGlobals()
-        );
-        
-        $container->singleton(
-            ExecutionHandlerInterface::class,
-            fn ( Container $c ) : ConsoleExecutionHandler => new ConsoleExecutionHandler(
-                $c->get( ConsoleDispatcher::class )
-            )
-        );
-    }
+		$container->singleton(
+			ScriptName::class,
+			fn () : ScriptName => ScriptName::fromGlobals()
+		);
+		
+		$container->singleton(
+			ExecutionHandlerInterface::class,
+			fn ( Container $c ) : ConsoleExecutionHandler => new ConsoleExecutionHandler(
+				$c->get( ConsoleDispatcher::class )
+			)
+		);
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function boot( Container $container ) : void {
-        $container->alias( InputInterface::class, ConsoleInput::class );
-        $container->alias( OutputInterface::class, ConsoleOutput::class );
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function boot( Container $container ) : void {
+		$container->alias( InputInterface::class, ConsoleInput::class );
+		$container->alias( OutputInterface::class, ConsoleOutput::class );
+	}
 }

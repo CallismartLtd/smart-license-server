@@ -29,1273 +29,1270 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  * @author Callistus Nwachukwu <admin@callismart.com.ng>
  */
 class License extends DataStore {
-    use SanitizeAwareTrait, DatePropertyAwareTrait;
-    /**
-     * The license ID
-     * 
-     * @var int $id
-     */
-    protected int $id = 0;
-
-    /**
-     * The full name of the licensee.
-     * 
-     * @var string $licensee_fullname
-     */
-    protected string $licensee_fullname = '';
-
-    /**
-     * The license key
-     * 
-     * @var string $license_key
-     */
-    protected string $license_key = '';
-
-    /**
-     * The ID of the service associated with the license.
-     * This property will be required for license activation.
-     * 
-     * @var string $service_id
-     */
-    protected string $service_id = '';
-
-    /**
-     * The type and slug of the hosted application this license is issued to.
-     * 
-     * @var array $app_prop
-     */
-    protected array $app_prop    = [
-        'type'  => '',
-        'slug'  => ''
-    ];
-
-    /**
-     * The instance of the hosted aplication this license is issued to.
-     * 
-     * @var AbstractHostedApp
-     */
-    protected ?AbstractHostedApp $app;
-
-    /**
-     * The status of the license.
-     * 
-     * @var string $status
-     */
-    protected string $status = '';
-
-    /**
-     * The license commencement date.
-     * 
-     * @var DateTimeImmutable $start_date
-     */
-    protected ?DateTimeImmutable $start_date = null;
-
-    /**
-     * The end date of the license.
-     * 
-     * @var DateTimeImmutable  $end_date
-     */
-    protected ?DateTimeImmutable $end_date   = null;
-
-    /**
-     * Creation date.
-     * 
-     * @var DateTimeImmutable $created_at
-     */
-    protected ?DateTimeImmutable $created_at = null;
-
-    /**
-     * Update date.
-     * 
-     * @var DateTimeImmutable $updated_at
-     */
-    protected ?DateTimeImmutable $updated_at = null;
-
-    /**
-     * Number of allowed domains that can request license activation.
-     * 
-     * @var int $max_allowed_domains
-     */
-    protected int $max_allowed_domains = 0;
-
-    /**
-     * The license meta data
-     * 
-     * @var array $meta_data
-     */
-    protected array $meta_data = array(
-        'activated_on'  => []
-    );
-
-    public const STATUS_ACTIVE      = 'active';
-    public const STATUS_EXPIRED     = 'expired';
-    public const STATUS_LIFETIME    = 'lifetime';
-    public const STATUS_INACTIVE    = 'inactive';
-    public const STATUS_PENDING     = 'pending';
-    public const STATUS_SUSPENDED   = 'suspended';
-    public const STATUS_REVOKED     = 'revoked';
-    public const STATUS_DEACTIVATED = 'deactivated';
-
-
-    /**
-     * Class constructor
-     */
-    public function __construct() {}
-
-    /**
-    |-------------
-    | SETTERS
-    |-------------
-    */
-
-    /**
-     * Set the license ID.
-     * 
-     * @param int $id
-     * @return static
-     */
-    public function set_id( $id ) : static {
-        $this->id = static::sanitize_int( $id );
-
-        return $this;
-    }
-
-    /**
-     * Set licensee full name.
-     * 
-     * @param string $name
-     * @return static
-     */
-    public function set_licensee_fullname( $name ) : static {
-        $this->licensee_fullname = static::sanitize_text( $name );
-
-        return $this;
-    }
-
-    /**
-     * Set the license key
-     *
-     * @param string $value
-     * @return static
-     */
-    public function set_license_key( $value ) : static {
-        $this->license_key = static::sanitize_text( $value );
-
-        return $this;
-    }
-
-    /**
-     * Set the service ID for this license
-     * 
-     * @param string $service_id The service ID for this license.
-     * @return static
-     */
-    public function set_service_id( $service_id ) : static {
-        $this->service_id = static::sanitize_text( $service_id );
-
-        return $this;
-    }
-
-    /**
-     * Set the properties of the app associated with this license.
-     * 
-     * @param string $app_type  The app type
-     * @param string $app_slug  The app slug.
-     * @return static
-     */
-    public function set_app_prop( string $app_type, string $app_slug ) : static {
-        $this->app_prop['type'] = static::sanitize_text( $app_type );
-        $this->app_prop['slug'] = static::sanitize_text( $app_slug );
-
-        return $this;
-    }
-
-    /**
-     * Set the app this license is issued to.
-     * 
-     * @param AbstractHostedApp|null $app
-     * @return static
-     */
-    public function set_app( ?AbstractHostedApp $app ) : static {
-        $this->app = $app;
-
-        if ( $app instanceof AbstractHostedApp ) {
-            $this->set_app_prop( $app->get_type(), $app->get_slug() );
-        }
-
-        return $this;
-    }
-
-    /**
-     * Set license status.
-     * 
-     * @param string $status
-     * @return static
-     */
-    public function set_status( $status ) : static {
-        $this->status = $status;
-
-        return $this;
-    }
-
-    /**
-     * Set the license start date
-     * 
-     * @param string $start_date
-     * @return static
-     */
-    public function set_start_date( $start_date ) : static {
-        return $this->set_date_prop( $start_date, 'start_date' );
-    }
-
-    /**
-     * Set the license end date
-     * 
-     * @param string $end_date
-     * @return static
-     */
-    public function set_end_date( $end_date ) : static {
-        return $this->set_date_prop( $end_date, 'end_date' );
-    }
-
-    /**
-     * Set the maximum allowed domains that can request license activation.
-     * 
-     * @param int $number_of_domains
-     * @return static
-     */
-    public function set_max_allowed_domains( $number_of_domains ) : static {
-        $this->max_allowed_domains = max( -1, intval( $number_of_domains ) );
-
-        return $this;
-    }
-
-    /**
-     * Set the value of the given meta data name
-     * 
-     * @param string $meta_name The name of the meta data to set.
-     * @param mixed $meta_value The value of the meta data.
-     * @return static
-     */
-    public function set_meta( $meta_name, $meta_value ) : static {
-        $this->meta_data[static::sanitize_key( $meta_name )]    = static::sanitize_auto( $meta_value );
-
-        return $this;
-    }
-
-    /**
-     * Set the entire meta data of this license
-     * 
-     * @param array $meta_data
-     * @return static
-     */
-    public function set_meta_data( array $meta_data ) : static {
-
-        foreach( $meta_data as $name => $value ) {
-            if ( \is_numeric( $name ) ) {
-                continue;
-            }
-
-            $this->set_meta( $name, $value );
-        }
-
-        return $this;
-    }
-
-    /**
-     * Set date created
-     * 
-     * @param mixed $date
-     */
-    public function set_created_at( mixed $date ) : static {
-        return $this->set_date_prop( $date, 'created_at' );
-    }
-
-    /**
-     * Set date updated
-     * 
-     * @param string|DateTimeImmutable $date
-     */
-    public function set_updated_at( mixed $date ) : static {
-        return $this->set_date_prop( $date, 'updated_at' );
-    }
-
-    /**
-    |-------------
-    | GETTERS
-    |-------------
-    */
-
-    /**
-     * Get the license ID.
-     * 
-     * @return int
-     */
-    public function get_id() {
-        return $this->id;
-    }
-
-    /**
-     * Get the the ID of the user associated with the license
-     * 
-     * @return int
-     */
-    public function get_licensee_fullname() {
-        return $this->licensee_fullname;
-    }
-
-    /**
-     * Get the license key
-     *
-     * @return string
-     */
-    public function get_license_key() {
-        return $this->license_key;
-    }
-
-    /**
-     * Get the service ID for this license
-     * 
-     * @return string
-     */
-    public function get_service_id() {
-        return $this->service_id;
-    }
-
-    /**
-     * Get the properties of the app associated with this license.
-     * 
-     * @param string $context The context to retrieve the app prop.
-     * @return array|string
-     */
-    public function get_app_prop( string $context = 'view' ) : array|string {
-        if ( 'view' === $context ) {
-            $prop       = array_filter( $this->app_prop );
-            $formatted  = implode( '/', $prop );
-            return $formatted;
-        }
-
-        return $this->app_prop;
-    }
-
-    /**
-     * Get the app this license is issued to.
-     * 
-     * Intentionally lazy loaded because the app instance is not always required
-     * when working with licenses. This is to optimize performance by avoiding unnecessary 
-     * loading of app instances.
-     * 
-     * @return AbstractHostedApp|null $app
-     */
-    public function get_app() : ?AbstractHostedApp {
-
-        if ( ! isset( $this->app ) ) {
-            if ( count(  $this->app_prop ) !== 2 ) {
-                return null;
-            }
-
-            $app_type   = $this->app_prop['type'] ?? '';
-            $app_slug   = $this->app_prop['slug'] ?? '';
-
-            $app        = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
-
-            $this->set_app( $app );
-        }
-
-        return $this->app;
-    }
-
-    /**
-     * Get license status.
-     *
-     * When $context is 'edit' the stored property value is returned as-is.
-     * When $context is 'view' (default) – if the stored status is empty the
-     * method derives the status from start/end dates. If the stored status
-     * is present it will be returned (normalized).
-     *
-     * @param string $context Context for the status: 'view' or 'edit'. Default 'view'.
-     * @return string
-     */
-    public function get_status( string $context = 'view' ) : string {
-        // When editing we want the raw stored value (no derivation).
-        if ( 'edit' === $context ) {
-            return (string) $this->status;
-        }
-
-        // Normalize stored status if present.
-        $stored = trim( (string) $this->status );
-        if ( '' !== $stored ) {
-            return strtolower( $stored );
-        }
-
-        // Derive status from dates because stored status is empty.
-        $start = $this->get_start_date();
-        $end   = $this->get_end_date();
-
-        // Lifetime when there is no end date.
-        if ( empty( $end ) ) {
-            return static::STATUS_LIFETIME;
-        }
-
-        $now      = \time();
-        $start_ts = $start?->getTimestamp() ?? 0;
-        $end_ts   = $end->getTimestamp();
-
-        // If start defined and now is before start -> pending.
-        if ( $start_ts > 0 && $now < $start_ts ) {
-            return static::STATUS_PENDING;
-        }
-
-        // If now is after end -> expired.
-        if ( $now > $end_ts ) {
-            return static::STATUS_EXPIRED;
-        }
-
-        // Otherwise we are within the active window.
-        return static::STATUS_ACTIVE;
-    }
-
-
-    /**
-     * Get the license start date
-     * 
-     * @return DateTimeImmutable|null $start_date
-     */
-    public function get_start_date() : ?DateTimeImmutable {
-        return $this->start_date;
-    }
-
-    /**
-     * Get the license end date
-     * 
-     * @return DateTimeImmutable|null $end_date
-     */
-    public function get_end_date(): ?DateTimeImmutable {
-        return $this->end_date;
-    }
-
-    /**
-     * Get date created.
-     * 
-     * @return DateTimeImmutable|null
-     */
-    public function get_created_at() : ?DateTimeImmutable {
-        return $this->created_at;
-    }
-
-    /**
-     * Get date updated.
-     * 
-     * @return DateTimeImmutable|null
-     */
-    public function get_updated_at() : ?DateTimeImmutable {
-        return $this->updated_at;
-    }
-
-    /**
-     * Get the maximum allowed domains that can request license activation.
-     * 
-     * @param string $context
-     * @return string|int $number_of_domains
-     */
-    public function get_max_allowed_domains( string $context = 'view' ) : string|int {
-
-        if ( 'view' === $context ) {
-            if ( $this->max_allowed_domains < 0 ) {
-                return 'Unlimited';
-            }
-            if ( empty( $this->max_allowed_domains ) ) {
-                return 'None';
-            }
-        }
-
-        if ( 'edit' === $context ) {
-            if ( $this->max_allowed_domains < 0 ) {
-                return '';
-            }
-        }
-
-        return $this->max_allowed_domains;
-    }
-
-    /**
-     * Get the value of the given meta data key
-     * 
-     * @param string $meta_name The name of the meta key.
-     * @param mixed $default    The default value to return when the meta name is not found.
-     * @return mixed
-     */
-    public function get_meta( $meta_name, $default = null ) {
-        return $this->meta_data[$meta_name] ?? $default;
-    }
-
-    /**
-     * Get the meta data
-     * 
-     * @return array
-     */
-    public function get_meta_data() {
-        return $this->meta_data;
-    }
-
-    /*
-    |-----------------
-    |   CRUD METHODS
-    |-----------------
-    */
-
-    /**
-     * Get license object using service ID and the license key
-     * 
-     * @param string $service_id The service ID associated with the licence
-     * @param string $license_key   The license key
-     * @return static|null
-     */
-    public static function get_license( $service_id, $license_key ) : ?static {
-        $key    = static::make_cache_key( __METHOD__, [$service_id, $license_key] );
-
-        /** @var static|false $result */
-        $result = static::cache_get( $key );
-
-        if ( false === $result || ! ( $result instanceof static ) ) {
-            $table  = TableName::LICENSES->table();
-            $sql    = static::query()->select( '*' )->from( $table )
-                ->where( 'service_id', '=', $service_id )
-                ->where( 'license_key', '=', $license_key );
-
-            $data = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
-            
-            if ( $data ) {
-                $result =  static::from_array( $data );
-            } else {
-                $result = null;
-            }
-
-            static::cache_set( $key, $result, static::default_ttl() );
-        }
-
-        return $result;
-
-    }
-
-    /**
-     * Get license by ID
-     * 
-     * @param int $id
-     * @return static|null
-     */
-    public static function get_by_id( $id ) : ?static {
-        $key    = static::make_cache_key( __METHOD__, [$id] );
-
-        $license = static::cache_get( $key );
-
-        if ( false === $license || ! ( $license instanceof static ) ) {
-            $data       = static::fetch_by( 'id', $id, TableName::LICENSES->table() );
-            $license    = $data ? static::from_array( $data ) : null;
-
-            static::cache_set( $key, $license, static::default_ttl() );
-        }
-
-        return $license;
-    }
-
-    /**
-     * Get all licenses with pagination support.
-     *
-     * @param int $page  Current page number.
-     * @param int $limit Items per page.
-     *
-     * @return array{
-     *  items: static[], 
-     *  pagination: 
-     *      array{
-     *          page: int,
-     *          limit: int,
-     *          total: int,
-     *          total_pages: int
-     *      }
-     *  } 
-     */
-    public static function get_all( int $page = 1, int $limit = 30 ) : array {
-
-        $page  = (int) max( 1, $page );
-        $limit = (int) max( 1, $limit );
-
-        $key  = static::make_cache_key( __METHOD__, array( $page, $limit ) );
-        $data = false; //static::cache_get( $key );
-
-        if ( false !== $data && is_array( $data ) ) {
-            return $data;
-        }
-
-        $items  = \array_map(
-            [static::class, 'from_array'],
-            static::fetch( TableName::LICENSES->table(), $page, $limit )
-        );
-
-        /**
-         * Fetch total count
-         */
-        $count_sql = self::query()->select( 'COUNT(*)' )->from( TableName::LICENSES->table() );
-        $total     = (int) static::$DB->get_var( $count_sql->build_raw() );
-
-        $result = array(
-            'items'      => $items,
-            'pagination' => array(
-                'page'        => $page,
-                'limit'       => $limit,
-                'total'       => $total,
-                'total_pages' => $limit > 0 ? (int) ceil( $total / $limit ) : 0,
-            ),
-        );
-
-        static::cache_set( $key, $result, static::default_ttl() );
-
-        return $result;
-    }
-
-    /**
-     * Search licenses in the database.
-     *
-     * @param array $args.
-     *
-     * @return array {
-     *     @type static[] $items
-     *     @type array    $pagination
-     * }
-     */
-    public static function search( array $args = [] ) : array {
-
-        $defaults   = array(
-            'search_term'   => '',
-            'page'          => 1,
-            'limit'         => 10
-        );
-
-        $args   = parse_args( $args, $defaults );
-
-        $key  = static::make_cache_key( __METHOD__, $args );
-        $data = static::cache_get( $key );
-
-        if ( false !== $data ) {
-            return $data;
-        }
-
-        $db     = static::$DB;
-        $table  = TableName::LICENSES->table();
-        $page   = max( 1, $args['page'] );
-        $limit  = max( 1, $args['limit'] );
-        $offset = $db->calculate_query_offset( $page, $limit );
-
-        $like   = $args['search_term'] . '%';
-
-        $sql    = 
-            static::query()->select( '*' )->from( $table )
-            ->where( 'licensee_fullname', 'LIKE', $like )
-            ->or_where( 'license_key', 'LIKE', $like )
-            ->or_where( 'service_id', 'LIKE', $like )
-            ->order_by( 'id', 'DESC' )
-            ->limit( $limit )->offset( $offset );
-        
-        $rows   = $db->get_results( $sql->build(), $sql->get_bindings() );
-
-        $items = [];
-
-        if ( ! empty( $rows ) ) {
-            foreach ( $rows as $row ) {
-                $items[] = static::from_array( $row );
-            }
-        }
-
-        /**
-         * Fetch total count
-         */
-        $count_sql  = static::query()->select( 'COUNT(*)' )->from( $table )
-            ->where( 'licensee_fullname', 'LIKE', $like )
-            ->or_where( 'license_key', 'LIKE', $like )
-            ->or_where( 'service_id', 'LIKE', $like );
-
-        $total  = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
-
-        $result = array(
-            'items'      => $items,
-            'pagination' => array(
-                'page'        => $page,
-                'limit'       => $limit,
-                'total'       => $total,
-                'total_pages' => $limit > 0 ? (int) ceil( $total / $limit ) : 0,
-            ),
-        );
-
-        static::cache_set( $key, $result, static::default_ttl() );
-
-        return $result;
-    }
-
-    /**
-     * Save the license.
-     * 
-     * @return bool True when license is save, false otherwise
-     */
-    public function save() : bool {
-        $db         = static::$DB;
-        $table      = TableName::LICENSES->table();
-        $meta_table = TableName::LICENSE_META->table();
-        $now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
-
-        $data       = array(
-            'licensee_fullname'     => $this->get_licensee_fullname(),
-            'service_id'            => $this->get_service_id(),
-            'app_prop'              => $this->get_app_prop( 'view' ),
-            'max_allowed_domains'   => $this->get_max_allowed_domains( 'save' ),
-            'status'                => $this->get_status( 'edit' ),
-            'start_date'            => $this->get_start_date()?->format( 'Y-m-d H:i:s' ),
-            'end_date'              => $this->get_end_date()?->format( 'Y-m-d H:i:s' ),
-            'updated_at'            => $now->format( 'Y-m-d H:i:s' ),
-
-        );
-
-        $meta_data  = $this->get_meta_data();
-
-
-        if ( $this->exists() ) {
-            $updated        = $db->update( $table, $data, ['id' => $this->id] );
-            $this->set_updated_at( $now );
-            $updated_meta   = 0;
-
-            foreach ( $meta_data as $k => $v ) {
-                
-                $sql        = self::query()->select( 'id' )->from( $meta_table )
-                    ->where( 'meta_key', '=', $k )
-                    ->where( 'license_id', '=', $this->id );
-                $meta_id    = $db->get_var( $sql->build(), $sql->get_bindings() );
-
-                $metadata   = [
-                    'meta_key'      => $k,
-                    'meta_value'    => Format::encode( $v, Format::ENCODING_PHP ),
-                    'license_id'    => $this->id
-                ];
-
-                if ( $meta_id ) {
-                    $metadata['id'] = $meta_id;
-                    $done   = $db->update( $meta_table, $metadata, ['license_id' => $this->id] );
-                } else {
-                    $done   = $db->insert( $meta_table, $metadata );
-
-                }
-
-                $done && $updated_meta++;
-            }
-
-            $result = ( false !== $updated ) || ( $updated_meta > 0 );
-
-        } else {
-            $data['license_key']    = $this->generate_license_key( '', false, 20 );
-            $data['created_at']     = $now->format( 'Y-m-d H:i:s' );
-            $inserted               = $db->insert( $table, $data );
-
-            $inserted_meta  = 0;
-            if ( $inserted ) {
-                $this->set_id( $db->get_insert_id() );
-                $this->set_license_key( $data['license_key'] );
-                $this->set_created_at( $now );
-                $this->set_updated_at( $now );
-
-                foreach ( $meta_data as $k => $v ) {
-                    $metadata  = [
-                        'meta_key'      => $k,
-                        'meta_value'    => Format::encode( $v, Format::ENCODING_PHP ),
-                        'license_id'    => $this->id
-                    ];
-                    $done   = $db->insert( $meta_table, $metadata );
-
-                    $done && $inserted_meta++;
-                }
-            }
-            
-            $result = ( false !== $inserted ) || ( $inserted_meta > 0 );
-        }
-
-        static::cache_clear();
-
-        return false !== $result;
-
-    }
-
-    /**
-     * Load the metadata from the database
-     *
-     * @return static
-     */
-    public function load_meta() : static {
-        $db         = static::$DB;
-        $table      = TableName::LICENSE_META->table();
-        $sql        = 
-            $this->query()
-            ->select( 'meta_key', 'meta_value')
-            ->from( $table )
-            ->where( 'license_id', '=', $this->get_id() );
-
-        $results    = $db->get_results( $sql->build(), $sql->get_bindings() );
-
-        foreach( $results as $result ) {
-            $value      = $result['meta_value'] ?? '';
-            $meta_name  = $result['meta_key'] ?? '';
-            $meta_value = Format::decode( $value );
-
-            if ( ! empty( $meta_name ) ) {
-                $this->set_meta( $meta_name, $meta_value );
-            }
-        }
-
-
-        return $this;
-    }
-
-    /**
-     * Delete license from the database along with its associated metadata.
-     * 
-     * @return bool True on success, false otherwise.
-     * @throws Exception If a concurrent modification is detected or if database execution fails.
-     */
-    public function delete() : bool {
-        if ( ! $this->id ) {
-            return false;
-        }
-
-        $table      = TableName::LICENSES->table();
-        $meta_table = TableName::LICENSE_META->table();
-
-        // Compile query structures via the Query Builder.
-        $delete_license_sql = static::query()->delete( $table )->where( 'id', '=', $this->id );
-        $delete_meta_sql    = static::query()->delete( $meta_table )->where( 'license_id', '=', $this->id );
-        $lock_query         = static::query()->select( 'id' )->from( $table )->where( 'id', '=', $this->id )->limit( 1 );
-
-        $deleted = false;
-
-        static::$DB->transactional( function( Database $db ) use ( $lock_query, $table, $delete_license_sql, $delete_meta_sql, &$deleted ) {
-            $lock_sql = $lock_query->lock_for_update()->build();
-
-            $exists   = $db->get_row( $lock_sql, $lock_query->get_bindings() );
-
-            if ( ! $exists ) {
-                throw new Exception( 'delete_error', 'License record locked or already removed by a concurrent request.' );
-            }
-
-            if ( false === $db->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) ) {
-                throw new Exception( 'delete_error', 'Database execution failure dropping license metadata entries.' );
-            }
-
-            if ( false === $db->execute( $delete_license_sql->build(), $delete_license_sql->get_bindings() ) ) {
-                throw new Exception( 'delete_error', 'Database execution failure dropping primary license record.' );
-            }
-
-            $deleted = true;
-        } );
-
-        if ( $deleted ) {
-            static::cache_clear();
-        }
-
-        return $deleted;
-    }
-
-    /**
-    |---------------------
-    | UTILITY METHODS
-    |---------------------
-    */
-
-    /**
-     * Get All active licensed Websites.
-     */
-    public function get_active_domains( $context = 'view' ) {
-        $all_domains = $this->get_meta( 'activated_on', [] );
-
-        if ( 'view' === $context && is_array( $all_domains ) ) {
-            $all_hosts = array_keys( $all_domains );
-            $all_domains = ! empty( $all_hosts ) ? implode( ', ', $all_hosts ) : 'N/A';
-        }
-
-        return $all_domains;
-        
-    }
-
-    /**
-     * Converts and return associative array to object of this class.
-     * 
-     * @param array $data   Associative array containing result from database
-     */
-    public static function from_array( $data ) : static {
-        $static = new static();
-        $static->set_id( $data['id'] ?? 0 );
-        $static->set_licensee_fullname( $data['licensee_fullname'] ?? '' );
-        $static->set_service_id( $data['service_id'] ?? '' );
-        $static->set_license_key( $data['license_key'] ?? '' );
-        $static->set_status( $data['status'] ?? '' );
-        $static->set_start_date( $data['start_date'] ?? '' );
-        $static->set_end_date( $data['end_date'] ?? '' );
-        $static->set_max_allowed_domains( $data['max_allowed_domains'] ?? 0 );
-        $static->set_created_at( $data['created_at'] ?? null );
-        $static->set_updated_at( $data['updated_at'] ?? null );
-
-        $app_prop   = $data['app_prop'] ?? '';
-
-        if ( ! empty( $app_prop ) && is_string( $app_prop ) && preg_match( '#^[^/]+/[^/]+$#', $app_prop ) ) {
-            list( $app_type, $app_slug ) = explode( '/', $app_prop, 2 );
-            $static->set_app_prop( $app_type, $app_slug );
-        } else if ( is_array( $app_prop ) && count( $app_prop ) === 2 ) {
-            $app_type   = (string) \array_first( $app_prop );
-            $app_slug   = (string) \array_last( $app_prop );
-            $static->set_app_prop( $app_type, $app_slug );
-        }
-
-        $static->load_meta();
-
-        return $static;
-    }
-
-    /**
-     * Convert to array
-     * 
-     * @return array
-     */
-    public function to_array() : array {
-        return get_object_vars( $this );
-    }
-
-    /**
-     * Get total domains using this license.
-     */
-    public function get_total_active_domains() {
-        return count( (array) $this->get_meta( 'activated_on', [] ) );
-    }
-
-    /**
-     * Get the value of a domain from the active list.
-     * 
-     * @param string $url The domain or website name.
-     * @param bool $all_data  Whether to include the values of the domain.
-     * @return mixed
-     */
-    public function get_active_domain( $url, $all_data = true ) {
-        $all_domains = $this->get_active_domains( 'edit' );
-
-        $url    = $this->ensure_domain( $url );
-        $host   = $url->get_host();
-
-        if ( ! isset( $all_domains[$host] ) ) {
-            return null;
-        }
-
-        $domain_data    = $all_domains[$host];
-
-        if ( $all_data ) {
-            return $domain_data;
-        }
-        return $domain_data['origin'];
-        
-    }
-
-    /**
-     * Add or update the domains where this license is currently activated.
-     * 
-     * @param string $url The url of the site to be added.
-     * @param string $site_secret The secret key for the site.
-     */
-    public function update_active_domains( $url, $site_secret ) {
-        $sites  = $this->get_meta( 'activated_on', [] );
-        if ( ! is_array( $sites ) ) {
-            $sites = [];
-        }
-        
-        $url    = $this->ensure_domain( $url );
-        $origin = $url->get_origin();
-        $host   = $url->get_host();
-        
-        $sites[$host] = array(
-            'origin'    => $origin,
-            'secret'    => $site_secret,
-        );
-
-        $this->set_meta( 'activated_on', $sites );
-        $this->save();
-    }
-
-    /**
-     * Remove a domain from activated list.
-     * 
-     * @param string $domain The domain
-     */
-    public function remove_activated_domain( string|URL $domain ) : bool {
-        $sites  = $this->get_meta( 'activated_on' );
-
-        if ( empty( $sites ) || ! is_array( $sites ) ) {
-            return false;
-        }
-        
-        $url    = $this->ensure_domain( $domain );
-        $host   = $url->get_host();
-
-        unset( $sites[$host] );
-        
-        $this->set_meta( 'activated_on', $sites );
-        $this->save();
-        
-        return true;
-    }
-
-    /**
-     * Whether license has reached max allowed domains.
-     */
-    public function has_reached_max_allowed_domains() {
-
-        if ( -1 === $this->max_allowed_domains ) {
-            return false;
-        }
-        
-       return $this->get_total_active_domains() >= $this->max_allowed_domains;
-    }
-
-    /**
-     * Checks whether the a given domain is a new domain
-     * 
-     * @param string $domain The name of the website.
-     */
-    public function is_new_domain( string $domain ) {
-        $url    = $this->ensure_domain( $domain );
-
-        $domain = $url->get_host();
-
-        $all_sites      = $this->get_active_domains( 'edit' );
-        
-        return ! isset( $all_sites[$domain] );
-    }
-
-    /**
-     * Helper method to ensure a given domain is a valid URL.
-     * 
-     * @param string|URL $domain
-     */
-    private function ensure_domain( string|URL $domain ) : URL {
-        if ( ( $domain instanceof URL ) ) {
-            $url = $domain;
-            if ( ! $url->has_scheme() ) {
-                // Malformed url, rebuild it.
-                $url    = $url->set_scheme( 'https' );
-                $url    = URL::from( $url->url() );
-            }
-
-            return $url;
-        }
-
-        $url    = URL::from( $domain );
-        return $this->ensure_domain( $url );
-    }
-
-    /**
-     * Tells whether this license is issued to an app.
-     * 
-     * @return bool
-     */
-    public function is_issued() : bool {
-        if ( ! isset( $this->app ) ) {
-            $this->get_app();
-        }
-        
-        return ( $this->app instanceof AbstractHostedApp );
-    }
-
-    /**
-     * Tells whether the license is deactivated.
-     * 
-     * @return bool
-     */
-    public function is_deactivated() : bool {
-        return strtolower( $this->get_status() ) === static::STATUS_DEACTIVATED;
-    }
-
-    /**
-     * Tells whether we can perform actions that require license validity.
-     *
-     * @param int $app_id The App ID associated with the license.
-     * @return true|Exception True if license can be served, otherwise Exception.
-     */
-    public function can_serve_license( int $app_id ) {
-        if ( ! $this->is_issued() ) {
-            return new Exception(
-                'license_error',
-                'License is not issued to any application.',
-                array( 'status' => 400 )
-            );
-        }
-
-        if ( $app_id !== $this->get_app_id() ) {
-            return new Exception(
-                'license_error',
-                'License was not issued to this application.',
-                array( 'status' => 403 ) // fixed
-            );
-        }
-
-        $status = $this->get_status();
-
-        switch ( $status ) {
-
-            case static::STATUS_EXPIRED:
-                return new Exception(
-                    'license_expired',
-                    'This license has expired. Please renew it.',
-                    array( 'status' => 403 )
-                );
-
-            case static::STATUS_SUSPENDED:
-                return new Exception(
-                    'license_suspended',
-                    'This license has been suspended. Please contact support.',
-                    array( 'status' => 403 )
-                );
-
-            case static::STATUS_REVOKED:
-                return new Exception(
-                    'license_revoked',
-                    'This license has been revoked. Please contact support.',
-                    array( 'status' => 403 )
-                );
-
-            case static::STATUS_DEACTIVATED:
-                return new Exception(
-                    'license_deactivated',
-                    'This license is deactivated.',
-                    array( 'status' => 409 )
-                );
-
-            default:
-                return true;
-        }
-    }
-
-    /**
-     * Get the ID of the item associated with this license.
-     * 
-     * @return int
-     */
-    public function get_app_id() {
-        return $this->is_issued() ? $this->app->get_id() : 0;
-    }
-
-    /**
-     * Generate a license key.
-     *
-     * @param string $prefix The prefix to be added to the license key.
-     * @return string The generated license key.
-     */
-    public function make_licence_key( string $prefix = '' ) {
-        if ( '' === $prefix ) {
-            $prefix = (string) ( Settings::instance()->get( Settings::LICENSE_KEY_PREFIX, 'SMLISER' ) ?? 'SMLISER' );
-        }
-
-        $uid            = sha1( uniqid( '', true ) );
-        $secure_bytes   = random_bytes( 16 );
-        $random_hex     = bin2hex( $secure_bytes );
-        $combined_key   = strtoupper( str_replace( '-', '', $uid ) . $random_hex );
-        $license_key    = $prefix . $combined_key;
-
-        // Insert hyphens at every 8-character interval.
-        $real_license_key = '';
-        for ( $i = 0; $i < strlen( $license_key ); $i += 8 ) {
-            if ( $i > 0 ) {
-                $real_license_key .= '-';
-            }
-            $real_license_key .= substr( $license_key, $i, 8 );
-        }
-
-        return $real_license_key;
-    }
-
-    /**
-     * Obfuscate the license key and return a partial ending...
-     * 
-     * @return string
-     */
-    public function get_partial_key() : string {
-        $license_key    = $this->get_license_key();
-        $partial        = substr( $license_key, strlen( $license_key) - 12 );
-        $obfuscated     = rtrim( str_repeat( '****-', 4 ), '-' );
-        return sprintf( '%s-%s', $obfuscated, $partial );
-    }
-
-    /**
-     * Generate a unique license key.
-     *
-     * This will generate a new, unique license key and optionally persist it to the database.
-     * The method updates the license key property.
-     *
-     * @param string  $prefix  Optional prefix.
-     * @param bool    $persist Whether to persist the new key to the database. Default true.
-     * @param int     $tries   Maximum attempts to generate a unique key. Default 10.
-     * @return string The newly generated license key.
-     * @throws Exception If a unique key cannot be generated or DB persist fails.
-     */
-    public function generate_license_key( string $prefix = '', bool $persist = true, int $tries = 10 ) : string {
-        $db         = static::$DB;
-        $table      = TableName::LICENSES->table();
-
-        $attempt    = 0;
-        $new_key    = '';
-        $tries      = static::sanitize_positive_int( $tries );
-
-        do {
-            $attempt++;
-            $new_key = $this->make_licence_key( $prefix );
-
-            $sql    =
-                $this->query()
-                ->select( 'COUNT(*)' )->from( $table )
-                ->where( 'license_key', '=', $new_key );
-            $count = (int) $db->get_var( $sql->build(), $sql->get_bindings() );
-
-            if ( 0 === $count ) {
-                break;
-            }
-        } while ( $attempt < max( 1, $tries ) );
-
-        if ( $attempt >= max( 1, $tries ) && $count > 0 ) {
-            throw new Exception(
-                'license_regeneration_failed',
-                'Unable to generate a unique license key after multiple attempts.',
-                [ 'status' => 500 ]
-            );
-        }
-
-        $this->set_license_key( $new_key );
-
-        return $new_key;
-    }
-
-    /**
-     * Tells if a license exists.
-     * 
-     * @return bool
-     */
-    public function exists() : bool {
-        return (bool) $this->get_id();
-    }
-
-    /**
-     * Get allowed statuses
-     */
-    public static function get_allowed_statuses() {
-        return array(
-            static::STATUS_ACTIVE,
-            static::STATUS_DEACTIVATED,
-            static::STATUS_EXPIRED,
-            static::STATUS_INACTIVE,
-            static::STATUS_LIFETIME,
-            static::STATUS_PENDING,
-            static::STATUS_REVOKED,
-            static::STATUS_SUSPENDED,
-        );
-    }
+	use SanitizeAwareTrait, DatePropertyAwareTrait;
+	/**
+	 * The license ID
+	 * 
+	 * @var int $id
+	 */
+	protected int $id = 0;
+
+	/**
+	 * The full name of the licensee.
+	 * 
+	 * @var string $licensee_fullname
+	 */
+	protected string $licensee_fullname = '';
+
+	/**
+	 * The license key
+	 * 
+	 * @var string $license_key
+	 */
+	protected string $license_key = '';
+
+	/**
+	 * The ID of the service associated with the license.
+	 * This property will be required for license activation.
+	 * 
+	 * @var string $service_id
+	 */
+	protected string $service_id = '';
+
+	/**
+	 * The type and slug of the hosted application this license is issued to.
+	 * 
+	 * @var array $app_prop
+	 */
+	protected array $app_prop = [
+		'type' => '',
+		'slug' => ''
+	];
+
+	/**
+	 * The instance of the hosted aplication this license is issued to.
+	 * 
+	 * @var AbstractHostedApp
+	 */
+	protected ?AbstractHostedApp $app;
+
+	/**
+	 * The status of the license.
+	 * 
+	 * @var string $status
+	 */
+	protected string $status = '';
+
+	/**
+	 * The license commencement date.
+	 * 
+	 * @var DateTimeImmutable $start_date
+	 */
+	protected ?DateTimeImmutable $start_date = null;
+
+	/**
+	 * The end date of the license.
+	 * 
+	 * @var DateTimeImmutable  $end_date
+	 */
+	protected ?DateTimeImmutable $end_date = null;
+
+	/**
+	 * Creation date.
+	 * 
+	 * @var DateTimeImmutable $created_at
+	 */
+	protected ?DateTimeImmutable $created_at = null;
+
+	/**
+	 * Update date.
+	 * 
+	 * @var DateTimeImmutable $updated_at
+	 */
+	protected ?DateTimeImmutable $updated_at = null;
+
+	/**
+	 * Number of allowed domains that can request license activation.
+	 * 
+	 * @var int $max_allowed_domains
+	 */
+	protected int $max_allowed_domains = 0;
+
+	/**
+	 * The license meta data
+	 * 
+	 * @var array $meta_data
+	 */
+	protected array $meta_data = [
+		'activated_on' => []
+	];
+
+	public const STATUS_ACTIVE      = 'active';
+	public const STATUS_EXPIRED     = 'expired';
+	public const STATUS_LIFETIME    = 'lifetime';
+	public const STATUS_INACTIVE    = 'inactive';
+	public const STATUS_PENDING     = 'pending';
+	public const STATUS_SUSPENDED   = 'suspended';
+	public const STATUS_REVOKED     = 'revoked';
+	public const STATUS_DEACTIVATED = 'deactivated';
+
+
+	/**
+	 * Class constructor
+	 */
+	public function __construct() {}
+
+	/**
+	|-------------
+	| SETTERS
+	|-------------
+	*/
+
+	/**
+	 * Set the license ID.
+	 * 
+	 * @param int $id
+	 * @return static
+	 */
+	public function set_id( $id ) : static {
+		$this->id = static::sanitize_int( $id );
+
+		return $this;
+	}
+
+	/**
+	 * Set licensee full name.
+	 * 
+	 * @param string $name
+	 * @return static
+	 */
+	public function set_licensee_fullname( $name ) : static {
+		$this->licensee_fullname = static::sanitize_text( $name );
+
+		return $this;
+	}
+
+	/**
+	 * Set the license key
+	 *
+	 * @param string $value
+	 * @return static
+	 */
+	public function set_license_key( $value ) : static {
+		$this->license_key = static::sanitize_text( $value );
+
+		return $this;
+	}
+
+	/**
+	 * Set the service ID for this license
+	 * 
+	 * @param string $service_id The service ID for this license.
+	 * @return static
+	 */
+	public function set_service_id( $service_id ) : static {
+		$this->service_id = static::sanitize_text( $service_id );
+
+		return $this;
+	}
+
+	/**
+	 * Set the properties of the app associated with this license.
+	 * 
+	 * @param string $app_type  The app type
+	 * @param string $app_slug  The app slug.
+	 * @return static
+	 */
+	public function set_app_prop( string $app_type, string $app_slug ) : static {
+		$this->app_prop['type'] = static::sanitize_text( $app_type );
+		$this->app_prop['slug'] = static::sanitize_text( $app_slug );
+
+		return $this;
+	}
+
+	/**
+	 * Set the app this license is issued to.
+	 * 
+	 * @param AbstractHostedApp|null $app
+	 * @return static
+	 */
+	public function set_app( ?AbstractHostedApp $app ) : static {
+		$this->app = $app;
+
+		if ( $app instanceof AbstractHostedApp ) {
+			$this->set_app_prop( $app->get_type(), $app->get_slug() );
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Set license status.
+	 * 
+	 * @param string $status
+	 * @return static
+	 */
+	public function set_status( $status ) : static {
+		$this->status = $status;
+
+		return $this;
+	}
+
+	/**
+	 * Set the license start date
+	 * 
+	 * @param string $start_date
+	 * @return static
+	 */
+	public function set_start_date( $start_date ) : static {
+		return $this->set_date_prop( $start_date, 'start_date' );
+	}
+
+	/**
+	 * Set the license end date
+	 * 
+	 * @param string $end_date
+	 * @return static
+	 */
+	public function set_end_date( $end_date ) : static {
+		return $this->set_date_prop( $end_date, 'end_date' );
+	}
+
+	/**
+	 * Set the maximum allowed domains that can request license activation.
+	 * 
+	 * @param int $number_of_domains
+	 * @return static
+	 */
+	public function set_max_allowed_domains( $number_of_domains ) : static {
+		$this->max_allowed_domains = max( -1, intval( $number_of_domains ) );
+
+		return $this;
+	}
+
+	/**
+	 * Set the value of the given meta data name
+	 * 
+	 * @param string $meta_name The name of the meta data to set.
+	 * @param mixed $meta_value The value of the meta data.
+	 * @return static
+	 */
+	public function set_meta( $meta_name, $meta_value ) : static {
+		$this->meta_data[static::sanitize_key( $meta_name )] = static::sanitize_auto( $meta_value );
+
+		return $this;
+	}
+
+	/**
+	 * Set the entire meta data of this license
+	 * 
+	 * @param array $meta_data
+	 * @return static
+	 */
+	public function set_meta_data( array $meta_data ) : static {
+
+		foreach( $meta_data as $name => $value ) {
+			if ( \is_numeric( $name ) ) {
+				continue;
+			}
+
+			$this->set_meta( $name, $value );
+		}
+
+		return $this;
+	}
+
+	/**
+	 * Set date created
+	 * 
+	 * @param mixed $date
+	 */
+	public function set_created_at( mixed $date ) : static {
+		return $this->set_date_prop( $date, 'created_at' );
+	}
+
+	/**
+	 * Set date updated
+	 * 
+	 * @param string|DateTimeImmutable $date
+	 */
+	public function set_updated_at( mixed $date ) : static {
+		return $this->set_date_prop( $date, 'updated_at' );
+	}
+
+	/**
+	|-------------
+	| GETTERS
+	|-------------
+	*/
+
+	/**
+	 * Get the license ID.
+	 * 
+	 * @return int
+	 */
+	public function get_id() {
+		return $this->id;
+	}
+
+	/**
+	 * Get the the ID of the user associated with the license
+	 * 
+	 * @return int
+	 */
+	public function get_licensee_fullname() {
+		return $this->licensee_fullname;
+	}
+
+	/**
+	 * Get the license key
+	 *
+	 * @return string
+	 */
+	public function get_license_key() {
+		return $this->license_key;
+	}
+
+	/**
+	 * Get the service ID for this license
+	 * 
+	 * @return string
+	 */
+	public function get_service_id() {
+		return $this->service_id;
+	}
+
+	/**
+	 * Get the properties of the app associated with this license.
+	 * 
+	 * @param string $context The context to retrieve the app prop.
+	 * @return array|string
+	 */
+	public function get_app_prop( string $context = 'view' ) : array|string {
+		if ( 'view' === $context ) {
+			$prop      = array_filter( $this->app_prop );
+			$formatted = implode( '/', $prop );
+			return $formatted;
+		}
+
+		return $this->app_prop;
+	}
+
+	/**
+	 * Get the app this license is issued to.
+	 * 
+	 * Intentionally lazy loaded because the app instance is not always required
+	 * when working with licenses. This is to optimize performance by avoiding unnecessary 
+	 * loading of app instances.
+	 * 
+	 * @return AbstractHostedApp|null $app
+	 */
+	public function get_app() : ?AbstractHostedApp {
+
+		if ( ! isset( $this->app ) ) {
+			if ( 2 !== count( $this->app_prop ) ) {
+				return null;
+			}
+
+			$app_type = $this->app_prop['type'] ?? '';
+			$app_slug = $this->app_prop['slug'] ?? '';
+
+			$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			$this->set_app( $app );
+		}
+
+		return $this->app;
+	}
+
+	/**
+	 * Get license status.
+	 *
+	 * When $context is 'edit' the stored property value is returned as-is.
+	 * When $context is 'view' (default) – if the stored status is empty the
+	 * method derives the status from start/end dates. If the stored status
+	 * is present it will be returned (normalized).
+	 *
+	 * @param string $context Context for the status: 'view' or 'edit'. Default 'view'.
+	 * @return string
+	 */
+	public function get_status( string $context = 'view' ) : string {
+		// When editing we want the raw stored value (no derivation).
+		if ( 'edit' === $context ) {
+			return (string) $this->status;
+		}
+
+		// Normalize stored status if present.
+		$stored = trim( (string) $this->status );
+		if ( '' !== $stored ) {
+			return strtolower( $stored );
+		}
+
+		// Derive status from dates because stored status is empty.
+		$start = $this->get_start_date();
+		$end   = $this->get_end_date();
+
+		// Lifetime when there is no end date.
+		if ( empty( $end ) ) {
+			return static::STATUS_LIFETIME;
+		}
+
+		$now      = \time();
+		$start_ts = $start?->getTimestamp() ?? 0;
+		$end_ts   = $end->getTimestamp();
+
+		// If start defined and now is before start -> pending.
+		if ( $start_ts > 0 && $now < $start_ts ) {
+			return static::STATUS_PENDING;
+		}
+
+		// If now is after end -> expired.
+		if ( $now > $end_ts ) {
+			return static::STATUS_EXPIRED;
+		}
+
+		// Otherwise we are within the active window.
+		return static::STATUS_ACTIVE;
+	}
+
+
+	/**
+	 * Get the license start date
+	 * 
+	 * @return DateTimeImmutable|null $start_date
+	 */
+	public function get_start_date() : ?DateTimeImmutable {
+		return $this->start_date;
+	}
+
+	/**
+	 * Get the license end date
+	 * 
+	 * @return DateTimeImmutable|null $end_date
+	 */
+	public function get_end_date() : ?DateTimeImmutable {
+		return $this->end_date;
+	}
+
+	/**
+	 * Get date created.
+	 * 
+	 * @return DateTimeImmutable|null
+	 */
+	public function get_created_at() : ?DateTimeImmutable {
+		return $this->created_at;
+	}
+
+	/**
+	 * Get date updated.
+	 * 
+	 * @return DateTimeImmutable|null
+	 */
+	public function get_updated_at() : ?DateTimeImmutable {
+		return $this->updated_at;
+	}
+
+	/**
+	 * Get the maximum allowed domains that can request license activation.
+	 * 
+	 * @param string $context
+	 * @return string|int $number_of_domains
+	 */
+	public function get_max_allowed_domains( string $context = 'view' ) : string|int {
+
+		if ( 'view' === $context ) {
+			if ( $this->max_allowed_domains < 0 ) {
+				return 'Unlimited';
+			}
+			if ( empty( $this->max_allowed_domains ) ) {
+				return 'None';
+			}
+		}
+
+		if ( 'edit' === $context ) {
+			if ( $this->max_allowed_domains < 0 ) {
+				return '';
+			}
+		}
+
+		return $this->max_allowed_domains;
+	}
+
+	/**
+	 * Get the value of the given meta data key
+	 * 
+	 * @param string $meta_name The name of the meta key.
+	 * @param mixed $default    The default value to return when the meta name is not found.
+	 * @return mixed
+	 */
+	public function get_meta( $meta_name, $default = null ) {
+		return $this->meta_data[$meta_name] ?? $default;
+	}
+
+	/**
+	 * Get the meta data
+	 * 
+	 * @return array
+	 */
+	public function get_meta_data() {
+		return $this->meta_data;
+	}
+
+	/*
+	|-----------------
+	|   CRUD METHODS
+	|-----------------
+	*/
+
+	/**
+	 * Get license object using service ID and the license key
+	 * 
+	 * @param string $service_id The service ID associated with the licence
+	 * @param string $license_key   The license key
+	 * @return static|null
+	 */
+	public static function get_license( $service_id, $license_key ) : ?static {
+		$key = static::make_cache_key( __METHOD__, [$service_id, $license_key] );
+
+		/** @var static|false $result */
+		$result = static::cache_get( $key );
+
+		if ( false === $result || ! ( $result instanceof static ) ) {
+			$table = TableName::LICENSES->table();
+			$sql   = static::query()->select( '*' )->from( $table )
+				->where( 'service_id', '=', $service_id )
+				->where( 'license_key', '=', $license_key );
+
+			$data = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
+			
+			if ( $data ) {
+				$result = static::from_array( $data );
+			} else {
+				$result = null;
+			}
+
+			static::cache_set( $key, $result, static::default_ttl() );
+		}
+
+		return $result;
+
+	}
+
+	/**
+	 * Get license by ID
+	 * 
+	 * @param int $id
+	 * @return static|null
+	 */
+	public static function get_by_id( $id ) : ?static {
+		$key = static::make_cache_key( __METHOD__, [$id] );
+
+		$license = static::cache_get( $key );
+
+		if ( false === $license || ! ( $license instanceof static ) ) {
+			$data    = static::fetch_by( 'id', $id, TableName::LICENSES->table() );
+			$license = $data ? static::from_array( $data ) : null;
+
+			static::cache_set( $key, $license, static::default_ttl() );
+		}
+
+		return $license;
+	}
+
+	/**
+	 * Get all licenses with pagination support.
+	 *
+	 * @param int $page  Current page number.
+	 * @param int $limit Items per page.
+	 *
+	 * @return array{
+	 *  items: static[], 
+	 *  pagination: 
+	 *      array{
+	 *          page: int,
+	 *          limit: int,
+	 *          total: int,
+	 *          total_pages: int
+	 *      }
+	 *  } 
+	 */
+	public static function get_all( int $page = 1, int $limit = 30 ) : array {
+
+		$page  = (int) max( 1, $page );
+		$limit = (int) max( 1, $limit );
+
+		$key  = static::make_cache_key( __METHOD__, [ $page, $limit ] );
+		$data = false; //static::cache_get( $key );
+
+		if ( false !== $data && is_array( $data ) ) {
+			return $data;
+		}
+
+		$items = \array_map(
+			[static::class, 'from_array'],
+			static::fetch( TableName::LICENSES->table(), $page, $limit )
+		);
+
+		/**
+		 * Fetch total count
+		 */
+		$count_sql = self::query()->select( 'COUNT(*)' )->from( TableName::LICENSES->table() );
+		$total     = (int) static::$DB->get_var( $count_sql->build_raw() );
+
+		$result = [
+			'items'      => $items,
+			'pagination' => [
+				'page'        => $page,
+				'limit'       => $limit,
+				'total'       => $total,
+				'total_pages' => $limit > 0 ? (int) ceil( $total / $limit ) : 0,
+			],
+		];
+
+		static::cache_set( $key, $result, static::default_ttl() );
+
+		return $result;
+	}
+
+	/**
+	 * Search licenses in the database.
+	 *
+	 * @param array $args.
+	 *
+	 * @return array {
+	 *     @type static[] $items
+	 *     @type array    $pagination
+	 * }
+	 */
+	public static function search( array $args = [] ) : array {
+
+		$defaults = [
+			'search_term' => '',
+			'page'        => 1,
+			'limit'       => 10
+		];
+
+		$args = parse_args( $args, $defaults );
+
+		$key  = static::make_cache_key( __METHOD__, $args );
+		$data = static::cache_get( $key );
+
+		if ( false !== $data ) {
+			return $data;
+		}
+
+		$db     = static::$DB;
+		$table  = TableName::LICENSES->table();
+		$page   = max( 1, $args['page'] );
+		$limit  = max( 1, $args['limit'] );
+		$offset = $db->calculate_query_offset( $page, $limit );
+
+		$like = $args['search_term'] . '%';
+
+		$sql = static::query()->select( '*' )->from( $table )
+			->where( 'licensee_fullname', 'LIKE', $like )
+			->or_where( 'license_key', 'LIKE', $like )
+			->or_where( 'service_id', 'LIKE', $like )
+			->order_by( 'id', 'DESC' )
+			->limit( $limit )->offset( $offset );
+		
+		$rows = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+		$items = [];
+
+		if ( ! empty( $rows ) ) {
+			foreach ( $rows as $row ) {
+				$items[] = static::from_array( $row );
+			}
+		}
+
+		/**
+		 * Fetch total count
+		 */
+		$count_sql = static::query()->select( 'COUNT(*)' )->from( $table )
+			->where( 'licensee_fullname', 'LIKE', $like )
+			->or_where( 'license_key', 'LIKE', $like )
+			->or_where( 'service_id', 'LIKE', $like );
+
+		$total = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
+
+		$result = [
+			'items'      => $items,
+			'pagination' => [
+				'page'        => $page,
+				'limit'       => $limit,
+				'total'       => $total,
+				'total_pages' => $limit > 0 ? (int) ceil( $total / $limit ) : 0,
+			],
+		];
+
+		static::cache_set( $key, $result, static::default_ttl() );
+
+		return $result;
+	}
+
+	/**
+	 * Save the license.
+	 * 
+	 * @return bool True when license is save, false otherwise
+	 */
+	public function save() : bool {
+		$db         = static::$DB;
+		$table      = TableName::LICENSES->table();
+		$meta_table = TableName::LICENSE_META->table();
+		$now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
+
+		$data = [
+			'licensee_fullname'   => $this->get_licensee_fullname(),
+			'service_id'          => $this->get_service_id(),
+			'app_prop'            => $this->get_app_prop( 'view' ),
+			'max_allowed_domains' => $this->get_max_allowed_domains( 'save' ),
+			'status'              => $this->get_status( 'edit' ),
+			'start_date'          => $this->get_start_date()?->format( 'Y-m-d H:i:s' ),
+			'end_date'            => $this->get_end_date()?->format( 'Y-m-d H:i:s' ),
+			'updated_at'          => $now->format( 'Y-m-d H:i:s' ),
+
+		];
+
+		$meta_data = $this->get_meta_data();
+
+
+		if ( $this->exists() ) {
+			$updated = $db->update( $table, $data, ['id' => $this->id] );
+			$this->set_updated_at( $now );
+			$updated_meta = 0;
+
+			foreach ( $meta_data as $k => $v ) {
+				
+				$sql = self::query()->select( 'id' )->from( $meta_table )
+					->where( 'meta_key', '=', $k )
+					->where( 'license_id', '=', $this->id );
+				$meta_id = $db->get_var( $sql->build(), $sql->get_bindings() );
+
+				$metadata = [
+					'meta_key'   => $k,
+					'meta_value' => Format::encode( $v, Format::ENCODING_PHP ),
+					'license_id' => $this->id
+				];
+
+				if ( $meta_id ) {
+					$metadata['id'] = $meta_id;
+					$done           = $db->update( $meta_table, $metadata, ['license_id' => $this->id] );
+				} else {
+					$done = $db->insert( $meta_table, $metadata );
+
+				}
+
+				$done && $updated_meta++;
+			}
+
+			$result = ( false !== $updated ) || ( $updated_meta > 0 );
+
+		} else {
+			$data['license_key'] = $this->generate_license_key( '', false, 20 );
+			$data['created_at']  = $now->format( 'Y-m-d H:i:s' );
+			$inserted            = $db->insert( $table, $data );
+
+			$inserted_meta = 0;
+			if ( $inserted ) {
+				$this->set_id( $db->get_insert_id() );
+				$this->set_license_key( $data['license_key'] );
+				$this->set_created_at( $now );
+				$this->set_updated_at( $now );
+
+				foreach ( $meta_data as $k => $v ) {
+					$metadata = [
+						'meta_key'   => $k,
+						'meta_value' => Format::encode( $v, Format::ENCODING_PHP ),
+						'license_id' => $this->id
+					];
+					$done = $db->insert( $meta_table, $metadata );
+
+					$done && $inserted_meta++;
+				}
+			}
+			
+			$result = ( false !== $inserted ) || ( $inserted_meta > 0 );
+		}
+
+		static::cache_clear();
+
+		return false !== $result;
+
+	}
+
+	/**
+	 * Load the metadata from the database
+	 *
+	 * @return static
+	 */
+	public function load_meta() : static {
+		$db    = static::$DB;
+		$table = TableName::LICENSE_META->table();
+		$sql   = $this->query()
+			->select( 'meta_key', 'meta_value' )
+			->from( $table )
+			->where( 'license_id', '=', $this->get_id() );
+
+		$results = $db->get_results( $sql->build(), $sql->get_bindings() );
+
+		foreach( $results as $result ) {
+			$value      = $result['meta_value'] ?? '';
+			$meta_name  = $result['meta_key'] ?? '';
+			$meta_value = Format::decode( $value );
+
+			if ( ! empty( $meta_name ) ) {
+				$this->set_meta( $meta_name, $meta_value );
+			}
+		}
+
+
+		return $this;
+	}
+
+	/**
+	 * Delete license from the database along with its associated metadata.
+	 * 
+	 * @return bool True on success, false otherwise.
+	 * @throws Exception If a concurrent modification is detected or if database execution fails.
+	 */
+	public function delete() : bool {
+		if ( ! $this->id ) {
+			return false;
+		}
+
+		$table      = TableName::LICENSES->table();
+		$meta_table = TableName::LICENSE_META->table();
+
+		// Compile query structures via the Query Builder.
+		$delete_license_sql = static::query()->delete( $table )->where( 'id', '=', $this->id );
+		$delete_meta_sql    = static::query()->delete( $meta_table )->where( 'license_id', '=', $this->id );
+		$lock_query         = static::query()->select( 'id' )->from( $table )->where( 'id', '=', $this->id )->limit( 1 );
+
+		$deleted = false;
+
+		static::$DB->transactional( function( Database $db ) use ( $lock_query, $table, $delete_license_sql, $delete_meta_sql, &$deleted ) {
+			$lock_sql = $lock_query->lock_for_update()->build();
+
+			$exists = $db->get_row( $lock_sql, $lock_query->get_bindings() );
+
+			if ( ! $exists ) {
+				throw new Exception( 'delete_error', 'License record locked or already removed by a concurrent request.' );
+			}
+
+			if ( false === $db->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) ) {
+				throw new Exception( 'delete_error', 'Database execution failure dropping license metadata entries.' );
+			}
+
+			if ( false === $db->execute( $delete_license_sql->build(), $delete_license_sql->get_bindings() ) ) {
+				throw new Exception( 'delete_error', 'Database execution failure dropping primary license record.' );
+			}
+
+			$deleted = true;
+		} );
+
+		if ( $deleted ) {
+			static::cache_clear();
+		}
+
+		return $deleted;
+	}
+
+	/**
+	|---------------------
+	| UTILITY METHODS
+	|---------------------
+	*/
+
+	/**
+	 * Get All active licensed Websites.
+	 */
+	public function get_active_domains( $context = 'view' ) {
+		$all_domains = $this->get_meta( 'activated_on', [] );
+
+		if ( 'view' === $context && is_array( $all_domains ) ) {
+			$all_hosts   = array_keys( $all_domains );
+			$all_domains = ! empty( $all_hosts ) ? implode( ', ', $all_hosts ) : 'N/A';
+		}
+
+		return $all_domains;
+		
+	}
+
+	/**
+	 * Converts and return associative array to object of this class.
+	 * 
+	 * @param array $data   Associative array containing result from database
+	 */
+	public static function from_array( $data ) : static {
+		$static = new static();
+		$static->set_id( $data['id'] ?? 0 );
+		$static->set_licensee_fullname( $data['licensee_fullname'] ?? '' );
+		$static->set_service_id( $data['service_id'] ?? '' );
+		$static->set_license_key( $data['license_key'] ?? '' );
+		$static->set_status( $data['status'] ?? '' );
+		$static->set_start_date( $data['start_date'] ?? '' );
+		$static->set_end_date( $data['end_date'] ?? '' );
+		$static->set_max_allowed_domains( $data['max_allowed_domains'] ?? 0 );
+		$static->set_created_at( $data['created_at'] ?? null );
+		$static->set_updated_at( $data['updated_at'] ?? null );
+
+		$app_prop = $data['app_prop'] ?? '';
+
+		if ( ! empty( $app_prop ) && is_string( $app_prop ) && preg_match( '#^[^/]+/[^/]+$#', $app_prop ) ) {
+			list( $app_type, $app_slug ) = explode( '/', $app_prop, 2 );
+			$static->set_app_prop( $app_type, $app_slug );
+		} else if ( is_array( $app_prop ) && 2 === count( $app_prop ) ) {
+			$app_type = (string) \array_first( $app_prop );
+			$app_slug = (string) \array_last( $app_prop );
+			$static->set_app_prop( $app_type, $app_slug );
+		}
+
+		$static->load_meta();
+
+		return $static;
+	}
+
+	/**
+	 * Convert to array
+	 * 
+	 * @return array
+	 */
+	public function to_array() : array {
+		return get_object_vars( $this );
+	}
+
+	/**
+	 * Get total domains using this license.
+	 */
+	public function get_total_active_domains() {
+		return count( (array) $this->get_meta( 'activated_on', [] ) );
+	}
+
+	/**
+	 * Get the value of a domain from the active list.
+	 * 
+	 * @param string $url The domain or website name.
+	 * @param bool $all_data  Whether to include the values of the domain.
+	 * @return mixed
+	 */
+	public function get_active_domain( $url, $all_data = true ) {
+		$all_domains = $this->get_active_domains( 'edit' );
+
+		$url  = $this->ensure_domain( $url );
+		$host = $url->get_host();
+
+		if ( ! isset( $all_domains[$host] ) ) {
+			return null;
+		}
+
+		$domain_data = $all_domains[$host];
+
+		if ( $all_data ) {
+			return $domain_data;
+		}
+		return $domain_data['origin'];
+		
+	}
+
+	/**
+	 * Add or update the domains where this license is currently activated.
+	 * 
+	 * @param string $url The url of the site to be added.
+	 * @param string $site_secret The secret key for the site.
+	 */
+	public function update_active_domains( $url, $site_secret ) {
+		$sites = $this->get_meta( 'activated_on', [] );
+		if ( ! is_array( $sites ) ) {
+			$sites = [];
+		}
+		
+		$url    = $this->ensure_domain( $url );
+		$origin = $url->get_origin();
+		$host   = $url->get_host();
+		
+		$sites[$host] = [
+			'origin' => $origin,
+			'secret' => $site_secret,
+		];
+
+		$this->set_meta( 'activated_on', $sites );
+		$this->save();
+	}
+
+	/**
+	 * Remove a domain from activated list.
+	 * 
+	 * @param string $domain The domain
+	 */
+	public function remove_activated_domain( string|URL $domain ) : bool {
+		$sites = $this->get_meta( 'activated_on' );
+
+		if ( empty( $sites ) || ! is_array( $sites ) ) {
+			return false;
+		}
+		
+		$url  = $this->ensure_domain( $domain );
+		$host = $url->get_host();
+
+		unset( $sites[$host] );
+		
+		$this->set_meta( 'activated_on', $sites );
+		$this->save();
+		
+		return true;
+	}
+
+	/**
+	 * Whether license has reached max allowed domains.
+	 */
+	public function has_reached_max_allowed_domains() {
+
+		if ( -1 === $this->max_allowed_domains ) {
+			return false;
+		}
+		
+	   return $this->get_total_active_domains() >= $this->max_allowed_domains;
+	}
+
+	/**
+	 * Checks whether the a given domain is a new domain
+	 * 
+	 * @param string $domain The name of the website.
+	 */
+	public function is_new_domain( string $domain ) {
+		$url = $this->ensure_domain( $domain );
+
+		$domain = $url->get_host();
+
+		$all_sites = $this->get_active_domains( 'edit' );
+		
+		return ! isset( $all_sites[$domain] );
+	}
+
+	/**
+	 * Helper method to ensure a given domain is a valid URL.
+	 * 
+	 * @param string|URL $domain
+	 */
+	private function ensure_domain( string|URL $domain ) : URL {
+		if ( ( $domain instanceof URL ) ) {
+			$url = $domain;
+			if ( ! $url->has_scheme() ) {
+				// Malformed url, rebuild it.
+				$url = $url->set_scheme( 'https' );
+				$url = URL::from( $url->url() );
+			}
+
+			return $url;
+		}
+
+		$url = URL::from( $domain );
+		return $this->ensure_domain( $url );
+	}
+
+	/**
+	 * Tells whether this license is issued to an app.
+	 * 
+	 * @return bool
+	 */
+	public function is_issued() : bool {
+		if ( ! isset( $this->app ) ) {
+			$this->get_app();
+		}
+		
+		return ( $this->app instanceof AbstractHostedApp );
+	}
+
+	/**
+	 * Tells whether the license is deactivated.
+	 * 
+	 * @return bool
+	 */
+	public function is_deactivated() : bool {
+		return strtolower( $this->get_status() ) === static::STATUS_DEACTIVATED;
+	}
+
+	/**
+	 * Tells whether we can perform actions that require license validity.
+	 *
+	 * @param int $app_id The App ID associated with the license.
+	 * @return true|Exception True if license can be served, otherwise Exception.
+	 */
+	public function can_serve_license( int $app_id ) {
+		if ( ! $this->is_issued() ) {
+			return new Exception(
+				'license_error',
+				'License is not issued to any application.',
+				[ 'status' => 400 ]
+			);
+		}
+
+		if ( $app_id !== $this->get_app_id() ) {
+			return new Exception(
+				'license_error',
+				'License was not issued to this application.',
+				[ 'status' => 403 ] // fixed
+			);
+		}
+
+		$status = $this->get_status();
+
+		switch ( $status ) {
+
+			case static::STATUS_EXPIRED:
+				return new Exception(
+					'license_expired',
+					'This license has expired. Please renew it.',
+					[ 'status' => 403 ]
+				);
+
+			case static::STATUS_SUSPENDED:
+				return new Exception(
+					'license_suspended',
+					'This license has been suspended. Please contact support.',
+					[ 'status' => 403 ]
+				);
+
+			case static::STATUS_REVOKED:
+				return new Exception(
+					'license_revoked',
+					'This license has been revoked. Please contact support.',
+					[ 'status' => 403 ]
+				);
+
+			case static::STATUS_DEACTIVATED:
+				return new Exception(
+					'license_deactivated',
+					'This license is deactivated.',
+					[ 'status' => 409 ]
+				);
+
+			default:
+				return true;
+		}
+	}
+
+	/**
+	 * Get the ID of the item associated with this license.
+	 * 
+	 * @return int
+	 */
+	public function get_app_id() {
+		return $this->is_issued() ? $this->app->get_id() : 0;
+	}
+
+	/**
+	 * Generate a license key.
+	 *
+	 * @param string $prefix The prefix to be added to the license key.
+	 * @return string The generated license key.
+	 */
+	public function make_licence_key( string $prefix = '' ) {
+		if ( '' === $prefix ) {
+			$prefix = (string) ( Settings::instance()->get( Settings::LICENSE_KEY_PREFIX, 'SMLISER' ) ?? 'SMLISER' );
+		}
+
+		$uid          = sha1( uniqid( '', true ) );
+		$secure_bytes = random_bytes( 16 );
+		$random_hex   = bin2hex( $secure_bytes );
+		$combined_key = strtoupper( str_replace( '-', '', $uid ) . $random_hex );
+		$license_key  = $prefix . $combined_key;
+
+		// Insert hyphens at every 8-character interval.
+		$real_license_key = '';
+		for ( $i = 0; $i < strlen( $license_key ); $i += 8 ) {
+			if ( $i > 0 ) {
+				$real_license_key .= '-';
+			}
+			$real_license_key .= substr( $license_key, $i, 8 );
+		}
+
+		return $real_license_key;
+	}
+
+	/**
+	 * Obfuscate the license key and return a partial ending...
+	 * 
+	 * @return string
+	 */
+	public function get_partial_key() : string {
+		$license_key = $this->get_license_key();
+		$partial     = substr( $license_key, strlen( $license_key ) - 12 );
+		$obfuscated  = rtrim( str_repeat( '****-', 4 ), '-' );
+		return sprintf( '%s-%s', $obfuscated, $partial );
+	}
+
+	/**
+	 * Generate a unique license key.
+	 *
+	 * This will generate a new, unique license key and optionally persist it to the database.
+	 * The method updates the license key property.
+	 *
+	 * @param string  $prefix  Optional prefix.
+	 * @param bool    $persist Whether to persist the new key to the database. Default true.
+	 * @param int     $tries   Maximum attempts to generate a unique key. Default 10.
+	 * @return string The newly generated license key.
+	 * @throws Exception If a unique key cannot be generated or DB persist fails.
+	 */
+	public function generate_license_key( string $prefix = '', bool $persist = true, int $tries = 10 ) : string {
+		$db    = static::$DB;
+		$table = TableName::LICENSES->table();
+
+		$attempt = 0;
+		$new_key = '';
+		$tries   = static::sanitize_positive_int( $tries );
+
+		do {
+			$attempt++;
+			$new_key = $this->make_licence_key( $prefix );
+
+			$sql = $this->query()
+				->select( 'COUNT(*)' )->from( $table )
+				->where( 'license_key', '=', $new_key );
+			$count = (int) $db->get_var( $sql->build(), $sql->get_bindings() );
+
+			if ( 0 === $count ) {
+				break;
+			}
+		} while ( $attempt < max( 1, $tries ) );
+
+		if ( $attempt >= max( 1, $tries ) && $count > 0 ) {
+			throw new Exception(
+				'license_regeneration_failed',
+				'Unable to generate a unique license key after multiple attempts.',
+				[ 'status' => 500 ]
+			);
+		}
+
+		$this->set_license_key( $new_key );
+
+		return $new_key;
+	}
+
+	/**
+	 * Tells if a license exists.
+	 * 
+	 * @return bool
+	 */
+	public function exists() : bool {
+		return (bool) $this->get_id();
+	}
+
+	/**
+	 * Get allowed statuses
+	 */
+	public static function get_allowed_statuses() {
+		return [
+			static::STATUS_ACTIVE,
+			static::STATUS_DEACTIVATED,
+			static::STATUS_EXPIRED,
+			static::STATUS_INACTIVE,
+			static::STATUS_LIFETIME,
+			static::STATUS_PENDING,
+			static::STATUS_REVOKED,
+			static::STATUS_SUSPENDED,
+		];
+	}
 
 }

@@ -32,7 +32,7 @@ final class UserSessionCutoff implements SessionRevocationCheck {
 	 * @param Session $session A session that decrypted and validated successfully.
 	 * @return bool
 	 */
-	public function revoked( Session $session ): bool {
+	public function revoked( Session $session ) : bool {
 		$id = $session->principal_id;
 
 		if ( ! is_int( $id ) && ! ctype_digit( $id ) ) {
@@ -60,7 +60,7 @@ final class UserSessionCutoff implements SessionRevocationCheck {
 	 * @param User $user The user.
 	 * @return bool Whether the cut-off was saved.
 	 */
-	public function revoke_all( User $user ): bool {
+	public function revoke_all( User $user ) : bool {
 		return UserSettings::for( $user )->set( UserSettings::SESSIONS_VALID_AFTER, time() );
 	}
 }

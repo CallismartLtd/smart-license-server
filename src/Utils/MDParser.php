@@ -63,7 +63,7 @@ class MDParser {
 		// Pre-process WP-specific syntax
 		$text = WPReadmeParser::parse( $text );
 
-		if ( $this->converter !== null ) {
+		if ( null !== $this->converter ) {
 			return $this->parse_with_commonmark( $text );
 		}
 
@@ -109,7 +109,7 @@ class MDParser {
 	 */
 	protected function fallback_parse( $text ) {
 		// Normalize line endings
-		$text = str_replace( array( "\r\n", "\r" ), "\n", $text );
+		$text = str_replace( [ "\r\n", "\r" ], "\n", $text );
 		
 		// Process in order: code blocks first (to protect content), then inline elements, then block elements
 		$text = $this->parse_code_blocks( $text );
@@ -169,7 +169,7 @@ class MDParser {
 		$text = preg_replace_callback(
 			'/(?:^|\n)((?:(?:    |\t).+\n?)+)/m',
 			function( $matches ) {
-				$code = preg_replace( '/^(?:    |\t)/m', '', $matches[1] );
+				$code         = preg_replace( '/^(?:    |\t)/m', '', $matches[1] );
 				$escaped_code = \escHtml( trim( $code ) );
 				return "\n<pre><code>" . $escaped_code . "</code></pre>\n";
 			},
@@ -189,7 +189,7 @@ class MDParser {
 		// Process from h6 to h1 to avoid conflicts
 		for ( $i = 6; $i >= 1; $i-- ) {
 			$hashes = str_repeat( '#', $i );
-			$text = preg_replace(
+			$text   = preg_replace(
 				'/^' . preg_quote( $hashes, '/' ) . '\s+(.+?)\s*$/m',
 				'<h' . $i . '>$1</h' . $i . '>',
 				$text
@@ -212,7 +212,7 @@ class MDParser {
 				$items = preg_split( '/\n/', trim( $matches[1] ) );
 				$list  = '<ul>';
 				foreach ( $items as $item ) {
-					if ( trim( $item ) === '' ) {
+					if ( '' === trim( $item ) ) {
 						continue;
 					}
 					$item = preg_replace( '/^[ \t]*[-*+]\s+/', '', $item );
@@ -231,7 +231,7 @@ class MDParser {
 				$items = preg_split( '/\n/', trim( $matches[1] ) );
 				$list  = '<ol>';
 				foreach ( $items as $item ) {
-					if ( trim( $item ) === '' ) {
+					if ( '' === trim( $item ) ) {
 						continue;
 					}
 					$item = preg_replace( '/^[ \t]*\d+\.\s+/', '', $item );
@@ -294,7 +294,7 @@ class MDParser {
 				$href      = $matches[2];
 				
 				// Don't escape if already HTML
-				if ( strpos( $link_text, '<' ) !== false ) {
+				if ( false !== strpos( $link_text, '<' ) ) {
 					$safe_text = $link_text;
 				} else {
 					$safe_text = \escHtml( $link_text );
@@ -325,7 +325,7 @@ class MDParser {
 		foreach ( $blocks as $block ) {
 			$trimmed = trim( $block );
 			
-			if ( $trimmed === '' ) {
+			if ( '' === $trimmed ) {
 				continue;
 			}
 			
@@ -357,7 +357,7 @@ class MDParser {
 			'/(?:^|\n)(\|.+\|[ \t]*\n\|[-: |]+\|[ \t]*\n(?:\|.+\|[ \t]*\n?)*)/m',
 			function( $matches ) {
 				$table_text = trim( $matches[1] );
-				$lines = explode( "\n", $table_text );
+				$lines      = explode( "\n", $table_text );
 				
 				if ( count( $lines ) < 2 ) {
 					return $matches[0];
@@ -367,7 +367,7 @@ class MDParser {
 				
 				// Parse header row
 				$header_row = array_shift( $lines );
-				$headers = $this->parse_table_row( $header_row );
+				$headers    = $this->parse_table_row( $header_row );
 				
 				if ( ! empty( $headers ) ) {
 					$html .= "<thead>\n<tr>\n";
@@ -417,7 +417,7 @@ class MDParser {
 	 */
 	protected function parse_table_row( $row ) {
 		// Remove leading/trailing pipes and split
-		$row = trim( $row, " \t|" );
+		$row   = trim( $row, " \t|" );
 		$cells = explode( '|', $row );
 		
 		// Process each cell

@@ -18,20 +18,20 @@ use SmartLicenseServer\Security\Context\Guard;
  * from seeing the form again.
  */
 class LoggedInCheckerMiddleware implements MiddlewareInterface {
-    public function __construct( protected Guard $guard ) {}
-    
-    /**
-     * {@inheritdoc}
-     */
-    public function handle( Request $request, callable $next ): mixed {
-        if ( $this->guard->has_principal() ) {
+	public function __construct( protected Guard $guard ) {}
+	
+	/**
+	 * {@inheritdoc}
+	 */
+	public function handle( Request $request, callable $next ) : mixed {
+		if ( $this->guard->has_principal() ) {
 
-            $principal  = $this->guard->principal();
-            
-            return Response::make( '', 302 )
-                ->set_header( 'Location', '' );
-        }
+			$principal = $this->guard->principal();
+			
+			return Response::make( '', 302 )
+				->set_header( 'Location', '' );
+		}
 
-        return $next( $request );
-    }
+		return $next( $request );
+	}
 }

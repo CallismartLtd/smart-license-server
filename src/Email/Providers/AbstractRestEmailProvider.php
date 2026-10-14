@@ -37,233 +37,233 @@ use SmartLicenseServer\Email\EmailProvidersRegistry;
 
 abstract class AbstractRestEmailProvider implements EmailProviderInterface {
 
-    /**
-     * Holds the provider configuration set via set_settings().
-     *
-     * @var array<string, mixed>
-     */
-    protected array $settings = [];
+	/**
+	 * Holds the provider configuration set via set_settings().
+	 *
+	 * @var array<string, mixed>
+	 */
+	protected array $settings = [];
 
-    /**
-     * Whether set_settings() has been called with valid configuration.
-     *
-     * @var bool
-     */
-    protected bool $configured = false;
+	/**
+	 * Whether set_settings() has been called with valid configuration.
+	 *
+	 * @var bool
+	 */
+	protected bool $configured = false;
 
-    /**
-     * The default global email sender name.
-     * 
-     * @var string
-     */
-    protected string $default_sender_name;
+	/**
+	 * The default global email sender name.
+	 * 
+	 * @var string
+	 */
+	protected string $default_sender_name;
 
-    /**
-     * The default global sender email address.
-     * 
-     * @var string
-     */
-    protected string $default_sender_email;
+	/**
+	 * The default global sender email address.
+	 * 
+	 * @var string
+	 */
+	protected string $default_sender_email;
 
-    /**
-     * The HTTP client API.
-     * 
-     * @var HttpClient
-     */
-    protected HttpClient $http_client;
+	/**
+	 * The HTTP client API.
+	 * 
+	 * @var HttpClient
+	 */
+	protected HttpClient $http_client;
 
-    /*
-    |----------------------
-    | INTERFACE — SETTINGS
-    |----------------------
-    */
+	/*
+	|----------------------
+	| INTERFACE — SETTINGS
+	|----------------------
+	*/
 
-    /**
-     * Store validated settings and mark the provider as configured.
-     *
-     * Concrete providers should perform their own validation first,
-     * then delegate here to persist the settings:
-     *
-     *   public function set_settings( array $settings ): void {
-     *       // provider-specific validation...
-     *       parent::set_settings( $settings );
-     *   }
-     *
-     * @param array<string, mixed> $settings
-     */
-    public function set_settings( array $settings ): void {
-        $this->settings   = $settings;
-        $this->configured = true;
-    }
+	/**
+	 * Store validated settings and mark the provider as configured.
+	 *
+	 * Concrete providers should perform their own validation first,
+	 * then delegate here to persist the settings:
+	 *
+	 *   public function set_settings( array $settings ): void {
+	 *       // provider-specific validation...
+	 *       parent::set_settings( $settings );
+	 *   }
+	 *
+	 * @param array<string, mixed> $settings
+	 */
+	public function set_settings( array $settings ) : void {
+		$this->settings   = $settings;
+		$this->configured = true;
+	}
 
-    /*
-    |--------------------
-    | INTERFACE — SEND
-    |--------------------
-    */
+	/*
+	|--------------------
+	| INTERFACE — SEND
+	|--------------------
+	*/
 
-    /**
-     * Send an email via the provider's REST API.
-     *
-     * Enforces the configured guard, then delegates to the provider's
-     * build_payload() → dispatch() → parse_response() pipeline.
-     *
-     * @param EmailMessage $message
-     * @return EmailResponse
-     * @throws InvalidArgumentException If called before set_settings().
-     * @throws EmailTransportException  On API or transport failure.
-     */
-    public function send( EmailMessage $message ): EmailResponse {
-        if ( ! $this->configured ) {
-            throw new InvalidArgumentException(
-                static::class . ': call set_settings() before send().'
-            );
-        }
+	/**
+	 * Send an email via the provider's REST API.
+	 *
+	 * Enforces the configured guard, then delegates to the provider's
+	 * build_payload() → dispatch() → parse_response() pipeline.
+	 *
+	 * @param EmailMessage $message
+	 * @return EmailResponse
+	 * @throws InvalidArgumentException If called before set_settings().
+	 * @throws EmailTransportException  On API or transport failure.
+	 */
+	public function send( EmailMessage $message ) : EmailResponse {
+		if ( ! $this->configured ) {
+			throw new InvalidArgumentException(
+				static::class . ': call set_settings() before send().'
+			);
+		}
 
-        $payload = $this->build_payload( $message );
-        return $this->dispatch( $payload );
-    }
+		$payload = $this->build_payload( $message );
+		return $this->dispatch( $payload );
+	}
 
-    /*
-    |------------------
-    | ABSTRACT METHODS
-    |------------------
-    */
+	/*
+	|------------------
+	| ABSTRACT METHODS
+	|------------------
+	*/
 
-    /**
-     * Build the provider-specific API request payload.
-     *
-     * @param EmailMessage $message
-     * @return array<string, mixed>
-     */
-    abstract protected function build_payload( EmailMessage $message ): array;
+	/**
+	 * Build the provider-specific API request payload.
+	 *
+	 * @param EmailMessage $message
+	 * @return array<string, mixed>
+	 */
+	abstract protected function build_payload( EmailMessage $message ) : array;
 
-    /**
-     * Dispatch the payload to the provider's API endpoint.
-     *
-     * Responsible for constructing the HttpRequest (method, headers,
-     * auth) and calling $this->http_client->send().
-     *
-     * @param array<string, mixed> $payload
-     * @return EmailResponse
-     * @throws EmailTransportException
-     */
-    abstract protected function dispatch( array $payload ): EmailResponse;
+	/**
+	 * Dispatch the payload to the provider's API endpoint.
+	 *
+	 * Responsible for constructing the HttpRequest (method, headers,
+	 * auth) and calling $this->http_client->send().
+	 *
+	 * @param array<string, mixed> $payload
+	 * @return EmailResponse
+	 * @throws EmailTransportException
+	 */
+	abstract protected function dispatch( array $payload ) : EmailResponse;
 
-    /**
-     * Map a raw HttpResponse from the API into a normalised EmailResponse.
-     *
-     * @param HttpResponse $response
-     * @return EmailResponse
-     * @throws EmailTransportException On non-2xx response.
-     */
-    abstract protected function parse_response( HttpResponse $response ): EmailResponse;
+	/**
+	 * Map a raw HttpResponse from the API into a normalised EmailResponse.
+	 *
+	 * @param HttpResponse $response
+	 * @return EmailResponse
+	 * @throws EmailTransportException On non-2xx response.
+	 */
+	abstract protected function parse_response( HttpResponse $response ) : EmailResponse;
 
-    /*
-    |-------------------
-    | SHARED VALIDATION
-    |-------------------
-    */
+	/*
+	|-------------------
+	| SHARED VALIDATION
+	|-------------------
+	*/
 
-    /**
-     * Assert the envelope sender address is valid.
-     *
-     * @param string $email
-     * @throws InvalidArgumentException
-     */
-    protected function validate_sender( string $email ): void {
-        if ( empty( $email ) || ! filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
-            throw new InvalidArgumentException(
-                static::class . ": invalid sender address '{$email}'."
-            );
-        }
-    }
+	/**
+	 * Assert the envelope sender address is valid.
+	 *
+	 * @param string $email
+	 * @throws InvalidArgumentException
+	 */
+	protected function validate_sender( string $email ) : void {
+		if ( empty( $email ) || ! filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
+			throw new InvalidArgumentException(
+				static::class . ": invalid sender address '{$email}'."
+			);
+		}
+	}
 
-    /**
-     * Assert a recipient list is non-empty and contains only valid addresses.
-     *
-     * @param string[] $recipients
-     * @param string   $field      Field name used in error messages.
-     * @throws InvalidArgumentException
-     */
-    protected function validate_recipients( array $recipients, string $field = 'to' ): void {
-        if ( empty( $recipients ) ) {
-            throw new InvalidArgumentException(
-                static::class . ": '{$field}' must contain at least one recipient."
-            );
-        }
+	/**
+	 * Assert a recipient list is non-empty and contains only valid addresses.
+	 *
+	 * @param string[] $recipients
+	 * @param string   $field      Field name used in error messages.
+	 * @throws InvalidArgumentException
+	 */
+	protected function validate_recipients( array $recipients, string $field = 'to' ) : void {
+		if ( empty( $recipients ) ) {
+			throw new InvalidArgumentException(
+				static::class . ": '{$field}' must contain at least one recipient."
+			);
+		}
 
-        foreach ( $recipients as $address ) {
-            if ( ! filter_var( $address, FILTER_VALIDATE_EMAIL ) ) {
-                throw new InvalidArgumentException(
-                    static::class . ": invalid address '{$address}' in '{$field}'."
-                );
-            }
-        }
-    }
+		foreach ( $recipients as $address ) {
+			if ( ! filter_var( $address, FILTER_VALIDATE_EMAIL ) ) {
+				throw new InvalidArgumentException(
+					static::class . ": invalid address '{$address}' in '{$field}'."
+				);
+			}
+		}
+	}
 
-    /*
-    |------------------
-    | SHARED UTILITIES
-    |------------------
-    */
+	/*
+	|------------------
+	| SHARED UTILITIES
+	|------------------
+	*/
 
-    /**
-     * Resolve the sender email and name from the message or settings fallback.
-     *
-     * @param EmailMessage $message
-     * @return array{email: string, name: string}
-     */
-    protected function resolve_sender( EmailMessage $message ): array {
-        $from   = $message->get( 'from' ) ?? [];
-        return [
-            'email' => trim( $from['email'] ?? $this->settings['from_email'] ) ?: $this->default_sender_email,
-            'name'  => trim( $from['name']  ?? $this->settings['from_name'] )  ?: $this->default_sender_name,
-        ];
-    }
+	/**
+	 * Resolve the sender email and name from the message or settings fallback.
+	 *
+	 * @param EmailMessage $message
+	 * @return array{email: string, name: string}
+	 */
+	protected function resolve_sender( EmailMessage $message ) : array {
+		$from = $message->get( 'from' ) ?? [];
+		return [
+			'email' => trim( $from['email'] ?? $this->settings['from_email'] ) ?: $this->default_sender_email,
+			'name'  => trim( $from['name'] ?? $this->settings['from_name'] )  ?: $this->default_sender_name,
+		];
+	}
 
-    /**
-     * Build the normalised attachment payload from EmailMessage descriptors.
-     *
-     * Returns a provider-agnostic array of:
-     * [
-     *     'filename' => string,
-     *     'content'  => string,  // always base64-encoded
-     *     'mime'     => string,
-     * ]
-     *
-     * Subclasses can call this and re-map the keys to match their API's
-     * expected shape.
-     *
-     * @param array<int, array{type: string, content: string, filename: string, mime: string}> $attachments
-     * @return array<int, array{filename: string, content: string, mime: string}>
-     */
-    protected function build_base_attachments( array $attachments ): array {
-        $result = [];
+	/**
+	 * Build the normalised attachment payload from EmailMessage descriptors.
+	 *
+	 * Returns a provider-agnostic array of:
+	 * [
+	 *     'filename' => string,
+	 *     'content'  => string,  // always base64-encoded
+	 *     'mime'     => string,
+	 * ]
+	 *
+	 * Subclasses can call this and re-map the keys to match their API's
+	 * expected shape.
+	 *
+	 * @param array<int, array{type: string, content: string, filename: string, mime: string}> $attachments
+	 * @return array<int, array{filename: string, content: string, mime: string}>
+	 */
+	protected function build_base_attachments( array $attachments ) : array {
+		$result = [];
 
-        foreach ( $attachments as $attachment ) {
-            $filename = $attachment['filename'] ?? '';
-            $mime     = $attachment['mime']     ?? 'application/octet-stream';
+		foreach ( $attachments as $attachment ) {
+			$filename = $attachment['filename'] ?? '';
+			$mime     = $attachment['mime'] ?? 'application/octet-stream';
 
-            if ( $attachment['type'] === 'path' ) {
-                $filepath = $attachment['content'] ?? '';
+			if ( 'path' === $attachment['type'] ) {
+				$filepath = $attachment['content'] ?? '';
 
-                if ( ! file_exists( $filepath ) || ! is_readable( $filepath ) ) {
-                    continue;
-                }
+				if ( ! file_exists( $filepath ) || ! is_readable( $filepath ) ) {
+					continue;
+				}
 
-                $encoded = base64_encode( file_get_contents( $filepath ) );
-            } else {
-                $encoded = $attachment['content'] ?? '';
-            }
+				$encoded = base64_encode( file_get_contents( $filepath ) );
+			} else {
+				$encoded = $attachment['content'] ?? '';
+			}
 
-            $result[] = [
-                'filename' => $filename,
-                'content'  => $encoded,
-                'mime'     => $mime,
-            ];
-        }
+			$result[] = [
+				'filename' => $filename,
+				'content'  => $encoded,
+				'mime'     => $mime,
+			];
+		}
 
-        return $result;
-    }
+		return $result;
+	}
 }

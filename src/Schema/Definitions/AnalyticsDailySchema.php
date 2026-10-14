@@ -23,81 +23,81 @@ use Callismart\DBPrism\Utils\ColumnType;
  */
 class AnalyticsDailySchema implements DatabaseSchemaInterface {
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_label() : string {
-        return 'Analytics Daily';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_label() : string {
+		return 'Analytics Daily';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_description() : string {
-        return 'Stores daily analytics aggregates.';
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_description() : string {
+		return 'Stores daily analytics aggregates.';
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_table_name() : string {
-        return TableName::ANALYTICS_DAILY->value;
-    }
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_table_name() : string {
+		return TableName::ANALYTICS_DAILY->value;
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_columns() : array {
-        return [
-            Column::make( 'app_type' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 20 )
-                ->required(),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_columns() : array {
+		return [
+			Column::make( 'app_type' )
+				->type( ColumnType::VARCHAR )
+				->size( 20 )
+				->required(),
 
-            Column::make( 'app_slug' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 100 )
-                ->required(),
+			Column::make( 'app_slug' )
+				->type( ColumnType::VARCHAR )
+				->size( 100 )
+				->required(),
 
-            Column::make( 'stats_date' )
-                ->type( ColumnType::DATE )
-                ->required(),
+			Column::make( 'stats_date' )
+				->type( ColumnType::DATE )
+				->required(),
 
-            Column::make( 'event_type' )
-                ->type( ColumnType::VARCHAR )
-                ->size( 50 )
-                ->required(),
+			Column::make( 'event_type' )
+				->type( ColumnType::VARCHAR )
+				->size( 50 )
+				->required(),
 
-            Column::make( 'total_count' )
-                ->type( ColumnType::INTEGER )
-                ->size( 10 )
-                ->unsigned()
-                ->required()
-                ->default( 0 ),
+			Column::make( 'total_count' )
+				->type( ColumnType::INTEGER )
+				->size( 10 )
+				->unsigned()
+				->required()
+				->default( 0 ),
 
-            Column::make( 'unique_count' )
-                ->type( ColumnType::INTEGER )
-                ->size( 10 )
-                ->unsigned()
-                ->required()
-                ->default( 0 ),
-        ];
-    }
+			Column::make( 'unique_count' )
+				->type( ColumnType::INTEGER )
+				->size( 10 )
+				->unsigned()
+				->required()
+				->default( 0 ),
+		];
+	}
 
-    /**
-     * @inheritDoc
-     */
-    public static function get_constraints() : array {
-        $prefx  = static::constraintPrefix();
-        return [
-            Constraint::primary( "{$prefx}primary" )
-                ->on( 'app_type', 'app_slug', 'stats_date', 'event_type' ),
+	/**
+	 * @inheritDoc
+	 */
+	public static function get_constraints() : array {
+		$prefx = static::constraintPrefix();
+		return [
+			Constraint::primary( "{$prefx}primary" )
+				->on( 'app_type', 'app_slug', 'stats_date', 'event_type' ),
 
-            Constraint::index( "{$prefx}stats_date_index" )->on( "stats_date" ),
-        ];
-    }
+			Constraint::index( "{$prefx}stats_date_index" )->on( "stats_date" ),
+		];
+	}
 
-    protected static function constraintPrefix() {
-        return 'smliser_analytics_';
-    }
+	protected static function constraintPrefix() {
+		return 'smliser_analytics_';
+	}
 }

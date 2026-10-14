@@ -28,110 +28,110 @@ use SmartLicenseServer\Utils\Stopwatch;
  * doesn't impose one.
  */
 abstract class AbstractCommand implements CommandInterface {
-    /**
-     * Timer
-     */
-    protected Stopwatch $timer;
+	/**
+	 * Timer
+	 */
+	protected Stopwatch $timer;
 
-    /**
-     * @param InputInterface  $io
-     * @param OutputInterface $output
-     */
-    public function __construct(
-        protected InputInterface $io,
-        protected OutputInterface $output,
-        protected ScriptName $script_name
-    ) {}
+	/**
+	 * @param InputInterface  $io
+	 * @param OutputInterface $output
+	 */
+	public function __construct(
+		protected InputInterface $io,
+		protected OutputInterface $output,
+		protected ScriptName $script_name
+	) {}
 
-    /**
-     * {@inheritdoc}
-     */
-    public function synopsis(): string {
-        $has_subcommands = ! empty( $this->get_subcommands() );
-        
-        return $has_subcommands
-            ? sprintf( '%s <subcommand> [options]', $this->script_name )
-            : sprintf( '%s [options]', $this->script_name );
-    }
-    /**
-     * {@inheritdoc}
-     *
-     * Default: no options/arguments beyond what the command's own
-     * run()/subcommand handlers read positionally.
-     */
-    public function definition(): array {
-        return [];
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public function synopsis() : string {
+		$has_subcommands = ! empty( $this->get_subcommands() );
+		
+		return $has_subcommands
+			? sprintf( '%s <subcommand> [options]', $this->script_name )
+			: sprintf( '%s [options]', $this->script_name );
+	}
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Default: no options/arguments beyond what the command's own
+	 * run()/subcommand handlers read positionally.
+	 */
+	public function definition() : array {
+		return [];
+	}
 
-    /**
-     * {@inheritdoc}
-     *
-     * Default: no subcommands — override in commands that have them.
-     */
-    public function get_subcommands(): array {
-        return [];
-    }
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Default: no subcommands — override in commands that have them.
+	 */
+	public function get_subcommands() : array {
+		return [];
+	}
 
-    /**
-     * Handle help subcommand.
-     * 
-     * @return int
-     */
-    public function handle_help() : int {
-        $this->output->info( $this->description() );
-        $this->output->newline();
-        $this->output->info( 'Usage:' );
-        $this->output->writeln( $this->synopsis() );
-        $this->output->writeln( $this->help() );
-        
-        $this->output->newline();
+	/**
+	 * Handle help subcommand.
+	 * 
+	 * @return int
+	 */
+	public function handle_help() : int {
+		$this->output->info( $this->description() );
+		$this->output->newline();
+		$this->output->info( 'Usage:' );
+		$this->output->writeln( $this->synopsis() );
+		$this->output->writeln( $this->help() );
+		
+		$this->output->newline();
 
-        return 0;
-    }
+		return 0;
+	}
 
-    /*
-    |-----------------------
-    | PRIVATE HELPERS
-    |-----------------------
-    */
-    
-    /**
-     * Start the timer.
-     */
-    protected function start_timer(): static {
-        if ( ! isset( $this->timer ) ) {
-            $this->timer = new Stopwatch();
-        }
+	/*
+	|-----------------------
+	| PRIVATE HELPERS
+	|-----------------------
+	*/
+	
+	/**
+	 * Start the timer.
+	 */
+	protected function start_timer() : static {
+		if ( ! isset( $this->timer ) ) {
+			$this->timer = new Stopwatch();
+		}
 
-        $this->timer->start();
+		$this->timer->start();
 
-        return $this;
-    }
+		return $this;
+	}
 
-    /**
-     * Stop the timer and return raw time elapsed in seconds.
-     */
-    protected function stop_timer(): float {
-        if ( ! isset( $this->timer ) ) {
-            $this->timer = new Stopwatch();
-        }
-        
-        $elapsed = $this->timer->elapsed();
-        $this->timer->reset();
+	/**
+	 * Stop the timer and return raw time elapsed in seconds.
+	 */
+	protected function stop_timer() : float {
+		if ( ! isset( $this->timer ) ) {
+			$this->timer = new Stopwatch();
+		}
+		
+		$elapsed = $this->timer->elapsed();
+		$this->timer->reset();
 
-        return $elapsed;
-    }
+		return $elapsed;
+	}
 
-    /**
-     * Stop the timer and return formatted time string.
-     */
-    protected function elapsed_formatted(): string {
-        $seconds = $this->stop_timer();
+	/**
+	 * Stop the timer and return formatted time string.
+	 */
+	protected function elapsed_formatted() : string {
+		$seconds = $this->stop_timer();
 
-        if ( $seconds < 1.0 ) {
-            return sprintf( '%.2f ms', $seconds * 1000 );
-        }
+		if ( $seconds < 1.0 ) {
+			return sprintf( '%.2f ms', $seconds * 1000 );
+		}
 
-        return sprintf( '%.2f s', $seconds );
-    }
+		return sprintf( '%.2f s', $seconds );
+	}
 }

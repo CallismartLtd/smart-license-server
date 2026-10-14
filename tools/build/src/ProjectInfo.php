@@ -43,7 +43,7 @@ final class ProjectInfo {
 	 * @return self
 	 * @throws BuildException When composer.json or the version constant is missing or invalid.
 	 */
-	public static function from_repo( string $repo_root ): self {
+	public static function from_repo( string $repo_root ) : self {
 		$file = $repo_root . '/composer.json';
 
 		try {
@@ -59,8 +59,8 @@ final class ProjectInfo {
 			throw new BuildException( 'composer.json "name" must be set, e.g. "callismart/smart-license-server".' );
 		}
 
-		$require    = (array) ( $composer['require'] ?? array() );
-		$extensions = array();
+		$require    = (array) ( $composer['require'] ?? [] );
+		$extensions = [];
 
 		foreach ( array_keys( $require ) as $package_name ) {
 			if ( str_starts_with( (string) $package_name, 'ext-' ) ) {
@@ -78,8 +78,8 @@ final class ProjectInfo {
 	 *
 	 * @return string
 	 */
-	public function title(): string {
-		return ucwords( str_replace( array( '-', '_', '.' ), ' ', $this->name ) );
+	public function title() : string {
+		return ucwords( str_replace( [ '-', '_', '.' ], ' ', $this->name ) );
 	}
 
 	/**
@@ -87,7 +87,7 @@ final class ProjectInfo {
 	 *
 	 * @return string|null
 	 */
-	public function php_minor(): ?string {
+	public function php_minor() : ?string {
 		return 1 === preg_match( '/(\d+)\.(\d+)/', $this->php, $m ) ? "{$m[1]}.{$m[2]}" : null;
 	}
 
@@ -98,8 +98,8 @@ final class ProjectInfo {
 	 * @return string
 	 * @throws BuildException When it is missing, defined more than once, or not a version.
 	 */
-	private static function read_version( string $src ): string {
-		$found    = array();
+	private static function read_version( string $src ) : string {
+		$found    = [];
 		$iterator = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $src, \FilesystemIterator::SKIP_DOTS ) );
 
 		foreach ( $iterator as $file ) {
@@ -112,12 +112,12 @@ final class ProjectInfo {
 
 			if ( preg_match_all( '/\bdefine\(\s*[\'"]SMLISER_VER[\'"]\s*,\s*[\'"]([^\'"]+)[\'"]\s*\)/', $code, $m ) ) {
 				foreach ( $m[1] as $version ) {
-					$found[] = array( $version, substr( $file->getPathname(), strlen( $src ) - 3 ) );
+					$found[] = [ $version, substr( $file->getPathname(), strlen( $src ) - 3 ) ];
 				}
 			}
 		}
 
-		if ( array() === $found ) {
+		if ( [] === $found ) {
 			throw new BuildException( "No define( 'SMLISER_VER', '…' ) found under src/; the build names its artifacts with it." );
 		}
 

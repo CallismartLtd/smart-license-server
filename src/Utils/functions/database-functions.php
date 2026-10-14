@@ -13,15 +13,15 @@ use Callismart\DBPrism\Query\SQLBuilder;
  * @param string $driver The DB driver.
  * @return SQLBuilder Instance of the SQLBuilder class.
  */
-function smliserQueryBuilder( string $driver ) : SQLBuilder{
-    return new SQLBuilder( $driver );
+function smliserQueryBuilder( string $driver ) : SQLBuilder {
+	return new SQLBuilder( $driver );
 }
 
 /**
  * Get the database schema inpection instance
  */
 function smliserDBSchemaInspection( Database $db ) : Inspector {
-    return new Inspector( $db );
+	return new Inspector( $db );
 }
 
 /**
@@ -42,7 +42,7 @@ function smliserDBSchemaInspection( Database $db ) : Inspector {
  * @return array<string, string> DBConfigDTO field => environment variable name.
  */
 function smliser_db_env_keys() : array {
-	return array(
+	return [
 		'driver'         => 'SMLISER_DB_DRIVER',
 		'host'           => 'SMLISER_DB_HOST',
 		'port'           => 'SMLISER_DB_PORT',
@@ -53,7 +53,7 @@ function smliser_db_env_keys() : array {
 		'prefix'         => 'SMLISER_DB_PREFIX',
 		'path'           => 'SMLISER_DB_PATH',
 		'encryption_key' => 'SMLISER_SQLITE_ENCRYPTION_KEY',
-	);
+	];
 }
  
 /**
@@ -79,7 +79,7 @@ function smliser_db_config_from_env( array $env ) : ?\Callismart\DBPrism\DBConfi
 		return null;
 	}
  
-	$fields = array();
+	$fields = [];
  
 	foreach ( array_keys( $keys ) as $field ) {
 		if ( 'encryption_key' !== $field ) {

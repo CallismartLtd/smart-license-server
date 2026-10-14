@@ -14,14 +14,14 @@ use SmartLicenseServer\Utils\Format;
 $menu_args = $page_handler->get_top_menu_args( $request );
 
 $section_icons = [
-    'Server'                => 'ti ti-server-2',
-    'Installation'          => 'ti ti-package',
-    'Updates'               => 'ti ti-refresh',
-    'Required Extensions'   => 'ti ti-puzzle',
-    'Loaded Extensions'     => 'ti ti-plug',
-    'Database'              => 'ti ti-database',
-    'Directories'           => 'ti ti-folder',
-    'Background Processing' => 'ti ti-list-check',
+	'Server'                => 'ti ti-server-2',
+	'Installation'          => 'ti ti-package',
+	'Updates'               => 'ti ti-refresh',
+	'Required Extensions'   => 'ti ti-puzzle',
+	'Loaded Extensions'     => 'ti ti-plug',
+	'Database'              => 'ti ti-database',
+	'Directories'           => 'ti ti-folder',
+	'Background Processing' => 'ti ti-list-check',
 ];
 ?>
 <div class="smliser-admin-page">

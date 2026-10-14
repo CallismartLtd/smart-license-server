@@ -26,15 +26,15 @@ class PHPMailProvider implements EmailProviderInterface {
 		protected string $default_sender_email,
 	) {}
 
-	public static function get_id(): string {
+	public static function get_id() : string {
 		return 'php_mail';
 	}
 
-	public static function get_name(): string {
+	public static function get_name() : string {
 		return 'PHP Mail';
 	}
 
-	public static function get_settings_schema(): array {
+	public static function get_settings_schema() : array {
 		return [
 			'from_email' => [
 				'type'        => 'text',
@@ -51,7 +51,7 @@ class PHPMailProvider implements EmailProviderInterface {
 		];
 	}
 
-	public function set_settings( array $settings ): void {
+	public function set_settings( array $settings ) : void {
 		$from_email = ( $settings['from_email'] ?? '' ) ?: $this->default_sender_email;
 
 		if ( empty( $from_email ) || ! filter_var( $from_email, FILTER_VALIDATE_EMAIL ) ) {
@@ -63,7 +63,7 @@ class PHPMailProvider implements EmailProviderInterface {
 		$this->settings = $settings;
 	}
 
-	public function send( EmailMessage $message ): EmailResponse {
+	public function send( EmailMessage $message ) : EmailResponse {
 		if ( ! \function_exists( 'mail' ) ) {
 			throw new EmailTransportException( 'Cannot send email. The function "mail()" does not exist.' );
 		}
@@ -79,7 +79,7 @@ class PHPMailProvider implements EmailProviderInterface {
 		// Resolve sender — message-level 'from' takes precedence over settings.
 		$from       = $message->get( 'from' ) ?? [];
 		$from_email = ( $from['email'] ?? $this->settings['from_email'] ) ?: $this->default_sender_email;
-		$from_name  = ( $from['name']  ?? $this->settings['from_name'] ) ?: $this->default_sender_name;
+		$from_name  = ( $from['name'] ?? $this->settings['from_name'] ) ?: $this->default_sender_name;
 
 		if ( ! filter_var( $from_email, FILTER_VALIDATE_EMAIL ) ) {
 			throw new EmailTransportException( 'Cannot send email. The resolved "from" address is invalid.' );
@@ -116,7 +116,7 @@ class PHPMailProvider implements EmailProviderInterface {
 		string $from_name,
 		string $boundary,
 		array $attachments
-	): array {
+	) : array {
 		$headers = [];
 
 		$from_name = $this->sanitize_header_value( $from_name );
@@ -180,7 +180,7 @@ class PHPMailProvider implements EmailProviderInterface {
 	 * @param string $value
 	 * @return string
 	 */
-	protected function sanitize_header_value( string $value ): string {
+	protected function sanitize_header_value( string $value ) : string {
 		// Cut the value at the first CR or LF — anything after is a potential
 		// injected header/body and must never reach mail().
 		$value = preg_split( "/[\r\n]/", $value )[0] ?? '';
@@ -195,7 +195,7 @@ class PHPMailProvider implements EmailProviderInterface {
 	 * @param array $addresses
 	 * @return string Comma-separated list of valid, sanitized addresses.
 	 */
-	protected function sanitize_address_list( array $addresses ): string {
+	protected function sanitize_address_list( array $addresses ) : string {
 		$valid = [];
 
 		foreach ( $addresses as $address ) {
@@ -216,7 +216,7 @@ class PHPMailProvider implements EmailProviderInterface {
 	 * @param string $value
 	 * @return string
 	 */
-	protected function encode_header_phrase( string $value ): string {
+	protected function encode_header_phrase( string $value ) : string {
 		if ( '' === $value || mb_check_encoding( $value, 'ASCII' ) ) {
 			return $value;
 		}
@@ -230,7 +230,7 @@ class PHPMailProvider implements EmailProviderInterface {
 	 * @param string $subject
 	 * @return string
 	 */
-	protected function encode_subject( string $subject ): string {
+	protected function encode_subject( string $subject ) : string {
 		$subject = $this->sanitize_header_value( $subject );
 
 		if ( '' === $subject || mb_check_encoding( $subject, 'ASCII' ) ) {
@@ -251,7 +251,7 @@ class PHPMailProvider implements EmailProviderInterface {
 	 * @param string                                                              $boundary
 	 * @return string
 	 */
-	protected function build_mime_body( string $body, array $attachments, string $boundary ): string {
+	protected function build_mime_body( string $body, array $attachments, string $boundary ) : string {
 		$eol  = "\r\n";
 		$mime = "--{$boundary}{$eol}";
 		$mime .= "Content-Type: text/html; charset=UTF-8{$eol}";
@@ -260,9 +260,9 @@ class PHPMailProvider implements EmailProviderInterface {
 
 		foreach ( $attachments as $attachment ) {
 			$filename  = $attachment['filename'] ?? '';
-			$mime_type = $attachment['mime']     ?? 'application/octet-stream';
+			$mime_type = $attachment['mime'] ?? 'application/octet-stream';
 
-			if ( $attachment['type'] === 'path' ) {
+			if ( 'path' === $attachment['type'] ) {
 				$filepath = $attachment['content'] ?? '';
 
 				if ( ! file_exists( $filepath ) ) {

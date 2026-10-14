@@ -18,48 +18,48 @@ use SmartLicenseServer\Monetization\License;
 
 class LicenseExpiredEmail extends EmailTemplate {
 
-    /**
-     * @param License $license  The expired license.
-     * @param string  $to       Recipient email address.
-     */
-    public function __construct(
-        private readonly License $license,
-        private readonly string  $to
-    ) {}
+	/**
+	 * @param License $license  The expired license.
+	 * @param string  $to       Recipient email address.
+	 */
+	public function __construct(
+		private readonly License $license,
+		private readonly string  $to
+	) {}
 
-    static public function template_key(): string {
-        return 'license_expired';
-    }
+	static public function template_key() : string {
+		return 'license_expired';
+	}
 
-    protected function subject(): string {
-        return 'Your License Has Expired';
-    }
+	protected function subject() : string {
+		return 'Your License Has Expired';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return 'Your license has expired. Renew now to restore access.';
-    }
+	protected function preheader() : string {
+		return 'Your license has expired. Renew now to restore access.';
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{licensee_name}}' => $this->license->get_licensee_fullname(),
-            '{{license_key}}'   => $this->license->get_license_key(),
-            '{{end_date}}'      => $this->license->get_end_date()->format( \smliser_datetime_format() ),
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{licensee_name}}' => $this->license->get_licensee_fullname(),
+			'{{license_key}}'   => $this->license->get_license_key(),
+			'{{end_date}}'      => $this->license->get_end_date()->format( \smliser_datetime_format() ),
+		] );
+	}
 
-    protected function body(): string {
-        $vars = $this->variables();
+	protected function body() : string {
+		$vars = $this->variables();
 
-        $licensee_name = \escHtml( $vars['{{licensee_name}}'] );
-        $license_key   = \escHtml( $vars['{{license_key}}'] );
-        $end_date      = \escHtml( $vars['{{end_date}}'] );
-        $support       = \escHtml( $vars['{{support_email}}'] );
+		$licensee_name = \escHtml( $vars['{{licensee_name}}'] );
+		$license_key   = \escHtml( $vars['{{license_key}}'] );
+		$end_date      = \escHtml( $vars['{{end_date}}'] );
+		$support       = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Hi {$licensee_name},
         </p>
@@ -101,57 +101,57 @@ class LicenseExpiredEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'License Expired';
-    }
-    public function description(): string {
-        return 'Sent when a license has passed its expiry date.';
-    }
-    public static function preview(): static {
-        $license = License::from_array([
-            'licensee_fullname' => 'Jane Doe',
-            'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
-            'end_date'          => gmdate( 'Y-m-d', strtotime( '-1 day' ) ),
-        ]);
-        return new static( $license, 'preview@example.com' );
-    }
+	public function label() : string {
+		return 'License Expired';
+	}
+	public function description() : string {
+		return 'Sent when a license has passed its expiry date.';
+	}
+	public static function preview() : static {
+		$license = License::from_array( [
+			'licensee_fullname' => 'Jane Doe',
+			'license_key'       => 'SMLISER-XXXX-XXXX-XXXX',
+			'end_date'          => gmdate( 'Y-m-d', strtotime( '-1 day' ) ),
+		] );
+		return new static( $license, 'preview@example.com' );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Hi {{licensee_name}},',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'error',
-                'content'   => 'Your license expired on {{end_date}}. Access to associated features may be restricted until you renew.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Expired License Key', 'value' => '{{license_key}}' ],
-                    [ 'label' => 'Expired On',          'value' => '{{end_date}}' ],
-                ],
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'To renew your license or if you have any questions, please contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Hi {{licensee_name}},',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'error',
+				'content'   => 'Your license expired on {{end_date}}. Access to associated features may be restricted until you renew.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Expired License Key', 'value' => '{{license_key}}' ],
+					[ 'label' => 'Expired On',          'value' => '{{end_date}}' ],
+				],
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'To renew your license or if you have any questions, please contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

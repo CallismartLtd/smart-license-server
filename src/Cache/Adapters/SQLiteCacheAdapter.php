@@ -59,772 +59,772 @@ use SQLite3Stmt;
  */
 class SQLiteCacheAdapter implements CacheAdapterInterface {
 
-    /*
-    |--------------------------------------------
-    | DATABASE STATE
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| DATABASE STATE
+	|--------------------------------------------
+	*/
 
-    /**
-     * The SQLite3 connection.
-     *
-     * @var SQLite3
-     */
-    protected SQLite3 $db;    
-    
-    /**
-     * Prepared statement cache.
-     *
-     * @var array<string, SQLite3Stmt>
-     */
-    private array $stmts = [];
+	/**
+	 * The SQLite3 connection.
+	 *
+	 * @var SQLite3
+	 */
+	protected SQLite3 $db;
+	
+	/**
+	 * Prepared statement cache.
+	 *
+	 * @var array<string, SQLite3Stmt>
+	 */
+	private array $stmts = [];
 
-    /*
-    |--------------------------------------------
-    | STATS ACCUMULATOR
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| STATS ACCUMULATOR
+	|--------------------------------------------
+	*/
 
-    /**
-     * Hit count accumulated in-process this request.
-     *
-     * Never written to the DB directly — flushed atomically at shutdown.
-     *
-     * @var int
-     */
-    private int $pending_hits = 0;
+	/**
+	 * Hit count accumulated in-process this request.
+	 *
+	 * Never written to the DB directly — flushed atomically at shutdown.
+	 *
+	 * @var int
+	 */
+	private int $pending_hits = 0;
 
-    /**
-     * Miss count accumulated in-process this request.
-     *
-     * @var int
-     */
-    private int $pending_misses = 0;
+	/**
+	 * Miss count accumulated in-process this request.
+	 *
+	 * @var int
+	 */
+	private int $pending_misses = 0;
 
-    /**
-     * Whether the shutdown flusher has been registered.
-     *
-     * One registration per adapter instance is enough.
-     *
-     * @var bool
-     */
-    private bool $shutdown_registered = false;
+	/**
+	 * Whether the shutdown flusher has been registered.
+	 *
+	 * One registration per adapter instance is enough.
+	 *
+	 * @var bool
+	 */
+	private bool $shutdown_registered = false;
 
-    /*
-    |--------------------------------------------
-    | CONSTRUCTOR
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| CONSTRUCTOR
+	|--------------------------------------------
+	*/
 
-    /**
-     * Class constructor.
-     * 
-     * @param string $base_dir      The default cache base directory.
-     * @param string $db_filename   The default cache database filename.
-     * @param string $stats_table   The default table name used for stats statistics.
-     * @param string $table         The main cache table name.
-     * @param int $storage_limit    Maximum storage memory (MB).
-     * @param int $cache_memory     Page cache memory.
-     * @param int $dir_perm         The directory permission bit.
-     */
-    public function __construct(
-        protected string $base_dir,
-        protected string $db_filename   = 'cache.sqlite',
-        protected string $stats_table   = 'cache_stats',
-        protected string $table         = 'main_cache',
-        protected int $storage_limit    = 512,
-        protected int $cache_memory     = 4,
-        protected int $dir_perm         = 0775
-    ) {}
+	/**
+	 * Class constructor.
+	 * 
+	 * @param string $base_dir      The default cache base directory.
+	 * @param string $db_filename   The default cache database filename.
+	 * @param string $stats_table   The default table name used for stats statistics.
+	 * @param string $table         The main cache table name.
+	 * @param int $storage_limit    Maximum storage memory (MB).
+	 * @param int $cache_memory     Page cache memory.
+	 * @param int $dir_perm         The directory permission bit.
+	 */
+	public function __construct(
+		protected string $base_dir,
+		protected string $db_filename = 'cache.sqlite',
+		protected string $stats_table = 'cache_stats',
+		protected string $table = 'main_cache',
+		protected int $storage_limit = 512,
+		protected int $cache_memory = 4,
+		protected int $dir_perm = 0775
+	) {}
 
-    /*
-    |--------------------------------------------
-    | CacheAdapterInterface — READ
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| CacheAdapterInterface — READ
+	|--------------------------------------------
+	*/
 
-    /**
-     * Retrieve a cached value.
-     *
-     * Expiry is enforced entirely at the SQL layer. A 1-in-100
-     * probabilistic prune runs on reads to amortise cleanup cost.
-     * Stats are accumulated in-memory only — no DB write on this path.
-     *
-     * @param  string $key
-     * @return mixed|false
-     */
-    public function get( string $key ): mixed {
-        if ( ! $this->is_active() ) {
-            $this->record_miss();
-            return false;
-        }
+	/**
+	 * Retrieve a cached value.
+	 *
+	 * Expiry is enforced entirely at the SQL layer. A 1-in-100
+	 * probabilistic prune runs on reads to amortise cleanup cost.
+	 * Stats are accumulated in-memory only — no DB write on this path.
+	 *
+	 * @param  string $key
+	 * @return mixed|false
+	 */
+	public function get( string $key ) : mixed {
+		if ( ! $this->is_active() ) {
+			$this->record_miss();
+			return false;
+		}
 
-        if ( mt_rand( 1, 100 ) === 1 ) {
-            $this->prune_expired();
-        }
+		if ( 1 === mt_rand( 1, 100 ) ) {
+			$this->prune_expired();
+		}
 
-        $stmt = $this->stmt(
-            'get',
-            "SELECT cache_value
+		$stmt = $this->stmt(
+			'get',
+			"SELECT cache_value
              FROM {$this->table}
              WHERE cache_key = ?
                AND (expires_at IS NULL OR expires_at > ?)
              LIMIT 1"
-        );
+		);
 
-        if ( ! $stmt ) {
-            $this->record_miss();
-            return false;
-        }
+		if ( ! $stmt ) {
+			$this->record_miss();
+			return false;
+		}
 
-        $stmt->bindValue( 1, $key,   SQLITE3_TEXT );
-        $stmt->bindValue( 2, time(), SQLITE3_INTEGER );
+		$stmt->bindValue( 1, $key,   SQLITE3_TEXT );
+		$stmt->bindValue( 2, time(), SQLITE3_INTEGER );
 
-        $result = $stmt->execute();
-        $stmt->reset();
+		$result = $stmt->execute();
+		$stmt->reset();
 
-        if ( ! $result ) {
-            $this->record_miss();
-            return false;
-        }
+		if ( ! $result ) {
+			$this->record_miss();
+			return false;
+		}
 
-        $row = $result->fetchArray( SQLITE3_ASSOC );
-        $result->finalize();
+		$row = $result->fetchArray( SQLITE3_ASSOC );
+		$result->finalize();
 
-        if ( ! $row ) {
-            $this->record_miss();
-            return false;
-        }
+		if ( ! $row ) {
+			$this->record_miss();
+			return false;
+		}
 
-        $this->record_hit();
+		$this->record_hit();
 
-        return unserialize( $row['cache_value'], [ 'allowed_classes' => true ] );
-    }
+		return unserialize( $row['cache_value'], [ 'allowed_classes' => true ] );
+	}
 
-    /**
-     * Determine whether a non-expired cache entry exists.
-     *
-     * Expiry enforced at the SQL layer. Stats accumulated in-memory.
-     *
-     * @param  string $key
-     * @return bool
-     */
-    public function has( string $key ): bool {
-        if ( ! $this->is_active() ) {
-            $this->record_miss();
-            return false;
-        }
+	/**
+	 * Determine whether a non-expired cache entry exists.
+	 *
+	 * Expiry enforced at the SQL layer. Stats accumulated in-memory.
+	 *
+	 * @param  string $key
+	 * @return bool
+	 */
+	public function has( string $key ) : bool {
+		if ( ! $this->is_active() ) {
+			$this->record_miss();
+			return false;
+		}
 
-        $stmt = $this->stmt(
-            'has',
-            "SELECT 1
+		$stmt = $this->stmt(
+			'has',
+			"SELECT 1
              FROM {$this->table}
              WHERE cache_key = ?
                AND (expires_at IS NULL OR expires_at > ?)
              LIMIT 1"
-        );
+		);
 
-        if ( ! $stmt ) {
-            $this->record_miss();
-            return false;
-        }
+		if ( ! $stmt ) {
+			$this->record_miss();
+			return false;
+		}
 
-        $stmt->bindValue( 1, $key,   SQLITE3_TEXT );
-        $stmt->bindValue( 2, time(), SQLITE3_INTEGER );
+		$stmt->bindValue( 1, $key,   SQLITE3_TEXT );
+		$stmt->bindValue( 2, time(), SQLITE3_INTEGER );
 
-        $result = $stmt->execute();
-        $stmt->reset();
+		$result = $stmt->execute();
+		$stmt->reset();
 
-        if ( ! $result ) {
-            $this->record_miss();
-            return false;
-        }
+		if ( ! $result ) {
+			$this->record_miss();
+			return false;
+		}
 
-        $row = $result->fetchArray( SQLITE3_NUM );
-        $result->finalize();
+		$row = $result->fetchArray( SQLITE3_NUM );
+		$result->finalize();
 
-        $hit = $row !== false && ( (int) $row[0] ) === 1;
+		$hit = false !== $row && ( (int) $row[0] ) === 1;
 
-        $hit ? $this->record_hit() : $this->record_miss();
+		$hit ? $this->record_hit() : $this->record_miss();
 
-        return $hit;
-    }
+		return $hit;
+	}
 
-    /*
-    |--------------------------------------------
-    | CacheAdapterInterface — WRITE
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| CacheAdapterInterface — WRITE
+	|--------------------------------------------
+	*/
 
-    /**
-     * Store a value in cache.
-     *
-     * Uses INSERT ... ON CONFLICT upsert — one round trip, no pre-check.
-     * Stats counters are not touched on writes.
-     *
-     * @param  string $key
-     * @param  mixed  $value
-     * @param  int    $ttl   Seconds until expiry. 0 = no expiry.
-     * @return bool
-     */
-    public function set( string $key, mixed $value, int $ttl = 0 ): bool {
-        if ( ! $this->is_active() ) {
-            return false;
-        }
+	/**
+	 * Store a value in cache.
+	 *
+	 * Uses INSERT ... ON CONFLICT upsert — one round trip, no pre-check.
+	 * Stats counters are not touched on writes.
+	 *
+	 * @param  string $key
+	 * @param  mixed  $value
+	 * @param  int    $ttl   Seconds until expiry. 0 = no expiry.
+	 * @return bool
+	 */
+	public function set( string $key, mixed $value, int $ttl = 0 ) : bool {
+		if ( ! $this->is_active() ) {
+			return false;
+		}
 
-        $expires_at = $ttl > 0 ? time() + $ttl : null;
-        $serialized = serialize( $value );
+		$expires_at = $ttl > 0 ? time() + $ttl : null;
+		$serialized = serialize( $value );
 
-        $stmt = $this->stmt(
-            'set',
-            "INSERT INTO {$this->table} (cache_key, cache_value, expires_at)
+		$stmt = $this->stmt(
+			'set',
+			"INSERT INTO {$this->table} (cache_key, cache_value, expires_at)
              VALUES (?, ?, ?)
              ON CONFLICT(cache_key) DO UPDATE SET
                  cache_value = excluded.cache_value,
                  expires_at  = excluded.expires_at"
-        );
+		);
 
-        if ( ! $stmt ) {
-            return false;
-        }
+		if ( ! $stmt ) {
+			return false;
+		}
 
-        $stmt->bindValue( 1, $key,        SQLITE3_TEXT );
-        $stmt->bindValue( 2, $serialized, SQLITE3_BLOB );
-        $stmt->bindValue( 3, $expires_at, $expires_at === null ? SQLITE3_NULL : SQLITE3_INTEGER );
+		$stmt->bindValue( 1, $key,        SQLITE3_TEXT );
+		$stmt->bindValue( 2, $serialized, SQLITE3_BLOB );
+		$stmt->bindValue( 3, $expires_at, null === $expires_at ? SQLITE3_NULL : SQLITE3_INTEGER );
 
-        $result = $stmt->execute();
-        $stmt->reset();
+		$result = $stmt->execute();
+		$stmt->reset();
 
-        if ( ! $result ) {
-            return false;
-        }
+		if ( ! $result ) {
+			return false;
+		}
 
-        $result->finalize();
+		$result->finalize();
 
-        return $this->db->changes() > 0;
-    }
+		return $this->db->changes() > 0;
+	}
 
-    /**
-     * Delete a cache entry.
-     *
-     * @param  string $key
-     * @return bool         True if a row was deleted.
-     */
-    public function delete( string $key ): bool {
-        if ( ! $this->is_active() ) {
-            return false;
-        }
+	/**
+	 * Delete a cache entry.
+	 *
+	 * @param  string $key
+	 * @return bool         True if a row was deleted.
+	 */
+	public function delete( string $key ) : bool {
+		if ( ! $this->is_active() ) {
+			return false;
+		}
 
-        $stmt = $this->stmt(
-            'delete',
-            "DELETE FROM {$this->table} WHERE cache_key = ?"
-        );
+		$stmt = $this->stmt(
+			'delete',
+			"DELETE FROM {$this->table} WHERE cache_key = ?"
+		);
 
-        if ( ! $stmt ) {
-            return false;
-        }
+		if ( ! $stmt ) {
+			return false;
+		}
 
-        $stmt->bindValue( 1, $key, SQLITE3_TEXT );
+		$stmt->bindValue( 1, $key, SQLITE3_TEXT );
 
-        $result = $stmt->execute();
-        $stmt->reset();
+		$result = $stmt->execute();
+		$stmt->reset();
 
-        if ( ! $result ) {
-            return false;
-        }
+		if ( ! $result ) {
+			return false;
+		}
 
-        $result->finalize();
+		$result->finalize();
 
-        return $this->db->changes() > 0;
-    }
+		return $this->db->changes() > 0;
+	}
 
-    /**
-     * Clear the entire cache table and reset persisted stats to zero.
-     *
-     * Also resets the in-process pending counters so the shutdown
-     * flusher does not add phantom deltas on top of the zeroed stats.
-     *
-     * @return bool
-     */
-    public function clear(): bool {
-        if ( ! $this->is_active() ) {
-            return false;
-        }
+	/**
+	 * Clear the entire cache table and reset persisted stats to zero.
+	 *
+	 * Also resets the in-process pending counters so the shutdown
+	 * flusher does not add phantom deltas on top of the zeroed stats.
+	 *
+	 * @return bool
+	 */
+	public function clear() : bool {
+		if ( ! $this->is_active() ) {
+			return false;
+		}
 
-        $this->db->exec( "DELETE FROM {$this->table}" );
-        $this->db->exec(
-            "UPDATE {$this->stats_table} SET hits = 0, misses = 0 WHERE id = 1"
-        );
+		$this->db->exec( "DELETE FROM {$this->table}" );
+		$this->db->exec(
+			"UPDATE {$this->stats_table} SET hits = 0, misses = 0 WHERE id = 1"
+		);
 
-        // Zero the pending accumulators so the shutdown flusher adds
-        // nothing on top of the explicit reset above.
-        $this->pending_hits   = 0;
-        $this->pending_misses = 0;
+		// Zero the pending accumulators so the shutdown flusher adds
+		// nothing on top of the explicit reset above.
+		$this->pending_hits   = 0;
+		$this->pending_misses = 0;
 
-        return true;
-    }
+		return true;
+	}
 
-    /**
-     * Delete all expired entries from the cache table.
-     *
-     * Called probabilistically from get() and may also be called
-     * explicitly from a scheduled maintenance task.
-     *
-     * @return int Number of rows deleted.
-     */
-    public function prune_expired(): int {
-        if ( ! $this->is_active() ) {
-            return 0;
-        }
+	/**
+	 * Delete all expired entries from the cache table.
+	 *
+	 * Called probabilistically from get() and may also be called
+	 * explicitly from a scheduled maintenance task.
+	 *
+	 * @return int Number of rows deleted.
+	 */
+	public function prune_expired() : int {
+		if ( ! $this->is_active() ) {
+			return 0;
+		}
 
-        $this->db->exec(
-            "DELETE FROM {$this->table}
+		$this->db->exec(
+			"DELETE FROM {$this->table}
             WHERE expires_at IS NOT NULL AND expires_at < " . time()
-        );
+		);
 
-        return $this->db->changes();
-    }
+		return $this->db->changes();
+	}
 
-    /*
-    |--------------------------------------------
-    | ATOMIC OPERATIONS
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| ATOMIC OPERATIONS
+	|--------------------------------------------
+	*/
 
-    public function modify( string $key, callable $callback, int $ttl = 0, mixed $default = null ): mixed {
-        if ( ! $this->is_active() ) {
-            return false;
-        }
+	public function modify( string $key, callable $callback, int $ttl = 0, mixed $default = null ) : mixed {
+		if ( ! $this->is_active() ) {
+			return false;
+		}
 
-        $this->db->exec( 'BEGIN IMMEDIATE TRANSACTION' );
+		$this->db->exec( 'BEGIN IMMEDIATE TRANSACTION' );
 
-        try {
-            $current = $this->get( $key );
-            if ( false === $current ) {
-                $current = $default;
-            }
+		try {
+			$current = $this->get( $key );
+			if ( false === $current ) {
+				$current = $default;
+			}
 
-            $updated = $callback( $current );
+			$updated = $callback( $current );
 
-            if ( false === $updated ) {
-                $this->db->exec( 'ROLLBACK' );
-                return false;
-            }
+			if ( false === $updated ) {
+				$this->db->exec( 'ROLLBACK' );
+				return false;
+			}
 
-            if ( $this->set( $key, $updated, $ttl ) ) {
-                $this->db->exec( 'COMMIT' );
-                return $updated;
-            }
+			if ( $this->set( $key, $updated, $ttl ) ) {
+				$this->db->exec( 'COMMIT' );
+				return $updated;
+			}
 
-            $this->db->exec( 'ROLLBACK' );
-            return false;
-        } catch ( \Throwable ) {
-            $this->db->exec( 'ROLLBACK' );
-            return false;
-        }
-    }
+			$this->db->exec( 'ROLLBACK' );
+			return false;
+		} catch ( \Throwable ) {
+			$this->db->exec( 'ROLLBACK' );
+			return false;
+		}
+	}
 
-    public function increment( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
-        return $this->modify(
-            $key,
-            static function ( mixed $value ) use ( $offset, $initial ): int {
-                $num = is_numeric( $value ) ? (int) $value : $initial;
-                return $num + $offset;
-            },
-            $ttl,
-            $initial
-        );
-    }
+	public function increment( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ) : int|bool {
+		return $this->modify(
+			$key,
+			static function ( mixed $value ) use ( $offset, $initial ) : int {
+				$num = is_numeric( $value ) ? (int) $value : $initial;
+				return $num + $offset;
+			},
+			$ttl,
+			$initial
+		);
+	}
 
-    public function decrement( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ): int|bool {
-        return $this->modify(
-            $key,
-            static function ( mixed $value ) use ( $offset, $initial ): int {
-                $num = is_numeric( $value ) ? (int) $value : $initial;
-                return $num - $offset;
-            },
-            $ttl,
-            $initial
-        );
-    }
+	public function decrement( string $key, int $offset = 1, int $initial = 0, int $ttl = 0 ) : int|bool {
+		return $this->modify(
+			$key,
+			static function ( mixed $value ) use ( $offset, $initial ) : int {
+				$num = is_numeric( $value ) ? (int) $value : $initial;
+				return $num - $offset;
+			},
+			$ttl,
+			$initial
+		);
+	}
 
-    /*
-    |--------------------------------------------
-    | ADAPTER IDENTITY & STATS
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| ADAPTER IDENTITY & STATS
+	|--------------------------------------------
+	*/
 
-    public static function get_id(): string {
-        return 'sqlitecache';
-    }
+	public static function get_id() : string {
+		return 'sqlitecache';
+	}
 
-    public static function get_name(): string {
-        return 'SQLite Cache';
-    }
+	public static function get_name() : string {
+		return 'SQLite Cache';
+	}
 
-    /**
-     * Return current cache statistics.
-     *
-     * Reads the persisted hit/miss totals from the stats table and
-     * adds the current request's pending delta so the numbers are
-     * always up-to-date for the caller without requiring a flush first.
-     *
-     * @return CacheStats
-     */
-    public function get_stats(): CacheStats {
-        if ( ! $this->is_active() ) {
-            return new CacheStats();
-        }
+	/**
+	 * Return current cache statistics.
+	 *
+	 * Reads the persisted hit/miss totals from the stats table and
+	 * adds the current request's pending delta so the numbers are
+	 * always up-to-date for the caller without requiring a flush first.
+	 *
+	 * @return CacheStats
+	 */
+	public function get_stats() : CacheStats {
+		if ( ! $this->is_active() ) {
+			return new CacheStats();
+		}
 
-        $now = time();
+		$now = time();
 
-        $row = $this->db->querySingle(
-            "SELECT
+		$row = $this->db->querySingle(
+			"SELECT
                  COUNT(*) AS entry_count,
                  SUM(LENGTH(cache_value)) AS value_bytes
              FROM {$this->table}
              WHERE expires_at IS NULL OR expires_at > {$now}",
-            true
-        );
+			true
+		);
 
-        $entries     = (int) ( $row['entry_count'] ?? 0 );
-        $memory_used = (int) ( $row['value_bytes']  ?? 0 );
+		$entries     = (int) ( $row['entry_count'] ?? 0 );
+		$memory_used = (int) ( $row['value_bytes'] ?? 0 );
 
-        $expired = (int) $this->db->querySingle(
-            "SELECT COUNT(*) FROM {$this->table}
+		$expired = (int) $this->db->querySingle(
+			"SELECT COUNT(*) FROM {$this->table}
              WHERE expires_at IS NOT NULL AND expires_at <= {$now}"
-        );
+		);
 
-        $page_count = (int) $this->db->querySingle( 'PRAGMA max_page_count' );
-        $page_size  = (int) $this->db->querySingle( 'PRAGMA page_size' );
-        $db_size    = $page_count * $page_size;
-        $db_file    = $this->db_file();
-        $uptime     = file_exists( $db_file ) ? $now - filemtime( $db_file ) : 0;
+		$page_count = (int) $this->db->querySingle( 'PRAGMA max_page_count' );
+		$page_size  = (int) $this->db->querySingle( 'PRAGMA page_size' );
+		$db_size    = $page_count * $page_size;
+		$db_file    = $this->db_file();
+		$uptime     = file_exists( $db_file ) ? $now - filemtime( $db_file ) : 0;
 
-        // Load persisted totals, then add this request's in-flight delta
-        // so callers always see the latest effective counts even before
-        // the shutdown flusher has run.
-        $stats_row = $this->db->querySingle(
-            "SELECT hits, misses FROM {$this->stats_table} WHERE id = 1",
-            true
-        );
+		// Load persisted totals, then add this request's in-flight delta
+		// so callers always see the latest effective counts even before
+		// the shutdown flusher has run.
+		$stats_row = $this->db->querySingle(
+			"SELECT hits, misses FROM {$this->stats_table} WHERE id = 1",
+			true
+		);
 
-        $hits   = (int) ( $stats_row['hits']   ?? 0 ) + $this->pending_hits;
-        $misses = (int) ( $stats_row['misses']  ?? 0 ) + $this->pending_misses;
+		$hits   = (int) ( $stats_row['hits'] ?? 0 ) + $this->pending_hits;
+		$misses = (int) ( $stats_row['misses'] ?? 0 ) + $this->pending_misses;
 
-        return new CacheStats(
-            hits            : $hits,
-            misses          : $misses,
-            entries         : $entries,
-            memory_used     : $memory_used,
-            memory_total    : $db_size,
-            uptime          : $uptime,
-            status          : $this->is_active(),
-            extra           : [
-                'expired_entries' => $expired,
-                'db_file_size'    => $db_size,
-                'db_file'         => basename( $db_file ),
-                'page_count'      => $page_count,
-                'page_size'       => $page_size,
-            ],
-        );
-    }
+		return new CacheStats(
+			hits            : $hits,
+			misses          : $misses,
+			entries         : $entries,
+			memory_used     : $memory_used,
+			memory_total    : $db_size,
+			uptime          : $uptime,
+			status          : $this->is_active(),
+			extra           : [
+				'expired_entries' => $expired,
+				'db_file_size'    => $db_size,
+				'db_file'         => basename( $db_file ),
+				'page_count'      => $page_count,
+				'page_size'       => $page_size,
+			],
+		);
+	}
 
-    /*
-    |--------------------------------------------
-    | ADAPTER CONFIGURATION
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| ADAPTER CONFIGURATION
+	|--------------------------------------------
+	*/
 
-    /**
-     * Return the adapter's settings schema.
-     *
-     * @return array<string, mixed>
-     */
-    public function get_settings_schema(): array {
-        return [
-            'db_filename' => [
-                'type'        => 'text',
-                'label'       => 'Cache File Name',
-                'required'    => false,
-                'default'     => $this->db_filename,
-                'description' => sprintf( 'The SQLite database file name(default: %s).', $this->db_filename ),
-            ],
+	/**
+	 * Return the adapter's settings schema.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function get_settings_schema() : array {
+		return [
+			'db_filename' => [
+				'type'        => 'text',
+				'label'       => 'Cache File Name',
+				'required'    => false,
+				'default'     => $this->db_filename,
+				'description' => sprintf( 'The SQLite database file name(default: %s).', $this->db_filename ),
+			],
 
-            'cache_dir' => [
-                'type'        => 'text',
-                'label'       => 'Cache Directory',
-                'required'    => true,
-                'default'     => rtrim( $this->base_dir, '/' ) . '/',
-                'description' => 'Absolute path to the directory where the SQLite cache database will be stored. Must be within the writable repository path.',
-            ],
-            'cache_memory' => [
-                'type'        => 'number',
-                'label'       => 'Cache Memory (MB)',
-                'required'    => false,
-                'default'     => $this->cache_memory,
-                'description' => 'Amount of memory SQLite can use for its page cache. Enter in megabytes(default: 4 MB).',
-            ],
-            'storage_limit' => [
-                'type'        => 'number',
-                'label'       => 'Disk Storage Limit (MB)',
-                'required'    => true,
-                'default'     => $this->storage_limit,
-                'description' => 'Maximum disk space the cache database is allowed to occupy. Once reached, further writes will fail until space is cleared.',
-            ],
-        ];
-    }
+			'cache_dir' => [
+				'type'        => 'text',
+				'label'       => 'Cache Directory',
+				'required'    => true,
+				'default'     => rtrim( $this->base_dir, '/' ) . '/',
+				'description' => 'Absolute path to the directory where the SQLite cache database will be stored. Must be within the writable repository path.',
+			],
+			'cache_memory' => [
+				'type'        => 'number',
+				'label'       => 'Cache Memory (MB)',
+				'required'    => false,
+				'default'     => $this->cache_memory,
+				'description' => 'Amount of memory SQLite can use for its page cache. Enter in megabytes(default: 4 MB).',
+			],
+			'storage_limit' => [
+				'type'        => 'number',
+				'label'       => 'Disk Storage Limit (MB)',
+				'required'    => true,
+				'default'     => $this->storage_limit,
+				'description' => 'Maximum disk space the cache database is allowed to occupy. Once reached, further writes will fail until space is cleared.',
+			],
+		];
+	}
 
-    /**
-     * Apply adapter settings.
-     *
-     * @param  array<string, mixed> $settings
-     * @return void
-     */
-    public function set_settings( array $settings ): void {
-        $cache_dir      = $settings['cache_dir'] ?? '';
-        $cache_memory   = (int) ( $settings['cache_memory'] ?? $this->cache_memory );
-        $storage_limit  = (int) ( $settings['storage_limit'] ?? $this->storage_limit );
-        $db_filename    = (string) ( $settings['db_filename'] ?? $this->db_filename );
+	/**
+	 * Apply adapter settings.
+	 *
+	 * @param  array<string, mixed> $settings
+	 * @return void
+	 */
+	public function set_settings( array $settings ) : void {
+		$cache_dir     = $settings['cache_dir'] ?? '';
+		$cache_memory  = (int) ( $settings['cache_memory'] ?? $this->cache_memory );
+		$storage_limit = (int) ( $settings['storage_limit'] ?? $this->storage_limit );
+		$db_filename   = (string) ( $settings['db_filename'] ?? $this->db_filename );
 
-        $this->base_dir = rtrim( $cache_dir, '/' ) . '/';
+		$this->base_dir = rtrim( $cache_dir, '/' ) . '/';
 
-        // Validate cache_memory within sensible bounds
-        if ( $cache_memory !== $this->cache_memory && ( $cache_memory < 1 || $cache_memory > 1024 ) ) {
-            $cache_memory = $this->cache_memory; // fallback default.
-        }
+		// Validate cache_memory within sensible bounds
+		if ( $cache_memory !== $this->cache_memory && ( $cache_memory < 1 || $cache_memory > 1024 ) ) {
+			$cache_memory = $this->cache_memory; // fallback default.
+		}
 
-        if ( '' === $db_filename ) {
-            $db_filename    = $this->db_filename;
-        }
+		if ( '' === $db_filename ) {
+			$db_filename = $this->db_filename;
+		}
 
-        $this->cache_memory     = $cache_memory;
-        $this->storage_limit    = $storage_limit;
-        $this->db_filename      = $db_filename;
+		$this->cache_memory  = $cache_memory;
+		$this->storage_limit = $storage_limit;
+		$this->db_filename   = $db_filename;
 
-        // Reset statement cache — a new path means a new database file.
-        $this->stmts = [];
-        unset( $this->db );
-    }
+		// Reset statement cache — a new path means a new database file.
+		$this->stmts = [];
+		unset( $this->db );
+	}
 
-    /**
-     * Test whether the adapter can connect and operate with the given settings.
-     *
-     * Performs a temporary write → read → delete round-trip against a
-     * probe key without disturbing any existing cache entries.
-     *
-     * @param  array<string, mixed> $settings Settings to test.
-     * @return bool True if all three round-trip steps succeed.
-     */
-    public function test( array $settings ): bool {
-        $sandbox    = new static( \sys_get_temp_dir() );
-        try {
-            // Apply candidate settings without persisting them.
-            $sandbox->set_settings( $settings );
+	/**
+	 * Test whether the adapter can connect and operate with the given settings.
+	 *
+	 * Performs a temporary write → read → delete round-trip against a
+	 * probe key without disturbing any existing cache entries.
+	 *
+	 * @param  array<string, mixed> $settings Settings to test.
+	 * @return bool True if all three round-trip steps succeed.
+	 */
+	public function test( array $settings ) : bool {
+		$sandbox = new static( \sys_get_temp_dir() );
+		try {
+			// Apply candidate settings without persisting them.
+			$sandbox->set_settings( $settings );
 
-            if ( empty( $sandbox->base_dir ) ) {
-                throw new CacheTestException( 'SQLite cache path is not configured.' );
-            }
+			if ( empty( $sandbox->base_dir ) ) {
+				throw new CacheTestException( 'SQLite cache path is not configured.' );
+			}
 
-            if ( ! is_dir( $sandbox->base_dir ) ) {
-                throw new CacheTestException(
-                    sprintf( 'SQLite cache directory does not exist: %s', $sandbox->base_dir )
-                );
-            }
+			if ( ! is_dir( $sandbox->base_dir ) ) {
+				throw new CacheTestException(
+					sprintf( 'SQLite cache directory does not exist: %s', $sandbox->base_dir )
+				);
+			}
 
-            if ( ! is_writable( $sandbox->base_dir ) ) {
-                throw new CacheTestException(
-                    sprintf( 'SQLite cache directory is not writable: %s', $sandbox->base_dir )
-                );
-            }
+			if ( ! is_writable( $sandbox->base_dir ) ) {
+				throw new CacheTestException(
+					sprintf( 'SQLite cache directory is not writable: %s', $sandbox->base_dir )
+				);
+			}
 
-            // Open a fresh connection against the candidate path.
-            unset( $sandbox->db );
-            $sandbox->stmts = [];
-            $sandbox->connect();
+			// Open a fresh connection against the candidate path.
+			unset( $sandbox->db );
+			$sandbox->stmts = [];
+			$sandbox->connect();
 
-            if ( ! isset( $sandbox->db ) ) {
-                throw new CacheTestException( 'Could not open SQLite database.' );
-            }
+			if ( ! isset( $sandbox->db ) ) {
+				throw new CacheTestException( 'Could not open SQLite database.' );
+			}
 
-            // Write → read → delete round-trip with an isolated probe key.
-            $probe      = '_probe__' . bin2hex( random_bytes( 8 ) );
-            $expected   = '__ok__';
+			// Write → read → delete round-trip with an isolated probe key.
+			$probe    = '_probe__' . bin2hex( random_bytes( 8 ) );
+			$expected = '__ok__';
 
-            if ( ! $sandbox->set( $probe, $expected, 30 ) ) {
-                throw new CacheTestException( 'SQLite probe write failed.' );
-            }
+			if ( ! $sandbox->set( $probe, $expected, 30 ) ) {
+				throw new CacheTestException( 'SQLite probe write failed.' );
+			}
 
-            if ( $sandbox->get( $probe ) !== $expected ) {
-                throw new CacheTestException( 'SQLite probe read returned unexpected value.' );
-            }
+			if ( $sandbox->get( $probe ) !== $expected ) {
+				throw new CacheTestException( 'SQLite probe read returned unexpected value.' );
+			}
 
-            $sandbox->delete( $probe );
+			$sandbox->delete( $probe );
 
-            return true;
+			return true;
 
-        } catch ( CacheTestException $e ) {
-            throw $e;
-        } catch ( \Throwable $e ) {
-            throw new CacheTestException( $e->getMessage() );
-        } finally {
+		} catch ( CacheTestException $e ) {
+			throw $e;
+		} catch ( \Throwable $e ) {
+			throw new CacheTestException( $e->getMessage() );
+		} finally {
 
-            $files  = glob( $sandbox->db_file() . '*' ) ?: [];
+			$files = glob( $sandbox->db_file() . '*' ) ?: [];
 
-            foreach( $files as $file ) {
-                @unlink( $file );
-            }
-        }
-            
-    }
+			foreach( $files as $file ) {
+				@unlink( $file );
+			}
+		}
+			
+	}
 
-    /*
-    |--------------------------------------------
-    | STATS FLUSH
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| STATS FLUSH
+	|--------------------------------------------
+	*/
 
-    /**
-     * Record a cache hit and ensure the shutdown flusher is registered.
-     *
-     * All hit recording goes through here — the flusher registration
-     * cannot be forgotten regardless of which code path produces the hit.
-     *
-     * @return void
-     */
-    private function record_hit(): void {
-        $this->pending_hits++;
-        $this->ensure_shutdown_flusher();
-    }
+	/**
+	 * Record a cache hit and ensure the shutdown flusher is registered.
+	 *
+	 * All hit recording goes through here — the flusher registration
+	 * cannot be forgotten regardless of which code path produces the hit.
+	 *
+	 * @return void
+	 */
+	private function record_hit() : void {
+		$this->pending_hits++;
+		$this->ensure_shutdown_flusher();
+	}
 
-    /**
-     * Record a cache miss and ensure the shutdown flusher is registered.
-     *
-     * All miss recording goes through here — including early-return paths
-     * (connection failure, statement failure, empty result). This was the
-     * original bug: bare $pending_misses++ increments on early-return paths
-     * never called ensure_shutdown_flusher(), so miss-only requests never
-     * registered the flusher and those misses were never persisted.
-     *
-     * @return void
-     */
-    private function record_miss(): void {
-        $this->pending_misses++;
-        $this->ensure_shutdown_flusher();
-    }
+	/**
+	 * Record a cache miss and ensure the shutdown flusher is registered.
+	 *
+	 * All miss recording goes through here — including early-return paths
+	 * (connection failure, statement failure, empty result). This was the
+	 * original bug: bare $pending_misses++ increments on early-return paths
+	 * never called ensure_shutdown_flusher(), so miss-only requests never
+	 * registered the flusher and those misses were never persisted.
+	 *
+	 * @return void
+	 */
+	private function record_miss() : void {
+		$this->pending_misses++;
+		$this->ensure_shutdown_flusher();
+	}
 
-    /**
-     * Register the shutdown flusher exactly once per adapter instance.
-     *
-     * The flusher uses a relative UPDATE (hits = hits + $n) rather than
-     * writing an absolute value, making it safe under concurrent workers:
-     * each process adds only its own delta regardless of what other
-     * workers wrote between the start and end of this request.
-     *
-     * @return void
-     */
-    private function ensure_shutdown_flusher(): void {
-        if ( $this->shutdown_registered ) {
-            return;
-        }
+	/**
+	 * Register the shutdown flusher exactly once per adapter instance.
+	 *
+	 * The flusher uses a relative UPDATE (hits = hits + $n) rather than
+	 * writing an absolute value, making it safe under concurrent workers:
+	 * each process adds only its own delta regardless of what other
+	 * workers wrote between the start and end of this request.
+	 *
+	 * @return void
+	 */
+	private function ensure_shutdown_flusher() : void {
+		if ( $this->shutdown_registered ) {
+			return;
+		}
 
-        $this->shutdown_registered = true;
+		$this->shutdown_registered = true;
 
-        register_shutdown_function( function (): void {
-            $this->flush_stats();
-        } );
-    }
+		register_shutdown_function( function () : void {
+			$this->flush_stats();
+		} );
+	}
 
-    /**
-     * Atomically persist the in-process hit/miss delta to the stats table.
-     *
-     * Called once by the shutdown flusher. Safe to call manually (e.g.
-     * in tests or long-running CLI commands that want to checkpoint stats
-     * mid-run).
-     *
-     * Uses a relative UPDATE so concurrent workers never clobber each
-     * other's increments.
-     *
-     * @return void
-     */
-    public function flush_stats(): void {
-        if ( ! isset( $this->db ) ) {
-            return;
-        }
+	/**
+	 * Atomically persist the in-process hit/miss delta to the stats table.
+	 *
+	 * Called once by the shutdown flusher. Safe to call manually (e.g.
+	 * in tests or long-running CLI commands that want to checkpoint stats
+	 * mid-run).
+	 *
+	 * Uses a relative UPDATE so concurrent workers never clobber each
+	 * other's increments.
+	 *
+	 * @return void
+	 */
+	public function flush_stats() : void {
+		if ( ! isset( $this->db ) ) {
+			return;
+		}
 
-        if ( $this->pending_hits === 0 && $this->pending_misses === 0 ) {
-            return;
-        }
+		if ( 0 === $this->pending_hits && 0 === $this->pending_misses ) {
+			return;
+		}
 
-        $hits   = $this->pending_hits;
-        $misses = $this->pending_misses;
+		$hits   = $this->pending_hits;
+		$misses = $this->pending_misses;
 
-        // Reset before the write so a re-entrant call (e.g. triggered by
-        // an exception handler) doesn't double-count.
-        $this->pending_hits   = 0;
-        $this->pending_misses = 0;
+		// Reset before the write so a re-entrant call (e.g. triggered by
+		// an exception handler) doesn't double-count.
+		$this->pending_hits   = 0;
+		$this->pending_misses = 0;
 
-        $this->db->exec(
-            "UPDATE {$this->stats_table}
+		$this->db->exec(
+			"UPDATE {$this->stats_table}
              SET hits   = hits   + {$hits},
                  misses = misses + {$misses}
              WHERE id = 1"
-        );
-    }
+		);
+	}
 
-    /*
-    |--------------------------------------------
-    | CONNECTION
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| CONNECTION
+	|--------------------------------------------
+	*/
 
-    protected function connect(): void {
-        if ( isset( $this->db ) ) {
-            return;
-        }
+	protected function connect() : void {
+		if ( isset( $this->db ) ) {
+			return;
+		}
 
-        try {
-            if ( ! $this->is_supported() ) {
-                throw new Exception( 'SQLite is not supported.' );
-            }
+		try {
+			if ( ! $this->is_supported() ) {
+				throw new Exception( 'SQLite is not supported.' );
+			}
 
-            if ( ! isset( $this->base_dir ) ) {
-                throw new Exception( 'SQLiteCacheAdapter: Database path is not set.' );
-            }
+			if ( ! isset( $this->base_dir ) ) {
+				throw new Exception( 'SQLiteCacheAdapter: Database path is not set.' );
+			}
 
-            $file   = $this->db_file();
-            $dir    = rtrim( dirname( $file ), '/' ) . '/';
+			$file = $this->db_file();
+			$dir  = rtrim( dirname( $file ), '/' ) . '/';
 
-            if ( ! is_dir( $dir ) ) {
-                mkdir( $dir, $this->dir_perm, true );
-            }
+			if ( ! is_dir( $dir ) ) {
+				mkdir( $dir, $this->dir_perm, true );
+			}
 
-            $this->db = new SQLite3(
-                $file,
-                SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE
-            );
-            $this->db->enableExceptions( true );
-            $this->db->busyTimeout( 5000 );
-            $this->db->exec( 'PRAGMA temp_store   = MEMORY;' );
+			$this->db = new SQLite3(
+				$file,
+				SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE
+			);
+			$this->db->enableExceptions( true );
+			$this->db->busyTimeout( 5000 );
+			$this->db->exec( 'PRAGMA temp_store   = MEMORY;' );
 
-            // Convert MB to negative page count (SQLite convention)
-            $page_size = (int) $this->db->querySingle( 'PRAGMA page_size' );
-            $cache_pages = -1 * ( $this->cache_memory * 1024 ) / $page_size;
-            $this->db->exec( "PRAGMA cache_size = {$cache_pages};" );
+			// Convert MB to negative page count (SQLite convention)
+			$page_size   = (int) $this->db->querySingle( 'PRAGMA page_size' );
+			$cache_pages = -1 * ( $this->cache_memory * 1024 ) / $page_size;
+			$this->db->exec( "PRAGMA cache_size = {$cache_pages};" );
 
-            $max_pages = ( $this->storage_limit * 1024 * 1024 ) / $page_size;
-            $this->db->exec( "PRAGMA max_page_count = " . (int) $max_pages . ";" );
+			$max_pages = ( $this->storage_limit * 1024 * 1024 ) / $page_size;
+			$this->db->exec( "PRAGMA max_page_count = " . (int) $max_pages . ";" );
 
-            $this->db->exec( 'PRAGMA mmap_size    = 268435456;' );
-            $this->db->exec( 'PRAGMA journal_mode = WAL;' );
+			$this->db->exec( 'PRAGMA mmap_size    = 268435456;' );
+			$this->db->exec( 'PRAGMA journal_mode = WAL;' );
 
-        } catch ( Exception $e ) {
-            \trigger_error( $e->getMessage(), \E_USER_NOTICE );
-            return;
-        }
+		} catch ( Exception $e ) {
+			\trigger_error( $e->getMessage(), \E_USER_NOTICE );
+			return;
+		}
 
-        // Cache table.
-        $this->db->exec( "
+		// Cache table.
+		$this->db->exec( "
             CREATE TABLE IF NOT EXISTS {$this->table} (
                 cache_key   TEXT    PRIMARY KEY,
                 cache_value BLOB    NOT NULL,
@@ -832,14 +832,14 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             ) WITHOUT ROWID
         " );
 
-        $this->db->exec( "
+		$this->db->exec( "
             CREATE INDEX IF NOT EXISTS idx_{$this->table}_expires
             ON {$this->table} (expires_at)
             WHERE expires_at IS NOT NULL
         " );
 
-        // Stats table — single row, id = 1.
-        $this->db->exec( "
+		// Stats table — single row, id = 1.
+		$this->db->exec( "
             CREATE TABLE IF NOT EXISTS {$this->stats_table} (
                 id     INTEGER PRIMARY KEY,
                 hits   INTEGER NOT NULL DEFAULT 0,
@@ -847,49 +847,49 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
             )
         " );
 
-        $this->db->exec(
-            "INSERT OR IGNORE INTO {$this->stats_table} (id, hits, misses) VALUES (1, 0, 0)"
-        );
-    }
+		$this->db->exec(
+			"INSERT OR IGNORE INTO {$this->stats_table} (id, hits, misses) VALUES (1, 0, 0)"
+		);
+	}
 
-    /*
-    |--------------------------------------------
-    | PRIVATE HELPERS
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| PRIVATE HELPERS
+	|--------------------------------------------
+	*/
 
-    private function stmt( string $label, string $sql ): SQLite3Stmt|false {
-        if ( ! isset( $this->stmts[ $label ] ) ) {
-            $stmt = @$this->db->prepare( $sql );
-            if ( ! $stmt ) {
-                return false;
-            }
-            $this->stmts[ $label ] = $stmt;
-        }
-        return $this->stmts[ $label ];
-    }
+	private function stmt( string $label, string $sql ) : SQLite3Stmt|false {
+		if ( ! isset( $this->stmts[ $label ] ) ) {
+			$stmt = @$this->db->prepare( $sql );
+			if ( ! $stmt ) {
+				return false;
+			}
+			$this->stmts[ $label ] = $stmt;
+		}
+		return $this->stmts[ $label ];
+	}
 
-    public function is_active() : bool {
-        if ( isset( $this->db ) ) {
-            return true;
-        }
-        
-        $this->connect();
-        return isset( $this->db );
-    }
+	public function is_active() : bool {
+		if ( isset( $this->db ) ) {
+			return true;
+		}
+		
+		$this->connect();
+		return isset( $this->db );
+	}
 
-    public function is_supported(): bool {
-        return class_exists( SQLite3::class );
-    }
+	public function is_supported() : bool {
+		return class_exists( SQLite3::class );
+	}
 
-    private function db_file() : string {
-        return rtrim( $this->base_dir, '/' ) . '/' . $this->db_filename;
-    }
+	private function db_file() : string {
+		return rtrim( $this->base_dir, '/' ) . '/' . $this->db_filename;
+	}
 
-    function __destruct() {
-        if ( ! isset( $this->db ) ) {
-            return;
-        }
-        $this->db->close();
-    }
+	function __destruct() {
+		if ( ! isset( $this->db ) ) {
+			return;
+		}
+		$this->db->close();
+	}
 }

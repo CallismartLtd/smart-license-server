@@ -33,7 +33,7 @@ if ( false === $public ) {
 $log_request = true;
 
 register_shutdown_function(
-	static function () use ( &$log_request ): void {
+	static function () use ( &$log_request ) : void {
 		if ( ! $log_request ) {
 			return;
 		}
@@ -77,7 +77,7 @@ if ( '/index.php' === $path || str_starts_with( $path, '/index.php/' ) ) {
 	$file = realpath( $public . $path );
 
 	// Files may only come from public/ or the folder public/assets links to; never above them.
-	$roots  = array_filter( array( $public, realpath( $public . '/assets' ) ) );
+	$roots  = array_filter( [ $public, realpath( $public . '/assets' ) ] );
 	$inside = false;
 
 	foreach ( $roots as $root ) {

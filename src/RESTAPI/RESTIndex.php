@@ -24,14 +24,14 @@ final class RESTIndex {
 	 *
 	 * @var array<string, RESTVersionInterface>
 	 */
-	private array $versions = array();
+	private array $versions = [];
 
 	/**
 	 * Route catalogs, keyed by namespace, built on first use.
 	 *
 	 * @var array<string, RouteCatalog>
 	 */
-	private array $catalogs = array();
+	private array $catalogs = [];
 
 	/**
 	 * Constructor.
@@ -65,22 +65,22 @@ final class RESTIndex {
 	 * @return array{name: string, url: string, namespaces: string[], versions: array<int, array{namespace: string, url: string, categories: string[]}>}
 	 */
 	public function api() : array {
-		$versions = array();
+		$versions = [];
 
 		foreach ( array_keys( $this->versions ) as $namespace ) {
-			$versions[] = array(
+			$versions[] = [
 				'namespace'  => $namespace,
 				'url'        => $this->url( $namespace ),
 				'categories' => $this->catalog( $namespace )->categories(),
-			);
+			];
 		}
 
-		return array(
+		return [
 			'name'       => \SMLISER_APP_NAME,
 			'url'        => ( $this->url )( RESTProviderInterface::PREFIX ),
 			'namespaces' => array_keys( $this->versions ),
 			'versions'   => $versions,
-		);
+		];
 	}
 
 	/**
@@ -98,23 +98,23 @@ final class RESTIndex {
 		}
 
 		if ( '' === $category ) {
-			return array(
+			return [
 				'namespace'  => $namespace,
 				'url'        => $this->url( $namespace ),
 				'categories' => $catalog->categories(),
 				'routes'     => $catalog->list_routes(),
-			);
+			];
 		}
 
 		if ( ! in_array( $category, $catalog->categories(), true ) ) {
 			return null;
 		}
 
-		return array(
+		return [
 			'namespace' => $namespace,
 			'category'  => $category,
 			'routes'    => $catalog->list_by_category( $category ),
-		);
+		];
 	}
 
 	/**
@@ -127,7 +127,7 @@ final class RESTIndex {
 	public function route( string $namespace, string $pattern ) : ?array {
 		$options = $this->catalog( $namespace )?->options_for_route( $pattern );
 
-		return null === $options ? null : array( 'namespace' => $namespace ) + $options;
+		return null === $options ? null : [ 'namespace' => $namespace ] + $options;
 	}
 
 	/**

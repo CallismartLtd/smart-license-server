@@ -14,11 +14,11 @@ namespace SmartLicenseServer\Security\Authentication;
  * Contract the all authenticators should implement.
  */
 interface AuthenticatorInterface {
-    /**
-     * Performs the actual authentication and return an authenticated actor or null.
-     * 
-     * @return AuthenticationResult
-     */
-    public function authenticate() : AuthenticationResult;
+	/**
+	 * Performs the actual authentication and return an authenticated actor or null.
+	 * 
+	 * @return AuthenticationResult
+	 */
+	public function authenticate() : AuthenticationResult;
 
 }

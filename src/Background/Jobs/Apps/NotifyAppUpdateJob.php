@@ -37,98 +37,98 @@ use SmartLicenseServer\Monetization\License;
  * Notifies active licensees when a new app version is available.
  */
 class NotifyAppUpdateJob implements JobHandlerInterface {
-    use QueueAwareTrait;
+	use QueueAwareTrait;
 
-    public function __construct(
-        protected Database $db,
-        protected Mailer $mailer
-    ) {}
+	public function __construct(
+		protected Database $db,
+		protected Mailer $mailer
+	) {}
 
-    public static function get_job_name(): string {
-        return 'notify_app_update';
-    }
+	public static function get_job_name() : string {
+		return 'notify_app_update';
+	}
 
-    public static function get_job_description(): string {
-        return 'Sends new version notification emails to all active licensees of an app.';
-    }
+	public static function get_job_description() : string {
+		return 'Sends new version notification emails to all active licensees of an app.';
+	}
 
-    /**
-     * @param array $payload {
-     *     @type string $app_type   App type e.g. 'plugin'.
-     *     @type string $app_slug   App slug.
-     *     @type int    $batch_size Max licenses to process per run. Default 100.
-     *     @type int    $offset     Pagination offset. Default 0.
-     * }
-     * @return array{notified: int, skipped: int, ineligible: int}
-     */
-    public function handle( array $payload = [] ): mixed {
-        $app_type   = (string) $payload['app_type']   ?? '';
-        $app_slug   = (string) $payload['app_slug']   ?? '';
-        $batch_size = max( 1, (int) ( $payload['batch_size'] ?? 100 ) );
-        $offset     = max( 0, (int) ( $payload['offset']     ?? 0 ) );
+	/**
+	 * @param array $payload {
+	 *     @type string $app_type   App type e.g. 'plugin'.
+	 *     @type string $app_slug   App slug.
+	 *     @type int    $batch_size Max licenses to process per run. Default 100.
+	 *     @type int    $offset     Pagination offset. Default 0.
+	 * }
+	 * @return array{notified: int, skipped: int, ineligible: int}
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$app_type   = (string) $payload['app_type'] ?? '';
+		$app_slug   = (string) $payload['app_slug'] ?? '';
+		$batch_size = max( 1, (int) ( $payload['batch_size'] ?? 100 ) );
+		$offset     = max( 0, (int) ( $payload['offset'] ?? 0 ) );
 
-        $notified   = 0;
-        $skipped    = 0;
-        $ineligible = 0;
+		$notified   = 0;
+		$skipped    = 0;
+		$ineligible = 0;
 
-        $app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+		$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
-        if ( ! $app ) {
-            return compact( 'notified', 'skipped', 'ineligible' );
-        }
+		if ( ! $app ) {
+			return compact( 'notified', 'skipped', 'ineligible' );
+		}
 
-        $app_prop  = sprintf( '%s/%s', $app_type, $app_slug );
+		$app_prop = sprintf( '%s/%s', $app_type, $app_slug );
 
-        $terminal = [
-            License::STATUS_EXPIRED,
-            License::STATUS_REVOKED,
-            License::STATUS_SUSPENDED,
-        ];
+		$terminal = [
+			License::STATUS_EXPIRED,
+			License::STATUS_REVOKED,
+			License::STATUS_SUSPENDED,
+		];
 
-        $sql    = \smliserQueryBuilder( $this->db->get_driver() )
-            ->select( '*' )->from( TableName::LICENSES->table() )
-            ->where( 'app_prop', '=', $app_prop )
-            ->where_not_in( 'status', $terminal );
+		$sql = \smliserQueryBuilder( $this->db->get_driver() )
+			->select( '*' )->from( TableName::LICENSES->table() )
+			->where( 'app_prop', '=', $app_prop )
+			->where_not_in( 'status', $terminal );
 
-        $rows = $this->db->get_results( $sql->build(), $sql->get_bindings() );
+		$rows = $this->db->get_results( $sql->build(), $sql->get_bindings() );
 
-        foreach ( $rows as $row ) {
-            $license    = License::from_array( $row );
-            $service_id = $license->get_service_id();
+		foreach ( $rows as $row ) {
+			$license    = License::from_array( $row );
+			$service_id = $license->get_service_id();
 
-            if ( ! filter_var( $service_id, FILTER_VALIDATE_EMAIL ) ) {
-                $ineligible++;
-                continue;
-            }
+			if ( ! filter_var( $service_id, FILTER_VALIDATE_EMAIL ) ) {
+				$ineligible++;
+				continue;
+			}
 
-            $message = ( new NewAppVersionNotificationEmail( $app, $license, $service_id ) )->to_message();
+			$message = ( new NewAppVersionNotificationEmail( $app, $license, $service_id ) )->to_message();
 
-            if ( $message === null ) {
-                $skipped++;
-                continue;
-            }
+			if ( null === $message ) {
+				$skipped++;
+				continue;
+			}
 
-            try {
-                $this->mailer->send( $message );
-                $notified++;
-            } catch ( \Throwable ) {
-                $skipped++;
-            }
-        }
+			try {
+				$this->mailer->send( $message );
+				$notified++;
+			} catch ( \Throwable ) {
+				$skipped++;
+			}
+		}
 
-        // Dispatch next batch if there may be more.
-        if ( count( $rows ) === $batch_size ) {
-            $this->dispatch_job(
-                static::class,
-                [
-                    'app_type'   => $app_type,
-                    'app_slug'   => $app_slug,
-                    'batch_size' => $batch_size,
-                    'offset'     => $offset + $batch_size,
-                ]
-            );
-        }
+		// Dispatch next batch if there may be more.
+		if ( count( $rows ) === $batch_size ) {
+			$this->dispatch_job(
+				static::class,
+				[
+					'app_type'   => $app_type,
+					'app_slug'   => $app_slug,
+					'batch_size' => $batch_size,
+					'offset'     => $offset + $batch_size,
+				]
+			);
+		}
 
-        return compact( 'notified', 'skipped', 'ineligible' );
-    }
+		return compact( 'notified', 'skipped', 'ineligible' );
+	}
 }

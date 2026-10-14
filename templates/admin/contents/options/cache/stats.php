@@ -22,33 +22,33 @@ defined( 'SMLISER_ROOT' ) || exit;
 
 $menu_args = $page_handler->get_menu_args( $request );
 
-$extra          = $stats->get( 'extra', [] );
-$hits           = (int) $stats->get( CacheStats::KEY_HITS, 0 );
-$misses         = (int) $stats->get( CacheStats::KEY_MISSES, 0 );
-$entries        = (int) $stats->get( CacheStats::KEY_ENTRIES, 0 );
-$memory_used    = (int) $stats->get( CacheStats::KEY_MEMORY_USED, 0 );
-$memory_total   = (int) $stats->get( CacheStats::KEY_MEMORY_TOTAL, 0 );
-$uptime         = (int) $stats->get( CacheStats::KEY_UPTIME, 0 );
-$is_active      = (bool) $stats->get( CacheStats::KEY_STATUS, false );
+$extra        = $stats->get( 'extra', [] );
+$hits         = (int) $stats->get( CacheStats::KEY_HITS, 0 );
+$misses       = (int) $stats->get( CacheStats::KEY_MISSES, 0 );
+$entries      = (int) $stats->get( CacheStats::KEY_ENTRIES, 0 );
+$memory_used  = (int) $stats->get( CacheStats::KEY_MEMORY_USED, 0 );
+$memory_total = (int) $stats->get( CacheStats::KEY_MEMORY_TOTAL, 0 );
+$uptime       = (int) $stats->get( CacheStats::KEY_UPTIME, 0 );
+$is_active    = (bool) $stats->get( CacheStats::KEY_STATUS, false );
 
-$total_req    = $hits + $misses;
-$tracks_hits  = $total_req > 0;
-$hit_rate     = $stats->hit_rate();
-$hit_pct      = $tracks_hits ? round( $hit_rate * 100, 1 ) : null;
-$miss_pct     = $tracks_hits ? round( 100 - $hit_pct, 1 ) : null;
+$total_req   = $hits + $misses;
+$tracks_hits = $total_req > 0;
+$hit_rate    = $stats->hit_rate();
+$hit_pct     = $tracks_hits ? round( $hit_rate * 100, 1 ) : null;
+$miss_pct    = $tracks_hits ? round( 100 - $hit_pct, 1 ) : null;
 
 $has_mem_ceil = $memory_total > 0;
 $mem_ratio    = $stats->memory_usage_ratio();
 $mem_pct      = $has_mem_ceil ? round( $mem_ratio * 100, 1 ) : null;
 
 // Colour grades
-$hit_grade = $hit_pct === null ? 'neutral'
-    : ( $hit_pct >= 70 ? 'good' : ( $hit_pct >= 50 ? 'warn' : 'bad' ) );
-$mem_grade = $mem_pct === null ? 'neutral'
-    : ( $mem_pct >= 90 ? 'bad' : ( $mem_pct >= 70 ? 'warn' : 'good' ) );
+$hit_grade = null === $hit_pct ? 'neutral'
+	: ( $hit_pct >= 70 ? 'good' : ( $hit_pct >= 50 ? 'warn' : 'bad' ) );
+$mem_grade = null === $mem_pct ? 'neutral'
+	: ( $mem_pct >= 90 ? 'bad' : ( $mem_pct >= 70 ? 'warn' : 'good' ) );
 
 // Capability flags
-$supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime' ], true ); 
+$supports_flush_expired = in_array( $adapter_id, [ 'sqlitecache', 'runtime' ], true );
 
 $shown_elsewhere = [ 'expired_entries' ];
 $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
@@ -97,10 +97,10 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                 <?php if ( $supports_flush_expired ) : ?>
                 <button type="button"
                         class="smlcd-btn smlcd-btn--ghost smliser-action-button"
-                        data-args='<?php echo escAttr( smliser_safe_json_encode([
-                            'slug'      => 'options-form/cache-flush-stale/',
-                            'method'    => 'POST'
-                        ])); ?>'>
+                        data-args='<?php echo escAttr( smliser_safe_json_encode( [
+							'slug'   => 'options-form/cache-flush-stale/',
+							'method' => 'POST'
+						] ) ); ?>'>
                     <i class="ti ti-clock-off"></i> Flush Stale
                 </button>
                 <?php endif; ?>
@@ -108,10 +108,10 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                 <button type="button"
                         class="smlcd-btn smlcd-btn--danger smliser-action-button smlcd-confirm-btn"
                         data-confirm="This will clear ALL cached data for <?php echo escAttr( $adapter_name ); ?>. Are you sure?"
-                        data-args='<?php echo escAttr( smliser_safe_json_encode([
-                            'slug'      => 'options-form/cache-flush/',
-                            'method'    => 'POST'
-                        ]) ); ?>'>
+                        data-args='<?php echo escAttr( smliser_safe_json_encode( [
+							'slug'   => 'options-form/cache-flush/',
+							'method' => 'POST'
+						] ) ); ?>'>
                     <i class="ti ti-trash"></i> Flush Cache
                 </button>
 
@@ -120,11 +120,11 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                     <i class="ti ti-database-search"></i> Adapters
                 </a>
 
-                <a href="<?php 
-                    echo escUrl( smliser_get_current_url()
-                        ->remove_query_param( 'section' )
-                        ->add_query_param( 'adapter', $adapter_id )->url()
-                     ); ?>"
+                <a href="<?php
+					echo escUrl( smliser_get_current_url()
+						->remove_query_param( 'section' )
+						->add_query_param( 'adapter', $adapter_id )->url()
+					 ); ?>"
                    class="smlcd-btn smlcd-btn--secondary">
                     <i class="ti ti-settings"></i> Configuration
                 </a>
@@ -137,7 +137,7 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
             <div class="smlcd-card smlcd-card--<?php echo $hit_grade; ?>">
                 <div class="smlcd-card__label">Hit Rate</div>
                 <div class="smlcd-card__value">
-                    <?php if ( $hit_pct !== null ) : ?>
+                    <?php if ( null !== $hit_pct ) : ?>
                         <?php echo $hit_pct; ?><span class="smlcd-card__unit">%</span>
                     <?php else : ?>
                         <span class="smlcd-card__na">—</span>
@@ -175,18 +175,18 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                 <div class="smlcd-card__value"><?php echo number_format( $entries ); ?></div>
                 <div class="smlcd-card__detail">
                     <?php
-                    $expired = (int) ( $extra['expired_entries'] ?? 0 );
-                    echo $expired > 0
-                        ? '<span class="smlcd-warn">' . number_format( $expired ) . ' expired</span>'
-                        : 'All entries live';
-                    ?>
+					$expired = (int) ( $extra['expired_entries'] ?? 0 );
+					echo $expired > 0
+						? '<span class="smlcd-warn">' . number_format( $expired ) . ' expired</span>'
+						: 'All entries live';
+					?>
                 </div>
             </div>
 
             <div class="smlcd-card smlcd-card--<?php echo $mem_grade; ?>">
                 <div class="smlcd-card__label">Memory</div>
                 <div class="smlcd-card__value">
-                    <?php if ( $mem_pct !== null ) : ?>
+                    <?php if ( null !== $mem_pct ) : ?>
                         <?php echo $mem_pct; ?><span class="smlcd-card__unit">%</span>
                     <?php elseif ( $memory_used > 0 ) : ?>
                         <?php echo escHtml( Format::bytes( $memory_used ) ); ?>
@@ -257,15 +257,15 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                     <em><?php echo $miss_pct; ?>%</em>
                 </span>
                 <span class="smlcd-perf__rating smlcd-perf__rating--<?php
-                    echo $hit_pct >= 80 ? 'excellent'
-                        : ( $hit_pct >= 60 ? 'good'
-                        : ( $hit_pct >= 40 ? 'fair' : 'poor' ) );
-                ?>">
+					echo $hit_pct >= 80 ? 'excellent'
+						: ( $hit_pct >= 60 ? 'good'
+						: ( $hit_pct >= 40 ? 'fair' : 'poor' ) );
+				?>">
                     <?php
-                    echo $hit_pct >= 80 ? 'Excellent'
-                        : ( $hit_pct >= 60 ? 'Good'
-                        : ( $hit_pct >= 40 ? 'Fair' : 'Poor' ) );
-                    ?>
+					echo $hit_pct >= 80 ? 'Excellent'
+						: ( $hit_pct >= 60 ? 'Good'
+						: ( $hit_pct >= 40 ? 'Fair' : 'Poor' ) );
+					?>
                 </span>
             </div>
 

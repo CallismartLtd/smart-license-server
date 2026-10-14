@@ -28,139 +28,139 @@ use InvalidArgumentException;
 
 final class CacheStats extends DTO {
 
-    /*
-    |-------------
-    | KNOWN KEYS
-    |-------------
-    */
+	/*
+	|-------------
+	| KNOWN KEYS
+	|-------------
+	*/
 
-    public const KEY_HITS         = 'hits';
-    public const KEY_MISSES       = 'misses';
-    public const KEY_ENTRIES      = 'entries';
-    public const KEY_MEMORY_USED  = 'memory_used';
-    public const KEY_MEMORY_TOTAL = 'memory_total';
-    public const KEY_UPTIME       = 'uptime';
-    public const KEY_STATUS       = 'status';
-    public const KEY_EXTRA        = 'extra';
+	public const KEY_HITS         = 'hits';
+	public const KEY_MISSES       = 'misses';
+	public const KEY_ENTRIES      = 'entries';
+	public const KEY_MEMORY_USED  = 'memory_used';
+	public const KEY_MEMORY_TOTAL = 'memory_total';
+	public const KEY_UPTIME       = 'uptime';
+	public const KEY_STATUS       = 'status';
+	public const KEY_EXTRA        = 'extra';
 
-    /*
-    |---------------
-    | CONSTRUCTOR
-    |---------------
-    */
+	/*
+	|---------------
+	| CONSTRUCTOR
+	|---------------
+	*/
 
-    /**
-     * @param int                  $hits          Total cache hits.
-     * @param int                  $misses        Total cache misses.
-     * @param int                  $entries       Number of currently stored keys.
-     * @param int                  $memory_used   Bytes used by cached data.
-     * @param int                  $memory_total  Total bytes available to the backend.
-     * @param int                  $uptime        Backend uptime in seconds.
-     * @param array<string, mixed> $extra         Adapter-specific extras.
-     */
-    public function __construct(
-        int  $hits          = 0,
-        int  $misses        = 0,
-        int  $entries       = 0,
-        int  $memory_used   = 0,
-        int  $memory_total  = 0,
-        int  $uptime        = 0,
-        bool $status        = false,
-        array $extra        = [],
-    ) {
-        parent::__construct( [
-            self::KEY_HITS         => $hits,
-            self::KEY_MISSES       => $misses,
-            self::KEY_ENTRIES      => $entries,
-            self::KEY_MEMORY_USED  => $memory_used,
-            self::KEY_MEMORY_TOTAL => $memory_total,
-            self::KEY_UPTIME       => $uptime,
-            self::KEY_STATUS       => $status,
-            self::KEY_EXTRA        => $extra,
-        ] );
-    }
+	/**
+	 * @param int                  $hits          Total cache hits.
+	 * @param int                  $misses        Total cache misses.
+	 * @param int                  $entries       Number of currently stored keys.
+	 * @param int                  $memory_used   Bytes used by cached data.
+	 * @param int                  $memory_total  Total bytes available to the backend.
+	 * @param int                  $uptime        Backend uptime in seconds.
+	 * @param array<string, mixed> $extra         Adapter-specific extras.
+	 */
+	public function __construct(
+		int  $hits = 0,
+		int  $misses = 0,
+		int  $entries = 0,
+		int  $memory_used = 0,
+		int  $memory_total = 0,
+		int  $uptime = 0,
+		bool $status = false,
+		array $extra = [],
+	) {
+		parent::__construct( [
+			self::KEY_HITS         => $hits,
+			self::KEY_MISSES       => $misses,
+			self::KEY_ENTRIES      => $entries,
+			self::KEY_MEMORY_USED  => $memory_used,
+			self::KEY_MEMORY_TOTAL => $memory_total,
+			self::KEY_UPTIME       => $uptime,
+			self::KEY_STATUS       => $status,
+			self::KEY_EXTRA        => $extra,
+		] );
+	}
 
-    /*
-    |------------
-    | DTO HOOKS
-    |------------
-    */
+	/*
+	|------------
+	| DTO HOOKS
+	|------------
+	*/
 
-    /**
-     * {@inheritdoc}
-     *
-     * Restricts the DTO to the seven known cache-stat keys.
-     * Any attempt to set an unknown key will throw.
-     */
-    protected function allowed_keys(): array {
-        return [
-            self::KEY_HITS,
-            self::KEY_MISSES,
-            self::KEY_ENTRIES,
-            self::KEY_MEMORY_USED,
-            self::KEY_MEMORY_TOTAL,
-            self::KEY_UPTIME,
-            self::KEY_STATUS,
-            self::KEY_EXTRA,
-        ];
-    }
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Restricts the DTO to the seven known cache-stat keys.
+	 * Any attempt to set an unknown key will throw.
+	 */
+	protected function allowed_keys() : array {
+		return [
+			self::KEY_HITS,
+			self::KEY_MISSES,
+			self::KEY_ENTRIES,
+			self::KEY_MEMORY_USED,
+			self::KEY_MEMORY_TOTAL,
+			self::KEY_UPTIME,
+			self::KEY_STATUS,
+			self::KEY_EXTRA,
+		];
+	}
 
-    /**
-     * {@inheritdoc}
-     *
-     * Coerces all numeric keys to int and the extra key to array,
-     * regardless of what the backend hands us.
-     *
-     * @throws InvalidArgumentException When $extra is not an array.
-     */
-    protected function cast( string $key, mixed $value ): mixed {
-        return match ( $key ) {
-            self::KEY_HITS,
-            self::KEY_MISSES,
-            self::KEY_ENTRIES,
-            self::KEY_MEMORY_USED,
-            self::KEY_MEMORY_TOTAL,
-            self::KEY_UPTIME  => (int) $value,
-            self::KEY_STATUS  => (string) $value,
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Coerces all numeric keys to int and the extra key to array,
+	 * regardless of what the backend hands us.
+	 *
+	 * @throws InvalidArgumentException When $extra is not an array.
+	 */
+	protected function cast( string $key, mixed $value ) : mixed {
+		return match ( $key ) {
+			self::KEY_HITS,
+			self::KEY_MISSES,
+			self::KEY_ENTRIES,
+			self::KEY_MEMORY_USED,
+			self::KEY_MEMORY_TOTAL,
+			self::KEY_UPTIME => (int) $value,
+			self::KEY_STATUS => (string) $value,
 
-            self::KEY_EXTRA   => is_array( $value )
-                ? $value
-                : throw new InvalidArgumentException(
-                    '"extra" must be an array, ' . get_debug_type( $value ) . ' given.'
-                ),
+			self::KEY_EXTRA => is_array( $value )
+				? $value
+				: throw new InvalidArgumentException(
+					'"extra" must be an array, ' . get_debug_type( $value ) . ' given.'
+				),
 
-            default           => $value,
-        };
-    }
+			default => $value,
+		};
+	}
 
-    /*
-    |-------------------
-    | DERIVED METRICS
-    |-------------------
-    */
+	/*
+	|-------------------
+	| DERIVED METRICS
+	|-------------------
+	*/
 
-    /**
-     * Hit rate as a float between 0.0 and 1.0.
-     *
-     * Returns 0.0 when there have been no requests yet.
-     *
-     * @return float
-     */
-    public function hit_rate(): float {
-        $total = $this->props[ self::KEY_HITS ] + $this->props[ self::KEY_MISSES ];
-        return $total > 0 ? $this->props[ self::KEY_HITS ] / $total : 0.0;
-    }
+	/**
+	 * Hit rate as a float between 0.0 and 1.0.
+	 *
+	 * Returns 0.0 when there have been no requests yet.
+	 *
+	 * @return float
+	 */
+	public function hit_rate() : float {
+		$total = $this->props[ self::KEY_HITS ] + $this->props[ self::KEY_MISSES ];
+		return $total > 0 ? $this->props[ self::KEY_HITS ] / $total : 0.0;
+	}
 
-    /**
-     * Memory usage as a float between 0.0 and 1.0.
-     *
-     * Returns 0.0 when total memory is unknown (zero).
-     *
-     * @return float
-     */
-    public function memory_usage_ratio(): float {
-        return $this->props[ self::KEY_MEMORY_TOTAL ] > 0
-            ? $this->props[ self::KEY_MEMORY_USED ] / $this->props[ self::KEY_MEMORY_TOTAL ]
-            : 0.0;
-    }
+	/**
+	 * Memory usage as a float between 0.0 and 1.0.
+	 *
+	 * Returns 0.0 when total memory is unknown (zero).
+	 *
+	 * @return float
+	 */
+	public function memory_usage_ratio() : float {
+		return $this->props[ self::KEY_MEMORY_TOTAL ] > 0
+			? $this->props[ self::KEY_MEMORY_USED ] / $this->props[ self::KEY_MEMORY_TOTAL ]
+			: 0.0;
+	}
 }

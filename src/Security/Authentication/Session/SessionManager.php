@@ -136,14 +136,14 @@ final class SessionManager {
 		#[\SensitiveParameter] string $secret,
 		#[\SensitiveParameter] string $salt,
 		string $cookie_name,
-		bool $http_only		= true,
-		bool $secure		= true,
-		int $lifetime		= 7200,
-		string $same_site	= 'Lax',
-		string $path		= '/',
-		int $max_lifetime	= 604800,
+		bool $http_only = true,
+		bool $secure = true,
+		int $lifetime = 7200,
+		string $same_site = 'Lax',
+		string $path = '/',
+		int $max_lifetime = 604800,
 		?SessionRevocationCheck $revocation_check = null,
-		int $remember_lifetime	= 2592000
+		int $remember_lifetime = 2592000
 	) {
 		if ( '' === trim( $secret ) ) {
 			throw new InvalidArgumentException( 'Session secret cannot be empty.' );
@@ -187,16 +187,16 @@ final class SessionManager {
 			}
 		}
 
-		$this->cookie_name = $cookie_name;
-		$this->secret      = $secret;
-		$this->salt        = $salt;
-		$this->key         = $this->derive_key( 'session' );
-		$this->lifetime    = $lifetime;
-		$this->secure      = $secure;
-		$this->http_only   = $http_only;
-		$this->same_site   = $same_site;
-		$this->path        = $path;
-		$this->max_lifetime     = $max_lifetime;
+		$this->cookie_name       = $cookie_name;
+		$this->secret            = $secret;
+		$this->salt              = $salt;
+		$this->key               = $this->derive_key( 'session' );
+		$this->lifetime          = $lifetime;
+		$this->secure            = $secure;
+		$this->http_only         = $http_only;
+		$this->same_site         = $same_site;
+		$this->path              = $path;
+		$this->max_lifetime      = $max_lifetime;
 		$this->revocation_check  = $revocation_check;
 		$this->remember_lifetime = $remember_lifetime;
 	}
@@ -218,7 +218,7 @@ final class SessionManager {
 		string|int $principal_id,
 		array $claims = [],
 		bool $persistent = false
-	): Session {
+	) : Session {
 		$now = time();
 
 		$session = new Session(
@@ -249,7 +249,7 @@ final class SessionManager {
 	 *
 	 * @return Session|null
 	 */
-	public function resolve(): ?Session {
+	public function resolve() : ?Session {
 		$token = $_COOKIE[ $this->cookie_name ] ?? null;
 
 		if ( ! is_string( $token ) || '' === $token ) {
@@ -286,7 +286,7 @@ final class SessionManager {
 	 *
 	 * @throws RuntimeException When no valid session exists.
 	 */
-	public function require(): Session {
+	public function require() : Session {
 		$session = $this->resolve();
 
 		if ( null === $session ) {
@@ -305,7 +305,7 @@ final class SessionManager {
 	 *
 	 * @return void
 	 */
-	public function invalidate(): void {
+	public function invalidate() : void {
 		if ( ! headers_sent() ) {
 			setcookie(
 				$this->cookie_name,
@@ -331,7 +331,7 @@ final class SessionManager {
 	 *
 	 * @return bool
 	 */
-	public function authenticated(): bool {
+	public function authenticated() : bool {
 		return null !== $this->resolve();
 	}
 
@@ -340,7 +340,7 @@ final class SessionManager {
 	 *
 	 * @return string
 	 */
-	public function cookie_name(): string {
+	public function cookie_name() : string {
 		return $this->cookie_name;
 	}
 
@@ -359,7 +359,7 @@ final class SessionManager {
 	 *
 	 * @return Session The renewed session, or the given one.
 	 */
-	private function renew( Session $session ): Session {
+	private function renew( Session $session ) : Session {
 		$now = time();
 
 		if ( $session->persistent || $session->expires_at - $now > intdiv( $this->lifetime, 2 ) || headers_sent() ) {
@@ -400,7 +400,7 @@ final class SessionManager {
 	 *
 	 * @throws RuntimeException If the token cannot be created or headers are already sent.
 	 */
-	private function issue( Session $session ): void {
+	private function issue( Session $session ) : void {
 		$token = $this->encode( $session );
 
 		// 0 makes a browser-session cookie; the token's own expiry still applies.
@@ -419,7 +419,7 @@ final class SessionManager {
 	 *
 	 * @throws RuntimeException If encryption fails.
 	 */
-	private function encode( Session $session ): string {
+	private function encode( Session $session ) : string {
 		try {
 			$payload = json_encode(
 				[
@@ -465,7 +465,7 @@ final class SessionManager {
 	 *
 	 * @throws RuntimeException If the token is invalid.
 	 */
-	private function decode( string $token ): Session {
+	private function decode( string $token ) : Session {
 		$binary = self::base64url_decode( $token );
 
 		$nonce_length = SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES;
@@ -524,7 +524,7 @@ final class SessionManager {
 	 *
 	 * @return void
 	 */
-	private function validate_payload( mixed $data ): void {
+	private function validate_payload( mixed $data ) : void {
 		if ( ! is_array( $data ) ) {
 			throw new RuntimeException( 'Invalid session payload.' );
 		}
@@ -598,7 +598,7 @@ final class SessionManager {
 	private function set_cookie(
 		string $token,
 		int $expires
-	): void {
+	) : void {
 		if ( headers_sent() ) {
 			throw new RuntimeException(
 				'Cannot create session cookie because headers have already been sent.'
@@ -625,7 +625,7 @@ final class SessionManager {
 	 *
 	 * @return string
 	 */
-	private function generate_session_id(): string {
+	private function generate_session_id() : string {
 		return self::base64url_encode(
 			random_bytes( 32 )
 		);

@@ -29,43 +29,43 @@ use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
  */
 class CleanExpiredTokensJob implements JobHandlerInterface {
 
-    public function __construct(
-        protected Database $db,
-    ) {}
+	public function __construct(
+		protected Database $db,
+	) {}
 
-    /*
-    |--------------------------------------------
-    | JobHandlerInterface
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| JobHandlerInterface
+	|--------------------------------------------
+	*/
 
-    public static function get_job_name(): string {
-        return 'clean_expired_tokens';
-    }
+	public static function get_job_name() : string {
+		return 'clean_expired_tokens';
+	}
 
-    public static function get_job_description(): string {
-        return 'Deletes expired download tokens from the token table.';
-    }
+	public static function get_job_description() : string {
+		return 'Deletes expired download tokens from the token table.';
+	}
 
-    /**
-     * Execute the job.
-     *
-     * Uses a single DELETE query — no PHP-side iteration, no object
-     * loading. Compares expiry against the current Unix timestamp so
-     * the check is consistent with how DownloadToken::is_expired()
-     * evaluates tokens at runtime.
-     *
-     * @param array $payload Unused.
-     * @return array{deleted: int}
-     */
-    public function handle( array $payload = [] ): array {
-        $sql    = \smliserQueryBuilder( $this->db->get_driver() )
-            ->delete( TableName::APP_DOWNLOAD_TOKENS->table() )
-            ->where( 'expiry', '<', \time() );
-        $affected   = (int) $this->db->transactional( fn( Database $db ) => $db
-            ->execute( $sql->build(), $sql->get_bindings() )
-        );
-        
-        return [ 'deleted' => $affected ];
-    }
+	/**
+	 * Execute the job.
+	 *
+	 * Uses a single DELETE query — no PHP-side iteration, no object
+	 * loading. Compares expiry against the current Unix timestamp so
+	 * the check is consistent with how DownloadToken::is_expired()
+	 * evaluates tokens at runtime.
+	 *
+	 * @param array $payload Unused.
+	 * @return array{deleted: int}
+	 */
+	public function handle( array $payload = [] ) : array {
+		$sql = \smliserQueryBuilder( $this->db->get_driver() )
+			->delete( TableName::APP_DOWNLOAD_TOKENS->table() )
+			->where( 'expiry', '<', \time() );
+		$affected = (int) $this->db->transactional( fn( Database $db ) => $db
+			->execute( $sql->build(), $sql->get_bindings() )
+		);
+		
+		return [ 'deleted' => $affected ];
+	}
 }

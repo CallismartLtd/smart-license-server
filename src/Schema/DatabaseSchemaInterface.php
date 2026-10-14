@@ -29,42 +29,42 @@ use Callismart\DBPrism\Utils\Constraint;
  * @since 0.2.0
  */
 interface DatabaseSchemaInterface {
-    /**
-     * Human readable schema name.
-     *
-     * Example:
-     * - Users Table
-     * - Licenses Table
-     *
-     * @return string
-     */
-    public static function get_label() : string;
+	/**
+	 * Human readable schema name.
+	 *
+	 * Example:
+	 * - Users Table
+	 * - Licenses Table
+	 *
+	 * @return string
+	 */
+	public static function get_label() : string;
 
-    /**
-     * Human readable schema purpose.
-     *
-     * @return string
-     */
-    public static function get_description() : string;
+	/**
+	 * Human readable schema purpose.
+	 *
+	 * @return string
+	 */
+	public static function get_description() : string;
 
-    /**
-     * Fully resolved table name.
-     *
-     * @return string
-     */
-    public static function get_table_name() : string;
+	/**
+	 * Fully resolved table name.
+	 *
+	 * @return string
+	 */
+	public static function get_table_name() : string;
 
-    /**
-     * Portable ordered column definitions.
-     *
-     * @return Column[]
-     */
-    public static function get_columns() : array;
+	/**
+	 * Portable ordered column definitions.
+	 *
+	 * @return Column[]
+	 */
+	public static function get_columns() : array;
 
-    /**
-     * Table constraints and indexes.
-     *
-     * @return Constraint[]
-     */
-    public static function get_constraints() : array;
+	/**
+	 * Table constraints and indexes.
+	 *
+	 * @return Constraint[]
+	 */
+	public static function get_constraints() : array;
 }

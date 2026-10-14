@@ -20,26 +20,26 @@ defined( 'SMLISER_ROOT' ) || exit;
 $principal = $guard->get_principal();
 
 if ( ! $principal ) {
-    smliser_abort_request(
-        'Access Denied. You must be logged into a valid administrator account to view this page.',
-        '🛑 401 - Authentication Required',
-        [
-            'status'    => 401,
-            'link_url'  => $urlmanager->login_url()->add_query_param( 'redirect_url', smliser_get_current_url()->url() )->url(),
-            'link_text' => 'Login',
-        ]    
-    );
+	smliser_abort_request(
+		'Access Denied. You must be logged into a valid administrator account to view this page.',
+		'🛑 401 - Authentication Required',
+		[
+			'status'    => 401,
+			'link_url'  => $urlmanager->login_url()->add_query_param( 'redirect_url', smliser_get_current_url()->url() )->url(),
+			'link_text' => 'Login',
+		]
+	);
 }
 
 if ( ! $principal->is( 'system_admin' ) ) {
-    smliser_abort_request(
-        'Access Denied. You must be logged into a valid administrator account to view this page.[Log In Again][Return to Homepage]',
-        '🚫 403 - Access Denied',
-        [
-            'status' => 403,
-            'back_link' => true
-        ]
-    );
+	smliser_abort_request(
+		'Access Denied. You must be logged into a valid administrator account to view this page.[Log In Again][Return to Homepage]',
+		'🚫 403 - Access Denied',
+		[
+			'status'    => 403,
+			'back_link' => true
+		]
+	);
 }
 
 /*
@@ -48,50 +48,50 @@ if ( ! $principal->is( 'system_admin' ) ) {
 |--------------------------------------------------
 */
 
-$settings   = UserSettings::for( $principal->get_actor() );
-$theme      = (string) $settings->get( UserSettings::DASHBOARD_THEME_NAME, 'auto' );
-$collapsed  = (bool) $settings->get( UserSettings::DASHBOARD_SIDEBAR_COLLAPSED_NAME, false );
+$settings  = UserSettings::for( $principal->get_actor() );
+$theme     = (string) $settings->get( UserSettings::DASHBOARD_THEME_NAME, 'auto' );
+$collapsed = (bool) $settings->get( UserSettings::DASHBOARD_SIDEBAR_COLLAPSED_NAME, false );
 
 
-$current_slug       = $request->route_param( 'page', 'overview' );
-$current_menu       = $registry->get( $current_slug );
-$submenu_slug       = $request->route_param( 'tab' );
-$current_submenu    = null;
+$current_slug    = $request->route_param( 'page', 'overview' );
+$current_menu    = $registry->get( $current_slug );
+$submenu_slug    = $request->route_param( 'tab' );
+$current_submenu = null;
 if ( $submenu_slug ) {
-    $current_submenu    = $registry->get_submenu_by_slug( $current_slug, $submenu_slug );
+	$current_submenu = $registry->get_submenu_by_slug( $current_slug, $submenu_slug );
 }
 
 if ( $request->isEmpty( 'noheader' ) ) {
 
-    /*
-    |--------------------------------------------------
-    | 1. HEADER
-    |    <head>, <body>, 
-    |       <div class="dashboard-wrapper>,
-    |           <header class="dashboard-top-menu" ... </header>
-    |--------------------------------------------------
-    */
-    $this->render( Shell::HEADER_TEMPLATE, [
-        'title'             => $current_menu ? $current_menu['title'] : SMLISER_APP_NAME,
-        'theme'             => $theme,
-        'collapsed'         => $collapsed,
-        'registry'          => $registry,
-        'assets_manager'    => $assets_manager,
-    ]);
+	/*
+	|--------------------------------------------------
+	| 1. HEADER
+	|    <head>, <body>, 
+	|       <div class="dashboard-wrapper>,
+	|           <header class="dashboard-top-menu" ... </header>
+	|--------------------------------------------------
+	*/
+	$this->render( Shell::HEADER_TEMPLATE, [
+		'title'          => $current_menu ? $current_menu['title'] : SMLISER_APP_NAME,
+		'theme'          => $theme,
+		'collapsed'      => $collapsed,
+		'registry'       => $registry,
+		'assets_manager' => $assets_manager,
+	] );
 
-    /*
-    |--------------------------------------------------
-    | 2. MENU
-    |    <nav class="dashboard-left-menu" ... </nav>
-    |--------------------------------------------------
-    */
+	/*
+	|--------------------------------------------------
+	| 2. MENU
+	|    <nav class="dashboard-left-menu" ... </nav>
+	|--------------------------------------------------
+	*/
 
-    $this->render( Shell::MENU_TEMPLATE, [
-        'registry'          => $registry,
-        'current_menu'      => $current_menu,
-        'current_submenu'   => $current_submenu,
-        'urlmanager'        => $urlmanager
-    ]);
+	$this->render( Shell::MENU_TEMPLATE, [
+		'registry'        => $registry,
+		'current_menu'    => $current_menu,
+		'current_submenu' => $current_submenu,
+		'urlmanager'      => $urlmanager
+	] );
 
 }
 
@@ -103,22 +103,22 @@ if ( $request->isEmpty( 'noheader' ) ) {
 */
 
 if ( $current_submenu ) {
-    $callback    = $current_submenu['callback'];
+	$callback = $current_submenu['callback'];
 } else {
-    $callback   = $current_menu ? $current_menu['handler']?->index_page_handler() : null;
+	$callback = $current_menu ? $current_menu['handler']?->index_page_handler() : null;
 }
 
 if ( ! $callback ) {
-    $callback   = function() {
-        echo smliser_not_found_container( 'No registered handler for this page.' );
-    };
+	$callback = function() {
+		echo smliser_not_found_container( 'No registered handler for this page.' );
+	};
 }
 
 $this->render( Shell::CONTENT_TEMPLATE, [
-    'principal' => $principal,
-    'callback'  => $callback,
-    'request'   => $request
-]);
+	'principal' => $principal,
+	'callback'  => $callback,
+	'request'   => $request
+] );
 
 /*
 |--------------------------------------------------
@@ -127,5 +127,5 @@ $this->render( Shell::CONTENT_TEMPLATE, [
 |--------------------------------------------------
 */
 $this->render( Shell::FOOTER_TEMPLATE, [
-    'assets_manager' => $assets_manager
+	'assets_manager' => $assets_manager
 ] );

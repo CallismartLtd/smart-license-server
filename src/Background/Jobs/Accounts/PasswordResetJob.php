@@ -27,66 +27,66 @@ use SmartLicenseServer\Security\Authentication\PasswordResetToken;
  * email all happen here; an address without an account ends the job quietly.
  */
 class PasswordResetJob implements JobHandlerInterface {
-    public function __construct(
-        protected Mailer $mailer,
-        protected PasswordResetToken $tokens,
-        protected URLManager $urlmanager
-    ) {}
+	public function __construct(
+		protected Mailer $mailer,
+		protected PasswordResetToken $tokens,
+		protected URLManager $urlmanager
+	) {}
 
-    /*
-    |----------------------
-    | JobHandlerInterface
-    |----------------------
-    */
+	/*
+	|----------------------
+	| JobHandlerInterface
+	|----------------------
+	*/
 
-    /**
-     * {@inheritdoc}
-     *
-     * Expected payload keys:
-     *   - email      (string) The email address the reset was requested for.
-     *   - ip_address (string) IP address of the requesting client.
-     *   - user_agent (string) User agent of the requesting client.
-     *
-     * @param array<string, mixed> $payload
-     * @return bool|array.
-     */
-    public function handle( array $payload = [] ): mixed {
-        $email  = (string) ( $payload['email'] ?? '' );
-        $user   = '' !== $email ? User::get_by_email( $email ) : null;
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Expected payload keys:
+	 *   - email      (string) The email address the reset was requested for.
+	 *   - ip_address (string) IP address of the requesting client.
+	 *   - user_agent (string) User agent of the requesting client.
+	 *
+	 * @param array<string, mixed> $payload
+	 * @return bool|array.
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$email = (string) ( $payload['email'] ?? '' );
+		$user  = '' !== $email ? User::get_by_email( $email ) : null;
 
-        // No account for this address: nothing to send, and nothing to record.
-        if ( ! $user ) {
-            return true;
-        }
+		// No account for this address: nothing to send, and nothing to record.
+		if ( ! $user ) {
+			return true;
+		}
 
-        $reset_url  = $this->urlmanager->login_url( '', [ 'key' => $this->tokens->issue( $user ) ] )
-            ->set_hash( 'reset-password' );
+		$reset_url = $this->urlmanager->login_url( '', [ 'key' => $this->tokens->issue( $user ) ] )
+			->set_hash( 'reset-password' );
 
-        $reset_email    = new PasswordResetEmail(
-            $user,
-            $user->get_email(),
-            (string) $reset_url,
-            PasswordResetToken::TTL_MINUTES,
-            (string) ( $payload['ip_address'] ?? 'unknown' ),
-            (string) ( $payload['user_agent'] ?? 'unknown' )
-        );
+		$reset_email = new PasswordResetEmail(
+			$user,
+			$user->get_email(),
+			(string) $reset_url,
+			PasswordResetToken::TTL_MINUTES,
+			(string) ( $payload['ip_address'] ?? 'unknown' ),
+			(string) ( $payload['user_agent'] ?? 'unknown' )
+		);
 
-        $response   = $this->mailer->send( $reset_email->to_message() );
+		$response = $this->mailer->send( $reset_email->to_message() );
 
-        return $response->to_array();
-    }
+		return $response->to_array();
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_job_name(): string {
-        return 'Send Password Reset Email';
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function get_job_name() : string {
+		return 'Send Password Reset Email';
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_job_description(): string {
-        return 'Asyncronously send password reset emails.';
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function get_job_description() : string {
+		return 'Asyncronously send password reset emails.';
+	}
 }

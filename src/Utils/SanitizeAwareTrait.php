@@ -43,515 +43,515 @@ use SmartLicenseServer\Utils\Sanitizer;
  */
 trait SanitizeAwareTrait {
 
-    /*
-    |--------------------------------------------------------------------------
-    | TEXT SANITIZATION
-    |--------------------------------------------------------------------------
-    */
+	/*
+	|--------------------------------------------------------------------------
+	| TEXT SANITIZATION
+	|--------------------------------------------------------------------------
+	*/
 
-    /**
-     * Sanitize text field (strips HTML, normalizes whitespace).
-     * 
-     * @param mixed $value The input value.
-     * @return string Sanitized text.
-     */
-    protected static function sanitize_text( $value ): string {
-        return Sanitizer::sanitize_text( self::unslash( $value ) );
-    }
+	/**
+	 * Sanitize text field (strips HTML, normalizes whitespace).
+	 * 
+	 * @param mixed $value The input value.
+	 * @return string Sanitized text.
+	 */
+	protected static function sanitize_text( $value ) : string {
+		return Sanitizer::sanitize_text( self::unslash( $value ) );
+	}
 
-    /**
-     * Sanitize textarea field (preserves line breaks).
-     * 
-     * @param mixed $value The input value.
-     * @return string Sanitized textarea content.
-     */
-    protected static function sanitize_textarea( $value ): string {
-        return Sanitizer::sanitize_textarea_field( $value );
-    }
+	/**
+	 * Sanitize textarea field (preserves line breaks).
+	 * 
+	 * @param mixed $value The input value.
+	 * @return string Sanitized textarea content.
+	 */
+	protected static function sanitize_textarea( $value ) : string {
+		return Sanitizer::sanitize_textarea_field( $value );
+	}
 
-    /**
-     * Sanitize HTML content (allows safe HTML tags).
-     * 
-     * @param string $value The HTML content.
-     * @return string Sanitized HTML.
-     */
-    protected static function sanitize_html( string $value ): string {
-        return Sanitizer::sanitize_html( $value );
-    }
+	/**
+	 * Sanitize HTML content (allows safe HTML tags).
+	 * 
+	 * @param string $value The HTML content.
+	 * @return string Sanitized HTML.
+	 */
+	protected static function sanitize_html( string $value ) : string {
+		return Sanitizer::sanitize_html( $value );
+	}
 
-    /**
-     * Strict sanitization - removes script tags and dangerous content.
-     * 
-     * @param string $value The input value.
-     * @return string Sanitized value (empty string if malicious content detected).
-     */
-    protected static function sanitize_strict( string $value ): string {
-        $result = Sanitizer::strict_sanitize( $value );
-        return $result !== false ? $result : '';
-    }
+	/**
+	 * Strict sanitization - removes script tags and dangerous content.
+	 * 
+	 * @param string $value The input value.
+	 * @return string Sanitized value (empty string if malicious content detected).
+	 */
+	protected static function sanitize_strict( string $value ) : string {
+		$result = Sanitizer::strict_sanitize( $value );
+		return false !== $result ? $result : '';
+	}
 
-    /*
-    |--------------------------------------------------------------------------
-    | NUMERIC SANITIZATION
-    |--------------------------------------------------------------------------
-    */
+	/*
+	|--------------------------------------------------------------------------
+	| NUMERIC SANITIZATION
+	|--------------------------------------------------------------------------
+	*/
 
-    /**
-     * Sanitize integer value.
-     * 
-     * @param mixed $value The input value.
-     * @param int $default Default value for non-numeric input. Default 0.
-     * @return int Sanitized integer.
-     */
-    protected static function sanitize_int( $value, int $default = 0 ): int {
-        $result = Sanitizer::sanitize_int( $value );
-        return $result !== false ? $result : $default;
-    }
+	/**
+	 * Sanitize integer value.
+	 * 
+	 * @param mixed $value The input value.
+	 * @param int $default Default value for non-numeric input. Default 0.
+	 * @return int Sanitized integer.
+	 */
+	protected static function sanitize_int( $value, int $default = 0 ) : int {
+		$result = Sanitizer::sanitize_int( $value );
+		return false !== $result ? $result : $default;
+	}
 
-    /**
-     * Sanitize float value.
-     * 
-     * @param mixed $value The input value.
-     * @param float $default Default value for non-numeric input. Default 0.0.
-     * @return float Sanitized float.
-     */
-    protected static function sanitize_float( $value, float $default = 0.0 ): float {
-        $result = Sanitizer::sanitize_float( $value );
-        return $result !== false ? $result : $default;
-    }
+	/**
+	 * Sanitize float value.
+	 * 
+	 * @param mixed $value The input value.
+	 * @param float $default Default value for non-numeric input. Default 0.0.
+	 * @return float Sanitized float.
+	 */
+	protected static function sanitize_float( $value, float $default = 0.0 ) : float {
+		$result = Sanitizer::sanitize_float( $value );
+		return false !== $result ? $result : $default;
+	}
 
-    /**
-     * Sanitize number string (extracts digits only).
-     * 
-     * @param mixed $value The input value.
-     * @return string String containing only digits.
-     */
-    protected static function sanitize_number( $value ): string {
-        return Sanitizer::sanitize_number( $value );
-    }
+	/**
+	 * Sanitize number string (extracts digits only).
+	 * 
+	 * @param mixed $value The input value.
+	 * @return string String containing only digits.
+	 */
+	protected static function sanitize_number( $value ) : string {
+		return Sanitizer::sanitize_number( $value );
+	}
 
-    /**
-     * Sanitize positive integer (converts negative to positive).
-     * 
-     * @param mixed $value The input value.
-     * @param int $default Default value for non-numeric input. Default 0.
-     * @return int Positive integer.
-     */
-    protected static function sanitize_positive_int( $value, int $default = 0 ): int {
-        $int = static::sanitize_int( $value, $default );
-        return abs( $int );
-    }
+	/**
+	 * Sanitize positive integer (converts negative to positive).
+	 * 
+	 * @param mixed $value The input value.
+	 * @param int $default Default value for non-numeric input. Default 0.
+	 * @return int Positive integer.
+	 */
+	protected static function sanitize_positive_int( $value, int $default = 0 ) : int {
+		$int = static::sanitize_int( $value, $default );
+		return abs( $int );
+	}
 
-    /**
-     * Sanitize boolean value.
-     * 
-     * @param mixed $value The input value.
-     * @return bool Sanitized boolean.
-     */
-    protected static function sanitize_bool( $value ): bool {
-        return Sanitizer::esc_bool( $value );
-    }
+	/**
+	 * Sanitize boolean value.
+	 * 
+	 * @param mixed $value The input value.
+	 * @return bool Sanitized boolean.
+	 */
+	protected static function sanitize_bool( $value ) : bool {
+		return Sanitizer::esc_bool( $value );
+	}
 
-    /*
-    |--------------------------------------------------------------------------
-    | CONTACT INFORMATION
-    |--------------------------------------------------------------------------
-    */
+	/*
+	|--------------------------------------------------------------------------
+	| CONTACT INFORMATION
+	|--------------------------------------------------------------------------
+	*/
 
-    /**
-     * Sanitize email address.
-     * 
-     * @param string $value The email address.
-     * @return string Sanitized email (empty string if malformed).
-     */
-    protected static function sanitize_email( string $value ): string {
-        return Sanitizer::sanitize_email( $value );
-    }
+	/**
+	 * Sanitize email address.
+	 * 
+	 * @param string $value The email address.
+	 * @return string Sanitized email (empty string if malformed).
+	 */
+	protected static function sanitize_email( string $value ) : string {
+		return Sanitizer::sanitize_email( $value );
+	}
 
-    /**
-     * Sanitize URL.
-     * 
-     * @param string $value The URL.
-     * @param array $protocols Allowed protocols.
-     * @return string Sanitized URL (empty string if invalid protocol).
-     */
-    protected static function sanitize_url( string $value, array $protocols = [] ): string {
-        return Sanitizer::esc_url( $value, $protocols );
-    }
+	/**
+	 * Sanitize URL.
+	 * 
+	 * @param string $value The URL.
+	 * @param array $protocols Allowed protocols.
+	 * @return string Sanitized URL (empty string if invalid protocol).
+	 */
+	protected static function sanitize_url( string $value, array $protocols = [] ) : string {
+		return Sanitizer::esc_url( $value, $protocols );
+	}
 
-    /**
-     * Sanitize web URL (HTTP/HTTPS only).
-     * 
-     * @param string $value The URL.
-     * @return string Sanitized web URL.
-     */
-    protected static function sanitize_web_url( string $value ): string {
-        return Sanitizer::esc_url( $value, ['http', 'https'] );
-    }
+	/**
+	 * Sanitize web URL (HTTP/HTTPS only).
+	 * 
+	 * @param string $value The URL.
+	 * @return string Sanitized web URL.
+	 */
+	protected static function sanitize_web_url( string $value ) : string {
+		return Sanitizer::esc_url( $value, ['http', 'https'] );
+	}
 
-    /*
-    |--------------------------------------------------------------------------
-    | IDENTIFIER SANITIZATION
-    |--------------------------------------------------------------------------
-    */
+	/*
+	|--------------------------------------------------------------------------
+	| IDENTIFIER SANITIZATION
+	|--------------------------------------------------------------------------
+	*/
 
-    /**
-     * Sanitize slug (lowercase alphanumeric with hyphens).
-     * 
-     * @param string $value The input value.
-     * @return string Sanitized slug.
-     */
-    protected static function sanitize_slug( string $value ): string {
-        $slug = static::sanitize_text( $value );
-        $slug = strtolower( $slug );
-        $slug = preg_replace( '/[^a-z0-9\-_]/', '-', $slug );
-        $slug = preg_replace( '/-+/', '-', $slug );
-        $slug = trim( $slug, '-' );
-        
-        return $slug;
-    }
+	/**
+	 * Sanitize slug (lowercase alphanumeric with hyphens).
+	 * 
+	 * @param string $value The input value.
+	 * @return string Sanitized slug.
+	 */
+	protected static function sanitize_slug( string $value ) : string {
+		$slug = static::sanitize_text( $value );
+		$slug = strtolower( $slug );
+		$slug = preg_replace( '/[^a-z0-9\-_]/', '-', $slug );
+		$slug = preg_replace( '/-+/', '-', $slug );
+		$slug = trim( $slug, '-' );
+		
+		return $slug;
+	}
 
-    /**
-     * Sanitize CSS class name.
-     * 
-     * @param string $value The class name.
-     * @return string Sanitized class name.
-     */
-    protected static function sanitize_class( string $value ): string {
-        return Sanitizer::esc_class( $value );
-    }
+	/**
+	 * Sanitize CSS class name.
+	 * 
+	 * @param string $value The class name.
+	 * @return string Sanitized class name.
+	 */
+	protected static function sanitize_class( string $value ) : string {
+		return Sanitizer::esc_class( $value );
+	}
 
-    /**
-     * Sanitize HTML ID attribute.
-     * 
-     * @param string $value The ID value.
-     * @return string Sanitized ID.
-     */
-    protected static function sanitize_html_id( string $value ): string {
-        $id = static::sanitize_text( $value );
-        $id = preg_replace( '/[^a-zA-Z0-9\-_]/', '', $id );
-        
-        // Ensure it starts with a letter
-        if ( ! empty( $id ) && ! preg_match( '/^[a-zA-Z]/', $id ) ) {
-            $id = 'id-' . $id;
-        }
-        
-        return $id;
-    }
+	/**
+	 * Sanitize HTML ID attribute.
+	 * 
+	 * @param string $value The ID value.
+	 * @return string Sanitized ID.
+	 */
+	protected static function sanitize_html_id( string $value ) : string {
+		$id = static::sanitize_text( $value );
+		$id = preg_replace( '/[^a-zA-Z0-9\-_]/', '', $id );
+		
+		// Ensure it starts with a letter
+		if ( ! empty( $id ) && ! preg_match( '/^[a-zA-Z]/', $id ) ) {
+			$id = 'id-' . $id;
+		}
+		
+		return $id;
+	}
 
-    /**
-     * Sanitize key (alphanumeric with underscores).
-     * 
-     * @param string $value The input value.
-     * @return string Sanitized key.
-     */
-    protected static function sanitize_key( string $value ): string {
-        $key = static::sanitize_text( $value );
-        $key = strtolower( $key );
-        $key = preg_replace( '/[^a-z0-9_]/', '_', $key );
-        $key = preg_replace( '/_+/', '_', $key );
-        $key = trim( $key, '_' );
-        
-        return $key;
-    }
+	/**
+	 * Sanitize key (alphanumeric with underscores).
+	 * 
+	 * @param string $value The input value.
+	 * @return string Sanitized key.
+	 */
+	protected static function sanitize_key( string $value ) : string {
+		$key = static::sanitize_text( $value );
+		$key = strtolower( $key );
+		$key = preg_replace( '/[^a-z0-9_]/', '_', $key );
+		$key = preg_replace( '/_+/', '_', $key );
+		$key = trim( $key, '_' );
+		
+		return $key;
+	}
 
-    /*
-    |--------------------------------------------------------------------------
-    | DATE & TIME SANITIZATION
-    |--------------------------------------------------------------------------
-    */
+	/*
+	|--------------------------------------------------------------------------
+	| DATE & TIME SANITIZATION
+	|--------------------------------------------------------------------------
+	*/
 
-    /**
-     * Sanitize a date string to a given format.
-     *
-     * Handles:
-     * - MySQL DATE and DATETIME
-     * - Unix timestamps
-     * - Zero dates (0000-00-00)
-     * - Invalid calendar dates
-     *
-     * @param string      $value   Raw date value.
-     * @param string|null $default Default return value if invalid.
-     * @param string      $format  Output format. Default Y-m-d.
-     * @return string|null
-     */
-    protected static function sanitize_date( string $value, ?string $default = null, string $format = 'Y-m-d' ): ?string {
+	/**
+	 * Sanitize a date string to a given format.
+	 *
+	 * Handles:
+	 * - MySQL DATE and DATETIME
+	 * - Unix timestamps
+	 * - Zero dates (0000-00-00)
+	 * - Invalid calendar dates
+	 *
+	 * @param string      $value   Raw date value.
+	 * @param string|null $default Default return value if invalid.
+	 * @param string      $format  Output format. Default Y-m-d.
+	 * @return string|null
+	 */
+	protected static function sanitize_date( string $value, ?string $default = null, string $format = 'Y-m-d' ) : ?string {
 
-        $value = trim( $value );
+		$value = trim( $value );
 
-        if ( '' === $value ) {
-            return $default;
-        }
+		if ( '' === $value ) {
+			return $default;
+		}
 
-        /*
-        * Handle MySQL zero date values explicitly.
-        */
-        if ( '0000-00-00' === $value || '0000-00-00 00:00:00' === $value ) {
-            return $default;
-        }
+		/*
+		* Handle MySQL zero date values explicitly.
+		*/
+		if ( '0000-00-00' === $value || '0000-00-00 00:00:00' === $value ) {
+			return $default;
+		}
 
-        /*
-        * Handle pure numeric timestamps.
-        */
-        if ( ctype_digit( $value ) ) {
-            $timestamp = (int) $value;
+		/*
+		* Handle pure numeric timestamps.
+		*/
+		if ( ctype_digit( $value ) ) {
+			$timestamp = (int) $value;
 
-            if ( $timestamp <= 0 ) {
-                return $default;
-            }
+			if ( $timestamp <= 0 ) {
+				return $default;
+			}
 
-            return gmdate( $format, $timestamp );
-        }
+			return gmdate( $format, $timestamp );
+		}
 
-        /*
-        * Attempt strict parsing using DateTime.
-        */
-        try {
-            $date = new \DateTime( $value, new \DateTimeZone( 'UTC' ) );
+		/*
+		* Attempt strict parsing using DateTime.
+		*/
+		try {
+			$date = new \DateTime( $value, new \DateTimeZone( 'UTC' ) );
 
-            /*
-            * Validate that the parsed date matches input components
-            * (prevents invalid dates like 2025-02-31 silently rolling over).
-            */
-            $parsed = $date->format( 'Y-m-d H:i:s' );
+			/*
+			* Validate that the parsed date matches input components
+			* (prevents invalid dates like 2025-02-31 silently rolling over).
+			*/
+			$parsed = $date->format( 'Y-m-d H:i:s' );
 
-            if ( false === strtotime( $parsed ) ) {
-                return $default;
-            }
+			if ( false === strtotime( $parsed ) ) {
+				return $default;
+			}
 
-            return $date->format( $format );
+			return $date->format( $format );
 
-        } catch ( \Exception $e ) {
-            return $default;
-        }
-    }
+		} catch ( \Exception $e ) {
+			return $default;
+		}
+	}
 
-    /**
-     * Sanitize timestamp (converts to valid Unix timestamp).
-     * 
-     * @param mixed $value The timestamp value.
-     * @param int|null $default Default value for invalid timestamps.
-     * @return int|null Unix timestamp or default.
-     */
-    protected static function sanitize_timestamp( $value, ?int $default = null ): ?int {
-        if ( is_numeric( $value ) ) {
-            $timestamp = (int) $value;
-            
-            // Ensure reasonable timestamp range (1970-2100)
-            if ( $timestamp >= 0 && $timestamp <= 4102444800 ) {
-                return $timestamp;
-            }
-        }
-        
-        $timestamp = strtotime( (string) $value );
-        return $timestamp !== false ? $timestamp : $default;
-    }
+	/**
+	 * Sanitize timestamp (converts to valid Unix timestamp).
+	 * 
+	 * @param mixed $value The timestamp value.
+	 * @param int|null $default Default value for invalid timestamps.
+	 * @return int|null Unix timestamp or default.
+	 */
+	protected static function sanitize_timestamp( $value, ?int $default = null ) : ?int {
+		if ( is_numeric( $value ) ) {
+			$timestamp = (int) $value;
+			
+			// Ensure reasonable timestamp range (1970-2100)
+			if ( $timestamp >= 0 && $timestamp <= 4102444800 ) {
+				return $timestamp;
+			}
+		}
+		
+		$timestamp = strtotime( (string) $value );
+		return false !== $timestamp ? $timestamp : $default;
+	}
 
-    /*
-    |--------------------------------------------------------------------------
-    | ENUM & CHOICE SANITIZATION
-    |--------------------------------------------------------------------------
-    */
+	/*
+	|--------------------------------------------------------------------------
+	| ENUM & CHOICE SANITIZATION
+	|--------------------------------------------------------------------------
+	*/
 
-    /**
-     * Sanitize value against allowed choices.
-     * 
-     * Returns the value if it exists in allowed list, otherwise returns default.
-     * 
-     * @param mixed $value The input value.
-     * @param array $allowed_values Array of allowed values.
-     * @param mixed $default Default value if not in allowed list.
-     * @return mixed Sanitized value or default.
-     */
-    protected static function sanitize_choice( $value, array $allowed_values, $default = null ): mixed {
-        if ( in_array( $value, $allowed_values, true ) ) {
-            return $value;
-        }
-        
-        return $default;
-    }
+	/**
+	 * Sanitize value against allowed choices.
+	 * 
+	 * Returns the value if it exists in allowed list, otherwise returns default.
+	 * 
+	 * @param mixed $value The input value.
+	 * @param array $allowed_values Array of allowed values.
+	 * @param mixed $default Default value if not in allowed list.
+	 * @return mixed Sanitized value or default.
+	 */
+	protected static function sanitize_choice( $value, array $allowed_values, $default = null ) : mixed {
+		if ( in_array( $value, $allowed_values, true ) ) {
+			return $value;
+		}
+		
+		return $default;
+	}
 
-    /**
-     * Sanitize enum value (case-insensitive matching).
-     * 
-     * @param string $value The input value.
-     * @param array $allowed_values Array of allowed values.
-     * @param string|null $default Default value if not in allowed list.
-     * @return string|null Sanitized value or default.
-     */
-    protected static function sanitize_enum( string $value, array $allowed_values, ?string $default = null ): ?string {
-        $value = static::sanitize_text( $value );
-        $value_lower = strtolower( $value );
-        
-        foreach ( $allowed_values as $allowed ) {
-            if ( strtolower( $allowed ) === $value_lower ) {
-                return $allowed;
-            }
-        }
-        
-        return $default;
-    }
+	/**
+	 * Sanitize enum value (case-insensitive matching).
+	 * 
+	 * @param string $value The input value.
+	 * @param array $allowed_values Array of allowed values.
+	 * @param string|null $default Default value if not in allowed list.
+	 * @return string|null Sanitized value or default.
+	 */
+	protected static function sanitize_enum( string $value, array $allowed_values, ?string $default = null ) : ?string {
+		$value       = static::sanitize_text( $value );
+		$value_lower = strtolower( $value );
+		
+		foreach ( $allowed_values as $allowed ) {
+			if ( strtolower( $allowed ) === $value_lower ) {
+				return $allowed;
+			}
+		}
+		
+		return $default;
+	}
 
-    /*
-    |--------------------------------------------------------------------------
-    | ARRAY SANITIZATION
-    |--------------------------------------------------------------------------
-    */
+	/*
+	|--------------------------------------------------------------------------
+	| ARRAY SANITIZATION
+	|--------------------------------------------------------------------------
+	*/
 
-    /**
-     * Recursively sanitize a given value.
-     * 
-     * @param mixed $value The input value.
-     * @return mixed Sanitized array (empty if input is not array).
-     */
-    protected static function sanitize_deep( $value ): mixed {
-        return Sanitizer::sanitize_deep( $value, fn ( $val ) => static::sanitize_auto( $val ) );
-    }
+	/**
+	 * Recursively sanitize a given value.
+	 * 
+	 * @param mixed $value The input value.
+	 * @return mixed Sanitized array (empty if input is not array).
+	 */
+	protected static function sanitize_deep( $value ) : mixed {
+		return Sanitizer::sanitize_deep( $value, fn ( $val ) => static::sanitize_auto( $val ) );
+	}
 
-    /**
-     * Sanitize comma-separated list into array.
-     * 
-     * @param string $value Comma-separated string.
-     * @return array Array of sanitized values.
-     */
-    protected static function sanitize_csv( string $value ): array {
-        if ( empty( $value ) ) {
-            return [];
-        }
-        
-        $items = explode( ',', $value );
-        $items = array_map( 'trim', $items );
-        $items = array_filter( $items, fn( $item ) => $item !== '' );
-        
-        return array_map( [ static::class, 'sanitize_text' ], $items );
-    }
+	/**
+	 * Sanitize comma-separated list into array.
+	 * 
+	 * @param string $value Comma-separated string.
+	 * @return array Array of sanitized values.
+	 */
+	protected static function sanitize_csv( string $value ) : array {
+		if ( empty( $value ) ) {
+			return [];
+		}
+		
+		$items = explode( ',', $value );
+		$items = array_map( 'trim', $items );
+		$items = array_filter( $items, fn( $item ) => '' !== $item );
+		
+		return array_map( [ static::class, 'sanitize_text' ], $items );
+	}
 
-    /*
-    |--------------------------------------------------------------------------
-    | FILE & PATH SANITIZATION
-    |--------------------------------------------------------------------------
-    */
+	/*
+	|--------------------------------------------------------------------------
+	| FILE & PATH SANITIZATION
+	|--------------------------------------------------------------------------
+	*/
 
-    /**
-     * Sanitize file name (removes directory traversal attempts).
-     * 
-     * @param string $value The file name.
-     * @return string Sanitized file name.
-     */
-    protected static function sanitize_filename( string $value ): string {
-        $filename   = FileSystemHelper::sanitize_filename( $value );
-        
-        return $filename;
-    }
+	/**
+	 * Sanitize file name (removes directory traversal attempts).
+	 * 
+	 * @param string $value The file name.
+	 * @return string Sanitized file name.
+	 */
+	protected static function sanitize_filename( string $value ) : string {
+		$filename = FileSystemHelper::sanitize_filename( $value );
+		
+		return $filename;
+	}
 
-    /**
-     * Sanitize file extension.
-     * 
-     * @param string $value The file extension.
-     * @param array $allowed_extensions Optional. Allowed extensions (returns empty if not in list).
-     * @return string Sanitized extension.
-     */
-    protected static function sanitize_file_extension( string $value, array $allowed_extensions = [] ): string {
-        $ext = strtolower( trim( $value, '. ' ) );
-        $ext = preg_replace( '/[^a-z0-9]/', '', $ext );
-        
-        if ( ! empty( $allowed_extensions ) && ! in_array( $ext, $allowed_extensions, true ) ) {
-            return '';
-        }
-        
-        return $ext;
-    }
+	/**
+	 * Sanitize file extension.
+	 * 
+	 * @param string $value The file extension.
+	 * @param array $allowed_extensions Optional. Allowed extensions (returns empty if not in list).
+	 * @return string Sanitized extension.
+	 */
+	protected static function sanitize_file_extension( string $value, array $allowed_extensions = [] ) : string {
+		$ext = strtolower( trim( $value, '. ' ) );
+		$ext = preg_replace( '/[^a-z0-9]/', '', $ext );
+		
+		if ( ! empty( $allowed_extensions ) && ! in_array( $ext, $allowed_extensions, true ) ) {
+			return '';
+		}
+		
+		return $ext;
+	}
 
-    /**
-     * Remove slashes from value (useful for magic_quotes_gpc data).
-     * 
-     * @param mixed $value The input value.
-     * @return mixed Value with slashes removed.
-     */
-    protected static function unslash( $value ): mixed {
-        return Sanitizer::unslash( $value );
-    }
+	/**
+	 * Remove slashes from value (useful for magic_quotes_gpc data).
+	 * 
+	 * @param mixed $value The input value.
+	 * @return mixed Value with slashes removed.
+	 */
+	protected static function unslash( $value ) : mixed {
+		return Sanitizer::unslash( $value );
+	}
 
-    /**
-     * Perform conservative, deterministic sanitization based on value type.
-     *
-     * This method is intentionally minimal. It avoids context-specific
-     * transformations and only ensures the value is safe to store.
-     *
-     * @param mixed $value The input value.
-     * @return mixed Sanitized value.
-     */
-    protected static function sanitize_auto( $value ): mixed {
+	/**
+	 * Perform conservative, deterministic sanitization based on value type.
+	 *
+	 * This method is intentionally minimal. It avoids context-specific
+	 * transformations and only ensures the value is safe to store.
+	 *
+	 * @param mixed $value The input value.
+	 * @return mixed Sanitized value.
+	 */
+	protected static function sanitize_auto( $value ) : mixed {
 
-        if ( is_null( $value ) ) {
-            return null;
-        }
+		if ( is_null( $value ) ) {
+			return null;
+		}
 
-        if ( is_bool( $value ) ) {
-            return static::sanitize_bool( $value );
-        }
+		if ( is_bool( $value ) ) {
+			return static::sanitize_bool( $value );
+		}
 
-        if ( is_int( $value ) ) {
-            return static::sanitize_int( $value );
-        }
+		if ( is_int( $value ) ) {
+			return static::sanitize_int( $value );
+		}
 
-        if ( is_float( $value ) ) {
-            return static::sanitize_float( $value );
-        }
+		if ( is_float( $value ) ) {
+			return static::sanitize_float( $value );
+		}
 
-        if ( is_string( $value ) ) {
+		if ( is_string( $value ) ) {
 
-            $value = static::unslash( $value );
-            $trimmed = trim( $value );
+			$value   = static::unslash( $value );
+			$trimmed = trim( $value );
 
-            if ( $trimmed === '' ) {
-                return '';
-            }
+			if ( '' === $trimmed ) {
+				return '';
+			}
 
-            // Numeric string.
-            if ( is_numeric( $trimmed ) ) {
-                return str_contains( $trimmed, '.' )
-                    ? static::sanitize_float( $trimmed )
-                    : static::sanitize_int( $trimmed );
-            }
+			// Numeric string.
+			if ( is_numeric( $trimmed ) ) {
+				return str_contains( $trimmed, '.' )
+					? static::sanitize_float( $trimmed )
+					: static::sanitize_int( $trimmed );
+			}
 
-            // Email.
-            if ( false !== strpos( $trimmed, '@' ) ) {
-                $email = static::sanitize_email( $trimmed );
-                return $email !== '' ? $email : static::sanitize_text( $trimmed );
-            }
+			// Email.
+			if ( false !== strpos( $trimmed, '@' ) ) {
+				$email = static::sanitize_email( $trimmed );
+				return '' !== $email ? $email : static::sanitize_text( $trimmed );
+			}
 
-            // URL.
-            if ( preg_match( '#^https?://#i', $trimmed ) ) {
-                $url = static::sanitize_web_url( $trimmed );
-                return $url !== '' ? $url : static::sanitize_text( $trimmed );
-            }
+			// URL.
+			if ( preg_match( '#^https?://#i', $trimmed ) ) {
+				$url = static::sanitize_web_url( $trimmed );
+				return '' !== $url ? $url : static::sanitize_text( $trimmed );
+			}
 
-            // Hash-like (md5, sha1, sha256 etc).
-            if ( preg_match( '/^[a-f0-9]{32,64}$/i', $trimmed ) ) {
-                return strtolower( $trimmed );
-            }
+			// Hash-like (md5, sha1, sha256 etc).
+			if ( preg_match( '/^[a-f0-9]{32,64}$/i', $trimmed ) ) {
+				return strtolower( $trimmed );
+			}
 
-            // Fallback: plain text.
-            return static::sanitize_text( $trimmed );
-        }
+			// Fallback: plain text.
+			return static::sanitize_text( $trimmed );
+		}
 
-        if ( is_array( $value ) ) {
-            return array_map( [static::class, 'sanitize_auto'], $value );
-        }
+		if ( is_array( $value ) ) {
+			return array_map( [static::class, 'sanitize_auto'], $value );
+		}
 
-        // Objects / resources are returned untouched by design.
-        return $value;
-    }
+		// Objects / resources are returned untouched by design.
+		return $value;
+	}
 
-    /**
-     * Ensure a string finishes with the given string
-     * 
-     * @param string $value
-     * @param $char
-     */
-    protected static function finish( string $value, string $char = "\n\r\t\v\0" ) : string {
-        return rtrim( $value, $char ) . $char;
-    }
+	/**
+	 * Ensure a string finishes with the given string
+	 * 
+	 * @param string $value
+	 * @param $char
+	 */
+	protected static function finish( string $value, string $char = "\n\r\t\v\0" ) : string {
+		return rtrim( $value, $char ) . $char;
+	}
 
 }

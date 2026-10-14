@@ -215,10 +215,10 @@ class TimestampValue {
 	public function subtractMonthsClamped( int $months ) : self {
 		$dt = $this->toDateTime();
 
-		$day = (int) $dt->format( 'j' );
-		$year = (int) $dt->format( 'Y' );
-		$month = (int) $dt->format( 'n' );
-		$hour = (int) $dt->format( 'H' );
+		$day    = (int) $dt->format( 'j' );
+		$year   = (int) $dt->format( 'Y' );
+		$month  = (int) $dt->format( 'n' );
+		$hour   = (int) $dt->format( 'H' );
 		$minute = (int) $dt->format( 'i' );
 		$second = (int) $dt->format( 's' );
 
@@ -241,7 +241,7 @@ class TimestampValue {
 		// Clamp day
 		$day = min( $day, $lastDay );
 
-		$newTimestamp = (new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) )
+		$newTimestamp = ( new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) )
 			->setDate( $year, $month, $day )
 			->setTime( $hour, $minute, $second )
 			->getTimestamp();

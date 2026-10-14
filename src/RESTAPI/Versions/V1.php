@@ -163,7 +163,7 @@ class V1 implements RESTVersionInterface {
 	 * @example `PUT`
 	 * /respository/theme/astra/assets/screenshots/screenshot
 	 */
-	const APP_ASSET_TYPE_ROUTE  = self::APP_ASSETS_TYPE_ROUTE . '/' . self::ASSET_NAME_PATTERN;
+	const APP_ASSET_TYPE_ROUTE = self::APP_ASSETS_TYPE_ROUTE . '/' . self::ASSET_NAME_PATTERN;
 
 
 	/**
@@ -264,191 +264,191 @@ class V1 implements RESTVersionInterface {
 	 * }
 	 */
 	public static function get_routes() : array {
-		return array(
+		return [
 			'namespace' => self::NAMESPACE,
-			'routes'    => array(
+			'routes'    => [
 				// License Activation Route
-				array(
-					'route'         => self::LICENSE_ACTIVATION,
-					'methods'       => ['POST'],
-					'handler'       => array( Licenses::class, 'activation_response' ),
-					'guard'         => array( Licenses::class, 'activation_permission_callback' ),
-					'args'          => self::get_license_activation_args(),
-					'category'      => 'license',
-					'name'          => 'License Activation',
-				),
+				[
+					'route'    => self::LICENSE_ACTIVATION,
+					'methods'  => ['POST'],
+					'handler'  => [ Licenses::class, 'activation_response' ],
+					'guard'    => [ Licenses::class, 'activation_permission_callback' ],
+					'args'     => self::get_license_activation_args(),
+					'category' => 'license',
+					'name'     => 'License Activation',
+				],
 
 				// License Deactivation Route
-				array(
-					'route'         => self::LICENSE_DEACTIVATION,
-					'methods'       => array( 'POST' ),
-					'handler'       => array( Licenses::class, 'deactivation_response' ),
-					'guard'         => array( Licenses::class, 'deactivation_permission' ),
-					'args'          => self::get_license_deactivation_args(),
-					'category'      => 'license',
-					'name'          => 'License Deactivation',
-				),
+				[
+					'route'    => self::LICENSE_DEACTIVATION,
+					'methods'  => [ 'POST' ],
+					'handler'  => [ Licenses::class, 'deactivation_response' ],
+					'guard'    => [ Licenses::class, 'deactivation_permission' ],
+					'args'     => self::get_license_deactivation_args(),
+					'category' => 'license',
+					'name'     => 'License Deactivation',
+				],
 
 				// License Uninstallation Route.
-				array(
-					'route'         => self::LICENSE_UNINSTALL,
-					'methods'       => array( 'POST' ),
-					'handler'       => array( Licenses::class, 'uninstallation_response' ),
-					'guard'         => array( Licenses::class, 'uninstallation_permission' ),
-					'args'          => self::get_license_uninstallation_args(),
-					'category'      => 'license',
-					'name'          => 'License Uninstallation',
-				),
+				[
+					'route'    => self::LICENSE_UNINSTALL,
+					'methods'  => [ 'POST' ],
+					'handler'  => [ Licenses::class, 'uninstallation_response' ],
+					'guard'    => [ Licenses::class, 'uninstallation_permission' ],
+					'args'     => self::get_license_uninstallation_args(),
+					'category' => 'license',
+					'name'     => 'License Uninstallation',
+				],
 
 				// License Validity Test Route.
-				array(
-					'route'         => self::LICENSE_VALIDITY,
-					'methods'       => ['POST'],
-					'handler'       => array( Licenses::class, 'validity_test_response' ),
-					'guard'         => array( Licenses::class, 'validity_test_permission' ),
-					'args'          => self::get_license_validity_args(),
-					'category'      => 'license',
-					'name'          => 'License Validity Test',
-				),
+				[
+					'route'    => self::LICENSE_VALIDITY,
+					'methods'  => ['POST'],
+					'handler'  => [ Licenses::class, 'validity_test_response' ],
+					'guard'    => [ Licenses::class, 'validity_test_permission' ],
+					'args'     => self::get_license_validity_args(),
+					'category' => 'license',
+					'name'     => 'License Validity Test',
+				],
 
 				// Plugin Info Route.
-				array(
-					'route'         => self::PLUGIN_INFO,
-					'methods'       => ['GET'],
-					'handler'       => array( Plugins::class, 'plugin_info_response' ),
-					'guard'         => array( Plugins::class, 'info_permission_callback' ),
-					'args'          => self::get_app_info_args( 'plugin' ),
-					'category'      => 'repository',
-					'name'          => 'Plugin Information',
-				),
+				[
+					'route'    => self::PLUGIN_INFO,
+					'methods'  => ['GET'],
+					'handler'  => [ Plugins::class, 'plugin_info_response' ],
+					'guard'    => [ Plugins::class, 'info_permission_callback' ],
+					'args'     => self::get_app_info_args( 'plugin' ),
+					'category' => 'repository',
+					'name'     => 'Plugin Information',
+				],
 
 				// Theme Info Route.
-				array(
-					'route'         => self::THEME_INFO,
-					'methods'       => ['GET'],
-					'handler'       => array( Themes::class, 'theme_info_response' ),
-					'guard'         => array( Themes::class, 'info_permission_callback' ),
-					'args'          => self::get_app_info_args( 'theme' ),
-					'category'      => 'repository',
-					'name'          => 'Theme Information',
-				),
+				[
+					'route'    => self::THEME_INFO,
+					'methods'  => ['GET'],
+					'handler'  => [ Themes::class, 'theme_info_response' ],
+					'guard'    => [ Themes::class, 'info_permission_callback' ],
+					'args'     => self::get_app_info_args( 'theme' ),
+					'category' => 'repository',
+					'name'     => 'Theme Information',
+				],
 
 				// Repository Route.
-				array(
-					'route'         => self::REPOSITORY_ROUTE,
-					'methods'       => ['GET'],
-					'handler'       => array( HostedApps::class, 'repository_response' ),
-					'guard'         => array( HostedApps::class, 'repository_get_guard' ),
-					'args'          => self::get_repository_args(),
-					'category'      => 'repository',
-					'name'          => 'Repository Query',
-				),
+				[
+					'route'    => self::REPOSITORY_ROUTE,
+					'methods'  => ['GET'],
+					'handler'  => [ HostedApps::class, 'repository_response' ],
+					'guard'    => [ HostedApps::class, 'repository_get_guard' ],
+					'args'     => self::get_repository_args(),
+					'category' => 'repository',
+					'name'     => 'Repository Query',
+				],
 
 				// Repository App Route (CRUD).
-				array(
-					'route'         => self::REPOSITORY_APP_ROUTE,
-					'methods'       => ['GET'],
-					'handler'       => array( HostedApps::class, 'single_app_get' ),
-					'guard'         => array( HostedApps::class, 'repository_get_guard' ),
-					'args'          => self::get_repository_app_args(),
-					'category'      => 'repository',
-					'name'          => 'Get Single Application',
-				),
+				[
+					'route'    => self::REPOSITORY_APP_ROUTE,
+					'methods'  => ['GET'],
+					'handler'  => [ HostedApps::class, 'single_app_get' ],
+					'guard'    => [ HostedApps::class, 'repository_get_guard' ],
+					'args'     => self::get_repository_app_args(),
+					'category' => 'repository',
+					'name'     => 'Get Single Application',
+				],
 				
-				array(
-					'route'         => self::REPOSITORY_APP_TYPE_ROUTE,
-					'methods'       => ['POST'],
-					'handler'       => array( HostedApps::class, 'create_app' ),
-					'guard'         => array( HostedApps::class, 'repository_unsafe_method_guard' ),
-					'args'          => self::get_app_write_args( 'POST' ),
-					'category'      => 'repository',
-					'name'          => 'Create a New Application',
-				),
+				[
+					'route'    => self::REPOSITORY_APP_TYPE_ROUTE,
+					'methods'  => ['POST'],
+					'handler'  => [ HostedApps::class, 'create_app' ],
+					'guard'    => [ HostedApps::class, 'repository_unsafe_method_guard' ],
+					'args'     => self::get_app_write_args( 'POST' ),
+					'category' => 'repository',
+					'name'     => 'Create a New Application',
+				],
 
-				array(
-					'route'         => self::REPOSITORY_APP_ROUTE,
-					'methods'       => array( 'PUT', 'PATCH' ),
-					'handler'       => array( HostedApps::class, 'update_app' ),
-					'guard'         => array( HostedApps::class, 'repository_unsafe_method_guard' ),
-					'args'          => self::get_app_write_args( 'PUT', 'PATCH' ),
-					'category'      => 'repository',
-					'name'          => 'Update an Existing Application',
-				),
+				[
+					'route'    => self::REPOSITORY_APP_ROUTE,
+					'methods'  => [ 'PUT', 'PATCH' ],
+					'handler'  => [ HostedApps::class, 'update_app' ],
+					'guard'    => [ HostedApps::class, 'repository_unsafe_method_guard' ],
+					'args'     => self::get_app_write_args( 'PUT', 'PATCH' ),
+					'category' => 'repository',
+					'name'     => 'Update an Existing Application',
+				],
 
-				array(
-					'route'         => self::REPOSITORY_APP_ROUTE,
-					'methods'       => array( 'DELETE' ),
-					'handler'       => array( HostedApps::class, 'delete_app' ),
-					'guard'         => array( HostedApps::class, 'repository_unsafe_method_guard' ),
-					'args'          => self::get_app_delete_args(),
-					'category'      => 'repository',
-					'name'          => 'Delete Existing Application'
-				),
+				[
+					'route'    => self::REPOSITORY_APP_ROUTE,
+					'methods'  => [ 'DELETE' ],
+					'handler'  => [ HostedApps::class, 'delete_app' ],
+					'guard'    => [ HostedApps::class, 'repository_unsafe_method_guard' ],
+					'args'     => self::get_app_delete_args(),
+					'category' => 'repository',
+					'name'     => 'Delete Existing Application'
+				],
 
 				// App asset routes.
-				array(
-					'route'         => self::APP_ASSETS_TYPE_ROUTE,
-					'methods'       => array( 'POST' ),
-					'handler'       => array( HostedApps::class, 'upload_app_assets' ),
-					'guard'         => array( HostedApps::class, 'assets_management_guard' ),
-					'args'          => [],
-					'category'      => 'repository',
-					'name'          => 'App Asset Bulk Upload'
-				),
+				[
+					'route'    => self::APP_ASSETS_TYPE_ROUTE,
+					'methods'  => [ 'POST' ],
+					'handler'  => [ HostedApps::class, 'upload_app_assets' ],
+					'guard'    => [ HostedApps::class, 'assets_management_guard' ],
+					'args'     => [],
+					'category' => 'repository',
+					'name'     => 'App Asset Bulk Upload'
+				],
 
-				array(
-					'route'         => self::APP_ASSET_TYPE_ROUTE,
-					'methods'       => array( 'PUT' ),
-					'handler'       => array( HostedApps::class, 'update_app_asset' ),
-					'guard'         => array( HostedApps::class, 'assets_management_guard' ),
-					'args'          => [],
-					'category'      => 'repository',
-					'name'          => 'Create or Replace a Single App Asset'
-				),
+				[
+					'route'    => self::APP_ASSET_TYPE_ROUTE,
+					'methods'  => [ 'PUT' ],
+					'handler'  => [ HostedApps::class, 'update_app_asset' ],
+					'guard'    => [ HostedApps::class, 'assets_management_guard' ],
+					'args'     => [],
+					'category' => 'repository',
+					'name'     => 'Create or Replace a Single App Asset'
+				],
 
-				array(
-					'route'         => self::APP_ASSETS_ROUTE_BASE . '/' . self::ASSET_NAME_PATTERN,
-					'methods'       => array( 'DELETE' ),
-					'handler'       => array( HostedApps::class, 'delete_app_asset' ),
-					'guard'         => array( HostedApps::class, 'assets_management_guard' ),
-					'args'          => [],
-					'category'      => 'repository',
-					'name'          => 'Create or Replace App Asset'
-				),
+				[
+					'route'    => self::APP_ASSETS_ROUTE_BASE . '/' . self::ASSET_NAME_PATTERN,
+					'methods'  => [ 'DELETE' ],
+					'handler'  => [ HostedApps::class, 'delete_app_asset' ],
+					'guard'    => [ HostedApps::class, 'assets_management_guard' ],
+					'args'     => [],
+					'category' => 'repository',
+					'name'     => 'Create or Replace App Asset'
+				],
 
 				// Download Token Reauthentication Route
-				array(
-					'route'         => self::DOWNLOAD_TOKEN_REAUTH,
-					'methods'       => ['POST'],
-					'handler'       => array( Licenses::class, 'app_download_reauth' ),
-					'guard'         => array( Licenses::class, 'download_reauth_permission' ),
-					'args'          => self::get_download_reauth_args(),
-					'category'      => 'license',
-					'name'          => 'Download Token Reauthentication',
-				),
+				[
+					'route'    => self::DOWNLOAD_TOKEN_REAUTH,
+					'methods'  => ['POST'],
+					'handler'  => [ Licenses::class, 'app_download_reauth' ],
+					'guard'    => [ Licenses::class, 'download_reauth_permission' ],
+					'args'     => self::get_download_reauth_args(),
+					'category' => 'license',
+					'name'     => 'Download Token Reauthentication',
+				],
 
 				// Mock Inbox Route (for testing)
-				array(
-					'route'         => 'mock-inbox',
-					'methods'       => ['GET'],
-					'handler'       => array( BulkMessages::class, 'mock_dispatch' ),
-					'guard'         => [__CLASS__, 'return_true'],
-					'args'          => [],
-					'category'      => 'testing',
-					'name'          => 'Mock Inbox (Testing)',
-				),
+				[
+					'route'    => 'mock-inbox',
+					'methods'  => ['GET'],
+					'handler'  => [ BulkMessages::class, 'mock_dispatch' ],
+					'guard'    => [__CLASS__, 'return_true'],
+					'args'     => [],
+					'category' => 'testing',
+					'name'     => 'Mock Inbox (Testing)',
+				],
 
 				// Bulk Messages Route
-				array(
-					'route'         => self::BULK_MESSAGES_ROUTE,
-					'methods'       => ['GET'],
-					'handler'       => array( BulkMessages::class, 'dispatch_response' ),
-					'guard'         => array( BulkMessages::class, 'permission_callback' ),
-					'args'          => self::get_bulk_messages_args(),
-					'category'      => 'broadcasts',
-					'name'          => 'Bulk Messages',
-				),
-				array(
+				[
+					'route'    => self::BULK_MESSAGES_ROUTE,
+					'methods'  => ['GET'],
+					'handler'  => [ BulkMessages::class, 'dispatch_response' ],
+					'guard'    => [ BulkMessages::class, 'permission_callback' ],
+					'args'     => self::get_bulk_messages_args(),
+					'category' => 'broadcasts',
+					'name'     => 'Bulk Messages',
+				],
+				[
 					'route'    => self::CLIENT_DASHBOARD_ROUTE,
 					'methods'  => [ 'GET' ],
 					'handler'  => [ ClientDashboardRouter::class, 'dispatch' ],
@@ -456,9 +456,9 @@ class V1 implements RESTVersionInterface {
 					'args'     => [],
 					'category' => 'client-dashboard',
 					'name'     => 'Client Dashboard Content',
-				),
+				],
 				
-				array(
+				[
 					'route'    => self::CLIENT_POST_ROUTE,
 					'methods'  => [ 'POST' ],
 					'handler'  => [ ClientDashboardRouter::class, 'post_dispatch' ],
@@ -466,9 +466,9 @@ class V1 implements RESTVersionInterface {
 					'args'     => [],
 					'category' => 'client-dashboard',
 					'name'     => 'Client Dashboard Post',
-				),
-			),
-		);
+				],
+			],
+		];
 	}
 
 	public function namespace() : string {
@@ -481,23 +481,23 @@ class V1 implements RESTVersionInterface {
 	 * @return array
 	 */
 	private static function get_license_activation_args() {
-		return array(
-			'service_id' => array(
+		return [
+			'service_id' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The service id associated with the license key',
-			),
-			'license_key' => array(
+			],
+			'license_key' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The license key to verify',
-			),
-			'domain' => array(
+			],
+			'domain' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The URL of the website where the license is being activated.',
-			),
-		);
+			],
+		];
 	}
 
 	/**
@@ -506,23 +506,23 @@ class V1 implements RESTVersionInterface {
 	 * @return array
 	 */
 	private static function get_license_deactivation_args() {
-		return array(
-			'license_key' => array(
+		return [
+			'license_key' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The license key to deactivate.',
-			),
-			'service_id' => array(
+			],
+			'service_id' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The service ID associated with the license.',
-			),
-			'domain' => array(
+			],
+			'domain' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The URL of the website where the license is currently activated.',
-			),
-		);
+			],
+		];
 	}
 
 	/**
@@ -531,23 +531,23 @@ class V1 implements RESTVersionInterface {
 	 * @return array
 	 */
 	private static function get_license_uninstallation_args() {
-		return array(
-			'license_key' => array(
+		return [
+			'license_key' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The license key to uninstall.',
-			),
-			'service_id' => array(
+			],
+			'service_id' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The service ID associated with the license.',
-			),
-			'domain' => array(
+			],
+			'domain' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The URL of the website where the license is currently activated.',
-			),
-		);
+			],
+		];
 	}
 
 	/**
@@ -556,23 +556,23 @@ class V1 implements RESTVersionInterface {
 	 * @return array
 	 */
 	private static function get_license_validity_args() {
-		return array(
-			'license_key' => array(
+		return [
+			'license_key' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The license key to validate.',
-			),
-			'service_id' => array(
+			],
+			'service_id' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The service ID associated with the license.',
-			),
-			'domain' => array(
+			],
+			'domain' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The URL of the website where the license is currently activated.',
-			),
-		);
+			],
+		];
 	}
 
 	/**
@@ -582,23 +582,23 @@ class V1 implements RESTVersionInterface {
 	 * @return array
 	 */
 	private static function get_app_info_args( string $type ) {
-		$eg_slug    = match ( $type ) {
-			'plugin'    => 'smart-woo-service-invoicing',
-			'theme'     => 'astra',
-			default     => 'software-slug'
+		$eg_slug = match ( $type ) {
+			'plugin' => 'smart-woo-service-invoicing',
+			'theme'  => 'astra',
+			default  => 'software-slug'
 		};
-		return array(
-			'id' => array(
+		return [
+			'id' => [
 				'required'    => false,
 				'type'        => 'integer',
 				'description' => sprintf( 'The %1$s ID. Optional when %1$s slug is provided.', $type ),
-			),
-			'slug' => array(
+			],
+			'slug' => [
 				'required'    => false,
 				'type'        => 'string',
 				'description' => sprintf( 'The %1$s slug eg. %2$s. Optional when %1$s ID is provided.', $type, $eg_slug ),
-			),
-		);
+			],
+		];
 	}
 
 	/**
@@ -607,35 +607,35 @@ class V1 implements RESTVersionInterface {
 	 * @return array
 	 */
 	private static function get_repository_args() {
-		return array(
-			'search' => array(
+		return [
+			'search' => [
 				'required'    => false,
 				'type'        => 'string',
 				'description' => 'The search term',
-			),
-			'page' => array(
+			],
+			'page' => [
 				'required'    => false,
 				'type'        => 'integer',
 				'default'     => 1,
 				'description' => 'Current pagination number.',
-			),
-			'limit' => array(
+			],
+			'limit' => [
 				'required'    => false,
 				'type'        => 'integer',
 				'default'     => 10,
 				'description' => 'Maximum number of apps per page.',
-			),
-			'app_slugs' => array(
+			],
+			'app_slugs' => [
 				'required'    => false,
 				'type'        => 'array',
 				'description' => 'An array of app slugs to filter by (eg., [\'smart-woo-service-invoicing\', \'woocommerce\', \'astra\'].',
-			),
-			'app_types' => array(
+			],
+			'app_types' => [
 				'required'    => false,
 				'type'        => 'array',
 				'description' => 'An array of app types to filter by (e.g., [\'plugin\', \'theme\']).',
-			),
-		);
+			],
+		];
 	}
 
 	/**
@@ -655,70 +655,70 @@ class V1 implements RESTVersionInterface {
 	 */
 	private static function get_app_write_args( string ...$method ) : array {
 		return [
-			'app_name'  => array(
-				'required'  => in_array( 'POST', $method ),
-				'type'      => 'string',
-				'description'   => 'The application name. Required when uploading new app.'
-			),
-			'app_author'    => array(
-				'required'      => in_array( 'POST', $method ),
-				'type'          => 'string',
-				'description'   => 'The full name of the application author.'
-			),
-			'app_author_url'    => array(
-				'required'      => false,
-				'type'          => 'string',
-				'description'   => 'The author URL.'
-			),
-			'app_version'   => array(
-				'required'      => false,
-				'type'          => 'string',
-				'description'   => 'The application version. For Wordpress plugins and themes, the version will be extracted from the readme.txt and style.css respectively, custom apps should define the app version in the app.json file.'
-			),
+			'app_name' => [
+				'required'    => in_array( 'POST', $method ),
+				'type'        => 'string',
+				'description' => 'The application name. Required when uploading new app.'
+			],
+			'app_author' => [
+				'required'    => in_array( 'POST', $method ),
+				'type'        => 'string',
+				'description' => 'The full name of the application author.'
+			],
+			'app_author_url' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'The author URL.'
+			],
+			'app_version' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'The application version. For Wordpress plugins and themes, the version will be extracted from the readme.txt and style.css respectively, custom apps should define the app version in the app.json file.'
+			],
 
-			'app_download_url'  => array(
-				'required'      => false,
-				'type'          => 'string',
-				'description'   => 'Optional, leave empty to serve app zip file from this server or specify alternative download URL.'
-			),
-			'app_support_url'   => array(
-				'required'      => false,
-				'type'          => 'string',
-				'description'   => 'Optional, provide support URL for the application if applicable.'
-			),
-			'app_homepage_url'  => array(
-				'required'      => false,
-				'type'          => 'string',
-				'description'   => 'Optional, provide alternative homepage URL for the application.'
-			),
-			'app_preview_url'   => array(
-				'required'      => false,
-				'type'          => 'string',
-				'description'   => 'Optional, provide preview URL for WordPress themes.'
-			),
-			'app_documentation_url' => array(
-				'required'      => false,
-				'type'          => 'string',
-				'description'   => 'Optional, provide the application documentation URL.'
-			),
-			'app_external_repository_url'   => array(
-				'required'      => false,
-				'type'          => 'string',
-				'description'   => 'Optional, provide external repository URL for WordPress themes.'
+			'app_download_url' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'Optional, leave empty to serve app zip file from this server or specify alternative download URL.'
+			],
+			'app_support_url' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'Optional, provide support URL for the application if applicable.'
+			],
+			'app_homepage_url' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'Optional, provide alternative homepage URL for the application.'
+			],
+			'app_preview_url' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'Optional, provide preview URL for WordPress themes.'
+			],
+			'app_documentation_url' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'Optional, provide the application documentation URL.'
+			],
+			'app_external_repository_url' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'Optional, provide external repository URL for WordPress themes.'
 			
-			),
-			'app_zip_file'  => array(
-				'required'      => false,
-				'type'          => 'binary',
-				'description'   => 'Submit a zip file for the app, keyed in with this argument in a multipart/form-data request. This is required for new applications.'
+			],
+			'app_zip_file' => [
+				'required'    => false,
+				'type'        => 'binary',
+				'description' => 'Submit a zip file for the app, keyed in with this argument in a multipart/form-data request. This is required for new applications.'
 			
-			),
-			'app_json_file' => array(
-				'required'      => false,
-				'type'          => 'binary',
-				'description'   => 'Submit an app.json file, keyed in with this argument in a multipart/form-data request. The content of this file will be served in the "manifest" property of REST response for the application.'
+			],
+			'app_json_file' => [
+				'required'    => false,
+				'type'        => 'binary',
+				'description' => 'Submit an app.json file, keyed in with this argument in a multipart/form-data request. The content of this file will be served in the "manifest" property of REST response for the application.'
 			
-			),
+			],
 		];
 	}
 
@@ -734,28 +734,28 @@ class V1 implements RESTVersionInterface {
 	 * @return array
 	 */
 	private static function get_download_reauth_args() {
-		return array(
-			'domain' => array(
+		return [
+			'domain' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The domain where the plugin is installed.',
-			),
-			'license_key' => array(
+			],
+			'license_key' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The license key to reauthenticate.',
-			),
-			'download_token' => array(
+			],
+			'download_token' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The base64 encoded download token issued during license activation or the last reauthentication token.',
-			),
-			'service_id' => array(
+			],
+			'service_id' => [
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The service ID associated with the license.',
-			),
-		);
+			],
+		];
 	}
 
 	/**
@@ -764,30 +764,30 @@ class V1 implements RESTVersionInterface {
 	 * @return array
 	 */
 	private static function get_bulk_messages_args() {
-		return array(
-			'page' => array(
+		return [
+			'page' => [
 				'required'    => false,
 				'type'        => 'integer',
 				'default'     => 1,
 				'description' => 'Page number for pagination.',
-			),
-			'limit' => array(
+			],
+			'limit' => [
 				'required'    => false,
 				'type'        => 'integer',
 				'default'     => 10,
 				'description' => 'Number of messages per page.',
-			),
-			'app_slugs' => array(
+			],
+			'app_slugs' => [
 				'required'    => false,
 				'type'        => 'array',
 				'description' => 'An array of app slugs to filter by.',
-			),
-			'app_types' => array(
+			],
+			'app_types' => [
 				'required'    => false,
 				'type'        => 'array',
 				'description' => 'An array of app types to filter by (e.g., plugin, theme).',
-			),
-		);
+			],
+		];
 	}
 
 	/**

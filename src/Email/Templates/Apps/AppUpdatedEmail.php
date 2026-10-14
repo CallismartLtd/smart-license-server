@@ -19,53 +19,53 @@ use SmartLicenseServer\HostedApps\Theme;
 
 class AppUpdatedEmail extends EmailTemplate {
 
-    /**
-     * @param HostedAppsInterface $app          The updated application.
-     * @param string              $to           Recipient email address.
-     * @param string              $old_version  The previous version before update.
-     */
-    public function __construct(
-        private readonly HostedAppsInterface $app,
-        private readonly string              $to,
-        private readonly string              $old_version
-    ) {}
+	/**
+	 * @param HostedAppsInterface $app          The updated application.
+	 * @param string              $to           Recipient email address.
+	 * @param string              $old_version  The previous version before update.
+	 */
+	public function __construct(
+		private readonly HostedAppsInterface $app,
+		private readonly string              $to,
+		private readonly string              $old_version
+	) {}
 
-    static public function template_key(): string {
-        return 'app_updated';
-    }
+	static public function template_key() : string {
+		return 'app_updated';
+	}
 
-    protected function subject(): string {
-        return "{$this->app->get_name()} Updated to Version {$this->app->get_version()}";
-    }
+	protected function subject() : string {
+		return "{$this->app->get_name()} Updated to Version {$this->app->get_version()}";
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "{$this->app->get_name()} has been updated from version {$this->old_version} to {$this->app->get_version()}.";
-    }
+	protected function preheader() : string {
+		return "{$this->app->get_name()} has been updated from version {$this->old_version} to {$this->app->get_version()}.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{app_name}}'    => $this->app->get_name(),
-            '{{new_version}}' => $this->app->get_version(),
-            '{{old_version}}' => $this->old_version,
-            '{{app_type}}'    => ucfirst( $this->app->get_type() ),
-            '{{app_slug}}'    => $this->app->get_slug(),
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{app_name}}'    => $this->app->get_name(),
+			'{{new_version}}' => $this->app->get_version(),
+			'{{old_version}}' => $this->old_version,
+			'{{app_type}}'    => ucfirst( $this->app->get_type() ),
+			'{{app_slug}}'    => $this->app->get_slug(),
+		] );
+	}
 
-    protected function body(): string {
-        $vars        = $this->variables();
-        $app_name    = \escHtml( $vars['{{app_name}}'] );
-        $new_version = \escHtml( $vars['{{new_version}}'] );
-        $old_version = \escHtml( $vars['{{old_version}}'] );
-        $app_type    = \escHtml( $vars['{{app_type}}'] );
-        $app_slug    = \escHtml( $vars['{{app_slug}}'] );
-        $support     = \escHtml( $vars['{{support_email}}'] );
+	protected function body() : string {
+		$vars        = $this->variables();
+		$app_name    = \escHtml( $vars['{{app_name}}'] );
+		$new_version = \escHtml( $vars['{{new_version}}'] );
+		$old_version = \escHtml( $vars['{{old_version}}'] );
+		$app_type    = \escHtml( $vars['{{app_type}}'] );
+		$app_slug    = \escHtml( $vars['{{app_slug}}'] );
+		$support     = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             A new version of your application is now live.
         </p>
@@ -142,60 +142,60 @@ class AppUpdatedEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Application Updated';
-    }
-    public function description(): string {
-        return 'Sent to the app owner when a new version of their application is uploaded.';
-    }
-    public static function preview(): static {
-        $app = Theme::from_array_minimal([
-            'name'    => 'My Awesome Theme',
-            'version' => '2.0.0',
-            'type'    => 'theme',
-            'slug'    => 'my-awesome-theme',
-        ]);
-        return new static( $app, 'preview@example.com', '0.2.0' );
-    }
+	public function label() : string {
+		return 'Application Updated';
+	}
+	public function description() : string {
+		return 'Sent to the app owner when a new version of their application is uploaded.';
+	}
+	public static function preview() : static {
+		$app = Theme::from_array_minimal( [
+			'name'    => 'My Awesome Theme',
+			'version' => '2.0.0',
+			'type'    => 'theme',
+			'slug'    => 'my-awesome-theme',
+		] );
+		return new static( $app, 'preview@example.com', '0.2.0' );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'A new version of your application is now live.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'success',
-                'content'   => '{{app_name}} has been updated from version {{old_version}} to version {{new_version}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Application Name',  'value' => '{{app_name}}' ],
-                    [ 'label' => 'Type',              'value' => '{{app_type}}' ],
-                    [ 'label' => 'Previous Version',  'value' => '{{old_version}}' ],
-                    [ 'label' => 'New Version',       'value' => '{{new_version}}' ],
-                ],
-                'editable'  => true,
-                'removable' => true,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you did not make this update or have any concerns, contact us immediately at {{support_email}}.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'A new version of your application is now live.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'success',
+				'content'   => '{{app_name}} has been updated from version {{old_version}} to version {{new_version}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Application Name',  'value' => '{{app_name}}' ],
+					[ 'label' => 'Type',              'value' => '{{app_type}}' ],
+					[ 'label' => 'Previous Version',  'value' => '{{old_version}}' ],
+					[ 'label' => 'New Version',       'value' => '{{new_version}}' ],
+				],
+				'editable'  => true,
+				'removable' => true,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you did not make this update or have any concerns, contact us immediately at {{support_email}}.',
+				'editable'  => true,
+				'removable' => false,
+			],
+		];
+	}
 }

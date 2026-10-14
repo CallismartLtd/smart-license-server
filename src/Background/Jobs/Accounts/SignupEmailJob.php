@@ -21,76 +21,76 @@ use SmartLicenseServer\Security\Actors\User;
  * Asynchronously sends welcome emails to new users.
  */
 class SignupEmailJob implements JobHandlerInterface {
-    public function __construct(
-        protected Mailer $mailer
-    ) {}
-    /*
-    |----------------------
-    | JobHandlerInterface
-    |----------------------
-    */
+	public function __construct(
+		protected Mailer $mailer
+	) {}
+	/*
+	|----------------------
+	| JobHandlerInterface
+	|----------------------
+	*/
 
-    /**
-     * {@inheritdoc}
-     *
-     * @param array{
-     *      user_id: int,
-     *      recipient: string,
-     *      for_admin: bool,
-     *      ip_address: string,
-     *      account_type: string,
-     *      signup_time: string,
-     * } $payload
-     */
-    public function handle( array $payload = [] ) : mixed {
-        $user_id    = $payload['user_id'] ?? 0;
-        $recipient  = (string) $payload['recipient'] ?? '';
-        $for_admin  = (bool) ( $payload['for_admin'] ?? false );
+	/**
+	 * {@inheritdoc}
+	 *
+	 * @param array{
+	 *      user_id: int,
+	 *      recipient: string,
+	 *      for_admin: bool,
+	 *      ip_address: string,
+	 *      account_type: string,
+	 *      signup_time: string,
+	 * } $payload
+	 */
+	public function handle( array $payload = [] ) : mixed {
+		$user_id   = $payload['user_id'] ?? 0;
+		$recipient = (string) $payload['recipient'] ?? '';
+		$for_admin = (bool) ( $payload['for_admin'] ?? false );
 
-        $user       = User::get_by_id( $user_id );
+		$user = User::get_by_id( $user_id );
 
-        if ( ! $user ) {
-            return [
-                'success'   => false,
-                'message'   => 'User does not exist.'
-            ];
-        }
+		if ( ! $user ) {
+			return [
+				'success' => false,
+				'message' => 'User does not exist.'
+			];
+		}
 
-        if ( $for_admin ) {
-            $ip_address     = $payload['ip_address'] ?? 'Unknown';
-            $account_type   = $payload['account_type'] ?? 'Unknown';
-            $signup_time    = $payload['signup_time'] ?? date( 'Y-m-d H:i:s' );
+		if ( $for_admin ) {
+			$ip_address   = $payload['ip_address'] ?? 'Unknown';
+			$account_type = $payload['account_type'] ?? 'Unknown';
+			$signup_time  = $payload['signup_time'] ?? date( 'Y-m-d H:i:s' );
 
-            $welcome_email  = new AdminNewUserNotificationEmail(
-                user: $user,
-                to: $recipient,
-                ip_address: $ip_address,
-                account_type: $account_type,
-                signup_time: $signup_time
-            );
-        } else {
-            $welcome_email = new WelcomeEmail(
-                user: $user,
-                to: $recipient
-            );
-        }
-        
-        $response       = $this->mailer->send( $welcome_email->to_message() );
+			$welcome_email = new AdminNewUserNotificationEmail(
+				user: $user,
+				to: $recipient,
+				ip_address: $ip_address,
+				account_type: $account_type,
+				signup_time: $signup_time
+			);
+		} else {
+			$welcome_email = new WelcomeEmail(
+				user: $user,
+				to: $recipient
+			);
+		}
+		
+		$response = $this->mailer->send( $welcome_email->to_message() );
 
-        return $response->to_array();
-    }
+		return $response->to_array();
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_job_name(): string {
-        return 'Send Signup Email';
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function get_job_name() : string {
+		return 'Send Signup Email';
+	}
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function get_job_description(): string {
-        return 'Asyncronously send welcome email to newly registered users.';
-    }
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function get_job_description() : string {
+		return 'Asyncronously send welcome email to newly registered users.';
+	}
 }

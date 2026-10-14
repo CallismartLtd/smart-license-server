@@ -224,7 +224,7 @@ final class BootModeResolver {
 	 * @return BootMode
 	 */
 	private function installation() : BootMode {
-		$this->message     = sprintf(
+		$this->message = sprintf(
 			'We are setting things up behind the scenes. %s will be ready shortly, please check back in a few minutes.',
 			\SMLISER_APP_NAME
 		);

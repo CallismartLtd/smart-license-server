@@ -25,5 +25,5 @@ interface SessionRevocationCheck {
 	 * @param Session $session A session that decrypted and validated successfully.
 	 * @return bool
 	 */
-	public function revoked( Session $session ): bool;
+	public function revoked( Session $session ) : bool;
 }

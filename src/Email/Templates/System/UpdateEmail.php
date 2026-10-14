@@ -53,25 +53,25 @@ abstract class UpdateEmail extends EmailTemplate {
 		protected readonly bool $security,
 		protected readonly string $updates_url,
 		protected readonly string $detail = '',
-		protected readonly array $package = array()
+		protected readonly array $package = []
 	) {}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	protected function recipient(): string {
+	protected function recipient() : string {
 		return $this->to;
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	protected function variables(): array {
-		$escape = static fn( string $value ): string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
+	protected function variables() : array {
+		$escape = static fn( string $value ) : string => htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
 
 		return array_merge(
 			parent::variables(),
-			array(
+			[
 				'{{product_name}}'    => $escape( \SMLISER_APP_NAME ),
 				'{{current_version}}' => $escape( $this->current_version ),
 				'{{new_version}}'     => $escape( $this->new_version ),
@@ -81,7 +81,7 @@ abstract class UpdateEmail extends EmailTemplate {
 				'{{detail}}'          => nl2br( $escape( $this->detail ), false ),
 				'{{package_source}}'  => $escape( (string) ( $this->package['source'] ?? 'not recorded' ) ),
 				'{{signed_by}}'       => $escape( (string) ( $this->package['signed_by'] ?? 'not recorded' ) ),
-			)
+			]
 		);
 	}
 
@@ -90,7 +90,7 @@ abstract class UpdateEmail extends EmailTemplate {
 	 *
 	 * Built from get_blocks(), so the default email and the editor show the same content.
 	 */
-	protected function body(): string {
+	protected function body() : string {
 		return $this->render_blocks( $this->get_blocks() );
 	}
 
@@ -100,7 +100,7 @@ abstract class UpdateEmail extends EmailTemplate {
 	 * The blocks carry {{tokens}}, which only the HTML path interpolates;
 	 * resolve them here too, and keep line breaks.
 	 */
-	public function text(): string {
+	public function text() : string {
 		$html = $this->interpolate( $this->render_blocks( $this->get_blocks() ) );
 		$html = preg_replace( '#<br\s*/?>\s*#i', "\n", $html );
 
@@ -120,13 +120,13 @@ abstract class UpdateEmail extends EmailTemplate {
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function closing_block(): array {
-		return array(
+	protected function closing_block() : array {
+		return [
 			'id'        => 'closing',
 			'type'      => 'closing',
 			'content'   => 'This is an automated message from {{app_name}} about its own software updates. Questions? Contact us at {{support_email}}.',
 			'editable'  => true,
 			'removable' => false,
-		);
+		];
 	}
 }

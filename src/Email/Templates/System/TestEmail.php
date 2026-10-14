@@ -18,46 +18,46 @@ use SmartLicenseServer\Email\Templates\EmailTemplate;
 
 class TestEmail extends EmailTemplate {
 
-    /**
-     * @param string $to            Recipient email address.
-     * @param string $provider_name The name of the email provider being tested.
-     */
-    public function __construct(
-        private readonly string $to,
-        private readonly string $provider_name
-    ) {}
+	/**
+	 * @param string $to            Recipient email address.
+	 * @param string $provider_name The name of the email provider being tested.
+	 */
+	public function __construct(
+		private readonly string $to,
+		private readonly string $provider_name
+	) {}
 
-    static public function template_key(): string {
-        return 'test_email';
-    }
+	static public function template_key() : string {
+		return 'test_email';
+	}
 
-    protected function subject(): string {
-        return 'Test Email — Your Email Provider is Working';
-    }
+	protected function subject() : string {
+		return 'Test Email — Your Email Provider is Working';
+	}
 
-    protected function recipient(): string {
-        return $this->to;
-    }
+	protected function recipient() : string {
+		return $this->to;
+	}
 
-    protected function preheader(): string {
-        return "This is a test email sent via {$this->provider_name}. If you received this, your configuration is correct.";
-    }
+	protected function preheader() : string {
+		return "This is a test email sent via {$this->provider_name}. If you received this, your configuration is correct.";
+	}
 
-    protected function variables(): array {
-        return array_merge( parent::variables(), [
-            '{{provider_name}}' => $this->provider_name,
-            '{{sent_at}}'       => gmdate( 'D, d M Y H:i T' ),
-        ] );
-    }
+	protected function variables() : array {
+		return array_merge( parent::variables(), [
+			'{{provider_name}}' => $this->provider_name,
+			'{{sent_at}}'       => gmdate( 'D, d M Y H:i T' ),
+		] );
+	}
 
-    protected function body(): string {
-        $vars          = $this->variables();
-        $provider_name = \escHtml( $vars['{{provider_name}}'] );
-        $sent_at       = \escHtml( $vars['{{sent_at}}'] );
-        $app_name      = \escHtml( $vars['{{app_name}}'] );
-        $support       = \escHtml( $vars['{{support_email}}'] );
+	protected function body() : string {
+		$vars          = $this->variables();
+		$provider_name = \escHtml( $vars['{{provider_name}}'] );
+		$sent_at       = \escHtml( $vars['{{sent_at}}'] );
+		$app_name      = \escHtml( $vars['{{app_name}}'] );
+		$support       = \escHtml( $vars['{{support_email}}'] );
 
-        return <<<HTML
+		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">
             Email Configuration Test
         </p>
@@ -130,63 +130,63 @@ class TestEmail extends EmailTemplate {
             <a href="mailto:{$support}" style="color:#6366f1;text-decoration:none;">{$support}</a>.
         </p>
         HTML;
-    }
+	}
 
-    public function label(): string {
-        return 'Test Email';
-    }
-    public function description(): string {
-        return 'Sent when an administrator tests an email provider configuration.';
-    }
+	public function label() : string {
+		return 'Test Email';
+	}
+	public function description() : string {
+		return 'Sent when an administrator tests an email provider configuration.';
+	}
 
-    public static function preview(): static {
-        $providers  = ['PHP Mail', 'SMTP', 'Brevo', 'SendGrid', 'Mailgun', 'Postmark' ];
-        $provider   = $providers[\random_int( 0, count( $providers) - 1 )];
-        return new static( 'preview@example.com', $provider );
-    }
+	public static function preview() : static {
+		$providers = ['PHP Mail', 'SMTP', 'Brevo', 'SendGrid', 'Mailgun', 'Postmark' ];
+		$provider  = $providers[\random_int( 0, count( $providers ) - 1 )];
+		return new static( 'preview@example.com', $provider );
+	}
 
-    public function get_blocks(): array {
-        return [
-            [
-                'id'        => 'greeting',
-                'type'      => 'greeting',
-                'content'   => 'Email Configuration Test',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'banner',
-                'type'      => 'banner',
-                'tone'      => 'success',
-                'content'   => 'Your email provider is configured correctly. This test email was delivered successfully.',
-                'editable'  => true,
-                'removable' => false,
-            ],
-            [
-                'id'        => 'intro',
-                'type'      => 'text',
-                'content'   => 'This is an automated test email sent from {{app_name}} to verify that your email provider is set up and working correctly. No action is required.',
-                'editable'  => true,
-                'removable' => true,
-            ],
-            [
-                'id'        => 'details',
-                'type'      => 'detail_card',
-                'rows'      => [
-                    [ 'label' => 'Provider',     'value' => '{{provider_name}}' ],
-                    [ 'label' => 'Sent At',      'value' => '{{sent_at}}' ],
-                    [ 'label' => 'Delivered To', 'value' => '{{recipient}}' ],
-                ],
-                'editable'  => true,
-                'removable' => true,
-            ],
-            [
-                'id'        => 'closing',
-                'type'      => 'closing',
-                'content'   => 'If you did not expect this email or have any concerns, contact us at {{support_email}}.',
-                'editable'  => true,
-                'removable' => true,
-            ],
-        ];
-    }
+	public function get_blocks() : array {
+		return [
+			[
+				'id'        => 'greeting',
+				'type'      => 'greeting',
+				'content'   => 'Email Configuration Test',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'banner',
+				'type'      => 'banner',
+				'tone'      => 'success',
+				'content'   => 'Your email provider is configured correctly. This test email was delivered successfully.',
+				'editable'  => true,
+				'removable' => false,
+			],
+			[
+				'id'        => 'intro',
+				'type'      => 'text',
+				'content'   => 'This is an automated test email sent from {{app_name}} to verify that your email provider is set up and working correctly. No action is required.',
+				'editable'  => true,
+				'removable' => true,
+			],
+			[
+				'id'   => 'details',
+				'type' => 'detail_card',
+				'rows' => [
+					[ 'label' => 'Provider',     'value' => '{{provider_name}}' ],
+					[ 'label' => 'Sent At',      'value' => '{{sent_at}}' ],
+					[ 'label' => 'Delivered To', 'value' => '{{recipient}}' ],
+				],
+				'editable'  => true,
+				'removable' => true,
+			],
+			[
+				'id'        => 'closing',
+				'type'      => 'closing',
+				'content'   => 'If you did not expect this email or have any concerns, contact us at {{support_email}}.',
+				'editable'  => true,
+				'removable' => true,
+			],
+		];
+	}
 }

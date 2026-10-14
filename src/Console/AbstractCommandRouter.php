@@ -20,213 +20,213 @@ use SmartLicenseServer\Console\Traits\CommandHelpTrait;
  */
 abstract class AbstractCommandRouter {
 
-    use CommandHelpTrait;
+	use CommandHelpTrait;
 
-    /**
-     * @param CommandRegistry $registry
-     * @param InputInterface  $io
-     * @param OutputInterface $output
-     * @param Terminal $terminal Needed here only to decide
-     *                                       whether to colorize the
-     *                                       prompt/banner — everything
-     *                                       else goes through $output.
-     */
-    protected function __construct(
-        protected CommandRegistry $registry,
-        protected InputInterface $io,
-        protected OutputInterface $output,
-        protected Terminal $terminal,
-        protected SignalManager $signal,
-    ) {}
+	/**
+	 * @param CommandRegistry $registry
+	 * @param InputInterface  $io
+	 * @param OutputInterface $output
+	 * @param Terminal $terminal Needed here only to decide
+	 *                                       whether to colorize the
+	 *                                       prompt/banner — everything
+	 *                                       else goes through $output.
+	 */
+	protected function __construct(
+		protected CommandRegistry $registry,
+		protected InputInterface $io,
+		protected OutputInterface $output,
+		protected Terminal $terminal,
+		protected SignalManager $signal,
+	) {}
 
-    /*
-    |--------------------------------------------
-    | INVOCATION SPLITTING
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| INVOCATION SPLITTING
+	|--------------------------------------------
+	*/
 
-    /**
-     * Split a token list into [command, subcommand, remaining args].
-     *
-     * A second token is treated as a subcommand unless it starts with
-     * "-", in which case it's assumed to be an option and left in the
-     * remaining args instead (e.g. `license --force` should not treat
-     * "--force" as a subcommand named "--force").
-     *
-     * @param string[] $tokens
-     * @return array{0: string|null, 1: string|null, 2: string[]}
-     */
-    protected function split_invocation( array $tokens ): array {
-        $command    = $tokens[0] ?? null;
-        $subcommand = $tokens[1] ?? null;
+	/**
+	 * Split a token list into [command, subcommand, remaining args].
+	 *
+	 * A second token is treated as a subcommand unless it starts with
+	 * "-", in which case it's assumed to be an option and left in the
+	 * remaining args instead (e.g. `license --force` should not treat
+	 * "--force" as a subcommand named "--force").
+	 *
+	 * @param string[] $tokens
+	 * @return array{0: string|null, 1: string|null, 2: string[]}
+	 */
+	protected function split_invocation( array $tokens ) : array {
+		$command    = $tokens[0] ?? null;
+		$subcommand = $tokens[1] ?? null;
 
-        if ( null !== $subcommand && str_starts_with( $subcommand, '-' ) ) {
-            $subcommand = null;
-        }
+		if ( null !== $subcommand && str_starts_with( $subcommand, '-' ) ) {
+			$subcommand = null;
+		}
 
-        $slice = null === $subcommand ? 1 : 2;
-        $args  = array_slice( $tokens, $slice );
+		$slice = null === $subcommand ? 1 : 2;
+		$args  = array_slice( $tokens, $slice );
 
-        return [ $command, $subcommand, $args ];
-    }
+		return [ $command, $subcommand, $args ];
+	}
 
-    /*
-    |--------------------------------------------
-    | ROUTING
-    |--------------------------------------------
-    */
+	/*
+	|--------------------------------------------
+	| ROUTING
+	|--------------------------------------------
+	*/
 
-    /**
-     * Route a resolved command/subcommand pair to its handler.
-     *
-     * @param CommandInput $command_input The parsed arguments/options.
-     * @param string|null  $command       The resolved command name, or
-     *                                    null when none was given at all
-     *                                    (e.g. bare `smliser`).
-     * @param string|null  $subcommand    Optional subcommand, or — for
-     *                                    the help/`-h`/`--help` pseudo
-     *                                    -command — the target command
-     *                                    name to show help for.
-     * @return int Process exit code — 0 for success, 1 for a routing
-     *             failure (unknown command/subcommand).
-     */
-    protected function route_command( CommandInput $command_input, ?string $command, ?string $subcommand ): int {
-        if ( null === $command ) {
-            $this->print_global_help();
-            return 0;
-        }
+	/**
+	 * Route a resolved command/subcommand pair to its handler.
+	 *
+	 * @param CommandInput $command_input The parsed arguments/options.
+	 * @param string|null  $command       The resolved command name, or
+	 *                                    null when none was given at all
+	 *                                    (e.g. bare `smliser`).
+	 * @param string|null  $subcommand    Optional subcommand, or — for
+	 *                                    the help/`-h`/`--help` pseudo
+	 *                                    -command — the target command
+	 *                                    name to show help for.
+	 * @return int Process exit code — 0 for success, 1 for a routing
+	 *             failure (unknown command/subcommand).
+	 */
+	protected function route_command( CommandInput $command_input, ?string $command, ?string $subcommand ) : int {
+		if ( null === $command ) {
+			$this->print_global_help();
+			return 0;
+		}
 
-        if ( in_array( $command, [ 'version', '-v', '--version' ], true ) ) {
-            $this->print_version();
-            return 0;
-        }
+		if ( in_array( $command, [ 'version', '-v', '--version' ], true ) ) {
+			$this->print_version();
+			return 0;
+		}
 
-        if ( in_array( $command, [ 'info', '--info' ], true ) ) {
-            $this->print_info();
-            return 0;
-        }
+		if ( in_array( $command, [ 'info', '--info' ], true ) ) {
+			$this->print_info();
+			return 0;
+		}
 
-        if ( in_array( $command, [ 'help', '-h', '--help' ], true ) ) {
-            if ( null !== $subcommand && $subcommand = $this->registry->get_command( $subcommand ) ) {
-                // @TODO: implement proper subcommand help API.
-                $this->print_command_help( $subcommand );
-            } else {
-                $this->print_global_help();
-            }
+		if ( in_array( $command, [ 'help', '-h', '--help' ], true ) ) {
+			if ( null !== $subcommand && $subcommand = $this->registry->get_command( $subcommand ) ) {
+				// @TODO: implement proper subcommand help API.
+				$this->print_command_help( $subcommand );
+			} else {
+				$this->print_global_help();
+			}
 
-            return 0;
-        }
+			return 0;
+		}
 
-        $class = $this->registry->get( $command );
+		$class = $this->registry->get( $command );
 
-        if ( null === $class ) {
-            $this->print_error( sprintf( 'Unknown command "%s".', $command ) );
-            return 1;
-        }
+		if ( null === $class ) {
+			$this->print_error( sprintf( 'Unknown command "%s".', $command ) );
+			return 1;
+		}
 
-        $has_command_help   = $this->args_request_help(
-            array_merge(
-                $command_input->get_arguments(),
-                $command_input->get_options()
-            )
-        );
-        
-        $command_instance = $this->registry->get_command( $command );
+		$has_command_help = $this->args_request_help(
+			array_merge(
+				$command_input->get_arguments(),
+				$command_input->get_options()
+			)
+		);
+		
+		$command_instance = $this->registry->get_command( $command );
 
-        if ( $has_command_help ) {
-            $this->print_command_help( $command_instance );
+		if ( $has_command_help ) {
+			$this->print_command_help( $command_instance );
 
-            return 0;
-        }
+			return 0;
+		}
 
-        
+		
 
-        if ( null !== $subcommand ) {
-            $subcommands = $command_instance->get_subcommands();
+		if ( null !== $subcommand ) {
+			$subcommands = $command_instance->get_subcommands();
 
-            if ( ! array_key_exists( $subcommand, $subcommands ) ) {
-                $this->print_error( sprintf( 'Unknown subcommand "%s %s".', $command, $subcommand ) );
-                return 1;
-            }
+			if ( ! array_key_exists( $subcommand, $subcommands ) ) {
+				$this->print_error( sprintf( 'Unknown subcommand "%s %s".', $command, $subcommand ) );
+				return 1;
+			}
 
-            return $subcommands[ $subcommand ]( $command_input );
-        }
+			return $subcommands[ $subcommand ]( $command_input );
+		}
 
-        return $command_instance->run( $command_input );
-    }
+		return $command_instance->run( $command_input );
+	}
 
-    /**
-     * Wrap a message in ANSI color codes if the terminal supports them.
-     *
-     * A small local helper rather than a call into ConsoleOutput — its
-     * colorize() is private by design (an internal detail of how it
-     * renders its own styled lines), so the shell's prompt/banner
-     * coloring goes through the same Terminal check
-     * independently instead of reaching into ConsoleOutput's internals.
-     *
-     * @param string $code    ANSI escape code constant (see ConsoleOutput).
-     * @param string $message
-     * @return string
-     */
-    protected function colorize( string $code, string $message ): string {
-        if ( ! isset( $this->terminal ) || ! $this->terminal->supports_ansi() ) {
-            return $message;
-        }
+	/**
+	 * Wrap a message in ANSI color codes if the terminal supports them.
+	 *
+	 * A small local helper rather than a call into ConsoleOutput — its
+	 * colorize() is private by design (an internal detail of how it
+	 * renders its own styled lines), so the shell's prompt/banner
+	 * coloring goes through the same Terminal check
+	 * independently instead of reaching into ConsoleOutput's internals.
+	 *
+	 * @param string $code    ANSI escape code constant (see ConsoleOutput).
+	 * @param string $message
+	 * @return string
+	 */
+	protected function colorize( string $code, string $message ) : string {
+		if ( ! isset( $this->terminal ) || ! $this->terminal->supports_ansi() ) {
+			return $message;
+		}
 
-        return $code . $message . ConsoleOutput::ANSI_RESET;
-    }
+		return $code . $message . ConsoleOutput::ANSI_RESET;
+	}
 
-    /**
-     * Resolve the requested output verbosity from raw CLI tokens.
-     *
-     * Supported forms:
-     *
-     * -q, --quiet
-     * -v, -vv, -vvv
-     * --verbose
-     * --verbose=N
-     *
-     * Repeated `-v` flags increase the requested verbosity, but the
-     * resulting level is capped at the highest supported level.
-     *
-     * Quiet mode takes precedence over verbosity flags.
-     *
-     * @param array<int, string> $tokens Raw CLI tokens.
-     * @return int One of the OutputInterface::VERBOSITY_* constants.
-     */
-    public function resolve_verbosity( array $tokens ): int {
-        if (
-            in_array( '-q', $tokens, true ) ||
-            in_array( '--quiet', $tokens, true )
-        ) {
-            return OutputInterface::VERBOSITY_QUIET;
-        }
+	/**
+	 * Resolve the requested output verbosity from raw CLI tokens.
+	 *
+	 * Supported forms:
+	 *
+	 * -q, --quiet
+	 * -v, -vv, -vvv
+	 * --verbose
+	 * --verbose=N
+	 *
+	 * Repeated `-v` flags increase the requested verbosity, but the
+	 * resulting level is capped at the highest supported level.
+	 *
+	 * Quiet mode takes precedence over verbosity flags.
+	 *
+	 * @param array<int, string> $tokens Raw CLI tokens.
+	 * @return int One of the OutputInterface::VERBOSITY_* constants.
+	 */
+	public function resolve_verbosity( array $tokens ) : int {
+		if (
+			in_array( '-q', $tokens, true ) ||
+			in_array( '--quiet', $tokens, true )
+		) {
+			return OutputInterface::VERBOSITY_QUIET;
+		}
 
-        $level = OutputInterface::VERBOSITY_NORMAL;
+		$level = OutputInterface::VERBOSITY_NORMAL;
 
-        foreach ( $tokens as $token ) {
-            if ( preg_match( '/^-(v+)$/', $token, $matches ) ) {
-                $level = max( $level, strlen( $matches[1] ) );
-                continue;
-            }
+		foreach ( $tokens as $token ) {
+			if ( preg_match( '/^-(v+)$/', $token, $matches ) ) {
+				$level = max( $level, strlen( $matches[1] ) );
+				continue;
+			}
 
-            if ( preg_match( '/^--verbose(?:=(\d+))?$/', $token, $matches ) ) {
-                $verbose_level = isset( $matches[1] )
-                    ? (int) $matches[1]
-                    : OutputInterface::VERBOSITY_VERBOSE;
+			if ( preg_match( '/^--verbose(?:=(\d+))?$/', $token, $matches ) ) {
+				$verbose_level = isset( $matches[1] )
+					? (int) $matches[1]
+					: OutputInterface::VERBOSITY_VERBOSE;
 
-                $level = max( $level, $verbose_level );
-            }
-        }
+				$level = max( $level, $verbose_level );
+			}
+		}
 
-        return min( $level, OutputInterface::VERBOSITY_VERBOSE );
-    }
+		return min( $level, OutputInterface::VERBOSITY_VERBOSE );
+	}
 
-    /**
-     * Write additional context-specific help (e.g. shell built-ins) to
-     * the output stream, on top of print_global_help().
-     *
-     * @return void
-     */
-    abstract protected function print_contextual_help(): void;
+	/**
+	 * Write additional context-specific help (e.g. shell built-ins) to
+	 * the output stream, on top of print_global_help().
+	 *
+	 * @return void
+	 */
+	abstract protected function print_contextual_help() : void;
 }

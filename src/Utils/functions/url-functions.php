@@ -17,11 +17,11 @@ use SmartLicenseServer\Exceptions\FileRequestException;
  * @return URL
  */
 function url( string $path = '', array $params = [] ) : URL {
-    $url = (string) ( $_ENV['SMLISER_APP_URL'] ?? '' );
+	$url = (string) ( $_ENV['SMLISER_APP_URL'] ?? '' );
 
-    return URL::from( $url )
-        ->append_path( $path )
-        ->add_query_params( $params );
+	return URL::from( $url )
+		->append_path( $path )
+		->add_query_params( $params );
 }
 
 /**
@@ -31,7 +31,7 @@ function url( string $path = '', array $params = [] ) : URL {
  * @return string The base website address.
  */
 function smliser_url_origin( string $url ) {
-    return URL::from( $url )->get_origin();
+	return URL::from( $url )->get_origin();
 }
 
 /**
@@ -41,18 +41,18 @@ function smliser_url_origin( string $url ) {
  * @return \SmartLicenseServer\Core\URL
  */
 function smliser_get_current_url() : URL {
-    static $current_url    = null;
-    
-    if ( is_null( $current_url ) ) {
-        $uri    = $_SERVER['REQUEST_URI'] ?? '';
-        $path   = parse_url( $uri, PHP_URL_PATH );
-        $params = parse_url( $uri, PHP_URL_QUERY ) ?: '';
-        
-        parse_str( $params, $query );
-        $current_url = url( $path, $query );
-    }
+	static $current_url = null;
+	
+	if ( is_null( $current_url ) ) {
+		$uri    = $_SERVER['REQUEST_URI'] ?? '';
+		$path   = parse_url( $uri, PHP_URL_PATH );
+		$params = parse_url( $uri, PHP_URL_QUERY ) ?: '';
+		
+		parse_str( $params, $query );
+		$current_url = url( $path, $query );
+	}
 
-    return $current_url;
+	return $current_url;
 }
 
 /**
@@ -61,7 +61,7 @@ function smliser_get_current_url() : URL {
  * @param string $url
  */
 function smliser_sanitize_url( $url ) : string {
-    return URL::from( $url )->sanitize()->url();
+	return URL::from( $url )->sanitize()->url();
 }
 
 /**
@@ -73,54 +73,54 @@ function smliser_sanitize_url( $url ) : string {
  * @return string|FileRequestException
  */
 function smliser_download_url( string|URL $url, int $timeout = 30, bool $autoclean = true ) : string|FileRequestException {
-    try {
-        $url  = is_string( $url ) ? URL::from( $url ) : $url;
-        // Validate URL.
-        if ( ! $url->is_valid() ) {
-            throw new FileRequestException( 'invalid_url', 'Invalid URL provided.' );
-        }
+	try {
+		$url = is_string( $url ) ? URL::from( $url ) : $url;
+		// Validate URL.
+		if ( ! $url->is_valid() ) {
+			throw new FileRequestException( 'invalid_url', 'Invalid URL provided.' );
+		}
 
-        $url        = $url->url();
-        $options    = [
-            'timeout'   => max( 1, $timeout )
-        ];
+		$url     = $url->url();
+		$options = [
+			'timeout' => max( 1, $timeout )
+		];
 
-        $destination    = sprintf( '%s/%s', SMLISER_TMP_DIR, uniqid( SMLISER_UPLOAD_TMP_PREFIX ) );
-        $best_client    = HttpClient::auto_client();
-        $response       = ( new HttpClient( $best_client ) )->download( $url, $destination, [], $options );
+		$destination = sprintf( '%s/%s', SMLISER_TMP_DIR, uniqid( SMLISER_UPLOAD_TMP_PREFIX ) );
+		$best_client = HttpClient::auto_client();
+		$response    = ( new HttpClient( $best_client ) )->download( $url, $destination, [], $options );
 
-        if ( $response->is_error() ) {
-            $code   = match( $response->status_code ) {
-                400     => 'http_file_download_bad_request',
-                401     => 'http_file_download_unauthorized',
-                402     => 'payment_required',
-                403     => 'user_not_authorized',
-                404     => 'file_not_found',
-                422     => 'file_integrity_failure',
-                default => 'unknown_file_error' // 500 - 599.
-            };
+		if ( $response->is_error() ) {
+			$code = match( $response->status_code ) {
+				400     => 'http_file_download_bad_request',
+				401     => 'http_file_download_unauthorized',
+				402     => 'payment_required',
+				403     => 'user_not_authorized',
+				404     => 'file_not_found',
+				422     => 'file_integrity_failure',
+				default => 'unknown_file_error' // 500 - 599.
+			};
 
-            throw new FileRequestException( $code, null, ['status' => $response->status_code] );
-        }
+			throw new FileRequestException( $code, null, ['status' => $response->status_code] );
+		}
 
-        if ( ! $response->is_download() ) {
-            throw new FileRequestException( 'file_integrity_failure' );
-        }
+		if ( ! $response->is_download() ) {
+			throw new FileRequestException( 'file_integrity_failure' );
+		}
 
-        if ( $autoclean ) {
-            register_shutdown_function( function() use ( $response ){
-                @unlink( $response->sink_path );
-            });            
-        }
+		if ( $autoclean ) {
+			register_shutdown_function( function() use ( $response ) {
+				@unlink( $response->sink_path );
+			} );
+		}
 
-        return $response->sink_path;
+		return $response->sink_path;
 
-    } catch ( InvalidArgumentException|HttpRequestException $e ) {
-        return new FileRequestException(
-            'malformed_request',
-            $e->getMessage()
-        );
-    } catch ( FileRequestException $e ) {
-        return $e;
-    }
+	} catch ( InvalidArgumentException|HttpRequestException $e ) {
+		return new FileRequestException(
+			'malformed_request',
+			$e->getMessage()
+		);
+	} catch ( FileRequestException $e ) {
+		return $e;
+	}
 }

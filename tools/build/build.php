@@ -61,7 +61,7 @@ if ( 'cli' !== PHP_SAPI ) {
 |---------
 */
 spl_autoload_register(
-	static function ( string $class ): void {
+	static function ( string $class ) : void {
 		$prefix = 'SmartLicenseServer\\Build\\';
 
 		if ( str_starts_with( $class, $prefix ) ) {
@@ -79,9 +79,9 @@ spl_autoload_register(
 | Registered targets
 |-------------------
 */
-$targets = array(
+$targets = [
 	'standalone' => StandaloneTarget::class,
-);
+];
 
 /*
 |------------
@@ -93,8 +93,8 @@ $console = new BuildConsole();
 try {
 	// getopt() stops at the first positional argument, so parse by hand to
 	// allow options on either side of the target name.
-	$allowed = array( 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'help' => false, 'sign-key' => true, 'generate-key' => true, 'allow-unsigned' => false );
-	$options = array();
+	$allowed = [ 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'help' => false, 'sign-key' => true, 'generate-key' => true, 'allow-unsigned' => false ];
+	$options = [];
 	$name    = null;
 
 	foreach ( array_slice( $argv, 1 ) as $arg ) {

@@ -44,122 +44,122 @@ use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
  * @method bool readfile(string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576) Efficiently outputs the contents of a file.
  */
 class FileSystem {
-    /**
-     * Private constructor to enforce singleton.
-     *
-     * @param FileSystemAdapterInterface $adapter The adapter instance.
-     */
-    private function __construct(
-        protected FileSystemAdapterInterface $adapter
-    ) {}
+	/**
+	 * Private constructor to enforce singleton.
+	 *
+	 * @param FileSystemAdapterInterface $adapter The adapter instance.
+	 */
+	private function __construct(
+		protected FileSystemAdapterInterface $adapter
+	) {}
 
-    /**
-     * Singleton instance.
-     * 
-     * @param FileSystemAdapterInterface|null $adapter
-     * @return static
-     */
-    public static function instance( ?FileSystemAdapterInterface $adapter = null ) : static {
-        static $static;
+	/**
+	 * Singleton instance.
+	 * 
+	 * @param FileSystemAdapterInterface|null $adapter
+	 * @return static
+	 */
+	public static function instance( ?FileSystemAdapterInterface $adapter = null ) : static {
+		static $static;
 
-        if ( ! isset( $static ) ) {
-            if ( ! $adapter ) {
-                throw new RuntimeException( 'Filesystem API must be called with an adapter early.' );
-            }
+		if ( ! isset( $static ) ) {
+			if ( ! $adapter ) {
+				throw new RuntimeException( 'Filesystem API must be called with an adapter early.' );
+			}
 
-            $static = new static( $adapter );
-        }
+			$static = new static( $adapter );
+		}
 
-        return $static;
-    }
+		return $static;
+	}
 
-    /**
-     * Proxy method calls to the underlying adapter.
-     *
-     * @param string $method Method name.
-     * @param array  $args   Method arguments.
-     * @return mixed
-     *
-     * @throws \BadMethodCallException If method does not exist on the adapter.
-     */
-    public function __call( string $method, array $args ) {
-        if ( method_exists( $this->adapter, $method ) ) {
-            return call_user_func_array( [ $this->adapter, $method ], $args );
-        }
+	/**
+	 * Proxy method calls to the underlying adapter.
+	 *
+	 * @param string $method Method name.
+	 * @param array  $args   Method arguments.
+	 * @return mixed
+	 *
+	 * @throws \BadMethodCallException If method does not exist on the adapter.
+	 */
+	public function __call( string $method, array $args ) {
+		if ( method_exists( $this->adapter, $method ) ) {
+			return call_user_func_array( [ $this->adapter, $method ], $args );
+		}
 
-        throw new ProxyMethodException( static::class, $method );
-    }
+		throw new ProxyMethodException( static::class, $method );
+	}
 
-    /**
-     * Test one or more directories for read/write access.
-     *
-     * Uses the underlying adapter where possible.
-     *
-     * @param string ...$dirs Absolute path(s) to the directories to test.
-     * @return array<string, array{readable: bool, writable: bool, error: string|null}>
-     */
-    public function test_dirs_read_write( string ...$dirs ): array {
+	/**
+	 * Test one or more directories for read/write access.
+	 *
+	 * Uses the underlying adapter where possible.
+	 *
+	 * @param string ...$dirs Absolute path(s) to the directories to test.
+	 * @return array<string, array{readable: bool, writable: bool, error: string|null}>
+	 */
+	public function test_dirs_read_write( string ...$dirs ) : array {
 
-        $results = [];
+		$results = [];
 
-        foreach ( $dirs as $dir ) {
-            $dir = rtrim( $dir, "/\\" );
-            $readable  = false;
-            $writable  = false;
-            $error_msg = null;
+		foreach ( $dirs as $dir ) {
+			$dir       = rtrim( $dir, "/\\" );
+			$readable  = false;
+			$writable  = false;
+			$error_msg = null;
 
-            // Check readability using adapter if available
-            if ( method_exists( $this->adapter, 'is_readable' ) ) {
-                $readable = $this->adapter->is_readable( $dir );
-            } else {
-                $readable = is_readable( $dir );
-            }
+			// Check readability using adapter if available
+			if ( method_exists( $this->adapter, 'is_readable' ) ) {
+				$readable = $this->adapter->is_readable( $dir );
+			} else {
+				$readable = is_readable( $dir );
+			}
 
-            if ( $readable ) {
-                // Check writability using adapter if possible
-                $writable = false;
-                $tmpFile = $dir . DIRECTORY_SEPARATOR . uniqid( 'test_', true ) . '.tmp';
+			if ( $readable ) {
+				// Check writability using adapter if possible
+				$writable = false;
+				$tmpFile  = $dir . DIRECTORY_SEPARATOR . uniqid( 'test_', true ) . '.tmp';
 
-                try {
-                    if ( method_exists( $this->adapter, 'put_contents' ) ) {
-                        $writable = $this->adapter->put_contents( $tmpFile, 'test' );
-                    } else {
-                        $fp = @fopen( $tmpFile, 'w' );
-                        if ( false !== $fp ) {
-                            fwrite( $fp, 'test' );
-                            fclose( $fp );
-                            $writable = true;
-                        }
-                    }
-                } catch ( \Throwable $e ) {
-                    $error_msg = $e->getMessage();
-                } finally {
-                    @unlink( $tmpFile );
-                }
+				try {
+					if ( method_exists( $this->adapter, 'put_contents' ) ) {
+						$writable = $this->adapter->put_contents( $tmpFile, 'test' );
+					} else {
+						$fp = @fopen( $tmpFile, 'w' );
+						if ( false !== $fp ) {
+							fwrite( $fp, 'test' );
+							fclose( $fp );
+							$writable = true;
+						}
+					}
+				} catch ( \Throwable $e ) {
+					$error_msg = $e->getMessage();
+				} finally {
+					@unlink( $tmpFile );
+				}
 
-                if ( ! $writable && ! $error_msg ) {
-                    $error_msg = 'Cannot write to directory';
-                }
-            } else {
-                $error_msg = 'Directory not readable';
-            }
+				if ( ! $writable && ! $error_msg ) {
+					$error_msg = 'Cannot write to directory';
+				}
+			} else {
+				$error_msg = 'Directory not readable';
+			}
 
-            $results[ $dir ] = [
-                'readable' => $readable,
-                'writable' => $writable,
-                'error'    => $error_msg,
-            ];
-        }
+			$results[ $dir ] = [
+				'readable' => $readable,
+				'writable' => $writable,
+				'error'    => $error_msg,
+			];
+		}
 
-        return $results;
-    }
+		return $results;
+	}
 
-    /**
-     * Get the underlying adapter instance
-     * 
-     * @return FileSystemAdapterInterface
-     */
-    public function get_adaper() : FileSystemAdapterInterface {
-        return $this->adapter;
-    }
+	/**
+	 * Get the underlying adapter instance
+	 * 
+	 * @return FileSystemAdapterInterface
+	 */
+	public function get_adaper() : FileSystemAdapterInterface {
+		return $this->adapter;
+	}
 }

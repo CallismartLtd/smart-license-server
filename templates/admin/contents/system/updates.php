@@ -44,55 +44,55 @@ $when = static function ( ?string $iso ) : string {
 $busy = $overview['in_progress'] || null !== $queued;
 
 [ $tone, $icon, $title, $message ] = match ( true ) {
-	$overview['in_progress'] => array(
+	$overview['in_progress'] => [
 		'pending',
 		'ti ti-loader-2 smliser-health-spin',
 		'Update in progress',
 		sprintf( 'Version %s is being installed. The site is briefly unavailable while files are swapped.', $run['to'] ?? '' ),
-	),
-	null !== $queued => array(
+	],
+	null !== $queued => [
 		'pending',
 		'ti ti-loader-2 smliser-health-spin',
 		'Update queued',
 		sprintf( 'Automatic update to %s queued %s; background processing installs it at its next run.', $queued['version'] ?? '', $when( $queued['at'] ?? null ) ),
-	),
-	! empty( $blockers ) => array(
+	],
+	! empty( $blockers ) => [
 		'critical',
 		'ti ti-circle-x',
 		'Updates are blocked',
 		'This installation cannot update until the problems below are fixed.',
-	),
-	$check['available'] && $check['security'] => array(
+	],
+	$check['available'] && $check['security'] => [
 		'critical',
 		'ti ti-shield-exclamation',
 		sprintf( 'Security update available: %s', $check['latest'] ),
 		'Install it as soon as possible.',
-	),
-	$check['available'] => array(
+	],
+	$check['available'] => [
 		'warning',
 		'ti ti-arrow-up-circle',
 		sprintf( 'Version %s is available', $check['latest'] ),
 		sprintf( 'You are running %s.', $overview['installed'] ),
-	),
-	null !== $check['error'] => array(
+	],
+	null !== $check['error'] => [
 		'warning',
 		'ti ti-alert-triangle',
 		'Could not check for updates',
 		$check['error'],
-	),
-	default => array(
+	],
+	default => [
 		'pass',
 		'ti ti-circle-check',
 		'Up to date',
 		sprintf( '%s %s is the latest version.', \SMLISER_APP_NAME, $overview['installed'] ),
-	),
+	],
 };
 
-$auto_modes = array(
-	UpdateService::AUTO_OFF      => array( 'Off', 'Updates are installed only when you start them.' ),
-	UpdateService::AUTO_SECURITY => array( 'Security releases', 'Security releases are installed automatically; other releases wait for you.' ),
-	UpdateService::AUTO_ALL      => array( 'All releases', 'Every new release is installed automatically.' ),
-);
+$auto_modes = [
+	UpdateService::AUTO_OFF      => [ 'Off', 'Updates are installed only when you start them.' ],
+	UpdateService::AUTO_SECURITY => [ 'Security releases', 'Security releases are installed automatically; other releases wait for you.' ],
+	UpdateService::AUTO_ALL      => [ 'All releases', 'Every new release is installed automatically.' ],
+];
 
 $chevron = '<svg class="smliser-diagnostics-panel-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9" /></svg>';
 ?>

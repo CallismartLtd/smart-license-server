@@ -63,44 +63,44 @@ namespace SmartLicenseServer\Background\Jobs;
  */
 interface JobHandlerInterface {
 
-    /**
-     * Execute the job with the given payload.
-     *
-     * The payload is the exact array stored on the JobDTO — whatever
-     * was passed to JobDTO::make( payload: [...] ) at dispatch time.
-     *
-     * Return any value that is meaningful to the caller; the worker
-     * will capture it and store it on JobDTO::$result. Return null
-     * if there is no meaningful result.
-     *
-     * Throw any \Throwable to signal failure. The worker will catch
-     * it, record the message on JobDTO::$error_message, increment
-     * JobDTO::$attempts, and either requeue (retrying) or archive
-     * (failed) the job depending on whether max_attempts is exceeded.
-     *
-     * @param array<string, mixed> $payload The handler-specific argument array.
-     * @return mixed                        Any result value, or null.
-     * @throws \Throwable                   On any unrecoverable failure.
-     */
-    public function handle( array $payload = [] ): mixed;
+	/**
+	 * Execute the job with the given payload.
+	 *
+	 * The payload is the exact array stored on the JobDTO — whatever
+	 * was passed to JobDTO::make( payload: [...] ) at dispatch time.
+	 *
+	 * Return any value that is meaningful to the caller; the worker
+	 * will capture it and store it on JobDTO::$result. Return null
+	 * if there is no meaningful result.
+	 *
+	 * Throw any \Throwable to signal failure. The worker will catch
+	 * it, record the message on JobDTO::$error_message, increment
+	 * JobDTO::$attempts, and either requeue (retrying) or archive
+	 * (failed) the job depending on whether max_attempts is exceeded.
+	 *
+	 * @param array<string, mixed> $payload The handler-specific argument array.
+	 * @return mixed                        Any result value, or null.
+	 * @throws \Throwable                   On any unrecoverable failure.
+	 */
+	public function handle( array $payload = [] ) : mixed;
 
-    /**
-     * Return a short human-readable name for this job type.
-     *
-     * Displayed in admin job lists and log entries.
-     * Example: 'Send License Expiry Email', 'Generate Monthly Report'.
-     *
-     * @return string
-     */
-    public static function get_job_name(): string;
+	/**
+	 * Return a short human-readable name for this job type.
+	 *
+	 * Displayed in admin job lists and log entries.
+	 * Example: 'Send License Expiry Email', 'Generate Monthly Report'.
+	 *
+	 * @return string
+	 */
+	public static function get_job_name() : string;
 
-    /**
-     * Return a one-sentence description of what this job does.
-     *
-     * Displayed alongside the name in the admin job list UI.
-     * Example: 'Sends an expiry reminder email to a licensee.'
-     *
-     * @return string
-     */
-    public static function get_job_description(): string;
+	/**
+	 * Return a one-sentence description of what this job does.
+	 *
+	 * Displayed alongside the name in the admin job list UI.
+	 * Example: 'Sends an expiry reminder email to a licensee.'
+	 *
+	 * @return string
+	 */
+	public static function get_job_description() : string;
 }

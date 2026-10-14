@@ -52,7 +52,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param string $key The original key name.
 	 * @return string The prefixed key, ready for use in storage functions.
 	 */
-	protected function prefix_key( string $key ): string {
+	protected function prefix_key( string $key ) : string {
 
 		if ( \str_starts_with( $key, $this->prefix ) ) {
 			return $key;
@@ -71,7 +71,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @return mixed The stored setting value, or the $default value if not found.
 	 */
 	public function get( string $key, $default = null ) {
-		$key	= $this->use_prefix ? $this->prefix_key( $key ) : $key;
+		$key = $this->use_prefix ? $this->prefix_key( $key ) : $key;
 		if ( $this->has_in_cache( $key ) ) {
 			return $this->cache[ $key ];
 		}
@@ -93,8 +93,8 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param mixed  $value The data to be stored.
 	 * @return bool True on successful storage/update, false otherwise.
 	 */
-	public function set( string $key, $value ): bool {
-		$key	= $this->use_prefix ? $this->prefix_key( $key ) : $key;
+	public function set( string $key, $value ) : bool {
+		$key    = $this->use_prefix ? $this->prefix_key( $key ) : $key;
 		$result = $this->do_set( $key, $value );
 
 		if ( $result ) {
@@ -113,8 +113,8 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param string $key The unique identifier/name of the setting to delete.
 	 * @return bool True on successful deletion, false if the key wasn't found or deletion failed.
 	 */
-	public function delete( string $key ): bool {
-		$key	= $this->use_prefix ? $this->prefix_key( $key ) : $key;
+	public function delete( string $key ) : bool {
+		$key    = $this->use_prefix ? $this->prefix_key( $key ) : $key;
 		$result = $this->do_delete( $key );
 
 		if ( $result ) {
@@ -135,8 +135,8 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param string $key The unique identifier/name of the setting.
 	 * @return bool True if the key exists, false otherwise.
 	 */
-	public function has( string $key ): bool {
-		$key	= $this->use_prefix ? $this->prefix_key( $key ) : $key;
+	public function has( string $key ) : bool {
+		$key = $this->use_prefix ? $this->prefix_key( $key ) : $key;
 		if ( $this->has_in_cache( $key ) ) {
 			return true;
 		}
@@ -153,7 +153,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param int $limit The maximum number of settings to return per page.
 	 * @return array<string, mixed> Associative array of settings.
 	 */
-	public function all( int $page = 1, int $limit = 20 ): array {
+	public function all( int $page = 1, int $limit = 20 ) : array {
 		return $this->do_all( $page, $limit );
 	}
 
@@ -171,7 +171,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 		string $query,
 		int $page,
 		int $limit = 50,
-	): array {
+	) : array {
 
 		$query = $this->use_prefix ? $this->prefix_key( $query ) : $query;
 
@@ -184,7 +184,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param string $key The unique identifier/name of the setting.
 	 * @return bool
 	 */
-	private function has_in_cache( string $key ): bool {
+	private function has_in_cache( string $key ) : bool {
 		return array_key_exists( $key, $this->cache );
 	}
 
@@ -194,7 +194,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param string $key The unique identifier/name of the setting.
 	 * @return void
 	 */
-	private function clear_from_cache( string $key ): void {
+	private function clear_from_cache( string $key ) : void {
 		if ( $this->has_in_cache( $key ) ) {
 			unset( $this->cache[ $key ] );
 		}
@@ -216,7 +216,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param mixed  $value The data to be stored.
 	 * @return bool True on success, false otherwise.
 	 */
-	abstract protected function do_set( string $key, $value ): bool;
+	abstract protected function do_set( string $key, $value ) : bool;
 
 	/**
 	 * Concrete implementation for removing a setting from the physical storage.
@@ -224,7 +224,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param string $key The unique identifier/name of the setting to delete.
 	 * @return bool True on success, false otherwise.
 	 */
-	abstract protected function do_delete( string $key ): bool;
+	abstract protected function do_delete( string $key ) : bool;
 
 	/**
 	 * Concrete implementation for checking existence in the physical storage.
@@ -232,7 +232,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param string $key The unique identifier/name of the setting.
 	 * @return bool True if the key exists, false otherwise.
 	 */
-	abstract protected function do_has( string $key ): bool;
+	abstract protected function do_has( string $key ) : bool;
 
 	/**
 	 * Concrete implementation for retrieving a paginated collection of settings
@@ -242,7 +242,7 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param int $limit The maximum number of settings to return.
 	 * @return array<string, mixed> Associative array of settings.
 	 */
-	abstract protected function do_all( int $page, int $limit ): array;
+	abstract protected function do_all( int $page, int $limit ) : array;
 
 	/**
 	 * Concrete implementation for searching settings in the physical storage.
@@ -252,5 +252,5 @@ abstract class AbstractSettings implements SettingsStorageInterface {
 	 * @param int    $limit The maximum number of results to return.
 	 * @return array<string, mixed> Matching settings.
 	 */
-	abstract protected function do_search( string $query, int $page, int $limit ): array;
+	abstract protected function do_search( string $query, int $page, int $limit ) : array;
 }

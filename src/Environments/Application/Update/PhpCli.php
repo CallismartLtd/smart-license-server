@@ -106,7 +106,7 @@ final class PhpCli {
 
 		return array_values(
 			array_unique(
-				array(
+				[
 					"{$bindir}/php{$major_minor}",
 					"{$bindir}/php",
 					"/usr/bin/php{$major_minor}",
@@ -118,7 +118,7 @@ final class PhpCli {
 					"/usr/local/php{$compact}/bin/php",                   // DirectAdmin.
 					'/usr/local/bin/php',
 					'/usr/bin/php',
-				)
+				]
 			)
 		);
 	}
@@ -133,8 +133,8 @@ final class PhpCli {
 		$expected = 'cli|' . PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 
 		$process = @proc_open(
-			array( $binary, '-r', 'echo PHP_SAPI, "|", PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;' ),
-			array( 0 => array( 'pipe', 'r' ), 1 => array( 'pipe', 'w' ), 2 => array( 'pipe', 'w' ) ),
+			[ $binary, '-r', 'echo PHP_SAPI, "|", PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;' ],
+			[ 0 => [ 'pipe', 'r' ], 1 => [ 'pipe', 'w' ], 2 => [ 'pipe', 'w' ] ],
 			$pipes
 		);
 

@@ -8,7 +8,7 @@
 namespace SmartLicenseServer\Admin\Contracts;
 
 use SmartLicenseServer\Contracts\AdminRequests\{
-    AppManagementHandlerInterface, BulkActionHandlerInterface, AccessControlHandlerInterface
+	AppManagementHandlerInterface, BulkActionHandlerInterface, AccessControlHandlerInterface
 };
 
 /**
@@ -16,4 +16,4 @@ use SmartLicenseServer\Contracts\AdminRequests\{
  * administractive tasks in the admin area.
  */
 interface AdminActionsInterface extends AppManagementHandlerInterface, BulkActionHandlerInterface,
-    AccessControlHandlerInterface {}
+	AccessControlHandlerInterface {}

@@ -17,7 +17,7 @@ class UrlencodedRequestParser extends AbstractRawBodyParser {
 	/**
 	 * @inheritDoc
 	 */
-	public function parse(): array {
+	public function parse() : array {
 		$raw = $this->read_raw_body();
 
 		$data = [];

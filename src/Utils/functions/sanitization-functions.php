@@ -15,7 +15,7 @@ use SmartLicenseServer\Utils\Sanitizer;
  * @param string|array $data
  */
 function unslash( $data ) {
-    return Sanitizer::unslash( $data );
+	return Sanitizer::unslash( $data );
 }
 
 /**
@@ -25,7 +25,7 @@ function unslash( $data ) {
  * @return string
  */
 function escHtml( mixed $input ) : string {
-    return Sanitizer::esc_html( $input );
+	return Sanitizer::esc_html( $input );
 }
 
 /**
@@ -35,7 +35,7 @@ function escHtml( mixed $input ) : string {
  * @return string 
  */
 function escAttr( mixed $value ) : string {
-    return Sanitizer::esc_attr( $value );
+	return Sanitizer::esc_attr( $value );
 }
 
 /**
@@ -45,7 +45,7 @@ function escAttr( mixed $value ) : string {
  * @return string
  */
 function escUrl( string $url ) : string {
-    return Sanitizer::esc_url( $url );
+	return Sanitizer::esc_url( $url );
 }
 
 /**
@@ -55,7 +55,7 @@ function escUrl( string $url ) : string {
  * @return string Cleaned HTML
  */
 function sanitize_html( string $html ) : string {
-    return Sanitizer::sanitize_html( $html );
+	return Sanitizer::sanitize_html( $html );
 }
 
 /**
@@ -65,7 +65,7 @@ function sanitize_html( string $html ) : string {
  * @return string
  */
 function sanitize_editor( string $input ) : string {
-    return new HtmlSanitizer()->sanitize_editor( $input );
+	return new HtmlSanitizer()->sanitize_editor( $input );
 }
 
 /**
@@ -75,5 +75,5 @@ function sanitize_editor( string $input ) : string {
  * @return string
  */
 function escTextArea( string $text ) : string {
-    return Sanitizer::esc_textarea( $text );
+	return Sanitizer::esc_textarea( $text );
 }
