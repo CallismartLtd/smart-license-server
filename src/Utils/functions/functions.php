@@ -14,6 +14,7 @@ use SmartLicenseServer\Email\EmailProvidersRegistry;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Exceptions\Exception;
 use Callismart\Http\HttpClient;
+use SmartLicenseServer\Core\UserAgent;
 use SmartLicenseServer\Exceptions\GlobalErrorHandler;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\Monetization\DownloadToken;
@@ -63,146 +64,8 @@ function smliser_form_message( mixed $messages ) : string {
  * @param string $user_agent_string The user agent string to parse.
  * @return string Description in the format: "Browser Version on OS (Device)".
  */
-function smliser_parse_user_agent( $user_agent_string ) {
-    $info = array(
-        'browser' => 'Unknown Browser',
-        'version' => '',
-        'os'      => '',
-        'device'  => 'Desktop',
-    );
-
-    // ---------------------------------------------
-    // Detect OS
-    // ---------------------------------------------
-    if ( preg_match( '/Windows NT ([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        $os_version = $matches[1];
-        $info['os'] = match ( $os_version ) {
-            '10.0' => 'Windows 10',
-            '6.3'  => 'Windows 8.1',
-            '6.2'  => 'Windows 8',
-            '6.1'  => 'Windows 7',
-            '6.0'  => 'Windows Vista',
-            '5.1'  => 'Windows XP',
-            default => 'Windows ' . $os_version
-        };
-    } elseif ( preg_match( '/Mac OS X ([0-9_.]+)/i', $user_agent_string, $matches ) ) {
-        $info['os'] = 'macOS ' . str_replace( '_', '.', $matches[1] );
-    } elseif ( preg_match( '/Linux/i', $user_agent_string ) && ! preg_match( '/Android/i', $user_agent_string ) ) {
-        $info['os'] = 'Linux';
-    } elseif ( preg_match( '/Android ?([0-9.]*)/i', $user_agent_string, $matches ) ) {
-        $info['os']     = trim( 'Android ' . ( $matches[1] ?? '' ) );
-        $info['device'] = 'Mobile';
-    } elseif ( preg_match( '/iPhone|iPad|iPod/i', $user_agent_string, $matches ) ) {
-        $info['os']     = 'iOS';
-        $info['device'] = ( 'iPad' === $matches[0] ) ? 'Tablet' : 'Mobile';
-    }
-
-    // ---------------------------------------------
-    // Detect device
-    // ---------------------------------------------
-    if ( preg_match( '/BlackBerry|Mobile Safari|Opera Mini|Opera Mobi|Firefox Mobile|webOS|NokiaBrowser|Series40|NintendoBrowser/i', $user_agent_string ) ) {
-        $info['device'] = 'Mobile';
-    } elseif ( preg_match( '/Tablet|iPad|Nexus 7|Nexus 10|GT-P|SM-T/i', $user_agent_string ) ) {
-        $info['device'] = 'Tablet';
-    }
-
-    // ---------------------------------------------
-    // Detect browser & version (Standard browsers)
-    // ---------------------------------------------
-    if ( preg_match( '/Edg\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        $info['browser'] = 'Edge';
-        $info['version'] = $matches[1];
-    } elseif ( preg_match( '/Edge\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        $info['browser'] = 'Edge';
-        $info['version'] = $matches[1];
-    } elseif ( preg_match( '/(OPR|Opera)\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        $info['browser'] = 'Opera';
-        $info['version'] = $matches[2];
-    } elseif ( preg_match( '/CriOS\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        $info['browser'] = 'Chrome iOS';
-        $info['version'] = $matches[1];
-    } elseif ( preg_match( '/Chrome\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        $info['browser'] = 'Chrome';
-        $info['version'] = $matches[1];
-    } elseif ( preg_match( '/Firefox\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        $info['browser'] = 'Firefox';
-        $info['version'] = $matches[1];
-    } elseif ( preg_match( '/Safari\/([0-9.]+)/i', $user_agent_string, $matches ) && ! preg_match( '/Chrome|Edg/i', $user_agent_string ) ) {
-        $info['browser'] = 'Safari';
-
-        if ( preg_match( '/Version\/([0-9.]+)/i', $user_agent_string, $version_matches ) ) {
-            $info['version'] = $version_matches[1];
-        } else {
-            $info['version'] = $matches[1];
-        }
-    } elseif ( preg_match( '/MSIE ([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        $info['browser'] = 'Internet Explorer';
-        $info['version'] = $matches[1];
-    } elseif ( preg_match( '/Trident\/([0-9.]+)/i', $user_agent_string, $matches ) ) {
-        $info['browser'] = 'Internet Explorer';
-        $info['version'] = ( '7.0' === $matches[1] ) ? '11.0' : 'Unknown IE';
-    }
-
-    // ---------------------------------------------
-    // NEW: Generic fallback for custom UAs
-    // Detect first "Something/1.2.3"
-    // ---------------------------------------------
-    if ( 'Unknown Browser' === $info['browser'] ) {
-        if ( preg_match( '/([A-Za-z0-9._-]+)\/([0-9.]+)/', $user_agent_string, $m ) ) {
-            $info['browser'] = $m[1];
-            $info['version'] = $m[2];
-        }
-    }
-
-    // ---------------------------------------------
-    // NEW: Secondary OS/device hints for custom UAs
-    // e.g. "(Linux; x86_64)" or "(Android; Phone)"
-    // ---------------------------------------------
-    if ( 'Unknown OS' === $info['os'] ) {
-        if ( preg_match( '/\(([^)]+)\)/', $user_agent_string, $m ) ) {
-
-            $raw = $m[1];
-
-            if ( preg_match( '/linux/i', $raw ) ) {
-                $info['os'] = 'Linux';
-            } elseif ( preg_match( '/android/i', $raw ) ) {
-                $info['os']     = 'Android';
-                $info['device'] = 'Mobile';
-            } elseif ( preg_match( '/iphone|ipod/i', $raw ) ) {
-                $info['os']     = 'iOS';
-                $info['device'] = 'Mobile';
-            } elseif ( preg_match( '/ipad/i', $raw ) ) {
-                $info['os']     = 'iOS';
-                $info['device'] = 'Tablet';
-            } elseif ( preg_match( '/mac|darwin/i', $raw ) ) {
-                $info['os'] = 'macOS';
-            } elseif ( preg_match( '/win/i', $raw ) ) {
-                $info['os'] = 'Windows';
-            }
-        }
-    }
-
-    // ---------------------------------------------
-    // Ensure fallback device type
-    // ---------------------------------------------
-    if ( 'Desktop' === $info['device'] ) {
-        if ( preg_match( '/mobile|phone/i', $user_agent_string ) ) {
-            $info['device'] = 'Mobile';
-        } elseif ( preg_match( '/tablet|ipad/i', $user_agent_string ) ) {
-            $info['device'] = 'Tablet';
-        }
-    }
-
-    // ---------------------------------------------
-    // Output
-    // ---------------------------------------------
-    return trim( sprintf(
-        '%s%s on %s (%s)',
-        $info['browser'],
-        $info['version'] ? ' ' . $info['version'] : '',
-        $info['os'],
-        $info['device']
-    ) );
+function smliser_parse_user_agent( $user_agent_string ) : string {
+    return UserAgent::parse( $user_agent_string )->get_description();
 }
 
 /**
