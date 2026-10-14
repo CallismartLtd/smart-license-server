@@ -135,10 +135,10 @@ final class SessionManager {
 	public function __construct(
 		#[\SensitiveParameter] string $secret,
 		#[\SensitiveParameter] string $salt,
-		int $lifetime		= 7200,
-		string $cookie_name = '__Host-sid',
-		bool $secure		= true,
+		string $cookie_name,
 		bool $http_only		= true,
+		bool $secure		= true,
+		int $lifetime		= 7200,
 		string $same_site	= 'Lax',
 		string $path		= '/',
 		int $max_lifetime	= 604800,

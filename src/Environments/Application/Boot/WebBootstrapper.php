@@ -88,6 +88,21 @@ class WebBootstrapper implements BootstrapperInterface {
         );
 
         $container->singleton(
+            CSRF::class,
+            function( Container $c ) : CSRF {
+                $is_secure          = $c->get( Request::class )->isSecure();
+                $guest_cookie_name  = sprintf( '%ssmliser-csrf', $is_secure ? '__Host-' : '' );
+                return new CSRF(
+                    secret: $c->get( RuntimeConfig::class )->secret,
+                    salt: $c->get( RuntimeConfig::class )->salt,
+                    sessions: $c->get( SessionManager::class ),
+                    secure: $is_secure,
+                    guest_cookie: $guest_cookie_name
+                );
+            } 
+        );
+
+        $container->singleton(
             RestAPIProvider::class,
             fn ( Container $c ) : RestAPIProvider => RestAPIProvider::init(
                 identity: $c->get( IdentityService::class ),
@@ -115,12 +130,19 @@ class WebBootstrapper implements BootstrapperInterface {
 
         $container->singleton(
             SessionManager::class,
-            fn( Container $c ) : SessionManager => new SessionManager(
-                secret: $c->get( RuntimeConfig::class )->secret,
-                salt: $c->get( RuntimeConfig::class )->salt,
-                revocation_check: $c->get( UserSessionCutoff::class )
-            )
+            function( Container $c ) : SessionManager {
+                $is_secure      = $c->get( Request::class )->isSecure();
+                $cookie_name    = sprintf( '%ssmliser-sid', $is_secure ? '__Host-' : '' );
+                return new SessionManager(
+                    secret: $c->get( RuntimeConfig::class )->secret,
+                    salt: $c->get( RuntimeConfig::class )->salt,
+                    revocation_check: $c->get( UserSessionCutoff::class ),
+                    secure: $is_secure,
+                    cookie_name: $cookie_name
+                );
+            }
         );
+        
     }
 
     /**

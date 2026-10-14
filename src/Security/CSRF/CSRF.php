@@ -87,9 +87,10 @@ final class CSRF {
 		#[\SensitiveParameter] string $secret,
 		#[\SensitiveParameter] string $salt,
 		private SessionManager $sessions,
-		private bool $secure = true,
+		private bool $secure,
+		private string $guest_cookie,
 		private string $same_site = 'Lax',
-		private string $guest_cookie = '__Host-csrf'
+		
 	) {
 		if ( ! in_array( $same_site, [ 'Strict', 'Lax' ], true ) ) {
 			throw new InvalidArgumentException( 'Invalid SameSite policy for the CSRF cookie. Expected Strict or Lax.' );
