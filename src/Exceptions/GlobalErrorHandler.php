@@ -102,8 +102,6 @@ class GlobalErrorHandler {
     /**
      * Detect the current environment.
      *
-     * Checks PHP_SAPI to determine CLI or HTTP environment.
-     *
      * @return string 'cli' or 'http'.
      */
     private function detectEnvironment() : string {
