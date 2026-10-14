@@ -36,14 +36,13 @@ class LogClientAccessJob implements JobHandlerInterface {
     /**
      * {@inheritdoc}
      *
-     * Expected payload keys:
-     *   - app_type    (string) The hosted app type e.g. 'plugin', 'theme', 'software'.
-     *   - app_slug    (string) The hosted app slug.
-     *   - event_type  (string) The event type e.g. 'download', 'activation'.
-     *   - fingerprint (string) SHA-256 hash of IP + user agent.
-     *   - created_at  (string) Y-m-d H:i:s datetime of the original request.
-     *
-     * @param array<string, mixed> $payload
+     * @param array{
+     *  app_type?: string,
+     *  app_slug?: string,
+     *  event_type?: string,
+     *  fingerprint?: string,
+     *  created_at?: string
+     * } $payload
      * @return bool True on successful insert, false otherwise.
      */
     public function handle( array $payload = [] ): mixed {

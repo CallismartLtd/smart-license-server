@@ -35,13 +35,12 @@ class LogDownloadJob implements JobHandlerInterface {
     /**
      * {@inheritdoc}
      *
-     * Expected payload keys:
-     *   - app_type    (string) The hosted app type e.g. 'plugin', 'theme', 'software'.
-     *   - app_slug    (string) The hosted app slug.
-     *   - fingerprint (string) SHA-256 hash of IP + user agent.
-     *   - created_at  (string) Y-m-d H:i:s datetime of the original request.
-     *
-     * @param array<string, mixed> $payload
+     * @param array{
+     *  app_type?: string,
+     *  app_slug?: string,
+     *  fingerprint?: string,
+     *  created_at?: string
+     * } $payload
      * @return bool True on successful insert, false otherwise.
      */
     public function handle( array $payload = [] ): mixed {
