@@ -123,15 +123,6 @@ class ApplicationEnvironment extends Environment {
         );
 
         $this->container->singleton(
-            CSRF::class,
-            fn ( Container $c ) : CSRF => new CSRF(
-                $this->runtime->secret,
-                $this->runtime->salt,
-                $c->get( SessionManager::class )
-            )
-        );
-
-        $this->container->singleton(
             PasswordResetToken::class,
             fn ( Container $c ) : PasswordResetToken => new PasswordResetToken(
                 $this->runtime->secret,
