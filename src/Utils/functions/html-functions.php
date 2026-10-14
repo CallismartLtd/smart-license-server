@@ -798,13 +798,11 @@ function smliser_print_admin_content_header( array $args = [], bool $echo = true
  * @return never
  */
 function dd( mixed ...$vars ): never {
-	$is_cli = 'cli' === \PHP_SAPI || 'phpdbg' === \PHP_SAPI;
-
-	if ( ! $is_cli && ! headers_sent() ) {
+	if ( ! is_cli() && ! headers_sent() ) {
 		http_response_code( 500 );
 	}
 
-	if ( ! $is_cli ) {
+	if ( ! is_cli() ) {
 		echo '<pre style="background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 13px; line-height: 1.5; overflow-x: auto; margin: 10px 0; z-index: 999999; position: relative;">';
 	}
 
@@ -813,17 +811,17 @@ function dd( mixed ...$vars ): never {
 		var_dump( $var );
 		$output = ob_get_clean();
 
-		if ( $is_cli ) {
+		if ( is_cli() ) {
 			echo $output;
 			if ( count( $vars ) > 1 ) {
 				echo \PHP_EOL . str_repeat( '-', 40 ) . \PHP_EOL;
 			}
 		} else {
-			echo \escHtml( $output, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' );
+			echo \escHtml( $output );
 		}
 	}
 
-	if ( ! $is_cli ) {
+	if ( ! is_cli() ) {
 		echo '</pre>';
 	}
 
