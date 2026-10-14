@@ -129,7 +129,7 @@ class BackgroundJobsSchema implements DatabaseSchemaInterface {
 			Constraint::primary( "{$prefx}primary" )->on( 'id' ),
 
 			Constraint::index( "{$prefx}idx_queue_status_available" )
-			->on( 'queue', 'status', 'available_at' ),
+				->on( 'queue', 'status', 'available_at' ),
 
 			Constraint::index( "{$prefx}idx_status" )->on( 'status' ),
 

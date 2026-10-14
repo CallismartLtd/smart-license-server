@@ -1078,7 +1078,7 @@ abstract class Repository {
 	|---------------------------
 	| ABSTRACT METHODS
 	|---------------------------
-	*/
+	 */
 
 	/**
 	 * Locate the application ZIP file inside the repository.

@@ -30,7 +30,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 						escHtml( $log_duration )
 					)
 				
-				?>
+?>
             </p>
         </div>
         

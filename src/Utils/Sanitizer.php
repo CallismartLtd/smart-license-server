@@ -370,7 +370,7 @@ class Sanitizer {
 		// Default allowed protocols
 		if ( empty( $protocols ) ) {
 			$protocols = ['http', 'https', 'ftp', 'ftps', 'mailto', 'news', 'irc',
-						 'gopher', 'nntp', 'feed', 'telnet'];
+				'gopher', 'nntp', 'feed', 'telnet'];
 		}
 
 		// Normalize whitespace

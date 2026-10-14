@@ -210,7 +210,7 @@ class Theme extends AbstractHostedApp {
 	|--------------
 	| CRUD METHODS
 	|--------------
-	*/
+	 */
 
 	/**
 	 * Get the database table name.
@@ -252,7 +252,7 @@ class Theme extends AbstractHostedApp {
 	|--------------------
 	| UTILITY METHODS
 	|--------------------
-	*/
+	 */
 
 	/**
 	 * Converts associative array to object of this class.

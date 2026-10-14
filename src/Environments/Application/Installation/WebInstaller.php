@@ -1019,7 +1019,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			$base . self::PATH === $path                => self::URL_PATH,
 			$this->script_path() . self::PATH === $path => self::URL_PATH_INFO,
 			array_key_exists( self::QUERY_VAR, $_GET ) && in_array( $path, [ $base, $this->script_path() ], true )
-				       => self::URL_QUERY,
+					   => self::URL_QUERY,
 			default => null,
 		};
 	}

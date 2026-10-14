@@ -83,11 +83,11 @@ class AppOwnershipChangedEmail extends EmailTemplate {
 			? [
 				'#f0fdf4', '#bbf7d0', '#166534', '&#10003;',
 				"You are now the owner of <strong>{$app_name}</strong>. You have full control over this application."
-			  ]
+			]
 			: [
 				'#fffbeb', '#fde68a', '#92400e', '&#9888;',
 				"Ownership of <strong>{$app_name}</strong> has been transferred to <strong>{$new_owner}</strong>. You no longer have owner-level access."
-			  ];
+			];
 
 		return <<<HTML
         <p style="margin:0 0 24px;font-size:16px;font-weight:600;color:#1a1a2e;">

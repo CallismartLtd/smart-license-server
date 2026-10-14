@@ -44,7 +44,6 @@ class CleanTrashedAppsJob implements JobHandlerInterface {
 	}
 
 	/**
-	 * 
 	 * @param array{
 	 *     days_in_trash?: int,
 	 *     batch_size?: int

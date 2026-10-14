@@ -731,34 +731,34 @@ class ContextServiceProvider extends DataStore {
 					->select( 'COUNT(*)' )->from( "$service_accounts_table as sa" )
 					->left_join( "$owners_table ro", 'sa.owner_id', '=', 'ro.id' )
 					->where_null( 'ro.id' )
-				, 'orphaned_service_accounts' )
+					, 'orphaned_service_accounts' )
 				
 				->select_subquery( fn( SelectionIntent $q ) => $q
-					->select( 'COUNT(*)' )->from( "$org_members_table om" )
-					->left_join( "$users_table u", 'om.member_id', '=', 'u.id' )
-					->where_null( 'u.id' )
-				, 'orphaned_members' )
-				
-				->select_subquery( fn( SelectionIntent $q ) => $q
-					->select( 'COUNT(*)' )->from( "$owners_table ro" )
-					// Explicit multi-conditional ON mappings replacing the legacy linear splits
-					->left_join( "$users_table u", fn( JoinCriteria $join ) => $join
-						->on_value( 'ro.type', '=', Owner::TYPE_INDIVIDUAL )
-						->on_column( 'ro.subject_id', '=', 'u.id' )
-					)
-					->left_join( "$organizations_table o", fn( JoinCriteria $join ) => $join
-						->on_value( 'ro.type', '=', Owner::TYPE_ORGANIZATION )
-						->on_column( 'ro.subject_id', '=', 'o.id' )
-					)
-					->where_group( fn( SelectionIntent $group ) => $group
-						->where( 'ro.type', '=', Owner::TYPE_INDIVIDUAL )
+						->select( 'COUNT(*)' )->from( "$org_members_table om" )
+						->left_join( "$users_table u", 'om.member_id', '=', 'u.id' )
 						->where_null( 'u.id' )
-					)
-					->or_where_group( fn( SelectionIntent $group ) => $group
-						->where( 'ro.type', '=', Owner::TYPE_ORGANIZATION )
-						->where_null( 'o.id' )
-					)
-				, 'orphaned_owners' );
+					, 'orphaned_members' )
+				
+				->select_subquery( fn( SelectionIntent $q ) => $q
+						->select( 'COUNT(*)' )->from( "$owners_table ro" )
+						// Explicit multi-conditional ON mappings replacing the legacy linear splits
+						->left_join( "$users_table u", fn( JoinCriteria $join ) => $join
+							->on_value( 'ro.type', '=', Owner::TYPE_INDIVIDUAL )
+							->on_column( 'ro.subject_id', '=', 'u.id' )
+						)
+						->left_join( "$organizations_table o", fn( JoinCriteria $join ) => $join
+							->on_value( 'ro.type', '=', Owner::TYPE_ORGANIZATION )
+							->on_column( 'ro.subject_id', '=', 'o.id' )
+						)
+						->where_group( fn( SelectionIntent $group ) => $group
+							->where( 'ro.type', '=', Owner::TYPE_INDIVIDUAL )
+							->where_null( 'u.id' )
+						)
+						->or_where_group( fn( SelectionIntent $group ) => $group
+							->where( 'ro.type', '=', Owner::TYPE_ORGANIZATION )
+							->where_null( 'o.id' )
+						)
+					, 'orphaned_owners' );
 
 			$integrity = $db->get_row( $integrity_sql->build(), $integrity_sql->get_bindings() );
 

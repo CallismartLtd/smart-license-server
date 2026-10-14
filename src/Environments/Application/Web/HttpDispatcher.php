@@ -202,14 +202,14 @@ final class HttpDispatcher {
 				$this->router->group( 'admin/json', function() {
 					// Base tab without form slug or action.
 					$this->router->any( '/', fn () : Response => Response::json(
-							[
-								'success' => false,
-								'data'    => [
-									'message' => 'Form slug or action path is required.'
-								]
-							],
-							400
-						)
+						[
+							'success' => false,
+							'data'    => [
+								'message' => 'Form slug or action path is required.'
+							]
+						],
+						400
+					)
 					);
 
 					/*

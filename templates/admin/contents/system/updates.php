@@ -285,7 +285,7 @@ $chevron = '<svg class="smliser-diagnostics-panel-chevron" viewBox="0 0 24 24" w
 											isset( $run['finished_at'] ) ? ', finished ' . $when( $run['finished_at'] ) : ''
 										)
 								);
-								?>
+?>
 							</p>
 						</div>
 					</li>
@@ -307,12 +307,12 @@ $chevron = '<svg class="smliser-diagnostics-panel-chevron" viewBox="0 0 24 24" w
 							<div class="smliser-health-check-header"><span class="smliser-health-check-label">Backup</span></div>
 							<p class="smliser-health-check-message">
 								<?php
-								echo escHtml(
-									null === $backup
-										? 'There is no backup of a previous version.'
-										: sprintf( 'The files of version %s, from %s. Kept for %d days, until the next update, or until you delete it.', $backup['version'], $when( $backup['made_at'] ), UpdateService::BACKUP_DAYS )
-								);
-								?>
+echo escHtml(
+	null === $backup
+		? 'There is no backup of a previous version.'
+		: sprintf( 'The files of version %s, from %s. Kept for %d days, until the next update, or until you delete it.', $backup['version'], $when( $backup['made_at'] ), UpdateService::BACKUP_DAYS )
+);
+?>
 							</p>
 						</div>
 					</li>

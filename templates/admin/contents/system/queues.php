@@ -103,8 +103,8 @@ if ( 'failed' === $request->query( 'section' ) ) {
                 <?php $current_status = $request->query( 'status', '' ); ?>
 
                 <?php foreach ( $queue_stats as $label => $total ) :
-					$is_active = $label === $request->query( 'status' );
-				?>
+                	$is_active = $label === $request->query( 'status' );
+                	?>
 
                     <li class="smliser-status-item">
                         <a 
@@ -155,10 +155,10 @@ if ( 'failed' === $request->query( 'section' ) ) {
                 <?php else : ?>
                     <?php foreach ( $jobs as $job ) : ?>
                         <?php
-						$status        = (string) $job->get( JobDTO::KEY_STATUS );
-						$result        = $job->get( JobDTO::KEY_RESULT );
-						$error_message = $job->get( JobDTO::KEY_ERROR_MESSAGE );
-						?>
+                			$status        = (string) $job->get( JobDTO::KEY_STATUS );
+                    	$result        = $job->get( JobDTO::KEY_RESULT );
+                    	$error_message = $job->get( JobDTO::KEY_ERROR_MESSAGE );
+                    	?>
                         <tr>
                             <td><?php echo escHtml( (string) $job->get( JobDTO::KEY_ID ) ); ?></td>
                             <td><?php echo escHtml( (string) $job->get( JobDTO::KEY_JOB_CLASS ) ); ?></td>
@@ -168,10 +168,10 @@ if ( 'failed' === $request->query( 'section' ) ) {
                                 <td><?php echo escHtml( (string) $job->get( JobDTO::KEY_PRIORITY ) ); ?></td>
                                 <td>
                                     <?php echo escHtml( sprintf(
-										'%d / %d',
-										(int) $job->get( JobDTO::KEY_ATTEMPTS ),
-										(int) $job->get( JobDTO::KEY_MAX_ATTEMPTS )
-									) ); ?>
+                                    	'%d / %d',
+                                    	(int) $job->get( JobDTO::KEY_ATTEMPTS ),
+                                    	(int) $job->get( JobDTO::KEY_MAX_ATTEMPTS )
+                                    ) ); ?>
                                 </td>
                                 <td><?php echo escHtml( $job->get( JobDTO::KEY_CREATED_AT )->format( smliser_datetime_format() ) ); ?></td>
                                 <?php /* KEY_AVAILABLE_AT holds failed_at for archived rows — see adapter docblock. */ ?>
@@ -196,10 +196,10 @@ if ( 'failed' === $request->query( 'section' ) ) {
                                 </td>
                                 <td>
                                     <?php echo escHtml( sprintf(
-										'%d / %d',
-										(int) $job->get( JobDTO::KEY_ATTEMPTS ),
-										(int) $job->get( JobDTO::KEY_MAX_ATTEMPTS )
-									) ); ?>
+                                    	'%d / %d',
+                                    	(int) $job->get( JobDTO::KEY_ATTEMPTS ),
+                                    	(int) $job->get( JobDTO::KEY_MAX_ATTEMPTS )
+                                    ) ); ?>
                                 </td>
                                 <td><?php echo escHtml( $job->get( JobDTO::KEY_AVAILABLE_AT )->format( smliser_datetime_format() ) ); ?></td>
                             <?php endif; ?>

@@ -146,7 +146,7 @@ class License extends DataStore {
 	|-------------
 	| SETTERS
 	|-------------
-	*/
+	 */
 
 	/**
 	 * Set the license ID.
@@ -324,7 +324,7 @@ class License extends DataStore {
 	|-------------
 	| GETTERS
 	|-------------
-	*/
+	 */
 
 	/**
 	 * Get the license ID.
@@ -902,7 +902,7 @@ class License extends DataStore {
 	|---------------------
 	| UTILITY METHODS
 	|---------------------
-	*/
+	 */
 
 	/**
 	 * Get All active licensed Websites.
@@ -942,7 +942,7 @@ class License extends DataStore {
 		if ( ! empty( $app_prop ) && is_string( $app_prop ) && preg_match( '#^[^/]+/[^/]+$#', $app_prop ) ) {
 			list( $app_type, $app_slug ) = explode( '/', $app_prop, 2 );
 			$static->set_app_prop( $app_type, $app_slug );
-		} else if ( is_array( $app_prop ) && 2 === count( $app_prop ) ) {
+		} elseif ( is_array( $app_prop ) && 2 === count( $app_prop ) ) {
 			$app_type = (string) \array_first( $app_prop );
 			$app_slug = (string) \array_last( $app_prop );
 			$static->set_app_prop( $app_type, $app_slug );
@@ -1052,7 +1052,7 @@ class License extends DataStore {
 			return false;
 		}
 		
-	   return $this->get_total_active_domains() >= $this->max_allowed_domains;
+		return $this->get_total_active_domains() >= $this->max_allowed_domains;
 	}
 
 	/**

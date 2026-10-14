@@ -447,8 +447,8 @@ class ServiceAccount extends DataStore implements ActorInterface {
 				$result               = $db->insert( $table, $data );
 				
 				$this->set_id( $db->get_insert_id() )
-				->set_created_at( $now )
-				->set_updated_at( $now );
+					->set_created_at( $now )
+					->set_updated_at( $now );
 				
 
 				// Store new API key data for retrieval.
@@ -583,7 +583,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
 
 		// Hash the raw key with bcrypt for storage.
 		$this->set_api_key_hash( self::hash_password( $raw_key ) )
-		->set_identifier( 'sa_' . self::generate_uuid_v4() );
+			->set_identifier( 'sa_' . self::generate_uuid_v4() );
 
 		$payload = [
 			'sa_id'     => $this->get_identifier(),

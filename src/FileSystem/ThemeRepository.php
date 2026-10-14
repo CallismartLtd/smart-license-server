@@ -298,7 +298,7 @@ class ThemeRepository extends Repository {
 					$url = $this->urlmanager->app_asset_url( 'theme', $slug, $name );
 
 					if ( preg_match( '/screenshot-(\d+)\./i', $name, $m ) ) {
-					   $urls[ (int) $m[1] ] = $url;
+						$urls[ (int) $m[1] ] = $url;
 					} else {
 						$urls[] = $url;
 					}

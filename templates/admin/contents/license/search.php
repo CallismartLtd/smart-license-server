@@ -66,7 +66,7 @@ $args = $page_handler->get_menu_args( $request );
                     </tr>
                 <?php else: ?>
                     <?php foreach ( $licenses as $license ) :
-						?>        
+                    	?>        
                         <tr>
                             <td class="smliser-edit-row">
                                 <?php echo escHtml( $license->get_id() ); ?>

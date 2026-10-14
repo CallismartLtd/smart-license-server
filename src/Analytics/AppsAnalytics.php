@@ -79,7 +79,7 @@ class AppsAnalytics extends DataStore {
 		return (int) $app->get_meta( self::DOWNLOAD_COUNT_META_KEY, 0 );
 	}
 
-/**
+	/**
 	 * Get per-day download counts (Optimized SQL)
 	 * 
 	 * @param AbstractHostedApp $app  The target hosted application instance.

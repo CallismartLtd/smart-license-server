@@ -19,22 +19,22 @@ defined( 'SMLISER_ROOT' ) || exit;
 ?>
 <div class="smliser-admin-dashboard-template overview">
     <?php smliser_print_admin_content_header(
-		[
-			'breadcrumbs' => [
-				[
-					'label' => SMLISER_APP_NAME
-				]
-			],
-			'actions' => [
-				[
-					'title' => 'Settings',
-					'label' => 'Settings',
-					'url'   => $urlmanager->admin_options_url(),
-					'icon'  => 'ti ti-settings'
-				]
-			]
-		]
-	); ?>
+    	[
+    		'breadcrumbs' => [
+    			[
+    				'label' => SMLISER_APP_NAME
+    			]
+    		],
+    		'actions' => [
+    			[
+    				'title' => 'Settings',
+    				'label' => 'Settings',
+    				'url'   => $urlmanager->admin_options_url(),
+    				'icon'  => 'ti ti-settings'
+    			]
+    		]
+    	]
+    ); ?>
 
     <div class="smliser-admin-body">
         <div class="smliser-dashboard-hero">
@@ -62,12 +62,12 @@ defined( 'SMLISER_ROOT' ) || exit;
         <div class="smliser-dashboard-content">
             <?php foreach ( $metrics as $domain_name => $domain_data ) : ?>
                 <?php
-				$summary     = $domain_data['summary'] ?? [];
-				$chart_data  = $domain_data['chart_data'] ?? [];
-				$rankings    = $domain_data['rankings'] ?? [];
-				$recent_logs = $domain_data['recent_logs'] ?? [];
-				$domain_id   = Format::slugify( $domain_name );
-				?>
+    			$summary     = $domain_data['summary'] ?? [];
+            	$chart_data  = $domain_data['chart_data'] ?? [];
+            	$rankings    = $domain_data['rankings'] ?? [];
+            	$recent_logs = $domain_data['recent_logs'] ?? [];
+            	$domain_id   = Format::slugify( $domain_name );
+            	?>
 
                 <div class="smliser-dashboard-content_item" data-domain="<?php echo escAttr( $domain_id ); ?>">
                     <div class="smliser-domain-header">
@@ -91,12 +91,12 @@ defined( 'SMLISER_ROOT' ) || exit;
                                                 <span class="value"><?php echo escHtml( number_format( $value ) ); ?></span>
                                                 <span class="label"><?php echo escHtml( smliser_format_metric_label( $key ) ); ?></span>
                                                 <?php
-												// Check for growth metric
-												$growth_key = $key . '_growth';
-												if ( isset( $summary[ $growth_key ] ) ) :
-													$growth      = $summary[ $growth_key ];
-													$is_positive = $growth >= 0;
-												?>
+            									// Check for growth metric
+            									$growth_key = $key . '_growth';
+                                    	if ( isset( $summary[ $growth_key ] ) ) :
+                                    		$growth      = $summary[ $growth_key ];
+                                    		$is_positive = $growth >= 0;
+                                    		?>
                                                     <span class="growth <?php echo $is_positive ? 'positive' : 'negative'; ?>">
                                                         <i class="ti ti-trending-<?php echo $is_positive ? 'up' : 'down'; ?>"></i>
                                                         <?php echo escHtml( number_format( abs( $growth ), 2 ) . '%' ); ?>
@@ -139,11 +139,11 @@ defined( 'SMLISER_ROOT' ) || exit;
                                                         </h5>
                                                         <ol class="smliser-ranking-list">
                                                             <?php foreach ( array_slice( $apps, 0, 5 ) as $index => $app ) :
-																$app_sl  = (string) $app['app_slug'] ?? '';
-																$app_ty  = (string) $app['app_type'] ?? '';
-																$app_obj = HostedApplicationService::get_app_by_slug( $app_ty, $app_sl );
+                                                            	$app_sl  = (string) $app['app_slug'] ?? '';
+                                                            	$app_ty  = (string) $app['app_type'] ?? '';
+                                                            	$app_obj = HostedApplicationService::get_app_by_slug( $app_ty, $app_sl );
 																
-																?>
+                                                            	?>
                                                                 <li class="smliser-ranking-item">
                                                                     <span class="rank">#<?php echo escHtml( $index + 1 ); ?></span>
                                                                     <?php if ( $app_obj ) : ?>
@@ -188,8 +188,8 @@ defined( 'SMLISER_ROOT' ) || exit;
                                         </thead>
                                         <tbody>
                                             <?php foreach ( $recent_logs as $log ) :
-												$date = TimestampValue::fromTimestamp( (int) $log['created_at'] )->toDateTime();
-											?>
+                                            	$date = TimestampValue::fromTimestamp( (int) $log['created_at'] )->toDateTime();
+                                            	?>
                                                 <tr>
                                                     <td>
                                                         <span class="timestamp" title="<?php echo escAttr( $date->format( \smliser_datetime_format() ) ); ?>">

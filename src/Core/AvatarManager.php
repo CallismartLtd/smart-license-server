@@ -113,8 +113,7 @@ class AvatarManager {
 
 	/**
 	 * Get the avatar URL
-	 * 
-	*/
+	 */
 	public function url( string $filename, string $type ) : URL {
 		$type = $this->normalize( $type );
 		$path = $this->full_path( $type, $filename );

@@ -266,7 +266,7 @@ class AppInstaller {
 	public function create_required_directories(
 		?callable $success_callback = null,
 		?callable $failure_callback = null
-		) : void {
+	) : void {
 
 		foreach ( $this->required_directories as $type => $dir ) {
 
@@ -816,7 +816,7 @@ class AppInstaller {
 	public function create_tables(
 		?callable $success_callback = null,
 		?callable $failure_callback = null
-		) : void {
+	) : void {
 		$this->assert_database_connection();
 
 		$inspector = new Inspector( $this->db );
@@ -868,7 +868,7 @@ class AppInstaller {
 		callable|null $success_callback = null,
 		callable|null $failure_callback = null,
 		bool $force = false
-		) : void {
+	) : void {
 		$this->assert_database_connection();
 
 		$default_roles = DefaultRoles::all();

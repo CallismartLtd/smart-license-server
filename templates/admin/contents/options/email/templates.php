@@ -75,13 +75,13 @@ $group_colors = [
             </button>
             <?php
 			$groups = array_unique( array_values( $group_map ) );
-			foreach ( $groups as $group ) :
-				$count = count( array_filter(
-					array_keys( $templates ),
-					fn( $k ) => ( $group_map[ $k ] ?? '' ) === $group
-				) );
-				if ( 0 === $count ) continue;
-			?>
+foreach ( $groups as $group ) :
+	$count = count( array_filter(
+		array_keys( $templates ),
+		fn( $k ) => ( $group_map[ $k ] ?? '' ) === $group
+	) );
+	if ( 0 === $count ) continue;
+	?>
                 <button type="button"
                         class="smliser-filter-btn"
                         data-group="<?php echo escAttr( $group ); ?>">
@@ -105,16 +105,16 @@ $group_colors = [
             </thead>
             <tbody>
                 <?php foreach ( $templates as $key => $entry ) :
-					$group      = $group_map[ $key ] ?? 'System';
-					$colors     = $group_colors[ $group ];
-					$detail_url = $current_url
-						->add_query_param( 'section', 'templates' )
-						->add_query_param( 'template', $key );
-					$toggle_url = $current_url
-						->add_query_param( 'section', 'templates' )
-						->add_query_param( 'template', $key )
-						->add_query_param( 'action', $entry['is_enabled'] ? 'disable' : 'enable' );
-				?>
+                	$group      = $group_map[ $key ] ?? 'System';
+                	$colors     = $group_colors[ $group ];
+                	$detail_url = $current_url
+                		->add_query_param( 'section', 'templates' )
+                		->add_query_param( 'template', $key );
+                	$toggle_url = $current_url
+                		->add_query_param( 'section', 'templates' )
+                		->add_query_param( 'template', $key )
+                		->add_query_param( 'action', $entry['is_enabled'] ? 'disable' : 'enable' );
+                	?>
                     <tr data-group="<?php echo escAttr( $group ); ?>">
 
                         <!-- Template name + group badge -->

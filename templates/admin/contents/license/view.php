@@ -93,12 +93,12 @@ $public_download_url = $urlmanager->document_download_url( $license ? $license->
     <?php if ( empty( $license ) ) : ?>
         
         <?php echo  \smliser_not_found_container(
-			\sprintf(
-				'Invalid or deleted license is "%s". <a href="%s"> <i class="ti ti-arrow-narrow-left"></i> Go Back</a>',
-				$license_id,
-				$urlmanager->admin_license_page_url()->url(),
-			)
-		);?>
+        	\sprintf(
+        		'Invalid or deleted license is "%s". <a href="%s"> <i class="ti ti-arrow-narrow-left"></i> Go Back</a>',
+        		$license_id,
+        		$urlmanager->admin_license_page_url()->url(),
+        	)
+        );?>
     
     <?php else: ?>
         <div class="smliser-admin-view-page-wrapper">

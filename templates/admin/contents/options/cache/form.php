@@ -37,10 +37,10 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
     <?php smliser_print_admin_content_header( $menu_args ); ?>
     <?php if ( ! $adapter ) : ?>
         <?php printf(
-			smliser_not_found_container( 'The cache adapter "%s" does not exists. <a href="%s">Go Back</a>' ),
-			$adapter_key,
-			$current_url->url()
-		); ?>
+        	smliser_not_found_container( 'The cache adapter "%s" does not exists. <a href="%s">Go Back</a>' ),
+        	$adapter_key,
+        	$current_url->url()
+        ); ?>
 
     <?php else: ?>
         <form class="smliser-options-form" data-slug="cache-adapter-save">
@@ -50,65 +50,65 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
             <div class="smliser-options-form_body">
                 <?php smliser_render_input_field( [
-					'label' => 'Default TTL',
-					'help'  => 'Default cache expiration duration in seconds.',
-					'input' => [
-						'type'  => 'number',
-						'name'  => 'default_cache_ttl',
-						'value' => $settings->get( 'default_cache_ttl', 0 ),
-						'attr'  => [
-							'min' => 0
-						]
-					]
-				] ); ?>
+                	'label' => 'Default TTL',
+                	'help'  => 'Default cache expiration duration in seconds.',
+                	'input' => [
+                		'type'  => 'number',
+                		'name'  => 'default_cache_ttl',
+                		'value' => $settings->get( 'default_cache_ttl', 0 ),
+                		'attr'  => [
+                			'min' => 0
+                		]
+                	]
+                ] ); ?>
     
                 <?php foreach ( $schema as $key => $field_schema ) :
-					// Build the field definition in the same shape smliser_render_input_field() expects.
-					$field = [
-						'label' => $field_schema['label'] ?? '',
-						'help'  => $field_schema['description'] ?? '',
-						'input' => [
-							'type'  => $field_schema['type'] ?? 'text',
-							'name'  => $key,
-							'value' => ( empty( $saved_settings[ $key ] ) ? null : $saved_settings[ $key ] ) ?? $field_schema['default'] ?? '',
-						],
-					];
+                	// Build the field definition in the same shape smliser_render_input_field() expects.
+                	$field = [
+                		'label' => $field_schema['label'] ?? '',
+                		'help'  => $field_schema['description'] ?? '',
+                		'input' => [
+                			'type'  => $field_schema['type'] ?? 'text',
+                			'name'  => $key,
+                			'value' => ( empty( $saved_settings[ $key ] ) ? null : $saved_settings[ $key ] ) ?? $field_schema['default'] ?? '',
+                		],
+                	];
 
-					if ( isset( $field_schema['required'] ) && $field_schema['required'] ) {
-						$field['input']['attr']['required']   = true;
-						$field['input']['attr']['field_name'] = $field['label'];
-					}
+                	if ( isset( $field_schema['required'] ) && $field_schema['required'] ) {
+                		$field['input']['attr']['required']   = true;
+                		$field['input']['attr']['field_name'] = $field['label'];
+                	}
 
-					// Pass options through for select fields.
-					if ( isset( $field_schema['options'] ) ) {
-						$field['input']['options'] = $field_schema['options'];
-						$field['input']['class']   = 'smliser-form-label-row smliser-auto-select2';
-					}
+                	// Pass options through for select fields.
+                	if ( isset( $field_schema['options'] ) ) {
+                		$field['input']['options'] = $field_schema['options'];
+                		$field['input']['class']   = 'smliser-form-label-row smliser-auto-select2';
+                	}
 
-					// Mask password fields so saved values are not exposed in the DOM.
-					if ( 'password' === $field_schema['type'] ) {
-						$field['input']['value'] = '';
-						$field['input']['attr']  = [
-							'autocomplete' => 'new-password',
-							'data-masked'  => 'true',
-							'placeholder'  => '••••••••••••••••',
-						];
-					}
-				?>
+                	// Mask password fields so saved values are not exposed in the DOM.
+                	if ( 'password' === $field_schema['type'] ) {
+                		$field['input']['value'] = '';
+                		$field['input']['attr']  = [
+                			'autocomplete' => 'new-password',
+                			'data-masked'  => 'true',
+                			'placeholder'  => '••••••••••••••••',
+                		];
+                	}
+                	?>
                     <?php smliser_render_input_field( $field ); ?>
                 <?php endforeach; ?>
 
                 <div class="smliser-form-label-row">
                     <strong id="set-as-default-label">Make Default <?php
-						smliser_render_field_help_icon(
-							'Set this cache adapter as the default provider for all caching operations.',
-							'set-as-default-label'
-						) ?>
+                			smliser_render_field_help_icon(
+                				'Set this cache adapter as the default provider for all caching operations.',
+                				'set-as-default-label'
+                			) ?>
                     </strong>
                     <?php smliser_render_toggle_switch( [
-						'name'  => 'set_as_default',
-						'value' => $is_default,
-					] ); ?>
+                    	'name'  => 'set_as_default',
+                    	'value' => $is_default,
+                    ] ); ?>
                     
                 </div>
 

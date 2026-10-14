@@ -90,7 +90,7 @@ class SendAppOwnershipChangedEmailJob implements JobHandlerInterface {
 			) )->to_message();
 
 			if ( null === $message ) {
-			$skipped++; continue;
+				$skipped++; continue;
 			}
 
 			try {
@@ -113,7 +113,7 @@ class SendAppOwnershipChangedEmailJob implements JobHandlerInterface {
 			) )->to_message();
 
 			if ( null === $message ) {
-			$skipped++; continue;
+				$skipped++; continue;
 			}
 
 			try {

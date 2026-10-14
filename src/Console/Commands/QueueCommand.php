@@ -165,7 +165,7 @@ class QueueCommand extends AbstractCommand {
 	 * @return int
 	 */
 	public function run( CommandInput $input ) : int {
-	$this->output->info( static::description() );
+		$this->output->info( static::description() );
 		$this->output->newline();
 		$this->output->writeln( 'Run `smliser queue help` to see available subcommands.' );
 

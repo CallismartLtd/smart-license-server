@@ -105,7 +105,7 @@ class WooCommerceProvider extends DataStore implements MonetizationProviderInter
 		$cache_expiry = static::default_ttl();
 		$endpoint     = static::$store_url . '/wp-json/wc/store/v1/products/' . $product_id;
 		$request      = HttpRequest::get( $endpoint )
-		->with_options( [ 'timeout' => 30 ] );
+			->with_options( [ 'timeout' => 30 ] );
 
 		$response = $this->http_client->send( $request );
 

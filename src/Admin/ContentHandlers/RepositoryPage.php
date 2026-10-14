@@ -101,8 +101,8 @@ class RepositoryPage implements AdminPageInterface {
 		$illigal     = ['app_search', 'tab', 'search_status', 's', 'app_types', 'message', 'type', 'status'];
 		$current_url = smliser_get_current_url()->remove_query_param( ...$illigal );
 		$add_url     = $current_url
-		->add_query_param( 'tab', 'add-new' )
-		->remove_query_param( 'status' );
+			->add_query_param( 'tab', 'add-new' )
+			->remove_query_param( 'status' );
 		$post_url  = $current_url->add_query_param( 'tab', 'search' );
 		$app_types = HostedApplicationService::get_allowed_app_types();
 		$limit     = $request->get( 'limit', 10 );
@@ -183,7 +183,7 @@ class RepositoryPage implements AdminPageInterface {
 		$urlmanager = $this->urlmanager;
 		$repo_page  = $this;
 		$vars       = compact( 'repo_page', 'urlmanager', 'add_url', 'apps', 'pagination', 'current_url', 'request', 'menu_args',
-		'app_types' );
+			'app_types' );
 		$this->locator->render( 'admin.contents.repository.search', $vars );
 	}
 
@@ -412,7 +412,7 @@ class RepositoryPage implements AdminPageInterface {
 				'class' => ['smliser-btn', 'smliser-btn-glass', 'smliser-app-restore-button'],
 				'attr'  => ['data-action-args' => smliser_json_encode_attr( ['slug' => $app->get_slug(), 'type' => $app->get_type(), 'status' => AbstractHostedApp::STATUS_ACTIVE] )]
 			];
-		} else if ( $app->can_be_trashed() ) {
+		} elseif ( $app->can_be_trashed() ) {
 			$template_header['buttons'][] = [
 				'text'  => sprintf( 'Trash %s', ucfirst( $app->get_type() ) ),
 				'url'   => '',

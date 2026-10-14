@@ -84,16 +84,16 @@ if ( ! isset( $app ) ) {
                             <div class="app-uploader-asset-container_images">
                                 <?php foreach( $data['images'] as $url ) : ?>
                                     <?php if ( ! empty( $url ) ) :
-										$asset_name = basename( $url );
-										$json_data  = smliser_safe_json_encode( [
-											'asset_type' => $key,
-											'app_slug'   => isset( $app ) ? $app->get_slug() : '',
-											'app_type'   => isset( $app ) ? $app->get_type() : '',
-											'asset_name' => $asset_name,
-											'asset_url'  => $url,
-											'context'    => 'edit'
-										] );
-									?>
+                                    	$asset_name = basename( $url );
+                                    	$json_data  = smliser_safe_json_encode( [
+                                    		'asset_type' => $key,
+                                    		'app_slug'   => isset( $app ) ? $app->get_slug() : '',
+                                    		'app_type'   => isset( $app ) ? $app->get_type() : '',
+                                    		'asset_name' => $asset_name,
+                                    		'asset_url'  => $url,
+                                    		'context'    => 'edit'
+                                    	] );
+                                    	?>
                                         <div class="app-uploader-image-preview">
                                             <img src="<?php echo escUrl( $url ); ?>" id="<?php echo escAttr( explode( '.', $asset_name )[0] ); ?>" alt="<?php echo escAttr( $asset_name ) ?>" loading="lazy" title="<?php echo escAttr( $asset_name ) ?>">
                                             <div class="app-uploader-image-preview_edit">
@@ -103,14 +103,14 @@ if ( ! isset( $app ) ) {
                                         </div>
                                     <?php endif; ?>
                                 <?php endforeach;
-								$config = smliser_safe_json_encode( [
-									'asset_type' => $key,
-									'app_slug'   => isset( $app ) ? $app->get_slug() : '',
-									'app_type'   => isset( $app ) ? $app->get_type() : '',
-									'context'    => 'add_new'
+                    	$config = smliser_safe_json_encode( [
+                    		'asset_type' => $key,
+                    		'app_slug'   => isset( $app ) ? $app->get_slug() : '',
+                    		'app_type'   => isset( $app ) ? $app->get_type() : '',
+                    		'context'    => 'add_new'
 									
-								] )
-								?>    
+                    	] )
+                    	?>    
                                 <div class="smliser-uploader-add-image" data-action="openModal" data-config="<?php echo urlencode( $config ) ?>">
                                     <span class="ti ti-plus"></span>
                                 </div>             

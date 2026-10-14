@@ -55,11 +55,11 @@ defined( 'SMLISER_ROOT' ) || exit;
                        class="<?php echo implode( ' ', $button['class'] ); ?>"
                        <?php
 					   if ( ! empty( $button['attr'] ) ) {
-						   foreach ( $button['attr'] as $attr_key => $attr_value ) {
-							   echo sprintf( '%s="%s" ', escAttr( $attr_key ), escAttr( $attr_value ) );
-						   }
+					   	foreach ( $button['attr'] as $attr_key => $attr_value ) {
+					   		echo sprintf( '%s="%s" ', escAttr( $attr_key ), escAttr( $attr_value ) );
+					   	}
 					   }
-					   ?>>
+                	?>>
                         <?php if ( ! empty( $button['icon'] ) ) : ?>
                             <i class="<?php echo escAttr( $button['icon'] ); ?>"></i>
                         <?php endif; ?>
@@ -89,8 +89,8 @@ defined( 'SMLISER_ROOT' ) || exit;
                         <div tabindex="0" class="smliser-gallery-preview">
                             <?php
 								$first_title = array_key_first( $images );
-								$first_image = current( $images );
-							?>
+            	$first_image = current( $images );
+            	?>
                             <h3 class="smliser-gallery-preview_title"><?php echo escHtml( $first_title ); ?></h3>
                             <div class="smliser-gallery-preview_image">
                                 <img class="smliser-request-fullscreen" src="<?php echo escUrl( current( $first_image )?: $urlmanager->assets_url( 'images/no-image.svg' ) ); ?>" alt="image" title="Double click for fullscreen">

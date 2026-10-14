@@ -226,7 +226,7 @@ class Software extends AbstractHostedApp {
 		$data = [
 			'name'              => $this->get_name(),
 			'type'              => $this->get_type(),
-			'slug'              => $this->get_slug() ,
+			'slug'              => $this->get_slug(),
 			'status'            => $this->get_status(),
 			'version'           => $this->get_version(),
 			'author'            => sprintf( '<a href="%s">%s</a>', $this->get_author_profile(), $this->get_author() ),

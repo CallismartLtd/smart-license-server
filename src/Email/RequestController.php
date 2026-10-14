@@ -86,12 +86,12 @@ class RequestController {
 				]
 			];
 			return ( new Response( 200, [], $response_data ) )
-			->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+				->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 
 		} catch ( RequestException $e ) {
 			return ( new Response() )
-			->set_exception( $e )
-			->set_header( 'Content-Type', 'application/json; charset=utf-8' );
+				->set_exception( $e )
+				->set_header( 'Content-Type', 'application/json; charset=utf-8' );
 		}
 	}
 

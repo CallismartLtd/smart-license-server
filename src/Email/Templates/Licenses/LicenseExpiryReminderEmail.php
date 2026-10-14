@@ -163,7 +163,7 @@ class LicenseExpiryReminderEmail extends EmailTemplate {
 				'rows' => [
 					[ 'label' => 'License Key',   'value' => '{{license_key}}' ],
 					[ 'label' => 'Expiry Date',   'value' => '{{end_date}}' ],
-					[ 'label' => 'Days Remaining','value' => '{{days_left}}' ],
+					[ 'label' => 'Days Remaining', 'value' => '{{days_left}}' ],
 				],
 				'editable'  => true,
 				'removable' => false,

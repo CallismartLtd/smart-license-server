@@ -29,7 +29,6 @@ class FileResponse extends Response {
 	 * instance for child-class access, complementing the parent's generic error handling.
 	 *
 	 * @var FileRequestException $error
-	 *
 	 */
 	protected $error;
 
@@ -257,17 +256,17 @@ class FileResponse extends Response {
 		$last_modified = sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s' ) );
 		
 		$this->set_header( 'Expires', '0' )
-		->set_header( 'Cache-Control', 'private, must-revalidate, max-age=0' )
-		->set_header( 'Last-Modified', $last_modified )
-		->set_header( 'Date', gmdate( 'D, d M Y H:i:s \G\M\T' ) )
-		->set_header( 'Content-Transfer-Encoding', 'Binary' )
-		->set_header( 'X-Content-Type-Options', 'nosniff' )
-		->set_header( 'X-Robots-Tag', 'noindex, nofollow' )
-		->set_header( 'Content-Description', 'File Transfer' )
-		->set_header( 'Pragma', 'Public' )
-		->set_header( 'ETag', "" )
-		->set_header( 'Content-Type', 'text/plain' )
-		->set_header( 'Content-Length', '0' );
+			->set_header( 'Cache-Control', 'private, must-revalidate, max-age=0' )
+			->set_header( 'Last-Modified', $last_modified )
+			->set_header( 'Date', gmdate( 'D, d M Y H:i:s \G\M\T' ) )
+			->set_header( 'Content-Transfer-Encoding', 'Binary' )
+			->set_header( 'X-Content-Type-Options', 'nosniff' )
+			->set_header( 'X-Robots-Tag', 'noindex, nofollow' )
+			->set_header( 'Content-Description', 'File Transfer' )
+			->set_header( 'Pragma', 'Public' )
+			->set_header( 'ETag', "" )
+			->set_header( 'Content-Type', 'text/plain' )
+			->set_header( 'Content-Length', '0' );
 
 	}
 
@@ -595,5 +594,5 @@ class FileResponse extends Response {
 			return false;
 		}
 	}
-	
+
 }

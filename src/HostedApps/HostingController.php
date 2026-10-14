@@ -149,7 +149,7 @@ class HostingController {
 					$app->set_owner_id( $request->get( 'app_owner_id' ) );
 				}
 				
-			} else if ( $request->hasValue( 'app_owner_id' ) ) {
+			} elseif ( $request->hasValue( 'app_owner_id' ) ) {
 				$app->set_owner_id( $request->get( 'app_owner_id' ) );
 			} else {
 				$app->set_owner_id( $this->guard->get_principal()?->get_owner()?->get_id() ?? 0 );
@@ -208,14 +208,14 @@ class HostingController {
 				'data'    => [
 					'message'      => sprintf( '%s Saved', ucfirst( $app_type ) ),
 					'redirect_url' => $this->urlmanager->admin_repo_url( 'edit', [ 'type' => $app_type, 'app_id' => $app->get_id() ]
-				)
-			]];
+					)
+				]];
 
 			$request->set( 'smliser_resource', $app );
 
 			return Response::json( $data, 200 )
-			->set_request( $request )
-			->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+				->set_request( $request )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
 		} catch ( RequestException $e ) {
 			return Response::error( $e )
 				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
@@ -508,7 +508,7 @@ class HostingController {
 				);
 			}
 
-		   $this->cache->clear();
+			$this->cache->clear();
 
 			return Response::json(
 				[ 'success' => true, 'data' => [ 'message' => 'Asset deleted successfully.' ] ],
@@ -785,7 +785,7 @@ class HostingController {
 				] );
 			}
 
-		   $this->cache->clear();
+			$this->cache->clear();
 
 			$data = [
 				'message'      => sprintf( '%s status changed from %s to %s', ucfirst( $app_type ), $old_status, $status ),
@@ -848,7 +848,7 @@ class HostingController {
 				->set_request( $request )
 				->set_header( 'Location', $url->url() );
 
-		   $this->cache->clear();
+			$this->cache->clear();
 			return $response;
 
 		} catch ( Exception $e ) {

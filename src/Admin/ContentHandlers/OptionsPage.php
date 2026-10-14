@@ -311,7 +311,7 @@ class OptionsPage implements AdminPageInterface {
 		$urlmanager   = $this->urlmanager;
 		$settings     = $this->settings;
 		$vars         = compact( 'request', 'adapter', 'adapter_name', 'adapter_key', 'schema',
-		'is_default', 'adapter_id', 'saved_settings', 'page_handler', 'urlmanager', 'settings' );
+			'is_default', 'adapter_id', 'saved_settings', 'page_handler', 'urlmanager', 'settings' );
 		$this->locator->render( 'admin.contents.options.cache.form', $vars );
 	}
 

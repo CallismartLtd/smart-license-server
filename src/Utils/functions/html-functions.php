@@ -349,19 +349,19 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
 			intval( $total ),
 			escHtml( $total > 1 ? 'items' : 'item' )
 		);
-		?>
+	?>
     </p>
 
     <?php if ( $total_pages > 1 ) : ?>
         <div class="smliser-tablenav-pages">
             <span class="smliser-displaying-num">
                 <?php
-				printf(
-					escHtml( 'Page %1$d of %2$d' ),
-					intval( $page ),
-					intval( $total_pages )
-				);
-				?>
+			printf(
+				escHtml( 'Page %1$d of %2$d' ),
+				intval( $page ),
+				intval( $total_pages )
+			);
+    	?>
             </span>
 
             <span class="smliser-pagination-links">
@@ -373,9 +373,9 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
                 <?php endif; ?>
 
                 <?php
-				// First page.
-				if ( $start > 1 ) :
-					?>
+    	// First page.
+    	if ( $start > 1 ) :
+    		?>
                     <a class="button" href="<?php echo escUrl( $base_url->add_query_params( [ $page_param => 1, 'limit' => $limit ] )->url() ); ?>">1</a>
                     <?php if ( $start > 2 ) : ?>
                         <span class="smliser-navspan button disabled">…</span>
@@ -672,25 +672,25 @@ function smliser_print_admin_content_header( array $args = [], bool $echo = true
 
                     <?php
 					$breadcrumb_count = count( $args['breadcrumbs'] );
-					$current_index    = 0;
+            	$current_index    = 0;
 
-					foreach ( $args['breadcrumbs'] as $breadcrumb ) :
+            	foreach ( $args['breadcrumbs'] as $breadcrumb ) :
 
-						$current_index++;
+            		$current_index++;
 
-						$breadcrumb = parse_args(
-							$breadcrumb,
-							[
-								'label'      => '',
-								'url'        => '',
-								'icon'       => '',
-								'class'      => '',
-								'attributes' => [],
-							]
-						);
+            		$breadcrumb = parse_args(
+            			$breadcrumb,
+            			[
+            				'label'      => '',
+            				'url'        => '',
+            				'icon'       => '',
+            				'class'      => '',
+            				'attributes' => [],
+            			]
+            		);
 
-						$tag = ! empty( $breadcrumb['url'] ) ? 'a' : 'span';
-						?>
+            		$tag = ! empty( $breadcrumb['url'] ) ? 'a' : 'span';
+            		?>
 
                         <<?php echo escHtml( $tag ); ?>
                             class="<?php echo escAttr( $breadcrumb['class'] ); ?>"
@@ -723,30 +723,30 @@ function smliser_print_admin_content_header( array $args = [], bool $echo = true
 
                     <?php foreach ( $args['actions'] as $action ) :
 
-						$action = parse_args(
-							$action,
-							[
-								'label'      => '',
-								'url'        => '',
-								'title'      => '',
-								'icon'       => '',
-								'active'     => false,
-								'class'      => '',
-								'attributes' => [],
-								'target'     => '',
-								'rel'        => '',
-								'data'       => [],
-							]
-						);
+                    	$action = parse_args(
+                    		$action,
+                    		[
+                    			'label'      => '',
+                    			'url'        => '',
+                    			'title'      => '',
+                    			'icon'       => '',
+                    			'active'     => false,
+                    			'class'      => '',
+                    			'attributes' => [],
+                    			'target'     => '',
+                    			'rel'        => '',
+                    			'data'       => [],
+                    		]
+                    	);
 
-						/**
-						 * Merge data-* attributes
-						 */
-						foreach ( (array) $action['data'] as $data_key => $data_value ) {
-							$action['attributes'][ 'data-' . $data_key ] = $data_value;
-						}
+                    	/**
+                    	 * Merge data-* attributes
+                    	 */
+                    	foreach ( (array) $action['data'] as $data_key => $data_value ) {
+                    		$action['attributes'][ 'data-' . $data_key ] = $data_value;
+                    	}
 
-						?>
+                    	?>
 
                         <a
                             class="smliser-menu-link<?php echo escAttr( $print_active( (bool) $action['active'] ) ); ?> <?php echo escAttr( $action['class'] ); ?>"

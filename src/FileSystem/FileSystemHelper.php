@@ -571,7 +571,7 @@ class FileSystemHelper {
 	 * @return string Formatted size string.
 	 */
 	public static function format_file_size( $bytes, $decimals = 2 ) {
-	   if ( $bytes <= 0 ) {
+		if ( $bytes <= 0 ) {
 			return sprintf( '%.' . (int) $decimals . 'f %s', 0, 'B' );
 		}
 

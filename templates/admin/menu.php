@@ -29,14 +29,14 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 
             <?php
 			$url                = $urlmanager->admin_url( $menu['slug'] );
-			$has_submenu        = $registry->has_submenu( $key );
-			$is_current_section = $menu['slug'] === ( $current_menu['slug'] ?? '' );
-			$is_current_page    = $is_current_section;
+        	$has_submenu        = $registry->has_submenu( $key );
+        	$is_current_section = $menu['slug'] === ( $current_menu['slug'] ?? '' );
+        	$is_current_page    = $is_current_section;
 
-			$extra_li_class = $is_current_section ? ' is-open' : '';
-			$extra_li_class .= $is_current_page ? ' is-current' : '';
-			$extra_li_class .= $has_submenu ? ' has-submenu' : '';
-			?>
+        	$extra_li_class = $is_current_section ? ' is-open' : '';
+        	$extra_li_class .= $is_current_page ? ' is-current' : '';
+        	$extra_li_class .= $has_submenu ? ' has-submenu' : '';
+        	?>
             <li class="dashboard-menu-item<?php echo escAttr( $extra_li_class ); ?>" id="menu-<?php echo escAttr( $key ); ?>">
                 <a
                     href="<?php echo escUrl( $url->url() ); ?>"
@@ -58,12 +58,12 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <?php if ( ( is_callable( $submenu['visibility'] ) && ! $submenu['visibility']() ) || ! $submenu['visibility'] ) : continue; ?>
                         <?php endif; ?>
                             <?php
-							$sub_url             = $urlmanager->admin_url( $menu['slug'], $submenu['slug'] );
-							$current_slug_marker = "{$menu['slug']}/{$submenu['slug']}";
-							$current_sub_marker  = $current_submenu ? "{$current_menu['slug']}/{$current_submenu['slug']}" : null;
-							$is_current_sub      = $current_slug_marker === $current_sub_marker;
+        					$sub_url             = $urlmanager->admin_url( $menu['slug'], $submenu['slug'] );
+                        	$current_slug_marker = "{$menu['slug']}/{$submenu['slug']}";
+                        	$current_sub_marker  = $current_submenu ? "{$current_menu['slug']}/{$current_submenu['slug']}" : null;
+                        	$is_current_sub      = $current_slug_marker === $current_sub_marker;
 
-							?>
+                        	?>
                             <li class="dashboard-submenu-item<?php echo $is_current_sub ? ' is-current' : ''; ?>" id="submenu-<?php echo escAttr( $submenu['slug'] ); ?>">
                                 <a
                                     href="<?php echo escUrl( $sub_url->url() ); ?>"

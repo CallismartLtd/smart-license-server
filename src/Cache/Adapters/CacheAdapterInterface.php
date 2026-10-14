@@ -62,7 +62,7 @@ interface CacheAdapterInterface extends ServiceProviderInterface {
 	|--------------------------------------------------------------------------
 	| ATOMIC OPERATIONS
 	|--------------------------------------------------------------------------
-	*/
+	 */
 
 	/**
 	 * Atomically read, modify, and rewrite a cached value via a callback.
@@ -104,7 +104,7 @@ interface CacheAdapterInterface extends ServiceProviderInterface {
 	|--------------------------------------------------------------------------
 	| CONFIGURATION & SUPPORT
 	|--------------------------------------------------------------------------
-	*/
+	 */
 
 	/**
 	 * Return required configuration fields.
@@ -139,7 +139,7 @@ interface CacheAdapterInterface extends ServiceProviderInterface {
 	|--------------------------------------------------------------------------
 	| DIAGNOSTICS
 	|--------------------------------------------------------------------------
-	*/
+	 */
 
 	/**
 	 * Return runtime statistics for this cache adapter.

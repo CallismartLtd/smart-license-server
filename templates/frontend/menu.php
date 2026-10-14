@@ -31,11 +31,11 @@ $active_slug = $active_slug ?? '';
     <?php if ( ! empty( $menu ) ) : ?>
         <nav class="smlcd-nav" role="list">
             <?php foreach ( $menu as $key => $item ) :
-				$slug      = $item['slug'] ?? $key;
-				$title     = $item['title'] ?? $key;
-				$icon      = $item['icon'] ?? '';
-				$is_active = ( $slug === $active_slug ) || ( '' === $slug && '' === $active_slug );
-			?>
+            	$slug      = $item['slug'] ?? $key;
+            	$title     = $item['title'] ?? $key;
+            	$icon      = $item['icon'] ?? '';
+            	$is_active = ( $slug === $active_slug ) || ( '' === $slug && '' === $active_slug );
+            	?>
             <button
                 type="button"
                 class="smlcd-nav-item<?php echo $is_active ? ' smlcd-nav-item--active' : ''; ?>"

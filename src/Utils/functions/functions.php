@@ -487,7 +487,7 @@ function smliser_log_error( Throwable|string $error, bool $force = false ) : voi
 		GlobalErrorHandler::instance()->log( $error );
 	}
 
-	
+
 }
 
 /**

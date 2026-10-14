@@ -294,7 +294,7 @@ class BulkMessage {
 	|-----------------
 	| UTILITY METHODS
 	|-----------------
-	*/
+	 */
 
 	/**
 	 * Convert this message object to an associative array.

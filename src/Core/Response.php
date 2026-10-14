@@ -544,8 +544,7 @@ class Response {
 						$nonce
 					)
 				)
-
-			->set_body( $this->http_error_document( $this->get_error_message(), $nonce ) );
+				->set_body( $this->http_error_document( $this->get_error_message(), $nonce ) );
 		}
 	}
 

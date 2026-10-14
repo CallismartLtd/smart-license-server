@@ -146,7 +146,6 @@ class HostedAppsRegistry extends AbstractRegistry {
 	 *  directory_class: class-string<Repository>,
 	 *  table: string,
 	 * }|null $entry 
-	 *
 	 */
 	public function get_app_type_data( string $type ) : ?array {
 		$this->ensure_core();

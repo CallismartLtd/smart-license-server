@@ -37,9 +37,9 @@ $current_url = smliser_get_current_url()->remove_query_param( 'message', 'sectio
 
         <div class="smliser-provider-cards">
             <?php foreach ( $providers as $provider_id => $provider ) :
-				$is_default   = $default_provider === $provider_id;
-				$provider_url = $current_url->add_query_param( 'adapter', $provider_id );
-			?>
+            	$is_default   = $default_provider === $provider_id;
+            	$provider_url = $current_url->add_query_param( 'adapter', $provider_id );
+            	?>
                 <div class="smliser-provider-card <?php echo escAttr( $provider_id ); ?> <?php echo $is_default ? 'smliser-provider-card--active' : ''; ?>">
 
                     <div class="smliser-provider-card__icon-wrap">

@@ -14,9 +14,9 @@
  * @version 0.2.0
  */
 
- defined( 'SMLISER_ROOT' ) || exit;
+defined( 'SMLISER_ROOT' ) || exit;
 
- ?><!DOCTYPE html>
+?><!DOCTYPE html>
  <html <?php language_attributes(); ?>>
  <head>
      <meta name="viewport" content="width=device-width" />

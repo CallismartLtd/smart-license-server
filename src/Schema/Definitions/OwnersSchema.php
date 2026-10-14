@@ -35,7 +35,7 @@ class OwnersSchema implements DatabaseSchemaInterface {
 				->required(),
 
 			Column::make( 'subject_id' )
-			   ->type( ColumnType::BIG_INT )
+				->type( ColumnType::BIG_INT )
 				->required(),
 
 			Column::make( 'type' )

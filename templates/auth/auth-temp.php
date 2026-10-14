@@ -23,37 +23,37 @@ defined( 'SMLISER_ROOT' ) || exit;
         <h2><?php
 			/* Translators: %s App name. */
 			printf( escHtml( '%s would like to connect to your plugin repository' ), escHtml( ucwords( $sanitized_params['app_name'] ) ) );
-		?></h2>
+?></h2>
 
         <p><?php
-			/* Translators: %1$s App name, %2$s scope. */
-			printf( escHtml( 'This will give "%1$s" a "%2$s" access which will enable it to:' ), escHtml( ucwords( $sanitized_params['app_name'] ) ), escHtml( $permission ) ); ?>
+	/* Translators: %1$s App name, %2$s scope. */
+	printf( escHtml( 'This will give "%1$s" a "%2$s" access which will enable it to:' ), escHtml( ucwords( $sanitized_params['app_name'] ) ), escHtml( $permission ) ); ?>
         </p>
 
         <ul>
             <li><?php
-				/** translators: %s permissions. */
-				printf( escHtml( '%s plugins in the repository' ), escHtml( $verb ) ); ?>
+		/** translators: %s permissions. */
+		printf( escHtml( '%s plugins in the repository' ), escHtml( $verb ) ); ?>
             </li>
 
             <li><?php
-			/** Translators: %s permissions. */
-				printf( escHtml( '%s licenses for premium plugins' ), escHtml( $verb ) ); ?>
+		/** Translators: %s permissions. */
+		printf( escHtml( '%s licenses for premium plugins' ), escHtml( $verb ) ); ?>
             </li>
         </ul>
         <p>Authorizing this action will share credentials with <?php
 		
-		/** Translators: %s Callback url */
-			printf( escHtml( '"%s". Deny this request if you do not trust this app.' ), escHtml( $sanitized_params['callback_url'] ) );?>
+	/** Translators: %s Callback url */
+	printf( escHtml( '"%s". Deny this request if you do not trust this app.' ), escHtml( $sanitized_params['callback_url'] ) );?>
             
         </p>
         <div class="smliser-auth-avater">
         <?php echo wp_kses_post( get_avatar( get_current_user_id(), 70 ) );?>
 
             <p><?php
-				/* Translators: %s display name. */
-				printf( escHtml( 'Logged in as %s' ), escHtml( wp_get_current_user()->display_name ) );
-				?>
+		/* Translators: %s display name. */
+		printf( escHtml( 'Logged in as %s' ), escHtml( wp_get_current_user()->display_name ) );
+?>
                 <a href="<?php echo escUrl( wp_logout_url( url( 'smliser-auth/v1/authorize/' )->add_query_params( $_GET ) ) ) ?>">Logout</a>
             </p>
         </div>

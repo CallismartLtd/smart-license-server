@@ -114,7 +114,7 @@ class RequestController {
 		}
 	}
 
-/**
+	/**
 	 * Process result to delete a security entity.
 	 * 
 	 * @param Request $request
@@ -218,7 +218,7 @@ class RequestController {
 
 				throw new RequestException( 'email_exists' );
 
-			} else if ( $user->exists() && $user->get_email() !== $email ) {
+			} elseif ( $user->exists() && $user->get_email() !== $email ) {
 
 				$email_owner = User::get_by_email( $email );
 
@@ -271,8 +271,8 @@ class RequestController {
 			$uid = $user->exists() ? $user->get_unique_identifier() :  null;
 
 			$user->set_email( $email )
-			->set_display_name( $display_name )
-			->set_status( $status );
+				->set_display_name( $display_name )
+				->set_status( $status );
 			
 			if ( ! $user->save() ) {
 				throw new RequestException( 'database_error', 'Unable to save user', ['status' => 500] );
@@ -354,9 +354,9 @@ class RequestController {
 
 			$description = $request->get( 'description', '' );
 			$sa_acc->set_display_name( $display_name )
-			->set_status( $status )
-			->set_owner_id( $owner->get_id() )
-			->set_description( $description );
+				->set_status( $status )
+				->set_owner_id( $owner->get_id() )
+				->set_description( $description );
 			
 			$account_exists = $sa_acc->exists();
 
@@ -660,7 +660,7 @@ class RequestController {
 			$owner->set_name( $owner_name )
 				->set_subject_id( $subject_id )
 				->set_status( $status )
-			->set_type( $owner_type );
+				->set_type( $owner_type );
 
 			if ( $owner->exists() ) {
 				$this->check_permissions( 'security.owner.update' );
@@ -719,14 +719,14 @@ class RequestController {
 		if ( ! $role ) {
 			$this->check_permissions( 'security.role.create' );
 			$role = ( new Role() )
-			->set_slug( $role_slug );
+				->set_slug( $role_slug );
 
 		} else {
 			$this->check_permissions( 'security.role.update' );
 		}
 
 		$role->set_label( $role_label )
-		->set_capabilities( $caps );
+			->set_capabilities( $caps );
 		
 		if ( ! $role->save() ) {
 			throw new RequestException(

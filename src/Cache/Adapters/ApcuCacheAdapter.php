@@ -114,7 +114,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
 	|--------------------------------------------------------------------------
 	| ATOMIC OPERATIONS
 	|--------------------------------------------------------------------------
-	*/
+	 */
 
 	/**
 	 * Atomically read, modify, and rewrite a cached value via a callback.
@@ -223,7 +223,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
 	|--------------------------------------------------------------------------
 	| CONFIGURATION & SUPPORT
 	|--------------------------------------------------------------------------
-	*/
+	 */
 
 	public static function get_id() : string {
 		return 'apcu';
@@ -251,7 +251,7 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
 	|--------------------------------------------------------------------------
 	| DIAGNOSTICS
 	|--------------------------------------------------------------------------
-	*/
+	 */
 
 	/**
 	 * Return runtime statistics for the APCu backend.

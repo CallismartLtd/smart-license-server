@@ -27,7 +27,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
 					$urlmanager->admin_repo_url()
 				)
 			);
-		?>
+    	?>
     <?php else : ?>
         <div class="smliser-monetization-ui">
             <div class="smliser-monetization-ui__software-info">
@@ -61,14 +61,14 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                             <th>Monetization Status:</th>
                             <td>
                                 <?php
-								smliser_render_toggle_switch( [
-									'id'                   => 'monetization_enabled',
-									'name'                 => 'enabled',
-									'value'                => $monetization->is_enabled() ? 1 : 0,
-									'data-action'          => 'toggleMonetization',
-									'data-monetization-id' => intval( $monetization->get_id() ),
-								] );
-								?>
+    							smliser_render_toggle_switch( [
+    								'id'                   => 'monetization_enabled',
+    								'name'                 => 'enabled',
+    								'value'                => $monetization->is_enabled() ? 1 : 0,
+    								'data-action'          => 'toggleMonetization',
+    								'data-monetization-id' => intval( $monetization->get_id() ),
+    							] );
+    	?>
                             </td>
                         </tr>
                     </table>
@@ -84,21 +84,21 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <?php else: ?>
                             <?php foreach ( $monetization->get_tiers() as $tier ) : ?>
                                 <?php
-									$features     = $tier->get_features();
-									$features_str = is_array( $features ) ? implode( ', ', $features ) : (string) $features;
+    		$features     = $tier->get_features();
+                            	$features_str = is_array( $features ) ? implode( ', ', $features ) : (string) $features;
 
-									// Encode the tier into JSON for JS handling
-									$tier_json = smliser_safe_json_encode( [
-										'id'              => $tier->get_id(),
-										'name'            => $tier->get_name(),
-										'provider_id'     => $tier->get_provider_id(),
-										'product_id'      => $tier->get_product_id(),
-										'billing_cycle'   => $tier->get_billing_cycle(),
-										'max_sites'       => $tier->get_max_sites(),
-										'features'        => $features,
-										'monetization_id' => $tier->get_monetization_id(),
-									] );
-								?>
+                            	// Encode the tier into JSON for JS handling
+                            	$tier_json = smliser_safe_json_encode( [
+                            		'id'              => $tier->get_id(),
+                            		'name'            => $tier->get_name(),
+                            		'provider_id'     => $tier->get_provider_id(),
+                            		'product_id'      => $tier->get_product_id(),
+                            		'billing_cycle'   => $tier->get_billing_cycle(),
+                            		'max_sites'       => $tier->get_max_sites(),
+                            		'features'        => $features,
+                            		'monetization_id' => $tier->get_monetization_id(),
+                            	] );
+                            	?>
                                 <tr class="tier-row-<?php echo escAttr( $tier->get_id() ) ?>">
                                     <th><?php echo escHtml( $tier->get_name() ); ?></th>
                                     <td>

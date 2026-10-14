@@ -71,8 +71,8 @@ class PasswordReset implements DashboardHandlerInterface {
 
 		$html = \smliser_render_template_to_string(
 			ClientDashboardRenderer::AUTH_RESET_PWD_TEMPLATE,[
-			'token' => $token,
-		] );
+				'token' => $token,
+			] );
 
 		// Return JSON response with form HTML and header
 		return ( new Response( 200 ) )

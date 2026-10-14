@@ -614,23 +614,23 @@ class HostedApplicationService extends DataStore {
 	}
 
 	/**
-	* Execute query/queries and return raw rows plus a total record count.
-	*
-	* Handles three cases transparently:
-	*   1. Single SelectionIntent  — uses a window function (when $use_window_fn
-	*      is true) or a separate COUNT query (when false) to obtain the total.
-	*   2. Two or more intents     — builds a UNION ALL sub-query and wraps it in
-	*      a COUNT(*) sub-select for the total; always uses separate queries.
-	*
-	* @param  SelectionIntent[] $sql_parts       One or more query intents.
-	* @param  int               $limit
-	* @param  int               $offset
-	* @param  bool              $use_window_fn   When true and there is only one
-	*                                            intent, piggyback COUNT(*) OVER()
-	*                                            onto the data query instead of
-	*                                            issuing a separate count query.
-	* @return array{ 0: array[], 1: int }        [ $rows, $total ]
-	*/
+	 * Execute query/queries and return raw rows plus a total record count.
+	 *
+	 * Handles three cases transparently:
+	 *   1. Single SelectionIntent  — uses a window function (when $use_window_fn
+	 *      is true) or a separate COUNT query (when false) to obtain the total.
+	 *   2. Two or more intents     — builds a UNION ALL sub-query and wraps it in
+	 *      a COUNT(*) sub-select for the total; always uses separate queries.
+	 *
+	 * @param  SelectionIntent[] $sql_parts       One or more query intents.
+	 * @param  int               $limit
+	 * @param  int               $offset
+	 * @param  bool              $use_window_fn   When true and there is only one
+	 *                                            intent, piggyback COUNT(*) OVER()
+	 *                                            onto the data query instead of
+	 *                                            issuing a separate count query.
+	 * @return array{ 0: array[], 1: int }        [ $rows, $total ]
+	 */
 	private static function resolve_union_results( array $sql_parts, int $limit, int $offset, bool $use_window_fn ) : array {
 		$db = static::$DB;
 	

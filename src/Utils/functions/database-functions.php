@@ -33,7 +33,7 @@ function smliserDBSchemaInspection( Database $db ) : Inspector {
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Utils
  */
- 
+
 /**
  * Get the environment variable names that hold the database configuration.
  *
@@ -55,7 +55,7 @@ function smliser_db_env_keys() : array {
 		'encryption_key' => 'SMLISER_SQLITE_ENCRYPTION_KEY',
 	];
 }
- 
+
 /**
  * Build the database configuration from environment variables.
  *

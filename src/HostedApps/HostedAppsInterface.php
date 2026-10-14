@@ -190,7 +190,6 @@ interface HostedAppsInterface {
 	 * Set the manifest property.
 	 * 
 	 * @param array $data
-	 * 
 	 */
 	public function set_manifest( array $data ) : static;
 

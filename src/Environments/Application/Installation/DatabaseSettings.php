@@ -222,7 +222,7 @@ final class DatabaseSettings {
 			'sqlite' === $driver && $has( 'unable to open', 'readonly', 'read-only', 'permission' )
 				=> 'The database file could not be created or opened. Make sure the database folder exists and is writable by the web server.',
 			default
-				=> 'Check the details and try again.',
+			=> 'Check the details and try again.',
 		};
 	}
 }

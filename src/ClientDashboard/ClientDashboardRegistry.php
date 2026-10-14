@@ -30,8 +30,6 @@ use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
  *          'handler' => [LicenseHandler::class, 'handle'],
  *          'icon'    => 'ti ti-creative-commons-nd',
  *      ] );
- * 
- *
  */
 class ClientDashboardRegistry extends AbstractDashboardRegistry {
 	/*

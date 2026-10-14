@@ -50,20 +50,39 @@ return ( new PhpCsFixer\Config() )
 		// $a . $b.
 		'concat_space'                      => [ 'spacing' => 'one' ],
 
-		// Align = and => across consecutive lines.
+		// One space around binary operators. = and => are left as written,
+		// so hand alignment of consecutive lines is kept: automatic
+		// alignment also lines up unrelated statements and long match arms.
 		'binary_operator_spaces'            => [
 			'default'   => 'single_space',
 			'operators' => [
-				'='  => 'align_single_space_minimal',
-				'=>' => 'align_single_space_minimal',
+				'='  => null,
+				'=>' => null,
 			],
 		],
 
 		// Empty bodies stay on one line: private function __construct() {}.
 		'single_line_empty_body'            => true,
 
+		// elseif, not else if.
+		'elseif'                            => true,
+
+		// [ 'a', 'b' ]: one space after each comma, none before.
+		'whitespace_after_comma_in_array'   => true,
+		'no_whitespace_before_comma_in_array' => true,
+
+		// Indentation of array elements, statements and method chains.
+		'array_indentation'                 => true,
+		'statement_indentation'             => true,
+		'method_chaining_indentation'       => true,
+
+		// Docblocks: aligned with their code, no blank first or last line.
+		'phpdoc_indent'                     => true,
+		'phpdoc_trim'                       => true,
+
 		// File hygiene.
 		'no_trailing_whitespace'            => true,
 		'single_blank_line_at_eof'          => true,
 		'line_ending'                       => true,
+		'no_closing_tag'                    => true,
 	] );

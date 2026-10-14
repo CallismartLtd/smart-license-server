@@ -95,14 +95,14 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
 
             <?php foreach ( AbstractHostedApp::STATUSES as $k => $label ) :
 
-				$is_active = ( $current_status === $k );
-				$count     = HostedApplicationService::count_apps(
-					[
-						'status' => $k,
-						'types'  => $type ?? HostedAppsRegistry::instance()->app_types(),
-					]
-				);
-				?>
+            	$is_active = ( $current_status === $k );
+            	$count     = HostedApplicationService::count_apps(
+            		[
+            			'status' => $k,
+            			'types'  => $type ?? HostedAppsRegistry::instance()->app_types(),
+            		]
+            	);
+            	?>
 
                 <li class="smliser-status-item">
                     <a 
@@ -126,16 +126,16 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
 
         <?php if ( empty( $apps ) ) : ?>
             <?php if ( ! $current_url->has_query_param( 'status' ) ) :
-				$type_name = $type ? $type : 'application';
-				$message   = sprintf(
-					'No app found in the repository, upload new %1$s <a href="%3$s">here</a>.',
-					escHtml( $type_name ),
-					escHtml( $status ?? '' ),
-					escUrl( $add_url->url() )
-				);
-			else:
-				$message = 'No app found matching this status';
-			endif; ?>
+            	$type_name = $type ? $type : 'application';
+            	$message   = sprintf(
+            		'No app found in the repository, upload new %1$s <a href="%3$s">here</a>.',
+            		escHtml( $type_name ),
+            		escHtml( $status ?? '' ),
+            		escUrl( $add_url->url() )
+            	);
+            else:
+            	$message = 'No app found matching this status';
+            endif; ?>
                 <?php echo smliser_not_found_container( $message ); ?>       
         <?php else: ?>
 

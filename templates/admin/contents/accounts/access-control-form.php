@@ -162,7 +162,7 @@ if ( $render_image_only ) {
                                 <img 
                                     src="<?php
 										echo escUrl( $avatar_manager->url( $member->get_unique_identifier(), $member->get_type() )->url() );
-										?>" 
+                    	?>" 
                                     alt="<?php echo escAttr( 'Member avatar' ); ?>" 
                                     width="38" 
                                     height="38"

@@ -61,7 +61,7 @@ final class JS {
 				'url'          => $this->urlmanager->assets_url( sprintf( 'js/admin/core%s.js', $suffix ) ),
 				'dependencies' => [
 					'gobals', 'string-utils', 'jquery', 'select2', 'datetime-picker',
-					'modal','toast'
+					'modal', 'toast'
 				],
 				'version' => SMLISER_VER,
 				'footer'  => true

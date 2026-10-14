@@ -62,15 +62,15 @@ $menu_args = $page_handler->get_top_menu_args( $request );
                     </tr>
                 <?php else: ?>
                     <?php foreach ( $tasks as $data ) :
-						$task  = $data['task'];
-						$state = $data['state'];
+                    	$task  = $data['task'];
+                    	$state = $data['state'];
 
-						$last_ran = $state['last_ran_at'] ? $state['last_ran_at']->format( \smliser_datetime_format() ) : 'Never';
-						$next_run = $state['next_run_at'] ? $state['next_run_at']->format( \smliser_datetime_format() ) : 'N/A';
-						$status   = $task->is_due( $state['last_ran_at'] ) ? 'DUE' : 'WAITING';
+                    	$last_ran = $state['last_ran_at'] ? $state['last_ran_at']->format( \smliser_datetime_format() ) : 'Never';
+                    	$next_run = $state['next_run_at'] ? $state['next_run_at']->format( \smliser_datetime_format() ) : 'N/A';
+                    	$status   = $task->is_due( $state['last_ran_at'] ) ? 'DUE' : 'WAITING';
 
-						$status = $state['last_error'] ? 'ERROR' : $status;
-					?>
+                    	$status = $state['last_error'] ? 'ERROR' : $status;
+                    	?>
                         <tr >
                             <td><?php echo escHtml( $task->get_id() ) ?></td>
                             <td><?php echo escHtml( $task->get_label() ) ?></td>

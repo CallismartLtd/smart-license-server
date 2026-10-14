@@ -40,8 +40,6 @@ use SmartLicenseServer\SettingsAPI\Settings;
  * 
  * @method class-string<EmailProviderInterface>|null get( string $provider_id ) Get the class string of
  *  a registered email provider.
- * 
- * 
  */
 class EmailProvidersRegistry  extends AbstractRegistry {
 	/**
@@ -94,7 +92,6 @@ class EmailProvidersRegistry  extends AbstractRegistry {
 	 * Class constructor.
 	 * 
 	 * @param Container $container The DI container.
-	 * 
 	 */
 	private function __construct( protected Container $container ) {
 		$this->settings   = $container->get( Settings::class );

@@ -86,11 +86,11 @@ class InstallerPage {
 			</details>
 			<form method="post" action="{$this->e( $action_url )}" class="form" data-async data-busy-label="Checking&hellip;">
 				{$this->field(
-					'setup_token',
-					'Setup token',
-					'<input id="setup_token" name="setup_token" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" required autofocus>',
-					'The token is valid for 24 hours and is deleted when the installation finishes.'
-				)}
+			'setup_token',
+			'Setup token',
+			'<input id="setup_token" name="setup_token" type="text" autocomplete="off" spellcheck="false" autocapitalize="off" required autofocus>',
+			'The token is valid for 24 hours and is deleted when the installation finishes.'
+		)}
 				<div class="actions"><button type="submit" class="btn btn-accent">Start installation</button></div>
 			</form>
 			<p class="hint">While you install, visitors see a short &ldquo;setting things up&rdquo; notice.</p>
@@ -158,74 +158,74 @@ class InstallerPage {
 				<div class="choices">{$options}</div>
 			</fieldset>
 			{$this->field(
-				'db_name',
-				'Database name',
-				"<input id=\"db_name\" name=\"db_name\" type=\"text\" value=\"{$v( 'db_name' )}\" autocomplete=\"off\" spellcheck=\"false\" required>",
-				'<span class="net-only">The name of the empty database you created, for example <code>myaccount_licenses</code>. Some hosts add your account name in front.</span><span class="sqlite-only">The database file name, for example <code>smliser</code>. <code>.db</code> is added when there is no extension. The file is created if it does not exist.</span>'
-			)}
+			'db_name',
+			'Database name',
+			"<input id=\"db_name\" name=\"db_name\" type=\"text\" value=\"{$v( 'db_name' )}\" autocomplete=\"off\" spellcheck=\"false\" required>",
+			'<span class="net-only">The name of the empty database you created, for example <code>myaccount_licenses</code>. Some hosts add your account name in front.</span><span class="sqlite-only">The database file name, for example <code>smliser</code>. <code>.db</code> is added when there is no extension. The file is created if it does not exist.</span>'
+		)}
 			<div class="grid net-only">
 				{$this->field(
-					'db_host',
-					'Server address',
-					"<input id=\"db_host\" name=\"db_host\" type=\"text\" value=\"{$v( 'db_host' )}\" placeholder=\"localhost\" autocomplete=\"off\" spellcheck=\"false\">",
-					'Usually <code>localhost</code>. Your host lists it if the database is on another server.',
-					true
-				)}
+			'db_host',
+			'Server address',
+			"<input id=\"db_host\" name=\"db_host\" type=\"text\" value=\"{$v( 'db_host' )}\" placeholder=\"localhost\" autocomplete=\"off\" spellcheck=\"false\">",
+			'Usually <code>localhost</code>. Your host lists it if the database is on another server.',
+			true
+		)}
 				{$this->field(
-					'db_port',
-					'Port',
-					"<input id=\"db_port\" name=\"db_port\" type=\"text\" inputmode=\"numeric\" value=\"{$v( 'db_port' )}\" placeholder=\"{$this->e( $port_ph )}\">",
-					'Leave empty for the standard port (' . $this->e( implode( ', ', $port_hint ) ) . ').',
-					true
-				)}
+			'db_port',
+			'Port',
+			"<input id=\"db_port\" name=\"db_port\" type=\"text\" inputmode=\"numeric\" value=\"{$v( 'db_port' )}\" placeholder=\"{$this->e( $port_ph )}\">",
+			'Leave empty for the standard port (' . $this->e( implode( ', ', $port_hint ) ) . ').',
+			true
+		)}
 			</div>
 			<div class="grid net-only">
 				{$this->field(
-					'db_user',
-					'Database username',
-					"<input id=\"db_user\" name=\"db_user\" type=\"text\" value=\"{$v( 'db_user' )}\" autocomplete=\"off\" spellcheck=\"false\">",
-					'The database user you created and gave access to this database.'
-				)}
+			'db_user',
+			'Database username',
+			"<input id=\"db_user\" name=\"db_user\" type=\"text\" value=\"{$v( 'db_user' )}\" autocomplete=\"off\" spellcheck=\"false\">",
+			'The database user you created and gave access to this database.'
+		)}
 				{$this->field(
-					'db_password',
-					'Database password',
-					'<input id="db_password" name="db_password" type="password" autocomplete="new-password">',
-					'The password of that database user. It is stored in the <code>.env</code> file.'
-				)}
+			'db_password',
+			'Database password',
+			'<input id="db_password" name="db_password" type="password" autocomplete="new-password">',
+			'The password of that database user. It is stored in the <code>.env</code> file.'
+		)}
 			</div>
 			{$this->field(
-				'db_path',
-				'Database folder',
-				"<input id=\"db_path\" name=\"db_path\" type=\"text\" value=\"{$v( 'db_path' )}\" placeholder=\"{$this->e( $sqlite_dir )}\" spellcheck=\"false\">",
-				'The folder that holds the database file. Leave empty to use the application&rsquo;s storage folder. Keep it outside your public web folder.',
-				true,
-				'sqlite-only'
-			)}
+			'db_path',
+			'Database folder',
+			"<input id=\"db_path\" name=\"db_path\" type=\"text\" value=\"{$v( 'db_path' )}\" placeholder=\"{$this->e( $sqlite_dir )}\" spellcheck=\"false\">",
+			'The folder that holds the database file. Leave empty to use the application&rsquo;s storage folder. Keep it outside your public web folder.',
+			true,
+			'sqlite-only'
+		)}
 			{$this->field(
-				'db_encryption_key',
-				'Encryption key',
-				'<input id="db_encryption_key" name="db_encryption_key" type="password" autocomplete="off">',
-				'Encrypts the database file. Only works when your server&rsquo;s SQLite supports encryption; leave empty if unsure.',
-				true,
-				'sqlite-only'
-			)}
+			'db_encryption_key',
+			'Encryption key',
+			'<input id="db_encryption_key" name="db_encryption_key" type="password" autocomplete="off">',
+			'Encrypts the database file. Only works when your server&rsquo;s SQLite supports encryption; leave empty if unsure.',
+			true,
+			'sqlite-only'
+		)}
 			<details class="more"{$advanced_open}>
 				<summary>Advanced</summary>
 				{$this->field(
-					'db_prefix',
-					'Table prefix',
-					"<input id=\"db_prefix\" name=\"db_prefix\" type=\"text\" value=\"{$v( 'db_prefix' )}\" placeholder=\"smliser_\" spellcheck=\"false\">",
-					'Added to the start of every table name, so the database can be shared with other applications. Leave empty for <code>smliser_</code>.',
-					true
-				)}
+			'db_prefix',
+			'Table prefix',
+			"<input id=\"db_prefix\" name=\"db_prefix\" type=\"text\" value=\"{$v( 'db_prefix' )}\" placeholder=\"smliser_\" spellcheck=\"false\">",
+			'Added to the start of every table name, so the database can be shared with other applications. Leave empty for <code>smliser_</code>.',
+			true
+		)}
 				{$this->field(
-					'db_charset',
-					'Character set',
-					"<input id=\"db_charset\" name=\"db_charset\" type=\"text\" value=\"{$v( 'db_charset' )}\" placeholder=\"{$this->e( $charset_ph )}\" spellcheck=\"false\" autocomplete=\"off\">",
-					$charset_help,
-					true,
-					'net-only'
-				)}
+			'db_charset',
+			'Character set',
+			"<input id=\"db_charset\" name=\"db_charset\" type=\"text\" value=\"{$v( 'db_charset' )}\" placeholder=\"{$this->e( $charset_ph )}\" spellcheck=\"false\" autocomplete=\"off\">",
+			$charset_help,
+			true,
+			'net-only'
+		)}
 			</details>
 			HTML;
 
@@ -293,30 +293,30 @@ class InstallerPage {
 		$fields = <<<HTML
 			<p class="lead">Create your administrator account. You will use it to sign in and manage everything else, including other users.</p>
 			{$this->field(
-				'admin_name',
-				'Your name',
-				"<input id=\"admin_name\" name=\"admin_name\" type=\"text\" autocomplete=\"name\" value=\"{$name}\" required>",
-				'Shown to other users of the dashboard.'
-			)}
+			'admin_name',
+			'Your name',
+			"<input id=\"admin_name\" name=\"admin_name\" type=\"text\" autocomplete=\"name\" value=\"{$name}\" required>",
+			'Shown to other users of the dashboard.'
+		)}
 			{$this->field(
-				'admin_email',
-				'Email address',
-				"<input id=\"admin_email\" name=\"admin_email\" type=\"email\" autocomplete=\"email\" value=\"{$email}\" required>",
-				'You sign in with this address, and password resets are sent to it.'
-			)}
+			'admin_email',
+			'Email address',
+			"<input id=\"admin_email\" name=\"admin_email\" type=\"email\" autocomplete=\"email\" value=\"{$email}\" required>",
+			'You sign in with this address, and password resets are sent to it.'
+		)}
 			<div class="grid">
 				{$this->field(
-					'admin_password',
-					'Password',
-					"<input id=\"admin_password\" name=\"admin_password\" type=\"password\" autocomplete=\"new-password\" minlength=\"{$min_length}\" required>",
-					"At least {$min_length} characters. A short phrase is easier to remember and harder to guess."
-				)}
+			'admin_password',
+			'Password',
+			"<input id=\"admin_password\" name=\"admin_password\" type=\"password\" autocomplete=\"new-password\" minlength=\"{$min_length}\" required>",
+			"At least {$min_length} characters. A short phrase is easier to remember and harder to guess."
+		)}
 				{$this->field(
-					'admin_password_confirm',
-					'Confirm password',
-					"<input id=\"admin_password_confirm\" name=\"admin_password_confirm\" type=\"password\" autocomplete=\"new-password\" minlength=\"{$min_length}\" required>",
-					'Type the same password again.'
-				)}
+			'admin_password_confirm',
+			'Confirm password',
+			"<input id=\"admin_password_confirm\" name=\"admin_password_confirm\" type=\"password\" autocomplete=\"new-password\" minlength=\"{$min_length}\" required>",
+			'Type the same password again.'
+		)}
 			</div>
 			HTML;
 

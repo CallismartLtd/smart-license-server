@@ -569,7 +569,7 @@ class Dispatcher implements RequestDispatcherInterface {
 		if ( $response->ok() && $response->is_json_response() ) {
 			$body                         = $response->get_body();
 			$body['data']['redirect_url'] = smliser_bulk_messages_url()
-			->add_query_params( ['tab' => 'edit', 'msg_id' => $request->get( 'message_id' )] );
+				->add_query_params( ['tab' => 'edit', 'msg_id' => $request->get( 'message_id' )] );
 
 			$response->set_body( $body );
 		}

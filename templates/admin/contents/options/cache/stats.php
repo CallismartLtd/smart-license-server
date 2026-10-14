@@ -98,9 +98,9 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                 <button type="button"
                         class="smlcd-btn smlcd-btn--ghost smliser-action-button"
                         data-args='<?php echo escAttr( smliser_safe_json_encode( [
-							'slug'   => 'options-form/cache-flush-stale/',
-							'method' => 'POST'
-						] ) ); ?>'>
+                        	'slug'   => 'options-form/cache-flush-stale/',
+                        	'method' => 'POST'
+                        ] ) ); ?>'>
                     <i class="ti ti-clock-off"></i> Flush Stale
                 </button>
                 <?php endif; ?>
@@ -109,9 +109,9 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                         class="smlcd-btn smlcd-btn--danger smliser-action-button smlcd-confirm-btn"
                         data-confirm="This will clear ALL cached data for <?php echo escAttr( $adapter_name ); ?>. Are you sure?"
                         data-args='<?php echo escAttr( smliser_safe_json_encode( [
-							'slug'   => 'options-form/cache-flush/',
-							'method' => 'POST'
-						] ) ); ?>'>
+                        	'slug'   => 'options-form/cache-flush/',
+                        	'method' => 'POST'
+                        ] ) ); ?>'>
                     <i class="ti ti-trash"></i> Flush Cache
                 </button>
 
@@ -124,7 +124,7 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
 					echo escUrl( smliser_get_current_url()
 						->remove_query_param( 'section' )
 						->add_query_param( 'adapter', $adapter_id )->url()
-					 ); ?>"
+					); ?>"
                    class="smlcd-btn smlcd-btn--secondary">
                     <i class="ti ti-settings"></i> Configuration
                 </a>
@@ -176,10 +176,10 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                 <div class="smlcd-card__detail">
                     <?php
 					$expired = (int) ( $extra['expired_entries'] ?? 0 );
-					echo $expired > 0
-						? '<span class="smlcd-warn">' . number_format( $expired ) . ' expired</span>'
-						: 'All entries live';
-					?>
+echo $expired > 0
+	? '<span class="smlcd-warn">' . number_format( $expired ) . ' expired</span>'
+	: 'All entries live';
+?>
                 </div>
             </div>
 
@@ -257,15 +257,15 @@ $extra_display   = array_diff_key( $extra, array_flip( $shown_elsewhere ) );?>
                     <em><?php echo $miss_pct; ?>%</em>
                 </span>
                 <span class="smlcd-perf__rating smlcd-perf__rating--<?php
-					echo $hit_pct >= 80 ? 'excellent'
-						: ( $hit_pct >= 60 ? 'good'
-						: ( $hit_pct >= 40 ? 'fair' : 'poor' ) );
-				?>">
+echo $hit_pct >= 80 ? 'excellent'
+	: ( $hit_pct >= 60 ? 'good'
+	: ( $hit_pct >= 40 ? 'fair' : 'poor' ) );
+        	?>">
                     <?php
-					echo $hit_pct >= 80 ? 'Excellent'
-						: ( $hit_pct >= 60 ? 'Good'
-						: ( $hit_pct >= 40 ? 'Fair' : 'Poor' ) );
-					?>
+        		echo $hit_pct >= 80 ? 'Excellent'
+        			: ( $hit_pct >= 60 ? 'Good'
+        			: ( $hit_pct >= 40 ? 'Fair' : 'Poor' ) );
+        	?>
                 </span>
             </div>
 

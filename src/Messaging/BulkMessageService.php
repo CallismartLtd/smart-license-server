@@ -181,7 +181,7 @@ class BulkMessageService extends DataStore {
 			->from( $this->db_table->table() )
 			->where_group( function ( $q ) use ( $id_or_message_id ) {
 				$q->where( 'id', '=', $id_or_message_id )
-				  ->or_where( 'message_id', '=', $id_or_message_id );
+					->or_where( 'message_id', '=', $id_or_message_id );
 			} )
 			->limit( 1 );
 
@@ -266,7 +266,6 @@ class BulkMessageService extends DataStore {
 	 *      total_pages: int
 	 *  }
 	 * }
-	 * 
 	 */
 	public function get_for_app( array $args = [] ) : array {
 		$db = static::$DB;
@@ -422,7 +421,7 @@ class BulkMessageService extends DataStore {
 				$query->where_group( function( SelectionIntent $q ) use ( $search ) {
 					// Utilizes updated core where_like interface boundaries safely
 					$q->where_starts_with( 'subject', $search )
-					  ->or_where_starts_with( 'message_id', $search );
+						->or_where_starts_with( 'message_id', $search );
 				} );
 			}
 		};
@@ -439,8 +438,8 @@ class BulkMessageService extends DataStore {
 			
 		$apply_search( $fetch_query );
 		$fetch_query->order_by( 'created_at', 'DESC' )
-					->limit( $limit )
-					->offset( $offset );
+			->limit( $limit )
+			->offset( $offset );
 
 		$results = $db->get_results( $fetch_query->build(), $fetch_query->get_bindings() );
 		$items   = array_map( [ $this, 'from_array' ], (array) $results );

@@ -205,8 +205,8 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
 		}
 
 		$this->signal->on( SIGINT, [$this, 'exit_handler'] )
-				->on( SIGTERM, [$this, 'exit_handler'] )
-				->on( SIGHUP, [$this, 'exit_handler'] );
+			->on( SIGTERM, [$this, 'exit_handler'] )
+			->on( SIGHUP, [$this, 'exit_handler'] );
 	}
 
 	/**

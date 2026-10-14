@@ -139,63 +139,63 @@ class ApplicationEnvironment extends Environment {
 		$this->container->singleton(
 			PackageVerifier::class,
 			fn( Container $c ) => new PackageVerifier(
-					$c->get( FileSystem::class ),
-					new ReleaseSignature()
-				)
+				$c->get( FileSystem::class ),
+				new ReleaseSignature()
+			)
 		);
 
 		$this->container->singleton(
 			UpdateServer::class,
 			fn( Container $c ) => new UpdateServer(
-					$c->get( HttpClient::class ),
-					$c->get( PackageVerifier::class ),
-					$c->get( FileSystem::class )
-				)
+				$c->get( HttpClient::class ),
+				$c->get( PackageVerifier::class ),
+				$c->get( FileSystem::class )
+			)
 		);
 
 		$this->container->singleton(
 			Updater::class,
 			fn( Container $c ) => new Updater(
-					$c->get( FileSystem::class ),
-					InstallationState::from_runtime( $c->get( FileSystem::class ) ),
-					MaintenanceFlag::from_runtime( $c->get( FileSystem::class ) ),
-					SMLISER_ROOT
-				)
+				$c->get( FileSystem::class ),
+				InstallationState::from_runtime( $c->get( FileSystem::class ) ),
+				MaintenanceFlag::from_runtime( $c->get( FileSystem::class ) ),
+				SMLISER_ROOT
+			)
 		);
 
 		$this->container->singleton(
 			UpdateService::class,
 			fn( Container $c ) => new UpdateService(
-					server: $c->get( UpdateServer::class ),
-					updater: $c->get( Updater::class ),
-					verifier: $c->get( PackageVerifier::class ),
-					signature: new ReleaseSignature(),
-					state: InstallationState::from_runtime( $c->get( FileSystem::class ) ),
-					settings: $c->get( Settings::class ),
-					fs: $c->get( FileSystem::class ),
-					root: \SMLISER_ROOT,
-					job_queue: $c->get( JobQueue::class )
-				)
+				server: $c->get( UpdateServer::class ),
+				updater: $c->get( Updater::class ),
+				verifier: $c->get( PackageVerifier::class ),
+				signature: new ReleaseSignature(),
+				state: InstallationState::from_runtime( $c->get( FileSystem::class ) ),
+				settings: $c->get( Settings::class ),
+				fs: $c->get( FileSystem::class ),
+				root: \SMLISER_ROOT,
+				job_queue: $c->get( JobQueue::class )
+			)
 		);
 
 		$this->container->factory(
 			CodeChangeDetector::class,
 			fn ( Container $c ) : CodeChangeDetector => new CodeChangeDetector(
-					$c->get( InstallationState::class ),
-					$c->get( MaintenanceFlag::class ),
-					SMLISER_VER
-				)
+				$c->get( InstallationState::class ),
+				$c->get( MaintenanceFlag::class ),
+				SMLISER_VER
+			)
 		);
 
 		$this->container->singleton(
 			UpdateRunner::class,
 			fn ( Container $c ) : UpdateRunner => new UpdateRunner(
-					$c->get( UpdateService::class ),
-					$c->get( Updater::class ),
-					$c->get( AppInstaller::class ),
-					$c->get( FileSystem::class ),
-					\SMLISER_ROOT
-				)
+				$c->get( UpdateService::class ),
+				$c->get( Updater::class ),
+				$c->get( AppInstaller::class ),
+				$c->get( FileSystem::class ),
+				\SMLISER_ROOT
+			)
 		);
 
 		$this->container->singleton(
@@ -206,21 +206,21 @@ class ApplicationEnvironment extends Environment {
 		$this->container->singleton(
 			BackgroundRunner::class,
 			fn ( Container $c ) : BackgroundRunner => new BackgroundRunner(
-					$c->get( Scheduler::class ),
-					$c->get( QueueWorker::class ),
-					$c->get( CodeChangeDetector::class ),
-					$c->get( BackgroundStatus::class ),
-					rtrim( \SMLISER_STORAGE_DIR, '/\\' ) . '/background.lock'
-				)
+				$c->get( Scheduler::class ),
+				$c->get( QueueWorker::class ),
+				$c->get( CodeChangeDetector::class ),
+				$c->get( BackgroundStatus::class ),
+				rtrim( \SMLISER_STORAGE_DIR, '/\\' ) . '/background.lock'
+			)
 		);
 
 		$this->container->singleton(
 			BackgroundSetup::class,
 			fn ( Container $c ) : BackgroundSetup => new BackgroundSetup(
-					$c->get( BackgroundStatus::class ),
-					\SMLISER_ROOT,
-					\url()->append_path( CronExecutionHandler::PATH )
-				)
+				$c->get( BackgroundStatus::class ),
+				\SMLISER_ROOT,
+				\url()->append_path( CronExecutionHandler::PATH )
+			)
 		);
 
 		$this->finishPendingUpdate();

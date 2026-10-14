@@ -390,8 +390,8 @@ class Owner extends DataStore {
 
 				$result &&
 					$this->set_id( $db->get_insert_id() )
-					->set_created_at( $now )
-					->set_updated_at( $now );
+						->set_created_at( $now )
+						->set_updated_at( $now );
 			}
 
 			if ( false === $result ) {

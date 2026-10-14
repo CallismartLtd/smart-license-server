@@ -110,10 +110,10 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
 					->else( 4 ),
 				'ASC'
 			)
-			->order_by( 'priority', 'ASC' )
-			->order_by( 'available_at', 'ASC' )
-			->limit( 1 )
-			->lock_for_update();
+				->order_by( 'priority', 'ASC' )
+				->order_by( 'available_at', 'ASC' )
+				->limit( 1 )
+				->lock_for_update();
 
 			$row = $this->db->get_row( $queue_sql->build(), $queue_sql->get_bindings() );
 
@@ -450,7 +450,7 @@ class DatabaseJobStorageAdapter implements JobStorageAdapterInterface {
 			// If the job has exhausted its attempts, archive it as failed.
 			if ( $job->has_exceeded_max_attempts() ) {
 				$job = $job->set( JobDTO::KEY_ERROR_MESSAGE, 'Worker timeout — max attempts exceeded.' )
-						   ->set( JobDTO::KEY_STATUS, JobDTO::STATUS_FAILED );
+					->set( JobDTO::KEY_STATUS, JobDTO::STATUS_FAILED );
 				$this->archive_failed_job( $job );
 			} else {
 				// Otherwise return it to the queue for retry.

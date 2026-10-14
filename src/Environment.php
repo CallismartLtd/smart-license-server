@@ -172,14 +172,14 @@ abstract class Environment {
 		$this->container->set(
 			SQLiteCacheAdapter::class,
 			fn () : SQLiteCacheAdapter => new SQLiteCacheAdapter(
-					base_dir: \SMLISER_CACHE_DIR,
-					db_filename: 'smliser-cache.sqlite',
-					stats_table: 'smliser_stats_table',
-					table: 'smliser_main_cache',
-					storage_limit: 512,
-					cache_memory: 4,
-					dir_perm: \SMLISER_DIR_PERMISSION
-				)
+				base_dir: \SMLISER_CACHE_DIR,
+				db_filename: 'smliser-cache.sqlite',
+				stats_table: 'smliser_stats_table',
+				table: 'smliser_main_cache',
+				storage_limit: 512,
+				cache_memory: 4,
+				dir_perm: \SMLISER_DIR_PERMISSION
+			)
 		);
 	}
 
@@ -228,8 +228,8 @@ abstract class Environment {
 		$this->container->singleton(
 			FileSystem::class,
 			fn ( Container $container ) : FileSystem => FileSystem::instance(
-					$container->get( FileSystemAdapterInterface::class )
-				)
+				$container->get( FileSystemAdapterInterface::class )
+			)
 		);
 		$this->container->singleton(
 			CacheAdapterInterface::class,
@@ -239,16 +239,16 @@ abstract class Environment {
 		$this->container->singleton(
 			Cache::class,
 			fn ( Container $container ) : Cache => Cache::instance(
-					$container->get( CacheAdapterInterface::class ),
-					$container->get( Settings::class )
-				)
+				$container->get( CacheAdapterInterface::class ),
+				$container->get( Settings::class )
+			)
 		);
 
 		$this->container->singleton(
 			Settings::class,
 			fn ( Container $container ) : Settings => Settings::instance(
-					$container->get( SettingsStorageInterface::class )
-				)
+				$container->get( SettingsStorageInterface::class )
+			)
 		);
 
 		$this->container->singleton( Guard::class, fn () : Guard => new Guard() );
@@ -256,10 +256,10 @@ abstract class Environment {
 		$this->container->set(
 			DatabaseJobStorageAdapter::class,
 			fn ( Container $c ) : DatabaseJobStorageAdapter => new DatabaseJobStorageAdapter(
-					$c->get( Database::class ),
-					TableName::BACKGROUND_JOBS,
-					TableName::FAILED_JOBS
-				)
+				$c->get( Database::class ),
+				TableName::BACKGROUND_JOBS,
+				TableName::FAILED_JOBS
+			)
 		);
 
 		$this->container->singleton(
@@ -275,10 +275,10 @@ abstract class Environment {
 		$this->container->singleton(
 			QueueWorker::class,
 			fn ( Container $c ) : QueueWorker => new QueueWorker(
-					queue: $c->get( JobQueue::class ),
-					container: $c,
-					memory_limit_mb: safe_worker_memory_limit_mb()
-				)
+				queue: $c->get( JobQueue::class ),
+				container: $c,
+				memory_limit_mb: safe_worker_memory_limit_mb()
+			)
 		);
 
 		$this->container->singleton(
@@ -317,9 +317,9 @@ abstract class Environment {
 		$this->container->set(
 			MDParser::class,
 			fn () : MDParser => new MDParser( [
-					'html_input'         => 'allow',
-					'allow_unsafe_links' => false,
-				] )
+				'html_input'         => 'allow',
+				'allow_unsafe_links' => false,
+			] )
 		);
 
 		$this->container->set(

@@ -82,20 +82,20 @@ unset( $args['breadcrumbs'][0] ); // Remove the home link.
                     <tbody>
             
                         <?php foreach ( $licenses as $license ) :
-							?>        
+                        	?>        
                             <tr>
                                 <td><input type="checkbox" class="smliser-license-checkbox" name="ids[]" value="<?php echo escAttr( $license->get_id() ); ?>"> </td>
                                 <td class="smliser-edit-row">
                                     <?php echo escHtml( $license->get_id() ); ?>
                                     <p class="smliser-edit-link">
                                         <a href="<?php echo
-											escUrl( $urlmanager->admin_license_page_url(
-												'edit',['id' => $license->get_id()]
-											)->url() ); ?>">edit</a>|
+                        					escUrl( $urlmanager->admin_license_page_url(
+                        						'edit',['id' => $license->get_id()]
+                        					)->url() ); ?>">edit</a>|
                                         <a href="<?php echo
-											escUrl( $urlmanager->admin_license_page_url(
-												'view', ['id' => $license->get_id()]
-											)->url() ); ?>">view</a>
+                        					escUrl( $urlmanager->admin_license_page_url(
+                        						'view', ['id' => $license->get_id()]
+                        					)->url() ); ?>">view</a>
                                     </p>
                                 </td>
                             

@@ -278,10 +278,10 @@ class WordPressEnvironment extends Environment {
         <div class="notice notice-info">
             <p>
                 <?php printf(
-					/* translators: %s: plugin name */
-					escHtml( '%s requires an update.' ) . ' <a id="smliser-update-btn" style="cursor:pointer;">' . escHtml( 'Click here to update now.' ) . '</a>',
-					esc_html( SMLISER_APP_NAME )
-				);?>              
+                	/* translators: %s: plugin name */
+                	escHtml( '%s requires an update.' ) . ' <a id="smliser-update-btn" style="cursor:pointer;">' . escHtml( 'Click here to update now.' ) . '</a>',
+                	esc_html( SMLISER_APP_NAME )
+                );?>              
                 
             </p>
             <p id="smliser-click-notice" style="display: none">Update started in the backgroud <span class="ti ti-circle-check" style="color: blue"></span></p>

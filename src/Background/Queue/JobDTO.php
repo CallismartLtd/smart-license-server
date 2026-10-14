@@ -5,7 +5,6 @@
  * @author  Callistus Nwachukwu
  * @package SmartLicenseServer\Background
  * @since   0.2.0
- *
  */
 
 declare( strict_types = 1 );

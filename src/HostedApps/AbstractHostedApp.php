@@ -278,7 +278,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	|----------------
 	| SETTERS
 	|----------------
-	*/
+	 */
 
 	/**
 	 * Set the database ID
@@ -537,7 +537,6 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	 * Set the manifest property.
 	 * 
 	 * @param array $data
-	 * 
 	 */
 	public function set_manifest( array $data ) : static {
 		$defaults = [
@@ -567,7 +566,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	|------------
 	| GETTERS
 	|------------
-	*/
+	 */
 
 	/**
 	 * Get the app ID.
@@ -837,7 +836,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	|-------------------------------------------
 	| ABSTRACT METHODS THAT MUST BE IMPLEMENTED
 	|-------------------------------------------
-	*/
+	 */
 
 	/**
 	 * Get the application type (e.g., 'plugin', 'theme', 'library').
@@ -887,7 +886,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	|---------------------
 	| SHARED CRUD METHODS
 	|---------------------
-	*/
+	 */
 
 	/**
 	 * Save the app.
@@ -1298,7 +1297,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	 */
 	public function get_download_url() : URL {
 		return $this->download_link ?? static::$urlmanager->app_downloads_url(
-				$this->get_type(), $this->get_slug()
+			$this->get_type(), $this->get_slug()
 		);
 	}
 

@@ -95,7 +95,7 @@ class HostedApps extends DataStore {
 		$page   = $request->get( 'page' ) ?? 1;
 		$limit  = $request->get( 'limit' ) ?? 25;
 		$status = $request->get( 'status' ) ?: AbstractHostedApp::STATUS_ACTIVE;
-		$types  = $request->get( 'types' ) ?: [ 'plugin','theme','software' ];
+		$types  = $request->get( 'types' ) ?: [ 'plugin', 'theme', 'software' ];
 
 		$args = $search ? [
 			'term'   => $search,
@@ -236,7 +236,7 @@ class HostedApps extends DataStore {
 			}
 
 			$request->set( 'app_slug', $app_slug )
-			->set( 'app_type', $app_type );
+				->set( 'app_type', $app_type );
 
 			$response = $this->hosting->save_app( $request );
 
@@ -273,14 +273,14 @@ class HostedApps extends DataStore {
 			}
 
 			$request->set( 'app_slug', $app_slug )
-					->set( 'app_type', $app_type )
-					->set( 'app_status', AbstractHostedApp::STATUS_TRASH );
+				->set( 'app_type', $app_type )
+				->set( 'app_status', AbstractHostedApp::STATUS_TRASH );
 
 			$response = $this->hosting->change_app_status( $request );
 
 			if ( $response->ok() ) {
 				$response->set_status_code( 204 )
-				->set_body( '' );
+					->set_body( '' );
 				
 				static::cache_clear();
 			}

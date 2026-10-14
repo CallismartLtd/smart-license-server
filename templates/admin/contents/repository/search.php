@@ -54,14 +54,14 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 <tbody>
                     <?php if ( empty( $apps ) ) : ?>
                         <?php if ( $request->get( 'app_search' ) ) :
-							$message = sprintf(
-								'No app found matching the search term "%s". <a href="%s">Reset Search</a>',
-								escHtml( $request->get( 'app_search' ) ),
-								escUrl( $urlmanager->admin_repo_url( 'search' )->url() )
-							);
-						else:
-							$message = 'Search for hosted applications in the repository.';
-						endif; ?>
+                        	$message = sprintf(
+                        		'No app found matching the search term "%s". <a href="%s">Reset Search</a>',
+                        		escHtml( $request->get( 'app_search' ) ),
+                        		escUrl( $urlmanager->admin_repo_url( 'search' )->url() )
+                        	);
+                        else:
+                        	$message = 'Search for hosted applications in the repository.';
+                        endif; ?>
 
                         <tr>
                             <td class="align-center bg-white">

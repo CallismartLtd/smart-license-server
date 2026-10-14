@@ -429,8 +429,8 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
 				
 				$result &&
 					$this->set_id( static::$DB->get_insert_id() )
-					->set_created_at( $now )
-					->set_updated_at( $now );
+						->set_created_at( $now )
+						->set_updated_at( $now );
 			}
 
 			return false !== $result;

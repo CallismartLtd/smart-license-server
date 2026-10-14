@@ -27,7 +27,7 @@ class BulkMessagePage implements AdminPageInterface {
 		protected URLManager $urlmanager,
 		protected AssetsManager $assets_manager
 	) {
-	   $this->register_assets();
+		$this->register_assets();
 	}
 
 	protected function register_assets() : void {
