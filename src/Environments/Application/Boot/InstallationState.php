@@ -183,7 +183,8 @@ final class InstallationState {
 	 * @throws \RuntimeException When the state cannot be locked, read or written.
 	 */
 	public function change( callable $change ) : array {
-		$lock = @fopen( $this->file . '.lock', 'c' );
+		$lock_file	= $this->file . '.lock';
+		$lock		= @fopen( $lock_file, 'c' );
 
 		if ( false === $lock || ! flock( $lock, LOCK_EX ) ) {
 			throw new \RuntimeException( sprintf( 'Could not lock "%s". Check that the storage directory is writable.', $this->file ) );
@@ -204,6 +205,7 @@ final class InstallationState {
 		} finally {
 			flock( $lock, LOCK_UN );
 			fclose( $lock );
+			$this->fs->delete( $lock_file );
 		}
 	}
 }
