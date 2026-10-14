@@ -102,7 +102,7 @@ final class UpdateServer {
 				url: $url,
 				headers: [
 					'Accept'		=> 'application/json',
-					'User-Agent'	=> \smliser_http_ua()
+					'User-Agent'	=> \smliser_http_ua( true )
 				],
 				options: ['timeout' => self::TIMEOUT ]
 			);
@@ -159,7 +159,14 @@ final class UpdateServer {
 		$this->report( $progress, 'download', self::STATUS_INFO, sprintf( 'Downloading %s.', $url ) );
 
 		try {
-			$response = $this->http->download( $url, $zip, array(), array( 'timeout' => self::DOWNLOAD_TIMEOUT ) );
+			$response = $this->http->download(
+				url: $url,
+				destination: $zip,
+				headers: [
+					'User-Agent'	=> \smliser_http_ua( true )
+				],
+				options: array( 'timeout' => self::DOWNLOAD_TIMEOUT )
+			);
 		} catch ( Throwable $e ) {
 			$this->discard( $zip );
 			throw new UpdateException( sprintf( 'The download of %s failed: %s', basename( $zip ), $e->getMessage() ), 0, $e );
@@ -207,7 +214,13 @@ final class UpdateServer {
 		$this->report( $progress, 'download', self::STATUS_INFO, sprintf( 'Fetching %s.', $url ) );
 
 		try {
-			$response = $this->http->get( $url, array(), array( 'timeout' => self::TIMEOUT ) );
+			$response = $this->http->get(
+				url: $url,
+				headers: [
+					'User-Agent'	=> \smliser_http_ua( true )
+				],
+				options: [ 'timeout' => self::TIMEOUT ]
+			);
 		} catch ( Throwable $e ) {
 			throw new UpdateException( sprintf( 'Could not download %s: %s', $name, $e->getMessage() ), 0, $e );
 		}

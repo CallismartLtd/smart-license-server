@@ -19,6 +19,7 @@ use SmartLicenseServer\Environments\Application\Release\ReleaseManifest;
 use SmartLicenseServer\Environments\Application\Release\ReleaseSignature;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\SettingsAPI\Settings;
+use SmartLicenseServer\Utils\Format;
 
 /**
  * What the console, the admin page, the scheduler and the update job share:
@@ -185,7 +186,7 @@ final class UpdateService {
 	 * @return array{checked_at: string, latest: ?string, security: bool, error: ?string, available: bool}
 	 */
 	public function last_check() : array {
-		return $this->with_availability( $this->state->update_section( InstallationState::UPDATE_CHECK ) ?? array() );
+		return $this->with_availability( $this->state->update_section( InstallationState::UPDATE_CHECK ) ?? [] );
 	}
 
 	/**
@@ -198,7 +199,7 @@ final class UpdateService {
 	 *                               "memory", "writable", "disk", "unfinished"); empty when nothing does.
 	 */
 	public function blockers() : array {
-		$problems = array();
+		$problems = [];
 
 		if ( ! $this->signature->configured() ) {
 			$problems['keys'] = 'No release signing keys are configured, so no package can be verified.';
@@ -246,7 +247,7 @@ final class UpdateService {
 	 * @return array<string, string>
 	 */
 	private function web_limits() : array {
-		$problems = array();
+		$problems = [];
 		$seconds  = (int) ini_get( 'max_execution_time' );
 
 		if ( $seconds > 0 && $seconds < self::MIN_WEB_SECONDS ) {
@@ -262,11 +263,11 @@ final class UpdateService {
 			}
 		}
 
-		$memory = self::bytes( (string) ini_get( 'memory_limit' ) );
+		$memory = Format::parse_bytes( (string) ini_get( 'memory_limit' ) );
 
 		if ( $memory > 0 && $memory < self::MIN_WEB_MEMORY ) {
 			PhpRuntime::ini_set( 'memory_limit', (string) self::MIN_WEB_MEMORY );
-			$memory = self::bytes( (string) ini_get( 'memory_limit' ) );
+			$memory = Format::parse_bytes( (string) ini_get( 'memory_limit' ) );
 
 			if ( $memory > 0 && $memory < self::MIN_WEB_MEMORY ) {
 				$problems['memory'] = sprintf(
@@ -278,29 +279,6 @@ final class UpdateService {
 		}
 
 		return $problems;
-	}
-
-	/**
-	 * Convert a php.ini size ("128M", "1G", "-1") to bytes.
-	 *
-	 * @param string $value
-	 * @return int Bytes; -1 for no limit.
-	 */
-	private static function bytes( string $value ) : int {
-		$value = trim( $value );
-
-		if ( '' === $value || '-1' === $value ) {
-			return -1;
-		}
-
-		$number = (int) $value;
-
-		return match ( strtolower( substr( $value, -1 ) ) ) {
-			'g'     => $number * 1073741824,
-			'm'     => $number * 1048576,
-			'k'     => $number * 1024,
-			default => $number,
-		};
 	}
 
 	/*
@@ -351,7 +329,7 @@ final class UpdateService {
 
 			return array(
 				'manifest' => $this->updater->stage( $package, null, $reinstall, $progress ),
-				'package'  => array( 'source' => $source, 'sha256' => $verified['sha256'], 'signed_by' => $verified['signed_by'] ),
+				'package'  => ['source' => $source, 'sha256' => $verified['sha256'], 'signed_by' => $verified['signed_by'] ],
 				'warnings' => $verified['warnings'],
 			);
 		}
@@ -369,18 +347,18 @@ final class UpdateService {
 		}
 
 		$ready    = $this->ready_package( (string) $check['latest'] );
-		$warnings = array();
+		$warnings = [];
 
 		if ( null !== $ready ) {
 			$zip    = (string) $ready['zip'];
-			$origin = array( 'source' => (string) ( $ready['source'] ?? '' ), 'sha256' => (string) $ready['sha256'], 'signed_by' => $ready['signed_by'] ?? null );
+			$origin = ['source' => (string) ( $ready['source'] ?? '' ), 'sha256' => (string) $ready['sha256'], 'signed_by' => $ready['signed_by'] ?? null];
 
 			$this->report( $progress, 'download', self::STATUS_OK, sprintf( 'Reusing %s, verified by the dry run of %s (downloaded from %s).', $zip, $ready['prepared_at'] ?? '?', '' !== $origin['source'] ? $origin['source'] : 'the update server' ) );
 		} else {
 			$download = $this->server->download( (string) $check['latest'], $this->updater->downloads_dir(), false, $progress );
 			$zip      = $download['zip'];
 			$warnings = $download['warnings'];
-			$origin   = array( 'source' => $download['source'], 'sha256' => $download['sha256'], 'signed_by' => $download['signed_by'] );
+			$origin   = ['source' => $download['source'], 'sha256' => $download['sha256'], 'signed_by' => $download['signed_by']];
 		}
 
 		try {
@@ -392,10 +370,10 @@ final class UpdateService {
 
 		$this->state->set_update_section(
 			InstallationState::UPDATE_READY,
-			array( 'version' => $manifest->version, 'zip' => $zip, 'prepared_at' => gmdate( DATE_ATOM ) ) + $origin
+			['version' => $manifest->version, 'zip' => $zip, 'prepared_at' => gmdate( DATE_ATOM ) ] + $origin
 		);
 
-		return array( 'manifest' => $manifest, 'package' => $origin, 'warnings' => $warnings );
+		return ['manifest' => $manifest, 'package' => $origin, 'warnings' => $warnings];
 	}
 
 	/**
@@ -415,7 +393,7 @@ final class UpdateService {
 			'installed' => \SMLISER_VER,
 			'package'   => null,
 			'blockers'  => $this->blockers(),
-			'warnings'  => array(),
+			'warnings'  => [],
 			'error'     => null,
 		);
 
@@ -588,7 +566,7 @@ final class UpdateService {
 		$this->state->change(
 			static function ( array $state ) use ( $action, $ok, $message, $finishing, &$queued, &$check ) : array {
 				$queued = is_array( $state['update']['check']['queued'] ?? null ) ? $state['update']['check']['queued'] : null;
-				$check  = is_array( $state['update']['check'] ?? null ) ? $state['update']['check'] : array();
+				$check  = is_array( $state['update']['check'] ?? null ) ? $state['update']['check'] : [];
 
 				if ( ! $finishing ) {
 					unset( $state['update']['check']['queued'] );
@@ -692,7 +670,7 @@ final class UpdateService {
 				'current_version' => (string) ( $result['from'] ?? '' ),
 				'new_version'     => (string) $result['to'],
 				'security'        => $result['to'] === ( $check['latest'] ?? null ) && ! empty( $check['security'] ),
-				'package'         => (array) ( $result['package'] ?? array() ),
+				'package'         => (array) ( $result['package'] ?? [] ),
 			)
 		);
 
@@ -733,9 +711,9 @@ final class UpdateService {
 	private function notify_failed( string $action, string $message, ?array $queued, array $check, ?string $reason = null ) : void {
 		$version  = (string) ( $queued['version'] ?? $check['latest'] ?? '' );
 		$output   = trim( $message );
-		$lines    = preg_split( '/\R/', $output ) ?: array();
+		$lines    = preg_split( '/\R/', $output ) ?: [];
 		$key      = $action . '|' . $version . '|' . md5( $reason ?? (string) end( $lines ) );
-		$notified = $this->state->update_section( InstallationState::UPDATE_NOTIFIED ) ?? array();
+		$notified = $this->state->update_section( InstallationState::UPDATE_NOTIFIED ) ?? [];
 
 		if ( $key === ( $notified['failed'] ?? null ) ) {
 			return;
