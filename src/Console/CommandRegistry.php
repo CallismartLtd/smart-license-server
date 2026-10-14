@@ -47,6 +47,7 @@ use SmartLicenseServer\Console\Commands\Installer;
 use SmartLicenseServer\Console\Commands\MigrateCommand;
 use SmartLicenseServer\Console\Commands\QueueCommand;
 use SmartLicenseServer\Console\Commands\ScheduleCommand;
+use SmartLicenseServer\Console\Commands\ServerCommand;
 use SmartLicenseServer\Console\Commands\SettingsCommand;
 use SmartLicenseServer\Console\Commands\TestCommand;
 use SmartLicenseServer\Console\Commands\Update;
@@ -81,6 +82,7 @@ class CommandRegistry extends AbstractRegistry {
         ThemeCommand::class,
         SoftwareCommand::class,
         SettingsCommand::class,
+        ServerCommand::class,
         TestCommand::class,
         QueueCommand::class,
         Update::class,

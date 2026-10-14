@@ -11,6 +11,10 @@
  * goes to public/index.php, hidden files are never served, and no PHP file
  * other than index.php runs.
  *
+ * The built-in server only logs a "[status]: METHOD /uri" line for files it
+ * serves itself. Every request this router answers is logged here, in the
+ * same format and to the same stream, so the log covers all requests.
+ *
  * Never use PHP's built-in server in production.
  *
  * @author Callistus Nwachukwu
@@ -24,6 +28,36 @@ if ( false === $public ) {
 	echo 'The public folder was not found next to the server folder.';
 	return true;
 }
+
+// Cleared just before handing a file back to the server, which logs those itself.
+$log_request = true;
+
+register_shutdown_function(
+	static function () use ( &$log_request ): void {
+		if ( ! $log_request ) {
+			return;
+		}
+
+		$address = (string) ( $_SERVER['REMOTE_ADDR'] ?? '' );
+
+		if ( str_contains( $address, ':' ) ) {
+			$address = '[' . $address . ']';
+		}
+
+		file_put_contents(
+			'php://stderr',
+			sprintf(
+				'[%s] %s:%s [%d]: %s %s' . PHP_EOL,
+				date( 'D M d H:i:s Y' ),
+				$address,
+				(string) ( $_SERVER['REMOTE_PORT'] ?? '' ),
+				(int) http_response_code(),
+				(string) ( $_SERVER['REQUEST_METHOD'] ?? 'GET' ),
+				(string) ( $_SERVER['REQUEST_URI'] ?? '/' )
+			)
+		);
+	}
+);
 
 $uri  = (string) ( $_SERVER['REQUEST_URI'] ?? '/' );
 $path = rawurldecode( (string) parse_url( $uri, PHP_URL_PATH ) );
@@ -57,6 +91,7 @@ if ( '/index.php' === $path || str_starts_with( $path, '/index.php/' ) ) {
 			return true;
 		}
 
+		$log_request = false;
 		return false;
 	}
 }
