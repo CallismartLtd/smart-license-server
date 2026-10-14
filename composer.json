@@ -40,5 +40,9 @@
     "scripts": {
         "cs:check": "php-cs-fixer fix --dry-run --diff",
         "cs:fix": "php-cs-fixer fix"
+    },
+    "scripts-descriptions": {
+        "cs:check": "Show the code style changes PHP-CS-Fixer would make, without changing files.",
+        "cs:fix": "Apply the project code style with PHP-CS-Fixer."
     }
 }
