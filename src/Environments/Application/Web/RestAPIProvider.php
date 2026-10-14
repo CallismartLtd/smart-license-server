@@ -84,7 +84,7 @@ class RestAPIProvider implements RESTProviderInterface {
 	) {
 		$this->index = new RESTIndex(
 			$versions,
-			fn( string $path ) : string => $this->urls->url( $path )->get_href()
+			fn( string $path ) : string => $this->urls->url( $path )->url()
 		);
 	}
 

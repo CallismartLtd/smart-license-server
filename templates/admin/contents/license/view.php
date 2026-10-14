@@ -254,7 +254,7 @@ function format_active_domains( License $license ) {
                     </span>
                 </div>',
                 $url->get_host(),
-                $url->get_href()
+                $url->url()
             );
         }
     }

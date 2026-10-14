@@ -856,7 +856,7 @@ class HostingController {
                 ->add_query_param( 'message', \sprintf( 'Error: %s', $e->get_error_message() ) );
 
             return ( new Response() )
-                ->set_header( 'Location', $url->get_href() );
+                ->set_header( 'Location', $url->url() );
         }
     }
 }

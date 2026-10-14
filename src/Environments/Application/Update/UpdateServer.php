@@ -102,7 +102,7 @@ final class UpdateServer {
 				url: $url,
 				headers: [
 					'Accept'		=> 'application/json',
-					'User-Agent'	=>  ''
+					'User-Agent'	=> \smliser_http_ua()
 				],
 				options: ['timeout' => self::TIMEOUT ]
 			);

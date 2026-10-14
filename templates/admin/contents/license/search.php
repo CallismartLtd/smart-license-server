@@ -40,7 +40,7 @@ $args   = $page_handler->get_menu_args( $request );
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $args ); ?>
     <div class="smliser-app-search-page smliser-table-wrapper">
-            <form class="smliser-admin-search" method="GET" action="<?php echo escUrl( $current_url->get_href() ) ?>">
+            <form class="smliser-admin-search" method="GET" action="<?php echo escUrl( $current_url->url() ) ?>">
                 <input type="hidden" name="page" value="<?php echo escAttr( $request->get( 'page' ) ) ?>">
                 <input type="hidden" name="tab" value="<?php echo escAttr( $request->get( 'tab' ) ) ?>">
                 

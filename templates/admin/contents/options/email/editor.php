@@ -78,7 +78,7 @@ $assets = $assets_manager->get_email_editor_assets();
         <!-- Left — back link + template name + status badges -->
         <div class="smliser-editor-toolbar__left">
 
-            <a href="<?php echo \escHtml( $back_url->get_href() ); ?>"
+            <a href="<?php echo \escHtml( $back_url->url() ); ?>"
                class="smliser-editor-back"
                id="smliser-editor-back"
                title="Back to Email Templates">

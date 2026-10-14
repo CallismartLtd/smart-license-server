@@ -71,9 +71,13 @@ function smliser_parse_user_agent( $user_agent_string ) : string {
 /**
  * Build the User-Agent header value for outgoing requests.
  *
+ * Update requests carry the site URL as the last comment item, so the update
+ * server can resolve the installation. Other requests omit it.
+ *
+ * @param bool $for_update Whether the request goes to the update server.
  * @return string
  */
-function smliser_client_user_agent(): string {
+function smliser_http_ua( bool $for_update = false ): string {
 	$can_uname = function_exists( 'php_uname' );
 
 	$os = match ( PHP_OS_FAMILY ) {
@@ -88,7 +92,14 @@ function smliser_client_user_agent(): string {
 		$comment .= '; ' . php_uname( 'm' );
 	}
 
-    return sprintf( 'smliser/%s (%s) PHP/%d.%d', SMLISER_VER, $comment, PHP_MAJOR_VERSION, PHP_MINOR_VERSION );;
+	if ( $for_update ) {
+		$site_url = url()->sanitize()->remove_credentials()->url();
+
+		// "(", ")" and "\" are comment delimiters in a User-Agent and survive sanitize(); percent-encode them.
+		$comment .= '; ' . str_replace( array( '(', ')', '\\' ), array( '%28', '%29', '%5C' ), $site_url );
+	}
+
+	return sprintf( 'smliser/%s (%s) PHP/%d.%d', SMLISER_VER, $comment, PHP_MAJOR_VERSION, PHP_MINOR_VERSION );
 }
 
 /**

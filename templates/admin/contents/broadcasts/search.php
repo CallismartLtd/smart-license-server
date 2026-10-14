@@ -22,7 +22,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
         <?php endif; ?>
 
         <div class="smliser-app-search-page smliser-table-wrapper">
-            <form class="smliser-admin-search" method="GET" action="<?php echo escUrl( $current_url->get_href() ) ?>">
+            <form class="smliser-admin-search" method="GET" action="<?php echo escUrl( $current_url->url() ) ?>">
                 <input type="hidden" name="page" value="smliser-broadcasts">
                 <input type="hidden" name="tab" value="search">
                 
