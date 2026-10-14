@@ -69,6 +69,29 @@ function smliser_parse_user_agent( $user_agent_string ) : string {
 }
 
 /**
+ * Build the User-Agent header value for outgoing requests.
+ *
+ * @return string
+ */
+function smliser_client_user_agent(): string {
+	$can_uname = function_exists( 'php_uname' );
+
+	$os = match ( PHP_OS_FAMILY ) {
+		'Darwin' => 'macOS',
+		'BSD'    => $can_uname ? php_uname( 's' ) : 'BSD', // FreeBSD, OpenBSD, NetBSD.
+		default  => PHP_OS_FAMILY, // Windows, Linux, Solaris, Unknown.
+	};
+
+	$comment = $os;
+
+	if ( $can_uname ) {
+		$comment .= '; ' . php_uname( 'm' );
+	}
+
+    return sprintf( 'smliser/%s (%s) PHP/%d.%d', SMLISER_VER, $comment, PHP_MAJOR_VERSION, PHP_MINOR_VERSION );;
+}
+
+/**
  * Generate a download token for the given licensed item.
  * 
  * @param License $license  The License object associated with the item.

@@ -21,7 +21,7 @@ namespace SmartLicenseServer\Core;
  *  1. Bot      - known crawlers by name, then any `*bot`, `*crawler`, `*spider`, `*scraper` product.
  *  2. Library  - the first product token is a known HTTP library or CLI tool (curl, Guzzle, okhttp...).
  *  3. App      - the first product token is not `Mozilla`/`Opera`: a custom client such as
- *                `SmartLicenseClient/1.2.0 (Linux; x86_64)`.
+ *                `smliser/1.2.0 (Linux; x86_64)`. Known apps get a display name.
  *  4. Browser  - browser rules for Mozilla-style strings, with Electron apps and
  *                WebView-embedded apps resolved to the app token they carry.
  *
@@ -125,8 +125,30 @@ final class UserAgent {
 		'restsharp'         => 'RestSharp',
 		'reqwest'           => 'reqwest',
 		'got'               => 'Got',
-        'callismart-http'   => 'Callismart HTTP Client',
-        'smliser'           => 'Smart License Server'
+		'callismart-http'   => 'Callismart HTTP Client',
+		'composer'          => 'Composer',
+		'wp-cli'            => 'WP-CLI',
+		'git'               => 'Git',
+		'npm'               => 'npm',
+		'pip'               => 'pip',
+		'homebrew'          => 'Homebrew',
+	);
+
+	/**
+	 * Display names for known application products, keyed by lowercase product name.
+	 *
+	 * Applied to every client resolved as TYPE_APP, whether it is the first product
+	 * or an app token carried by an Electron or WebView string. Unlisted apps keep
+	 * the product name exactly as sent.
+	 *
+	 * @var array<string, string>
+	 */
+	private const KNOWN_APPS = array(
+		'smliser'  => 'Smart License Server',
+		'code'     => 'Visual Studio Code',
+		'discord'  => 'Discord',
+		'obsidian' => 'Obsidian',
+		'teams'    => 'Microsoft Teams',
 	);
 
 	/**
@@ -695,6 +717,10 @@ final class UserAgent {
 	 * @param string $type    One of the TYPE_* constants.
 	 */
 	private function set_client( string $name, string $version, string $type ): void {
+		if ( self::TYPE_APP === $type ) {
+			$name = self::KNOWN_APPS[ strtolower( $name ) ] ?? $name;
+		}
+
 		$this->client_name    = $name;
 		$this->client_version = self::normalize_version( $version );
 		$this->client_type    = $type;
