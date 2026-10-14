@@ -77,7 +77,7 @@ final class PhpCli {
 			return null;
 		}
 
-		if ( 'cli' === PHP_SAPI && '' !== PHP_BINARY ) {
+		if ( is_cli() && '' !== PHP_BINARY ) {
 			return PHP_BINARY;
 		}
 
