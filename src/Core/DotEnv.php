@@ -315,6 +315,17 @@ final class DotEnv {
             return;
         }
 
+        // A variable from the real environment also exists, but is missing from
+        // $_ENV when variables_order lacks "E" (the php.ini default). Mirror it
+        // there so code reading $_ENV or $_SERVER sees the same value as getenv().
+        $existing = $this->immutable ? getenv( $key ) : false;
+
+        if ( false !== $existing ) {
+            $_ENV[ $key ]    = $this->cast_value( $existing );
+            $_SERVER[ $key ] = $_ENV[ $key ];
+            return;
+        }
+
         $_ENV[ $key ]    = $value;
         $_SERVER[ $key ] = $value;
 
