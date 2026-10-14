@@ -110,10 +110,8 @@ class GlobalErrorHandler {
         if ( null !== $this->detected_sapi ) {
             return $this->detected_sapi;
         }
-
-        $sapi = php_sapi_name();
         
-        if ( in_array( $sapi, [ 'cli', 'phpdbg', 'cli-server' ], true ) ) {
+        if ( is_cli() ) {
             $this->detected_sapi = 'cli';
         } else {
             $this->detected_sapi = 'http';
