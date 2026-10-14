@@ -98,7 +98,15 @@ final class UpdateServer {
 		$this->report( $progress, 'check', self::STATUS_INFO, sprintf( 'Asking %s for the latest version.', $url ) );
 
 		try {
-			$response = $this->http->get( $url, array( 'Accept' => 'application/json' ), array( 'timeout' => self::TIMEOUT ) );
+			$response = $this->http->get(
+				url: $url,
+				headers: [
+					'Accept'		=> 'application/json',
+					'User-Agent'	=>  ''
+				],
+				options: ['timeout' => self::TIMEOUT ]
+			);
+
 		} catch ( Throwable $e ) {
 			throw new UpdateException( sprintf( 'Could not reach the update server: %s', $e->getMessage() ), 0, $e );
 		}
