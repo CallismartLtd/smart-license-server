@@ -895,7 +895,7 @@ class AppInstaller {
 		$migrator = $this->migrator();
 
 		try {
-			if ( $migrator->has_ledger() ) {
+			if ( method_exists( $migrator, 'has_ledger' ) && $migrator->has_ledger() ) {
 				return;
 			}
 

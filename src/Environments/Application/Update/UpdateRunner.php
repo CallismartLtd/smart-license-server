@@ -73,7 +73,7 @@ final class UpdateRunner {
 	 *
 	 * @param UpdateService $updates   Checks, prepares and notifies.
 	 * @param Updater       $updater   Applies, finishes and rolls back.
-	 * @param AppInstaller  $installer Republishes the public assets.
+	 * @param AppInstaller  $installer Republishes the public assets and builds the Migrator.
 	 * @param FileSystem    $fs        Filesystem API.
 	 * @param string        $root      Application root.
 	 */
@@ -229,7 +229,10 @@ final class UpdateRunner {
 				return null;
 			}
 
-			$result = $this->updater->finish( null, $progress );
+			$result = $this->updater->finish(
+				fn( string $schema_from, string $schema_to ) => $this->migrate_database( $progress ),
+				$progress
+			);
 		} finally {
 			if ( ! $held ) {
 				$this->updater->unlock();
@@ -394,6 +397,42 @@ final class UpdateRunner {
 		$code = proc_close( $process );
 
 		return [ 'exit_code' => $code ] + ( isset( $pipes[1] ) ? [ 'output' => trim( $output ) ] : [] );
+	}
+
+	/**
+	 * Apply the migrations the new version registered and the database lacks.
+	 *
+	 * Updater::finish() calls it when the schema version changed. The
+	 * migration ledger, not the version, decides what runs: every migration
+	 * in MigrationRegistry that the ledger does not record, in list order.
+	 * A database installed before the ledger existed gets one here, and
+	 * every registered migration runs on it.
+	 *
+	 * Finding nothing pending is not an error: a finish that ran the
+	 * migrations and was interrupted before recording the new version runs
+	 * again, and finds them applied.
+	 *
+	 * @param callable|null $progress Progress callback.
+	 * @return void
+	 * @throws \Callismart\DBPrism\Exceptions\MigrationException When a migration fails (those before it
+	 *                                                          stay applied) or another run holds the lock.
+	 */
+	private function migrate_database( ?callable $progress ) : void {
+		$applied = $this->installer->migrator()->migrate();
+
+		if ( [] === $applied ) {
+			$this->report( $progress, 'finish', self::STATUS_INFO, 'No migration was pending: the database already has every registered migration.' );
+			return;
+		}
+
+		$names = array_map( static fn( string $class ) : string => substr( (string) strrchr( '\\' . $class, '\\' ), 1 ), $applied );
+
+		$this->report(
+			$progress,
+			'finish',
+			self::STATUS_OK,
+			sprintf( 'Applied %d %s: %s.', count( $applied ), 1 === count( $applied ) ? 'migration' : 'migrations', implode( ', ', $names ) )
+		);
 	}
 
 	/**
