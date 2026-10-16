@@ -21,6 +21,7 @@ use SmartLicenseServer\Console\Runners\NonInteractiveRunner;
 use SmartLicenseServer\Console\Runners\RunnerInterface;
 use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**
@@ -85,7 +86,8 @@ class ConsoleDispatcher {
 		protected ConsoleInput $input,
 		protected ConsoleOutput $output,
 		protected Guard $guard,
-		protected Database $db
+		protected Database $db,
+		protected FileSystem $fs
 	) {
 		$this->tokens = $_SERVER['argv'] ?? [];
 	}
@@ -188,7 +190,14 @@ class ConsoleDispatcher {
 	 * @return HistoryAwareInput
 	 */
 	protected function build_shell_input( ConsoleInput $input, Terminal $terminal ) : HistoryAwareInput {
-		return new HistoryAwareInput( $input, $terminal, $this->shell_history_path() );
+		return new HistoryAwareInput(
+			inner_io: $input,
+			terminal: $terminal,
+			history_path: $this->shell_history_path(),
+			fs: $this->fs,
+			stdin: $this->stdin,
+			stdout: $this->stdout
+		);
 	}
 
 	/**

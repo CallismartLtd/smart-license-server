@@ -12,6 +12,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console;
 
 use SmartLicenseServer\Console\Contracts\InputInterface;
+use SmartLicenseServer\FileSystem\FileSystem;
 
 /**
  * Decorates an InputInterface with cross-platform, history-aware line
@@ -115,30 +116,33 @@ class HistoryAwareInput implements InputInterface {
 	private ?int $term_width = null;
 
 	/**
-	 * @param InputInterface        $inner        Wrapped input — read_line()
+	 * @param InputInterface $inner_io	Wrapped input — read_line()
 	 *                                             falls through to this in
 	 *                                             Tier 3; confirm()/choice()/
 	 *                                             secret() always delegate here.
-	 * @param Terminal  $terminal     Shared capability detector,
+	 * @param Terminal $terminal		Shared capability detector,
 	 *                                             also owns the actual stty
 	 *                                             raw-mode/echo toggling and
 	 *                                             terminal size detection.
-	 * @param string                $history_path Absolute path to the single,
+	 * @param string $history_path		Absolute path to the single,
 	 *                                             ever-growing history file —
 	 *                                             the same shape as bash_history.
-	 * @param resource              $stdin        Stream to read raw-mode input from.
-	 * @param resource              $stdout       Stream to echo keystrokes/redraws to —
+	 * @param resource $stdin			Stream to read raw-mode input from.
+	 * @param resource $stdout			Stream to echo keystrokes/redraws to —
 	 *                                             injected rather than hardcoding the
 	 *                                             STDOUT constant, so this class can be
 	 *                                             exercised against a captured stream
 	 *                                             the same way ConsoleOutput can.
+	 * @param FileSystem $fs			The filesystem api used to write history to file.
 	 */
 	public function __construct(
-		private InputInterface $inner,
+		private InputInterface $inner_io,
 		private Terminal $terminal,
 		private string $history_path,
-		private $stdin = STDIN,
-		private $stdout = STDOUT
+		private FileSystem $fs,
+		private $stdin,
+		private $stdout,
+		
 	) {
 		// Registered once, here, rather than lazily on first use —
 		// guarantees exactly one flush per instance regardless of how
@@ -194,7 +198,7 @@ class HistoryAwareInput implements InputInterface {
 			}
 		}
 
-		return $this->inner->read_line( $prompt );
+		return $this->inner_io->read_line( $prompt );
 	}
 
 	/*
@@ -211,21 +215,21 @@ class HistoryAwareInput implements InputInterface {
 	 * history while answering one isn't a real use case.
 	 */
 	public function prompt( string $question, string $default = '' ) : string {
-		return $this->inner->prompt( $question, $default );
+		return $this->inner_io->prompt( $question, $default );
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
 	public function confirm( string $question, bool $default = false ) : bool {
-		return $this->inner->confirm( $question, $default );
+		return $this->inner_io->confirm( $question, $default );
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
 	public function choice( string $question, array $choices, $default = null ) {
-		return $this->inner->choice( $question, $choices, $default );
+		return $this->inner_io->choice( $question, $choices, $default );
 	}
 
 	/**
@@ -235,7 +239,7 @@ class HistoryAwareInput implements InputInterface {
 	 * prompt must not end up readable in the history file.
 	 */
 	public function secret( string $prompt = '' ) : string {
-		return $this->inner->secret( $prompt );
+		return $this->inner_io->secret( $prompt );
 	}
 
 	/*
@@ -768,7 +772,7 @@ class HistoryAwareInput implements InputInterface {
 		$block = self::SESSION_MARKER_PREFIX . date( 'Y-m-d H:i:s' ) . PHP_EOL
 			. implode( PHP_EOL, $sanitized ) . PHP_EOL;
 
-		file_put_contents( $this->history_path, $block, FILE_APPEND | LOCK_EX );
+		$this->fs->put_contents( $this->history_path, $block );
 
 		$this->pending_entries = [];
 	}
