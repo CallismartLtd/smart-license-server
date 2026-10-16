@@ -13,7 +13,9 @@ use SmartLicenseServer\Schema\TableName;
 use Callismart\DBPrism\Adapters\Contracts\DatabaseAdapterInterface;
 use Callismart\DBPrism\Database;
 use Callismart\DBPrism\DBConfigDTO;
+use Callismart\DBPrism\Exceptions\MigrationException;
 use Callismart\DBPrism\Inspection\Inspector;
+use Callismart\DBPrism\Migrations\Migrator;
 use Callismart\DBPrism\Utils\Table;
 use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
@@ -26,6 +28,7 @@ use SmartLicenseServer\Environments\Application\Release\ReleaseManifest;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Schema\DatabaseAdapterRegistry;
+use SmartLicenseServer\Schema\MigrationRegistry;
 use SmartLicenseServer\Schema\SchemaRegistry;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
@@ -41,7 +44,7 @@ use SmartLicenseServer\Security\Permission\Role;
  * - creates all required directories.
  * - makes the .env file from the core .env.example file.
  * - handles initial database connection.
- * - creates all the registered tables.
+ * - starts the migration ledger and creates all the registered tables.
  * - installs the default roles.
  * - creates the administrator account.
  * - creates the .htaccess file from the .htaccess.example file.
@@ -808,10 +811,15 @@ class AppInstaller {
 
 	/**
 	 * Create the database tables.
-	 * 
+	 *
+	 * Starts the migration ledger first (see start_migration_ledger()), so
+	 * the database records which schema its tables were created at. Tables
+	 * that exist are left as they are.
+	 *
 	 * @param callable(string $table_name, string $message)|null $success_callback
 	 * @param callable(string $table_name, string $message)|null $failure_callback
 	 * @return void
+	 * @throws DatabaseException When no database connection is active, or the migration ledger cannot be started.
 	 */
 	public function create_tables(
 		?callable $success_callback = null,
@@ -820,9 +828,17 @@ class AppInstaller {
 		$this->assert_database_connection();
 
 		$inspector = new Inspector( $this->db );
+		$tables    = $this->schema->get_all_tables();
+		$existing  = [];
 
-		foreach ( $this->schema->get_all_tables() as $table ) {
-			if ( $inspector->table_exists( $table->get_name() ) ) {
+		foreach ( $tables as $table ) {
+			$existing[ $table->get_name() ] = $inspector->table_exists( $table->get_name() );
+		}
+
+		$this->start_migration_ledger( in_array( true, $existing, true ) );
+
+		foreach ( $tables as $table ) {
+			if ( $existing[ $table->get_name() ] ) {
 				$failure_callback && $failure_callback( $table->get_name(), 'Exists' );
 				continue;
 			}
@@ -833,6 +849,59 @@ class AppInstaller {
 			}
 
 			$success_callback && $success_callback( $table->get_name(), 'Created' );
+		}
+	}
+
+	/**
+	 * Build the Migrator for the application's database.
+	 *
+	 * The migrations come from MigrationRegistry. The ledger tables take the
+	 * table prefix: {prefix}migrations and {prefix}migrations_lock. A new
+	 * Migrator is built on each call, so a prefix changed by use_connection()
+	 * applies at once.
+	 *
+	 * @return Migrator
+	 * @throws \LogicException When the table prefix has not been set.
+	 */
+	public function migrator() : Migrator {
+		return new Migrator( $this->db, MigrationRegistry::all(), $this->schema->prefix() );
+	}
+
+	/**
+	 * Start the migration ledger, before any table is created.
+	 *
+	 * The ledger records which migrations a database contains. What a
+	 * database without one contains depends on whether it holds tables:
+	 *
+	 *  - No ledger, no registered table: a fresh database. The tables about
+	 *    to be created are the current schema, which already contains every
+	 *    registered migration, so all of them are recorded as applied
+	 *    without running (Migrator::baseline()).
+	 *  - No ledger, registered tables present: a database created before
+	 *    the ledger existed, at schema 0.2.0. Every registered migration is
+	 *    run on it (Migrator::migrate()).
+	 *  - A ledger: the installer ran on this database before, perhaps
+	 *    interrupted after this step. Nothing is done.
+	 *
+	 * Running it before the tables are created is what lets an interrupted
+	 * installation resume: the second run finds the ledger and creates the
+	 * remaining tables at the current schema.
+	 *
+	 * @param bool $has_tables Whether any registered table exists.
+	 * @return void
+	 * @throws DatabaseException When the ledger cannot be read or started, or a migration fails.
+	 */
+	protected function start_migration_ledger( bool $has_tables ) : void {
+		$migrator = $this->migrator();
+
+		try {
+			if ( $migrator->has_ledger() ) {
+				return;
+			}
+
+			$has_tables ? $migrator->migrate() : $migrator->baseline();
+		} catch ( MigrationException $e ) {
+			throw new DatabaseException( 'migration_error', $e->getMessage() );
 		}
 	}
 
