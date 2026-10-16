@@ -57,10 +57,6 @@ trait FileSystemAwareTrait {
 		return $this->fs->mkdir( $path, $chmod, $recursive );
 	}
 
-	public function mkdir_recursive( string $path, int|false $chmod = false ) : bool {
-		return $this->fs->mkdir_recursive( $path, $chmod );
-	}
-
 	public function rmdir( string $path, bool $recursive = false ) : bool {
 		return $this->fs->rmdir( $path, $recursive );
 	}
@@ -96,10 +92,5 @@ trait FileSystemAwareTrait {
 
 	public function stat( string $path ) : array|false {
 		return $this->fs->stat( $path );
-	}
-
-	// Utilities.
-	public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ) : bool {
-		return $this->fs->readfile( $path, $start, $length, $chunk_size );
 	}
 }
