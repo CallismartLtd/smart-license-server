@@ -3,9 +3,8 @@
  * FileSystem
  *
  * Provides a unified API for filesystem operations across different environments
- * (WordPress, Flysystem, native PHP). Automatically selects the correct adapter.
- *
- * Methods are proxied to the underlying adapter.
+ * (WordPress, Flysystem, native PHP) by proxying every call to the adapter it
+ * was built with.
  *
  * @package SmartLicenseServer\FileSystem
  */
@@ -19,29 +18,32 @@ use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 /**
  * FileSystem singleton.
  *
- * Automatically detects the environment and uses the correct FileSystem adapter by default.
+ * Holds one FileSystemAdapterInterface implementation, supplied on the first
+ * call to instance() (the DI container does this at boot). The methods below
+ * are exactly the adapter contract; each is forwarded to the adapter as is.
  *
- * @method bool is_dir(string $path) Tells whether the filename is a directory.
- * @method bool is_file(string $path) Tells whether the filename is a regular file.
- * @method bool exists(string $path) Tells whether the directory or file exists
- * @method bool is_readable(string $path) Tells whether a file exists and is readable.
- * @method bool is_writable(string $path) Tells whether the filename is writable.
- * @method bool is_stream(mixed $thing) Tells whether the given `thing` is a stream.
- * @method string|false get_contents(string $file) Reads the content of a file as string.
- * @method bool put_contents(string $path, string $contents, int $mode = SMLISER_FILE_PERMISSION) Write string content to the specified filename
- * @method bool delete(string $file, bool $recursive = false, string|false $type = false) Deletes a file or directory.
- * @method bool mkdir(string $path, int|false $chmod = false, bool $recursive = true) Makes directory.
- * @method bool mkdir_recursive( string $path, int|false $chmod = false ) Create directories recursively.
- * @method bool rmdir(string $path, bool $recursive = false) Removes directory.
- * @method bool copy(string $source, string $dest, bool $overwrite = false, int|false $mode = false ) Copy file
- * @method bool move(string $source, string $dest, bool $overwrite = false) Moves file
- * @method bool rename(string $source, string $dest) Renames a file or directory.
- * @method bool chmod(string $file, int|false $mode = false, bool $recursive = false) Changes file mode.
- * @method bool chown(string $file, string|int $owner, bool $recursive = false) Changes file owner.
- * @method int|false filesize(string $path) Gets file size
- * @method int|false filemtime(string $path) Gets file modification time
- * @method array stat(string $path) Gives information about a file
- * @method bool readfile(string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576) Efficiently outputs the contents of a file.
+ * @method bool is_dir( string $path ) Determine if a given path is a directory.
+ * @method bool is_file( string $path ) Determine if a given path is a file.
+ * @method bool exists( string $path ) Check if a file or directory exists.
+ * @method bool is_readable( string $path ) Check if a file is readable.
+ * @method bool is_writable( string $path ) Check if a file is writable.
+ * @method bool is_stream( mixed $thing ) Determine if the given input is a stream wrapper.
+ * @method string|false get_contents( string $file ) Retrieve the contents of a file.
+ * @method bool put_contents( string $path, string $contents, int|false|null $mode = null ) Write contents to a file.
+ * @method resource|false read_stream( string $path ) Open a file for reading as a stream.
+ * @method bool write_stream( string $path, mixed $stream, int|false|null $mode = null ) Write a stream's contents to a file.
+ * @method bool delete( string $file, bool $recursive = false, string|false $type = false ) Delete a file or directory.
+ * @method bool mkdir( string $path, int|false $chmod = false, bool $recursive = true ) Create a directory.
+ * @method bool rmdir( string $path, bool $recursive = false ) Remove a directory.
+ * @method bool copy( string $source, string $dest, bool $overwrite = false, int|false $mode = false ) Copy a file or directory.
+ * @method bool move( string $source, string $dest, bool $overwrite = false ) Move or rename a file or directory.
+ * @method bool rename( string $source, string $dest ) Rename a file or directory.
+ * @method bool chmod( string $file, int|false $mode = false, bool $recursive = false ) Change file permissions.
+ * @method bool chown( string $file, string|int $owner, bool $recursive = false ) Change file owner.
+ * @method int|false filesize( string $path ) Get file size.
+ * @method int|false filemtime( string $path ) Get file modification time.
+ * @method array{path: string, exists: bool, is_dir: bool, is_file: bool, size: int, mtime: int, perms: string}|false stat( string $path ) Get file stat information.
+ * @method list<array{path: string, exists: bool, is_dir: bool, is_file: bool, size: int, mtime: int, perms: string}>|false list_dir( string $path ) List the entries of a directory.
  */
 class FileSystem {
 	/**
@@ -80,7 +82,7 @@ class FileSystem {
 	 * @param array  $args   Method arguments.
 	 * @return mixed
 	 *
-	 * @throws \BadMethodCallException If method does not exist on the adapter.
+	 * @throws ProxyMethodException If the method does not exist on the adapter.
 	 */
 	public function __call( string $method, array $args ) {
 		if ( method_exists( $this->adapter, $method ) ) {
@@ -88,70 +90,6 @@ class FileSystem {
 		}
 
 		throw new ProxyMethodException( static::class, $method );
-	}
-
-	/**
-	 * Test one or more directories for read/write access.
-	 *
-	 * Uses the underlying adapter where possible.
-	 *
-	 * @param string ...$dirs Absolute path(s) to the directories to test.
-	 * @return array<string, array{readable: bool, writable: bool, error: string|null}>
-	 */
-	public function test_dirs_read_write( string ...$dirs ) : array {
-
-		$results = [];
-
-		foreach ( $dirs as $dir ) {
-			$dir       = rtrim( $dir, "/\\" );
-			$readable  = false;
-			$writable  = false;
-			$error_msg = null;
-
-			// Check readability using adapter if available
-			if ( method_exists( $this->adapter, 'is_readable' ) ) {
-				$readable = $this->adapter->is_readable( $dir );
-			} else {
-				$readable = is_readable( $dir );
-			}
-
-			if ( $readable ) {
-				// Check writability using adapter if possible
-				$writable = false;
-				$tmpFile  = $dir . DIRECTORY_SEPARATOR . uniqid( 'test_', true ) . '.tmp';
-
-				try {
-					if ( method_exists( $this->adapter, 'put_contents' ) ) {
-						$writable = $this->adapter->put_contents( $tmpFile, 'test' );
-					} else {
-						$fp = @fopen( $tmpFile, 'w' );
-						if ( false !== $fp ) {
-							fwrite( $fp, 'test' );
-							fclose( $fp );
-							$writable = true;
-						}
-					}
-				} catch ( \Throwable $e ) {
-					$error_msg = $e->getMessage();
-				} finally {
-					@unlink( $tmpFile );
-				}
-
-				if ( ! $writable && ! $error_msg ) {
-					$error_msg = 'Cannot write to directory';
-				}
-			} else {
-				$error_msg = 'Directory not readable';
-			}
-
-			$results[ $dir ] = [
-				'readable' => $readable,
-				'writable' => $writable,
-				'error'    => $error_msg,
-			];
-		}
-
-		return $results;
 	}
 
 	/**

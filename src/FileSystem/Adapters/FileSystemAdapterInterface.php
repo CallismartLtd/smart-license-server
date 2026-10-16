@@ -74,10 +74,42 @@ interface FileSystemAdapterInterface {
 	 *
 	 * @param string $path Absolute path to the file.
 	 * @param string $contents Data to write.
-	 * @param int $mode File permissions (optional, default SMLISER_FILE_PERMISSION).
+	 * @param int|false|null $mode Optional permissions. Null (default) applies
+	 *                              the adapter's configured file permission;
+	 *                              false skips chmod entirely; an explicit
+	 *                              int applies that mode.
 	 * @return bool True on success, false on failure.
 	 */
-	public function put_contents( string $path, string $contents, int $mode = SMLISER_FILE_PERMISSION ) : bool;
+	public function put_contents( string $path, string $contents, int|false|null $mode = null ) : bool;
+
+	/**
+	 * Open a file for reading as a stream.
+	 *
+	 * The stream is opened in binary read mode and positioned at the start
+	 * of the file. The caller owns it and must close it with fclose().
+	 *
+	 * @param string $path Absolute path to the file.
+	 * @return resource|false A readable stream resource, or false on failure.
+	 */
+	public function read_stream( string $path ) : mixed;
+
+	/**
+	 * Write a stream's contents to a file.
+	 *
+	 * Reads $stream from its current position to its end and writes the
+	 * bytes to $path, creating missing parent directories. An existing file
+	 * is replaced only once every byte has been written, so a failed write
+	 * leaves it as it was. $stream is not closed; the caller still owns it.
+	 *
+	 * @param string $path Absolute path to the file.
+	 * @param resource $stream A readable stream resource.
+	 * @param int|false|null $mode Optional permissions. Null (default) applies
+	 *                              the adapter's configured file permission;
+	 *                              false skips chmod entirely; an explicit
+	 *                              int applies that mode.
+	 * @return bool True on success, false on failure.
+	 */
+	public function write_stream( string $path, mixed $stream, int|false|null $mode = null ) : bool;
 
 	/**
 	 * Delete a file or directory.
@@ -114,8 +146,8 @@ interface FileSystemAdapterInterface {
 	 * @param string $source Source path.
 	 * @param string $dest Destination path.
 	 * @param bool $overwrite Optional. Overwrite if true.
+	 * @param int|false $mode Optional. Permissions.
 	 * @return bool True on success, false on failure.
-	 * @param int|false $mode   Optional. Permissions.
 	 */
 	public function copy( string $source, string $dest, bool $overwrite = false, int|false $mode = false ) : bool;
 
@@ -177,19 +209,38 @@ interface FileSystemAdapterInterface {
 	/**
 	 * Get file stat information.
 	 *
+	 * Symbolic links are followed, so a link reports what it points to.
+	 * Keys:
+	 *  - path:    $path exactly as given.
+	 *  - exists:  always true; a missing path returns false instead.
+	 *  - is_dir:  whether it is a directory.
+	 *  - is_file: whether it is a regular file.
+	 *  - size:    size in bytes for a file, 0 for a directory.
+	 *  - mtime:   modification time as a Unix timestamp.
+	 *  - perms:   permissions as a four-digit octal string, e.g. "0644".
+	 *
 	 * @param string $path Absolute path.
-	 * @return array|false Array with keys: path, exists, is_dir, is_file, size, mtime, perms, or false on failure.
+	 * @return array{path: string, exists: bool, is_dir: bool, is_file: bool, size: int, mtime: int, perms: string}|false
+	 *         The stat array, or false when $path does not exist or its
+	 *         information cannot be read.
 	 */
 	public function stat( string $path ) : array|false;
 
 	/**
-	 * Output a file in chunks.
+	 * List the entries of a directory.
 	 *
-	 * @param string $path Absolute path.
-	 * @param int $start Optional start offset.
-	 * @param int $length Optional length to read.
-	 * @param int $chunk_size Optional chunk size (default 1MB).
-	 * @return bool True on success, false on failure.
+	 * Lists the direct children only (not recursive), without "." and "..",
+	 * sorted by name in byte order so every adapter returns the same order.
+	 * Each entry is the stat() array of that child, its path being $path
+	 * joined to the entry name. Symbolic links are followed as stat()
+	 * follows them, so a link to a directory makes $path listable and is
+	 * listed as a directory. An entry whose information cannot be read,
+	 * such as a link whose target is missing, is left out.
+	 *
+	 * @param string $path Absolute path to the directory.
+	 * @return list<array{path: string, exists: bool, is_dir: bool, is_file: bool, size: int, mtime: int, perms: string}>|false
+	 *         The entries, an empty list for an empty directory, or false
+	 *         when $path is not a directory or cannot be read.
 	 */
-	public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ) : bool;
+	public function list_dir( string $path ) : array|false;
 }

@@ -157,7 +157,86 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 	}
 
 	/**
+	 * Open a file for reading as a stream.
+	 *
+	 * The stream is opened in binary read mode and positioned at the start
+	 * of the file. The caller owns it and must close it with fclose().
+	 *
+	 * @param string $path Absolute path to the file.
+	 * @return resource|false A readable stream resource, or false on failure.
+	 */
+	public function read_stream( string $path ) : mixed {
+		if ( ! $this->is_file( $path ) || ! $this->is_readable( $path ) ) {
+			return false;
+		}
+
+		return @fopen( $path, 'rb' );
+	}
+
+	/**
+	 * Write a stream's contents to a file.
+	 *
+	 * Reads $stream from its current position to its end and writes the
+	 * bytes to $path, creating missing parent directories. An existing file
+	 * is replaced only once every byte has been written, so a failed write
+	 * leaves it as it was. $stream is not closed; the caller still owns it.
+	 *
+	 * @param string $path Absolute path to the file.
+	 * @param resource $stream A readable stream resource.
+	 * @param int|false|null $mode Optional permissions. Null (default) applies
+	 *                              the adapter's configured file permission;
+	 *                              false skips chmod entirely; an explicit
+	 *                              int applies that mode.
+	 * @return bool True on success, false on failure.
+	 */
+	public function write_stream( string $path, mixed $stream, int|false|null $mode = null ) : bool {
+		if ( '' === $path || ! is_resource( $stream ) || 'stream' !== get_resource_type( $stream ) ) {
+			return false;
+		}
+
+		$dir = dirname( $path );
+		if ( ! $this->mkdir( $dir ) ) {
+			return false;
+		}
+
+		$tmp    = $path . '.tmp.' . uniqid( '', true );
+		$handle = @fopen( $tmp, 'xb' );
+
+		if ( false === $handle ) {
+			return false;
+		}
+
+		$copied = @stream_copy_to_stream( $stream, $handle );
+		$closed = fclose( $handle );
+
+		// A copy that stopped before the end of $stream was cut short by a
+		// read error, so the temp file is incomplete.
+		if ( false === $copied || ! $closed || ! feof( $stream ) ) {
+			@unlink( $tmp );
+			return false;
+		}
+
+		if ( ! $this->rename( $tmp, $path ) ) {
+			@unlink( $tmp );
+			return false;
+		}
+
+		if ( null === $mode ) {
+			$mode = $this->file_permission;
+		}
+
+		if ( false !== $mode ) {
+			$this->chmod( $path, $mode );
+		}
+
+		return true;
+	}
+
+	/**
 	 * Delete a file or directory.
+	 *
+	 * A symbolic link is always removed as the link itself, whatever it
+	 * points to and whatever $type says; its target is never touched.
 	 *
 	 * @param string $file Path to the file or directory.
 	 * @param bool $recursive Optional. Delete recursively if true.
@@ -165,6 +244,10 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 	 * @return bool True on success, false on failure.
 	 */
 	public function delete( string $file, bool $recursive = false, string|false $type = false ) : bool {
+		if ( @is_link( $file ) ) {
+			return @unlink( $file );
+		}
+
 		if ( false === $type ) {
 			if ( $this->is_file( $file ) ) {
 				$type = 'f';
@@ -241,12 +324,16 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 	/**
 	 * Remove a directory.
 	 *
+	 * A symbolic link is not a directory here, even when it points to one,
+	 * so it is refused; use delete() to remove the link itself. Links found
+	 * inside the tree are removed as links, never followed.
+	 *
 	 * @param string $path Absolute path.
 	 * @param bool $recursive Optional. Remove recursively if true.
 	 * @return bool True on success, false on failure.
 	 */
 	public function rmdir( string $path, bool $recursive = false ) : bool {
-		if ( ! $this->is_dir( $path ) ) {
+		if ( @is_link( $path ) || ! $this->is_dir( $path ) ) {
 			return false;
 		}
 
@@ -281,6 +368,9 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 	 * directory that already exists. Missing parent directories of $dest
 	 * are created with the default directory permission.
 	 *
+	 * A symbolic link is copied as a link with the same target (as `cp -P`
+	 * does), never as the content it points to. No mode is applied to it.
+	 *
 	 * @param string $source Source path.
 	 * @param string $dest Destination path.
 	 * @param bool $overwrite Optional. Overwrite if true.
@@ -288,11 +378,16 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 	 * @return bool True when everything was copied, false if anything failed.
 	 */
 	public function copy( string $source, string $dest, bool $overwrite = false, int|false $mode = false ) : bool {
-		if ( ! $this->exists( $source ) ) {
+		$source_is_link = @is_link( $source );
+
+		// exists() follows links, so a dangling link is checked on its own.
+		if ( ! $source_is_link && ! $this->exists( $source ) ) {
 			return false;
 		}
 
-		if ( $this->exists( $dest ) && ! $overwrite ) {
+		$dest_taken = @is_link( $dest ) || $this->exists( $dest );
+
+		if ( $dest_taken && ! $overwrite ) {
 			return false;
 		}
 
@@ -301,6 +396,20 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 		$dest_dir = dirname( $dest );
 		if ( ! $this->mkdir( $dest_dir ) ) {
 			return false;
+		}
+
+		if ( $source_is_link ) {
+			$target = @readlink( $source );
+
+			if ( false === $target ) {
+				return false;
+			}
+
+			if ( $dest_taken && ! $this->delete( $dest, true ) ) {
+				return false;
+			}
+
+			return @symlink( $target, $dest );
 		}
 
 		if ( $this->is_file( $source ) ) {
@@ -410,30 +519,31 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 	 * Change file permissions.
 	 *
 	 * @param string $file Path to file or directory.
-	 * @param int|false $mode Optional. Permissions as octal number. False
-	 *                         uses the adapter's configured file/directory
-	 *                         permission depending on the target's type.
+	 * @param int|false $mode Optional. Permissions as octal number, applied
+	 *                         to every item changed. False gives each item
+	 *                         the adapter's configured permission for its own
+	 *                         type: files the file permission, directories
+	 *                         the directory permission.
 	 * @param bool $recursive Optional. Change permissions recursively.
+	 *                        Symbolic links met during the walk are skipped
+	 *                        (as `chmod -R` does), so nothing outside the tree
+	 *                        is changed.
 	 * @return bool True on success, false on failure.
 	 */
 	public function chmod( string $file, int|false $mode = false, bool $recursive = false ) : bool {
-		if ( ! $mode ) {
-			if ( $this->is_file( $file ) ) {
-				$mode = $this->file_permission;
-			} elseif ( $this->is_dir( $file ) ) {
-				$mode = $this->dir_permission;
-			} else {
-				return false;
-			}
+		$applied = $mode ?: $this->default_permission( $file );
+
+		if ( null === $applied ) {
+			return false;
 		}
 
 		if ( ! $recursive ) {
-			return @chmod( $file, $mode );
+			return @chmod( $file, $applied );
 		}
 
 		$success = true;
 
-		if ( $this->is_dir( $file ) ) {
+		if ( $this->is_dir( $file ) && ! @is_link( $file ) ) {
 			$items = scandir( $file );
 			if ( false !== $items ) {
 				foreach ( $items as $item ) {
@@ -441,16 +551,39 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 						continue;
 					}
 
-					$success = $this->chmod(
-						$file . DIRECTORY_SEPARATOR . $item,
-						$mode,
-						true
-					) && $success;
+					$child = $file . DIRECTORY_SEPARATOR . $item;
+
+					if ( @is_link( $child ) ) {
+						continue;
+					}
+
+					// Pass the caller's $mode on unchanged, so a default stays per-type.
+					$success = $this->chmod( $child, $mode, true ) && $success;
 				}
 			}
 		}
 
-		return @chmod( $file, $mode ) && $success;
+		return @chmod( $file, $applied ) && $success;
+	}
+
+	/**
+	 * Get the adapter's configured permission for a path's type.
+	 *
+	 * @param string $path Absolute path.
+	 * @return int|null The file permission for a file, the directory
+	 *                  permission for a directory, or null when $path is
+	 *                  neither.
+	 */
+	protected function default_permission( string $path ) : ?int {
+		if ( $this->is_file( $path ) ) {
+			return $this->file_permission;
+		}
+
+		if ( $this->is_dir( $path ) ) {
+			return $this->dir_permission;
+		}
+
+		return null;
 	}
 
 	/**
@@ -458,7 +591,10 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 	 *
 	 * @param string $file Path to file or directory.
 	 * @param string|int $owner Owner name or UID.
-	 * @param bool $recursive Optional. Change owner recursively.
+	 * @param bool $recursive Optional. Change owner recursively. Symbolic
+	 *                        links met during the walk get their own owner
+	 *                        changed (as `chown -R` does) and are never
+	 *                        followed.
 	 * @return bool True on success, false on failure.
 	 */
 	public function chown( string $file, string|int $owner, bool $recursive = false ) : bool {
@@ -468,7 +604,7 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 
 		$success = true;
 
-		if ( $this->is_dir( $file ) ) {
+		if ( $this->is_dir( $file ) && ! @is_link( $file ) ) {
 			$items = scandir( $file );
 			if ( false !== $items ) {
 				foreach ( $items as $item ) {
@@ -476,11 +612,14 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 						continue;
 					}
 
-					$success = $this->chown(
-						$file . DIRECTORY_SEPARATOR . $item,
-						$owner,
-						true
-					) && $success;
+					$child = $file . DIRECTORY_SEPARATOR . $item;
+
+					if ( @is_link( $child ) ) {
+						$success = @lchown( $child, $owner ) && $success;
+						continue;
+					}
+
+					$success = $this->chown( $child, $owner, true ) && $success;
 				}
 			}
 		}
@@ -488,84 +627,114 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 		return @chown( $file, $owner ) && $success;
 	}
 
+	/**
+	 * Get file size.
+	 *
+	 * @param string $path Absolute path.
+	 * @return int|false File size in bytes, false on failure.
+	 */
 	public function filesize( string $path ) : int|false {
 		return @filesize( $path );
 	}
 
+	/**
+	 * Get file modification time.
+	 *
+	 * @param string $path Absolute path.
+	 * @return int|false Unix timestamp, false on failure.
+	 */
 	public function filemtime( string $path ) : int|false {
 		return @filemtime( $path );
 	}
 
+	/**
+	 * Get file stat information.
+	 *
+	 * Symbolic links are followed, so a link reports what it points to.
+	 * Every value comes from a single stat() call, so the array describes
+	 * one consistent moment even while the file is being changed.
+	 * Keys:
+	 *  - path:    $path exactly as given.
+	 *  - exists:  always true; a missing path returns false instead.
+	 *  - is_dir:  whether it is a directory.
+	 *  - is_file: whether it is a regular file.
+	 *  - size:    size in bytes for a file, 0 for a directory.
+	 *  - mtime:   modification time as a Unix timestamp.
+	 *  - perms:   permissions as a four-digit octal string, e.g. "0644".
+	 *
+	 * @param string $path Absolute path.
+	 * @return array{path: string, exists: bool, is_dir: bool, is_file: bool, size: int, mtime: int, perms: string}|false
+	 *         The stat array, or false when $path does not exist or its
+	 *         information cannot be read.
+	 */
 	public function stat( string $path ) : array|false {
-		if ( ! $this->exists( $path ) ) {
+		if ( '' === $path ) {
 			return false;
 		}
 
-		$perms = @fileperms( $path );
+		$info = @stat( $path );
+
+		if ( false === $info ) {
+			return false;
+		}
+
+		// The file type is held in the top bits of the mode (S_IFMT).
+		$type    = $info['mode'] & 0170000;
+		$is_file = 0100000 === $type;
 
 		return [
 			'path'    => $path,
 			'exists'  => true,
-			'is_dir'  => $this->is_dir( $path ),
-			'is_file' => $this->is_file( $path ),
-			'size'    => $this->is_file( $path ) ? $this->filesize( $path ) : 0,
-			'mtime'   => $this->filemtime( $path ),
-			'perms'   => false !== $perms ? substr( sprintf( '%o', $perms ), -4 ) : false,
+			'is_dir'  => 0040000 === $type,
+			'is_file' => $is_file,
+			'size'    => $is_file ? (int) $info['size'] : 0,
+			'mtime'   => (int) $info['mtime'],
+			'perms'   => sprintf( '%04o', $info['mode'] & 07777 ),
 		];
 	}
 
 	/**
-	 * Output a file in chunks.
+	 * List the entries of a directory.
 	 *
-	 * @param string $path Absolute path.
-	 * @param int $start Optional start offset.
-	 * @param int $length Optional length to read.
-	 * @param int $chunk_size Optional chunk size (default 1MB).
-	 * @return bool True on success, false on failure.
+	 * Lists the direct children only (not recursive), without "." and "..",
+	 * sorted by name in byte order so every adapter returns the same order.
+	 * Each entry is the stat() array of that child, its path being $path
+	 * joined to the entry name. Symbolic links are followed as stat()
+	 * follows them, so a link to a directory makes $path listable and is
+	 * listed as a directory. An entry whose information cannot be read,
+	 * such as a link whose target is missing, is left out.
+	 *
+	 * @param string $path Absolute path to the directory.
+	 * @return list<array{path: string, exists: bool, is_dir: bool, is_file: bool, size: int, mtime: int, perms: string}>|false
+	 *         The entries, an empty list for an empty directory, or false
+	 *         when $path is not a directory or cannot be read.
 	 */
-	public function readfile( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ) : bool {
-		if ( ! $this->is_file( $path ) ) {
+	public function list_dir( string $path ) : array|false {
+		if ( ! $this->is_dir( $path ) ) {
 			return false;
 		}
 
-		$stream = @fopen( $path, 'rb' );
+		$names = @scandir( $path, \SCANDIR_SORT_NONE );
 
-		if ( false === $stream ) {
+		if ( false === $names ) {
 			return false;
 		}
 
-		if ( $start > 0 ) {
-			fseek( $stream, $start );
-		}
+		$names = array_values( array_diff( $names, [ '.', '..' ] ) );
+		sort( $names, \SORT_STRING );
 
-		$remaining = $length > 0 ? $length : null;
+		// rtrim() turns "/" into "", so the root still joins as "/name".
+		$base    = rtrim( $path, '/\\' );
+		$entries = [];
 
-		while ( ! feof( $stream ) ) {
-			if ( null !== $remaining && $remaining <= 0 ) {
-				break;
-			}
+		foreach ( $names as $name ) {
+			$stat = $this->stat( $base . \DIRECTORY_SEPARATOR . $name );
 
-			$read_length = ( null !== $remaining )
-				? min( $chunk_size, $remaining )
-				: $chunk_size;
-
-			$buffer = fread( $stream, $read_length );
-
-			if ( false === $buffer ) {
-				fclose( $stream );
-				return false;
-			}
-
-			echo $buffer;
-			flush();
-
-			if ( null !== $remaining ) {
-				$remaining -= strlen( $buffer );
+			if ( false !== $stat ) {
+				$entries[] = $stat;
 			}
 		}
 
-		fclose( $stream );
-
-		return true;
+		return $entries;
 	}
 }
