@@ -55,7 +55,7 @@ class ScheduleCommand extends AbstractCommand {
 	}
 
 	public function help() : string {
-		$script_name = $this->script_name;
+		$prefix = $this->command_prefix();
 		return implode( PHP_EOL, [
 			'Subcommands:',
 			'  run               Evaluate and execute due scheduled tasks.',
@@ -69,16 +69,16 @@ class ScheduleCommand extends AbstractCommand {
 			'waits for its finish step; due tasks stay due and run on the next call.',
 			'',
 			'Examples:',
-			"  {$script_name} schedule run",
-			"  {$script_name} schedule list",
-			"  {$script_name} schedule run --force",
+			"  {$prefix} run",
+			"  {$prefix} list",
+			"  {$prefix} run --force",
 		] );
 	}
 
 	public function run( CommandInput $input ) : int {
 		$this->output->info( static::description() );
 		$this->output->newline();
-		$this->output->writeln( 'Run `smliser schedule help` to see available subcommands.' );
+		$this->output->writeln( sprintf( 'Run `%s` to see available subcommands.', $this->command_prefix( 'help' ) ) );
 
 		return 0;
 	}

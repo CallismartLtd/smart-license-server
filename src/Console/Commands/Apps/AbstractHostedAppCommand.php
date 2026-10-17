@@ -64,11 +64,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 		$this->output->info( static::description() );
 		$this->output->newline();
 		$this->output->writeln(
-			sprintf(
-				'Run %s %s help to see available subcommands.',
-				$this->script_name,
-				static::name()
-			)
+			sprintf( 'Run %s to see available subcommands.', $this->command_prefix( 'help' ) )
 		);
 
 		return 0;
@@ -91,7 +87,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 	public function help() : string {
 		$type           = static::get_type();
 		$name           = \ucfirst( $type );
-		$script_name    = $this->script_name;
+		$prefix         = $this->command_prefix();
 		$statuses       = array_keys( AbstractHostedApp::get_statuses() );
 		$valid_statuses = implode( ', ', $statuses );
 
@@ -139,12 +135,12 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 			"  (Note: 'trash' is managed via the trash/delete subcommands)",
 			"",
 			"Examples:",
-			"  {$script_name} {$type} create --name=\"My {$name}\" --author=\"Dev\" --app-zip-file=/tmp/my-{$type}.zip",
-			"  {$script_name} {$type} update --slug=my-{$type} --app-zip-url=https://example.com/{$type}.zip --version=2.0.0",
-			"  {$script_name} {$type} upload-asset --slug=my-{$type} --asset-type=icons --path=/tmp/icon.png",
-			"  {$script_name} {$type} change-status --slug=my-{$type} --status={$current_status}",
-			"  {$script_name} {$type} trash --slug=my-{$type}",
-			"  {$script_name} {$type} purge --slug=my-{$type}",
+			"  {$prefix} create --name=\"My {$name}\" --author=\"Dev\" --app-zip-file=/tmp/my-{$type}.zip",
+			"  {$prefix} update --slug=my-{$type} --app-zip-url=https://example.com/{$type}.zip --version=2.0.0",
+			"  {$prefix} upload-asset --slug=my-{$type} --asset-type=icons --path=/tmp/icon.png",
+			"  {$prefix} change-status --slug=my-{$type} --status={$current_status}",
+			"  {$prefix} trash --slug=my-{$type}",
+			"  {$prefix} purge --slug=my-{$type}",
 		] );
 	}
 
@@ -200,19 +196,20 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 		
 		$response = $this->controller->save_app( $request );
 
-		if ( $response->ok() ) {
-
-			$this->output->success(
-				sprintf(
-					'%s "%s" saved successfully. Completed in %ss',
-					ucfirst( $type ),
-					static::get_type(),
-					$stopwatch->elapsed()
-				)
-			);
-		} else {
+		if ( ! $response->ok() ) {
 			$this->output->error( $response->get_error_message() ?: 'Save failed.' );
+
+			return 1;
 		}
+
+		$this->output->success(
+			sprintf(
+				'%s "%s" saved successfully. Completed in %ss',
+				ucfirst( $type ),
+				$input->get_option( 'name', '' ),
+				$stopwatch->elapsed()
+			)
+		);
 
 		return 0;
 	}
@@ -225,7 +222,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 			return 1;
 		}
 
-		$usage = sprintf( 'smliser %s update --slug=<slug> [options]', static::get_type() );
+		$usage = sprintf( '%s --slug=<slug> [options]', $this->command_prefix( 'update' ) );
 
 		if ( ! $this->require_options( $input->get_options(), [ 'slug' ], $usage ) ) {
 			return 1;
@@ -237,7 +234,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 		$stopwatch->start();
 
 		$this->output->info(
-			sprintf( 'Updating %s "%s"...', $type, $input->get_option( 'name', '' ) ) );
+			sprintf( 'Updating %s "%s"...', $type, $input->get_option( 'slug', '' ) ) );
 		
 		
 		$request = $this->buildRequest( $input->get_options() );
@@ -248,20 +245,22 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 
 		$response = $this->controller->save_app( $request );
 
-		if ( $response->ok() ) {
-			$slug = $response->get_request()->get( 'smliser_resource' )?->get_slug() ?? static::get_type();
-
-			$this->output->success(
-				sprintf(
-					'%s "%s" updated successfully. Completed in %ss',
-					ucfirst( $type ),
-					$slug,
-					$stopwatch->elapsed()
-				)
-			);
-		} else {
+		if ( ! $response->ok() ) {
 			$this->output->error( $response->get_error_message() ?: 'Update failed.' );
+
+			return 1;
 		}
+
+		$slug = $response->get_request()->get( 'smliser_resource' )?->get_slug() ?? static::get_type();
+
+		$this->output->success(
+			sprintf(
+				'%s "%s" updated successfully. Completed in %ss',
+				ucfirst( $type ),
+				$slug,
+				$stopwatch->elapsed()
+			)
+		);
 
 		return 0;
 	}
@@ -274,7 +273,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 	public function trash_app( CommandInput $input ) : int {
 
 		$slug  = $input->get_option( 'slug', '' );
-		$usage = sprintf( 'smliser %s trash --slug=<slug>', static::get_type() );
+		$usage = sprintf( '%s --slug=<slug>', $this->command_prefix( 'trash' ) );
 
 		if ( ! $this->require_args( [ 'slug' => $slug ], $usage ) ) {
 			return 1;
@@ -284,9 +283,10 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 		}
 
 		return $this->change_status(
-			new CommandInput( ['yes'], [
+			new CommandInput( [], [
 				'slug'   => $slug,
 				'status' => AbstractHostedApp::STATUS_TRASH,
+				'yes'    => true,
 			] )
 		);
 	}
@@ -301,7 +301,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 
 		if ( ! $this->require_args(
 			[ 'slug' => $slug ],
-			sprintf( 'smliser %s purge --slug=<slug>', static::get_type() )
+			sprintf( '%s --slug=<slug>', $this->command_prefix( 'purge' ) )
 		) ) {
 			return 1;
 		}
@@ -382,7 +382,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 	 * Change an application's status.
 	 */
 	public function change_status( CommandInput $input ) : int {
-		$usage = sprintf( 'smliser %s change-status --slug=<slug> --status=<status>', static::get_type() );
+		$usage = sprintf( '%s --slug=<slug> --status=<status>', $this->command_prefix( 'change-status' ) );
 		
 		if ( ! $this->require_options( $input->get_options(), [ 'slug', 'status' ], $usage ) ) {
 			return 2;
@@ -395,9 +395,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 			return 1;
 		}
 
-		$confirmed = $opts['y'] ?? $opts['yes'] ?? $opts['force'] ?? $opts['f'] ?? false;
-
-		if ( ! $confirmed && ! $this->io->confirm( sprintf( 'Change status of "%s" to "%s"?', $slug, $status ) ) ) {
+		if ( ! $this->is_confirmed( $input ) && ! $this->io->confirm( sprintf( 'Change status of "%s" to "%s"?', $slug, $status ) ) ) {
 			$this->output->info( 'Aborted.' );
 			return 0;
 		}
@@ -434,8 +432,8 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 	public function upload_asset( CommandInput $input ) : int {
 
 		$usage = sprintf(
-			'smliser %s upload-asset --slug=<slug> --asset-type=<type> [--path=<path> | --url=<url>] [--asset-name=<name>]',
-			static::get_type()
+			'%s --slug=<slug> --asset-type=<type> [--path=<path> | --url=<url>] [--asset-name=<name>]',
+			$this->command_prefix( 'upload-asset' )
 		);
 
 		if ( ! $this->require_options( $input->get_options(), [ 'slug', 'asset-type' ], $usage ) ) {
@@ -511,7 +509,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 					? 'Asset uploaded.'
 					: sprintf( '%d assets uploaded.', count( $uploaded ) );
 
-				$message = " Completed in {$stopwatch->elapsed()}s";
+				$message .= " Completed in {$stopwatch->elapsed()}s";
 				
 				$this->output->success( $message );
 			}
@@ -523,6 +521,22 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 		$this->output->error( $response->get_error_message() ?: 'Asset upload failed.' );
 		
 		return 1;
+	}
+
+	/**
+	 * Tell whether the user confirmed up front with -y, --yes, -f or --force.
+	 *
+	 * @param CommandInput $input
+	 * @return bool
+	 */
+	private function is_confirmed( CommandInput $input ) : bool {
+		foreach ( [ 'y', 'yes', 'f', 'force' ] as $flag ) {
+			if ( true === $input->get_option( $flag ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -546,12 +560,14 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 				}
 			}
 
-			// Resolve app.json — --app-json-path takes precedence over --app-json-url.
+			// Resolve app.json — --app-json-file takes precedence over --app-json-url.
+			// --app-json-path is the old, undocumented name, still read.
 			$json_file    = null;
 			$json_cleanup = null;
+			$json_path    = $opts['app-json-file'] ?? $opts['app-json-path'] ?? '';
 
-			if ( ! empty( $opts['app-json-path'] ) ) {
-				$json_file = $this->resolve_local_file( (string) $opts['app-json-path'] );
+			if ( ! empty( $json_path ) ) {
+				$json_file = $this->resolve_local_file( (string) $json_path );
 				if ( null === $json_file ) {
 					return null;
 				}

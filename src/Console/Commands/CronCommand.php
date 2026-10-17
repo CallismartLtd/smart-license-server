@@ -65,19 +65,38 @@ class CronCommand extends AbstractCommand {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * The command itself does the work; `help` is its only subcommand,
+	 * so the usage line does not advertise a required <subcommand>.
+	 */
+	public function synopsis() : string {
+		return sprintf( '%s [options]', $this->command_prefix() );
+	}
+
+	/**
+	 * {@inheritdoc}
 	 */
 	public function help() : string {
-		$script_name = $this->script_name;
+		$prefix = $this->command_prefix();
 
 		return implode( PHP_EOL, [
 			'Runs the scheduled tasks that are due, then processes queued jobs for',
 			'up to 45 seconds. Add it to cron to run every minute:',
 			'',
-			"  * * * * * cd " . rtrim( \SMLISER_ROOT, '/' ) . " && php {$script_name} cron >> /dev/null 2>&1",
+			// Cron runs from the system shell, so this line always needs the script name.
+			"  * * * * * cd " . rtrim( \SMLISER_ROOT, '/' ) . " && php {$this->script_name} cron >> /dev/null 2>&1",
+			'',
+			'Subcommands:',
+			'  help              Show this help message.',
 			'',
 			'Options:',
 			'  --timeout=<sec>   Seconds of queued jobs per run. Default: 45.',
 			'  --verbose         Print each task and job.',
+			'',
+			'Examples:',
+			"  {$prefix}",
+			"  {$prefix} --verbose --timeout=20",
+			"  {$prefix} help",
 			'',
 			'A long-running worker (`queue work`) can still be used alongside it',
 			'for instant job processing.',
@@ -86,6 +105,20 @@ class CronCommand extends AbstractCommand {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * Handlers must stay public: AbstractCommandRouter invokes them as
+	 * callables from outside this class.
+	 */
+	public function get_subcommands() : array {
+		return [
+			'help' => [ $this, 'handle_help' ],
+		];
+	}
+
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Reached when no subcommand is given: `cron` alone, or with options.
 	 */
 	public function run( CommandInput $input ) : int {
 		$timeout = $input->get_option( 'timeout', null );

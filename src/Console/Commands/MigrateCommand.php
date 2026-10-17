@@ -43,13 +43,26 @@ class MigrateCommand extends AbstractCommand {
 	}
 
 	public function help() : string {
-		return '';
-	}
+		$prefix = $this->command_prefix();
 
+		return implode( PHP_EOL, [
+			'Creates every registered table that does not exist yet.',
+			'Existing tables are left as they are.',
+			'',
+			'Options:',
+			'  --info        Show the database adapter in use, without migrating.',
+			'  --yes -y      Skip the confirmation prompt.',
+			'',
+			'Examples:',
+			"  {$prefix}",
+			"  {$prefix} --yes",
+			"  {$prefix} --info",
+		] );
+	}
 
 	public function run( CommandInput $input ) : int {
 		$info      = $input->get_option( 'info', false );
-		$confirmed = (bool) ( $options['y'] ?? $options['yes'] ?? false );
+		$confirmed = true === $input->get_option( 'y' ) || true === $input->get_option( 'yes' );
 
 		if ( $info ) {
 			$this->output->info( $this->description() );
@@ -78,6 +91,7 @@ class MigrateCommand extends AbstractCommand {
 		
 		$headers = [ 'Table', 'Status' ];
 		$rows    = [];
+		$failed  = 0;
 
 		$this->output->progress_start( count( $tables ), 'Checking' );
 
@@ -95,9 +109,9 @@ class MigrateCommand extends AbstractCommand {
 				if ( $created ) {
 					$message = '✔ Created';
 				} else {
-					$message = '✖ ' . $this->db->get_last_error() ?? 'Unknown error occured';
+					$message = '✖ ' . ( $this->db->get_last_error() ?: 'Unknown error occurred' );
+					$failed++;
 				}
-				
 				
 				$rows[] = [ $table_name, $message ];
 			} else {
@@ -110,6 +124,11 @@ class MigrateCommand extends AbstractCommand {
 
 		$this->output->progress_finish( 'Migration complete.' );
 		$this->output->table( $headers, $rows );
+
+		if ( $failed > 0 ) {
+			$this->output->error( sprintf( '%d table(s) could not be created. Completed in %ss.', $failed, $stopwatch->elapsed() ) );
+			return 1;
+		}
 
 		$this->output->success( sprintf( 'All migrations processed. Completed in %ss.', $stopwatch->elapsed() ) );
 

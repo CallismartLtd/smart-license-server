@@ -60,7 +60,7 @@ class AppCommand extends AbstractCommand {
 	}
 
 	public function help() : string {
-		$script_name = $this->script_name;
+		$prefix      = $this->command_prefix();
 		return implode( PHP_EOL, [
 			'Subcommands:',
 			'  list                                    List hosted applications.',
@@ -76,18 +76,18 @@ class AppCommand extends AbstractCommand {
 			'  --limit=<n>                             Items per page. Default: 20.',
 			'',
 			'Examples:',
-			"  {$script_name} app list",
-			"  {$script_name} app list --type=plugin --status=active",
-			"  {$script_name} app search \"my plugin\"",
-			"  {$script_name} app get plugin my-plugin",
-			"  {$script_name} app count --type=theme",
+			"  {$prefix} list",
+			"  {$prefix} list --type=plugin --status=active",
+			"  {$prefix} search \"my plugin\"",
+			"  {$prefix} get plugin my-plugin",
+			"  {$prefix} count --type=theme",
 		] );
 	}
 
 	public function run( CommandInput $input ) : int {
 		$this->output->info( static::description() );
 		$this->output->newline();
-		$this->output->writeln( 'Run `smliser app help` to see available subcommands.' );
+		$this->output->writeln( sprintf( 'Run `%s` to see available subcommands.', $this->command_prefix( 'help' ) ) );
 
 		return 0;
 	}
@@ -113,7 +113,7 @@ class AppCommand extends AbstractCommand {
 	 */
 	public function handle_list( CommandInput $input ) : int {
 		$types  = $input->has_option( 'type' ) ? (array) $input->get_option( 'type' ) : [ 'plugin', 'theme', 'software' ];
-		$status = $opts['status'] ?? AbstractHostedApp::STATUS_ACTIVE;
+		$status = $input->get_option( 'status', AbstractHostedApp::STATUS_ACTIVE );
 		$page   = (int) $input->get_option( 'page', 1 );
 		$limit  = (int) $input->get_option( 'limit', 20 );
 		
@@ -172,7 +172,7 @@ class AppCommand extends AbstractCommand {
 		$term = $input->get_option( 'term' ) ?? $input->get_argument( 0 );
 
 		if ( empty( $term ) ) {
-			$this->output->error( 'Usage: smliser app search [--term...] [--type=...] [--limit=20]' );
+			$this->output->error( sprintf( 'Usage: %s <term> [--type=...] [--limit=20]', $this->command_prefix( 'search' ) ) );
 			return 1;
 		}
 
@@ -223,10 +223,11 @@ class AppCommand extends AbstractCommand {
 	 * Show full details for a single application.
 	 */
 	public function handle_get( CommandInput $input ) : int {
-		$type = $input->get_option( 'type' );
-		$slug = $input->get_option( 'slug' );
+		// As documented, `get <type> <slug>`; --type and --slug also work.
+		$type = $input->get_option( 'type' ) ?? $input->get_argument( 0 );
+		$slug = $input->get_option( 'slug' ) ?? $input->get_argument( 1 );
 
-		if ( ! $this->require_args( [ 'type' => $type, 'slug' => $slug ], 'smliser app get <type> <slug>' ) ) {
+		if ( ! $this->require_args( [ 'type' => $type, 'slug' => $slug ], $this->command_prefix( 'get' ) . ' <type> <slug>' ) ) {
 			return 2;
 		}
 

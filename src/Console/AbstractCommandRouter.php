@@ -32,12 +32,15 @@ abstract class AbstractCommandRouter {
 	 *                                       else goes through $output.
 	 */
 	protected function __construct(
-		protected CommandRegistry $registry,
+		CommandRegistry $registry,
 		protected InputInterface $io,
-		protected OutputInterface $output,
+		OutputInterface $output,
 		protected Terminal $terminal,
 		protected SignalManager $signal,
-	) {}
+	) {
+		$this->registry	= $registry;
+		$this->output	= $output;
+	}
 
 	/*
 	|--------------------------------------------

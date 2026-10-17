@@ -30,7 +30,7 @@ use SmartLicenseServer\Environments\Application\Update\PhpCli;
  *
  * Where it listens: the server listens where the operator asked, or the
  * operator agrees to where it listens instead. When nothing was asked
- * for, the canonical default (127.0.0.1:8000) is used, moving up to the
+ * for, the canonical default (DEFAULT_HOST:DEFAULT_PORT) is used, moving up to the
  * next free port without asking. When a --host or --port the operator
  * gave cannot be used, an alternative is offered and only taken on
  * confirmation, or straight away with -f/--force. A non-interactive run
@@ -198,11 +198,38 @@ final class ServerCommand extends AbstractCommand {
 
 	/**
 	 * {@inheritdoc}
+	 *
+	 * The command itself starts the server; `help` is its only subcommand,
+	 * so the usage line does not advertise a required <subcommand>.
+	 */
+	public function synopsis() : string {
+		return sprintf( '%s [options]', $this->command_prefix() );
+	}
+
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Handlers must stay public: AbstractCommandRouter invokes them as
+	 * callables from outside this class.
+	 */
+	public function get_subcommands() : array {
+		return [
+			'help' => [ $this, 'handle_help' ],
+		];
+	}
+
+	/**
+	 * {@inheritdoc}
 	 */
 	public function help() : string {
+		$prefix = $this->command_prefix();
+
 		return implode(
 			PHP_EOL,
 			[
+				'',
+				'Subcommands:',
+				'  help               Show this help message.',
 				'',
 				'Options:',
 				sprintf( '  --host=<host>      Address to listen on. Default: %s. Use 0.0.0.0 to accept other machines.', self::DEFAULT_HOST ),
@@ -214,6 +241,12 @@ final class ServerCommand extends AbstractCommand {
 				'',
 				'SMLISER_APP_URL is set for the server process only; .env is not changed.',
 				'Never use PHP\'s built-in server in production.',
+				'',
+				'Examples:',
+				"  {$prefix}",
+				"  {$prefix} --port=9000",
+				"  {$prefix} --host=0.0.0.0 -p 9000 --force",
+				"  {$prefix} help",
 			]
 		);
 	}

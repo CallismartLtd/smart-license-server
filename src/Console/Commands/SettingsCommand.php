@@ -40,28 +40,29 @@ class SettingsCommand extends AbstractCommand {
 	}
 
 	public function help() : string {
-		$script_name = $this->script_name;
+		$prefix = $this->command_prefix();
 
 		return implode( PHP_EOL, [
 			'Subcommands:',
-			'   set                 Insert or update the value of an option name.',
-			'   get  <name>         Get the entry of an option name.',
-			'   delete <name>       Remove a specific option entry from the table.',
-			'   help                Show this help message.',
-			'   list                List entries in options table.',
-			'   search              Search the options table with a specific term.',
-			'Options:',
-			'--name     The option name.',
-			'--value    The option value.',
-			'--query    The term used to search the option table.',
-			'--page     The current pagination number.',
-			'--limit    The maximum number of results to return for listing and search results.',
+			'  set               Insert or update the value of an option name.',
+			'  get <name>        Get the entry of an option name.',
+			'  delete <name>     Remove a specific option entry from the table.',
+			'  list              List entries in options table.',
+			'  search            Search the options table with a specific term.',
+			'  help              Show this help message.',
 			'',
+			'Options:',
+			'  --name            The option name.',
+			'  --value           The option value.',
+			'  --query           The term used to search the option table.',
+			'  --page            The current pagination number.',
+			'  --limit           The maximum number of results to return for listing and search results.',
 			'',
 			'Examples:',
-			"  {$script_name} settings set --name=\"option_name\" --value=\"option_value\"",
-			"  {$script_name} settings get smliser_some_key",
-			"  {$script_name} settings delete smliser_some_key",
+			"  {$prefix} set --name=\"option_name\" --value=\"option_value\"",
+			"  {$prefix} get smliser_some_key",
+			"  {$prefix} delete smliser_some_key",
+			"  {$prefix} search --query=\"smliser\" --page=1 --limit=20",
 		] );
 	}
 
@@ -69,7 +70,7 @@ class SettingsCommand extends AbstractCommand {
 	public function run( CommandInput $input ) : int {
 		$this->output->info( 'Active Settings Adapter: ' . get_class( $this->settings->get_adapter() ) );
 		
-		$this->output->writeln( "Run {$this->script_name} settings help to see available subcommands." );
+		$this->output->writeln( sprintf( 'Run `%s` to see available subcommands.', $this->command_prefix( 'help' ) ) );
 
 		return 0;
 	}
@@ -100,8 +101,8 @@ class SettingsCommand extends AbstractCommand {
 		$name  = $input->get_option( 'name', null );
 		$value = $input->get_option( 'value', null );
 
-		if ( empty( $name ) ) {
-			$this->output->error( "Usage: {$this->script_name} settings set --name=option_name --value=option_value" );
+		if ( ! is_string( $name ) || '' === $name ) {
+			$this->output->error( sprintf( 'Usage: %s --name=option_name --value=option_value', $this->command_prefix( 'set' ) ) );
 			return 1;
 		}
 
@@ -128,12 +129,11 @@ class SettingsCommand extends AbstractCommand {
 	public function handle_get( CommandInput $input ) : int {
 		$name = $input->get_argument( 0, $input->get_option( 'name', null ) );
 
-		if ( empty( $name ) || is_array( $name ) || str_starts_with( $name, '--' ) ) {
-			$this->output->error( "Usage: {$this->script_name} settings get <name>" );
+		if ( ! is_string( $name ) || '' === $name || str_starts_with( $name, '--' ) ) {
+			$this->output->error( sprintf( 'Usage: %s <name>', $this->command_prefix( 'get' ) ) );
 			return 1;
 		}
 
-		$name      = (string) $name;
 		$value     = $this->settings->get( $name, null );
 		$formatted = $this->format_option_value( $value );
 
@@ -157,8 +157,8 @@ class SettingsCommand extends AbstractCommand {
 	public function handle_delete( CommandInput $input ) : int {
 		$key = $input->get_argument( 0, $input->get_option( 'name', null ) );
 
-		if ( empty( $key ) || is_array( $key ) || str_starts_with( $key, '--' ) ) {
-			$this->output->error( "Usage: {$this->script_name} settings delete <key>" );
+		if ( ! is_string( $key ) || '' === $key || str_starts_with( $key, '--' ) ) {
+			$this->output->error( sprintf( 'Usage: %s <name>', $this->command_prefix( 'delete' ) ) );
 			return 1;
 		}
 
@@ -220,8 +220,8 @@ class SettingsCommand extends AbstractCommand {
 		$page  = (int) $input->get_option( 'page', 1 );
 		$limit = (int) $input->get_option( 'limit', 30 );
 
-		if ( empty( $query ) ) {
-			$this->output->error( "Usage: {$this->script_name} settings search --query=\"keyword\" [--page=1 --limit=20]" );
+		if ( ! is_string( $query ) || '' === $query ) {
+			$this->output->error( sprintf( 'Usage: %s --query="keyword" [--page=1 --limit=20]', $this->command_prefix( 'search' ) ) );
 			return 1;
 		}
 

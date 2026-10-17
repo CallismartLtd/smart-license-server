@@ -105,7 +105,7 @@ class QueueCommand extends AbstractCommand {
 	 * {@inheritdoc}
 	 */
 	public function help() : string {
-		$script_name = $this->script_name;
+		$prefix = $this->command_prefix();
 		return implode( PHP_EOL, [
 			'Subcommands:',
 			'  work              Start processing jobs on the queue as a worker daemon.',
@@ -148,13 +148,13 @@ class QueueCommand extends AbstractCommand {
 			'  --days=<n>        Purge archived failed jobs older than N days. Default: 30.',
 			'',
 			'Examples:',
-			"  {$script_name} {$this->name()} work --queue=default --timeout=120",
-			"  {$script_name} {$this->name()} status",
-			"  {$script_name} {$this->name()} list --status=pending --page=1 --limit=20",
-			"  {$script_name} {$this->name()} failed --queue=default",
-			"  {$script_name} {$this->name()} release-stale --timeout=600",
-			"  {$script_name} {$this->name()} purge --days=14",
-			"  {$script_name} {$this->name()} purge-failed --days=90",
+			"  {$prefix} work --queue=default --timeout=120",
+			"  {$prefix} status",
+			"  {$prefix} list --status=pending --page=1 --limit=20",
+			"  {$prefix} failed --queue=default",
+			"  {$prefix} release-stale --timeout=600",
+			"  {$prefix} purge --days=14",
+			"  {$prefix} purge-failed --days=90",
 		] );
 	}
 
@@ -167,7 +167,7 @@ class QueueCommand extends AbstractCommand {
 	public function run( CommandInput $input ) : int {
 		$this->output->info( static::description() );
 		$this->output->newline();
-		$this->output->writeln( 'Run `smliser queue help` to see available subcommands.' );
+		$this->output->writeln( sprintf( 'Run `%s` to see available subcommands.', $this->command_prefix( 'help' ) ) );
 
 		return 0;
 	}

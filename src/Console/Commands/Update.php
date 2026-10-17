@@ -60,9 +60,10 @@ class Update extends AbstractCommand {
 			'status'        => 'Shows the last check, the last update and the backup.',
 			'auto'          => 'Shows or sets automatic updates: --mode=off|security|all.',
 			'backup:delete' => 'Deletes the backup of the previous version (rollback is no longer possible).',
+			'help'          => 'Shows this help message.',
 		];
 
-		$out = sprintf( "Usage: %s <subcommand> [options]\n\nSubcommands:\n", $this->command_line( '' ) );
+		$out = "Subcommands:\n";
 
 		foreach ( $lines as $name => $text ) {
 			$out .= sprintf( "  %-14s %s\n", $name, $text );
@@ -102,7 +103,7 @@ class Update extends AbstractCommand {
 
 	public function run( CommandInput $input ) : int {
 		$this->output->info( sprintf( '%s %s is installed.', \SMLISER_APP_NAME, \SMLISER_VER ) );
-		$this->output->info( sprintf( 'Run `%s` to look for a newer version, or `%s` for every subcommand.', $this->command_line( 'check' ), $this->command_line( 'help' ) ) );
+		$this->output->info( sprintf( 'Run `%s` to look for a newer version, or `%s` for every subcommand.', $this->command_prefix( 'check' ), $this->command_prefix( 'help' ) ) );
 
 		return 0;
 	}
@@ -128,7 +129,7 @@ class Update extends AbstractCommand {
 		}
 
 		if ( $check['available'] ) {
-			$this->output->success( sprintf( 'Version %s is available%s (installed: %s). Run `%s` to update.', $check['latest'], $check['security'] ? ' (security release)' : '', \SMLISER_VER, $this->command_line( 'run' ) ) );
+			$this->output->success( sprintf( 'Version %s is available%s (installed: %s). Run `%s` to update.', $check['latest'], $check['security'] ? ' (security release)' : '', \SMLISER_VER, $this->command_prefix( 'run' ) ) );
 		} else {
 			$this->output->success( sprintf( '%s %s is up to date.', \SMLISER_APP_NAME, \SMLISER_VER ) );
 		}
@@ -172,7 +173,7 @@ class Update extends AbstractCommand {
 			$this->output->success( sprintf( '%s %s is up to date; nothing would be installed.', \SMLISER_APP_NAME, \SMLISER_VER ) );
 		} else {
 			$this->print_package( $result['package'] );
-			$this->output->success( sprintf( 'Version %s is downloaded, verified and ready. Run `%s` to install it.', $result['version'], $this->command_line( 'run' ) ) );
+			$this->output->success( sprintf( 'Version %s is downloaded, verified and ready. Run `%s` to install it.', $result['version'], $this->command_prefix( 'run' ) ) );
 		}
 
 		return 0;
@@ -230,7 +231,7 @@ class Update extends AbstractCommand {
 
 		return match ( $result['status'] ) {
 			UpdateRunner::UP_TO_DATE => $this->done( sprintf( '%s %s is up to date.', \SMLISER_APP_NAME, \SMLISER_VER ) ),
-			UpdateRunner::CANCELLED  => $this->done( sprintf( 'Update cancelled; nothing was changed. The verified package is kept for `%s`.', $this->command_line( 'run' ) ), false ),
+			UpdateRunner::CANCELLED  => $this->done( sprintf( 'Update cancelled; nothing was changed. The verified package is kept for `%s`.', $this->command_prefix( 'run' ) ), false ),
 			UpdateRunner::PENDING    => $this->pending( $result['finish'] ?? [] ),
 			default                  => (int) ( $result['finish']['exit_code'] ?? 0 ),
 		};
@@ -257,7 +258,7 @@ class Update extends AbstractCommand {
 			$journal = $this->updater->status();
 
 			if ( Updater::STAGE_SWAPPED === ( $journal['stage'] ?? null ) && \SMLISER_VER !== ( $journal['to'] ?? null ) ) {
-				$this->output->error( sprintf( 'This process runs version %s, not the new %s. Run `%s` again; a new process loads the new code.', \SMLISER_VER, $journal['to'] ?? '?', $this->command_line( 'finish' ) ) );
+				$this->output->error( sprintf( 'This process runs version %s, not the new %s. Run `%s` again; a new process loads the new code.', \SMLISER_VER, $journal['to'] ?? '?', $this->command_prefix( 'finish' ) ) );
 				return 1;
 			}
 
@@ -354,7 +355,7 @@ class Update extends AbstractCommand {
 		);
 
 		if ( Updater::STAGE_SWAPPED === ( $journal['stage'] ?? null ) ) {
-			$this->output->warning( sprintf( 'This update is installed but not finished, so the site is in maintenance. Run `%s`, or `%s`.', $this->command_line( 'finish' ), $this->command_line( 'rollback' ) ) );
+			$this->output->warning( sprintf( 'This update is installed but not finished, so the site is in maintenance. Run `%s`, or `%s`.', $this->command_prefix( 'finish' ), $this->command_prefix( 'rollback' ) ) );
 		}
 
 		return 0;
@@ -477,24 +478,12 @@ class Update extends AbstractCommand {
 	 */
 	protected function pending( array $finish ) : int {
 		if ( 'process' === ( $finish['method'] ?? '' ) ) {
-			$this->output->warning( sprintf( 'The finish step did not complete. Run `%s`, or open the site: the next request finishes it.', $this->command_line( 'finish' ) ) );
+			$this->output->warning( sprintf( 'The finish step did not complete. Run `%s`, or open the site: the next request finishes it.', $this->command_prefix( 'finish' ) ) );
 			return 1;
 		}
 
-		$this->output->success( sprintf( 'Files installed. Run `%s` (or open the site) to finish; the site stays in maintenance until then.', $this->command_line( 'finish' ) ) );
+		$this->output->success( sprintf( 'Files installed. Run `%s` (or open the site) to finish; the site stays in maintenance until then.', $this->command_prefix( 'finish' ) ) );
 
 		return 0;
-	}
-
-	/**
-	 * The command line for a subcommand, as the user would type it.
-	 *
-	 * @param string $subcommand Subcommand.
-	 * @return string
-	 */
-	protected function command_line( string $subcommand ) : string {
-		$prefix = \is_interactive_shell() ? static::name() : $this->script_name . ' ' . static::name();
-
-		return trim( "{$prefix} {$subcommand}" );
 	}
 }

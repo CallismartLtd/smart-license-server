@@ -50,7 +50,7 @@ class CacheCommand extends AbstractCommand {
 	}
 
 	public function help() : string {
-		$script_name = $this->script_name;
+		$prefix = $this->command_prefix();
 
 		return implode( PHP_EOL, [
 			'Subcommands:',
@@ -65,11 +65,11 @@ class CacheCommand extends AbstractCommand {
 			'   --yes -y    Skip confirmation when clearing cache',
 			'',
 			'Examples:',
-			"  $script_name cache stats",
-			"  $script_name cache clear",
-			"  $script_name cache get smliser_some_key",
-			"  $script_name cache delete smliser_some_key",
-			"  $script_name cache use-adapter redis",
+			"  {$prefix} stats",
+			"  {$prefix} clear",
+			"  {$prefix} get smliser_some_key",
+			"  {$prefix} delete smliser_some_key",
+			"  {$prefix} use-adapter redis",
 		] );
 	}
 
@@ -107,8 +107,8 @@ class CacheCommand extends AbstractCommand {
 		$this->output->newline();
 
 		$this->output->writeln( sprintf(
-			'Run `%s cache help` to see available subcommands.',
-			$this->script_name
+			'Run `%s` to see available subcommands.',
+			$this->command_prefix( 'help' )
 		) );
 
 		return 0;
@@ -199,7 +199,7 @@ class CacheCommand extends AbstractCommand {
 		$key = $input->get_argument( 0 );
 
 		if ( empty( $key ) ) {
-			$this->output->error( 'Usage: smliser cache get <key>' );
+			$this->output->error( sprintf( 'Usage: %s <key>', $this->command_prefix( 'get' ) ) );
 			return 1;
 		}
 
@@ -239,7 +239,7 @@ class CacheCommand extends AbstractCommand {
 		$key = $input->get_argument( 0 );
 
 		if ( empty( $key ) ) {
-			$this->output->error( 'Usage: smliser cache delete <key>' );
+			$this->output->error( sprintf( 'Usage: %s <key>', $this->command_prefix( 'delete' ) ) );
 			return 1;
 		}
 
@@ -268,7 +268,7 @@ class CacheCommand extends AbstractCommand {
 		$adapter_id = $input->get_argument( 0 );
 
 		if ( empty( $adapter_id ) ) {
-			$this->output->error( 'Usage: smliser cache use-adapter <adapter_id>' );
+			$this->output->error( sprintf( 'Usage: %s <adapter_id>', $this->command_prefix( 'use-adapter' ) ) );
 			return 1;
 		}
 

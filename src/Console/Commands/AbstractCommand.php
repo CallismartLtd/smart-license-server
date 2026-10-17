@@ -50,8 +50,8 @@ abstract class AbstractCommand implements CommandInterface {
 		$has_subcommands = ! empty( $this->get_subcommands() );
 		
 		return $has_subcommands
-			? sprintf( '%s <subcommand> [options]', $this->script_name )
-			: sprintf( '%s [options]', $this->script_name );
+			? sprintf( '%s <subcommand> [options]', $this->command_prefix() )
+			: sprintf( '%s [options]', $this->command_prefix() );
 	}
 	/**
 	 * {@inheritdoc}
@@ -94,6 +94,30 @@ abstract class AbstractCommand implements CommandInterface {
 	| PRIVATE HELPERS
 	|-----------------------
 	*/
+
+	/**
+	 * Build the text the user types to run this command, for usage lines,
+	 * examples and hints.
+	 *
+	 * Inside the interactive shell commands are typed without the script
+	 * name, so it is left out there: "plugin create" in the shell,
+	 * "smliser plugin create" everywhere else.
+	 *
+	 * @param string $subcommand Optional. A subcommand to append. Default ''.
+	 * @return string The command, with the script name unless in the
+	 *                interactive shell, and the subcommand when given.
+	 */
+	protected function command_prefix( string $subcommand = '' ) : string {
+		$parts = \is_interactive_shell()
+			? [ static::name() ]
+			: [ (string) $this->script_name, static::name() ];
+
+		if ( '' !== $subcommand ) {
+			$parts[] = $subcommand;
+		}
+
+		return implode( ' ', $parts );
+	}
 	
 	/**
 	 * Start the timer.

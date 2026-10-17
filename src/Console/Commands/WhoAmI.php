@@ -44,7 +44,13 @@ class WhoAmI extends AbstractCommand {
 	}
 
 	public function help() : string {
-		return '';
+		return implode( PHP_EOL, [
+			'Prints the display name of the principal this console session runs as.',
+			'Prints "Guest" and exits with 1 when there is none.',
+			'',
+			'Example:',
+			'  ' . $this->command_prefix(),
+		] );
 	}
 
 	public function run( CommandInput $input ) : int {

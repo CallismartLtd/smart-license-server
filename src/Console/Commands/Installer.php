@@ -65,8 +65,7 @@ class Installer extends AbstractCommand {
 	}
 
 	public function help() : string {
-		$command_name = static::name();
-		$app_name     = SMLISER_APP_NAME;
+		$app_name = SMLISER_APP_NAME;
 
 		$commands = [
 			'run'            => 'Installs step by step, asking only for what is missing. Safe to run again.',
@@ -85,7 +84,7 @@ class Installer extends AbstractCommand {
 		];
 
 		$command_width  = max( array_map( 'strlen', array_keys( $commands ) ) );
-		$command_format = "{$this->script_name} {$command_name} %-{$command_width}s %s";
+		$command_format = $this->command_prefix() . " %-{$command_width}s %s";
 
 		$lines = [];
 
@@ -227,7 +226,7 @@ class Installer extends AbstractCommand {
 			if ( 0 !== $code ) {
 				$this->output->newline();
 				$this->output->error( sprintf( 'Installation stopped at step %d (%s).', $number, $title ) );
-				$this->output->info( sprintf( 'Fix the problem above, then run `%s` again. Completed steps are skipped.', $this->command_line( 'run' ) ) );
+				$this->output->info( sprintf( 'Fix the problem above, then run `%s` again. Completed steps are skipped.', $this->command_prefix( 'run' ) ) );
 				return $code;
 			}
 
@@ -254,12 +253,12 @@ class Installer extends AbstractCommand {
 
 		if ( ! $has_users ) {
 			$this->output->warning( 'The installation is not complete until an administrator account exists.' );
-			$this->output->info( sprintf( 'Create it with `%s`, or run `%s` again.', $this->command_line( 'make:admin' ), $this->command_line( 'run' ) ) );
+			$this->output->info( sprintf( 'Create it with `%s`, or run `%s` again.', $this->command_prefix( 'make:admin' ), $this->command_prefix( 'run' ) ) );
 			return 0;
 		}
 
 		if ( 0 !== $this->mark_installed( $input ) ) {
-			$this->output->error( sprintf( 'Resolve the issues above, then run `%s` again.', $this->command_line( 'run' ) ) );
+			$this->output->error( sprintf( 'Resolve the issues above, then run `%s` again.', $this->command_prefix( 'run' ) ) );
 			return 1;
 		}
 
@@ -390,7 +389,7 @@ class Installer extends AbstractCommand {
 		}
 
 		$this->output->error( 'No working database connection.' );
-		$this->output->info( sprintf( 'Check the details with your host, then run `%s` again.', $this->command_line( 'run' ) ) );
+		$this->output->info( sprintf( 'Check the details with your host, then run `%s` again.', $this->command_prefix( 'run' ) ) );
 
 		return 1;
 	}
@@ -557,20 +556,6 @@ class Installer extends AbstractCommand {
 		return DatabaseSettings::DRIVERS[ $driver ]['label'] ?? $driver;
 	}
 
-	/**
-	 * How to type one of this command's subcommands in the current context.
-	 *
-	 * Inside the interactive shell the script name is omitted.
-	 *
-	 * @param string $subcommand Subcommand.
-	 * @return string
-	 */
-	protected function command_line( string $subcommand ) : string {
-		$prefix = \is_interactive_shell() ? static::name() : $this->script_name . ' ' . static::name();
-
-		return "{$prefix} {$subcommand}";
-	}
-
 	public function run( CommandInput $input ) : int {
 		$this->output->info(
 			\sprintf(
@@ -580,17 +565,16 @@ class Installer extends AbstractCommand {
 			
 		);
 
-		$prefix = \is_interactive_shell() ? static::name() : $this->script_name . ' ' . static::name();
-
 		$this->output->info(
 			sprintf(
-				"Run `{$prefix} check` to know whether %s can run on this server.",
+				'Run `%s` to know whether %s can run on this server.',
+				$this->command_prefix( 'check' ),
 				SMLISER_APP_NAME
 			)
 			
 		);
 		
-		$this->output->info( "Run `{$prefix} help` to see available subcommands." );
+		$this->output->info( sprintf( 'Run `%s` to see available subcommands.', $this->command_prefix( 'help' ) ) );
 		$this->output->writeln( '' );
 
 		return 0;
