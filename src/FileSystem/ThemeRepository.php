@@ -63,6 +63,16 @@ class ThemeRepository extends Repository {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 */
+	public function asset_types() : array {
+		return [
+			'screenshot'  => 'Main screenshot',
+			'screenshots' => 'Additional screenshot',
+		];
+	}
+
+	/**
 	 * Validate names and types of asset that can be uploaded for a theme.
 	 * 
 	 * @param UploadedFile $file The uploaded file instance.

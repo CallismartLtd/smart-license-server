@@ -55,6 +55,17 @@ class PluginRepository extends Repository {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 */
+	public function asset_types() : array {
+		return [
+			'icon'       => 'Icon',
+			'banner'     => 'Banner',
+			'screenshot' => 'Screenshot',
+		];
+	}
+
+	/**
 	 * Validate names and types of asset that can be uploaded for a plugin.
 	 * 
 	 * @param UploadedFile $file The uploaded file instance.

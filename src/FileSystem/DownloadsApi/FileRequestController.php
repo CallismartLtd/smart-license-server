@@ -13,11 +13,13 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
+use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
+use SmartLicenseServer\HostedApps\Storage\AppFile;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
@@ -199,6 +201,56 @@ class FileRequestController {
 			
 		} catch ( FileRequestException $e ) {
 			// Catch any specialized exception and package it into the FileResponse
+			return FileResponse::error_response( $e, $request );
+		}
+	}
+
+	/**
+	 * Serve any file of a hosted app to the repository browser.
+	 *
+	 * The file is named the way the browser lists it: app_type, app_slug,
+	 * kind (an AppFile kind) and name (the file name for artifacts, assets
+	 * and documents; empty for the package and the manifest). Images are
+	 * served inline, everything else as an attachment.
+	 *
+	 * @param FileRequest|Request $request The file request object.
+	 * @return FileResponse
+	 */
+	public function get_admin_app_file( FileRequest|Request $request ) : FileResponse {
+		try {
+			try {
+				static::check_permissions( 'hosted_apps.access_files' );
+			} catch ( RequestException ) {
+				throw new FileRequestException( 'user_not_authorized' );
+			}
+
+			$app_type = HostedAppsRegistry::instance()->normalize_app_type( (string) $request->get( 'app_type', '' ) );
+			$app_slug = (string) $request->get( 'app_slug', '' );
+			$app      = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( $app ) {
+				try {
+					static::check_app_ownership( $app );
+				} catch ( RequestException ) {
+					throw new FileRequestException( 'user_not_authorized' );
+				}
+			}
+
+			try {
+				$file = new AppFile( $app_type, $app_slug, (string) $request->get( 'kind', '' ), (string) $request->get( 'name', '' ) );
+			} catch ( StorageException ) {
+				throw new FileRequestException( 'file_not_found' );
+			}
+
+			$response = new FileResponse( $file, $request, [ 'type' => $app_type ] );
+
+			if ( $response->ok() ) {
+				$response->set_header( 'Content-Disposition', $response->get_content_disposition( '', '', true ) );
+			}
+
+			return $response;
+
+		} catch ( FileRequestException $e ) {
 			return FileResponse::error_response( $e, $request );
 		}
 	}

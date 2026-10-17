@@ -69,4 +69,20 @@ interface AppManagementHandlerInterface {
 	 * @return Response
 	 */
 	public function handle_app_status_action_request( Request $request ) : Response;
+
+	/**
+	 * Parse repository browser listing request.
+	 *
+	 * @param  Request $request
+	 * @return Response
+	 */
+	public function handle_repository_browse_request( Request $request ) : Response;
+
+	/**
+	 * Parse application slug rename request.
+	 *
+	 * @param  Request $request
+	 * @return Response
+	 */
+	public function handle_app_slug_rename_request( Request $request ) : Response;
 }

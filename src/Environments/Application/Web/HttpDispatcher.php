@@ -254,6 +254,26 @@ final class HttpDispatcher {
 						middleware: []
 					);
 
+					/*
+					|----------------------
+					| REPOSITORY BROWSER
+					|----------------------
+					*/
+					$this->router->get(
+						pattern: 'repository-browser',
+						handler: [AppManagement::class, 'handle_repository_browse_request']
+					);
+
+					$this->router->get(
+						pattern: 'repository-browser/file',
+						handler: [FileRequestController::class, 'get_admin_app_file']
+					);
+
+					$this->router->patch(
+						pattern: 'repository-browser/rename-app',
+						handler: [AppManagement::class, 'handle_app_slug_rename_request']
+					);
+
 					$this->router->post(
 						pattern: 'proxy-asset',
 						handler: [FileRequestController::class, 'get_proxy_asset'],

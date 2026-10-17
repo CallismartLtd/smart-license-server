@@ -43,4 +43,12 @@ class AppManagement implements AppManagementHandlerInterface {
 	public function handle_app_status_action_request( Request $request ) : Response {
 		return $this->hosting_controller->change_app_status( $request );
 	}
+
+	public function handle_repository_browse_request( Request $request ) : Response {
+		return $this->hosting_controller->browse_repository( $request );
+	}
+
+	public function handle_app_slug_rename_request( Request $request ) : Response {
+		return $this->hosting_controller->rename_app_slug( $request );
+	}
 }

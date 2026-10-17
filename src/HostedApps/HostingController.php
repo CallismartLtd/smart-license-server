@@ -23,6 +23,8 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
+use SmartLicenseServer\HostedApps\Storage\AppFile;
+use SmartLicenseServer\HostedApps\Storage\AppStorage;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -870,6 +872,146 @@ class HostingController {
 			return Response::error( $e )
 				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
 		}
+	}
+
+	/**
+	 * List what app storage holds, for the repository browser.
+	 *
+	 * Request params, both optional: app_type, then app_slug. With neither,
+	 * the app types are listed; with app_type, that type's apps; with both,
+	 * every file of the app, each with the actions the current user may
+	 * take on it and, when it can be served, the URL that serves it.
+	 *
+	 * Actions are decided here, from the user's capabilities, so the
+	 * browser only shows what will be allowed:
+	 *  - per file: view, download, replace, rename, delete;
+	 *  - per app (app_actions): upload_asset, upload_artifact, rename_app.
+	 *
+	 * @param Request $request
+	 * @return Response JSON: level ("root", "type" or "app"), app_type,
+	 *                  app_slug, entries, and for an app also app (its
+	 *                  record, or null when storage holds files without
+	 *                  one), app_actions and asset_types.
+	 */
+	public function browse_repository( Request $request ) : Response {
+		try {
+			static::check_permissions( 'hosted_apps.access_files' );
+
+			$app_type = (string) $request->get( 'app_type', '' );
+			$app_slug = (string) $request->get( 'app_slug', '' );
+
+			if ( '' !== $app_type ) {
+				$app_type = HostedAppsRegistry::instance()->normalize_app_type( $app_type );
+			}
+
+			$app = null;
+
+			if ( '' !== $app_slug ) {
+				$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+				if ( $app ) {
+					static::check_app_ownership( $app );
+				}
+			}
+
+			try {
+				$entries = AppStorage::instance()->browse( $app_type, $app_slug );
+			} catch ( StorageException $e ) {
+				throw new RequestException( $e->get_error_code(), $e->get_error_message(), [ 'status' => $e->get_error_data()['status'] ?? 500 ] );
+			}
+
+			$data = [
+				'level'    => '' === $app_type ? 'root' : ( '' === $app_slug ? 'type' : 'app' ),
+				'app_type' => $app_type,
+				'app_slug' => $app_slug,
+				'entries'  => $entries,
+			];
+
+			if ( 'app' === $data['level'] ) {
+				$repo_class = HostedApplicationService::get_app_repository_class( $app_type );
+
+				foreach ( $data['entries'] as &$entry ) {
+					$entry['actions']  = $this->browser_file_actions( $entry['kind'] );
+					$entry['file_url'] = null === $entry['kind'] ? null : $this->urlmanager->admin_url( 'admin/json' )
+						->append_path( 'repository-browser/file' )
+						->add_query_params( [
+							'app_type' => $app_type,
+							'app_slug' => $app_slug,
+							'kind'     => $entry['kind'],
+							'name'     => in_array( $entry['kind'], AppFile::NAMED_KINDS, true ) ? $entry['name'] : '',
+						] )
+						->url();
+				}
+				unset( $entry );
+
+				$data['app']         = $app ? [
+					'id'       => $app->get_id(),
+					'name'     => $app->get_name(),
+					'slug'     => $app->get_slug(),
+					'type'     => $app->get_type(),
+					'status'   => $app->get_status(),
+					'view_url' => $this->urlmanager->admin_repo_url( 'view', [ 'type' => $app->get_type(), 'app_id' => $app->get_id() ] )->url(),
+				] : null;
+				$data['asset_types'] = $repo_class ? $repo_class->asset_types() : [];
+				$data['app_actions'] = $app ? $this->browser_app_actions( $data['asset_types'] ) : [];
+			}
+
+			return Response::json( [ 'success' => true, 'data' => $data ], 200 );
+
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Get the actions the current user may take on a file in the browser.
+	 *
+	 * The capabilities match the endpoints that carry the actions out.
+	 *
+	 * @param string|null $kind The file's AppFile kind; null for a file that
+	 *                          is not one of the app's files.
+	 * @return list<string>
+	 */
+	protected function browser_file_actions( ?string $kind ) : array {
+		$principal = $this->guard->get_principal();
+		$can       = static fn( string $cap ) : bool => (bool) $principal?->can( $cap );
+
+		$actions = match ( $kind ) {
+			AppFile::PACKAGE                     => [ 'download' => true ],
+			AppFile::MANIFEST, AppFile::DOCUMENT => [ 'view' => true ],
+			AppFile::ASSET                       => [
+				'view'    => true,
+				'replace' => $can( 'hosted_apps.edit_assets' ),
+				'delete'  => $can( 'hosted_apps.delete_assets' ),
+			],
+			AppFile::ARTIFACT                    => [
+				'download' => true,
+				'replace'  => $can( 'hosted_apps.edit_assets' ),
+				'rename'   => $can( 'hosted_apps.edit_assets' ),
+				'delete'   => $can( 'hosted_apps.delete_assets' ) || $can( 'hosted_apps.edit_assets' ),
+			],
+			default                              => [],
+		};
+
+		return array_keys( array_filter( $actions ) );
+	}
+
+	/**
+	 * Get the actions the current user may take on an app in the browser.
+	 *
+	 * @param array<string, string> $asset_types The app type's asset types.
+	 * @return list<string>
+	 */
+	protected function browser_app_actions( array $asset_types ) : array {
+		$principal = $this->guard->get_principal();
+		$can       = static fn( string $cap ) : bool => (bool) $principal?->can( $cap );
+
+		return array_keys( array_filter( [
+			'upload_asset'    => [] !== $asset_types && ( $can( 'hosted_apps.upload_assets' ) || $can( 'hosted_apps.edit_assets' ) ),
+			'upload_artifact' => $can( 'hosted_apps.upload_assets' ),
+			'rename_app'      => (bool) $principal?->is( 'system_admin' ),
+		] ) );
 	}
 
 	/**

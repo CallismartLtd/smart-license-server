@@ -51,6 +51,17 @@ class SoftwareRepository extends Repository {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 */
+	public function asset_types() : array {
+		return [
+			'icon'       => 'Icon',
+			'cover'      => 'Cover',
+			'screenshot' => 'Screenshot',
+		];
+	}
+
+	/**
 	 * Validate names and types of asset that can be uploaded for a software.
 	 * 
 	 * @param UploadedFile $file The uploaded file instance.

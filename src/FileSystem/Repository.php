@@ -103,6 +103,18 @@ abstract class Repository {
 	abstract public function validate_app_asset( UploadedFile $file, string $type, string $slug ) : Exception|string;
 
 	/**
+	 * Get the asset types validate_app_asset() accepts, for upload forms.
+	 *
+	 * An app type that does not list its asset types offers no asset
+	 * uploads in the repository browser.
+	 *
+	 * @return array<string, string> Labels keyed by asset type.
+	 */
+	public function asset_types() : array {
+		return [];
+	}
+
+	/**
 	 * Get the assets of one asset type, as the app type presents them.
 	 *
 	 * @param string $slug The app slug.

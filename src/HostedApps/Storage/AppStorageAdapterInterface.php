@@ -428,13 +428,21 @@ interface AppStorageAdapterInterface {
 	 *  - browse( $type ) lists the live apps of that type;
 	 *  - browse( $type, $slug ) lists every file the app has, at any depth.
 	 * Each entry is array{name: string, path: string, is_dir: bool,
-	 * size: int, mtime: int}: name is the last segment, path is relative to
-	 * the level being listed ("assets/icon-128x128.png"), is_dir is true for
-	 * types and apps, size is 0 for them.
+	 * size: int, mtime: int, kind: string|null}: name is the last segment,
+	 * path is relative to the level being listed ("assets/icon-128x128.png"),
+	 * is_dir is true for types and apps, size is 0 for them.
+	 *
+	 * kind says which app file an entry is, so a caller can act on it
+	 * without knowing the adapter's layout: one of the AppFile kind
+	 * constants, and then AppFile( $type, $slug, $kind, $name ) names it,
+	 * with $name the entry's name for the named kinds and "" for the
+	 * package and the manifest. It is null for types, apps, and any file
+	 * that is not one of the app's files, such as a file the adapter keeps
+	 * for itself; such files can be listed but not served or changed.
 	 *
 	 * @param string $type Optional. App type. Default "".
 	 * @param string $slug Optional. App slug; requires $type. Default "".
-	 * @return list<array{name: string, path: string, is_dir: bool, size: int, mtime: int}>
+	 * @return list<array{name: string, path: string, is_dir: bool, size: int, mtime: int, kind: string|null}>
 	 *         In path byte order.
 	 * @throws StorageException INVALID_PATH, also for a slug without a type;
 	 *                          NOT_FOUND when the app does not exist;

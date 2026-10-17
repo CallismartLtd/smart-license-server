@@ -628,6 +628,11 @@ class DirectoryAppStorage implements AppStorageAdapterInterface {
 
 		$this->collect_files( $app_dir, '', $app_real, $entries );
 
+		foreach ( $entries as &$entry ) {
+			$entry['kind'] = $this->kind_of( $slug, $entry['path'] );
+		}
+		unset( $entry );
+
 		usort( $entries, static fn( array $a, array $b ) : int => strcmp( $a['path'], $b['path'] ) );
 
 		return $entries;
@@ -1024,7 +1029,7 @@ class DirectoryAppStorage implements AppStorageAdapterInterface {
 	 * @param string $name Entry name.
 	 * @param string $path Entry path.
 	 * @param string $dir Absolute directory, which may not exist.
-	 * @return array{name: string, path: string, is_dir: bool, size: int, mtime: int}
+	 * @return array{name: string, path: string, is_dir: bool, size: int, mtime: int, kind: string|null}
 	 */
 	protected function dir_entry( string $name, string $path, string $dir ) : array {
 		$stat = $this->fs->stat( $dir );
@@ -1035,7 +1040,44 @@ class DirectoryAppStorage implements AppStorageAdapterInterface {
 			'is_dir' => true,
 			'size'   => 0,
 			'mtime'  => false === $stat ? 0 : $stat['mtime'],
+			'kind'   => null,
 		];
+	}
+
+	/**
+	 * Tell which app file a path inside an app directory is.
+	 *
+	 * The reverse of the layout resolve() applies.
+	 *
+	 * @param string $slug App slug.
+	 * @param string $path Path relative to the app directory.
+	 * @return string|null An AppFile kind, or null when the path is not one
+	 *                     of the app's files.
+	 */
+	protected function kind_of( string $slug, string $path ) : ?string {
+		if ( $slug . '.zip' === $path ) {
+			return AppFile::PACKAGE;
+		}
+
+		if ( self::MANIFEST_FILE === $path ) {
+			return AppFile::MANIFEST;
+		}
+
+		$parts = explode( '/', $path );
+
+		if ( 1 === count( $parts ) ) {
+			return AppFile::is_segment( $path ) ? AppFile::DOCUMENT : null;
+		}
+
+		if ( 2 === count( $parts ) && AppFile::is_segment( $parts[1] ) ) {
+			return match ( $parts[0] ) {
+				self::ARTIFACTS_DIR => AppFile::ARTIFACT,
+				self::ASSETS_DIR    => AppFile::ASSET,
+				default             => null,
+			};
+		}
+
+		return null;
 	}
 
 	/**
@@ -1045,7 +1087,7 @@ class DirectoryAppStorage implements AppStorageAdapterInterface {
 	 * @param string $dir Absolute directory to walk.
 	 * @param string $prefix Relative path of $dir inside the app ("" at the top).
 	 * @param string $app_real The app directory's realpath().
-	 * @param list<array{name: string, path: string, is_dir: bool, size: int, mtime: int}> $entries Collected entries.
+	 * @param list<array{name: string, path: string, is_dir: bool, size: int, mtime: int, kind: string|null}> $entries Collected entries.
 	 * @return void
 	 * @throws StorageException IO_ERROR when a directory cannot be read.
 	 */
@@ -1079,6 +1121,7 @@ class DirectoryAppStorage implements AppStorageAdapterInterface {
 					'is_dir' => false,
 					'size'   => $entry['size'],
 					'mtime'  => $entry['mtime'],
+					'kind'   => null,
 				];
 			}
 		}
