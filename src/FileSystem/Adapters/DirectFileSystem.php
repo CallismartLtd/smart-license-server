@@ -211,7 +211,7 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 
 		// A copy that stopped before the end of $stream was cut short by a
 		// read error, so the temp file is incomplete.
-		if ( false === $copied || ! $closed || ! feof( $stream ) ) {
+		if ( false === $copied || ! $closed || ! $this->is_stream_drained( $stream ) ) {
 			@unlink( $tmp );
 			return false;
 		}
@@ -230,6 +230,22 @@ class DirectFileSystem implements FileSystemAdapterInterface {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Tell whether a stream has nothing left to read.
+	 *
+	 * feof() alone cannot tell: after stream_copy_to_stream() or
+	 * stream_get_contents() has read everything, PHP may not have set the
+	 * end-of-file flag yet (it depends on the stream type and size). One
+	 * more read settles it: at the end it returns "" and sets the flag; a
+	 * byte coming back means the copy stopped early.
+	 *
+	 * @param resource $stream A readable stream that was just read from.
+	 * @return bool True when the stream is at its end.
+	 */
+	protected function is_stream_drained( mixed $stream ) : bool {
+		return '' === @fread( $stream, 1 ) && feof( $stream );
 	}
 
 	/**

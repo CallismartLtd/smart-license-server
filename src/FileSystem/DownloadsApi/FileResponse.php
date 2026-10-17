@@ -435,9 +435,9 @@ class FileResponse extends Response {
 
 		if ( $this->is_range_request ) {
 			$length = $this->range_end - $this->range_start + 1;
-			$this->repo_class->readfile( $this->file, $this->range_start, $length );
+			$this->stream_file( $this->file, $this->range_start, $length );
 		} else {
-			$this->repo_class->readfile( $this->file );
+			$this->stream_file( $this->file );
 		}
 
 		$this->trigger_after_serve_callbacks();
@@ -595,4 +595,58 @@ class FileResponse extends Response {
 		}
 	}
 
+	/**
+	 * Output a file in chunks.
+	 *
+	 * @param string $path Absolute path.
+	 * @param int $start Optional start offset.
+	 * @param int $length Optional length to read.
+	 * @param int $chunk_size Optional chunk size (default 1MB).
+	 * @return bool True on success, false on failure.
+	 */
+	private function stream_file( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ) : bool {
+		if ( ! $this->repo_class->is_file( $path ) ) {
+			return false;
+		}
+
+		$stream = $this->repo_class->read_stream( $path );
+
+		if ( false === $stream ) {
+			return false;
+		}
+
+		if ( $start > 0 ) {
+			fseek( $stream, $start );
+		}
+
+		$remaining = $length > 0 ? $length : null;
+
+		while ( ! feof( $stream ) ) {
+			if ( null !== $remaining && $remaining <= 0 ) {
+				break;
+			}
+
+			$read_length = ( null !== $remaining )
+				? min( $chunk_size, $remaining )
+				: $chunk_size;
+
+			$buffer = fread( $stream, $read_length );
+
+			if ( false === $buffer ) {
+				fclose( $stream );
+				return false;
+			}
+
+			echo $buffer;
+			flush();
+
+			if ( null !== $remaining ) {
+				$remaining -= strlen( $buffer );
+			}
+		}
+
+		fclose( $stream );
+
+		return true;
+	}
 }

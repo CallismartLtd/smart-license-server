@@ -354,7 +354,7 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
 			$contents = stream_get_contents( $stream );
 
 			// Stopping before the end means a read error cut the data short.
-			if ( false === $contents || ! feof( $stream ) ) {
+			if ( false === $contents || ! $this->is_stream_drained( $stream ) ) {
 				return false;
 			}
 
@@ -371,7 +371,23 @@ class WPFileSystemAdapter implements FileSystemAdapterInterface {
 		$closed = fclose( $handle );
 
 		// Stopping before the end means a read error cut the data short.
-		return false !== $copied && $closed && feof( $stream );
+		return false !== $copied && $closed && $this->is_stream_drained( $stream );
+	}
+
+	/**
+	 * Tell whether a stream has nothing left to read.
+	 *
+	 * feof() alone cannot tell: after stream_copy_to_stream() or
+	 * stream_get_contents() has read everything, PHP may not have set the
+	 * end-of-file flag yet (it depends on the stream type and size). One
+	 * more read settles it: at the end it returns "" and sets the flag; a
+	 * byte coming back means the copy stopped early.
+	 *
+	 * @param resource $stream A readable stream that was just read from.
+	 * @return bool True when the stream is at its end.
+	 */
+	protected function is_stream_drained( mixed $stream ) : bool {
+		return '' === @fread( $stream, 1 ) && feof( $stream );
 	}
 
 	/**
