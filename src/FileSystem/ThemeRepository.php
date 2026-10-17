@@ -3,7 +3,7 @@
  * Theme Repository
  *
  * Handles theme-specific business logic within the repository.
- * Extends the abstract Repository to ensure secure, scoped file operations.
+ * Files are kept in AppStorage; this class only knows what they mean.
  *
  * @author  Callistus Nwachukwu
  * @since   0.0.6
@@ -13,13 +13,10 @@ namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Core\URLManager;
-use \ZipArchive;
+use ZipArchive;
 use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\Exceptions\FileSystemException;
-use SmartLicenseServer\Utils\MDParser;
 
-use function is_smliser_error, in_array, sprintf, basename, is_string, dirname, preg_match,
+use function is_smliser_error, in_array, sprintf, is_string, preg_match,
 trim, str_replace;
 
 class ThemeRepository extends Repository {
@@ -27,178 +24,42 @@ class ThemeRepository extends Repository {
 
 	/**
 	 * Allowed additional screenshots file extensions.
+	 *
+	 * @var list<string>
 	 */
-	const ALLOWED_THEME_SCREENSHOT_EXTS = ['png', 'gif', 'avif', 'webp', 'jpg', 'jpeg'];
+	const array ALLOWED_THEME_SCREENSHOT_EXTS = ['png', 'gif', 'avif', 'webp', 'jpg', 'jpeg'];
 
 	/**
-	 * Constructor.
-	 *
-	 * Always binds to the `themes` subdirectory.
-	 * 
-	 * @param MDParser $mdparser        The markdown parser.
-	 * @param URLManager $urlmanager    The URL manager.
+	 * {@inheritdoc}
 	 */
-	public function __construct(
-		protected MDParser $mdparser,
-		protected URLManager $urlmanager,
-		FileSystem $file_system
-	) {
-		parent::__construct( $file_system, 'themes' );
-	}
-
-	/**
-	 * Locate a theme zip file in the repository and enter the theme slug directory.
-	 *
-	 * This method ensures:
-	 * 1. The slug is valid and normalized.
-	 * 2. The theme directory exists and is entered (sandboxing the scope).
-	 * 3. The theme ZIP file ({slug}.zip) exists inside that directory.
-	 *
-	 * @param string $theme_slug The theme slug (e.g., "my-awesome-theme").
-	 * @return string|Exception Absolute file path to the ZIP or Exception on failure.
-	 */
-	public function locate( $theme_slug ) : string| Exception {
-		if ( empty( $theme_slug ) || ! is_string( $theme_slug ) ) {
-			return new Exception(
-				'invalid_slug',
-				__( 'Theme slug must be a non-empty string.', 'smliser' ),
-				[ 'status' => 400 ]
-			);
-		}
-
-		try {
-			$slug = $this->real_slug( $theme_slug );
-			$this->enter_slug( $slug );
-		} catch ( FileSystemException $e ) {
-			return new Exception(
-				'invalid_slug',
-				$e->get_error_message(),
-				[ 'status' => 400 ]
-			);
-		}
-
-		// Theme files MUST be a .zip file named after the theme slug.
-		$theme_file = $this->path( sprintf( '%s.zip', $slug ) );
-
-		if ( ! $this->exists( $theme_file ) ) {
-			return new Exception(
-				'file_not_found',
-				__( 'Theme file not found.', 'smliser' ),
-				[ 'status' => 404]
-			);
-		}
-
-		return $theme_file;
+	public function app_type() : string {
+		return 'theme';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 *
-	 * - Post-upload: validates the theme style.css and metadata.
+	 * A theme package must carry a style.css, and may carry a
+	 * changelog.txt and an installation.txt.
 	 */
-	public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) : array {
-		// Core upload via `Repository::safe_zip_upload()`.
-		$stored_path = $this->safe_zip_upload( $file, $new_name, $update );
-		if ( $stored_path instanceof Exception ) {
-			return [
-				'error' => $stored_path
-			];
+	protected function package_documents( ZipArchive $zip, string $root ) : array {
+		$style_css = static::zip_entry( $zip, $root, 'style.css' );
+
+		if ( null === $style_css ) {
+			throw new Exception( 'style_missing', 'The theme zip file must contain a style.css file', [ 'status' => 400 ] );
 		}
 
-		$base_folder = dirname( $stored_path );
-		$slug        = basename( $stored_path, '.zip' );
+		$documents = [ 'style.css' => $style_css ];
 
-		$cleanup_func = function() use ( $update, $stored_path, $base_folder ) {
-			if ( $update ) {
-				$this->delete( $stored_path ); // only remove bad zip.
-			} else {
-				$this->rmdir( $base_folder, true ); // remove new folder completely.
+		foreach ( [ 'changelog.txt', 'installation.txt' ] as $optional ) {
+			$contents = static::zip_entry( $zip, $root, $optional );
+
+			if ( null !== $contents && '' !== $contents ) {
+				$documents[ $optional ] = $contents;
 			}
-		};
-
-		// Post-upload validation: Check style.css and metadata.
-		$zip = new ZipArchive();
-
-		if ( true !== $zip->open( $stored_path ) ) {
-			return [
-				'error' => new Exception(
-					'zip_invalid',
-					'Uploaded ZIP could not be opened.',
-					[ 'status' => 400 ]
-				),
-				'rollback_function' => $cleanup_func,
-				'base_dir'          => $base_folder,
-				'slug'              => $slug
-			];
-		}
-		$firstEntry      = $zip->getNameIndex( 0 );
-		$rootDir         = explode( '/', $firstEntry )[0];
-		$style_css_index = $zip->locateName( $rootDir . '/style.css', \ZipArchive::FL_NOCASE );
-
-		if ( false === $style_css_index ) {
-			$zip->close();
-			return [
-				'error' => new Exception(
-					'style_missing',
-					'The theme zip file must contain a style.css file',
-					[ 'status' => 400 ]
-				),
-				'rollback_function' => $cleanup_func,
-				'base_dir'          => $base_folder,
-				'slug'              => $slug
-			];
 		}
 
-		$style_css_content = $zip->getFromIndex( $style_css_index );
-
-		// Find changelog.txt file(not required).
-		$changelog_md_index = $zip->locateName( $rootDir . '/changelog.txt', ZipArchive::FL_NOCASE );
-		$changelog_content  = '';
-
-		if ( false !== $changelog_md_index ) {
-			$changelog_content = $zip->getFromIndex( $changelog_md_index );
-		}
-
-		// Find installation.txt file(not required).
-		$install_md_index   = $zip->locateName( $rootDir . '/installation.txt', ZipArchive::FL_NOCASE );
-		$install_md_content = '';
-
-		if ( false !== $install_md_index ) {
-			$install_md_content = $zip->getFromIndex( $install_md_index );
-		}
-
-		$zip->close();
-
-		$style_css_path = FileSystemHelper::join_path( $base_folder, 'style.css' );
-
-		if ( ! $this->put_contents( $style_css_path, $style_css_content ) ) {
-			return [
-				'error' => new Exception(
-					'style_css_save_faild',
-					'Could not save the theme style.css file',
-					[ 'status' => 500 ]
-				),
-				'rollback_function' => $cleanup_func,
-				'base_dir'          => $base_folder,
-				'slug'              => $slug
-			];
-		}
-
-		if ( $changelog_content ) {
-			$changelog_path = FileSystemHelper::join_path( $base_folder, 'changelog.txt' );
-			$this->put_contents( $changelog_path, $changelog_content );
-		}
-
-		if ( $install_md_content ) {
-			$install_md_path = FileSystemHelper::join_path( $base_folder, 'installation.txt' );
-			$this->put_contents( $install_md_path, $install_md_content );
-		}
-
-		return [
-			'rollback_function' => $cleanup_func,
-			'base_dir'          => $base_folder,
-			'slug'              => $slug
-		];
+		return $documents;
 	}
 
 	/**
@@ -206,9 +67,10 @@ class ThemeRepository extends Repository {
 	 * 
 	 * @param UploadedFile $file The uploaded file instance.
 	 * @param string $type       The asset type.
+	 * @param string $slug       The theme slug.
 	 * @return Exception|string On error, file name otherwise.
 	 */
-	public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : Exception|string {
+	public function validate_app_asset( UploadedFile $file, string $type, string $slug ) : Exception|string {
 		$ext        = $file->get_canonical_extension();
 		$validation = $this->is_valid_image( $file->get_tmp_path() );
 
@@ -229,7 +91,7 @@ class ThemeRepository extends Repository {
 					
 				} else {
 					// Auto-generate next index.
-					$screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
+					$screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $slug ), $ext );
 				}
 
 				return $screenshot;
@@ -250,52 +112,27 @@ class ThemeRepository extends Repository {
 	 * @return URL[]|URL URLs of assets.
 	 */
 	public function get_assets( string $slug, string $type ) : array|URL|string {
-		// Normalize slug and ensure it is valid inside the repo.
-		$slug = $this->real_slug( $slug );
-
-		try {
-			$base_dir = $this->enter_slug( $slug );
-		} catch ( FileSystemException $e ) {
-			return ( 'screenshot' === $type ) ? URL::from( '' ) : [];
-		}
-
-		$assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
-
-		if ( ! $this->is_dir( $assets_dir ) ) {
+		if ( [] === $this->asset_names( $slug ) ) {
 			return ( 'screenshot' === $type ) ? URL::from( '' ) : [];
 		}
 
 		switch ( $type ) {
 			case 'screenshot':
 				// screenshot.{ext}.
-				$path        = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
-				$pattern     = sprintf( '%s.{%s}', $path, implode( ',', static::ALLOWED_THEME_SCREENSHOT_EXTS ) );
-				$screenshots = glob( $pattern, \GLOB_BRACE );
-				
-				foreach( $screenshots as $screenshot ) {
-					if ( $this->is_file( $screenshot ) ) {
-						return $this->urlmanager->app_asset_url( 'theme', $slug, basename( $screenshot ) );
-					}
-				}
-				
-				return URL::from( '' );
+				$screenshot = $this->find_asset( $slug, 'screenshot', static::ALLOWED_THEME_SCREENSHOT_EXTS );
+
+				return null !== $screenshot ? $this->asset_url( $slug, $screenshot ) : URL::from( '' );
 
 			case 'screenshots':
 				// screenshot-{index}.{ext}.
-				$path        = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
-				$pattern     = sprintf( '%s-*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
-				$screenshots = glob( $pattern, GLOB_BRACE );
-				
-				usort( $screenshots, function( $a, $b ) {
-					return strnatcmp( basename( $a ), basename( $b ) );
-				} );
-				
+				$screenshots = $this->find_assets( $slug, 'screenshot-', static::ALLOWED_IMAGE_EXTENSIONS );
+
+				usort( $screenshots, 'strnatcmp' );
+
 				$urls = [];
 
-				foreach ( $screenshots as $screenshot ) {
-					$name = basename( $screenshot );
-
-					$url = $this->urlmanager->app_asset_url( 'theme', $slug, $name );
+				foreach ( $screenshots as $name ) {
+					$url = $this->asset_url( $slug, $name );
 
 					if ( preg_match( '/screenshot-(\d+)\./i', $name, $m ) ) {
 						$urls[ (int) $m[1] ] = $url;
@@ -353,7 +190,7 @@ class ThemeRepository extends Repository {
 	 * @return string Style.css contents or empty string if not found.
 	 */
 	public function get_style_css( string $slug ) : string {
-		return $this->file_get_contents( $slug, 'style.css' );
+		return $this->read_document( $slug, 'style.css' );
 	}
 	
 	/**

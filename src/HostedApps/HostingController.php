@@ -21,6 +21,7 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
@@ -749,28 +750,47 @@ class HostingController {
 				throw new RequestException( 'precondition_failed', sprintf( 'Status is already "%s".', $status ) );
 			}
 			
-			$app->set_status( $status );
-			$saved = $app->save();
+			$from_trash = AbstractHostedApp::STATUS_TRASH === $old_status;
+			$to_trash   = AbstractHostedApp::STATUS_TRASH === $status;
+			$repo_class = null;
 
-			if ( $saved instanceof Exception ) {
-				throw new RequestException( 'status_change_failed', sprintf( 'Failed to change status for the %s from %s to %s, error: %s', $app_type, $old_status, $status, $saved->get_error_message() ), [ 'status' => 500 ] );
-			}
-
-			// Deal with trashed apps.
-			if ( in_array( AbstractHostedApp::STATUS_TRASH, [ $old_status, $status ], true ) ) {
+			// Moving into or out of the trash also moves the app's files.
+			// Checked and done before the status is saved, and undone if
+			// saving fails, so the status and the files always agree.
+			if ( $from_trash || $to_trash ) {
 				static::check_permissions( 'hosted_apps.delete' );
 
 				$repo_class = HostedApplicationService::get_app_repository_class( $app_type );
-				
+
 				if ( ! $repo_class ) {
 					throw new RequestException( 'internal_server_error', 'Unable to resolve repository class.' );
 				}
 
-				if ( AbstractHostedApp::STATUS_TRASH === $old_status && AbstractHostedApp::STATUS_TRASH !== $status ) {
-					$repo_class->restore_from_trash( $app->get_slug() );
-				} elseif ( AbstractHostedApp::STATUS_TRASH === $status ) {
-					$repo_class->queue_app_for_deletion( $app->get_slug() );
+				$moved = $to_trash
+					? $repo_class->trash( $app->get_slug() )
+					: $repo_class->restore_from_trash( $app->get_slug() );
+
+				// Not found: the app has no files to move.
+				if ( $moved instanceof Exception && StorageException::NOT_FOUND !== $moved->get_error_code() ) {
+					throw new RequestException(
+						'status_change_failed',
+						sprintf( 'Failed to %s the files of the %s "%s": %s', $to_trash ? 'trash' : 'restore', $app_type, $app_slug, $moved->get_error_message() ),
+						[ 'status' => StorageException::ALREADY_EXISTS === $moved->get_error_code() ? 409 : 500 ]
+					);
 				}
+			}
+
+			$app->set_status( $status );
+			$saved = $app->save();
+
+			if ( $saved instanceof Exception ) {
+				if ( $repo_class ) {
+					$to_trash
+						? $repo_class->restore_from_trash( $app->get_slug() )
+						: $repo_class->trash( $app->get_slug() );
+				}
+
+				throw new RequestException( 'status_change_failed', sprintf( 'Failed to change status for the %s from %s to %s, error: %s', $app_type, $old_status, $status, $saved->get_error_message() ), [ 'status' => 500 ] );
 			}
 
 			// Dispatch status change notification — skip trash transitions

@@ -52,11 +52,11 @@ use SmartLicenseServer\Environments\Application\Update\UpdateRunner;
 use SmartLicenseServer\Environments\Application\Update\UpdateService;
 use SmartLicenseServer\Environments\Application\Web\RestAPIProvider;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
+use SmartLicenseServer\HostedApps\Storage\AppStorage;
+use SmartLicenseServer\HostedApps\Storage\DirectoryAppStorage;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
 use SmartLicenseServer\Security\Authentication\PasswordResetToken;
-use SmartLicenseServer\Security\Authentication\Session\SessionManager;
-use SmartLicenseServer\Security\CSRF\CSRF;
 use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
@@ -220,6 +220,22 @@ class ApplicationEnvironment extends Environment {
 				$c->get( BackgroundStatus::class ),
 				\SMLISER_ROOT,
 				\url()->append_path( CronExecutionHandler::PATH )
+			)
+		);
+
+		$this->container->singleton(
+			DirectoryAppStorage::class,
+			fn ( Container $c ) : DirectoryAppStorage => new DirectoryAppStorage(
+				$c->get( FileSystem::class ),
+				SMLISER_REPO_DIR,
+				DirectoryAppStorage::CORE_TYPE_DIRS
+			)
+		);
+		
+		$this->container->singleton(
+			AppStorage::class,
+			fn( Container $c ) : AppStorage => AppStorage::instance(
+				$c->get( DirectoryAppStorage::class ),
 			)
 		);
 
@@ -388,6 +404,7 @@ class ApplicationEnvironment extends Environment {
 
 		// Shadow boot hosted app registry.
 		$this->container->get( HostedAppsRegistry::class );
+		$this->container->get( AppStorage::class );
 
 		/*
 		 * Boot environment bootstrappers (routing, assets, terminal inputs, etc.).

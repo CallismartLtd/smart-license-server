@@ -1,6 +1,6 @@
 <?php
 /**
- * Repository class for managing hosted application directories.
+ * Repository class for hosted application files.
  *
  * @author  Callistus Nwachukwu
  * @since   0.0.6
@@ -10,379 +10,586 @@ namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\UploadedFileCollection;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
+use SmartLicenseServer\Exceptions\StorageException;
+use SmartLicenseServer\HostedApps\Storage\AppFile;
+use SmartLicenseServer\HostedApps\Storage\AppStorage;
 use SmartLicenseServer\Utils\MDParser;
 use ZipArchive;
 
 /**
- * The repository class handles filesystem operations within the repository.
+ * The rules of one hosted app type, applied to files kept in AppStorage.
  *
- * Works only within allowed subdirectories (plugins, themes, software).
- * Provides safe IO, streaming, and ZIP file utilities.
+ * Philosophy: a repository decides what an app type's files mean and which
+ * ones are allowed; AppStorage decides where they are kept. A repository
+ * never sees a storage path. It reads and writes the package, manifest,
+ * artifacts, assets and documents through the AppStorage facade, so every
+ * app type works on whatever storage the site admin chose.
+ *
+ * This base class holds what every type shares: package uploads, asset
+ * uploads, artifacts, the trash, documents (with a fallback to the copy
+ * inside the package) and ZIP inspection. Each type adds its own rules:
+ * which documents a package must carry, which asset names are allowed,
+ * how assets are grouped, and how its documents and manifest are read.
  */
 abstract class Repository {
-	use FileSystemAwareTrait;
-	/**
-	 * The markdown parser class.
-	 * 
-	 * @var MDParser $parser
-	 */
-	protected MDParser $mdparser;
-
-	/**
-	 * URL Manager used to cunstruct repository related URLs
-	 * 
-	 * @var URLManager $urlmanager
-	 */
-	protected URLManager $urlmanager;
-
-	/**
-	 * Repository base directory.
-	 *
-	 * @var string
-	 */
-	protected $base_dir = '';
-
-	/**
-	 * Allowed subdirectories in the repository.
-	 *
-	 * @var string[]
-	 */
-	protected $allowed_dirs = [ 'plugins', 'themes', 'software' ];
-
-	/**
-	 * The trash directory for queued deletions.
-	 * 
-	 * @var string
-	 */
-	public const TRASH_DIR = '.trash';
-
-	/**
-	 * The artifacts directory name.
-	 * 
-	 * @var string 
-	 */
-	public const ARTIFACTS_DIR = 'artifacts';
-
-	/**
-	 * Trash metadata filename.
-	 * 
-	 * @var string
-	 */
-	public const TRASH_METADATA_FILE = '.smliser_meta';
 
 	/**
 	 * Allowed image extensions.
+	 *
+	 * @var list<string>
 	 */
-	public const ALLOWED_IMAGE_EXTENSIONS = [ 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif' ];
+	public const array ALLOWED_IMAGE_EXTENSIONS = [ 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif' ];
 
 	/**
 	 * Allowed icon names.
-	 */
-	public const ALLOWED_ICON_NAMES = [ 'icon-128x128', 'icon-256x256', 'icon' ];
-	/**
-	 * Currently active subdirectory.
 	 *
-	 * @var string
+	 * @var list<string>
 	 */
-	protected $current_dir;
-
-	/**
-	 * Currently active slug inside the subdir.
-	 *
-	 * @var string|null
-	 */
-	protected $current_slug;
+	public const array ALLOWED_ICON_NAMES = [ 'icon-128x128', 'icon-256x256', 'icon' ];
 
 	/**
 	 * Constructor.
 	 *
-	 * @param string $dir One of the allowed directories.
+	 * @param AppStorage $storage The app storage facade.
+	 * @param FileSystem $fs The FileSystem API, for local temporary files.
+	 * @param MDParser $mdparser The markdown parser.
+	 * @param URLManager $urlmanager The URL manager.
 	 */
-	protected function __construct( FileSystem $fs, $dir ) {
-		$this->fs = $fs;
-		
-		$this->base_dir = FileSystemHelper::sanitize_path( SMLISER_REPO_DIR );
+	public function __construct(
+		protected AppStorage $storage,
+		protected FileSystem $fs,
+		protected MDParser $mdparser,
+		protected URLManager $urlmanager,
+	) {}
 
-		$this->set_curr_dir( $dir );
-		
-	}
+	/*
+	|-----------------
+	| ABSTRACT METHODS
+	|-----------------
+	*/
 
 	/**
-	 * Set current directory.
+	 * Get the app type this repository serves.
 	 *
-	 * @param string $dir
-	 * @return void
-	 * @throws FileSystemException When illegal subdirectory is passed.
+	 * @return string The normalized app type, e.g. "plugin".
 	 */
-	private function set_curr_dir( $dir ) {
-		if ( ! in_array( $dir, $this->allowed_dirs, true ) ) {
-			throw new FileSystemException( sprintf(
-				'Directory "%s" is not allowed. Allowed directories: %s',
-				$dir,
-				implode( ', ', $this->allowed_dirs )
-			) );
-		}
-
-		$this->current_dir  = $dir;
-		$this->current_slug = null;
-	}
+	abstract public function app_type() : string;
 
 	/**
-	 * Enter a slug directory inside the current subdir.
+	 * Read the documents a package must or may carry.
 	 *
-	 * @param string $slug Slug name (folder inside current repo subdir).
-	 * @return string Absolute path
-	 * @throws FileSystemException When the slug directory does not exist.
-	 */
-	public function enter_slug( $slug ) {
-		$slug = $this->real_slug( $slug );
-
-		// Already in this slug? Skip
-		if ( isset( $this->current_slug ) && $this->current_slug === $slug ) {
-			return $this->path();
-		}
-
-		// Build relative path from base
-		$relative = $this->current_dir . '/' . $slug;
-		$real     = $this->full_path( $relative );
-
-		if ( ! $real || ! $this->is_dir( $real ) ) {
-			throw new FileSystemException( sprintf(
-				'Slug directory "%s" does not exist in "%s" repository.',
-				$slug,
-				$this->current_dir
-			) );
-		}
-
-		$this->current_slug = $slug;
-		return $real;
-	}
-
-	/**
-	 * Build an absolute path inside the current repo subdir and slug.
+	 * Called on an upload before it is stored. Returns the documents to
+	 * keep next to the package; throws when a required one is missing.
 	 *
-	 * @param string $filename Optional filename relative to current slug.
-	 * @return string
-	 * @throws FileSystemException When there is no selected directory.
+	 * @param ZipArchive $zip The open package.
+	 * @param string $root The package's top folder.
+	 * @return array<string, string> Document contents keyed by document name.
+	 * @throws Exception 400 when a required document is missing.
 	 */
-	public function path( $filename = '' ) {
-		if ( ! $this->current_dir ) {
-			throw new FileSystemException( 'No subdirectory selected.' );
-		}
+	abstract protected function package_documents( ZipArchive $zip, string $root ) : array;
 
-		$parts = [ $this->current_dir ];
-		if ( $this->current_slug ) {
-			$parts[] = $this->current_slug;
-		}
-		if ( $filename ) {
-			$parts[] = $filename;
-		}
+	/**
+	 * Check an uploaded asset and choose the name to store it under.
+	 *
+	 * @param UploadedFile $file The uploaded asset.
+	 * @param string $type The asset type, e.g. "icon" or "screenshots".
+	 * @param string $slug The app slug.
+	 * @return Exception|string The asset name, or the reason it is refused.
+	 */
+	abstract public function validate_app_asset( UploadedFile $file, string $type, string $slug ) : Exception|string;
 
-		$relative = implode( '/', $parts );
+	/**
+	 * Get the assets of one asset type, as the app type presents them.
+	 *
+	 * @param string $slug The app slug.
+	 * @param string $type The asset type.
+	 * @return mixed
+	 */
+	abstract public function get_assets( string $slug, string $type );
 
-		return $this->full_path( $relative );
+	/**
+	 * Get the manifest, building and storing it when missing or broken.
+	 *
+	 * @param \SmartLicenseServer\HostedApps\AbstractHostedApp $app
+	 * @return array<mixed>
+	 */
+	abstract public function get_app_dot_json( \SmartLicenseServer\HostedApps\AbstractHostedApp $app );
+
+	/**
+	 * Build the manifest and store it.
+	 *
+	 * @param \SmartLicenseServer\HostedApps\AbstractHostedApp $app
+	 * @return array<mixed>
+	 */
+	abstract public function regenerate_app_dot_json( \SmartLicenseServer\HostedApps\AbstractHostedApp $app ) : array;
+
+	/*
+	|-----------
+	| PACKAGE
+	|-----------
+	*/
+
+	/**
+	 * Make the slug for a new app from a name.
+	 *
+	 * Kept exactly as the repository has always made slugs, so new apps
+	 * get the same kind of slug existing apps have: the name is cleaned
+	 * like a file name, then cut at its first ".".
+	 *
+	 * @param string $name A name, e.g. "My Plugin" or "my-plugin.zip".
+	 * @return string The slug; "" when nothing usable is left.
+	 */
+	public static function slug_from( string $name ) : string {
+		$clean = FileSystemHelper::sanitize_filename( $name );
+		$dot   = strpos( $clean, '.' );
+
+		return false === $dot ? $clean : substr( $clean, 0, $dot );
 	}
 
-	/* -------------------------------------------------------------------------
-	 * ZIP Utilities
-	 * ---------------------------------------------------------------------- */
-	
 	/**
-	 * Check whether the given file is a valid zip file.
-	 * 
-	 * @param string $path Absolute path
+	 * Get the reference to an app's main package.
+	 *
+	 * @param string $slug The app slug.
+	 * @return AppFile
+	 * @throws StorageException INVALID_PATH for an invalid slug.
+	 */
+	public function package_file( string $slug ) : AppFile {
+		return AppFile::package( $this->app_type(), $slug );
+	}
+
+	/**
+	 * Tell whether an app has a stored package.
+	 *
+	 * @param string $slug The app slug.
 	 * @return bool
 	 */
-	public function is_valid_zip( string $path ) {
+	public function has_package( string $slug ) : bool {
+		try {
+			$this->storage->stat( $this->package_file( $slug ) );
+			return true;
+		} catch ( StorageException ) {
+			return false;
+		}
+	}
+
+	/**
+	 * Store an uploaded application ZIP as the app's package.
+	 *
+	 * The upload is checked completely before anything is stored: it must
+	 * be a real upload, a valid ZIP, and carry the documents the app type
+	 * requires. Only then is it stored, so a bad upload never replaces a
+	 * good package. The documents read from it are kept next to it; if
+	 * keeping them fails they are read from the package again when needed.
+	 *
+	 * @param UploadedFile $file The uploaded file.
+	 * @param string $name The app slug, or a name to make a new slug from.
+	 * @param bool $update Whether this updates an existing app. A new app
+	 *                     may not take a slug that is already used, by a
+	 *                     live app or by one in the trash: a slug stays
+	 *                     taken until its app is purged. An app in the
+	 *                     trash cannot be updated until it is restored.
+	 *                     Either way a slug never has a live and a trashed
+	 *                     copy at once.
+	 * @return string|Exception The app slug, or the reason it was refused.
+	 */
+	public function upload_zip( UploadedFile $file, string $name, bool $update = false ) : string|Exception {
+		try {
+			if ( ! $file->is_upload_successful() ) {
+				throw new Exception( 'invalid_file', 'No file uploaded.', [ 'status' => 400 ] );
+			}
+
+			if ( '' === trim( $name ) ) {
+				throw new Exception( 'invalid_filename', 'The new filename cannot be empty.', [ 'status' => 400 ] );
+			}
+
+			if ( ! $file->is_uploaded_file() ) {
+				throw new Exception( 'invalid_temp_file', 'The temporary file is not valid.', [ 'status' => 400 ] );
+			}
+
+			if ( 'zip' !== $file->get_canonical_extension() ) {
+				throw new Exception( 'invalid_file_type', 'The application archive file must be in ZIP format.', [ 'status' => 400 ] );
+			}
+
+			$slug = static::slug_from( $name );
+			$type = $this->app_type();
+
+			if ( '' === $slug || ! AppFile::is_segment( $slug ) ) {
+				throw new Exception( 'invalid_filename', sprintf( 'No valid slug can be made from "%s".', $name ), [ 'status' => 400 ] );
+			}
+
+			if ( ! $update && $this->storage->has_app( $type, $slug ) ) {
+				throw new Exception(
+					'app_slug_exists',
+					sprintf( 'The slug "%s" is not available, you can change the %s name and try again.', $slug, $type ),
+					[ 'status' => 400 ]
+				);
+			}
+
+			if ( ! $this->storage->has_app( $type, $slug ) && $this->is_trashed( $slug ) ) {
+				throw $update
+					? new Exception(
+						'app_in_trash',
+						sprintf( 'This %s is in the trash. Restore it before uploading a new version.', $type ),
+						[ 'status' => 400 ]
+					)
+					: new Exception(
+						'app_slug_exists',
+						sprintf( 'The slug "%s" belongs to a %s in the trash. Restore or permanently delete it, or change the %s name and try again.', $slug, $type, $type ),
+						[ 'status' => 400 ]
+					);
+			}
+
+			$tmp_path  = (string) $file->get_tmp_path();
+			$documents = $this->read_package_documents( $tmp_path );
+
+			$this->storage->put_package( $type, $slug, $tmp_path );
+
+			foreach ( $documents as $document => $contents ) {
+				try {
+					$this->storage->put_document( $type, $slug, $document, $contents );
+				} catch ( StorageException ) {
+					// read_document() reads it from the package instead.
+				}
+			}
+
+			return $slug;
+		} catch ( Exception $e ) {
+			return $e;
+		}
+	}
+
+	/**
+	 * Open a local ZIP and read the documents the app type wants from it.
+	 *
+	 * @param string $zip_path Absolute path of a local ZIP.
+	 * @return array<string, string> Document contents keyed by document name.
+	 * @throws Exception 400 when it is not a valid ZIP or a required
+	 *                   document is missing.
+	 */
+	protected function read_package_documents( string $zip_path ) : array {
+		$zip = new ZipArchive();
+
+		if ( true !== $zip->open( $zip_path ) ) {
+			throw new Exception( 'zip_invalid', 'Uploaded ZIP could not be opened.', [ 'status' => 400 ] );
+		}
+
+		try {
+			return $this->package_documents( $zip, static::zip_root( $zip ) );
+		} finally {
+			$zip->close();
+		}
+	}
+
+	/**
+	 * Check whether the given file is a valid zip file.
+	 *
+	 * @param string $path Absolute local path.
+	 * @return bool
+	 */
+	public function is_valid_zip( string $path ) : bool {
 		if ( '' === $path ) {
 			return false;
 		}
-		
-		$zip = new \ZipArchive();
-		$res = $zip->open( $path );
 
-		if ( true === $res ) {
+		$zip = new ZipArchive();
+
+		if ( true === $zip->open( $path ) ) {
 			$zip->close();
 			return true;
 		}
 
 		return false;
 	}
-	/**
-	 * List contents of a ZIP archive (inside current slug dir).
-	 *
-	 * @param string $filename Relative filename.
-	 * @return array|FileSystemException
-	 */
-	public function list_zip_contents( $filename ) {
-		$real = $this->full_path( $this->path( $filename ) );
 
-		if ( ! $real || ! $this->exists( $real ) ) {
-			return new FileSystemException( __( 'ZIP file not found.', 'smart-license-server' ) );
+	/**
+	 * Get a ZIP's top folder, the folder an app's files sit in.
+	 *
+	 * @param ZipArchive $zip An open ZIP.
+	 * @return string The first entry's first segment.
+	 */
+	protected static function zip_root( ZipArchive $zip ) : string {
+		return explode( '/', (string) $zip->getNameIndex( 0 ) )[0];
+	}
+
+	/**
+	 * Read one file from an app's top folder in a ZIP.
+	 *
+	 * @param ZipArchive $zip An open ZIP.
+	 * @param string $root The ZIP's top folder.
+	 * @param string $name The file name; matched case-insensitively.
+	 * @return string|null The contents, or null when it is not there.
+	 */
+	protected static function zip_entry( ZipArchive $zip, string $root, string $name ) : ?string {
+		$index = $zip->locateName( $root . '/' . $name, ZipArchive::FL_NOCASE );
+
+		if ( false === $index ) {
+			return null;
+		}
+
+		$contents = $zip->getFromIndex( $index );
+
+		return false === $contents ? null : $contents;
+	}
+
+	/**
+	 * Run a callback on an app's stored package opened as a ZIP.
+	 *
+	 * When the storage keeps the package on this server it is opened in
+	 * place; otherwise it is copied to SMLISER_TMP_DIR through a stream and
+	 * the copy is deleted afterwards.
+	 *
+	 * @template T
+	 * @param string $slug The app slug.
+	 * @param callable(ZipArchive, string): T $callback Receives the open ZIP
+	 *                                                  and its top folder.
+	 * @return T|null The callback's result, or null when the app has no
+	 *                package or it cannot be opened.
+	 */
+	protected function with_package_zip( string $slug, callable $callback ) : mixed {
+		$temp = null;
+
+		try {
+			$package = $this->package_file( $slug );
+			$path    = $this->storage->local_path( $package );
+
+			if ( null === $path ) {
+				$temp = @tempnam( SMLISER_TMP_DIR, 'smliser_pkg_' );
+
+				if ( false === $temp ) {
+					return null;
+				}
+
+				$stream = $this->storage->read_stream( $package );
+				$copied = $this->fs->write_stream( $temp, $stream );
+				fclose( $stream );
+
+				if ( ! $copied ) {
+					return null;
+				}
+
+				$path = $temp;
+			}
+		} catch ( StorageException ) {
+			return null;
 		}
 
 		$zip = new ZipArchive();
-		if ( true !== $zip->open( $real ) ) {
-			return new FileSystemException( __( 'Unable to open ZIP file.', 'smart-license-server' ) );
-		}
-
-		$files = [];
-		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
-			$files[] = $zip->getNameIndex( $i );
-		}
-
-		$zip->close();
-		return $files;
-	}
-
-	/**
-	 * Safely store a ZIP file in the repository.
-	 *
-	 * Does not handle folder creation or metadata extraction. Returns the stored path.
-	 *
-	 * @param string $from Absolute temporary file path.
-	 * @param string $to   Absolute destination file path.
-	 * @return string|Exception Absolute path of stored ZIP or error on failure.
-	 */
-	private function save_zip_file( $from, $to ) {
-		// Save the file to the destination.
-		if ( ! $this->rename( $from, $to ) ) {
-			return new Exception( 'file_saving_failed', 'Failed to save the uploaded ZIP file.', [ 'status' => 500 ] );
-		}
-
-		@$this->chmod( $to, SMLISER_FILE_PERMISSION );
-
-		// Quick ZIP sanity check.
-		if ( ! $this->is_valid_zip( $to ) ) {
-			$this->delete( $to );
-			return new Exception( 'zip_invalid', 'The uploaded file is not a valid ZIP archive.', [ 'status' => 400 ] );
-		}
-
-		return $to;
-	}
-
-	/**
-	 * Safely upload or update an application ZIP file.
-	 *
-	 * @param UploadedFile  $file   The uploaded file.
-	 * @param string $new_name      The preferred filename (without path).
-	 * @param bool   $update        Whether this is an update to an existing app.
-	 * @return string|Exception     Relative path to stored ZIP on success, Exception on failure.
-	 */
-	protected function safe_zip_upload( UploadedFile $file, string $new_name, bool $update = false ) {
-		if ( ! $file->is_upload_successful() ) {
-			return new Exception( 'invalid_file', 'No file uploaded.', [ 'status' => 400 ] );
-		}
-
-		if ( empty( $new_name ) ) {
-			return new Exception( 'invalid_filename', 'The new filename cannot be empty.', [ 'status' => 400 ] );
-		}
-
-		if ( ! $file->is_uploaded_file() ) {
-			return new Exception( 'invalid_temp_file', 'The temporary file is not valid.', [ 'status' => 400 ] );
-		}
-
-		if ( 'zip' !== $file->get_canonical_extension() ) {
-			return new Exception( 'invalid_file_type', 'The application archive file must be in ZIP format.', [ 'status' => 400 ] );
-		}
-
-		// Normalize filename.
-		$new_name = FileSystemHelper::sanitize_filename( $new_name );
 
 		try {
-			$slug = $this->real_slug( $new_name );
-
-			// Force the filename to strictly be "{slug}.zip".
-			$file_name = "{$slug}.zip";
-
-			// Build destination directory.
-			$base_folder = $this->path( $slug );
-			$dest_path   = FileSystemHelper::join_path( $base_folder, $file_name );
-
-			if ( '' === $dest_path ) {
-				throw new FileSystemException( 'Destination directory contains invalid characters' );
-			}
-		} catch ( FileSystemException $e ) {
-			return new Exception( $e->get_error_code(), $e->get_error_message(), [ 'status' => 400 ] );
-		}
-
-		$active_dirname = rtrim( $this->current_dir, 's' ); // "plugins" => "plugin"
-
-		if ( ! $update ) {
-			// New upload: prevent overwriting existing slug.
-			if ( $this->is_dir( $base_folder ) ) {
-				return new Exception(
-					'app_slug_exists',
-					sprintf( 'The slug "%s" is not available, you can change the %s name and try again.', $slug, $active_dirname ),
-					[ 'status' => 400 ]
-				);
+			if ( true !== $zip->open( $path ) ) {
+				return null;
 			}
 
-			if ( ! $this->mkdir( $base_folder, SMLISER_DIR_PERMISSION ) ) {
-				return new Exception( 'repo_error', \sprintf( 'Unable to create %s directory.', basename( $base_folder ) ), [ 'status' => 500 ] );
+			try {
+				return $callback( $zip, static::zip_root( $zip ) );
+			} finally {
+				$zip->close();
 			}
-			
-		} else {
-			// Update: ensure slug folder and app already exists.
-			if ( ! $this->is_dir( $base_folder ) && ! $this->mkdir( $base_folder, SMLISER_DIR_PERMISSION ) ) {
-				return new Exception(
-					'app_not_found',
-					sprintf( 'The %s slug "%s" does not exist in the repository, attempt to create one failed.', $this->current_dir, $slug ),
-					[ 'status' => 404 ]
-				);
+		} finally {
+			if ( null !== $temp ) {
+				$this->fs->delete( $temp );
 			}
 		}
+	}
 
-		return $this->save_zip_file( $file->get_tmp_path(), $dest_path );
+	/*
+	|-------------
+	| DOCUMENTS
+	|-------------
+	*/
+
+	/**
+	 * Read a document, falling back to the copy inside the package.
+	 *
+	 * A document read from the package is stored for the next time.
+	 *
+	 * @param string $slug The app slug.
+	 * @param string $name The document name, e.g. "readme.txt".
+	 * @return string The contents; "" when neither the storage nor the
+	 *                package has it.
+	 */
+	protected function read_document( string $slug, string $name ) : string {
+		$type = $this->app_type();
+
+		try {
+			$contents = $this->storage->get_document( $type, $slug, $name );
+		} catch ( StorageException ) {
+			return '';
+		}
+
+		if ( null !== $contents ) {
+			return $contents;
+		}
+
+		$contents = $this->with_package_zip(
+			$slug,
+			static fn( ZipArchive $zip, string $root ) : ?string => static::zip_entry( $zip, $root, $name )
+		);
+
+		if ( null === $contents ) {
+			return '';
+		}
+
+		try {
+			$this->storage->put_document( $type, $slug, $name, $contents );
+		} catch ( StorageException ) {
+			// Served from the package again next time.
+		}
+
+		return $contents;
+	}
+
+	/*
+	|----------
+	| ASSETS
+	|----------
+	*/
+
+	/**
+	 * Get the reference to one of an app's assets.
+	 *
+	 * @param string $slug The app slug.
+	 * @param string $filename The asset name; cleaned like a file name.
+	 * @return AppFile
+	 * @throws StorageException INVALID_PATH when no valid name is left.
+	 */
+	public function asset_file( string $slug, string $filename ) : AppFile {
+		return AppFile::asset( $this->app_type(), $slug, FileSystemHelper::sanitize_filename( $filename ) );
 	}
 
 	/**
-	 * Safely upload or update application assets.
-	 * 
-	 * @param string                    $slug       The application slug.
-	 * @param UploadedFileCollection    $files      The uploaded file instances.
-	 * @param string                    $asset_type The type of asset(eg screenshots, icon, banners etc).
+	 * Get the public URL of an asset.
+	 *
+	 * @param string $slug The app slug.
+	 * @param string $name The asset name.
+	 * @return URL
+	 */
+	public function asset_url( string $slug, string $name ) : URL {
+		return $this->urlmanager->app_asset_url( $this->app_type(), $slug, $name );
+	}
+
+	/**
+	 * Get the names of an app's assets.
+	 *
+	 * @param string $slug The app slug.
+	 * @return list<string> In byte order; empty when the app has none or
+	 *                      does not exist.
+	 */
+	protected function asset_names( string $slug ) : array {
+		try {
+			return array_column( $this->storage->list_assets( $this->app_type(), $slug ), 'name' );
+		} catch ( StorageException ) {
+			return [];
+		}
+	}
+
+	/**
+	 * Find assets whose names start with a prefix and end in an extension.
+	 *
+	 * Matches the way the repository has always found assets: grouped by
+	 * extension in the order given, each group in byte order.
+	 *
+	 * @param string $slug The app slug.
+	 * @param string $prefix The start of the name, e.g. "banner-772x250."
+	 *                       or "screenshot-".
+	 * @param string[] $extensions Extensions, without the dot.
+	 * @return list<string> Matching asset names.
+	 */
+	protected function find_assets( string $slug, string $prefix, array $extensions ) : array {
+		$names   = $this->asset_names( $slug );
+		$matches = [];
+
+		foreach ( $extensions as $ext ) {
+			foreach ( $names as $name ) {
+				if ( str_starts_with( $name, $prefix ) && str_ends_with( $name, '.' . $ext ) && ! in_array( $name, $matches, true ) ) {
+					$matches[] = $name;
+				}
+			}
+		}
+
+		return $matches;
+	}
+
+	/**
+	 * Find the first asset named exactly "{basename}.{ext}".
+	 *
+	 * @param string $slug The app slug.
+	 * @param string $basename The name without extension, e.g. "cover".
+	 * @param string[] $extensions Extensions to try, in order.
+	 * @return string|null The asset name, or null when none exists.
+	 */
+	protected function find_asset( string $slug, string $basename, array $extensions ) : ?string {
+		$names = $this->asset_names( $slug );
+
+		foreach ( $extensions as $ext ) {
+			if ( in_array( $basename . '.' . $ext, $names, true ) ) {
+				return $basename . '.' . $ext;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Find the next free screenshot name.
+	 *
+	 * @param string $slug The app slug.
+	 * @return string "screenshot-{n}", n being one above the highest in use.
+	 */
+	public function find_next_screenshot_name( string $slug ) : string {
+		$indexes = [];
+
+		foreach ( $this->find_assets( $slug, 'screenshot', static::ALLOWED_IMAGE_EXTENSIONS ) as $name ) {
+			if ( preg_match( '/^screenshot-(\d+)\./', $name, $m ) ) {
+				$indexes[] = (int) $m[1];
+			}
+		}
+
+		return sprintf( 'screenshot-%d', [] === $indexes ? 1 : max( $indexes ) + 1 );
+	}
+
+	/**
+	 * Get the name an uploaded asset is stored under.
+	 *
+	 * The extension always comes from the file's detected content, never
+	 * from the name chosen for it, as UploadedFile::move() has always done.
+	 *
+	 * @param string $asset_name The name validate_app_asset() chose.
+	 * @param UploadedFile $file The uploaded asset.
+	 * @return string The name to store.
+	 */
+	protected static function stored_asset_name( string $asset_name, UploadedFile $file ) : string {
+		return sprintf( '%s.%s', FileSystemHelper::remove_extension( $asset_name ), $file->get_canonical_extension() );
+	}
+
+	/**
+	 * Safely upload application assets, never replacing an existing one.
+	 *
+	 * @param string $slug The application slug.
+	 * @param UploadedFileCollection $files The uploaded files.
+	 * @param string $asset_type The asset type (screenshots, icon, banners...).
 	 * @return array{
-	 *      uploaded: array{
-	 *          string|int, array{
-	 *              app_slug: string,
-	 *              app_type: string,
-	 *              asset_name: string,
-	 *              asset_url: string
-	 *          }
-	 *      },
-	 *      
-	 *      failed: array{
-	 *          string|int, array
-	 *      }
+	 *     uploaded: array<string, array{app_slug: string, app_type: string, asset_name: string, asset_url: string, asset_type: string}>,
+	 *     failed: array<string, mixed>
 	 * }
 	 */
-	public function safe_assets_upload(
-		string $slug,
-		UploadedFileCollection $files,
-		string $asset_type,
-	) : array {
+	public function safe_assets_upload( string $slug, UploadedFileCollection $files, string $asset_type ) : array {
 		$result = [
 			'uploaded' => [],
-			'failed'   => []
+			'failed'   => [],
 		];
 
+		$type = $this->app_type();
+
 		try {
-			$slug       = $this->real_slug( $slug );
-			$base_path  = $this->enter_slug( $slug );
-			$assets_dir = FileSystemHelper::join_path( $base_path, '/assets' );
-
-			if ( ! $assets_dir ) {
-				throw new FileSystemException( 'Malformed assets directory.' );
+			if ( ! $this->storage->has_app( $type, $slug ) ) {
+				throw new StorageException( StorageException::NOT_FOUND, sprintf( 'The %s "%s" does not exist.', $type, $slug ), $type, $slug );
 			}
-
-			if ( ! $this->is_dir( $assets_dir ) && ! $this->mkdir( $assets_dir, SMLISER_DIR_PERMISSION, true ) ) {
-				throw new FileSystemException( 'Unable to create asset directory.' );
-			}
-		} catch ( FileSystemException $e ) {
+		} catch ( StorageException $e ) {
 			$result['failed']['system'] = $e->get_error_message();
 
 			return $result;
@@ -392,140 +599,144 @@ abstract class Repository {
 			$has_error = false;
 
 			if ( ! $file->is_upload_successful() ) {
-				$result['failed'][$file->get_name()]['partial_upload'] = 'Upload was not success.';
-				$has_error                                             = true;
+				$result['failed'][ $file->get_name() ]['partial_upload'] = 'Upload was not success.';
+				$has_error = true;
 			}
 
 			if ( ! $file->is_uploaded_file() ) {
-				$result['failed'][$file->get_name()]['invalid_http_upload'] = 'File is not a valid HTTP uploaded file.';
-				$has_error                                                  = true;
+				$result['failed'][ $file->get_name() ]['invalid_http_upload'] = 'File is not a valid HTTP uploaded file.';
+				$has_error = true;
 			}
 
 			if ( ! $file->is_moveable() ) {
-				$result['failed'][$file->get_name()]['filesystem_error'] = 'Asset cannot be reliably moved to the repository.';
-				$has_error                                               = true;
+				$result['failed'][ $file->get_name() ]['filesystem_error'] = 'Asset cannot be reliably moved to the repository.';
+				$has_error = true;
 			}
 
-			$asset_name = $this->validate_app_asset( $file, $asset_type, $assets_dir );
+			$asset_name = $this->validate_app_asset( $file, $asset_type, $slug );
 
-			if ( is_smliser_error( $asset_name ) ) {
-				$result['failed'][$file->get_name()][$asset_name->get_error_code()] = $asset_name->get_error_message();
-				$has_error                                                          = true;
+			if ( $asset_name instanceof Exception ) {
+				$result['failed'][ $file->get_name() ][ $asset_name->get_error_code() ] = $asset_name->get_error_message();
+				$has_error = true;
 			}
 
 			if ( $has_error ) {
 				continue;
 			}
 
+			$stored = static::stored_asset_name( $asset_name, $file );
+
 			try {
-				$path       = $file->move( $assets_dir, $asset_name ); // No override.
-				$app_type   = rtrim( $this->current_dir, 's' ); // "plugins" => "plugin"
-				$app_slug   = $slug;
-				$asset_name = basename( $path );
-				$asset_url  = $this->urlmanager->app_asset_url( $app_type, $app_slug, $asset_name )
-					->add_query_param( 'ver', $this->filemtime( $path ) )->url();
+				if ( in_array( $stored, $this->asset_names( $slug ), true ) ) {
+					throw new Exception( 'asset_exists', sprintf( 'An asset named "%s" already exists.', $stored ), [ 'status' => 409 ] );
+				}
 
-				$result['uploaded'][$file->get_client_name()] = \compact( 'app_slug', 'app_type', 'asset_name', 'asset_url', 'asset_type' );
-			} catch( Exception $e ) {
-				$result['failed'][$file->get_client_name()][] = $e->get_error_message();
+				$this->storage->put_asset( $type, $slug, $stored, (string) $file->get_tmp_path() );
+
+				$result['uploaded'][ $file->get_client_name() ] = $this->asset_result( $slug, $stored, $asset_type );
+			} catch ( Exception $e ) {
+				$result['failed'][ $file->get_client_name() ][] = $e->get_error_message();
 			}
-
 		}
 
 		return $result;
 	}
 
 	/**
-	 * Safely put or replace an asset in the app's asset.
-	 * 
+	 * Put or replace one asset.
+	 *
+	 * Uploading "screenshot-{n}" removes any other "screenshot-{n}.*", so a
+	 * screenshot replaced with a different image type does not leave the
+	 * old one behind.
+	 *
 	 * @param string $app_slug The app slug.
-	 * @param UploadedFile $file The type of asset.
-	 * @param string $asset_type
+	 * @param UploadedFile $file The uploaded asset.
+	 * @param string $asset_type The asset type.
+	 * @return array{app_slug: string, app_type: string, asset_name: string, asset_url: string, asset_type: string}|Exception
 	 */
-	public function put_app_asset(
-		string $app_slug,
-		UploadedFile $file,
-		string $asset_type,
-	) : array|Exception {
+	public function put_app_asset( string $app_slug, UploadedFile $file, string $asset_type ) : array|Exception {
+		$type = $this->app_type();
+
 		try {
-			$app_slug   = $this->real_slug( $app_slug );
-			$base_path  = $this->enter_slug( $app_slug );
-			$assets_dir = FileSystemHelper::join_path( $base_path, '/assets' );
-
-			if ( ! $assets_dir ) {
-				throw new FileSystemException( 'Malformed assets directory.' );
-			}
-
-			if ( ! $this->is_dir( $assets_dir ) && ! $this->mkdir( $assets_dir, SMLISER_DIR_PERMISSION, true ) ) {
-				throw new FileSystemException( 'Unable to create asset directory.' );
+			if ( ! $this->storage->has_app( $type, $app_slug ) ) {
+				throw new StorageException( StorageException::NOT_FOUND, sprintf( 'The %s "%s" does not exist.', $type, $app_slug ), $type, $app_slug );
 			}
 
 			if ( ! $file->is_moveable() ) {
 				throw new FileSystemException( $file->get_error_message() );
 			}
 
-			$asset_name = $this->validate_app_asset( $file, $asset_type, $assets_dir );
+			$asset_name = $this->validate_app_asset( $file, $asset_type, $app_slug );
 
 			if ( $asset_name instanceof Exception ) {
-				throw new FileSystemException( $asset_name->get_error_message() );
+				throw $asset_name;
 			}
 
-			$is_screenshot = (bool) preg_match( '#screenshots?#i', $asset_type );
+			$stored = static::stored_asset_name( $asset_name, $file );
 
-			if ( $is_screenshot ) {
-				$file_name = $file->get_name( false );
-				if ( \str_starts_with( $file_name, 'screenshot-' ) ) {
-					$removable  = FileSystemHelper::join_path( $assets_dir, $file_name );
-					$pattern    = sprintf( '%s.*{%s}', $removable, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
-					$identicals = glob( $pattern, \GLOB_BRACE );
+			if ( preg_match( '#screenshots?#i', $asset_type ) ) {
+				$base = (string) $file->get_name( false );
 
-					array_map( [$this, 'delete'], (array) $identicals );
+				if ( str_starts_with( $base, 'screenshot-' ) ) {
+					foreach ( $this->find_assets( $app_slug, $base . '.', static::ALLOWED_IMAGE_EXTENSIONS ) as $identical ) {
+						if ( $identical !== $stored ) {
+							$this->storage->delete_asset( $type, $app_slug, $identical );
+						}
+					}
 				}
-
 			}
 
-			$path       = $file->move( $assets_dir, $asset_name, true );
-			$app_type   = $this->current_dir;
-			$asset_name = basename( $path );
-			$asset_url  = $this->urlmanager->app_asset_url( $app_type, $app_slug, $asset_name )
-				->add_query_param( 'ver', $this->filemtime( $path ) )->url();
+			$this->storage->put_asset( $type, $app_slug, $stored, (string) $file->get_tmp_path() );
 
-			return compact( 'app_slug', 'app_type', 'asset_name', 'asset_url', 'asset_type' );
-		} catch ( FileSystemException $e ) {
-			return $e;
+			return $this->asset_result( $app_slug, $stored, $asset_type );
 		} catch ( Exception $e ) {
-			return new FileSystemException( $e->get_error_message() );
+			return $e;
 		}
 	}
 
 	/**
-	 * Normalize an app slug to get the first folder.
+	 * Delete an app asset.
 	 *
-	 * @param string $slug Input like "plugin/plugin.zip or theme.zip"
-	 * @return string First folder name (slug)
-	 * @throws FileSystemException If slug is empty or contains invalid references
+	 * @param string $slug The app slug.
+	 * @param string $filename The asset name.
+	 * @return true|Exception
 	 */
-	public function real_slug( $slug ) {
-		$slug = trim( $slug );
+	public function delete_asset( string $slug, string $filename ) : true|Exception {
+		try {
+			$file = $this->asset_file( $slug, $filename );
+			$this->storage->delete_asset( $file->type, $file->slug, $file->name );
 
-		if ( empty( $slug ) ) {
-			throw new FileSystemException( 'Invalid slug provided.' );
+			return true;
+		} catch ( Exception $e ) {
+			return $e;
 		}
-
-		$parts     = explode( '/', $slug );
-		$real_slug = $parts[0];
-
-		if ( false !== strpos( $real_slug, '.' ) ) {
-			$real_slug = substr( $real_slug, 0, strpos( $real_slug, '.' ) );
-		}
-
-		return $real_slug;
 	}
 
 	/**
-	 * Validate image.
-	 * 
-	 * @param string $filename Absolute path to the image file.
+	 * Build the description of a stored asset that uploads return.
+	 *
+	 * @param string $slug The app slug.
+	 * @param string $name The stored asset name.
+	 * @param string $asset_type The asset type.
+	 * @return array{app_slug: string, app_type: string, asset_name: string, asset_url: string, asset_type: string}
+	 * @throws StorageException When the asset cannot be described.
+	 */
+	protected function asset_result( string $slug, string $name, string $asset_type ) : array {
+		$mtime = $this->storage->stat( AppFile::asset( $this->app_type(), $slug, $name ) )['mtime'];
+
+		return [
+			'app_slug'   => $slug,
+			'app_type'   => $this->app_type(),
+			'asset_name' => $name,
+			'asset_url'  => $this->asset_url( $slug, $name )->add_query_param( 'ver', $mtime )->url(),
+			'asset_type' => $asset_type,
+		];
+	}
+
+	/**
+	 * Validate an image file.
+	 *
+	 * @param string $filename Absolute local path to the image file.
 	 * @return bool|Exception
 	 */
 	protected function is_valid_image( string $filename ) : bool|Exception {
@@ -542,183 +753,14 @@ abstract class Repository {
 			);
 		}
 
-		$image_content = $this->get_contents( $filename );
+		$image_content = (string) $this->fs->get_contents( $filename );
 		$is_malicious  = (bool) preg_match( '/<(script|php|eval|iframe|object|embed|form|input|button|link|style)[^>]*>/i', $image_content );
-		
+
 		if ( $is_malicious ) {
 			return new Exception( 'malicious_content', 'Potentially malicious content detected in the image.' );
 		}
 
 		return true;
-	}
-
-	/**
-	 * Construct the full absolute path inside the repository.
-	 * 
-	 * @param string $relative_path
-	 * @return string|false Absolute path or false on failure.
-	 */
-	public function full_path( string $relative_path ) {
-		$cleaned = \smliser_sanitize_path( $relative_path );
-
-		if ( is_smliser_error( $cleaned ) ) {
-			return false;
-		}
-
-		return FileSystemHelper::join_path( $this->base_dir, $cleaned );
-	}
-
-	/**
-	 * Move an app to trash.
-	 * 
-	 * @param string $slug The app slug.
-	 * @return true|Exception True on success, Exception on failure.
-	 */
-	public function trash( string $slug ) {
-		if ( empty( $slug ) ) {
-			return new Exception( 'invalid_slug', \sprintf( 'The %s slug cannot be empty', $this->current_slug ), ['status' => 400] );
-		}
-
-		$slug = $this->real_slug( $slug );
-		
-		if ( ! $this->queue_app_for_deletion( $slug ) ) {
-			return new Exception(
-				'deletion_failed',
-				sprintf( 'Failed to queue %s "%s" for deletion.', $this->current_slug, $slug ),
-				[ 'status' => 500 ]
-			);
-		}
-
-		return true;
-	}
-
-	/**
-	 * Queue the given app slug for deletion from the repository.
-	 * Adds a timestamp for reliable later cleanup.
-	 *
-	 * @param string $slug The application slug.
-	 * @return bool True on success, false on failure.
-	 */
-	public function queue_app_for_deletion( string $slug ) : bool {
-		// FileSystemHelper::join_path() will not join `.trash` with the base dir to prevent
-		// accidental misuse, so we concatenate manually here.
-		$trash_dir = $this->base_dir . DIRECTORY_SEPARATOR . self::TRASH_DIR;
-
-		$slug = $this->real_slug( $slug );
-
-		// Ensure trash base exists.
-		if ( ! $this->is_dir( $trash_dir ) && ! $this->mkdir( $trash_dir, SMLISER_DIR_PERMISSION, true ) ) {
-			return false;
-		}
-
-		$app_dir     = $this->path( $slug );
-		$app_type    = $this->current_dir;
-		$destination = implode( DIRECTORY_SEPARATOR, [$trash_dir, $app_type, $slug] );
-
-		// Ensure destination folder exists.
-		if ( ! $this->is_dir( $destination ) && ! $this->mkdir( $destination, SMLISER_DIR_PERMISSION, true ) ) {
-			return false;
-		}
-
-		// Move application files.
-		if ( ! $this->move( $app_dir, $destination, true ) ) {
-			return false;
-		}
-
-		// Write timestamp file for cleanup.
-		$timestamp_file = implode( DIRECTORY_SEPARATOR, [$destination, self::TRASH_METADATA_FILE] );
-
-		if ( ! $this->put_contents( $timestamp_file, (string) time() ) ) {
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
-	 * Restore an app (plugin/theme) from the trash.
-	 * 
-	 * @param string $slug The app slug.
-	 * @return true|Exception True on success, Exception on failure.
-	 */
-	public function restore_from_trash( string $slug ) {
-		if ( '' === $slug ) {
-			return new Exception(
-				'invalid_slug',
-				'The application slug cannot be empty',
-				[ 'status' => 400 ]
-			);
-		}
-
-		$slug = $this->real_slug( $slug );
-
-		if ( ! $this->restore_queued_deletion( $slug ) ) {
-			return new Exception(
-				'restore_failed',
-				sprintf( 'Failed to restore "%s" from trash.', escHtml( $slug ) ),
-				[ 'status' => 500 ]
-			);
-		}
-
-		return true;
-	}
-
-	/**
-	 * Restore queued deletions.
-	 *
-	 * @param string $slug
-	 * @return bool True on success, false on failure.
-	 */
-	public function restore_queued_deletion( string $slug ) {
-		// FileSystemHelper::join_path() will not join `.trash` with the base dir to prevent
-		// accidental misuse, so we concatenate manually here.
-		$type      = $this->current_dir;
-		$trash_dir = implode( DIRECTORY_SEPARATOR, [$this->base_dir, self::TRASH_DIR, $type, $slug] );
-		$dest_dir  = implode( DIRECTORY_SEPARATOR, [$this->base_dir, $type, $slug] );
-
-		if ( ! $this->is_dir( $trash_dir ) ) {
-			return false;
-		}
-
-		if ( $this->is_dir( $dest_dir ) ) {
-			return false; // destination already exists
-		}
-
-		if ( ! $this->move( $trash_dir, $dest_dir, true ) ) {
-			return false;
-		}
-
-		// Remove timestamp file if it exists.
-		$timestamp_file = implode( DIRECTORY_SEPARATOR, [$dest_dir, self::TRASH_METADATA_FILE] );
-		if ( $this->exists( $timestamp_file ) ) {
-			$this->delete( $timestamp_file );
-		}
-
-		return true;
-	}
-
-	/**
-	 * Find the next screenshot name in a given directory.
-	 * 
-	 * Works by serching for `screenshot-{index}` in the given directory.
-	 * 
-	 * @param string $dir The directory to search.
-	 * @return string
-	 */
-	public function find_next_screenshot_name( string $dir ) {
-		$path        = FileSystemHelper::join_path( $dir, 'screenshot' );
-		$pattern     = $path . '*.{' . implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) . '}';
-		$screenshots = glob( $pattern, GLOB_BRACE );
-		$indexes     = [];
-
-		foreach ( $screenshots as $screenshot ) {
-			if ( preg_match( '/screenshot-(\d+)\./', basename( $screenshot ), $m ) ) {
-				$indexes[] = (int) $m[1];
-			}
-		}
-
-		$next_index = empty( $indexes ) ? 1 : ( max( $indexes ) + 1 );
-		return sprintf( 'screenshot-%d', $next_index );
 	}
 
 	/*
@@ -730,76 +772,67 @@ abstract class Repository {
 	/**
 	 * Get all artifact files for an application.
 	 *
+	 * The main package comes first (slug "main"), then the artifacts,
+	 * newest first.
+	 *
 	 * @param string $slug Application slug.
-	 * @return array<int, array{
-	 *     slug: string,
-	 *     path: string,
-	 *     size: int,
-	 *     mtime: int,
-	 *     mime_type: string|null,
-	 *     filename: string
-	 * }>
+	 * @return list<array{slug: string, file: AppFile, size: int, mtime: int, mime_type: string, filename: string}>
 	 */
 	public function get_artifacts( string $slug ) : array {
+		$type = $this->app_type();
+
 		try {
-			$slug  = $this->real_slug( $slug );
-			$files = [];
-			
-			$path                = $this->enter_slug( $slug );
-			$artifacts_dir       = FileSystemHelper::join_path( $path, static::ARTIFACTS_DIR, \DIRECTORY_SEPARATOR );
-			$available_artifacts = array_filter(
-				\glob( $artifacts_dir . '*' ) ?: [],
-				[$this, 'is_file']
-			);
-
-			foreach( $available_artifacts as $file ) {
-				$filename = basename( $file );
-				$files[]  = [
-					'slug'      => FileSystemHelper::remove_extension( $filename ),
-					'path'      => $file,
-					'size'      => (int) $this->filesize( $file ),
-					'mtime'     => (int) $this->filemtime( $file ),
-					'mime_type' => FileSystemHelper::get_mime_type( $file ),
-					'filename'  => $filename
-				];
-			}
-
-			usort(
-				$files,
-				static fn ( $a, $b ) => $b['mtime'] <=> $a['mtime']
-			);
-			
-			$main_file = $this->locate( $slug );
-
-			if ( ! ( $main_file instanceof Exception ) ) {
-				\array_unshift( $files, [
-					'slug'      => 'main',
-					'path'      => $main_file,
-					'size'      => (int) $this->filesize( $main_file ),
-					'mtime'     => (int) $this->filemtime( $main_file ),
-					'mime_type' => FileSystemHelper::get_mime_type( $main_file ),
-					'filename'  => basename( $main_file ),
-				] );
-			}
-
-			return $files;
-		} catch ( FileSystemException ) {
+			$artifacts = $this->storage->list_artifacts( $type, $slug );
+		} catch ( StorageException ) {
 			return [];
 		}
 
+		$files = [];
+
+		foreach ( $artifacts as $info ) {
+			$files[] = [
+				'slug'      => FileSystemHelper::remove_extension( $info['name'] ),
+				'file'      => AppFile::artifact( $type, $slug, $info['name'] ),
+				'size'      => $info['size'],
+				'mtime'     => $info['mtime'],
+				'mime_type' => $info['mime_type'],
+				'filename'  => $info['name'],
+			];
+		}
+
+		usort( $files, static fn( array $a, array $b ) : int => $b['mtime'] <=> $a['mtime'] );
+
+		try {
+			$package = $this->package_file( $slug );
+			$info    = $this->storage->stat( $package );
+
+			array_unshift(
+				$files,
+				[
+					'slug'      => 'main',
+					'file'      => $package,
+					'size'      => $info['size'],
+					'mtime'     => $info['mtime'],
+					'mime_type' => $info['mime_type'],
+					'filename'  => $info['name'],
+				]
+			);
+		} catch ( StorageException ) {
+			// No package yet.
+		}
+
+		return $files;
 	}
 
 	/**
-	 * Get a single artifact.
-	 * 
-	 * @param mixed $app_slug
-	 * @param mixed $artifact_filename
-	 * @return array{slug: string, path: string, size: int, mtime: int, mime_type: string|null, filename: string}|null
+	 * Get a single artifact, the main package included.
+	 *
+	 * @param string $app_slug Application slug.
+	 * @param string $artifact_filename Artifact file name.
+	 * @return array{slug: string, file: AppFile, size: int, mtime: int, mime_type: string, filename: string}|null
 	 */
-	public function get_artifact( $app_slug, $artifact_filename ) : ?array {
-		$artifacts = $this->get_artifacts( $app_slug );
-
-		foreach( $artifacts as $data ) {
+	public function get_artifact( string $app_slug, string $artifact_filename ) : ?array {
+		foreach ( $this->get_artifacts( $app_slug ) as $data ) {
 			if ( $data['filename'] === $artifact_filename ) {
 				return $data;
 			}
@@ -813,9 +846,9 @@ abstract class Repository {
 	 *
 	 * The artifact is stored under `new_filename` exactly as given; the
 	 * file's detected type never changes its name. When replacing an
-	 * existing artifact (`overwrite` is `true`), the upload is moved into
-	 * place first and the old name is removed afterwards, so a failed move
-	 * leaves the existing artifact as it was.
+	 * existing artifact (`overwrite` is `true`), the upload is stored first
+	 * and the old name is removed afterwards, so a failed upload leaves the
+	 * existing artifact as it was.
 	 *
 	 * @param array{
 	 *     app_slug: string,
@@ -833,19 +866,13 @@ abstract class Repository {
 	 *     @type string       $filename     Optional. Existing artifact filename when replacing an artifact.
 	 * }
 	 *
-	 * @return array{
-	 *     filename: string,
-	 *     slug: string,
-	 *     size: int|false,
-	 *     mime_type: string|null,
-	 *     mtime: int|false
-	 * }|\SmartLicenseServer\Exceptions\Exception
+	 * @return array{filename: string, slug: string, size: int, mime_type: string, mtime: int}|Exception
 	 */
-	public function upload_artifact( array $data ) {
+	public function upload_artifact( array $data ) : array|Exception {
 		try {
-			$app_slug = $data['app_slug'] ?? null;
+			$app_slug = (string) ( $data['app_slug'] ?? '' );
 
-			if ( ! $app_slug ) {
+			if ( '' === $app_slug ) {
 				throw new FileSystemException( 'App slug is required to upload artifact.' );
 			}
 
@@ -866,64 +893,53 @@ abstract class Repository {
 				(string) ( $data['new_filename'] ?? $file->get_client_name() )
 			);
 
-			// The name of the existing artifact filename if any.
-			$filename = (string) ( $data['filename'] ?? '' );
-
-			$overwrite     = (bool) ( $data['overwrite'] ?? false );
-			$path          = $this->enter_slug( $app_slug );
-			$artifacts_dir = FileSystemHelper::join_path( $path, static::ARTIFACTS_DIR, \DIRECTORY_SEPARATOR );
-
-			if ( ! $this->is_dir( $artifacts_dir ) && ! $this->mkdir( $artifacts_dir, SMLISER_DIR_PERMISSION ) ) {
-				throw new FileSystemException( 'Unable to created destination directory.' );
-			}
-
-			$new_file_path = FileSystemHelper::join_path( $artifacts_dir, $new_filename );
-			$old_file_path = '';
+			$overwrite = (bool) ( $data['overwrite'] ?? false );
+			$filename  = '';
+			$type      = $this->app_type();
+			$existing  = array_column( $this->storage->list_artifacts( $type, $app_slug ), 'name' );
 
 			if ( $overwrite ) {
 				// We are dealing with file edit: the upload replaces $filename,
 				// and may give it a new name at the same time.
-				$filename      = $this->validate_artifact_filename( $filename );
-				$old_file_path = FileSystemHelper::join_path( $artifacts_dir, $filename );
+				$filename = $this->validate_artifact_filename( (string) ( $data['filename'] ?? '' ) );
 
-				if ( ! $this->is_file( $old_file_path ) ) {
+				if ( ! in_array( $filename, $existing, true ) ) {
 					throw new Exception(
 						'resource_not_found',
 						sprintf( 'The artifact "%s" does not exist.', $filename ),
-						['status' => 404]
+						[ 'status' => 404 ]
 					);
 				}
 			}
 
 			// Never replace a different artifact that already has the name.
-			if ( $new_file_path !== $old_file_path && $this->exists( $new_file_path ) ) {
+			if ( $new_filename !== $filename && in_array( $new_filename, $existing, true ) ) {
 				throw new Exception(
 					'artifact_exists',
 					sprintf( 'An artifact named "%s" already exists. Edit that artifact to replace it, or choose another name.', $new_filename ),
-					['status' => 409]
+					[ 'status' => 409 ]
 				);
 			}
 
-			// Move first and remove the old name afterwards, so a failed move
-			// leaves the existing artifact untouched.
-			if ( ! $this->move( $file->get_tmp_path(), $new_file_path, $new_file_path === $old_file_path ) ) {
-				throw new FileSystemException( 'Unable to move the uploaded file into the artifacts directory.' );
+			$this->storage->put_artifact( $type, $app_slug, $new_filename, (string) $file->get_tmp_path(), $new_filename === $filename );
+
+			if ( '' !== $filename && $new_filename !== $filename ) {
+				try {
+					$this->storage->delete_artifact( $type, $app_slug, $filename );
+				} catch ( StorageException ) {
+					// The new artifact is stored; the old name stays until deleted.
+				}
 			}
 
-			if ( '' !== $old_file_path && $new_file_path !== $old_file_path ) {
-				$this->delete( $old_file_path );
-			}
-
-			$uploaded_filename = basename( $new_file_path );
+			$info = $this->storage->stat( AppFile::artifact( $type, $app_slug, $new_filename ) );
 
 			return [
-				'filename'  => $uploaded_filename,
-				'slug'      => FileSystemHelper::remove_extension( $uploaded_filename ),
-				'size'      => $this->filesize( $new_file_path ),
-				'mime_type' => FileSystemHelper::get_mime_type( $new_file_path ),
-				'mtime'     => $this->filemtime( $new_file_path )
+				'filename'  => $new_filename,
+				'slug'      => FileSystemHelper::remove_extension( $new_filename ),
+				'size'      => $info['size'],
+				'mime_type' => $info['mime_type'],
+				'mtime'     => $info['mtime'],
 			];
-			
 		} catch ( Exception $e ) {
 			return $e;
 		}
@@ -931,13 +947,13 @@ abstract class Repository {
 
 	/**
 	 * Rename an artifact file.
-	 * 
-	 * @param string $app_slug
+	 *
+	 * @param string $app_slug The app slug.
 	 * @param string $artifact_filename The current artifact file name.
-	 * @param string $new_filename      The new artifact file name.
-	 * @return array{filename: string, slug: string, size: int, mime_type: string|null, mtime: int}|Exception
+	 * @param string $new_filename The new artifact file name.
+	 * @return array{filename: string, slug: string, size: int, mime_type: string, mtime: int}|Exception
 	 */
-	public function rename_artifact( string $app_slug, string $artifact_filename, string $new_filename ) {
+	public function rename_artifact( string $app_slug, string $artifact_filename, string $new_filename ) : array|Exception {
 		try {
 			$artifact = $this->get_artifact( $app_slug, $artifact_filename );
 
@@ -945,48 +961,40 @@ abstract class Repository {
 				throw new Exception(
 					'resource_not_found',
 					sprintf( 'The artifact file with name "%s" cannot be renamed to "%s" because it does not exist.', $artifact_filename, $new_filename ),
-					['status' => 404]
+					[ 'status' => 404 ]
 				);
 			}
-			
-			// Only files in the artifacts directory; the app's main package
-			// is listed with the artifacts but is managed by upload_zip().
-			if ( 'main' === $artifact['slug'] && static::ARTIFACTS_DIR !== basename( dirname( $artifact['path'] ) ) ) {
-				throw new Exception(
-					'invalid_input',
-					'The main application package cannot be renamed as an artifact.',
-					['status' => 400]
-				);
+
+			// The main package is listed with the artifacts but managed by upload_zip().
+			if ( AppFile::PACKAGE === $artifact['file']->kind ) {
+				throw new Exception( 'invalid_input', 'The main application package cannot be renamed as an artifact.', [ 'status' => 400 ] );
 			}
 
 			// The name is used exactly as given, extension included.
-			$new_filename  = $this->validate_artifact_filename( $new_filename );
-			$new_file_path = FileSystemHelper::join_path( dirname( $artifact['path'] ), $new_filename );
+			$new_filename = $this->validate_artifact_filename( $new_filename );
 
-			if ( $new_file_path !== $artifact['path'] && $this->exists( $new_file_path ) ) {
+			if ( $new_filename !== $artifact_filename && null !== $this->get_artifact( $app_slug, $new_filename ) ) {
 				throw new Exception(
 					'artifact_exists',
 					sprintf( 'An artifact named "%s" already exists.', $new_filename ),
-					['status' => 409]
+					[ 'status' => 409 ]
 				);
 			}
 
-			if ( $new_file_path !== $artifact['path'] && ! $this->rename( $artifact['path'], $new_file_path ) ) {
-				throw new Exception(
-					'rename_failed',
-					sprintf( 'Failed to rename artifact from "%s" to "%s".', $artifact['path'], $new_file_path ),
-					['status' => 500]
-				);
-			}
+			$type = $this->app_type();
+
+			$this->storage->rename_artifact( $type, $app_slug, $artifact_filename, $new_filename );
+
+			$info = $this->storage->stat( AppFile::artifact( $type, $app_slug, $new_filename ) );
 
 			return [
 				'filename'  => $new_filename,
 				'slug'      => FileSystemHelper::remove_extension( $new_filename ),
-				'size'      => $this->filesize( $new_file_path ),
-				'mime_type' => FileSystemHelper::get_mime_type( $new_file_path ),
-				'mtime'     => $this->filemtime( $new_file_path )
+				'size'      => $info['size'],
+				'mime_type' => $info['mime_type'],
+				'mtime'     => $info['mtime'],
 			];
-		} catch( Exception $e ) {
+		} catch ( Exception $e ) {
 			return $e;
 		}
 	}
@@ -995,12 +1003,11 @@ abstract class Repository {
 	 * Check an admin-chosen artifact filename and return it unchanged.
 	 *
 	 * The name is never rewritten (no extension is added, removed or
-	 * swapped), and any extension is accepted: the repository lives outside
-	 * the web root (storage/ in standalone, outside ABSPATH in WordPress),
-	 * so artifacts are only ever sent as downloads, never executed. A name
-	 * is refused only when it is a path instead of a name, a dot file (an
-	 * .htaccess or .user.ini could change how the server treats the
-	 * directory), or contains control characters.
+	 * swapped), and any extension is accepted: artifacts are only ever sent
+	 * as downloads, never executed. A name is refused only when it is a
+	 * path instead of a name, a dot file (an .htaccess or .user.ini could
+	 * change how a server treats the directory), or contains control
+	 * characters.
 	 *
 	 * @param string $filename The filename to check.
 	 * @return string The same filename, trimmed of surrounding whitespace.
@@ -1009,7 +1016,7 @@ abstract class Repository {
 	protected function validate_artifact_filename( string $filename ) : string {
 		$filename = trim( $filename );
 		$reject   = static function ( string $reason ) : never {
-			throw new Exception( 'invalid_input', $reason, ['status' => 400] );
+			throw new Exception( 'invalid_input', $reason, [ 'status' => 400 ] );
 		};
 
 		if ( '' === $filename ) {
@@ -1038,35 +1045,49 @@ abstract class Repository {
 	/**
 	 * Delete an artifact file.
 	 *
-	 * @param string $app_slug          Application slug.
+	 * @param string $app_slug Application slug.
 	 * @param string $artifact_filename Artifact filename.
-	 * @return bool|\SmartLicenseServer\Exceptions\Exception True on success, otherwise an Exception.
+	 * @return true|Exception True on success, otherwise an Exception.
 	 */
-	public function delete_artifact( string $app_slug, string $artifact_filename ) {
+	public function delete_artifact( string $app_slug, string $artifact_filename ) : true|Exception {
 		try {
 			$artifact = $this->get_artifact( $app_slug, $artifact_filename );
 
 			if ( ! $artifact ) {
 				throw new Exception(
 					'resource_not_found',
-					sprintf(
-						'The artifact file "%s" does not exist.',
-						$artifact_filename
-					),
+					sprintf( 'The artifact file "%s" does not exist.', $artifact_filename ),
 					[ 'status' => 404 ]
 				);
 			}
 
-			if ( ! $this->delete( $artifact['path'] ) ) {
-				throw new Exception(
-					'delete_failed',
-					sprintf(
-						'Failed to delete artifact "%s".',
-						$artifact_filename
-					),
-					[ 'status' => 500 ]
-				);
+			if ( AppFile::PACKAGE === $artifact['file']->kind ) {
+				throw new Exception( 'invalid_input', 'The main application package cannot be deleted as an artifact.', [ 'status' => 400 ] );
 			}
+
+			$this->storage->delete_artifact( $this->app_type(), $app_slug, $artifact_filename );
+
+			return true;
+		} catch ( Exception $e ) {
+			return $e;
+		}
+	}
+
+	/*
+	|---------
+	| TRASH
+	|---------
+	*/
+
+	/**
+	 * Move an app's files to the trash.
+	 *
+	 * @param string $slug The app slug.
+	 * @return true|Exception
+	 */
+	public function trash( string $slug ) : true|Exception {
+		try {
+			$this->storage->trash_app( $this->app_type(), $slug );
 
 			return true;
 		} catch ( Exception $e ) {
@@ -1075,250 +1096,57 @@ abstract class Repository {
 	}
 
 	/**
-	|---------------------------
-	| ABSTRACT METHODS
-	|---------------------------
-	 */
-
-	/**
-	 * Locate the application ZIP file inside the repository.
-	 * 
-	 * @abstract
-	 * @param string $slug The application slug.
-	 * @return string|Exception Absolute path to the ZIP file or Exception if not found.
-	 */
-	abstract public function locate( $slug ) : string| Exception;
-
-	/**
-	 * Upload an application ZIP file to the repository.
-	 * 
-	 * @param UploadedFile $file The uploaded file.
-	 * @param string $new_name The preferred filename (without path).
-	 * @param bool   $update    Whether this is an update to an existing app.
-	 * @return array{
-	 *  slug?: string,
-	 *  base_dir?: string,
-	 *  rollback_function?: \Closure,
-	 *  error?: Exception
-	 * }
-	 */
-	abstract public function upload_zip( UploadedFile $file, string $new_name, bool $update = false ) : array;
-
-	/**
-	 * Get the assets for a given hosted application.
-	 * 
-	 * @abstract
-	 * @param string $slug The application slug.
-	 * @param string $type The application type.
-	 */
-	abstract public function get_assets( string $slug, string $type );
-
-	/**
-	 * Get the content of an app.json json file
-	 * 
-	 * @param \SmartLicenseServer\HostedApps\AbstractHostedApp $app
-	 */
-	abstract public function get_app_dot_json( \SmartLicenseServer\HostedApps\AbstractHostedApp $app );
-
-	/**
-	 * Regenerate app.json file
-	 * 
-	 * @param \SmartLicenseServer\HostedApps\AbstractHostedApp $app
-	 * @return array
-	 */
-	abstract public function regenerate_app_dot_json( \SmartLicenseServer\HostedApps\AbstractHostedApp $app ) : array;
-
-	/**
-	 * Allows hosted app repository classes to validate app asset types.
-	 * 
-	 * @param UploadedFile $file  Uploaded file instance.
-	 * @param string        $type Asset type.
-	 * @param string        $dir  The current asset directory.
-	 * @return Exception|string Error or file name
-	 */
-	abstract public function validate_app_asset( UploadedFile $file, string $type, string $dir ) : Exception|string;
-
-	/*
-	|---------------------------
-	| SETTING UP THE REPOSITORY 
-	|---------------------------
-	*/
-
-	/**
-	 * Creates all necessary directories.
+	 * Bring an app's files back from the trash.
 	 *
-	 * @since 0.2.0
-	 *
-	 * @return true|Exception True on success, Exception instance on failure.
+	 * @param string $slug The app slug.
+	 * @return true|Exception
 	 */
-	public static function make_default_directories() {
-		$fs = FileSystem::instance();
-
-		$directories = [
-			'repository' => SMLISER_REPO_DIR,
-			'plugin'     => SMLISER_PLUGINS_REPO_DIR,
-			'theme'      => SMLISER_THEMES_REPO_DIR,
-			'software'   => SMLISER_SOFTWARE_REPO_DIR,
-			'cache'      => SMLISER_CACHE_DIR,
-			'trash'      => SMLISER_TRASH_DIR,
-			'uploads'    => SMLISER_UPLOADS_DIR,
-			'tmp'        => SMLISER_TMP_DIR,
-		];
-
-		$exception = new Exception();
-
-		foreach ( $directories as $type => $dir ) {
-			if ( ! $fs->is_dir( $dir ) ) {
-				if ( ! $fs->mkdir( $dir ) ) {
-					$message = sprintf(
-						self::safe_translate( 'Failed to create %s directory: %s', 'smliser' ),
-						$type,
-						escHtml( $dir )
-					);
-
-					$exception->add( 'directory_creation_failed', $message );
-					continue; // try creating the other directories.
-				}
-
-				// Set directory permissions.
-				$fs->chmod( $dir, SMLISER_DIR_PERMISSION, true );
-			}
-		}
-
-		// Protect the repository root.
-		$protect_repo = self::protect_dir( $directories['repository'], $fs );
-		
-		if ( $protect_repo instanceof Exception ) {
-			$exception->merge_from( $protect_repo );
-		}
-
-		// Protect the uploads directory.
-		$protect_uploads = self::protect_dir( $directories['uploads'], $fs );
-
-		if ( $protect_uploads instanceof Exception ) {
-			$exception->merge_from( $protect_uploads );
-		}
-
-		return $exception->has_errors() ? $exception : true;
-	}
-
-	/**
-	 * Protects the given directory using an .htaccess file.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param string $dir Absolute path to the directory.
-	 * @param FileSystem $fs  FileSystem instance.
-	 *
-	 * @return bool|Exception True on success, Exception instance on failure.
-	 */
-	public static function protect_dir( string $dir, $fs ) {
-
-		$htaccess_path = FileSystemHelper::join_path( $dir, '.htaccess' );
-
-		$htaccess_content = implode(
-			"\n",
-			[
-				'# Prevent directory listing',
-				'Options -Indexes',
-				'',
-				'# Disable PHP execution when supported',
-				'<IfModule mod_php.c>',
-				'php_flag engine off',
-				'</IfModule>',
-				'',
-				'# Deny all direct access (Apache 2.4+)',
-				'<IfModule mod_authz_core.c>',
-				'Require all denied',
-				'</IfModule>',
-				'',
-				'# Fallback for Apache 2.2',
-				'<IfModule !mod_authz_core.c>',
-				'Order deny,allow',
-				'Deny from all',
-				'</IfModule>',
-				'',
-			]
-		);
-
-		if ( ! $fs->exists( $htaccess_path ) ) {
-
-			if ( ! $fs->put_contents( $htaccess_path, $htaccess_content, SMLISER_FILE_PERMISSION ) ) {
-
-				$message = sprintf(
-					self::safe_translate( 'Failed to protect directory: %s', 'smliser' ),
-					escHtml( $dir )
-				);
-
-				return new Exception( 'htaccess_protection_failed', $message );
-			}
-		}
-
-		return true;
-	}
-
-	/**
-	 * Safely translate a string even outside WordPress.
-	 *
-	 * @since 0.2.0
-	 *
-	 * @param string $text Text to translate.
-	 * @param string $domain Text domain.
-	 * @return string Translated or raw text.
-	 */
-	private static function safe_translate( string $text, string $domain = 'default' ) : string {
-		return function_exists( '__' ) ? __( $text, $domain ) : $text;
-	}
-
-	/**
-	 * Get the absolute path to a given application asset.
-	 *
-	 * @param string $slug      App slug.
-	 * @param string $filename  File name within the assets directory.
-	 * @return string|Exception Absolute path to asset or Exception if not found.
-	 */
-	public function get_asset_path( string $slug, string $filename ) {
-		$slug = $this->real_slug( $slug );
+	public function restore_from_trash( string $slug ) : true|Exception {
 		try {
-			$base_dir = $this->enter_slug( $slug );
-		} catch ( FileSystemException $e ) {
-			return new Exception( 'invalid_dir', $e->get_error_message(), [ 'status' => 400 ] );
-		}
+			$this->storage->restore_app( $this->app_type(), $slug );
 
-		$filename  = FileSystemHelper::sanitize_filename( $filename );
-		$asset_dir = FileSystemHelper::join_path( $base_dir, 'assets', $filename );
-
-		if ( ! $this->exists( $asset_dir ) ) {
-			return new Exception(
-				'asset_not_found',
-				sprintf( 'Asset "%s" not found.', escHtml( $filename ) ),
-				[ 'status' => 404 ]
-			);
-		}
-
-		return $asset_dir;
-	}
-
-	/**
-	 * Delete an app asset from the repository
-	 * 
-	 * @param string $slug     App slug (e.g., "my-plugin").
-	 * @param string $filename The filename to delete.
-	 *
-	 * @return true|Exception True on success, Exception on failure.
-	 */
-	public function delete_asset( $slug, $filename ) : true|Exception {
-		try {
-			$file = $this->get_asset_path( $slug, $filename );
-
-			if ( $file instanceof Exception ) {
-				throw $file;
-			}
-
-			return $this->delete( $file );
-		   
+			return true;
 		} catch ( Exception $e ) {
 			return $e;
+		}
+	}
+
+	/**
+	 * Permanently delete an app's files, live and trashed.
+	 *
+	 * @param string $slug The app slug.
+	 * @return true|Exception
+	 */
+	public function purge( string $slug ) : true|Exception {
+		try {
+			$this->storage->purge_app( $this->app_type(), $slug );
+
+			return true;
+		} catch ( Exception $e ) {
+			return $e;
+		}
+	}
+
+	/**
+	 * Tell whether an app is in the trash.
+	 *
+	 * @param string $slug The app slug.
+	 * @return bool True when this type's trash holds the slug.
+	 */
+	public function is_trashed( string $slug ) : bool {
+		return in_array( $slug, array_column( $this->list_trashed(), 'slug' ), true );
+	}
+
+	/**
+	 * List this type's trashed apps.
+	 *
+	 * @return list<array{slug: string, trashed_at: int}>
+	 */
+	public function list_trashed() : array {
+		try {
+			return $this->storage->list_trashed( $this->app_type() );
+		} catch ( StorageException ) {
+			return [];
 		}
 	}
 }

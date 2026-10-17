@@ -196,7 +196,6 @@ class Software extends AbstractHostedApp {
 		$self->set_screenshots( $repo_class->get_assets( $self->get_slug(), 'screenshots' ) );
 		$self->set_cover( $repo_class->get_assets( $self->get_slug(), 'cover' ) );
 		$self->set_icons( $repo_class->get_assets( $self->get_slug(), 'icons' ) );
-		$self->set_file( $repo_class->locate( $self->get_slug() ) );
 		
 		/** 
 		 * Section informations 

@@ -8,7 +8,6 @@
 
 namespace SmartLicenseServer\HostedApps;
 
-use Exception;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\PluginRepository;
@@ -288,14 +287,6 @@ class Plugin extends AbstractHostedApp {
 		];
 
 		$self->set_license( $license );
-		
-		$file = $repo_class->locate( $self->get_slug() );
-
-		if ( $file instanceof Exception ) {
-			$self->set_file( '' );
-		} else {
-			$self->set_file( $file );
-		}
 
 		/** 
 		 * Section informations 

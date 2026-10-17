@@ -3,7 +3,7 @@
  * Software Repository
  *
  * Handles software-specific business logic within the repository.
- * Extends the abstract Repository to ensure secure, scoped file operations.
+ * Files are kept in AppStorage; this class only knows what they mean.
  *
  * @author  Callistus Nwachukwu
  * @since   0.2.0
@@ -11,20 +11,17 @@
 
 namespace SmartLicenseServer\FileSystem;
 
-use SmartLicenseServer\Utils\MDParser;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\Exceptions\FileSystemException;
+use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\HostedApps\Software;
 use ZipArchive;
 
-use function sprintf, in_array, is_smliser_error, explode, implode,
-dirname, basename, json_decode, json_last_error, smliser_safe_json_encode;
+use function sprintf, in_array, is_smliser_error, implode;
 
 /**
- * Software repository class provides provides filesystem APIs to interact with hosted software in the repository.
+ * Software repository class provides the software type's rules for hosted software in the repository.
  * 
  * Note: it does not represent a single hosted software @see \SmartLicenseServer\HostedApps\Software
  */
@@ -32,144 +29,25 @@ class SoftwareRepository extends Repository {
 	use RepoFilesAwareTrait;
 
 	/**
-	 * Class constructor
-	 * 
-	 * Always binds to the `themes` subdirectory.
-	 * 
-	 * @param MDParser $mdparser        The markdown parser.
-	 * @param URLManager $urlmanager    The URL manager.
+	 * {@inheritdoc}
 	 */
-	public function __construct(
-		protected MDParser $mdparser,
-		protected URLManager $urlmanager,
-		FileSystem $file_system
-	) {
-		parent::__construct( $file_system, 'software' );
-	}
-
-	/**
-	 * Locate the software ZIP file inside the repository.
-	 * 
-	 * @param string $slug The software slug.
-	 * @return string|Exception Absolute path to the ZIP file or Exception if not found.
-	 */
-	public function locate( $slug ) : string| Exception {
-		if ( empty( $slug ) || ! is_string( $slug ) ) {
-			return new Exception(
-				'invalid_slug',
-				__( 'Software slug must be a non-empty string.', 'smliser' ),
-				[ 'status' => 400 ]
-			);
-		}
-
-		try {
-			$slug = $this->real_slug( $slug );
-			$this->enter_slug( $slug );
-		} catch ( FileSystemException $e ) {
-			return new Exception(
-				'invalid_slug',
-				$e->get_error_message(),
-				[ 'status' => 400 ]
-			);
-		}
-
-		$software_zip = $this->path( sprintf( '%s.zip', $slug ) );
-
-		if ( ! $this->exists( $software_zip ) ) {
-			return new Exception(
-				'software_not_found',
-				__( 'The requested software package was not found in the repository.', 'smliser' ),
-				[ 'status' => 404 ]
-			);
-		}
-
-		return $software_zip;
+	public function app_type() : string {
+		return 'software';
 	}
 
 	/**
 	 * {@inheritdoc}
-	 * 
-	 * - Post update: validates readme.md presence in the ZIP.
+	 *
+	 * A software package must carry a readme.md.
 	 */
-	public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) : array {
-		// -- Core upload.
-		$stored_path = $this->safe_zip_upload( $file, $new_name, $update );
+	protected function package_documents( ZipArchive $zip, string $root ) : array {
+		$readme = static::zip_entry( $zip, $root, 'readme.md' );
 
-		if ( $stored_path instanceof Exception ) {
-			return [
-				'error' => $stored_path
-			];
+		if ( null === $readme ) {
+			throw new Exception( 'readme_missing', 'The uploaded software ZIP file is missing the required readme.md file.', [ 'status' => 400 ] );
 		}
 
-		// -- Post-upload validation for software ZIPs.
-		$base_folder = dirname( $stored_path );
-		$slug        = basename( $stored_path, '.zip' );
-
-		$cleanup_func = function() use ( $update, $stored_path, $base_folder ) {
-			if ( $update ) {
-				$this->delete( $stored_path ); // only remove bad zip.
-			} else {
-				$this->rmdir( $base_folder, true ); // remove new folder completely.
-			}
-		};
-
-		// Post-upload validation: Check readme.md and metadata.
-		$zip = new ZipArchive();
-		if ( true !== $zip->open( $stored_path ) ) {
-			return [
-				'error' => new Exception(
-					'zip_invalid',
-					'Uploaded ZIP could not be opened.',
-					[ 'status' => 400 ]
-				),
-				'rollback_function' => $cleanup_func,
-				'base_dir'          => $base_folder,
-				'slug'              => $slug
-			];
-		}
-
-		$first_index  = $zip->getNameIndex( 0 );
-		$rootDir      = explode( '/', $first_index )[0];
-		$readme_index = $zip->locateName( $rootDir . '/readme.md', ZipArchive::FL_NOCASE );
-
-		if ( false === $readme_index ) {
-			$zip->close();
-			return [
-				'error' => new Exception(
-					'readme_missing',
-					'The uploaded software ZIP file is missing the required readme.md file.',
-					[ 'status' => 400 ]
-				),
-				'rollback_function' => $cleanup_func,
-				'base_dir'          => $base_folder,
-				'slug'              => $slug
-			];
-		}
-
-		$readme_contents = $zip->getFromIndex( $readme_index );
-
-		$zip->close();
-
-		$readme_path = FileSystemHelper::join_path( $base_folder, 'readme.md' );
-
-		if ( ! $this->put_contents( $readme_path, $readme_contents ) ) {
-			return [
-				'error' => new Exception(
-					'readme_save_failed',
-					'Failed to save readme.md after upload.',
-					[ 'status' => 500 ]
-				),
-				'rollback_function' => $cleanup_func,
-				'base_dir'          => $base_folder,
-				'slug'              => $slug
-			];
-		}
-		
-		return [
-			'slug'              => $slug,
-			'base_dir'          => $base_folder,
-			'rollback_function' => $cleanup_func
-		];
+		return [ 'readme.md' => $readme ];
 	}
 
 	/**
@@ -177,9 +55,10 @@ class SoftwareRepository extends Repository {
 	 * 
 	 * @param UploadedFile $file The uploaded file instance.
 	 * @param string $type       The asset type.
+	 * @param string $slug       The software slug.
 	 * @return Exception|string On error, file name otherwise.
 	 */
-	public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : Exception|string {
+	public function validate_app_asset( UploadedFile $file, string $type, string $slug ) : Exception|string {
 		$ext        = $file->get_canonical_extension();
 		$validation = $this->is_valid_image( $file->get_tmp_path() );
 
@@ -207,7 +86,7 @@ class SoftwareRepository extends Repository {
 					$screenshot = sprintf( 'screenshot-%d.%s', $m[1], $ext );
 				} else {
 					// Auto-generate next index.
-					$screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
+					$screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $slug ), $ext );
 				}
 
 				return $screenshot;
@@ -225,17 +104,7 @@ class SoftwareRepository extends Repository {
 	 * @return URL[]|URL Asset URLs or Exception on failure.
 	 */
 	public function get_assets( string $slug, string $type ) : URL|array {
-		$slug = $this->real_slug( $slug );
-
-		try {
-			$base_dir = $this->enter_slug( $slug );
-		} catch ( FileSystemException ) {
-			return ( 'cover' === $type ) ? URL::from( '' ) : [];
-		}
-
-		$assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
-
-		if ( ! $this->is_dir( $assets_dir ) ) {
+		if ( [] === $this->asset_names( $slug ) ) {
 			return ( 'cover' === $type ) ? URL::from( '' ) : [];
 		}
 
@@ -243,45 +112,29 @@ class SoftwareRepository extends Repository {
 
 		switch ( $type ) {
 			case 'icons':
-				$icons          = [];
-				$possible_icons = [ 'icon-128x128', 'icon-256x256', 'icon' ];
+				$icons = [];
+				$names = $this->asset_names( $slug );
 
-				foreach ( $possible_icons as $icon_name ) {
-					$path       = FileSystemHelper::join_path( $assets_dir, $icon_name );
-					$pattern    = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
-					$icon_files = glob( $pattern, GLOB_BRACE );
-
-					foreach ( $icon_files as $icon ) {
-						$icons[] = $this->urlmanager->app_asset_url( 'software', $slug, basename( $icon ) );
+				foreach ( static::ALLOWED_ICON_NAMES as $icon_name ) {
+					foreach ( $possible_exts as $ext ) {
+						if ( in_array( $icon_name . '.' . $ext, $names, true ) ) {
+							$icons[] = $this->asset_url( $slug, $icon_name . '.' . $ext );
+						}
 					}
 				}
 
 				return $icons;
 
 			case 'cover':
-				$path        = FileSystemHelper::join_path( $assets_dir, 'cover' );
-				$pattern     = sprintf( '%s.{%s}', $path, implode( ',', $possible_exts ) );
-				$cover_files = glob( $pattern, GLOB_BRACE );
-				if ( empty( $cover_files ) ) {
-					return URL::from( '' );
-				}
-				
-				foreach ( $cover_files as $cover ) {
-					if ( $this->is_file( $cover ) ) {
-						return $this->urlmanager->app_asset_url( 'software', $slug, basename( $cover ) );
-					}
-				}
+				$cover = $this->find_asset( $slug, 'cover', $possible_exts );
 
-				return URL::from( '' );
-				
+				return null !== $cover ? $this->asset_url( $slug, $cover ) : URL::from( '' );
+
 			case 'screenshots':
-				$path        = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
-				$pattern     = sprintf( '%s-*.{%s}', $path, implode( ',', $possible_exts ) );
-				$files       = glob( $pattern, GLOB_BRACE );
 				$screenshots = [];
-				
-				foreach ( $files as $screenshot ) {
-					$screenshots[] = $this->urlmanager->app_asset_url( 'software', $slug, basename( $screenshot ) );
+
+				foreach ( $this->find_assets( $slug, 'screenshot-', $possible_exts ) as $screenshot ) {
+					$screenshots[] = $this->asset_url( $slug, $screenshot );
 				}
 
 				return $screenshots;
@@ -293,39 +146,27 @@ class SoftwareRepository extends Repository {
 
 	/**
 	 * Get the app.json metadata for a software.
+	 *
+	 * A missing or broken app.json is rebuilt and stored.
 	 * 
 	 * @param Software $software
 	 * @return array
 	 */
 	public function get_app_dot_json( $software ) : array {
 		try {
-			
-			$slug     = $this->real_slug( $software->get_slug() );
-			$base_dir = $this->enter_slug( $slug );
-
-		} catch ( FileSystemException $e ) {
-			return $this->regenerate_app_dot_json( $software );
+			$manifest = $this->storage->get_manifest( $this->app_type(), $software->get_slug() );
+		} catch ( StorageException ) {
+			$manifest = null;
 		}
 
-		$app_json_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
-
-		if ( ! $this->exists( $app_json_path ) ) {
-			return $this->regenerate_app_dot_json( $software );
-		}
-
-		$contents = $this->get_contents( $app_json_path );
-		$data     = json_decode( $contents, true );
-
-		if ( JSON_ERROR_NONE === json_last_error() && is_array( $data ) ) {
-			return $data;
-		}
-
-		// Repair json file.
-		return $this->regenerate_app_dot_json( $software );
+		return $manifest ?? $this->regenerate_app_dot_json( $software );
 	}
 
 	/**
-	 * Build app.jon file.
+	 * Build app.json file.
+	 *
+	 * The manifest is stored when the software exists in storage; it is
+	 * returned either way.
 	 * 
 	 * @param Software $software
 	 * @return array
@@ -350,18 +191,12 @@ class SoftwareRepository extends Repository {
 		}
 
 		try {
-			$slug     = $this->real_slug( $software->get_slug() );
-			$base_dir = $this->enter_slug( $slug );
-		} catch ( FileSystemException $e ) {
-			return $manifest;
+			if ( $this->storage->has_app( $this->app_type(), $software->get_slug() ) ) {
+				$this->storage->put_manifest( $this->app_type(), $software->get_slug(), $manifest );
+			}
+		} catch ( StorageException ) {
+			// Rebuilt again on the next read.
 		}
-
-		$file_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
-
-		$flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;
-		$json  = smliser_safe_json_encode( $manifest, $flags );
-
-		$this->put_contents( $file_path, $json );
 
 		return $manifest;
 	}

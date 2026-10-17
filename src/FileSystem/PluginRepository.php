@@ -3,7 +3,7 @@
  * Plugin Repository
  *
  * Handles plugin-specific business logic within the repository.
- * Extends the abstract Repository to ensure secure, scoped file operations.
+ * Files are kept in AppStorage; this class only knows what they mean.
  *
  * @author  Callistus Nwachukwu
  * @since   0.0.6
@@ -13,10 +13,8 @@ namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\Exceptions\FileSystemException;
-use SmartLicenseServer\Utils\MDParser;
+use ZipArchive;
 
 /**
  * Plugin repository class provides filesystem APIs to interact with 
@@ -29,153 +27,42 @@ class PluginRepository extends Repository {
 
 	/**
 	 * Allowed plugin banner names.
+	 *
+	 * @var array{low: string, high: string}
 	 */
-	const ALLOWED_BANNER_NAMES = [ 'low' => 'banner-772x250', 'high' => 'banner-1544x500' ];
+	const array ALLOWED_BANNER_NAMES = [ 'low' => 'banner-772x250', 'high' => 'banner-1544x500' ];
 
 	/**
-	 * Constructor.
-	 *
-	 * Always bind to the `plugins` subdirectory.
-	 * 
-	 * @param MDParser $mdparser        The markdown parser.
-	 * @param URLManager $urlmanager    The URL manager.
+	 * {@inheritdoc}
 	 */
-	public function __construct(
-		protected MDParser $mdparser,
-		protected URLManager $urlmanager,
-		FileSystem $file_system
-	) {
-		parent::__construct( $file_system, 'plugins' );
-	}
-	
-	/**
-	 * Locate a plugin zip file in the repository and enter the plugin slug.
-	 *
-	 * @param string $plugin_slug The plugin slug (e.g., "my-plugin").
-	 * @return string|Exception Absolute file path or error on failure.
-	 */
-	public function locate( $plugin_slug ) : string| Exception {
-		if ( empty( $plugin_slug ) || ! is_string( $plugin_slug ) ) {
-			return new Exception(
-				'invalid_slug',
-				__( 'Plugin slug must be a non-empty string.', 'smliser' ),
-				[ 'status' => 400 ]
-			);
-		}
-
-		try {
-			$slug = $this->real_slug( $plugin_slug );
-			$this->enter_slug( $slug );
-		} catch ( FileSystemException $e ) {
-			return new Exception(
-				'invalid_slug',
-				$e->get_error_message(),
-				[ 'status' => 400 ]
-			);
-		}
-
-		// Plugin files MUST be a .zip file named after the plugin slug.
-		$plugin_file = $this->path( sprintf( '%s.zip', $slug ) );
-
-		if ( ! $this->exists( $plugin_file ) ) {
-			return new Exception(
-				'file_not_found',
-				__( 'Plugin file not found.', 'smliser' ),
-				[ 'status' => 404]
-			);
-		}
-
-		return $plugin_file;
+	public function app_type() : string {
+		return 'plugin';
 	}
 
 	/**
 	 * {@inheritdoc}
 	 *
-	 * - Post-upload: validates ZIP and extracts readme.txt to plugin folder.
+	 * A plugin package must carry a readme.txt.
 	 */
-	public function upload_zip( UploadedFile $file, string $new_name = '', bool $update = false ) : array {
-		// Core upload via `Repository::safe_zip_upload()`.
-		$stored_path = $this->safe_zip_upload( $file, $new_name, $update );
-		if ( $stored_path instanceof Exception ) {
-			return ['error' => $stored_path];
+	protected function package_documents( ZipArchive $zip, string $root ) : array {
+		$readme = static::zip_entry( $zip, $root, 'readme.txt' );
+
+		if ( null === $readme ) {
+			throw new Exception( 'readme_missing', 'The plugin ZIP file must contain a readme.txt file.', [ 'status' => 400 ] );
 		}
 
-		$base_folder = dirname( $stored_path );
-		$slug        = basename( $stored_path, '.zip' );
-
-		$cleanup_func = function() use ( $update, $stored_path, $base_folder ) {
-			if ( $update ) {
-				$this->delete( $stored_path ); // only remove bad zip.
-			} else {
-				$this->rmdir( $base_folder, true ); // remove new folder completely.
-			}
-		};
-
-		// Post-upload: Validate ZIP and extract readme.txt.
-		$zip = new \ZipArchive();
-		if ( true !== $zip->open( $stored_path ) ) {
-			return [
-				'error' => new Exception(
-					'zip_invalid',
-					'Uploaded ZIP could not be opened.',
-					[ 'status' => 400 ]
-				),
-				'rollback_function' => $cleanup_func,
-				'base_dir'          => $base_folder,
-				'slug'              => $slug
-			];
-		}
-
-		$firstEntry   = $zip->getNameIndex( 0 );
-		$rootDir      = explode( '/', $firstEntry )[0];
-		$readme_index = $zip->locateName( $rootDir . '/readme.txt', \ZipArchive::FL_NOCASE );
-		if ( false === $readme_index ) {
-			$zip->close();
-			return [
-				'error' => new Exception(
-					'readme_missing',
-					'The plugin ZIP file must contain a readme.txt file.',
-					[ 'status' => 400 ]
-				),
-				'rollback_function' => $cleanup_func,
-				'base_dir'          => $base_folder,
-				'slug'              => $slug
-			];
-		}
-
-		$readme_contents = $zip->getFromIndex( $readme_index );
-		$zip->close();
-
-		$readme_path = FileSystemHelper::join_path( $base_folder, 'readme.txt' );
-
-		if ( ! $this->put_contents( $readme_path, $readme_contents ) ) {
-			return [
-				'error' => new Exception(
-					'readme_save_failed',
-					'Failed to save readme.txt after upload.',
-					[ 'status' => 500 ]
-				),
-				'rollback_function' => $cleanup_func,
-				'base_dir'          => $base_folder,
-				'slug'              => $slug
-			];
-		}
-
-		return [
-			'slug'              => $slug,
-			'base_dir'          => $base_folder,
-			'rollback_function' => $cleanup_func
-		];
+		return [ 'readme.txt' => $readme ];
 	}
 
 	/**
-	 * Validate names and types of asset that can be uploaded for a theme.
+	 * Validate names and types of asset that can be uploaded for a plugin.
 	 * 
 	 * @param UploadedFile $file The uploaded file instance.
 	 * @param string $type       The asset type.
+	 * @param string $slug       The plugin slug.
 	 * @return Exception|string On error, file name otherwise.
 	 */
-	public function validate_app_asset( UploadedFile $file, string $type, string $asset_dir ) : Exception|string {
+	public function validate_app_asset( UploadedFile $file, string $type, string $slug ) : Exception|string {
 		$ext        = $file->get_canonical_extension();
 		$validation = $this->is_valid_image( $file->get_tmp_path() );
 
@@ -211,7 +98,7 @@ class PluginRepository extends Repository {
 					
 				} else {
 					// Auto-generate next index.
-					$screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $asset_dir ), $ext );
+					$screenshot = sprintf( '%s.%s', $this->find_next_screenshot_name( $slug ), $ext );
 				}
 
 				return $screenshot;
@@ -224,8 +111,6 @@ class PluginRepository extends Repository {
 
 	/**
 	 * Get plugin assets as URLs.
-	 *
-	 * @uses self::real_slug() and self::enter_slug() to ensure we operate inside the repository sandbox.
 	 *
 	 * @param string $slug Plugin slug.
 	 * @param string<'banners', 'icons', 'screenshots'> $type Asset type.
@@ -240,77 +125,47 @@ class PluginRepository extends Repository {
 	 *  }
 	 */
 	public function get_assets( string $slug, string $type ) : array {
-		// Normalize slug and ensure it is valid inside the repo.
-		$slug = $this->real_slug( $slug );
-
-		try {
-			$base_dir = $this->enter_slug( $slug );
-		} catch ( FileSystemException $e ) {
-			return [];
-		}
-
-		$assets_dir = FileSystemHelper::join_path( $base_dir, 'assets/' );
-		
-		if ( ! $this->is_dir( $assets_dir ) ) {
+		if ( [] === $this->asset_names( $slug ) ) {
 			return [];
 		}
 
 		switch ( $type ) {
 			case 'banners':
 				$urls = [];
-				foreach ( [ 'low' => 'banner-772x250', 'high' => 'banner-1544x500' ] as $key => $basename ) {
-					$path         = FileSystemHelper::join_path( $assets_dir, $basename );
-					$pattern      = sprintf( '%s.*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
-					$matches      = glob( $pattern, GLOB_BRACE );
-					$urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
-						? $this->urlmanager->app_asset_url( 'plugin', $slug, basename( $matches[0] ) )
-						: '';
+
+				foreach ( static::ALLOWED_BANNER_NAMES as $key => $basename ) {
+					$match        = $this->find_assets( $slug, $basename . '.', static::ALLOWED_IMAGE_EXTENSIONS )[0] ?? null;
+					$urls[ $key ] = null !== $match ? $this->asset_url( $slug, $match ) : '';
 				}
-				
+
 				return $urls;
 
 			case 'icons':
 				$urls = [];
+
 				// Check the usual sized icons.
-				foreach ( ['1x' => 'icon-128x128', '2x' => 'icon-256x256' ] as $key => $basename ) {
-					$path         = FileSystemHelper::join_path( $assets_dir, $basename );
-					$pattern      = sprintf( '%s.*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
-					$matches      = glob( $pattern, GLOB_BRACE );
-					$urls[ $key ] = ( $matches && $this->is_file( $matches[0] ) )
-						? $this->urlmanager->app_asset_url( 'plugin', $slug, basename( $matches[0] ) )
-						: '';
+				foreach ( [ '1x' => 'icon-128x128', '2x' => 'icon-256x256' ] as $key => $basename ) {
+					$match        = $this->find_assets( $slug, $basename . '.', static::ALLOWED_IMAGE_EXTENSIONS )[0] ?? null;
+					$urls[ $key ] = null !== $match ? $this->asset_url( $slug, $match ) : '';
 				}
 
-				// Check for universal icon.* and use it as fallback for 1x if no 128x128 exists.
-				$icon_path    = FileSystemHelper::join_path( $assets_dir, 'icon' );
-				$icon_pattern = sprintf( '%s.*{%s}', $icon_path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
-				$icon_matches = glob( $icon_pattern, GLOB_BRACE );
-				
-				if ( empty( $urls['1x'] ) && ! empty( $icon_matches ) ) {
-					foreach ( $icon_matches as $icon ) {
-						if ( $this->is_file( $icon ) ) {
-							$urls['1x'] = $this->urlmanager->app_asset_url( 'plugin', $slug, basename( $icon ) );
-							break;
-						}
+				// Use a universal icon.* as the 1x fallback when no 128x128 exists.
+				$icon = $this->find_assets( $slug, 'icon.', static::ALLOWED_IMAGE_EXTENSIONS )[0] ?? null;
 
-					}
+				if ( empty( $urls['1x'] ) && null !== $icon ) {
+					$urls['1x'] = $this->asset_url( $slug, $icon );
 				}
-				
+
 				return $urls;
 
 			case 'screenshots':
-				$path    = FileSystemHelper::join_path( $assets_dir, 'screenshot' );
-				$pattern = sprintf( '%s-*{%s}', $path, implode( ',', static::ALLOWED_IMAGE_EXTENSIONS ) );
-				$files   = glob( $pattern, GLOB_BRACE );
-				
-				usort( $files, function( $a, $b ) {
-					return strnatcmp( basename( $a ), basename( $b ) );
-				} );
+				$files = $this->find_assets( $slug, 'screenshot-', static::ALLOWED_IMAGE_EXTENSIONS );
+
+				usort( $files, 'strnatcmp' );
 
 				$indexed = [];
-				foreach ( $files as $file_path ) {
-					$basename = basename( $file_path );
-					$url      = $this->urlmanager->app_asset_url( 'plugin', $slug, $basename );
+				foreach ( $files as $basename ) {
+					$url = $this->asset_url( $slug, $basename );
 
 					if ( preg_match( '/screenshot-(\d+)\./i', $basename, $m ) ) {
 						$indexed[ (int) $m[1] ] = $url;
@@ -380,6 +235,7 @@ class PluginRepository extends Repository {
 			return $this->mdparser->parse( $final_text );
 		}
 
+		return '';
 	}
 
 	/**
@@ -653,48 +509,7 @@ class PluginRepository extends Repository {
 	 * @return string The readme.txt content, or empty string.
 	 */
 	public function get_readme_txt( $slug ) {
-		$slug = $this->real_slug( $slug );
-		try {
-			$base_dir = $this->enter_slug( $slug );
-		} catch ( FileSystemException $e ) {
-			return '';
-		}
-
-		$file_path = FileSystemHelper::join_path( $base_dir, 'readme.txt' );
-
-		if ( ! $this->exists( $file_path ) ) {
-			// Attempt to get it from the zipped plugin file.
-			$zip_path = $this->locate( $slug );
-
-			if ( is_smliser_error( $zip_path ) ) {
-				return '';
-			}
-
-			$zip = new \ZipArchive();
-			if ( true !== $zip->open( $zip_path ) ) {
-				return '';
-			}
-
-			$firstEntry   = $zip->getNameIndex( 0 );
-			$rootDir      = explode( '/', $firstEntry )[0];
-			$readme_index = $zip->locateName( $rootDir . '/readme.txt', \ZipArchive::FL_NOCASE );
-		
-			if ( false === $readme_index ) {
-				$zip->close();
-				return '';
-			}
-
-			$readme_contents = $zip->getFromIndex( $readme_index );
-			$zip->close();
-
-			if ( ! $this->put_contents( $file_path, $readme_contents ) ) {
-				// TODO: Logging.
-			}
-
-			return $readme_contents;
-		}
-		
-		return $this->get_contents( $file_path ) ?: '';
+		return $this->read_document( (string) $slug, 'readme.txt' );
 	}
 
 	/**

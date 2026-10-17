@@ -13,11 +13,13 @@ use SmartLicenseServer\Analytics\AppsAnalytics;
 use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
+use SmartLicenseServer\HostedApps\Storage\AppStorage;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\Templates\TemplateLocator;
@@ -348,13 +350,11 @@ class RepositoryPage implements AdminPageInterface {
 			return;
 		}
 
-		$repo_class = HostedApplicationService::get_app_repository_class( $app->get_type() );
-
 		$url = $this->urlmanager->admin_repo_url();
 
 		$download_url        = $this->urlmanager->admin_app_downloads_url( $app->get_type(), $app->get_id() );
 		$last_updated_string = Format::time_ago( $app->get_updated_at()->getTimestamp() );
-		$file_size           = FileSystemHelper::format_file_size( $repo_class->filesize( $app->get_file() ) );
+		$file_size           = FileSystemHelper::format_file_size( $this->package_size( $app ) );
 
 		$template_header = [
 			'icon'              => $app->get_icon(),
@@ -729,6 +729,26 @@ class RepositoryPage implements AdminPageInterface {
 			$last_updated_string,
 			$license_uri
 		);
+	}
+
+	/**
+	 * Get the size of an app's stored package.
+	 *
+	 * @param HostedAppsInterface $app Hosted app instance.
+	 * @return int Size in bytes; 0 when no package is stored.
+	 */
+	private function package_size( HostedAppsInterface $app ) : int {
+		$package = $app->get_package();
+
+		if ( null === $package ) {
+			return 0;
+		}
+
+		try {
+			return AppStorage::instance()->stat( $package )['size'];
+		} catch ( StorageException ) {
+			return 0;
+		}
 	}
 
 	/**

@@ -1,6 +1,6 @@
 <?php
 /**
- * Directory app storage class file.
+ * Directory app storage adapter class file.
  *
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\HostedApps\Storage
@@ -11,117 +11,158 @@ namespace SmartLicenseServer\HostedApps\Storage;
 use InvalidArgumentException;
 use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\FileSystem\FileSystemHelper;
 
 /**
- * Stores one app type's apps in a local directory, through the FileSystem API.
+ * Keeps hosted apps in a local directory, through the FileSystem API.
  *
- * Layout:
- *  - live app:    {root}/{slug}/{key}
- *  - trashed app: {trash_dir}/{slug}/{key}, plus a TRASH_METADATA_FILE
- *                 holding the Unix time it was trashed.
+ * Layout under the root (the same layout the Repository class has always
+ * used, so existing installations need no migration):
  *
- * The boundary is each app's own directory as the operating system resolves
- * it. The app directory may itself be a symbolic link (an admin may keep an
- * app on another disk); inside it, a key that resolves outside it is
- * refused. Reads follow links that stay inside; delete() and rename() act on
- * a link itself and never follow it, so a link that points outside can still
- * be removed. Purging an app whose directory is a link removes the link and
- * leaves the files it points to.
+ *     {root}/{type dir}/{slug}/{slug}.zip      package
+ *     {root}/{type dir}/{slug}/app.json        manifest
+ *     {root}/{type dir}/{slug}/artifacts/{name} artifacts
+ *     {root}/{type dir}/{slug}/assets/{name}    assets
+ *     {root}/{type dir}/{slug}/{name}           documents
+ *     {root}/.trash/{type dir}/{slug}/          trashed app, plus
+ *                                               TRASH_METADATA_FILE
  *
- * The FileSystem API has no link or path-resolution methods, so link checks
- * use PHP's is_link() and realpath() directly.
+ * Each served type maps to one directory name, given at construction (see
+ * CORE_TYPE_DIRS). A document may not be named "app.json", "{slug}.zip",
+ * "artifacts" or "assets", so the kinds never collide.
+ *
+ * Links: the boundary is each app's own directory as the operating system
+ * resolves it. The app directory may itself be a symbolic link (an app kept
+ * on another disk); a file or directory inside it that resolves outside it,
+ * or a broken link, makes the file INVALID_PATH. The FileSystem API has no
+ * link or path-resolution methods, so these checks use PHP's is_link() and
+ * realpath() directly.
+ *
+ * Replacing: a stored file is replaced in three moves: the new file is
+ * staged next to the target under a dot-name, the old file is moved aside,
+ * the staged file takes its place. Any failure moves everything back, so
+ * the old file and the caller's local file both survive. Staging names
+ * start with "." and never appear in any listing.
  */
-class DirectoryAppStorage implements AppStorageInterface {
+class DirectoryAppStorage implements AppStorageAdapterInterface {
+
+	/**
+	 * Directory names of the core app types, matching the
+	 * SMLISER_*_REPO_DIR constants.
+	 *
+	 * @var array<string, string>
+	 */
+	public const CORE_TYPE_DIRS = [
+		'plugin'   => 'plugins',
+		'theme'    => 'themes',
+		'software' => 'software',
+	];
+
+	/**
+	 * Name of the directory holding trashed apps, under the root.
+	 *
+	 * @var string
+	 */
+	public const TRASH_DIR = '.trash';
 
 	/**
 	 * Name of the file recording when an app was trashed.
-	 *
-	 * Kept from the previous Repository class, so apps trashed before this
-	 * class existed are still listed.
 	 *
 	 * @var string
 	 */
 	public const TRASH_METADATA_FILE = '.smliser_meta';
 
 	/**
-	 * Pattern a slug must match.
+	 * File name of the manifest.
 	 *
 	 * @var string
 	 */
-	protected const SLUG_PATTERN = '/^[a-z0-9_]+(?:-[a-z0-9_]+)*$/';
+	public const MANIFEST_FILE = 'app.json';
 
 	/**
-	 * Longest slug or key segment, in bytes.
+	 * Directory name of the artifacts.
 	 *
-	 * @var int
+	 * @var string
 	 */
-	protected const MAX_SEGMENT_BYTES = 255;
+	public const ARTIFACTS_DIR = 'artifacts';
 
 	/**
-	 * Absolute directory holding the live apps, with a trailing "/".
+	 * Directory name of the assets.
+	 *
+	 * @var string
+	 */
+	public const ASSETS_DIR = 'assets';
+
+	/**
+	 * Media type used when none can be detected.
+	 *
+	 * @var string
+	 */
+	protected const UNKNOWN_MIME = 'application/octet-stream';
+
+	/**
+	 * Absolute root directory, with a trailing "/".
 	 *
 	 * @var string
 	 */
 	protected readonly string $root;
 
 	/**
-	 * Absolute directory holding the trashed apps, with a trailing "/".
+	 * Directory name of each served type.
 	 *
-	 * @var string
+	 * @var array<string, string>
 	 */
-	protected readonly string $trash_dir;
+	protected readonly array $type_dirs;
 
 	/**
-	 * Construct the storage.
+	 * Construct the adapter.
 	 *
-	 * Neither directory has to exist yet: create_app() and trash_app()
-	 * create them when first needed.
+	 * Neither the root nor the type directories have to exist yet; they
+	 * are created when the first app of a type is stored.
 	 *
 	 * @param FileSystem $fs The app's FileSystem API.
-	 * @param string $app_type The normalized app type this storage serves.
-	 * @param string $root Absolute directory for live apps, e.g.
-	 *                     SMLISER_PLUGINS_REPO_DIR.
-	 * @param string $trash_dir Absolute directory for trashed apps of this
-	 *                          type, e.g. SMLISER_TRASH_DIR . 'plugins/'.
-	 * @throws InvalidArgumentException When an argument is empty, or both
-	 *                                  directories are the same.
+	 * @param string $root Absolute directory holding the type directories,
+	 *                     normally SMLISER_REPO_DIR.
+	 * @param array<string, string> $type_dirs Directory name of each type
+	 *                                         this adapter serves, e.g.
+	 *                                         CORE_TYPE_DIRS.
+	 * @throws InvalidArgumentException When the root is empty, no type is
+	 *                                  given, a type or directory name is
+	 *                                  invalid, or two types share a
+	 *                                  directory.
 	 */
 	public function __construct(
 		protected readonly FileSystem $fs,
-		protected readonly string $app_type,
 		string $root,
-		string $trash_dir,
+		array $type_dirs,
 	) {
-		if ( '' === $app_type || '' === trim( $root, " /\\" ) || '' === trim( $trash_dir, " /\\" ) ) {
-			throw new InvalidArgumentException( 'The app type, root and trash directory must not be empty.' );
+		if ( '' === trim( $root, " /\\" ) ) {
+			throw new InvalidArgumentException( 'The root directory must not be empty.' );
 		}
+
+		if ( [] === $type_dirs ) {
+			throw new InvalidArgumentException( 'At least one app type must be served.' );
+		}
+
+		foreach ( $type_dirs as $type => $dir ) {
+			$valid_dir = '' !== $dir
+				&& strlen( $dir ) <= AppFile::MAX_BYTES
+				&& ! str_starts_with( $dir, '.' )
+				&& 1 !== preg_match( '/[\\\\\/\x00-\x1F\x7F]/', $dir );
+
+			if ( ! AppFile::is_identifier( (string) $type ) || ! $valid_dir ) {
+				throw new InvalidArgumentException( sprintf( 'Invalid type directory mapping "%s" => "%s".', $type, $dir ) );
+			}
+		}
+
+		if ( count( array_unique( $type_dirs ) ) !== count( $type_dirs ) ) {
+			throw new InvalidArgumentException( 'Two app types must not share a directory.' );
+		}
+
+		ksort( $type_dirs, \SORT_STRING );
 
 		$this->root      = rtrim( $root, '/\\' ) . '/';
-		$this->trash_dir = rtrim( $trash_dir, '/\\' ) . '/';
-
-		if ( $this->root === $this->trash_dir ) {
-			throw new InvalidArgumentException( 'The root and trash directory must be different directories.' );
-		}
-	}
-
-	/*
-	|------------
-	| Identity
-	|------------
-	*/
-
-	/**
-	 * {@inheritDoc}
-	 */
-	public function app_type() : string {
-		return $this->app_type;
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	public function location() : ?string {
-		return $this->root;
+		$this->type_dirs = $type_dirs;
 	}
 
 	/*
@@ -133,75 +174,52 @@ class DirectoryAppStorage implements AppStorageInterface {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function list_apps() : array {
-		return $this->list_slugs( $this->root );
+	public function has_app( string $type, string $slug ) : bool {
+		$this->check_app( $type, $slug );
+
+		return $this->fs->is_dir( $this->app_dir( $type, $slug ) );
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public function has_app( string $slug ) : bool {
-		$this->check_slug( $slug );
+	public function trash_app( string $type, string $slug ) : void {
+		$this->require_app( $type, $slug );
 
-		return $this->fs->is_dir( $this->app_dir( $slug ) );
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	public function create_app( string $slug ) : void {
-		$this->check_slug( $slug );
-
-		$dir = $this->app_dir( $slug );
-
-		if ( $this->occupied( $dir ) ) {
-			$this->fail( StorageException::ALREADY_EXISTS, sprintf( 'The slug "%s" is already in use.', $slug ), $slug );
-		}
-
-		if ( ! $this->fs->mkdir( $dir ) ) {
-			$this->fail( StorageException::IO_ERROR, sprintf( 'The app "%s" could not be created.', $slug ), $slug );
-		}
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	public function trash_app( string $slug ) : void {
-		$this->require_app( $slug );
-
-		$trashed = $this->trashed_dir( $slug );
+		$live    = $this->app_dir( $type, $slug );
+		$trashed = $this->trashed_dir( $type, $slug );
 
 		if ( $this->occupied( $trashed ) ) {
-			$this->fail( StorageException::ALREADY_EXISTS, sprintf( 'A trashed app already has the slug "%s"; purge it first.', $slug ), $slug );
+			$this->fail( StorageException::ALREADY_EXISTS, sprintf( 'A trashed %s already has the slug "%s"; purge it first.', $type, $slug ), $type, $slug );
 		}
 
-		if ( ! $this->fs->mkdir( rtrim( $this->trash_dir, '/' ) ) || ! $this->fs->move( $this->app_dir( $slug ), $trashed ) ) {
-			$this->fail( StorageException::IO_ERROR, sprintf( 'The app "%s" could not be moved to the trash.', $slug ), $slug );
+		if ( ! $this->fs->mkdir( dirname( $trashed ) ) || ! $this->fs->move( $live, $trashed ) ) {
+			$this->fail( StorageException::IO_ERROR, sprintf( 'The %s "%s" could not be moved to the trash.', $type, $slug ), $type, $slug );
 		}
 
 		// Without its timestamp the app would be missing from list_trashed(),
 		// so a failed write puts it back.
 		if ( ! $this->fs->put_contents( $trashed . '/' . self::TRASH_METADATA_FILE, (string) time() ) ) {
-			$this->fs->move( $trashed, $this->app_dir( $slug ) );
-			$this->fail( StorageException::IO_ERROR, sprintf( 'The trash time of "%s" could not be recorded.', $slug ), $slug );
+			$this->fs->move( $trashed, $live );
+			$this->fail( StorageException::IO_ERROR, sprintf( 'The trash time of %s "%s" could not be recorded.', $type, $slug ), $type, $slug );
 		}
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public function restore_app( string $slug ) : void {
-		$this->check_slug( $slug );
+	public function restore_app( string $type, string $slug ) : void {
+		$this->check_app( $type, $slug );
 
-		$trashed = $this->trashed_dir( $slug );
-		$live    = $this->app_dir( $slug );
+		$live    = $this->app_dir( $type, $slug );
+		$trashed = $this->trashed_dir( $type, $slug );
 
 		if ( ! $this->fs->is_dir( $trashed ) ) {
-			$this->fail( StorageException::NOT_FOUND, sprintf( 'No trashed app has the slug "%s".', $slug ), $slug );
+			$this->fail( StorageException::NOT_FOUND, sprintf( 'No trashed %s has the slug "%s".', $type, $slug ), $type, $slug );
 		}
 
 		if ( $this->occupied( $live ) ) {
-			$this->fail( StorageException::ALREADY_EXISTS, sprintf( 'A live app already has the slug "%s".', $slug ), $slug );
+			$this->fail( StorageException::ALREADY_EXISTS, sprintf( 'A live %s already has the slug "%s".', $type, $slug ), $type, $slug );
 		}
 
 		// The timestamp is removed first so a restored app never carries it;
@@ -211,7 +229,7 @@ class DirectoryAppStorage implements AppStorageInterface {
 		$trashed_at = $has_meta ? $this->fs->get_contents( $meta ) : false;
 
 		if ( $has_meta && ! $this->fs->delete( $meta ) ) {
-			$this->fail( StorageException::IO_ERROR, sprintf( 'The trashed app "%s" could not be restored.', $slug ), $slug );
+			$this->fail( StorageException::IO_ERROR, sprintf( 'The trashed %s "%s" could not be restored.', $type, $slug ), $type, $slug );
 		}
 
 		if ( ! $this->fs->move( $trashed, $live ) ) {
@@ -219,28 +237,28 @@ class DirectoryAppStorage implements AppStorageInterface {
 				$this->fs->put_contents( $meta, $trashed_at );
 			}
 
-			$this->fail( StorageException::IO_ERROR, sprintf( 'The trashed app "%s" could not be restored.', $slug ), $slug );
+			$this->fail( StorageException::IO_ERROR, sprintf( 'The trashed %s "%s" could not be restored.', $type, $slug ), $type, $slug );
 		}
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public function purge_app( string $slug ) : void {
-		$this->check_slug( $slug );
+	public function purge_app( string $type, string $slug ) : void {
+		$this->check_app( $type, $slug );
 
 		$dirs = array_filter(
-			[ $this->app_dir( $slug ), $this->trashed_dir( $slug ) ],
+			[ $this->app_dir( $type, $slug ), $this->trashed_dir( $type, $slug ) ],
 			fn( string $dir ) : bool => $this->occupied( $dir )
 		);
 
 		if ( [] === $dirs ) {
-			$this->fail( StorageException::NOT_FOUND, sprintf( 'No live or trashed app has the slug "%s".', $slug ), $slug );
+			$this->fail( StorageException::NOT_FOUND, sprintf( 'No live or trashed %s has the slug "%s".', $type, $slug ), $type, $slug );
 		}
 
 		foreach ( $dirs as $dir ) {
 			if ( ! $this->fs->delete( $dir, true ) ) {
-				$this->fail( StorageException::IO_ERROR, sprintf( 'The app "%s" could not be deleted.', $slug ), $slug );
+				$this->fail( StorageException::IO_ERROR, sprintf( 'The %s "%s" could not be deleted.', $type, $slug ), $type, $slug );
 			}
 		}
 	}
@@ -248,11 +266,13 @@ class DirectoryAppStorage implements AppStorageInterface {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function list_trashed() : array {
+	public function list_trashed( string $type ) : array {
+		$this->check_type( $type );
+
 		$trashed = [];
 
-		foreach ( $this->list_slugs( $this->trash_dir ) as $slug ) {
-			$time = $this->fs->get_contents( $this->trashed_dir( $slug ) . '/' . self::TRASH_METADATA_FILE );
+		foreach ( $this->list_slugs( $this->trash_type_dir( $type ) ) as $slug ) {
+			$time = $this->fs->get_contents( $this->trashed_dir( $type, $slug ) . '/' . self::TRASH_METADATA_FILE );
 
 			if ( false === $time || ! ctype_digit( trim( $time ) ) ) {
 				continue;
@@ -268,75 +288,190 @@ class DirectoryAppStorage implements AppStorageInterface {
 	}
 
 	/*
-	|---------
-	| Files
-	|---------
+	|-----------
+	| Package
+	|-----------
 	*/
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public function stat( string $slug, string $file ) : array {
-		$path = $this->resolve( $slug, $file, true, true );
-		$stat = $this->fs->stat( $path );
+	public function put_package( string $type, string $slug, string $local_path ) : void {
+		$file = AppFile::package( $type, $slug );
+		$this->check_type( $type );
+		$this->check_local_file( $file, $local_path );
 
-		if ( false === $stat ) {
-			$this->fail( StorageException::NOT_FOUND, sprintf( '"%s" does not exist.', $file ), $slug, $file );
-		}
+		$app_dir = $this->app_dir( $type, $slug );
+		$created = false;
 
-		$stat['path'] = $file;
-
-		return $stat;
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	public function list( string $slug, string $dir = '' ) : array {
-		$path = $this->resolve( $slug, $dir, true, true );
-
-		if ( ! $this->fs->exists( $path ) ) {
-			$this->fail( StorageException::NOT_FOUND, sprintf( '"%s" does not exist.', $dir ), $slug, $dir );
-		}
-
-		if ( ! $this->fs->is_dir( $path ) ) {
-			$this->fail( StorageException::WRONG_TYPE, sprintf( '"%s" is a file, not a directory.', $dir ), $slug, $dir );
-		}
-
-		$entries = $this->fs->list_dir( $path );
-
-		if ( false === $entries ) {
-			$this->fail( StorageException::IO_ERROR, sprintf( '"%s" could not be read.', $dir ), $slug, $dir );
-		}
-
-		$app_real   = (string) realpath( $this->app_dir( $slug ) );
-		$name_start = strlen( rtrim( $path, '/' ) ) + 1;
-		$key_prefix = '' === $dir ? '' : $dir . '/';
-		$listed     = [];
-
-		foreach ( $entries as $entry ) {
-			$name = substr( $entry['path'], $name_start );
-
-			if ( ! $this->is_valid_segment( $name ) || ! $this->is_inside( $entry['path'], $app_real ) ) {
-				continue;
+		if ( ! $this->fs->is_dir( $app_dir ) ) {
+			if ( $this->occupied( $app_dir ) || ! $this->fs->mkdir( $app_dir ) ) {
+				$this->fail( StorageException::IO_ERROR, sprintf( 'The %s "%s" could not be created.', $type, $slug ), $type, $slug );
 			}
 
-			$entry['path'] = $key_prefix . $name;
-			$listed[]      = $entry;
+			$created = true;
 		}
 
-		return $listed;
+		try {
+			$this->store_local_file( $file, $local_path, true );
+		} catch ( StorageException $e ) {
+			// An app exists only once its first package is stored.
+			if ( $created ) {
+				$this->fs->delete( $app_dir, true );
+			}
+
+			throw $e;
+		}
+	}
+
+	/*
+	|------------
+	| Manifest
+	|------------
+	*/
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function get_manifest( string $type, string $slug ) : ?array {
+		$file = AppFile::manifest( $type, $slug );
+		$path = $this->resolve( $file );
+
+		if ( ! $this->fs->is_file( $path ) ) {
+			return null;
+		}
+
+		$json = $this->fs->get_contents( $path );
+
+		if ( false === $json ) {
+			$this->fail_file( StorageException::IO_ERROR, 'could not be read', $file );
+		}
+
+		$data = json_decode( $json, true );
+
+		return is_array( $data ) ? $data : null;
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public function read( string $slug, string $file ) : string {
-		$path     = $this->resolve_existing_file( $slug, $file );
+	public function put_manifest( string $type, string $slug, array $manifest ) : void {
+		$file = AppFile::manifest( $type, $slug );
+		$path = $this->resolve( $file );
+		$json = \smliser_safe_json_encode( $manifest, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES );
+
+		if ( false === $json ) {
+			$this->fail_file( StorageException::IO_ERROR, 'could not be encoded as JSON', $file );
+		}
+
+		if ( ! $this->fs->put_contents( $path, $json ) ) {
+			$this->fail_file( StorageException::IO_ERROR, 'could not be written', $file );
+		}
+	}
+
+	/*
+	|-------------
+	| Artifacts
+	|-------------
+	*/
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function list_artifacts( string $type, string $slug ) : array {
+		return $this->list_files( $type, $slug, self::ARTIFACTS_DIR );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function put_artifact( string $type, string $slug, string $name, string $local_path, bool $overwrite = false ) : void {
+		$file = AppFile::artifact( $type, $slug, $name );
+		$this->resolve( $file );
+		$this->check_local_file( $file, $local_path );
+		$this->store_local_file( $file, $local_path, $overwrite );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function rename_artifact( string $type, string $slug, string $from, string $to ) : void {
+		$from_file = AppFile::artifact( $type, $slug, $from );
+		$to_file   = AppFile::artifact( $type, $slug, $to );
+		$from_path = $this->resolve_existing( $from_file );
+		$to_path   = $this->resolve( $to_file );
+
+		if ( $from === $to ) {
+			return;
+		}
+
+		if ( $this->occupied( $to_path ) ) {
+			$this->fail_file( StorageException::ALREADY_EXISTS, 'already exists', $to_file );
+		}
+
+		if ( ! $this->fs->move( $from_path, $to_path ) ) {
+			$this->fail_file( StorageException::IO_ERROR, sprintf( 'could not be renamed to "%s"', $to ), $from_file );
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function delete_artifact( string $type, string $slug, string $name ) : void {
+		$this->delete_file( AppFile::artifact( $type, $slug, $name ) );
+	}
+
+	/*
+	|----------
+	| Assets
+	|----------
+	*/
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function list_assets( string $type, string $slug ) : array {
+		return $this->list_files( $type, $slug, self::ASSETS_DIR );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function put_asset( string $type, string $slug, string $name, string $local_path ) : void {
+		$file = AppFile::asset( $type, $slug, $name );
+		$this->resolve( $file );
+		$this->check_local_file( $file, $local_path );
+		$this->store_local_file( $file, $local_path, true );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function delete_asset( string $type, string $slug, string $name ) : void {
+		$this->delete_file( AppFile::asset( $type, $slug, $name ) );
+	}
+
+	/*
+	|-------------
+	| Documents
+	|-------------
+	*/
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function get_document( string $type, string $slug, string $name ) : ?string {
+		$file = AppFile::document( $type, $slug, $name );
+		$path = $this->resolve( $file );
+
+		if ( ! $this->fs->is_file( $path ) ) {
+			return null;
+		}
+
 		$contents = $this->fs->get_contents( $path );
 
 		if ( false === $contents ) {
-			$this->fail( StorageException::IO_ERROR, sprintf( '"%s" could not be read.', $file ), $slug, $file );
+			$this->fail_file( StorageException::IO_ERROR, 'could not be read', $file );
 		}
 
 		return $contents;
@@ -345,12 +480,45 @@ class DirectoryAppStorage implements AppStorageInterface {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function read_stream( string $slug, string $file ) : mixed {
-		$path   = $this->resolve_existing_file( $slug, $file );
-		$stream = $this->fs->read_stream( $path );
+	public function put_document( string $type, string $slug, string $name, string $contents ) : void {
+		$file = AppFile::document( $type, $slug, $name );
+		$path = $this->resolve( $file );
+
+		if ( $this->fs->is_dir( $path ) || ! $this->fs->put_contents( $path, $contents ) ) {
+			$this->fail_file( StorageException::IO_ERROR, 'could not be written', $file );
+		}
+	}
+
+	/*
+	|-----------
+	| Serving
+	|-----------
+	*/
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function stat( AppFile $file ) : array {
+		return $this->describe( $this->resolve_existing( $file ) );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public function read_stream( AppFile $file, int $offset = 0, ?int $length = null ) : mixed {
+		if ( $offset < 0 || ( null !== $length && $length < 0 ) ) {
+			$this->fail_file( StorageException::INVALID_PATH, 'cannot be read from a negative offset or length', $file );
+		}
+
+		$stream = $this->fs->read_stream( $this->resolve_existing( $file ) );
 
 		if ( false === $stream ) {
-			$this->fail( StorageException::IO_ERROR, sprintf( '"%s" could not be opened.', $file ), $slug, $file );
+			$this->fail_file( StorageException::IO_ERROR, 'could not be opened', $file );
+		}
+
+		if ( $offset > 0 && 0 !== fseek( $stream, $offset ) ) {
+			fclose( $stream );
+			$this->fail_file( StorageException::IO_ERROR, 'could not be read from the requested offset', $file );
 		}
 
 		return $stream;
@@ -359,104 +527,75 @@ class DirectoryAppStorage implements AppStorageInterface {
 	/**
 	 * {@inheritDoc}
 	 */
-	public function write( string $slug, string $file, string $contents ) : void {
-		$path = $this->resolve_write_target( $slug, $file );
+	public function local_path( AppFile $file ) : ?string {
+		$path = $this->resolve_existing( $file );
 
-		if ( ! $this->fs->put_contents( $path, $contents ) ) {
-			$this->fail( StorageException::IO_ERROR, sprintf( '"%s" could not be written.', $file ), $slug, $file );
-		}
+		return (string) realpath( $path );
 	}
 
 	/**
 	 * {@inheritDoc}
+	 *
+	 * A local directory has no URLs of its own, so this is always null once
+	 * the file is found.
 	 */
-	public function write_stream( string $slug, string $file, mixed $stream ) : void {
-		if ( ! is_resource( $stream ) || 'stream' !== get_resource_type( $stream ) ) {
-			$this->fail( StorageException::INVALID_PATH, 'A readable stream is required.', $slug, $file );
+	public function temporary_url( AppFile $file, int $ttl ) : ?string {
+		if ( $ttl < 1 ) {
+			$this->fail_file( StorageException::INVALID_PATH, 'needs a URL lifetime of at least one second', $file );
 		}
 
-		$path = $this->resolve_write_target( $slug, $file );
+		$this->resolve_existing( $file );
 
-		if ( ! $this->fs->write_stream( $path, $stream ) ) {
-			$this->fail( StorageException::IO_ERROR, sprintf( '"%s" could not be written.', $file ), $slug, $file );
-		}
+		return null;
 	}
+
+	/*
+	|--------------------------
+	| Repository browser
+	|--------------------------
+	*/
 
 	/**
 	 * {@inheritDoc}
 	 */
-	public function import( string $slug, string $file, string $local_path ) : void {
-		$path = $this->resolve_write_target( $slug, $file );
-
-		if ( ! $this->fs->exists( $local_path ) ) {
-			$this->fail( StorageException::NOT_FOUND, 'The local file to import does not exist.', $slug, $file );
-		}
-
-		if ( @is_link( $local_path ) || ! $this->fs->is_file( $local_path ) ) {
-			$this->fail( StorageException::WRONG_TYPE, 'Only a regular local file can be imported.', $slug, $file );
-		}
-
-		if ( ! $this->fs->rename( $local_path, $path ) ) {
-			$this->fail( StorageException::IO_ERROR, sprintf( '"%s" could not be imported.', $file ), $slug, $file );
-		}
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	public function rename( string $slug, string $from, string $to ) : void {
-		$this->check_key( $slug, $to, false );
-		$from_path = $this->resolve( $slug, $from, false, false );
-		$to_path   = $this->resolve( $slug, $to, false, false );
-
-		if ( $from === $to || str_starts_with( $to . '/', $from . '/' ) ) {
-			$this->fail( StorageException::INVALID_PATH, sprintf( '"%s" cannot be moved to "%s".', $from, $to ), $slug, $from );
-		}
-
-		if ( ! $this->occupied( $from_path ) ) {
-			$this->fail( StorageException::NOT_FOUND, sprintf( '"%s" does not exist.', $from ), $slug, $from );
-		}
-
-		if ( $this->occupied( $to_path ) ) {
-			$this->fail( StorageException::ALREADY_EXISTS, sprintf( '"%s" already exists.', $to ), $slug, $to );
-		}
-
-		$this->assert_parents_are_dirs( $slug, $to );
-
-		if ( ! $this->fs->move( $from_path, $to_path ) ) {
-			$this->fail( StorageException::IO_ERROR, sprintf( '"%s" could not be moved to "%s".', $from, $to ), $slug, $from );
-		}
-
-		$this->prune( $slug, $this->parent_key( $from ) );
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	public function delete( string $slug, string $file, bool $recursive = false ) : void {
-		$path = $this->resolve( $slug, $file, false, false );
-
-		if ( ! $this->occupied( $path ) ) {
-			$this->fail( StorageException::NOT_FOUND, sprintf( '"%s" does not exist.', $file ), $slug, $file );
-		}
-
-		if ( ! $recursive && ! @is_link( $path ) && $this->fs->is_dir( $path ) ) {
-			$entries = $this->fs->list_dir( $path );
-
-			if ( false === $entries ) {
-				$this->fail( StorageException::IO_ERROR, sprintf( '"%s" could not be read.', $file ), $slug, $file );
+	public function browse( string $type = '', string $slug = '' ) : array {
+		if ( '' === $type ) {
+			if ( '' !== $slug ) {
+				$this->fail( StorageException::INVALID_PATH, 'Browsing an app needs its type.', '', $slug );
 			}
 
-			if ( [] !== $entries ) {
-				$this->fail( StorageException::NOT_EMPTY, sprintf( '"%s" is not empty.', $file ), $slug, $file );
+			$entries = [];
+
+			foreach ( array_keys( $this->type_dirs ) as $served ) {
+				$entries[] = $this->dir_entry( $served, $served, $this->type_dir( $served ) );
 			}
+
+			return $entries;
 		}
 
-		if ( ! $this->fs->delete( $path, $recursive ) ) {
-			$this->fail( StorageException::IO_ERROR, sprintf( '"%s" could not be deleted.', $file ), $slug, $file );
+		if ( '' === $slug ) {
+			$this->check_type( $type );
+
+			$entries = [];
+
+			foreach ( $this->list_slugs( $this->type_dir( $type ) ) as $app ) {
+				$entries[] = $this->dir_entry( $app, $app, $this->app_dir( $type, $app ) );
+			}
+
+			return $entries;
 		}
 
-		$this->prune( $slug, $this->parent_key( $file ) );
+		$this->require_app( $type, $slug );
+
+		$app_dir  = $this->app_dir( $type, $slug );
+		$app_real = (string) realpath( $app_dir );
+		$entries  = [];
+
+		$this->collect_files( $app_dir, '', $app_real, $entries );
+
+		usort( $entries, static fn( array $a, array $b ) : int => strcmp( $a['path'], $b['path'] ) );
+
+		return $entries;
 	}
 
 	/*
@@ -466,37 +605,469 @@ class DirectoryAppStorage implements AppStorageInterface {
 	*/
 
 	/**
-	 * Throw a StorageException for this storage.
+	 * Throw a StorageException.
 	 *
 	 * @param string $code A StorageException constant.
 	 * @param string $message Human-readable message.
-	 * @param string $slug The slug the operation was given.
-	 * @param string $file The key the operation was given.
+	 * @param string $type App type.
+	 * @param string $slug App slug.
+	 * @param string $name File name.
 	 * @return never
 	 * @throws StorageException Always.
 	 */
-	protected function fail( string $code, string $message, string $slug = '', string $file = '' ) : never {
-		throw new StorageException( $code, $message, $this->app_type, $slug, $file );
+	protected function fail( string $code, string $message, string $type = '', string $slug = '', string $name = '' ) : never {
+		throw new StorageException( $code, $message, $type, $slug, $name );
+	}
+
+	/**
+	 * Throw a StorageException about one file.
+	 *
+	 * @param string $code A StorageException constant.
+	 * @param string $what What went wrong, completing "The {kind} ... ".
+	 * @param AppFile $file The file.
+	 * @return never
+	 * @throws StorageException Always.
+	 */
+	protected function fail_file( string $code, string $what, AppFile $file ) : never {
+		$label = '' === $file->name ? $file->kind : sprintf( '%s "%s"', $file->kind, $file->name );
+
+		$this->fail( $code, sprintf( 'The %s of %s "%s" %s.', $label, $file->type, $file->slug, $what ), $file->type, $file->slug, $file->name );
+	}
+
+	/**
+	 * Throw INVALID_PATH unless the type is valid and served here.
+	 *
+	 * @param string $type App type.
+	 * @return void
+	 * @throws StorageException INVALID_PATH.
+	 */
+	protected function check_type( string $type ) : void {
+		AppFile::check_type( $type );
+
+		if ( ! isset( $this->type_dirs[ $type ] ) ) {
+			$this->fail( StorageException::INVALID_PATH, sprintf( 'This storage does not serve the app type "%s".', $type ), $type );
+		}
+	}
+
+	/**
+	 * Throw INVALID_PATH unless the type is served and the slug is valid.
+	 *
+	 * @param string $type App type.
+	 * @param string $slug App slug.
+	 * @return void
+	 * @throws StorageException INVALID_PATH.
+	 */
+	protected function check_app( string $type, string $slug ) : void {
+		AppFile::check_identity( $type, $slug );
+		$this->check_type( $type );
+	}
+
+	/**
+	 * Throw NOT_FOUND unless a live app exists.
+	 *
+	 * @param string $type App type.
+	 * @param string $slug App slug.
+	 * @return void
+	 * @throws StorageException INVALID_PATH; NOT_FOUND.
+	 */
+	protected function require_app( string $type, string $slug ) : void {
+		if ( ! $this->has_app( $type, $slug ) ) {
+			$this->fail( StorageException::NOT_FOUND, sprintf( 'No live %s has the slug "%s".', $type, $slug ), $type, $slug );
+		}
+	}
+
+	/**
+	 * Get a type's directory.
+	 *
+	 * @param string $type A served type.
+	 * @return string Absolute path, without a trailing "/".
+	 */
+	protected function type_dir( string $type ) : string {
+		return $this->root . $this->type_dirs[ $type ];
 	}
 
 	/**
 	 * Get a live app's directory.
 	 *
+	 * @param string $type A served type.
 	 * @param string $slug A valid slug.
 	 * @return string Absolute path, without a trailing "/".
 	 */
-	protected function app_dir( string $slug ) : string {
-		return $this->root . $slug;
+	protected function app_dir( string $type, string $slug ) : string {
+		return $this->type_dir( $type ) . '/' . $slug;
 	}
 
 	/**
 	 * Get a trashed app's directory.
 	 *
+	 * @param string $type A served type.
 	 * @param string $slug A valid slug.
 	 * @return string Absolute path, without a trailing "/".
 	 */
-	protected function trashed_dir( string $slug ) : string {
-		return $this->trash_dir . $slug;
+	protected function trashed_dir( string $type, string $slug ) : string {
+		return $this->trash_type_dir( $type ) . '/' . $slug;
+	}
+
+	/**
+	 * Get the directory holding a type's trashed apps.
+	 *
+	 * @param string $type A served type.
+	 * @return string Absolute path, without a trailing "/".
+	 */
+	protected function trash_type_dir( string $type ) : string {
+		return $this->root . self::TRASH_DIR . '/' . $this->type_dirs[ $type ];
+	}
+
+	/**
+	 * Get the path a file is stored at, without checking it.
+	 *
+	 * @param AppFile $file The file.
+	 * @return string Absolute path.
+	 */
+	protected function path_of( AppFile $file ) : string {
+		$app_dir = $this->app_dir( $file->type, $file->slug );
+
+		return match ( $file->kind ) {
+			AppFile::PACKAGE  => $app_dir . '/' . $file->slug . '.zip',
+			AppFile::MANIFEST => $app_dir . '/' . self::MANIFEST_FILE,
+			AppFile::ARTIFACT => $app_dir . '/' . self::ARTIFACTS_DIR . '/' . $file->name,
+			AppFile::ASSET    => $app_dir . '/' . self::ASSETS_DIR . '/' . $file->name,
+			default           => $app_dir . '/' . $file->name,
+		};
+	}
+
+	/**
+	 * Check a file reference, require its app, and keep it inside the app.
+	 *
+	 * @param AppFile $file The file.
+	 * @return string The file's absolute path; the file may not exist.
+	 * @throws StorageException INVALID_PATH; NOT_FOUND for the app.
+	 */
+	protected function resolve( AppFile $file ) : string {
+		$this->check_type( $file->type );
+
+		if ( AppFile::DOCUMENT === $file->kind ) {
+			$reserved = [ self::MANIFEST_FILE, $file->slug . '.zip', self::ARTIFACTS_DIR, self::ASSETS_DIR ];
+
+			if ( in_array( $file->name, $reserved, true ) ) {
+				$this->fail_file( StorageException::INVALID_PATH, 'uses a name reserved for another kind of file', $file );
+			}
+		}
+
+		$this->require_app( $file->type, $file->slug );
+
+		$app_dir = $this->app_dir( $file->type, $file->slug );
+		$path    = $this->path_of( $file );
+
+		clearstatcache( true );
+
+		$app_real = realpath( $app_dir );
+		$probe    = $path;
+
+		// A path that does not exist yet is judged by its nearest existing
+		// ancestor; the app directory exists, so the walk always ends. A
+		// broken link on the way cannot be judged at all.
+		while ( false === realpath( $probe ) && $probe !== $app_dir ) {
+			if ( @is_link( $probe ) ) {
+				$this->fail_file( StorageException::INVALID_PATH, 'is a broken link', $file );
+			}
+
+			$probe = dirname( $probe );
+		}
+
+		if ( false === $app_real || ! $this->is_inside( $probe, $app_real ) ) {
+			$this->fail_file( StorageException::INVALID_PATH, 'leads outside the app', $file );
+		}
+
+		return $path;
+	}
+
+	/**
+	 * Resolve a file that must exist as a regular file.
+	 *
+	 * @param AppFile $file The file.
+	 * @return string The file's absolute path.
+	 * @throws StorageException INVALID_PATH; NOT_FOUND for the app or file.
+	 */
+	protected function resolve_existing( AppFile $file ) : string {
+		$path = $this->resolve( $file );
+
+		if ( ! $this->fs->is_file( $path ) ) {
+			$this->fail_file( StorageException::NOT_FOUND, 'does not exist', $file );
+		}
+
+		return $path;
+	}
+
+	/**
+	 * Throw unless a local path is an existing regular file.
+	 *
+	 * @param AppFile $file The file it is meant for, for the error.
+	 * @param string $local_path Absolute local path.
+	 * @return void
+	 * @throws StorageException NOT_FOUND; WRONG_TYPE.
+	 */
+	protected function check_local_file( AppFile $file, string $local_path ) : void {
+		if ( '' === $local_path || ! $this->fs->exists( $local_path ) ) {
+			$this->fail_file( StorageException::NOT_FOUND, 'cannot be stored: the local file does not exist', $file );
+		}
+
+		if ( @is_link( $local_path ) || ! $this->fs->is_file( $local_path ) ) {
+			$this->fail_file( StorageException::WRONG_TYPE, 'cannot be stored: the local path is not a regular file', $file );
+		}
+	}
+
+	/**
+	 * Move a local file into place, keeping the old file until it is done.
+	 *
+	 * @param AppFile $file The resolved file to store.
+	 * @param string $local_path Checked local file.
+	 * @param bool $overwrite Whether an existing file is replaced.
+	 * @return void
+	 * @throws StorageException ALREADY_EXISTS; IO_ERROR.
+	 */
+	protected function store_local_file( AppFile $file, string $local_path, bool $overwrite ) : void {
+		$target   = $this->path_of( $file );
+		$replaces = $this->occupied( $target );
+
+		if ( $replaces && ! $overwrite ) {
+			$this->fail_file( StorageException::ALREADY_EXISTS, 'already exists', $file );
+		}
+
+		if ( $replaces && ! $this->fs->is_file( $target ) ) {
+			$this->fail_file( StorageException::IO_ERROR, 'cannot replace something that is not a file', $file );
+		}
+
+		$dir    = dirname( $target );
+		$suffix = bin2hex( random_bytes( 8 ) );
+		$staged = $dir . '/.incoming-' . $suffix;
+		$backup = $dir . '/.replaced-' . $suffix;
+
+		if ( ! $this->fs->mkdir( $dir ) || ! $this->fs->rename( $local_path, $staged ) ) {
+			$this->undo_stage( $staged, $local_path );
+			$this->fail_file( StorageException::IO_ERROR, 'could not be stored', $file );
+		}
+
+		if ( $replaces && ! $this->fs->rename( $target, $backup ) ) {
+			$this->undo_stage( $staged, $local_path );
+			$this->fail_file( StorageException::IO_ERROR, 'could not be replaced', $file );
+		}
+
+		if ( ! $this->fs->rename( $staged, $target ) ) {
+			if ( $replaces ) {
+				$this->fs->rename( $backup, $target );
+			}
+
+			$this->undo_stage( $staged, $local_path );
+			$this->fail_file( StorageException::IO_ERROR, 'could not be stored', $file );
+		}
+
+		// Uploads arrive with restrictive temporary-file permissions.
+		$this->fs->chmod( $target );
+
+		if ( $replaces ) {
+			$this->fs->delete( $backup );
+		}
+	}
+
+	/**
+	 * Return a staged file to the caller's local path after a failure.
+	 *
+	 * @param string $staged Staging path.
+	 * @param string $local_path The caller's local path.
+	 * @return void
+	 */
+	protected function undo_stage( string $staged, string $local_path ) : void {
+		if ( ! $this->occupied( $staged ) ) {
+			return;
+		}
+
+		if ( $this->fs->exists( $local_path ) ) {
+			$this->fs->delete( $staged );
+			return;
+		}
+
+		$this->fs->rename( $staged, $local_path );
+	}
+
+	/**
+	 * Delete one named file.
+	 *
+	 * @param AppFile $file The file.
+	 * @return void
+	 * @throws StorageException INVALID_PATH; NOT_FOUND; IO_ERROR.
+	 */
+	protected function delete_file( AppFile $file ) : void {
+		$path = $this->resolve_existing( $file );
+
+		if ( ! $this->fs->delete( $path ) ) {
+			$this->fail_file( StorageException::IO_ERROR, 'could not be deleted', $file );
+		}
+	}
+
+	/**
+	 * List the regular files of one of an app's subdirectories.
+	 *
+	 * @param string $type App type.
+	 * @param string $slug App slug.
+	 * @param string $subdir ARTIFACTS_DIR or ASSETS_DIR.
+	 * @return list<array{name: string, size: int, mtime: int, mime_type: string}>
+	 * @throws StorageException INVALID_PATH; NOT_FOUND; IO_ERROR.
+	 */
+	protected function list_files( string $type, string $slug, string $subdir ) : array {
+		$this->check_app( $type, $slug );
+		$this->require_app( $type, $slug );
+
+		$dir = $this->app_dir( $type, $slug ) . '/' . $subdir;
+
+		if ( ! $this->fs->is_dir( $dir ) ) {
+			return [];
+		}
+
+		$app_real = (string) realpath( $this->app_dir( $type, $slug ) );
+
+		if ( ! $this->is_inside( $dir, $app_real ) ) {
+			$this->fail( StorageException::INVALID_PATH, sprintf( 'The %s directory of %s "%s" leads outside the app.', $subdir, $type, $slug ), $type, $slug );
+		}
+
+		$entries = $this->fs->list_dir( $dir );
+
+		if ( false === $entries ) {
+			$this->fail( StorageException::IO_ERROR, sprintf( 'The %s of %s "%s" could not be listed.', $subdir, $type, $slug ), $type, $slug );
+		}
+
+		$files = [];
+
+		foreach ( $entries as $entry ) {
+			if ( ! $entry['is_file'] || ! $this->is_listable( $entry['path'], $app_real ) ) {
+				continue;
+			}
+
+			$files[] = $this->describe( $entry['path'] );
+		}
+
+		return $files;
+	}
+
+	/**
+	 * Tell whether a directory entry may appear in a listing.
+	 *
+	 * @param string $path Absolute path of the entry.
+	 * @param string $app_real The app directory's realpath().
+	 * @return bool True when its name is a valid file name and it stays
+	 *              inside the app.
+	 */
+	protected function is_listable( string $path, string $app_real ) : bool {
+		$name = $this->name_of( $path );
+
+		return '' !== $name
+			&& ! str_starts_with( $name, '.' )
+			&& strlen( $name ) <= AppFile::MAX_BYTES
+			&& 1 !== preg_match( '/[\\\\\x00-\x1F\x7F]/', $name )
+			&& $this->is_inside( $path, $app_real );
+	}
+
+	/**
+	 * Describe an existing regular file.
+	 *
+	 * @param string $path Absolute path.
+	 * @return array{name: string, size: int, mtime: int, mime_type: string}
+	 * @throws StorageException IO_ERROR when it cannot be read.
+	 */
+	protected function describe( string $path ) : array {
+		$stat = $this->fs->stat( $path );
+
+		if ( false === $stat ) {
+			$this->fail( StorageException::IO_ERROR, sprintf( '"%s" could not be read.', $this->name_of( $path ) ) );
+		}
+
+		return [
+			'name'      => $this->name_of( $path ),
+			'size'      => $stat['size'],
+			'mtime'     => $stat['mtime'],
+			'mime_type' => FileSystemHelper::get_mime_type( $path ) ?? self::UNKNOWN_MIME,
+		];
+	}
+
+	/**
+	 * Build a browse() entry for a directory.
+	 *
+	 * @param string $name Entry name.
+	 * @param string $path Entry path.
+	 * @param string $dir Absolute directory, which may not exist.
+	 * @return array{name: string, path: string, is_dir: bool, size: int, mtime: int}
+	 */
+	protected function dir_entry( string $name, string $path, string $dir ) : array {
+		$stat = $this->fs->stat( $dir );
+
+		return [
+			'name'   => $name,
+			'path'   => $path,
+			'is_dir' => true,
+			'size'   => 0,
+			'mtime'  => false === $stat ? 0 : $stat['mtime'],
+		];
+	}
+
+	/**
+	 * Collect an app's files at any depth, without following links into
+	 * directories.
+	 *
+	 * @param string $dir Absolute directory to walk.
+	 * @param string $prefix Relative path of $dir inside the app ("" at the top).
+	 * @param string $app_real The app directory's realpath().
+	 * @param list<array{name: string, path: string, is_dir: bool, size: int, mtime: int}> $entries Collected entries.
+	 * @return void
+	 * @throws StorageException IO_ERROR when a directory cannot be read.
+	 */
+	protected function collect_files( string $dir, string $prefix, string $app_real, array &$entries ) : void {
+		$listed = $this->fs->list_dir( $dir );
+
+		if ( false === $listed ) {
+			$this->fail( StorageException::IO_ERROR, sprintf( '"%s" could not be listed.', '' === $prefix ? 'The app' : $prefix ) );
+		}
+
+		foreach ( $listed as $entry ) {
+			if ( ! $this->is_listable( $entry['path'], $app_real ) ) {
+				continue;
+			}
+
+			$name = $this->name_of( $entry['path'] );
+			$path = '' === $prefix ? $name : $prefix . '/' . $name;
+
+			if ( $entry['is_dir'] ) {
+				if ( ! @is_link( $entry['path'] ) ) {
+					$this->collect_files( $entry['path'], $path, $app_real, $entries );
+				}
+
+				continue;
+			}
+
+			if ( $entry['is_file'] ) {
+				$entries[] = [
+					'name'   => $name,
+					'path'   => $path,
+					'is_dir' => false,
+					'size'   => $entry['size'],
+					'mtime'  => $entry['mtime'],
+				];
+			}
+		}
+	}
+
+	/**
+	 * Get the last segment of a path.
+	 *
+	 * Unlike basename(), it does not depend on the locale, so multibyte
+	 * names are never cut.
+	 *
+	 * @param string $path A path without a trailing separator.
+	 * @return string The last segment.
+	 */
+	protected function name_of( string $path ) : string {
+		$slash = strrpos( str_replace( '\\', '/', $path ), '/' );
+
+		return false === $slash ? $path : substr( $path, $slash + 1 );
 	}
 
 	/**
@@ -507,181 +1078,6 @@ class DirectoryAppStorage implements AppStorageInterface {
 	 */
 	protected function occupied( string $path ) : bool {
 		return @is_link( $path ) || $this->fs->exists( $path );
-	}
-
-	/**
-	 * Throw INVALID_PATH unless a slug follows the key rules.
-	 *
-	 * @param string $slug The slug to check.
-	 * @return void
-	 * @throws StorageException INVALID_PATH.
-	 */
-	protected function check_slug( string $slug ) : void {
-		if ( strlen( $slug ) > self::MAX_SEGMENT_BYTES || 1 !== preg_match( self::SLUG_PATTERN, $slug ) ) {
-			$this->fail( StorageException::INVALID_PATH, sprintf( '"%s" is not a valid app slug.', $slug ), $slug );
-		}
-	}
-
-	/**
-	 * Throw INVALID_PATH unless a slug and a key follow the key rules.
-	 *
-	 * @param string $slug The slug to check.
-	 * @param string $file The key to check.
-	 * @param bool $allow_root Whether the empty key is accepted.
-	 * @return void
-	 * @throws StorageException INVALID_PATH.
-	 */
-	protected function check_key( string $slug, string $file, bool $allow_root ) : void {
-		$this->check_slug( $slug );
-
-		if ( '' === $file ) {
-			if ( $allow_root ) {
-				return;
-			}
-
-			$this->fail( StorageException::INVALID_PATH, 'This operation needs a file key; "" means the app itself.', $slug, $file );
-		}
-
-		foreach ( explode( '/', $file ) as $segment ) {
-			if ( ! $this->is_valid_segment( $segment ) ) {
-				$this->fail( StorageException::INVALID_PATH, sprintf( '"%s" is not a valid file key.', $file ), $slug, $file );
-			}
-		}
-	}
-
-	/**
-	 * Tell whether a name can be one segment of a key.
-	 *
-	 * @param string $segment The name.
-	 * @return bool True when valid.
-	 */
-	protected function is_valid_segment( string $segment ) : bool {
-		return '' !== $segment
-			&& '.' !== $segment
-			&& '..' !== $segment
-			&& strlen( $segment ) <= self::MAX_SEGMENT_BYTES
-			&& 1 !== preg_match( '/[\\\\\/\x00-\x1F\x7F]/', $segment );
-	}
-
-	/**
-	 * Validate a slug and key, require the app, and keep the key inside it.
-	 *
-	 * @param string $slug App slug.
-	 * @param string $file Key.
-	 * @param bool $allow_root Whether the empty key is accepted.
-	 * @param bool $follow_final Whether the last segment is followed when it
-	 *                           is a link (reads and writes), or only its
-	 *                           parent is checked (delete and rename, which
-	 *                           act on the link itself).
-	 * @return string The key's absolute path.
-	 * @throws StorageException INVALID_PATH; NOT_FOUND when the app does not exist.
-	 */
-	protected function resolve( string $slug, string $file, bool $allow_root, bool $follow_final ) : string {
-		$this->check_key( $slug, $file, $allow_root );
-		$this->require_app( $slug );
-
-		$app_dir = $this->app_dir( $slug );
-		$path    = '' === $file ? $app_dir : $app_dir . '/' . $file;
-
-		clearstatcache( true );
-
-		$app_real = realpath( $app_dir );
-		$probe    = ( $follow_final || '' === $file ) ? $path : dirname( $path );
-
-		// A path that does not exist yet is judged by its nearest existing
-		// ancestor; the app directory exists, so the walk always ends.
-		while ( false === realpath( $probe ) && $probe !== $app_dir ) {
-			$probe = dirname( $probe );
-		}
-
-		if ( false === $app_real || ! $this->is_inside( $probe, $app_real ) ) {
-			$this->fail( StorageException::INVALID_PATH, sprintf( '"%s" leads outside the app.', $file ), $slug, $file );
-		}
-
-		// A broken link cannot be checked, and writing through one creates
-		// its target wherever it points (WP_Filesystem writes in place).
-		if ( $follow_final && '' !== $file && @is_link( $path ) && false === realpath( $path ) ) {
-			$this->fail( StorageException::INVALID_PATH, sprintf( '"%s" is a broken link.', $file ), $slug, $file );
-		}
-
-		return $path;
-	}
-
-	/**
-	 * Resolve a key that must be an existing file, for reading.
-	 *
-	 * @param string $slug App slug.
-	 * @param string $file Key.
-	 * @return string The file's absolute path.
-	 * @throws StorageException INVALID_PATH; NOT_FOUND; WRONG_TYPE for a directory.
-	 */
-	protected function resolve_existing_file( string $slug, string $file ) : string {
-		$path = $this->resolve( $slug, $file, false, true );
-
-		if ( ! $this->fs->exists( $path ) ) {
-			$this->fail( StorageException::NOT_FOUND, sprintf( '"%s" does not exist.', $file ), $slug, $file );
-		}
-
-		if ( ! $this->fs->is_file( $path ) ) {
-			$this->fail( StorageException::WRONG_TYPE, sprintf( '"%s" is a directory, not a file.', $file ), $slug, $file );
-		}
-
-		return $path;
-	}
-
-	/**
-	 * Resolve a key that a file is about to be written to.
-	 *
-	 * @param string $slug App slug.
-	 * @param string $file Key.
-	 * @return string The key's absolute path.
-	 * @throws StorageException INVALID_PATH; NOT_FOUND for the app;
-	 *                          WRONG_TYPE when the key is a directory or a
-	 *                          parent is a file.
-	 */
-	protected function resolve_write_target( string $slug, string $file ) : string {
-		$path = $this->resolve( $slug, $file, false, true );
-
-		if ( $this->fs->is_dir( $path ) ) {
-			$this->fail( StorageException::WRONG_TYPE, sprintf( '"%s" is a directory, not a file.', $file ), $slug, $file );
-		}
-
-		$this->assert_parents_are_dirs( $slug, $file );
-
-		return $path;
-	}
-
-	/**
-	 * Throw WRONG_TYPE when an existing parent of a key is not a directory.
-	 *
-	 * @param string $slug A valid slug of an existing app.
-	 * @param string $file A valid, non-empty key.
-	 * @return void
-	 * @throws StorageException WRONG_TYPE.
-	 */
-	protected function assert_parents_are_dirs( string $slug, string $file ) : void {
-		$parent = $this->app_dir( $slug );
-
-		foreach ( array_slice( explode( '/', $file ), 0, -1 ) as $segment ) {
-			$parent .= '/' . $segment;
-
-			if ( $this->occupied( $parent ) && ! $this->fs->is_dir( $parent ) ) {
-				$this->fail( StorageException::WRONG_TYPE, sprintf( 'A parent of "%s" is a file, not a directory.', $file ), $slug, $file );
-			}
-		}
-	}
-
-	/**
-	 * Throw NOT_FOUND unless a live app exists.
-	 *
-	 * @param string $slug App slug.
-	 * @return void
-	 * @throws StorageException INVALID_PATH; NOT_FOUND.
-	 */
-	protected function require_app( string $slug ) : void {
-		if ( ! $this->has_app( $slug ) ) {
-			$this->fail( StorageException::NOT_FOUND, sprintf( 'No live app has the slug "%s".', $slug ), $slug );
-		}
 	}
 
 	/**
@@ -699,42 +1095,9 @@ class DirectoryAppStorage implements AppStorageInterface {
 	}
 
 	/**
-	 * Get a key's parent key.
-	 *
-	 * @param string $file A non-empty key.
-	 * @return string The parent key; "" for a top-level key.
-	 */
-	protected function parent_key( string $file ) : string {
-		$slash = strrpos( $file, '/' );
-
-		return false === $slash ? '' : substr( $file, 0, $slash );
-	}
-
-	/**
-	 * Remove empty directories from a key upwards, stopping at the app.
-	 *
-	 * Best effort: a directory that cannot be listed or removed ends it.
-	 *
-	 * @param string $slug A valid slug of an existing app.
-	 * @param string $dir Key of the directory to start from.
-	 * @return void
-	 */
-	protected function prune( string $slug, string $dir ) : void {
-		while ( '' !== $dir ) {
-			$path = $this->app_dir( $slug ) . '/' . $dir;
-
-			if ( @is_link( $path ) || [] !== $this->fs->list_dir( $path ) || ! $this->fs->rmdir( $path ) ) {
-				return;
-			}
-
-			$dir = $this->parent_key( $dir );
-		}
-	}
-
-	/**
 	 * List the directory names in a directory that are valid slugs.
 	 *
-	 * @param string $dir Absolute directory, with a trailing "/".
+	 * @param string $dir Absolute directory.
 	 * @return list<string> Slugs in byte order; empty when $dir does not exist.
 	 * @throws StorageException IO_ERROR when $dir exists but cannot be read.
 	 */
@@ -746,15 +1109,15 @@ class DirectoryAppStorage implements AppStorageInterface {
 		$entries = $this->fs->list_dir( $dir );
 
 		if ( false === $entries ) {
-			$this->fail( StorageException::IO_ERROR, 'The app directory could not be read.' );
+			$this->fail( StorageException::IO_ERROR, 'An app directory could not be read.' );
 		}
 
 		$slugs = [];
 
 		foreach ( $entries as $entry ) {
-			$name = substr( $entry['path'], strlen( $dir ) );
+			$name = $this->name_of( $entry['path'] );
 
-			if ( $entry['is_dir'] && strlen( $name ) <= self::MAX_SEGMENT_BYTES && 1 === preg_match( self::SLUG_PATTERN, $name ) ) {
+			if ( $entry['is_dir'] && AppFile::is_identifier( $name ) ) {
 				$slugs[] = $name;
 			}
 		}

@@ -16,6 +16,10 @@ use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Exceptions\StorageException;
+use SmartLicenseServer\FileSystem\Repository;
+use SmartLicenseServer\HostedApps\Storage\AppFile;
+use SmartLicenseServer\HostedApps\Storage\AppStorage;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\Format;
@@ -192,11 +196,13 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	protected ?URL $homepage = null;
 
 	/**
-	 * Absolute path to the application's zip file.
+	 * An uploaded package waiting for save() to store it.
+	 *
+	 * The stored package is never held here; get_package() names it.
 	 * 
-	 * @var string|UploadedFile $file The absolute path to the app zip file or an uploaded zip file.
+	 * @var UploadedFile|null $file
 	 */
-	protected string|UploadedFile $file;
+	protected ?UploadedFile $file = null;
 
 	/**
 	 * The app tags.
@@ -466,12 +472,21 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	}
 
 	/**
-	 *  Set the file
+	 * Set the uploaded package that save() will store.
+	 *
+	 * An empty string or null means there is no upload. Paths are not
+	 * accepted: a stored package is named by get_package(), not held here.
 	 * 
-	 * @param string|UploadedFile $file
+	 * @param UploadedFile|string|null $file The upload, or "" / null for none.
+	 * @return static
+	 * @throws \InvalidArgumentException When given a non-empty string.
 	 */
-	public function set_file( string|UploadedFile $file ) : static {
-		$this->file = $file;
+	public function set_file( UploadedFile|string|null $file ) : static {
+		if ( is_string( $file ) && '' !== $file ) {
+			throw new \InvalidArgumentException( 'An app file must be an uploaded file; stored packages are named by get_package().' );
+		}
+
+		$this->file = $file instanceof UploadedFile ? $file : null;
 
 		return $this;
 	}
@@ -761,12 +776,34 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	}
 
 	/**
-	 * Get the file.
+	 * Get the uploaded package waiting to be stored.
 	 * 
-	 * @return string|UploadedFile
+	 * @return UploadedFile|null Null when there is none.
 	 */
-	public function get_file() : string|UploadedFile {
+	public function get_file() : ?UploadedFile {
 		return $this->file;
+	}
+
+	/**
+	 * Get the stored main package.
+	 *
+	 * Looked up only when asked, so loading an app never touches storage
+	 * for it.
+	 *
+	 * @return AppFile|null The package, or null when none is stored.
+	 */
+	public function get_package() : ?AppFile {
+		if ( '' === $this->get_slug() ) {
+			return null;
+		}
+
+		$repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( $this->get_type() );
+
+		if ( null === $repo_class || ! $repo_class->has_package( $this->get_slug() ) ) {
+			return null;
+		}
+
+		return $repo_class->package_file( $this->get_slug() );
 	}
 
 	/**
@@ -889,7 +926,12 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	 */
 
 	/**
-	 * Save the app.
+	 * Save the app, and store its pending upload as the package.
+	 *
+	 * Everything happens in one database transaction, and the upload is
+	 * stored last: a failed write, a refused upload or a storage failure
+	 * rolls the whole save back, and storage is only changed when
+	 * everything before it succeeded. A new app needs an upload.
 	 * 
 	 * @return bool|Exception Does not throw.
 	 */
@@ -907,22 +949,21 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 
 			$data[$key] = is_array( $value ) ? Format::encode( $value, Format::ENCODING_PHP ) : (string) $value;
 		}
-		/**
-		 * @var array{
-		 *  slug?: string,
-		 *  base_dir?: string,
-		 *  rollback_function?: \Closure,
-		 *  error?: \SmartLicenseServer\Exceptions\Exception
-		 *}|null $repo_result
-		 */
-		$repo_result = null;
+
+		// A rolled-back save must not leave the model looking saved.
+		$identity = [ $this->id, $this->slug, $this->created_at, $this->updated_at ];
 
 		try {
-			return static::$DB->transactional( function( Database $db ) use ( &$data, &$repo_result ) {
+			$saved = static::$DB->transactional( function( Database $db ) use ( &$data ) {
 				$file       = $this->file;
+				$has_upload = ( $file instanceof UploadedFile ) && $file->is_upload_successful();
 				$repo_class = HostedAppsRegistry::instance()->get_app_type_directory_class( $this->get_type() );
 				$now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
-				
+
+				if ( null === $repo_class ) {
+					throw new Exception( 'repo_error', sprintf( 'No repository is registered for the app type "%s".', $this->get_type() ), [ 'status' => 500 ] );
+				}
+
 				$data['updated_at'] = $now->format( 'Y-m-d H:i:s' );
 
 				$lock_query = static::query()->select( 'id' )->from( static::get_db_table() )
@@ -933,17 +974,6 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 
 				// We have an ID, update!
 				if ( $id ) {
-
-					if ( ( $file instanceof UploadedFile ) && $file->is_upload_successful() ) {
-						$result      = $repo_class->upload_zip( $file, $this->get_slug(), true );
-						$repo_result = $result;
-						
-						if ( isset( $result['error'] ) ) {
-							throw $result['error'];
-						}
-
-					}
-
 					// Perform safe update query execution via builder context
 					$update_query = static::query()->update( static::get_db_table() )->set( $data )
 						->where( 'id', '=', $id );
@@ -953,19 +983,15 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 					}
 
 				} else {
-					if ( ! ( $file instanceof UploadedFile ) || ! $file->is_upload_successful() ) {
-						throw new Exception( 'required_file', 'No plugin file provided for upload.', [ 'status' => 400 ] );
+					if ( ! $has_upload ) {
+						throw new Exception( 'required_file', sprintf( 'No %s file provided for upload.', $this->get_type() ), [ 'status' => 400 ] );
 					}
 
-					$filename    = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
-					$result      = $repo_class->upload_zip( $file, $filename );
-					$repo_result = $result;
+					// The same slug upload_zip() will store the package under.
+					$name = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
+					$slug = Repository::slug_from( $name );
 
-					if ( isset( $repo_result['error'] ) ) {
-						throw $result['error'];
-					}
-
-					if ( ! isset( $result['slug'] ) ) {
+					if ( '' === $slug ) {
 						throw new Exception(
 							'slug_not_set',
 							\sprintf(
@@ -974,9 +1000,10 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 							)
 						);
 					}
-					$this->set_slug( $result['slug'] );
 
-					$data['slug']       = $result['slug'];
+					$this->set_slug( $slug );
+
+					$data['slug']       = $slug;
 					$data['created_at'] = $now->format( 'Y-m-d H:i:s' );
 
 					$insert_query = static::query()->insert( $this->get_db_table() )->values( $data );
@@ -989,24 +1016,38 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 					$this->set_created_at( $now );
 				}
 
-				$this->set_updated_at( $now );
-				$new_file = $repo_class->locate( $this->get_slug() );
+				// The upload is stored last. Anything that failed above was
+				// rolled back before storage was touched; if storing fails, the
+				// database changes are rolled back too.
+				if ( $has_upload ) {
+					if ( Repository::slug_from( $this->get_slug() ) !== $this->get_slug() ) {
+						throw new Exception(
+							'slug_mismatch',
+							sprintf( 'The slug "%s" cannot be used to store this %s.', $this->get_slug(), $this->get_type() ),
+							[ 'status' => 400 ]
+						);
+					}
 
-				if ( ! $new_file instanceof Exception ) {
-					$this->set_file( $new_file );
+					$stored = $repo_class->upload_zip( $file, $this->get_slug(), (bool) $id );
+
+					if ( $stored instanceof Exception ) {
+						throw $stored;
+					}
 				}
-				
+
+				$this->set_updated_at( $now );
 				$repo_class->regenerate_app_dot_json( $this );
 				
 				return true;
 			} );
 
+			// The upload now lives in storage.
+			$this->file = null;
+
+			return $saved;
 		} catch ( Exception $e ) {
-			if ( isset( $repo_result ) ) {
-				if ( isset( $repo_result['rollback_function'] ) ) {
-					$repo_result['rollback_function']();
-				}
-			}
+			[ $this->id, $this->slug, $this->created_at, $this->updated_at ] = $identity;
+
 			return $e;
 		}
 	}
@@ -1335,22 +1376,43 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	*/
 
 	/**
-	 * Get the absolute path to the app zip file
+	 * Get a local path to the app's ZIP.
+	 *
+	 * The pending upload's temporary file when there is one; otherwise the
+	 * stored package, when the storage keeps it on this server. To serve or
+	 * read a package wherever it is stored, use get_package() with
+	 * AppStorage instead.
 	 * 
-	 * @return string|Exception The file path or Exception on failure.
+	 * @return string|Exception The local path, or why there is none.
 	 */
 	public function get_zip_file() : string|Exception {
 		$file = $this->get_file();
 
 		if ( $file instanceof UploadedFile ) {
 			if ( $file->is_upload_successful() ) {
-				return $file->get_tmp_path();
+				return (string) $file->get_tmp_path();
 			} else {
 				return new Exception( 'file_upload_error', $file->get_error_message(), [ 'status' => 400 ] );
 			}
 		}
 
-		return $file;
+		$package = $this->get_package();
+
+		if ( null === $package ) {
+			return new Exception( 'file_not_found', sprintf( 'This %s has no package.', $this->get_type() ), [ 'status' => 404 ] );
+		}
+
+		try {
+			$path = AppStorage::instance()->local_path( $package );
+		} catch ( StorageException $e ) {
+			return $e;
+		}
+
+		if ( null === $path ) {
+			return new Exception( 'file_not_local', sprintf( 'The package of this %s is not stored on this server.', $this->get_type() ), [ 'status' => 500 ] );
+		}
+
+		return $path;
 	}
 
 	/**

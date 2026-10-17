@@ -14,6 +14,7 @@ use DateTimeImmutable;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\HostedApps\Storage\AppFile;
 
 /**
  * Hosted Applications interface.
@@ -111,11 +112,15 @@ interface HostedAppsInterface {
 	public function set_download_url( string|URL|null $url ) : static;
 
 	/**
-	 * Set the absolute path to the applications zip file or an uploaded file.
+	 * Set the uploaded package that save() will store.
+	 *
+	 * An empty string or null means there is no upload. Paths are not
+	 * accepted: a stored package is named by get_package().
 	 * 
-	 * @param string|UploadedFile $file
+	 * @param UploadedFile|string|null $file The upload, or "" / null for none.
+	 * @throws \InvalidArgumentException When given a non-empty string.
 	 */
-	public function set_file( string|UploadedFile $file ) : static;
+	public function set_file( UploadedFile|string|null $file ) : static;
 
 	/**
 	 * The the value of the software license.
@@ -363,11 +368,18 @@ interface HostedAppsInterface {
 	public function get_active_installs() : int;
 
 	/**
-	 * Get the file.
+	 * Get the uploaded package waiting to be stored.
 	 * 
-	 * @return string|UploadedFile
+	 * @return UploadedFile|null Null when there is none.
 	 */
-	public function get_file() : string|UploadedFile;
+	public function get_file() : ?UploadedFile;
+
+	/**
+	 * Get the stored main package.
+	 * 
+	 * @return AppFile|null The package, or null when none is stored.
+	 */
+	public function get_package() : ?AppFile;
 
 	/**
 	 * Get Sections
@@ -486,9 +498,12 @@ interface HostedAppsInterface {
 	*/
 	
 	/**
-	 * Get the absolute path to the application zip file.
+	 * Get a local path to the application ZIP.
+	 *
+	 * The pending upload's temporary file when there is one; otherwise the
+	 * stored package, when the storage keeps it on this server.
 	 * 
-	 * @return string|Exception
+	 * @return string|Exception The local path, or why there is none.
 	 */
 	public function get_zip_file() : string|Exception;
 }

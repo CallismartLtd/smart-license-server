@@ -10,7 +10,7 @@
 
 namespace SmartLicenseServer\FileSystem;
 
-use SmartLicenseServer\Exceptions\FileSystemException;
+use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Plugin;
 use SmartLicenseServer\HostedApps\Theme;
@@ -36,37 +36,22 @@ trait WPRepoUtils {
 	 * @throws TypeError When $app is not a Plugin or Theme.
 	 */
 	public function get_app_dot_json( $app ) : array {
-
 		try {
-			$slug     = $this->real_slug( $app->get_slug() );
-			$base_dir = $this->enter_slug( $slug );
-						
-		} catch ( FileSystemException $e ) {
-			// Slug directory does not exist yet — return canonical manifest.
-			return $this->regenerate_app_dot_json( $app );
+			$manifest = $this->storage->get_manifest( $this->app_type(), $app->get_slug() );
+		} catch ( StorageException ) {
+			// The app is not stored yet: return the canonical manifest.
+			$manifest = null;
 		}
 
-		$app_json_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
-
-		if ( ! $this->exists( $app_json_path ) ) {
-			return $this->regenerate_app_dot_json( $app );
-		}
-
-		$json = $this->get_contents( $app_json_path );
-		$data = \json_decode( $json, true );
-
-		if ( JSON_ERROR_NONE === \json_last_error() && is_array( $data ) ) {
-			return $data;
-		}
-
-		// Repair corrupted or unreadable file
-		return $this->regenerate_app_dot_json( $app );
+		// Missing or corrupted: rebuild it.
+		return $manifest ?? $this->regenerate_app_dot_json( $app );
 	}
 
 	/**
 	 * Regenerate an app.json file from the canonical manifest.
 	 *
-	 * This method ALWAYS rewrites the file, regardless of its current state.
+	 * The manifest is stored whenever the app exists in storage, whatever
+	 * the current file holds; it is returned either way.
 	 *
 	 * @param Plugin|Theme $app
 	 * @return array The regenerated manifest content.
@@ -77,26 +62,20 @@ trait WPRepoUtils {
 		$manifest = $this->build_app_manifest( $app );
 
 		try {
-			$slug     = $app->get_slug();
-			$base_dir = $this->enter_slug( $slug );
-		} catch( FileSystemException $e ) {
-			return $manifest;
+			if ( $this->storage->has_app( $this->app_type(), $app->get_slug() ) ) {
+				$this->storage->put_manifest( $this->app_type(), $app->get_slug(), $manifest );
+			}
+		} catch ( StorageException ) {
+			// Rebuilt again on the next read.
 		}
 
-		$app_json_path = FileSystemHelper::join_path( $base_dir, 'app.json' );
-
-
-		$this->write_app_json_file( $app_json_path, $manifest );
-
 		return $manifest;
-
 	}
 
 	/**
 	 * Build the canonical app manifest.
 	 *
 	 * @param Plugin|Theme $app
-	 * @param string|null  $slug Optional resolved slug.
 	 * @return array
 	 */
 	protected function build_app_manifest( Plugin|Theme $app ) : array {
@@ -119,23 +98,6 @@ trait WPRepoUtils {
 				$manifest[ $key ] = $defaults[ $key ];
 			}
 		}
-
-		return $manifest;
-	}
-
-	/**
-	 * Write (or overwrite) an app.json file.
-	 *
-	 * @param string $file_path Full file path.
-	 * @param array  $manifest  Manifest content.
-	 * @return array The written manifest.
-	 */
-	protected function write_app_json_file( string $file_path, array $manifest ) : array {
-
-		$flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES;
-		$json  = \smliser_safe_json_encode( $manifest, $flags );
-
-		$this->put_contents( $file_path, $json );
 
 		return $manifest;
 	}

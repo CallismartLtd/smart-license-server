@@ -11,7 +11,6 @@ namespace SmartLicenseServer\HostedApps;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
 use Callismart\DBPrism\Query\SQLBuilder;
 use SmartLicenseServer\Core\DataStore;
-use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
@@ -438,39 +437,36 @@ class HostedApplicationService extends DataStore {
 	}
 
 	/**
-	 * List all apps in trash.
+	 * List all apps in trash, across every registered app type.
+	 *
+	 * Read from app storage, so it lists what each type's storage adapter
+	 * holds in its trash. A type whose storage cannot be read lists nothing.
 	 * 
-	 * @return array<int, array{
+	 * @return list<array{
 	 *  app_type: string,
 	 *  app_slug: string,
-	 *  timestamp: int,
-	 *  trash_path: string
+	 *  timestamp: int
 	 * }> An empty array if no trashed app are found, or an array of trashed app data.
+	 *     `timestamp` is when the app was trashed.
 	 */
-	public static function list_trashed_apps( FileSystem $fs ) : array {
-		$trash_dir = rtrim( SMLISER_TRASH_DIR, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
-		$pattern   = $trash_dir . '*/*/.smliser_meta';
-		$files     = glob( $pattern ) ?: [];
-		$app_data  = [];
+	public static function list_trashed_apps() : array {
+		$registry = HostedAppsRegistry::instance();
+		$app_data = [];
 
-		foreach ( $files as $file ) {
+		foreach ( $registry->app_types() as $app_type ) {
+			$repo_class = $registry->get_app_type_directory_class( $app_type );
 
-			$rel_path = substr( $file, strlen( $trash_dir ) );
-
-			$rel_path = dirname( $rel_path );
-
-			$parts = explode( DIRECTORY_SEPARATOR, $rel_path, 2 );
-
-			if ( 2 !== count( $parts ) ) {
+			if ( null === $repo_class ) {
 				continue;
 			}
 
-			[$app_type, $app_slug] = $parts;
-
-			$timestamp  = (int) $fs->get_contents( $file );
-			$trash_path = dirname( $file );
-
-			$app_data[] = compact( 'app_type', 'app_slug', 'timestamp', 'trash_path' );
+			foreach ( $repo_class->list_trashed() as $trashed ) {
+				$app_data[] = [
+					'app_type'  => $app_type,
+					'app_slug'  => $trashed['slug'],
+					'timestamp' => $trashed['trashed_at'],
+				];
+			}
 		}
 
 		return $app_data;

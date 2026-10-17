@@ -21,8 +21,8 @@ use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileSystemException;
+use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\FileSystem\FileSystem;
-use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
@@ -354,16 +354,17 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 			return 1;
 		}
 
-		try {
-			$app_dir = $repo_class->enter_slug( $slug );
-		} catch( FileSystemException ) {
-			// Maybe in trash?
-			$types   = \smliser_pluralize( $type );
-			$app_dir = FileSystemHelper::join_path( SMLISER_TRASH_DIR, $types, $slug );
+		// Files first, live and trashed. Nothing stored counts as done, so a
+		// purge whose database delete failed can simply be run again.
+		$purged = $repo_class->purge( $app->get_slug() );
+
+		if ( $purged instanceof Exception && StorageException::NOT_FOUND !== $purged->get_error_code() ) {
+			$this->output->error( sprintf( 'Failed to delete the files of "%s": %s', $slug, $purged->get_error_message() ) );
+
+			return 1;
 		}
 
 		try {
-			$repo_class->delete( $app_dir, true );
 			$app->delete();
 			$this->output->success(
 				sprintf( '"%s" permanently deleted. Completed in %ss', $slug, $stopwatch->elapsed() )

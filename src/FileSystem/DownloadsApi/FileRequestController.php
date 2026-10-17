@@ -13,6 +13,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\FileRequestException;
+use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
@@ -56,16 +57,14 @@ class FileRequestController {
 
 			static::check_monetization( $app, $request );
 
-			$file_path = $app->get_zip_file();
+			$package = $app->get_package();
 
-			if ( ( $file_path instanceof Exception ) || empty( $file_path ) ) {
+			if ( null === $package ) {
 				throw new FileRequestException( 'file_not_found' );
 			}
-
-			$request->set( 'file_path', $file_path );
 			
 			$response = new FileResponse(
-				$file_path,
+				$package,
 				$request,
 				['type' => $app->get_type()]
 			);
@@ -132,16 +131,8 @@ class FileRequestController {
 				throw new FileRequestException( 'file_not_found' );
 			}
 
-			$file_path = $artifact['path'] ?? '';
-
-			if ( empty( $file_path ) ) {
-				throw new FileRequestException( 'file_not_found' );
-			}
-
-			$request->set( 'file_path', $file_path );
-			
 			$response = new FileResponse(
-				$file_path,
+				$artifact['file'],
 				$request,
 				['type' => $app->get_type()]
 			);
@@ -185,9 +176,14 @@ class FileRequestController {
 				throw new FileRequestException( 'app_not_found' );
 			}
 
-			$file_path = $app->get_zip_file();
-			$response  = new FileResponse(
-				$file_path,
+			$package = $app->get_package();
+
+			if ( null === $package ) {
+				throw new FileRequestException( 'file_not_found' );
+			}
+
+			$response = new FileResponse(
+				$package,
 				$request,
 				['type' => $app->get_type()]
 			);
@@ -339,20 +335,20 @@ class FileRequestController {
 				throw new FileRequestException( 'unsupported_repo_type' );
 			}
 
-			$file_path = $repo_class->get_asset_path( $app_slug, $asset_name );
-
-			if ( is_smliser_error( $file_path ) ) {
-				throw  ( new FileRequestException( 'file_not_found' ) )->merge_from( $file_path );
+			try {
+				$asset = $repo_class->asset_file( (string) $app_slug, (string) $asset_name );
+			} catch ( StorageException ) {
+				throw new FileRequestException( 'file_not_found' );
 			}
 
 			$file_props = [
 				'type' => $app_type,
-				'name' => $asset_name,
+				'name' => $asset->name,
 			];
 
-			$response = new FileResponse( $file_path, $request, $file_props );
-			if ( ! $file_path instanceof FileRequestException ) {
-				$response->set_header( 'Content-Disposition', $response->get_content_disposition( $asset_name, '', true ) );
+			$response = new FileResponse( $asset, $request, $file_props );
+			if ( $response->ok() ) {
+				$response->set_header( 'Content-Disposition', $response->get_content_disposition( $asset->name, '', true ) );
 				$response->set_header( 'Cache-Control', 'max-age=31536000, immutable' );
 				$response->set_header( 'Expires', sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', time() + 31536000 ) ) );
 			}

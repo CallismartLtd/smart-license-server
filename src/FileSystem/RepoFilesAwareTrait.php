@@ -8,100 +8,48 @@
 
 namespace SmartLicenseServer\FileSystem;
 
-use SmartLicenseServer\Exceptions\FileSystemException;
-
 /**
  * Provides unified methods to get known and shared repository files like 
  * - readme.md
  * - installation.md
  * - changelog.md
+ *
+ * Each is read with Repository::read_document(), which falls back to the
+ * copy inside the app's package.
+ *
  * @property \SmartLicenseServer\Utils\MDParser $mdparser
  */
-
 trait RepoFilesAwareTrait {
 	/**
-	 * Get theme changelog.
-	 * 
+	 * Get the changelog.
+	 *
+	 * @param string $slug The app slug.
+	 * @param string $suffix The file extension, without the dot.
 	 * @return string The changelog in HTML format.
 	 */
-	public function get_changelog( string $slug, string $suffix = '.md' ) : string {
-		$changelog_md = $this->file_get_contents( $slug, sprintf( 'changelog.%s', $suffix ) );
-		return $this->mdparser->parse( $changelog_md ?: '' );
+	public function get_changelog( string $slug, string $suffix = 'md' ) : string {
+		return $this->mdparser->parse( $this->read_document( $slug, sprintf( 'changelog.%s', $suffix ) ) );
 	}
 
 	/**
-	 * Get installation.md file
-	 * 
-	 * @param string $slug
-	 * @return string
+	 * Get the installation guide.
+	 *
+	 * @param string $slug The app slug.
+	 * @param string $suffix The file extension, without the dot.
+	 * @return string The installation guide in HTML format.
 	 */
-	public function get_installation( string $slug, string $suffix = 'md' ) {
-		$installation = $this->file_get_contents( $slug, sprintf( 'installation.%s', $suffix ) );
-		return $this->mdparser->parse( $installation ?: '' );
+	public function get_installation( string $slug, string $suffix = 'md' ) : string {
+		return $this->mdparser->parse( $this->read_document( $slug, sprintf( 'installation.%s', $suffix ) ) );
 	}
 
 	/**
-	 * Get readme.md file
-	 * 
-	 * @param string $slug
-	 * @return string
+	 * Get the readme.
+	 *
+	 * @param string $slug The app slug.
+	 * @param string $suffix The file extension, without the dot.
+	 * @return string The readme in HTML format.
 	 */
 	public function get_readme( string $slug, string $suffix = 'md' ) : string {
-		$readme = $this->file_get_contents( $slug, sprintf( 'readme.%s', $suffix ) );
-		return $this->mdparser->parse( $readme ?: '' );
-	}
-
-	/**
-	 * Get the content of a file from the repository and optionally look for it in the zipped file.
-	 * 
-	 * @param string $slug
-	 * @param string $filename The file name to look for.
-	 * @return string the content of the file.
-	 */
-	private function file_get_contents( string $slug, string $filename ) : string {
-		$slug          = $this->real_slug( $slug );
-		$file_contents = '';
-		try {
-			$base_dir = $this->enter_slug( $slug );
-		} catch ( FileSystemException $e ) {
-			return $file_contents;
-		}
-		$file_path = FileSystemHelper::join_path( $base_dir, $filename );
-
-		if ( ! $this->exists( $file_path ) ) {
-			// Let's try to read from the zip file as a fallback.
-			$zip_path = $this->locate( $slug );
-			if ( is_smliser_error( $zip_path ) ) {
-				return $file_contents;
-			}
-
-			$zip = new \ZipArchive();
-			if ( true !== $zip->open( $zip_path ) ) {
-				return $file_contents;
-			}
-
-			$firstEntry = $zip->getNameIndex( 0 );
-			$rootDir    = explode( '/', $firstEntry )[0];
-			$name       = FileSystemHelper::join_path( $rootDir, $filename );
-			$file_index = $zip->locateName( $name, \ZipArchive::FL_NOCASE );
-
-			if ( false === $file_index ) {
-				$zip->close();
-				return $file_contents;
-			}
-
-			$file_contents = $zip->getFromIndex( $file_index );
-			$zip->close();
-
-			// cache the file for future use.
-			if ( ! $this->put_contents( $file_path, $file_contents ) ) {
-				// TODO: Log error?
-			}
-
-		} else {
-			$file_contents = $this->get_contents( $file_path );
-		}
-
-		return (string) $file_contents;
+		return $this->mdparser->parse( $this->read_document( $slug, sprintf( 'readme.%s', $suffix ) ) );
 	}
 }

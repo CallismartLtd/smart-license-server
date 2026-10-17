@@ -12,13 +12,26 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\FileRequestException;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Core\Response;
+use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\FileSystem\FileSystemHelper;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
+use SmartLicenseServer\HostedApps\Storage\AppFile;
+use SmartLicenseServer\HostedApps\Storage\AppStorage;
 
 /**
- * The download response class
+ * The download response class.
+ *
+ * Serves one of three things:
+ *  - a hosted app file (AppFile), from wherever app storage keeps it;
+ *  - a file on this server, by absolute path;
+ *  - a string held in memory (`is_file` => false).
+ *
+ * A hosted app file is served by the first of these its storage adapter
+ * supports: a redirect to a time-limited direct URL, or a stream read from
+ * the requested offset. Either way, memory use does not grow with the
+ * file's size.
  */
 
 class FileResponse extends Response {
@@ -33,18 +46,40 @@ class FileResponse extends Response {
 	protected $error;
 
 	/**
-	 * The filesystem instance
+	 * Seconds a redirect to a storage URL stays valid.
 	 *
-	 * @var FileSystem|Repository $repo_class The app's repository class instance.
+	 * @var int
 	 */
-	protected FileSystem|Repository $repo_class;
+	public const TEMPORARY_URL_TTL = 300;
+
+	/**
+	 * The filesystem, for files served by path.
+	 *
+	 * @var FileSystem
+	 */
+	protected FileSystem $fs;
+
+	/**
+	 * The repository of the app type being served, if any.
+	 *
+	 * @var Repository|null
+	 */
+	protected ?Repository $repo_class = null;
 
 	/**
 	 * The file.
 	 * 
-	 * @var string|Exception $file Absolute path to the file or the file string.
+	 * @var string|AppFile|Exception $file A hosted app file, an absolute path
+	 *                                     or the file string.
 	 */
 	protected $file;
+
+	/**
+	 * What app storage reported about a hosted app file.
+	 *
+	 * @var array{name: string, size: int, mtime: int, mime_type: string}|null
+	 */
+	protected ?array $file_info = null;
 
 	/**
 	 * The resolved start byte for a ranged response.
@@ -70,11 +105,12 @@ class FileResponse extends Response {
 	/**
 	 * Class constructor.
 	 * 
-	 * @param string|FileRequestException $file Absolute path to the file, the file string or an instance of error.
-	 * @param string|array $args An associative array of options.
+	 * @param string|AppFile|FileRequestException $file A hosted app file, an absolute path to the file,
+	 *                                                  the file string or an instance of error.
+	 * @param string|array $args An associative array of options. `is_file` is ignored for a hosted app file.
 	 */
 	public function __construct(
-		string|FileRequestException $file,
+		string|AppFile|FileRequestException $file,
 		protected Request $request,
 		array|string $args = ''
 	) {
@@ -97,16 +133,13 @@ class FileResponse extends Response {
 		$options       = \parse_args( (array) $args, $default_args );
 		$download_type = ! empty( $options['type'] ) ? (string) $options['type'] : 'binary';
 		$app_registery = HostedAppsRegistry::instance();
+		$this->fs      = FileSystem::instance();
 
 		try {
 			if ( in_array( $download_type, $app_registery->app_types(), true ) ) {
 				$this->repo_class = $app_registery->get_app_type_directory_class( $download_type );
 			}
 		} catch( \Throwable ) {
-		}
-		
-		if ( ! isset( $this->repo_class ) ) {
-			$this->repo_class = FileSystem::instance();
 		}
 
 		if ( $this->has_errors() ) {
@@ -115,7 +148,9 @@ class FileResponse extends Response {
 
 		$filename = ! empty( $options['name'] ) ? FileSystemHelper::sanitize_filename( $options['name'] ) : '';
 
-		if ( (bool) $options['is_file'] ) {
+		if ( $this->file instanceof AppFile ) {
+			$this->parse_app_file( $filename, (string) $options['content_type'] );
+		} elseif ( (bool) $options['is_file'] ) {
 			$this->parse_file( $filename, (string) $options['content_type'] );
 		} else {
 			$this->parse_binary( $filename, (string) $options['content_type'] );
@@ -124,21 +159,21 @@ class FileResponse extends Response {
 	}
 
 	/**
-	 * Get the file path
+	 * Get the file being served.
 	 * 
-	 * @return string|Exception
+	 * @return string|AppFile|Exception A hosted app file, an absolute path or the file string.
 	 */
 	public function get_file() {
 		return $this->file;
 	}
 
 	/**
-	 * Get the filesystem instance.
+	 * Get the filesystem used for files served by path.
 	 * 
-	 * @return \SmartLicenseServer\FileSystem\Repository The app's repository class instance.
+	 * @return FileSystem
 	 */
-	public function get_fs() {
-		return $this->repo_class;
+	public function get_fs() : FileSystem {
+		return $this->fs;
 	}
 	
 	/**
@@ -167,17 +202,12 @@ class FileResponse extends Response {
 	 */
 	protected function parse_file( $file_name = '', $content_type = '' ) {
 
-		if ( ! $this->repo_class ) {
-			$this->set_exception( new FileRequestException( 'unsupported_repo_type' ) );
-			return;
-		}
-
-		if ( ! $this->repo_class->exists( $this->file ) ) {
+		if ( ! $this->fs->exists( $this->file ) ) {
 			$this->set_exception( new FileRequestException( 'file_not_found' ) );
 			return;
 		}
 
-		if ( ! $this->repo_class->is_readable( $this->file ) ) {
+		if ( ! $this->fs->is_readable( $this->file ) ) {
 			$this->set_exception( new FileRequestException( 'file_reading_error', 'File not readable' ) );
 			return;
 		}
@@ -186,8 +216,8 @@ class FileResponse extends Response {
 			return;
 		}
 
-		$file_size     = (int) $this->repo_class->filesize( $this->file );
-		$mtime         = (int) $this->repo_class->filemtime( $this->file );
+		$file_size     = (int) $this->fs->filesize( $this->file );
+		$mtime         = (int) $this->fs->filemtime( $this->file );
 		$last_modified = sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', $mtime ) );
 		$etag          = sprintf( '"%s"', md5( $file_size . $last_modified ) );
 		$content_type  = $content_type ?: FileSystemHelper::get_mime_type( $this->file );
@@ -202,6 +232,65 @@ class FileResponse extends Response {
 
 		$this->set_range_headers( $file_size, $etag, $mtime );
 
+	}
+
+	/**
+	 * Parse a hosted app file and set up the response.
+	 *
+	 * When the storage adapter gives a direct URL, the response redirects
+	 * to it; otherwise the file's headers are set for streaming.
+	 *
+	 * @param string $file_name The file name (optional); the stored name by default.
+	 * @param string $content_type The file mime content type (optional); the stored type by default.
+	 * @return void
+	 */
+	protected function parse_app_file( string $file_name = '', string $content_type = '' ) : void {
+		$storage = AppStorage::instance();
+
+		try {
+			$url = $storage->temporary_url( $this->file, static::TEMPORARY_URL_TTL );
+
+			if ( null !== $url ) {
+				$this->set_status_code( 307 );
+				$this->set_header( 'Location', $url );
+				$this->set_header( 'Cache-Control', 'no-store' );
+				return;
+			}
+
+			$this->file_info = $storage->stat( $this->file );
+		} catch ( StorageException $e ) {
+			$this->set_exception( static::storage_error( $e ) );
+			return;
+		}
+
+		$file_size     = $this->file_info['size'];
+		$mtime         = $this->file_info['mtime'];
+		$last_modified = sprintf( '%s GMT', gmdate( 'D, d M Y H:i:s', $mtime ) );
+		$etag          = sprintf( '"%s"', md5( $file_size . $last_modified ) );
+		$content_type  = $content_type ?: $this->file_info['mime_type'];
+
+		$this->set_default_headers();
+
+		$this->set_header( 'Last-Modified', $last_modified );
+		$this->set_header( 'ETag', $etag );
+		$this->set_header( 'Content-Type', $content_type );
+		$this->set_header( 'Content-Disposition', $this->get_content_disposition( $file_name ) );
+		$this->set_header( 'Accept-Ranges', 'bytes' );
+
+		$this->set_range_headers( $file_size, $etag, $mtime );
+	}
+
+	/**
+	 * Turn an app storage failure into a file request error.
+	 *
+	 * @param StorageException $e The storage failure.
+	 * @return FileRequestException
+	 */
+	protected static function storage_error( StorageException $e ) : FileRequestException {
+		return match ( $e->get_error_code() ) {
+			StorageException::NOT_FOUND, StorageException::INVALID_PATH => new FileRequestException( 'file_not_found' ),
+			default => new FileRequestException( 'file_reading_error', $e->get_error_message() ),
+		};
 	}
 
 	/**
@@ -346,7 +435,7 @@ class FileResponse extends Response {
 		if ( ! preg_match( '/bytes=(\d*)-(\d*)/', $range, $matches ) ) {
 			$this->set_status_code( 416 );
 			$this->set_header( 'Content-Range', "bytes */{$file_size}" );
-			$this->set_exception( new FileRequestException( 'invalid_range' ) );
+			$this->set_exception( static::range_error() );
 			return;
 		}
 
@@ -365,7 +454,7 @@ class FileResponse extends Response {
 		if ( $start > $end || $start >= $file_size || $end >= $file_size ) {
 			$this->set_status_code( 416 );
 			$this->set_header( 'Content-Range', "bytes */{$file_size}" );
-			$this->set_exception( new FileRequestException( 'invalid_range' ) );
+			$this->set_exception( static::range_error() );
 			return;
 		}
 
@@ -376,6 +465,23 @@ class FileResponse extends Response {
 		$this->set_status_code( 206 );
 		$this->set_header( 'Content-Range', "bytes {$start}-{$end}/{$file_size}" );
 		$this->set_header( 'Content-Length', (string) ( $end - $start + 1 ) );
+	}
+
+	/**
+	 * The error for a Range header that cannot be satisfied.
+	 *
+	 * Carries status 416 itself: "invalid_range" has no entry in the
+	 * FileRequestException map, and set_exception() takes the status from
+	 * the exception, so without it the 416 set before became a 500.
+	 *
+	 * @return FileRequestException
+	 */
+	protected static function range_error() : FileRequestException {
+		return new FileRequestException(
+			'invalid_range',
+			'The requested range cannot be satisfied.',
+			[ 'status' => 416, 'title' => 'Range Not Satisfiable' ]
+		);
 	}
 
 	/**
@@ -392,14 +498,17 @@ class FileResponse extends Response {
 			return '';
 		}
 		
-		$mimeType = $mimeType ?: FileSystemHelper::get_mime_type( $this->file );
-		$fileName = $fileName ?: basename( $this->file );
-
-		$can_render_inline = false;
-		if ( FileSystemHelper::is_image( $this->file ) ) {
-			$can_render_inline = true;
+		if ( $this->file instanceof AppFile ) {
+			$stored_mime       = (string) ( $this->file_info['mime_type'] ?? '' );
+			$mimeType          = $mimeType ?: $stored_mime;
+			$fileName          = $fileName ?: (string) ( $this->file_info['name'] ?? $this->file->name );
+			$can_render_inline = str_starts_with( $stored_mime, 'image/' );
+		} else {
+			$mimeType          = $mimeType ?: FileSystemHelper::get_mime_type( $this->file );
+			$fileName          = $fileName ?: basename( $this->file );
+			$can_render_inline = FileSystemHelper::is_image( $this->file );
 		}
-		
+
 
 		$disposition     = ( $isInlineRequested && $can_render_inline ) ? 'inline' : 'attachment';
 		$encodedFilename = rawurlencode( $fileName );
@@ -414,6 +523,22 @@ class FileResponse extends Response {
 		);
 
 		return $headerValue;
+	}
+
+	/**
+	 * Send the response.
+	 *
+	 * A redirect to a storage URL ends this request at the headers, so the
+	 * after-serve callbacks run first: the download is handed off here.
+	 *
+	 * @return void
+	 */
+	public function send() : void {
+		if ( $this->is_redirect() && ! $this->has_errors() ) {
+			$this->trigger_after_serve_callbacks();
+		}
+
+		parent::send();
 	}
 
 	/**
@@ -433,7 +558,9 @@ class FileResponse extends Response {
 			exit;
 		}
 
-		if ( $this->is_range_request ) {
+		if ( $this->file instanceof AppFile ) {
+			$this->stream_app_file();
+		} elseif ( $this->is_range_request ) {
 			$length = $this->range_end - $this->range_start + 1;
 			$this->stream_file( $this->file, $this->range_start, $length );
 		} else {
@@ -475,15 +602,54 @@ class FileResponse extends Response {
 	public function is_valid_zip_file() : bool {
 		$file = $this->get_file();
 
+		if ( $file instanceof AppFile ) {
+			try {
+				$path = AppStorage::instance()->local_path( $file );
+			} catch ( StorageException ) {
+				return false;
+			}
+
+			if ( null === $path ) {
+				return $this->has_zip_signature( $file );
+			}
+
+			$file = $path;
+		}
+
 		if ( $file instanceof Exception || '' === $file ) {
 			return false;
 		}
 
-		if ( method_exists( $this->repo_class, 'is_valid_zip' ) ) {
+		if ( null !== $this->repo_class ) {
 			return $this->repo_class->is_valid_zip( $file );
 		}
 
 		return FileSystemHelper::is_archive( $file );
+	}
+
+	/**
+	 * Tell whether a hosted app file not kept on this server starts like a
+	 * ZIP file.
+	 *
+	 * Reads only the first four bytes, so the file is never downloaded to
+	 * check it. This is weaker than opening the archive, which only works
+	 * on a local file; packages are fully checked when they are uploaded.
+	 *
+	 * @param AppFile $file The file.
+	 * @return bool True when it starts with a ZIP signature.
+	 */
+	protected function has_zip_signature( AppFile $file ) : bool {
+		try {
+			$stream = AppStorage::instance()->read_stream( $file, 0, 4 );
+		} catch ( StorageException ) {
+			return false;
+		}
+
+		$head = fread( $stream, 4 );
+		fclose( $stream );
+
+		// A local file header, or the end record of an empty archive.
+		return \in_array( $head, [ "PK\x03\x04", "PK\x05\x06" ], true );
 	}
 
 	/**
@@ -605,11 +771,11 @@ class FileResponse extends Response {
 	 * @return bool True on success, false on failure.
 	 */
 	private function stream_file( string $path, int $start = 0, int $length = 0, int $chunk_size = 1048576 ) : bool {
-		if ( ! $this->repo_class->is_file( $path ) ) {
+		if ( ! $this->fs->is_file( $path ) ) {
 			return false;
 		}
 
-		$stream = $this->repo_class->read_stream( $path );
+		$stream = $this->fs->read_stream( $path );
 
 		if ( false === $stream ) {
 			return false;
@@ -619,6 +785,40 @@ class FileResponse extends Response {
 			fseek( $stream, $start );
 		}
 
+		return $this->output_stream( $stream, $length, $chunk_size );
+	}
+
+	/**
+	 * Output a hosted app file, or the requested range of it, in chunks.
+	 *
+	 * The storage adapter opens the stream at the range start, so nothing
+	 * before it is read.
+	 *
+	 * @param int $chunk_size Optional chunk size (default 1MB).
+	 * @return bool True on success, false on failure.
+	 */
+	private function stream_app_file( int $chunk_size = 1048576 ) : bool {
+		$start  = $this->is_range_request ? $this->range_start : 0;
+		$length = $this->is_range_request ? $this->range_end - $this->range_start + 1 : null;
+
+		try {
+			$stream = AppStorage::instance()->read_stream( $this->file, $start, $length );
+		} catch ( StorageException ) {
+			return false;
+		}
+
+		return $this->output_stream( $stream, $length ?? 0, $chunk_size );
+	}
+
+	/**
+	 * Output an open stream in chunks, then close it.
+	 *
+	 * @param resource $stream A readable stream, positioned at the first byte to send.
+	 * @param int $length Bytes to send; 0 for everything up to the end.
+	 * @param int $chunk_size Chunk size.
+	 * @return bool True on success, false on failure.
+	 */
+	private function output_stream( $stream, int $length, int $chunk_size ) : bool {
 		$remaining = $length > 0 ? $length : null;
 
 		while ( ! feof( $stream ) ) {

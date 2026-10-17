@@ -302,13 +302,6 @@ class Theme extends AbstractHostedApp {
 		$self->set_license( $license );
 		
 		$self->set_homepage( $self->get_meta( 'homepage_url' ) ?: $theme_metadata['theme_uri'] ?? '' );
-		
-		$theme_file = $repo_class->locate( $self->get_slug() );
-		if ( ! is_smliser_error( $theme_file ) ) {
-			$self->set_file( $theme_file );
-		} else {
-			$self->set_file( '' );
-		}
 
 		/** 
 		 * Section informations 
