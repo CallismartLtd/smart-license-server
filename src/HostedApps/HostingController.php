@@ -884,7 +884,9 @@ class HostingController {
 	 *
 	 * Actions are decided here, from the user's capabilities, so the
 	 * browser only shows what will be allowed:
-	 *  - per file: view, download, replace, rename, delete;
+	 *  - per file: view, download, replace, rename, delete; an asset also
+	 *    carries its asset_type (null when it is not one the app type
+	 *    stores, and then it cannot be replaced);
 	 *  - per app (app_actions): upload_asset, upload_artifact, rename_app.
 	 *
 	 * @param Request $request
@@ -931,7 +933,14 @@ class HostingController {
 				$repo_class = HostedApplicationService::get_app_repository_class( $app_type );
 
 				foreach ( $data['entries'] as &$entry ) {
-					$entry['actions']  = $this->browser_file_actions( $entry['kind'] );
+					$entry['actions']    = $this->browser_file_actions( $entry['kind'] );
+					$entry['asset_type'] = AppFile::ASSET === $entry['kind'] && $repo_class ? $repo_class->asset_type_of( $entry['name'] ) : null;
+
+					// Replacing goes through the asset type's validation.
+					if ( AppFile::ASSET === $entry['kind'] && null === $entry['asset_type'] ) {
+						$entry['actions'] = array_values( array_diff( $entry['actions'], [ 'replace' ] ) );
+					}
+
 					$entry['file_url'] = null === $entry['kind'] ? null : $this->urlmanager->admin_url( 'admin/json' )
 						->append_path( 'repository-browser/file' )
 						->add_query_params( [

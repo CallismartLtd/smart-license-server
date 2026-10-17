@@ -66,6 +66,20 @@ class PluginRepository extends Repository {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 */
+	public function asset_type_of( string $name ) : ?string {
+		$stem = FileSystemHelper::remove_extension( $name );
+
+		return match ( true ) {
+			in_array( $stem, static::ALLOWED_ICON_NAMES, true )        => 'icon',
+			in_array( $stem, static::ALLOWED_BANNER_NAMES, true )      => 'banner',
+			1 === preg_match( '/^screenshot-\d+$/', $stem )            => 'screenshot',
+			default                                                    => null,
+		};
+	}
+
+	/**
 	 * Validate names and types of asset that can be uploaded for a plugin.
 	 * 
 	 * @param UploadedFile $file The uploaded file instance.

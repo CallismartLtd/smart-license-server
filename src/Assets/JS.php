@@ -90,6 +90,12 @@ final class JS {
 				'version'      => SMLISER_VER,
 				'footer'       => true
 			],
+			'repository-browser' => [
+				'url'          => $this->urlmanager->assets_url( sprintf( 'js/admin/repository-browser%s.js', $suffix ) ),
+				'dependencies' => ['core-admin', 'modal', 'toast'],
+				'version'      => SMLISER_VER,
+				'footer'       => true
+			],
 			'role-builder' => [
 				'url'          => $this->urlmanager->assets_url( sprintf( 'js/admin/role-builder%s.js', $suffix ) ),
 				'dependencies' => ['jquery'],

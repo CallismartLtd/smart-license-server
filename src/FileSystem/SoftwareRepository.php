@@ -62,6 +62,20 @@ class SoftwareRepository extends Repository {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 */
+	public function asset_type_of( string $name ) : ?string {
+		$stem = FileSystemHelper::remove_extension( $name );
+
+		return match ( true ) {
+			in_array( $stem, static::ALLOWED_ICON_NAMES, true )  => 'icon',
+			'cover' === $stem                                    => 'cover',
+			1 === preg_match( '/^screenshot-\d+$/', $stem )      => 'screenshot',
+			default                                              => null,
+		};
+	}
+
+	/**
 	 * Validate names and types of asset that can be uploaded for a software.
 	 * 
 	 * @param UploadedFile $file The uploaded file instance.

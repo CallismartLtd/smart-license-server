@@ -1,0 +1,601 @@
+/**
+ * Repository browser.
+ *
+ * Uses the dashboard tokens from variables.css only, so light and dark
+ * themes follow the rest of the admin.
+ */
+
+.smliser-repo-browser {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 15px 15px;
+    color: var( --dashboard-text );
+    font-size: var( --dashboard-font-size );
+    line-height: var( --dashboard-line-height );
+}
+
+.smliser-repo-browser[aria-busy="true"] {
+    cursor: progress;
+}
+
+/*
+|---------------------
+| Location and actions
+|---------------------
+*/
+
+.smliser-repo-browser__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var( --dashboard-surface );
+    border: 1px solid var( --dashboard-border );
+    border-radius: var( --dashboard-radius );
+}
+
+.smliser-repo-browser__path {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    font-size: 14px;
+}
+
+.smliser-repo-browser__path .ti {
+    color: var( --dashboard-text-muted );
+}
+
+.smliser-repo-browser__crumb {
+    padding: 2px 6px;
+    border: 0;
+    border-radius: var( --dashboard-radius );
+    background: none;
+    color: var( --dashboard-accent );
+    font: inherit;
+    cursor: pointer;
+}
+
+.smliser-repo-browser__crumb:hover {
+    background: var( --dashboard-hover-bg );
+}
+
+.smliser-repo-browser__crumb.is-current {
+    color: var( --dashboard-text );
+    font-weight: 600;
+    cursor: default;
+}
+
+.smliser-repo-browser__app-actions,
+.smliser-repo-browser__file-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.smliser-repo-browser .smliser-btn,
+.smliser-repo-browser__modal .smliser-btn {
+    font-size: 13px;
+}
+
+.smliser-repo-browser .smliser-btn i,
+.smliser-repo-browser__modal .smliser-btn i {
+    font-size: 16px;
+}
+
+/* The shared danger button is tuned for dark backgrounds; use the theme tokens here. */
+.smliser-repo-browser .smliser-btn-danger,
+.smliser-repo-browser__modal .smliser-btn-danger {
+    padding: 4px 8px;
+    background: var( --dashboard-danger-bg );
+    color: var( --dashboard-danger-text );
+    border: 1px solid var( --dashboard-danger );
+}
+
+.smliser-repo-browser .smliser-btn-danger:hover,
+.smliser-repo-browser__modal .smliser-btn-danger:hover {
+    background: var( --dashboard-danger );
+    color: var( --dashboard-accent-contrast );
+}
+
+/*
+|------
+| Body
+|------
+*/
+
+.smliser-repo-browser__body {
+    display: grid;
+    grid-template-columns: minmax( 0, 1fr );
+    gap: 12px;
+    align-items: start;
+}
+
+.smliser-repo-browser__body:has( .smliser-repo-browser__preview:not( [hidden] ) ) {
+    grid-template-columns: minmax( 0, 1fr ) minmax( 260px, 340px );
+}
+
+.smliser-repo-browser__listing,
+.smliser-repo-browser__preview {
+    background: var( --dashboard-surface );
+    border: 1px solid var( --dashboard-border );
+    border-radius: var( --dashboard-radius );
+}
+
+.smliser-repo-browser__listing {
+    position: relative;
+    min-height: 120px;
+}
+
+.smliser-repo-browser__preview[hidden] {
+    display: none;
+}
+
+/* File names are shown exactly: no contextual alternates turning "128x128" into "128×128". */
+.smliser-repo-browser__file-name,
+.smliser-repo-browser__thumb-name,
+.smliser-repo-browser__folder-name,
+.smliser-repo-browser__preview-title,
+.smliser-repo-browser__modal .smliser-modal-title,
+.smliser-repo-browser__details dd {
+    font-variant-ligatures: none;
+    font-feature-settings: "calt" 0, "liga" 0;
+}
+
+/*
+|---------
+| Folders
+|---------
+*/
+
+.smliser-repo-browser__folders {
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+}
+
+.smliser-repo-browser__folder,
+.smliser-repo-browser__file {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: var( --dashboard-radius );
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.smliser-repo-browser__folder:hover,
+.smliser-repo-browser__file:hover {
+    background: var( --dashboard-hover-bg );
+}
+
+.smliser-repo-browser__folder .ti {
+    font-size: 20px;
+    color: var( --dashboard-accent );
+}
+
+.smliser-repo-browser__folder-name,
+.smliser-repo-browser__file-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.smliser-repo-browser__folder-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.smliser-repo-browser__meta {
+    color: var( --dashboard-text-muted );
+    white-space: nowrap;
+}
+
+/*
+|------------------
+| An app's files
+|------------------
+*/
+
+.smliser-repo-browser__group {
+    padding: 12px;
+}
+
+.smliser-repo-browser__group + .smliser-repo-browser__group {
+    border-top: 1px solid var( --dashboard-border );
+}
+
+.smliser-repo-browser__group-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.smliser-repo-browser__count {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var( --dashboard-hover-bg );
+    color: var( --dashboard-text-muted );
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.smliser-repo-browser__note,
+.smliser-repo-browser__empty {
+    margin: 0 0 8px;
+    color: var( --dashboard-text-muted );
+}
+
+.smliser-repo-browser__files {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.smliser-repo-browser__file .ti {
+    font-size: 18px;
+    color: var( --dashboard-text-muted );
+}
+
+.smliser-repo-browser__group.is-canonical .smliser-repo-browser__file .ti,
+.smliser-repo-browser__group.is-other .smliser-repo-browser__file .ti {
+    color: var( --dashboard-text-muted );
+}
+
+.smliser-repo-browser__group.is-artifacts .smliser-repo-browser__file .ti {
+    color: var( --dashboard-accent );
+}
+
+.smliser-repo-browser__group.is-other .smliser-repo-browser__file-name {
+    color: var( --dashboard-text-muted );
+}
+
+/* Assets are the point of the page: a grid, so they are judged by sight. */
+.smliser-repo-browser__thumbs {
+    display: grid;
+    grid-template-columns: repeat( auto-fill, minmax( 132px, 1fr ) );
+    gap: 10px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.smliser-repo-browser__thumb {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    padding: 6px;
+    border: 1px solid var( --dashboard-border );
+    border-radius: var( --dashboard-radius );
+    background: var( --dashboard-surface );
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.smliser-repo-browser__thumb:hover {
+    border-color: var( --dashboard-accent );
+}
+
+.smliser-repo-browser__thumb-frame {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 4 / 3;
+    margin-bottom: 4px;
+    overflow: hidden;
+    border-radius: calc( var( --dashboard-radius ) - 2px );
+    /* A checkerboard, so transparent icons stay visible in both themes. */
+    background-color: var( --dashboard-hover-bg );
+    background-image:
+        linear-gradient( 45deg, var( --dashboard-border ) 25%, transparent 25% ),
+        linear-gradient( -45deg, var( --dashboard-border ) 25%, transparent 25% ),
+        linear-gradient( 45deg, transparent 75%, var( --dashboard-border ) 75% ),
+        linear-gradient( -45deg, transparent 75%, var( --dashboard-border ) 75% );
+    background-size: 12px 12px;
+    background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+}
+
+.smliser-repo-browser__thumb-frame img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.smliser-repo-browser__thumb-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.smliser-repo-browser__file[aria-pressed="true"],
+.smliser-repo-browser__thumb[aria-pressed="true"] {
+    background: var( --dashboard-info-bg );
+    color: var( --dashboard-info-text );
+}
+
+.smliser-repo-browser__thumb[aria-pressed="true"] {
+    border-color: var( --dashboard-accent );
+}
+
+.smliser-repo-browser__file[aria-pressed="true"] .smliser-repo-browser__meta,
+.smliser-repo-browser__thumb[aria-pressed="true"] .smliser-repo-browser__meta {
+    color: inherit;
+}
+
+/*
+|----------
+| Preview
+|----------
+*/
+
+.smliser-repo-browser__preview {
+    position: sticky;
+    top: calc( var( --dashboard-topbar-height ) + 12px );
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+}
+
+/* The panel's content, beside the list or inside the modal on narrow screens. */
+.smliser-repo-browser__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: var( --dashboard-font-size );
+    line-height: var( --dashboard-line-height );
+    color: var( --dashboard-text );
+}
+
+.smliser-repo-browser__panel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 32px 12px;
+    text-align: center;
+    color: var( --dashboard-text-muted );
+}
+
+.smliser-repo-browser__panel-empty .ti {
+    font-size: 32px;
+}
+
+.smliser-repo-browser__panel-empty p {
+    margin: 4px 0 0;
+    color: var( --dashboard-text );
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.smliser-repo-browser__preview-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.smliser-repo-browser__preview-image {
+    display: block;
+    max-width: 100%;
+    max-height: 260px;
+    margin: 0 auto;
+    object-fit: contain;
+}
+
+.smliser-repo-browser__preview-icon {
+    display: grid;
+    place-items: center;
+    padding: 24px 0;
+    border-radius: var( --dashboard-radius );
+    background: var( --dashboard-hover-bg );
+    color: var( --dashboard-text-muted );
+    font-size: 48px;
+}
+
+.smliser-repo-browser__preview-text {
+    max-height: 320px;
+    margin: 0;
+    padding: 10px;
+    overflow: auto;
+    border-radius: var( --dashboard-radius );
+    background: var( --dashboard-bg );
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.smliser-repo-browser__details {
+    display: grid;
+    grid-template-columns: max-content minmax( 0, 1fr );
+    gap: 4px 12px;
+    margin: 0;
+}
+
+.smliser-repo-browser__details dt {
+    color: var( --dashboard-text-muted );
+}
+
+.smliser-repo-browser__details dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Opens the full-size viewer. */
+.smliser-repo-browser__preview-zoom {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: var( --dashboard-radius );
+    background: none;
+    cursor: zoom-in;
+}
+
+.smliser-repo-browser__preview-zoom:focus-visible {
+    outline: none;
+    box-shadow: var( --dashboard-focus-ring );
+}
+
+/*
+|-----------------
+| Image viewer
+|-----------------
+*/
+
+.smliser-repo-browser__viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 100000; /* Above SmliserModal, which the file panel uses on narrow screens. */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 48px 16px 16px;
+    background: rgba( 0, 0, 0, 0.88 );
+    cursor: zoom-out;
+}
+
+.smliser-repo-browser__viewer img {
+    max-width: 100%;
+    max-height: calc( 100% - 40px );
+    object-fit: contain;
+    cursor: default;
+    /* Transparent images stay visible on the dark backdrop. */
+    background-color: #ffffff;
+    background-image:
+        linear-gradient( 45deg, #e2e4e9 25%, transparent 25% ),
+        linear-gradient( -45deg, #e2e4e9 25%, transparent 25% ),
+        linear-gradient( 45deg, transparent 75%, #e2e4e9 75% ),
+        linear-gradient( -45deg, transparent 75%, #e2e4e9 75% );
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+.smliser-repo-browser__viewer-name {
+    margin: 0;
+    color: #ffffff;
+    font-size: 13px;
+    font-variant-ligatures: none;
+    font-feature-settings: "calt" 0, "liga" 0;
+    cursor: default;
+}
+
+.smliser-repo-browser__viewer-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba( 255, 255, 255, 0.15 );
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.smliser-repo-browser__viewer-close:hover {
+    background: rgba( 255, 255, 255, 0.3 );
+}
+
+.smliser-repo-browser__viewer-close:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
+}
+
+/*
+|-----------
+| Messages
+|-----------
+*/
+
+.smliser-repo-browser__message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 16px;
+    color: var( --dashboard-text-muted );
+}
+
+.smliser-repo-browser__message.is-error {
+    color: var( --dashboard-danger-text );
+    background: var( --dashboard-danger-bg );
+    border-radius: var( --dashboard-radius );
+}
+
+.smliser-repo-browser__message .ti {
+    font-size: 18px;
+}
+
+.smliser-repo-browser__spin {
+    animation: smliser-repo-browser-spin 1s linear infinite;
+}
+
+@keyframes smliser-repo-browser-spin {
+    to {
+        transform: rotate( 360deg );
+    }
+}
+
+/*
+|------------------
+| Focus and motion
+|------------------
+*/
+
+.smliser-repo-browser button:focus-visible,
+.smliser-repo-browser a:focus-visible,
+.smliser-repo-browser__modal button:focus-visible,
+.smliser-repo-browser__modal a:focus-visible {
+    outline: none;
+    box-shadow: var( --dashboard-focus-ring );
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+    .smliser-repo-browser__spin {
+        animation: none;
+    }
+}
+
+/*
+|-------------
+| Narrow view
+|-------------
+*/
+
+@media ( max-width: 900px ) {
+    .smliser-repo-browser__body:has( .smliser-repo-browser__preview:not( [hidden] ) ) {
+        grid-template-columns: minmax( 0, 1fr );
+    }
+
+    /* The file panel opens in a modal instead. */
+    .smliser-repo-browser__preview {
+        display: none;
+    }
+}

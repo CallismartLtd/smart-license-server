@@ -88,6 +88,12 @@ final class CSS {
 				'version'      => SMLISER_VER,
 				'media-type'   => 'all'
 			],
+			'repository-browser' => [
+				'url'          => $this->urlmanager->assets_url( sprintf( 'css/admin/repository-browser%s.css', $suffix ) ),
+				'dependencies' => ['core-admin', 'tabler-icons'],
+				'version'      => SMLISER_VER,
+				'media-type'   => 'all'
+			],
 			'role-builder' => [
 				'url'          => $this->urlmanager->assets_url( sprintf( 'css/admin/role-builder%s.css', $suffix ) ),
 				'dependencies' => [],

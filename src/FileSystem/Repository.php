@@ -115,6 +115,20 @@ abstract class Repository {
 	}
 
 	/**
+	 * Tell which asset type a stored asset belongs to.
+	 *
+	 * The reverse of the names validate_app_asset() gives, so an asset can
+	 * be replaced through the same validation it was stored with.
+	 *
+	 * @param string $name Stored asset name, e.g. "icon-128x128.png".
+	 * @return string|null One of the asset_types() keys, or null when the
+	 *                     name is not one this app type stores.
+	 */
+	public function asset_type_of( string $name ) : ?string {
+		return null;
+	}
+
+	/**
 	 * Get the assets of one asset type, as the app type presents them.
 	 *
 	 * @param string $slug The app slug.

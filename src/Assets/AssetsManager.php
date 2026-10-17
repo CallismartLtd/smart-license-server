@@ -901,6 +901,8 @@ final class AssetsManager {
 	 * @return void
 	 */
 	private function register_default_js_constants() : void {
+		[ $date_format, $time_format ] = smliser_locale_date_format();
+
 		$consts = [
 			'ajaxURL'           => $this->urlmanager->admin_url( 'admin/json' )->url(),
 			'csrf_token'        => $this->csrf_token(),
@@ -915,7 +917,11 @@ final class AssetsManager {
 				'max_upload_size'          => smliser_max_upload_size(),
 				'max_upload_size_readable' => Format::bytes( smliser_max_upload_size() )
 			],
-			'stripable_query_vars' => ['message', 'msg', 'updated', 'error']
+			'stripable_query_vars' => ['message', 'msg', 'updated', 'error'],
+			// PHP date() formats from the settings; StringUtils.formatDate() reads them.
+			'date_format'          => $date_format,
+			'time_format'          => $time_format,
+			'datetime_format'      => smliser_datetime_format(),
 		];
 
 		if ( $this->guard->has_principal() ) {

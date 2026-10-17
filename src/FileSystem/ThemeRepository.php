@@ -73,6 +73,19 @@ class ThemeRepository extends Repository {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 */
+	public function asset_type_of( string $name ) : ?string {
+		$stem = FileSystemHelper::remove_extension( $name );
+
+		return match ( true ) {
+			'screenshot' === $stem                           => 'screenshot',
+			1 === preg_match( '/^screenshot-\d+$/', $stem )  => 'screenshots',
+			default                                          => null,
+		};
+	}
+
+	/**
 	 * Validate names and types of asset that can be uploaded for a theme.
 	 * 
 	 * @param UploadedFile $file The uploaded file instance.

@@ -1314,6 +1314,161 @@ const StringUtils = {
 		return str.replace( pattern, '' );
 	},
 
+	/* ---------------------------------------------------------------------
+	 * Dates
+	 * ------------------------------------------------------------------- */
+
+	/**
+	 * Format a date with a PHP date() format string.
+	 *
+	 * Mirrors PHP's date(), so the formats saved in the app's settings
+	 * (smliser_var.date_format, time_format and datetime_format) display
+	 * the same in the browser as on the server. Every date() format
+	 * character is supported; a backslash prints the next character as is,
+	 * and any other character is printed unchanged. The date is shown in
+	 * the browser's time zone.
+	 *
+	 * @example
+	 * StringUtils.formatDate( new Date( 1792253719000 ), 'Y-m-d g:i a' ); // "2026-10-17 5:15 pm"
+	 *
+	 * @param {Date|number|string} date - A Date, a Unix timestamp in seconds, or a date string.
+	 * @param {string} format - A PHP date() format string.
+	 * @returns {string} The formatted date; '' when the date is not valid.
+	 */
+	formatDate: function ( date, format ) {
+		const d = date instanceof Date
+			? date
+			: new Date( 'number' === typeof date ? date * 1000 : date );
+
+		if ( Number.isNaN( d.getTime() ) || 'string' !== typeof format ) {
+			return '';
+		}
+
+		const DAYS   = [ 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday' ];
+		const MONTHS = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ];
+		const pad    = ( value, length = 2 ) => String( Math.abs( value ) ).padStart( length, '0' );
+
+		const year    = d.getFullYear();
+		const month   = d.getMonth();
+		const day     = d.getDate();
+		const weekday = d.getDay();
+		const hours   = d.getHours();
+		const minutes = d.getMinutes();
+		const seconds = d.getSeconds();
+		const millis  = d.getMilliseconds();
+		const leap    = ( 0 === year % 4 && 0 !== year % 100 ) || 0 === year % 400;
+		const offset  = -d.getTimezoneOffset(); // Minutes east of UTC.
+
+		const dayOfYear = Math.round( ( new Date( year, month, day ) - new Date( year, 0, 1 ) ) / 864e5 );
+
+		// ISO 8601 week and the year it belongs to.
+		const isoDate = new Date( Date.UTC( year, month, day ) );
+		const isoDay  = isoDate.getUTCDay() || 7;
+
+		isoDate.setUTCDate( isoDate.getUTCDate() + 4 - isoDay );
+
+		const isoYear = isoDate.getUTCFullYear();
+		const isoWeek = Math.ceil( ( ( isoDate - Date.UTC( isoYear, 0, 1 ) ) / 864e5 + 1 ) / 7 );
+
+		const offsetString = ( colon ) => ( offset < 0 ? '-' : '+' ) + pad( Math.floor( Math.abs( offset ) / 60 ) ) + ( colon ? ':' : '' ) + pad( Math.abs( offset ) % 60 );
+
+		const zoneName = () => {
+			try {
+				return new Intl.DateTimeFormat( 'en-US', { timeZoneName: 'short' } )
+					.formatToParts( d )
+					.find( ( part ) => 'timeZoneName' === part.type )?.value ?? offsetString( true );
+			} catch ( e ) {
+				return offsetString( true );
+			}
+		};
+
+		const ordinal = () => {
+			if ( day >= 11 && day <= 13 ) {
+				return 'th';
+			}
+
+			return { 1: 'st', 2: 'nd', 3: 'rd' }[ day % 10 ] ?? 'th';
+		};
+
+		const tokens = {
+			// Day.
+			d: () => pad( day ),
+			D: () => DAYS[ weekday ].slice( 0, 3 ),
+			j: () => String( day ),
+			l: () => DAYS[ weekday ],
+			N: () => String( weekday || 7 ),
+			S: ordinal,
+			w: () => String( weekday ),
+			z: () => String( dayOfYear ),
+
+			// Week.
+			W: () => pad( isoWeek ),
+
+			// Month.
+			F: () => MONTHS[ month ],
+			m: () => pad( month + 1 ),
+			M: () => MONTHS[ month ].slice( 0, 3 ),
+			n: () => String( month + 1 ),
+			t: () => String( new Date( year, month + 1, 0 ).getDate() ),
+
+			// Year.
+			L: () => ( leap ? '1' : '0' ),
+			o: () => String( isoYear ),
+			X: () => ( year < 0 ? '-' : '+' ) + pad( year, 4 ),
+			x: () => ( year > 9999 || year < 0 ? ( year < 0 ? '-' : '+' ) : '' ) + pad( year, 4 ),
+			Y: () => String( year ),
+			y: () => pad( year % 100 ),
+
+			// Time.
+			a: () => ( hours < 12 ? 'am' : 'pm' ),
+			A: () => ( hours < 12 ? 'AM' : 'PM' ),
+			B: () => pad( Math.floor( ( ( d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds() + 3600 ) % 86400 ) / 86.4 ), 3 ),
+			g: () => String( hours % 12 || 12 ),
+			G: () => String( hours ),
+			h: () => pad( hours % 12 || 12 ),
+			H: () => pad( hours ),
+			i: () => pad( minutes ),
+			s: () => pad( seconds ),
+			u: () => pad( millis * 1000, 6 ),
+			v: () => pad( millis, 3 ),
+
+			// Time zone.
+			e: () => Intl.DateTimeFormat().resolvedOptions().timeZone || zoneName(),
+			I: () => {
+				const january = new Date( year, 0, 1 ).getTimezoneOffset();
+				const july    = new Date( year, 6, 1 ).getTimezoneOffset();
+
+				return d.getTimezoneOffset() < Math.max( january, july ) ? '1' : '0';
+			},
+			O: () => offsetString( false ),
+			P: () => offsetString( true ),
+			p: () => ( 0 === offset ? 'Z' : offsetString( true ) ),
+			T: zoneName,
+			Z: () => String( offset * 60 ),
+
+			// Full date and time.
+			c: () => StringUtils.formatDate( d, 'Y-m-d\\TH:i:sP' ),
+			r: () => StringUtils.formatDate( d, 'D, d M Y H:i:s O' ),
+			U: () => String( Math.floor( d.getTime() / 1000 ) ),
+		};
+
+		let output = '';
+
+		for ( let i = 0; i < format.length; i++ ) {
+			const char = format[ i ];
+
+			if ( '\\' === char ) {
+				i++;
+				output += format[ i ] ?? '';
+				continue;
+			}
+
+			output += tokens[ char ] ? tokens[ char ]() : char;
+		}
+
+		return output;
+	},
+
 	/**
 	 * Strip whitespace (or other characters) from the end of a string.
 	 * Mimics PHP's rtrim() function.

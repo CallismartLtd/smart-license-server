@@ -45,6 +45,8 @@ class RepositoryPage implements AdminPageInterface {
 	protected function register_scripts() : void {
 		$this->assets_manager->set_script_category( 'admin-repository', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
 		$this->assets_manager->set_script_category( 'apps-uploader', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+		$this->assets_manager->set_script_category( 'repository-browser', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+		$this->assets_manager->set_style_category( 'repository-browser', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
 	}
 
 	/**
@@ -379,6 +381,14 @@ class RepositoryPage implements AdminPageInterface {
 				],
 
 				[
+					'text'  => 'Files',
+					'url'   => $this->urlmanager->admin_repo_url( 'files', ['type' => $app->get_type(), 'slug' => $app->get_slug()] )->url(),
+					'icon'  => 'ti ti-folder-open',
+					'class' => ['smliser-btn', 'smliser-btn-glass'],
+					'attr'  => []
+				],
+
+				[
 					'text'  => 'Monetization',
 					'url'   => $this->urlmanager->admin_repo_url( 'monetization', ['app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
 					'icon'  => 'ti ti-basket-dollar',
@@ -454,6 +464,43 @@ class RepositoryPage implements AdminPageInterface {
 		);
 		
 		$this->locator->render( "admin.contents.repository.view-{$type}", $vars );
+	}
+
+	/**
+	 * The app storage page: what app storage holds, by type and app.
+	 *
+	 * The page is a shell; the browser script loads each level from
+	 * admin/json/repository-browser. Query params type and slug open it at
+	 * a type or an app.
+	 *
+	 * @param Request $request
+	 */
+	public function files_page( Request $request ) : void {
+		$type = HostedAppsRegistry::instance()->normalize_app_type( (string) $request->get( 'type', '' ) );
+		$slug = '' === $type ? '' : (string) $request->get( 'slug', '' );
+
+		$menu_args = [
+			'breadcrumbs' => [
+				[
+					'label' => 'Repository',
+					'url'   => $this->urlmanager->admin_repo_url()->url(),
+					'icon'  => 'ti ti-home-filled'
+				],
+				[
+					'label' => 'App Storage'
+				]
+			],
+			'actions' => [
+				[
+					'title' => 'Upload New Application',
+					'label' => 'Upload New',
+					'url'   => $this->urlmanager->admin_repo_url( 'add-new' )->url(),
+					'icon'  => 'ti ti-upload',
+				],
+			]
+		];
+
+		$this->locator->render( 'admin.contents.repository.browser', compact( 'menu_args', 'type', 'slug', 'request' ) );
 	}
 
 	/**
@@ -1028,6 +1075,12 @@ class RepositoryPage implements AdminPageInterface {
 				'title'      => 'Search Repository',
 				'slug'       => 'search',
 				'callback'   => [$this, 'search_page'],
+				'visibility' => true,
+			],
+			[
+				'title'      => 'App Storage',
+				'slug'       => 'files',
+				'callback'   => [$this, 'files_page'],
 				'visibility' => true,
 			],
 			[

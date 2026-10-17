@@ -55,8 +55,8 @@ function smliser_readable_duration( $duration ) : string {
  * @since 0.2.0
  */
 function smliser_locale_date_format() {
-	$date_format = Settings::instance()->get( 'date_format', 'Y-m-d', false );
-	$time_format = Settings::instance()->get( 'time_format', 'g:i a', false );
+	$date_format = Settings::instance()->get( 'date_format', 'Y-m-d' );
+	$time_format = Settings::instance()->get( 'time_format', 'g:i a' );
 	return [ $date_format, $time_format ];
 }
 
@@ -170,8 +170,10 @@ function smliser_trim_words_utf8( string $text, int $num = 50, ?string $more = n
 
 /**
  * Helper: Format label from snake_case to readable format
+ * 
+ * @param string $label
  */
-function smliser_format_label( $label ) : string {
+function smliser_format_label( string $label ) : string {
 	return Format::label( $label );
 }
 
