@@ -821,6 +821,58 @@ class HostingController {
 	}
 
 	/**
+	 * Give a hosted app a new slug.
+	 *
+	 * System administrators only: renaming is rare, and done on request of
+	 * the app's author. See HostedApplicationService::rename_app_slug() for
+	 * what a rename changes and what makes a slug available.
+	 *
+	 * Request params: app_type, app_slug (the current slug), new_slug.
+	 *
+	 * @param Request $request
+	 * @return Response JSON: the new slug and the app's admin URL.
+	 */
+	public function rename_app_slug( Request $request ) : Response {
+		try {
+			static::is_system_admin();
+
+			$app_type = (string) $request->get( 'app_type', '' );
+			$app_slug = (string) $request->get( 'app_slug', '' );
+			$new_slug = trim( (string) $request->get( 'new_slug', '' ) );
+
+			if ( '' === $new_slug ) {
+				throw new RequestException( 'invalid_input', 'The new slug is required.', [ 'status' => 400 ] );
+			}
+
+			$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app ) {
+				throw new RequestException( 'resource_not_found', sprintf( 'The %s with slug %s was not found', $app_type, $app_slug ), [ 'status' => 404 ] );
+			}
+
+			$renamed = HostedApplicationService::rename_app_slug( $app, $new_slug );
+
+			if ( $renamed instanceof Exception ) {
+				throw new RequestException( $renamed->get_error_code(), $renamed->get_error_message(), [ 'status' => $renamed->get_error_data()['status'] ?? 500 ] );
+			}
+
+			$this->cache->clear();
+
+			$data = [
+				'message'      => sprintf( '%s renamed from "%s" to "%s".', ucfirst( $app->get_type() ), $app_slug, $new_slug ),
+				'slug'         => $new_slug,
+				'redirect_url' => $this->urlmanager->admin_repo_url( 'view', [ 'type' => $app->get_type(), 'app_id' => $app->get_id() ] )
+			];
+
+			return Response::json( [ 'success' => true, 'data' => $data ], 200 );
+
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
 	 * Perform bulk action on hosted apps
 	 * 
 	 * @param Request $request The request object.

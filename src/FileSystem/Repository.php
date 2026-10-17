@@ -1138,6 +1138,27 @@ abstract class Repository {
 	}
 
 	/**
+	 * Give a live app's files a new slug.
+	 *
+	 * Storage only: the app's database record and everything that refers
+	 * to the slug are updated by HostedApplicationService::rename_app_slug(),
+	 * which calls this.
+	 *
+	 * @param string $slug The app's slug.
+	 * @param string $new_slug The new slug.
+	 * @return true|Exception
+	 */
+	public function rename( string $slug, string $new_slug ) : true|Exception {
+		try {
+			$this->storage->rename_app( $this->app_type(), $slug, $new_slug );
+
+			return true;
+		} catch ( Exception $e ) {
+			return $e;
+		}
+	}
+
+	/**
 	 * List this type's trashed apps.
 	 *
 	 * @return list<array{slug: string, trashed_at: int}>

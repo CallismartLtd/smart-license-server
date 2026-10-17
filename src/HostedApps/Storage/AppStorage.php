@@ -156,6 +156,15 @@ final class AppStorage implements AppStorageAdapterInterface {
 	/**
 	 * {@inheritDoc}
 	 */
+	public function rename_app( string $type, string $from, string $to ) : void {
+		$this->changed( $type, $from );
+		$this->changed( $type, $to );
+		$this->adapter( $type )->rename_app( $type, $from, $to );
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
 	public function list_trashed( string $type ) : array {
 		return $this->remember( $type . '/', 'list_trashed', fn() => $this->adapter( $type )->list_trashed( $type ) );
 	}

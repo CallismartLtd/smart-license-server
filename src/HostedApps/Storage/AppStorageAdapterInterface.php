@@ -128,6 +128,26 @@ interface AppStorageAdapterInterface {
 	public function purge_app( string $type, string $slug ) : void;
 
 	/**
+	 * Give a live app a new slug, with every file it has.
+	 *
+	 * Files named after the slug are renamed with it, so the package
+	 * "{from}.zip" becomes "{to}.zip". Nothing else about the app changes.
+	 * The new slug must be free in storage: no live or trashed app may
+	 * have it.
+	 *
+	 * @param string $type App type.
+	 * @param string $from The app's slug.
+	 * @param string $to The new slug.
+	 * @return void
+	 * @throws StorageException INVALID_PATH, also when $to equals $from;
+	 *                          NOT_FOUND when no live app has $from;
+	 *                          ALREADY_EXISTS when a live or trashed app
+	 *                          has $to; IO_ERROR, after which the app is
+	 *                          left as it was.
+	 */
+	public function rename_app( string $type, string $from, string $to ) : void;
+
+	/**
 	 * List the trashed apps of a type.
 	 *
 	 * @param string $type App type.

@@ -8,11 +8,17 @@
 
 namespace SmartLicenseServer\HostedApps;
 
+use Callismart\DBPrism\Query\QueryIntents\PersistenceIntent;
 use Callismart\DBPrism\Query\QueryIntents\SelectionIntent;
+use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\SQLBuilder;
 use SmartLicenseServer\Core\DataStore;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\HostedApps\Storage\AppFile;
+use SmartLicenseServer\HostedApps\Storage\AppStorage;
+use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
@@ -470,6 +476,191 @@ class HostedApplicationService extends DataStore {
 		}
 
 		return $app_data;
+	}
+
+	/*
+	|------------------
+	| SLUG MANAGEMENT
+	|------------------
+	*/
+
+	/**
+	 * Give a hosted app a new slug.
+	 *
+	 * The slug is the app's public identity, so it is changed everywhere it
+	 * is recorded, in one database transaction: the app's record, the
+	 * licenses and download tokens issued for it, its analytics and the
+	 * bulk messages sent about it. Its files are renamed in storage last,
+	 * and its app.json is rebuilt with the new slug. A failure at any step
+	 * leaves everything as it was.
+	 *
+	 * The new slug must be in its final form (Repository::slug_from() gives
+	 * it back unchanged) and nothing of the app's type may use it: no app
+	 * record whatever its status, no live or trashed files, and no license,
+	 * token, analytics or message left behind by a deleted app, which would
+	 * otherwise attach to this app. An app in the trash cannot be renamed.
+	 *
+	 * Copies of the app already installed elsewhere still know it by its
+	 * old slug.
+	 *
+	 * @param AbstractHostedApp $app The app, as loaded from the database.
+	 * @param string $new_slug The new slug.
+	 * @return true|Exception True on success; the reason otherwise, with a
+	 *                        "status" in its data. Does not throw.
+	 */
+	public static function rename_app_slug( AbstractHostedApp $app, string $new_slug ) : true|Exception {
+		$type     = $app->get_type();
+		$old_slug = $app->get_slug();
+
+		try {
+			if ( ! $app->exists() ) {
+				throw new Exception( 'app_not_found', sprintf( 'The %s does not exist.', $type ), [ 'status' => 404 ] );
+			}
+
+			if ( AbstractHostedApp::STATUS_TRASH === $app->get_status() ) {
+				throw new Exception( 'app_in_trash', sprintf( 'This %s is in the trash. Restore it before renaming it.', $type ), [ 'status' => 400 ] );
+			}
+
+			if ( $new_slug === $old_slug ) {
+				throw new Exception( 'slug_unchanged', sprintf( 'The %s already has the slug "%s".', $type, $new_slug ), [ 'status' => 400 ] );
+			}
+
+			$canonical = Repository::slug_from( $new_slug );
+
+			if ( $canonical !== $new_slug || ! AppFile::is_segment( $new_slug ) ) {
+				throw new Exception(
+					'invalid_slug',
+					'' !== $canonical && AppFile::is_segment( $canonical )
+						? sprintf( '"%s" is not a valid slug. Did you mean "%s"?', $new_slug, $canonical )
+						: sprintf( '"%s" is not a valid slug.', $new_slug ),
+					[ 'status' => 400 ]
+				);
+			}
+
+			$repo_class = static::get_app_repository_class( $type );
+
+			if ( null === $repo_class ) {
+				throw new Exception( 'repo_error', sprintf( 'No repository is registered for the app type "%s".', $type ), [ 'status' => 500 ] );
+			}
+
+			static::$DB->transactional( function( Database $db ) use ( $app, $type, $old_slug, $new_slug, $repo_class ) {
+				$table = $app::get_db_table();
+				$lock  = static::query()->select( 'id', 'slug' )->from( $table )
+					->where( 'id', '=', $app->get_id() )
+					->limit( 1 )->lock_for_update();
+				$row   = $db->get_row( $lock->build(), $lock->get_bindings() );
+
+				if ( ! $row || $old_slug !== $row['slug'] ) {
+					throw new Exception( 'app_changed', sprintf( 'The %s was changed or deleted while renaming it. Reload it and try again.', $type ), [ 'status' => 409 ] );
+				}
+
+				$used_by = static::slug_used_by( $db, $type, $table, $new_slug, $repo_class );
+
+				if ( null !== $used_by ) {
+					throw new Exception(
+						'app_slug_exists',
+						sprintf( 'The slug "%s" is not available: %s.', $new_slug, $used_by ),
+						[ 'status' => 409 ]
+					);
+				}
+
+				foreach ( static::slug_references( $type, $table, $old_slug, $new_slug, (int) $app->get_id() ) as $update ) {
+					$db->execute( $update->build(), $update->get_bindings() );
+				}
+
+				// Files last: if they cannot be renamed, the database changes
+				// are rolled back.
+				$renamed = $repo_class->rename( $old_slug, $new_slug );
+
+				if ( $renamed instanceof Exception ) {
+					throw $renamed;
+				}
+
+				$app->set_slug( $new_slug );
+
+				try {
+					$repo_class->regenerate_app_dot_json( $app );
+				} catch ( \Throwable $e ) {
+					$repo_class->rename( $new_slug, $old_slug );
+
+					throw $e;
+				}
+			} );
+		} catch ( Exception $e ) {
+			$app->set_slug( $old_slug );
+
+			return $e;
+		} catch ( \Throwable $e ) {
+			$app->set_slug( $old_slug );
+
+			return new Exception( 'rename_failed', $e->getMessage(), [ 'status' => 500 ] );
+		}
+
+		static::cache_clear();
+
+		return true;
+	}
+
+	/**
+	 * Tell what of an app type already uses a slug.
+	 *
+	 * @param Database $db The database, inside the rename transaction.
+	 * @param string $type App type.
+	 * @param string $table The type's app table.
+	 * @param string $slug The slug.
+	 * @param Repository $repo_class The type's repository.
+	 * @return string|null What uses it, for the error message; null when free.
+	 */
+	protected static function slug_used_by( Database $db, string $type, string $table, string $slug, Repository $repo_class ) : ?string {
+		$storage = AppStorage::instance();
+
+		if ( $storage->has_app( $type, $slug ) || $repo_class->is_trashed( $slug ) ) {
+			return sprintf( 'another %s has it in storage', $type );
+		}
+
+		$app_prop = sprintf( '%s/%s', $type, $slug );
+		$checks   = [
+			sprintf( 'another %s has it', $type )        => static::query()->select( 'id' )->from( $table )->where( 'slug', '=', $slug ),
+			'licenses still refer to it'                  => static::query()->select( 'id' )->from( TableName::LICENSES->table() )->where( 'app_prop', '=', $app_prop ),
+			'download tokens still refer to it'           => static::query()->select( 'id' )->from( TableName::APP_DOWNLOAD_TOKENS->table() )->where( 'app_prop', '=', $app_prop ),
+			'analytics still refer to it'                 => static::query()->select( 'app_slug' )->from( TableName::ANALYTICS_DAILY->table() )->where( 'app_type', '=', $type )->where( 'app_slug', '=', $slug ),
+			'the analytics log still refers to it'        => static::query()->select( 'app_slug' )->from( TableName::ANALYTICS_LOG->table() )->where( 'app_type', '=', $type )->where( 'app_slug', '=', $slug ),
+			'bulk messages still refer to it'             => static::query()->select( 'app_slug' )->from( TableName::BULK_MESSAGES_APPS->table() )->where( 'app_type', '=', $type )->where( 'app_slug', '=', $slug ),
+		];
+
+		foreach ( $checks as $reason => $query ) {
+			$query->limit( 1 );
+
+			if ( null !== $db->get_var( $query->build(), $query->get_bindings() ) ) {
+				return $reason;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Build the updates that move every record of an app's slug to a new one.
+	 *
+	 * @param string $type App type.
+	 * @param string $table The type's app table.
+	 * @param string $old_slug The app's slug.
+	 * @param string $new_slug The new slug.
+	 * @param int $app_id The app's ID.
+	 * @return list<PersistenceIntent>
+	 */
+	protected static function slug_references( string $type, string $table, string $old_slug, string $new_slug, int $app_id ) : array {
+		$old_prop = sprintf( '%s/%s', $type, $old_slug );
+		$new_prop = sprintf( '%s/%s', $type, $new_slug );
+
+		return [
+			static::query()->update( $table )->set( [ 'slug' => $new_slug ] )->where( 'id', '=', $app_id ),
+			static::query()->update( TableName::LICENSES->table() )->set( [ 'app_prop' => $new_prop ] )->where( 'app_prop', '=', $old_prop ),
+			static::query()->update( TableName::APP_DOWNLOAD_TOKENS->table() )->set( [ 'app_prop' => $new_prop ] )->where( 'app_prop', '=', $old_prop ),
+			static::query()->update( TableName::ANALYTICS_DAILY->table() )->set( [ 'app_slug' => $new_slug ] )->where( 'app_type', '=', $type )->where( 'app_slug', '=', $old_slug ),
+			static::query()->update( TableName::ANALYTICS_LOG->table() )->set( [ 'app_slug' => $new_slug ] )->where( 'app_type', '=', $type )->where( 'app_slug', '=', $old_slug ),
+			static::query()->update( TableName::BULK_MESSAGES_APPS->table() )->set( [ 'app_slug' => $new_slug ] )->where( 'app_type', '=', $type )->where( 'app_slug', '=', $old_slug ),
+		];
 	}
 
 	/*

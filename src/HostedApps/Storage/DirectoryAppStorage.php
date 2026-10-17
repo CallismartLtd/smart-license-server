@@ -145,12 +145,7 @@ class DirectoryAppStorage implements AppStorageAdapterInterface {
 		}
 
 		foreach ( $type_dirs as $type => $dir ) {
-			$valid_dir = '' !== $dir
-				&& strlen( $dir ) <= AppFile::MAX_BYTES
-				&& ! str_starts_with( $dir, '.' )
-				&& 1 !== preg_match( '/[\\\\\/\x00-\x1F\x7F]/', $dir );
-
-			if ( ! AppFile::is_identifier( (string) $type ) || ! $valid_dir ) {
+			if ( ! AppFile::is_identifier( (string) $type ) || ! AppFile::is_segment( $dir ) ) {
 				throw new InvalidArgumentException( sprintf( 'Invalid type directory mapping "%s" => "%s".', $type, $dir ) );
 			}
 		}
@@ -260,6 +255,46 @@ class DirectoryAppStorage implements AppStorageAdapterInterface {
 			if ( ! $this->fs->delete( $dir, true ) ) {
 				$this->fail( StorageException::IO_ERROR, sprintf( 'The %s "%s" could not be deleted.', $type, $slug ), $type, $slug );
 			}
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * Moves the app's directory, then renames the package inside it. If
+	 * the package cannot be renamed, the directory is moved back.
+	 */
+	public function rename_app( string $type, string $from, string $to ) : void {
+		$this->check_app( $type, $to );
+
+		if ( $from === $to ) {
+			$this->fail( StorageException::INVALID_PATH, sprintf( 'The %s already has the slug "%s".', $type, $to ), $type, $from );
+		}
+
+		$this->require_app( $type, $from );
+
+		$old_dir = $this->app_dir( $type, $from );
+		$new_dir = $this->app_dir( $type, $to );
+
+		if ( $this->occupied( $new_dir ) || $this->occupied( $this->trashed_dir( $type, $to ) ) ) {
+			$this->fail( StorageException::ALREADY_EXISTS, sprintf( 'A live or trashed %s already has the slug "%s".', $type, $to ), $type, $to );
+		}
+
+		$has_package = $this->occupied( $old_dir . '/' . $from . '.zip' );
+
+		// A document may not take the package's name, so the new package
+		// name must be free inside the app too.
+		if ( $has_package && $this->occupied( $old_dir . '/' . $to . '.zip' ) ) {
+			$this->fail( StorageException::ALREADY_EXISTS, sprintf( 'The %s "%s" holds a file named "%s.zip".', $type, $from, $to ), $type, $from );
+		}
+
+		if ( ! $this->fs->move( $old_dir, $new_dir ) ) {
+			$this->fail( StorageException::IO_ERROR, sprintf( 'The %s "%s" could not be renamed to "%s".', $type, $from, $to ), $type, $from );
+		}
+
+		if ( $has_package && ! $this->fs->move( $new_dir . '/' . $from . '.zip', $new_dir . '/' . $to . '.zip' ) ) {
+			$this->fs->move( $new_dir, $old_dir );
+			$this->fail( StorageException::IO_ERROR, sprintf( 'The package of %s "%s" could not be renamed to "%s.zip".', $type, $from, $to ), $type, $from );
 		}
 	}
 
@@ -958,13 +993,7 @@ class DirectoryAppStorage implements AppStorageAdapterInterface {
 	 *              inside the app.
 	 */
 	protected function is_listable( string $path, string $app_real ) : bool {
-		$name = $this->name_of( $path );
-
-		return '' !== $name
-			&& ! str_starts_with( $name, '.' )
-			&& strlen( $name ) <= AppFile::MAX_BYTES
-			&& 1 !== preg_match( '/[\\\\\x00-\x1F\x7F]/', $name )
-			&& $this->is_inside( $path, $app_real );
+		return AppFile::is_segment( $this->name_of( $path ) ) && $this->is_inside( $path, $app_real );
 	}
 
 	/**
@@ -1117,7 +1146,7 @@ class DirectoryAppStorage implements AppStorageAdapterInterface {
 		foreach ( $entries as $entry ) {
 			$name = $this->name_of( $entry['path'] );
 
-			if ( $entry['is_dir'] && AppFile::is_identifier( $name ) ) {
+			if ( $entry['is_dir'] && AppFile::is_segment( $name ) ) {
 				$slugs[] = $name;
 			}
 		}
