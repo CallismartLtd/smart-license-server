@@ -267,7 +267,7 @@ class V1 implements RESTVersionInterface {
 		return [
 			'namespace' => self::NAMESPACE,
 			'routes'    => [
-				// License Activation Route
+				// License Activation Route.
 				[
 					'route'    => self::LICENSE_ACTIVATION,
 					'methods'  => ['POST'],
@@ -278,7 +278,7 @@ class V1 implements RESTVersionInterface {
 					'name'     => 'License Activation',
 				],
 
-				// License Deactivation Route
+				// License Deactivation Route.
 				[
 					'route'    => self::LICENSE_DEACTIVATION,
 					'methods'  => [ 'POST' ],
@@ -413,7 +413,7 @@ class V1 implements RESTVersionInterface {
 					'guard'    => [ HostedApps::class, 'assets_management_guard' ],
 					'args'     => [],
 					'category' => 'repository',
-					'name'     => 'Create or Replace App Asset'
+					'name'     => 'Delete App Asset'
 				],
 
 				// Download Token Reauthentication Route
@@ -490,12 +490,12 @@ class V1 implements RESTVersionInterface {
 			'license_key' => [
 				'required'    => true,
 				'type'        => 'string',
-				'description' => 'The license key to verify',
+				'description' => 'The license key to activate',
 			],
 			'domain' => [
 				'required'    => true,
 				'type'        => 'string',
-				'description' => 'The URL of the website where the license is being activated.',
+				'description' => 'The domain to associate associate the license activation record with.',
 			],
 		];
 	}

@@ -108,7 +108,7 @@ class WebBootstrapper implements BootstrapperInterface {
 				identity: $c->get( IdentityService::class ),
 				guard: $c->get( Guard::class ),
 				csrf: $c->get( CSRF::class ),
-				urls: $c->get( URLManager::class ),
+				urlmanager: $c->get( URLManager::class ),
 				versions: $c->get( V1::class )
 			)
 		);

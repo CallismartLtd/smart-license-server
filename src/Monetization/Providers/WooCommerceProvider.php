@@ -104,10 +104,7 @@ class WooCommerceProvider extends DataStore implements MonetizationProviderInter
 
 		$cache_expiry = static::default_ttl();
 		$endpoint     = static::$store_url . '/wp-json/wc/store/v1/products/' . $product_id;
-		$request      = HttpRequest::get( $endpoint )
-			->with_options( [ 'timeout' => 30 ] );
-
-		$response = $this->http_client->send( $request );
+		$response	= $this->http_client->get( $endpoint, [], ['timeout' => 30 ] );
 
 		if ( ! $response->ok() ) {
 			static::cache_set( $cache_key, null, $cache_expiry );
@@ -123,7 +120,7 @@ class WooCommerceProvider extends DataStore implements MonetizationProviderInter
 
 		$normalized = $this->normalize_product( $product );
 
-		// Cache normalized product for future requests
+		// Cache normalized product for future requests.
 		static::cache_set( $cache_key, $normalized, $cache_expiry );
 
 		return $normalized;

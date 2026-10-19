@@ -69,22 +69,22 @@ class RestAPIProvider implements RESTProviderInterface {
 	/**
 	 * Class constructor.
 	 *
-	 * @param RESTVersionInterface[] $versions REST API versions.
-	 * @param IdentityService        $identity Resolves the browser session's principal.
-	 * @param Guard                  $guard    Holds the principal for the request.
-	 * @param CSRF                   $csrf     Verifies the CSRF header of browser requests.
-	 * @param URLManager             $urls     The application's URLs.
+	 * @param RESTVersionInterface[] $versions		REST API versions.
+	 * @param IdentityService        $identity		Resolves the browser session's principal.
+	 * @param Guard                  $guard			Holds the principal for the request.
+	 * @param CSRF                   $csrf			Verifies the CSRF header of browser requests.
+	 * @param URLManager             $urlmanager	The url manager class
 	 */
 	private function __construct(
 		protected array $versions,
 		protected IdentityService $identity,
 		protected Guard $guard,
 		protected CSRF $csrf,
-		protected URLManager $urls
+		protected URLManager $urlmanager
 	) {
 		$this->index = new RESTIndex(
 			$versions,
-			fn( string $path ) : string => $this->urls->url( $path )->url()
+			fn( string $path ) : string => $this->urlmanager->url( $path )->url()
 		);
 	}
 
@@ -94,12 +94,12 @@ class RestAPIProvider implements RESTProviderInterface {
 	 * @param IdentityService      $identity    Resolves the browser session's principal.
 	 * @param Guard                $guard       Holds the principal for the request.
 	 * @param CSRF                 $csrf        Verifies the CSRF header of browser requests.
-	 * @param URLManager           $urls        The application's URLs.
+	 * @param URLManager           $urlmanager        The application's URLs.
 	 * @param RESTVersionInterface ...$versions REST API versions.
 	 * @return static
 	 */
-	public static function init( IdentityService $identity, Guard $guard, CSRF $csrf, URLManager $urls, RESTVersionInterface ...$versions ) : static {
-		return new static( $versions, $identity, $guard, $csrf, $urls );
+	public static function init( IdentityService $identity, Guard $guard, CSRF $csrf, URLManager $urlmanager, RESTVersionInterface ...$versions ) : static {
+		return new static( $versions, $identity, $guard, $csrf, $urlmanager );
 	}
 
 	/*
@@ -358,7 +358,7 @@ class RestAPIProvider implements RESTProviderInterface {
 			return true;
 		}
 
-		$app_url = $this->urls->url();
+		$app_url = $this->urlmanager->url();
 
 		if ( ! $app_url->is_ssl() && $app_url->is_localhost() ) {
 			return true;
@@ -390,7 +390,7 @@ class RestAPIProvider implements RESTProviderInterface {
 
 		$this->guard->clear_principal();
 
-		// 1. Browser session, only with a valid CSRF header.
+		// Browser session, only with a valid CSRF header.
 		$csrf_token = $request->get_header( CSRF::HEADER );
 
 		if ( '' !== $csrf_token && $this->csrf->verify( $csrf_token ) ) {
@@ -404,7 +404,7 @@ class RestAPIProvider implements RESTProviderInterface {
 			$this->guard->clear_principal();
 		}
 
-		// 2. Service account.
+		// Service account.
 		$api_key = (string) $request->bearerToken();
 
 		if ( '' === $api_key ) {
