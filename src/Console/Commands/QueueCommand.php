@@ -220,6 +220,7 @@ class QueueCommand extends AbstractCommand {
 		// Stream real-time log entries to standard output for journald capture.
 		$this->worker->set_logger( fn( string $message ) => $this->log( $message ) );
 
+		$stop_handler = null;
 		// Attach SignalManager listeners to handle graceful termination signals
 		if ( $this->signal_manager->is_supported() ) {
 			$stop_handler = function( int $sig, SignalInfo $info ) {
@@ -266,6 +267,12 @@ class QueueCommand extends AbstractCommand {
 			return $this->work_until_stopped( $queue_channel, $reason );
 		} finally {
 			$this->worker->set_stop_checker( null );
+
+			if ( $stop_handler ) {
+				$this->signal_manager->remove_listener( 'SIGTERM', $stop_handler );
+				$this->signal_manager->remove_listener( 'SIGINT', $stop_handler );
+				$this->signal_manager->remove_listener( 'SIGHUP', $stop_handler );
+			}
 		}
 	}
 
