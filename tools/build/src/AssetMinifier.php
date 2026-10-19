@@ -16,7 +16,9 @@ namespace SmartLicenseServer\Build;
  * Every `name.js` / `name.css` gets a `name.min.js` / `name.min.css` next to
  * it; the original is kept. Files already named `*.min.*` are never minified
  * again, and a `name.min.js` / `name.min.css` that already exists is kept as
- * it is (libraries such as TinyMCE ship their own).
+ * it is (libraries such as TinyMCE ship their own). Files that are minified
+ * under a plain name (TinyMCE's skin.js, for example) are left alone too;
+ * see is_minified().
  *
  * Minification uses esbuild, pinned in tools/build/package.json. It is a
  * build-time tool only and never ships with the application. esbuild is run
@@ -33,14 +35,22 @@ final class AssetMinifier {
 	 * JavaScript output target.
 	 *
 	 * Without a target esbuild may shorten code into newer syntax (e.g.
-	 * `a || (a = b)` into `a ||= b`). Newer syntax in the sources, such as
-	 * private class fields, is lowered to ES2018.
+	 * `a || (a = b)` into `a ||= b`) that the sources do not use.
+	 *
+	 * ES2022 is the syntax the sources are written in (static and private
+	 * class members), so a minified file runs in the same browsers as its
+	 * source. A lower target must not be used: lowering class members makes
+	 * esbuild emit helper variables and rename the class to a short name
+	 * (`const d = class d { ... }`) at the top level. Each file is a classic
+	 * script sharing the page's global scope, so those names clash between
+	 * files ("Identifier 'd' has already been declared") or overwrite another
+	 * file's helpers.
 	 *
 	 * Deliberately not a browser list: esbuild treats destructuring as
 	 * unsupported before Safari 14.1 and cannot lower it, so a "safari12"
 	 * entry makes every file that destructures fail to build.
 	 */
-	public const JS_TARGET = [ 'es2018' ];
+	public const JS_TARGET = [ 'es2022' ];
 
 	/**
 	 * CSS output target: the browsers of the ES2018 era.
@@ -54,6 +64,14 @@ final class AssetMinifier {
 	 * Extensions to minify.
 	 */
 	private const EXTENSIONS = [ 'js', 'css' ];
+
+	/**
+	 * Lines longer than this many bytes count as minified code.
+	 *
+	 * Hand-written lines stay far below it; minified files put most of
+	 * their code on lines thousands of bytes long.
+	 */
+	private const MINIFIED_LINE_LENGTH = 500;
 
 	/**
 	 * Constructor.
@@ -230,7 +248,9 @@ final class AssetMinifier {
 	 *  - files already named *.min.js / *.min.css;
 	 *  - files whose *.min.* sibling already exists, i.e. libraries that ship
 	 *    their own minified build (TinyMCE, for example). That copy is kept
-	 *    as shipped instead of being overwritten.
+	 *    as shipped instead of being overwritten;
+	 *  - files that are already minified under a plain name (see is_minified()).
+	 *    Their libraries load them by that name, so a *.min.* copy is never used.
 	 *
 	 * @param string $dir Directory.
 	 * @return string[] Sorted relative paths with forward slashes.
@@ -248,8 +268,9 @@ final class AssetMinifier {
 			}
 		}
 
-		$files   = [];
-		$shipped = 0;
+		$files    = [];
+		$shipped  = 0;
+		$minified = 0;
 
 		foreach ( array_keys( $all ) as $file ) {
 			if ( 1 === preg_match( '/\.min\.[^.\/]+$/i', $file ) ) {
@@ -261,6 +282,11 @@ final class AssetMinifier {
 				continue;
 			}
 
+			if ( $this->is_minified( $dir . '/' . $file ) ) {
+				++$minified;
+				continue;
+			}
+
 			$files[] = $file;
 		}
 
@@ -268,9 +294,42 @@ final class AssetMinifier {
 			$this->console->info( sprintf( 'Kept %d minified file(s) that came with their source.', $shipped ) );
 		}
 
+		if ( $minified > 0 ) {
+			$this->console->info( sprintf( 'Skipped %d file(s) that are already minified.', $minified ) );
+		}
+
 		sort( $files );
 
 		return $files;
+	}
+
+	/**
+	 * Whether a file is already minified, whatever its name.
+	 *
+	 * True when more than half of its bytes sit on lines longer than
+	 * MINIFIED_LINE_LENGTH. Counting bytes, not lines, keeps a license
+	 * header above minified code from hiding it, and an occasional long
+	 * line (a data URI in hand-written CSS) from tripping it. Minified files
+	 * shorter than one such line are not recognised and get minified again,
+	 * which costs nothing.
+	 *
+	 * @param string $path Absolute path.
+	 * @return bool
+	 */
+	private function is_minified( string $path ) : bool {
+		$content = (string) file_get_contents( $path );
+		$total   = strlen( $content );
+		$long    = 0;
+
+		foreach ( explode( "\n", $content ) as $line ) {
+			$length = strlen( $line );
+
+			if ( $length > self::MINIFIED_LINE_LENGTH ) {
+				$long += $length;
+			}
+		}
+
+		return $long * 2 > $total;
 	}
 
 	/**
