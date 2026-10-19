@@ -436,22 +436,30 @@ class Terminal {
 	 * matching stty_available()/command_available() already living on
 	 * this class.
 	 *
+	 * With $signal_keys false, Ctrl+C, Ctrl+Z and Ctrl+\ stop raising
+	 * SIGINT, SIGTSTP and SIGQUIT (-isig) and arrive as the bytes
+	 * "\x03", "\x1a" and "\x1c" instead. A full-screen program uses
+	 * this to handle them itself: quit cleanly instead of being killed
+	 * or suspended with the screen still taken over.
+	 *
+	 * @param bool $signal_keys Whether Ctrl+C, Ctrl+Z and Ctrl+\ still raise signals.
 	 * @return bool True if raw mode was actually engaged; false if
 	 *              stty or system() are unavailable, in which case the
 	 *              caller should not enter a raw-mode read loop at all.
 	 */
-	public function enable_raw_mode() : bool {
+	public function enable_raw_mode( bool $signal_keys = true ) : bool {
 		if ( ! $this->stty_available() || ! $this->function_available( 'system' ) ) {
 			return false;
 		}
 
-		@system( 'stty -icanon -echo min 1 time 0' );
+		@system( 'stty -icanon -echo min 1 time 0' . ( $signal_keys ? '' : ' -isig' ) );
 
 		return true;
 	}
 
 	/**
-	 * Restore STDIN to normal (cooked) line-buffered, echoing mode.
+	 * Restore STDIN to normal (cooked) line-buffered, echoing mode,
+	 * with Ctrl+C, Ctrl+Z and Ctrl+\ raising their signals again.
 	 *
 	 * Safe to call even if enable_raw_mode() was never successfully
 	 * engaged — it just checks availability again and no-ops if stty
@@ -461,7 +469,7 @@ class Terminal {
 	 */
 	public function restore_cooked_mode() : void {
 		if ( $this->stty_available() && $this->function_available( 'system' ) ) {
-			@system( 'stty icanon echo' );
+			@system( 'stty icanon echo isig' );
 		}
 	}
 
