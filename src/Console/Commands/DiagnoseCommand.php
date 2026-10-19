@@ -19,6 +19,7 @@ use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Console\Tui\HealthMonitor;
 use SmartLicenseServer\Environments\Application\Health\HostResources;
+use SmartLicenseServer\Environments\Application\Health\SiteProbe;
 use SmartLicenseServer\Environments\Application\Health\SystemHealth;
 use SmartLicenseServer\Utils\Format;
 
@@ -102,6 +103,7 @@ class DiagnoseCommand extends AbstractCommand {
 	 *
 	 * @param SystemHealth    $health      Builds the checks and diagnostics.
 	 * @param HostResources   $resources   Host CPU, memory and disk, for the live view.
+	 * @param SiteProbe       $probe       Requests the site URL.
 	 * @param Terminal        $terminal    Decides colours and the wrapping width.
 	 * @param SignalManager   $signals     Resize and termination signals, for the live view.
 	 * @param InputInterface  $io          CLI input interface stream.
@@ -111,6 +113,7 @@ class DiagnoseCommand extends AbstractCommand {
 	public function __construct(
 		protected SystemHealth $health,
 		protected HostResources $resources,
+		protected SiteProbe $probe,
 		protected Terminal $terminal,
 		protected SignalManager $signals,
 		InputInterface $io,
@@ -153,7 +156,7 @@ class DiagnoseCommand extends AbstractCommand {
 			'Subcommands:',
 			'  health              Run the site health checks (the default).',
 			'  info                Show the system diagnostics: server, database, directories, and more.',
-			'  top                 Live, full-screen view of the checks and the host, like htop.',
+			'  top                 Live, full-screen view of the checks, the site and the host, like htop.',
 			'  help                Show this help message.',
 			'',
 			'Options:',
@@ -162,7 +165,8 @@ class DiagnoseCommand extends AbstractCommand {
 			'                      Names as listed, e.g. --section=database --section="loaded extensions".',
 			'  -v, --verbose       health: also print the message of each passing check.',
 			'  -q, --quiet         health: print nothing but a critical summary; use the exit code.',
-			'  --interval=<sec>    top: seconds between check runs. Default: 10, at least 2.',
+			'  --interval=<sec>    top: seconds between check runs and site requests. Default: 10, at least 2.',
+			'                      While the site is down, it is requested every ' . HealthMonitor::SITE_DOWN_INTERVAL . ' seconds.',
 			'',
 			'In top: Up/Down select, Enter opens a check, F filters, Tab shows the diagnostics,',
 			'R runs the checks now, Q or Ctrl+C quits.',
@@ -225,9 +229,10 @@ class DiagnoseCommand extends AbstractCommand {
 		$checks  = $this->health->checks();
 		$db      = $this->health->database_check();
 		$seconds = microtime( true ) - $started;
+		$site    = $this->probe->probe();
 
-		// The database connection is the first thing to know about.
-		array_unshift( $checks, $db );
+		// Whether visitors get the site, then the database: the first things to know.
+		array_unshift( $checks, $this->probe->check( $site ), $db );
 
 		$groups = $this->group_checks( $checks );
 		$worst  = $this->worst_status( $groups );
@@ -236,10 +241,11 @@ class DiagnoseCommand extends AbstractCommand {
 		if ( $this->wants_json( $input ) ) {
 			$this->print_json(
 				$this->health->report_meta() + [
-					'context' => $this->context(),
-					'status'  => $worst,
-					'summary' => $counts,
-					'checks'  => $checks,
+					'context'      => $this->context(),
+					'site_request' => $site,
+					'status'       => $worst,
+					'summary'      => $counts,
+					'checks'       => $checks,
 				]
 			);
 
@@ -248,7 +254,7 @@ class DiagnoseCommand extends AbstractCommand {
 
 		// Quiet: the summary alone, and only when critical (see print_summary()).
 		if ( $this->output->get_verbosity() >= OutputInterface::VERBOSITY_NORMAL ) {
-			$this->monitor()->print( $checks, $seconds, $this->output->get_verbosity() >= OutputInterface::VERBOSITY_VERBOSE );
+			$this->monitor()->print( $checks, $seconds, $this->output->get_verbosity() >= OutputInterface::VERBOSITY_VERBOSE, $site );
 
 			$context = $this->context();
 
@@ -340,7 +346,7 @@ class DiagnoseCommand extends AbstractCommand {
 	 * @return HealthMonitor
 	 */
 	private function monitor( int $interval = 10 ) : HealthMonitor {
-		return new HealthMonitor( $this->health, $this->resources, $this->terminal, $this->signals, $this->output, $interval );
+		return new HealthMonitor( $this->health, $this->resources, $this->probe, $this->terminal, $this->signals, $this->output, $interval );
 	}
 
 	/*

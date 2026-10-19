@@ -15,6 +15,7 @@ use SmartLicenseServer\Console\SignalInfo;
 use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Environments\Application\Health\HostResources;
+use SmartLicenseServer\Environments\Application\Health\SiteProbe;
 use SmartLicenseServer\Environments\Application\Health\SystemHealth;
 use SmartLicenseServer\Utils\Format;
 
@@ -35,6 +36,10 @@ use SmartLicenseServer\Utils\Format;
  *    cursor and cooked mode are restored. Ctrl+C and Ctrl+Z arrive as keys
  *    (raw mode without signals), so they quit cleanly instead of killing
  *    or suspending the process with the screen still taken over.
+ *  - Watch the site come back. The site URL is requested like a visitor
+ *    would (SiteProbe) and shown as "Site Reachable" among the checks and
+ *    in the title bar: every --interval seconds while it answers, every
+ *    SITE_DOWN_INTERVAL seconds while it is down, so a fix shows at once.
  *  - Same data as everywhere else. Checks and diagnostics come from
  *    SystemHealth, as on the admin pages and in `diagnose health`.
  *  - One look, live or printed. print() draws the same title bar and
@@ -72,6 +77,11 @@ final class HealthMonitor {
 	 * Longest wait for a key before the screen is checked again, in microseconds.
 	 */
 	private const TICK = 250000;
+
+	/**
+	 * Seconds between site requests while the site is down.
+	 */
+	public const SITE_DOWN_INTERVAL = 5;
 
 	/**
 	 * Seconds between host resource samples.
@@ -139,8 +149,13 @@ final class HealthMonitor {
 	private bool $detail = false;
 	private int $detail_scroll = 0;
 
-	/** @var array<int, array{id: string, label: string, status: string, message: string, recommendation: ?string}> Worst first. */
+	/** @var array<int, array{id: string, label: string, status: string, message: string, recommendation: ?string}> Worst first, with the site check. */
 	private array $checks = [];
+	/** @var array<int, array{id: string, label: string, status: string, message: string, recommendation: ?string}> The SystemHealth checks, as last run. */
+	private array $health_checks = [];
+	/** @var array{url: string, status: ?int, reason: string, seconds: float, final_url: ?string, error: ?string, timed_out: bool}|null Last site request. */
+	private ?array $site = null;
+	private float $site_at = 0.0;
 	private ?float $checks_at = null;
 	private float $checks_seconds = 0.0;
 	private int $filter = 0;
@@ -173,6 +188,7 @@ final class HealthMonitor {
 	 *
 	 * @param SystemHealth    $health   Checks and diagnostics.
 	 * @param HostResources   $resources Host CPU, memory, disk and load.
+	 * @param SiteProbe       $probe    Requests the site URL.
 	 * @param Terminal        $terminal Raw mode, size and capabilities.
 	 * @param SignalManager   $signals  Resize and termination signals.
 	 * @param OutputInterface $output   Where frames are written.
@@ -181,6 +197,7 @@ final class HealthMonitor {
 	public function __construct(
 		private SystemHealth $health,
 		private HostResources $resources,
+		private SiteProbe $probe,
 		private Terminal $terminal,
 		private SignalManager $signals,
 		private OutputInterface $output,
@@ -221,6 +238,7 @@ final class HealthMonitor {
 			$this->measure();
 			$this->sample_host();
 			$this->refresh_checks();
+			$this->probe_site();
 
 			while ( ! $this->quit ) {
 				$this->tick();
@@ -253,15 +271,19 @@ final class HealthMonitor {
 	 * @param array<int, array{id: string, label: string, status: string, message: string, recommendation: ?string}> $checks  Checks to show, in any order.
 	 * @param float                                                                                                       $seconds How long the checks took.
 	 * @param bool                                                                                                        $verbose Show the message of passing checks too.
+	 * @param array{url: string, status: ?int, reason: string, seconds: float, final_url: ?string, error: ?string, timed_out: bool}|null $site
+	 *        The SiteProbe::probe() result behind a "site_reachable" check in $checks, for the title bar and panel.
 	 * @return void
 	 */
-	public function print( array $checks, float $seconds, bool $verbose = false ) : void {
+	public function print( array $checks, float $seconds, bool $verbose = false, ?array $site = null ) : void {
 		$this->colour         = $this->terminal->supports_ansi();
 		$this->cols           = \max( self::MIN_COLS, \min( self::PRINT_MAX_COLS, $this->terminal->terminal_width() ) );
 		$this->meta           = $this->health->report_meta();
 		$this->checks         = self::worst_first( $checks );
 		$this->checks_seconds = $seconds;
 		$this->checks_at      = \microtime( true );
+		$this->site           = $site;
+		$this->site_at        = null === $site ? 0.0 : \microtime( true );
 
 		// CPU usage is a rate: two samples a moment apart.
 		$this->sample_host();
@@ -411,6 +433,10 @@ final class HealthMonitor {
 		if ( null !== $this->checks_at && $now - $this->checks_at >= $this->interval ) {
 			$this->refresh_checks();
 		}
+
+		if ( \microtime( true ) - $this->site_at >= $this->site_interval() ) {
+			$this->probe_site();
+		}
 	}
 
 	/**
@@ -457,8 +483,7 @@ final class HealthMonitor {
 	private function refresh_checks() : void {
 		$this->flash( 'Running checks...' );
 
-		$selected_id = $this->visible_checks()[ $this->selected ]['id'] ?? null;
-		$started     = \microtime( true );
+		$started = \microtime( true );
 
 		try {
 			$checks = $this->health->checks();
@@ -470,16 +495,57 @@ final class HealthMonitor {
 			return;
 		}
 
-		$this->checks         = self::worst_first( $checks );
+		$this->health_checks  = $checks;
 		$this->checks_seconds = \microtime( true ) - $started;
 		$this->checks_at      = \microtime( true );
 		$this->status         = '';
-		$this->dirty          = true;
 
-		$visible        = $this->visible_checks();
+		$this->compose_checks();
+	}
+
+	/**
+	 * Request the site URL.
+	 *
+	 * @return void
+	 */
+	private function probe_site() : void {
+		$this->flash( 'Requesting the site...' );
+
+		$this->site    = $this->probe->probe();
+		$this->site_at = \microtime( true );
+		$this->status  = '';
+
+		$this->compose_checks();
+	}
+
+	/**
+	 * Seconds until the next site request: sooner while the site is down.
+	 *
+	 * @return int
+	 */
+	private function site_interval() : int {
+		return null !== $this->site && SiteProbe::is_down( $this->site ) ? self::SITE_DOWN_INTERVAL : $this->interval;
+	}
+
+	/**
+	 * Merge the site check into the checks, worst first, keeping the
+	 * selected check selected.
+	 *
+	 * @return void
+	 */
+	private function compose_checks() : void {
+		$selected_id = $this->visible_checks()[ $this->selected ]['id'] ?? null;
+		$checks      = $this->health_checks;
+
+		if ( null !== $this->site ) {
+			\array_unshift( $checks, $this->probe->check( $this->site ) );
+		}
+
+		$this->checks   = self::worst_first( $checks );
 		$this->selected = 0;
+		$this->dirty    = true;
 
-		foreach ( $visible as $index => $check ) {
+		foreach ( $this->visible_checks() as $index => $check ) {
 			if ( $check['id'] === $selected_id ) {
 				$this->selected = $index;
 				break;
@@ -706,6 +772,7 @@ final class HealthMonitor {
 					$this->load_section( true );
 				} else {
 					$this->refresh_checks();
+					$this->probe_site();
 				}
 				return;
 
@@ -904,15 +971,29 @@ final class HealthMonitor {
 	private function title_bar() : string {
 		$meta  = $this->meta ?? [ 'product' => '', 'site' => '' ];
 		$left  = ' ' . \strtoupper( $meta['product'] ) . '  │  ' . ( $this->active ? 'Site Health Monitor' : 'Site Health' );
-		$right = $meta['site'] . '  ' . \date( 'Y-m-d H:i:s' ) . ' ';
-		$space = $this->cols - $this->length( $left ) - $this->length( $right );
+		$tag   = null === $this->site ? '' : ' ' . ( null === $this->site['status'] ? 'DOWN' : (string) $this->site['status'] ) . ' ';
+		$url   = $meta['site'] . ' ';
+		$clock = '  ' . \date( 'Y-m-d H:i:s' ) . ' ';
+		$space = $this->cols - $this->length( $left . $url . $tag . $clock );
 
-		$text = $space >= 2
-			? $left . \str_repeat( ' ', $space ) . $right
-			: $left;
+		if ( $space < 2 ) {
+			return $this->sgr( self::SGR_BAR, $this->fit( $left, $this->cols ) );
+		}
 
-		return $this->sgr( self::SGR_BAR, $this->fit( $text, $this->cols ) );
+		$tag_sgr = match ( true ) {
+			null === $this->site                                           => '',
+			null === $this->site['status'] || $this->site['status'] >= 500 => '41;97;1',
+			$this->site['status'] >= 300                                   => '43;30',
+			default                                                        => '42;30',
+		};
+
+		$tag = $this->colour || '' === $tag ? $tag : '[' . \trim( $tag ) . ']';
+
+		return $this->sgr( self::SGR_BAR, $left . \str_repeat( ' ', $this->cols - $this->length( $left . $url . $tag . $clock ) ) . $url )
+			. $this->sgr( $tag_sgr, $tag )
+			. $this->sgr( self::SGR_BAR, $clock );
 	}
+
 
 	/**
 	 * The row of summary panels: health, host and application.
@@ -1054,7 +1135,7 @@ final class HealthMonitor {
 			'Version'  => \sprintf( '%s (schema %s)', $meta['version'], $meta['schema'] ),
 			'PHP'      => \sprintf( '%s %s · %s / %s', \PHP_VERSION, \PHP_SAPI, Format::bytes( $php['used'] ), null === $php['limit'] ? 'no limit' : Format::bytes( $php['limit'] ) ),
 			'Database' => '' === $db ? '...' : $db,
-			'Site'     => $meta['site'],
+			'Site'     => $this->site_summary(),
 			'Checks'   => $this->active
 				? \sprintf( 'every %ds · last took %s', $this->interval, $this->duration( $this->checks_seconds ) )
 				: \sprintf( 'ran in %s', $this->duration( $this->checks_seconds ) ),
@@ -1063,10 +1144,48 @@ final class HealthMonitor {
 		$lines = [];
 
 		foreach ( $rows as $label => $value ) {
-			$lines[] = $this->sgr( self::SGR_LABEL, \str_pad( $label, 9 ) ) . $this->fit( $value, $width - 9 );
+			$text    = $this->fit( $value, $width - 9 );
+			$lines[] = $this->sgr( self::SGR_LABEL, \str_pad( $label, 9 ) ) . ( 'Site' === $label ? $this->sgr( $this->site_sgr(), $text ) : $text );
 		}
 
 		return $lines;
+	}
+
+	/**
+	 * The last site request in a few words: "200 OK · 85 ms", "DOWN (no answer)".
+	 *
+	 * @return string
+	 */
+	private function site_summary() : string {
+		if ( null === $this->site ) {
+			return '...';
+		}
+
+		$status = $this->site['status'];
+
+		// No answer: the reason is in the check; the status line counts down to the retry.
+		if ( null === $status ) {
+			return 'DOWN' . ( $this->site['timed_out'] ? ' (timed out)' : ' (no answer)' );
+		}
+
+		return \sprintf( '%d %s · %s', $status, $this->site['reason'], $this->duration( $this->site['seconds'] ) );
+	}
+
+
+	/**
+	 * Colour of the site status: green 2xx, yellow 3xx/4xx, red when down.
+	 *
+	 * @return string
+	 */
+	private function site_sgr() : string {
+		$status = $this->site['status'] ?? null;
+
+		return match ( true ) {
+			null === $this->site               => self::SGR_DIM,
+			null === $status || $status >= 500 => '31;1',
+			$status >= 300                     => '33;1',
+			default                            => '32;1',
+		};
 	}
 
 	/**
@@ -1343,10 +1462,14 @@ final class HealthMonitor {
 
 		if ( '' === $left && null !== $this->checks_at ) {
 			$left = \sprintf(
-				'Checks ran %s in %s · next in %ds · values from the console\'s PHP %s',
+				'Checks ran %s in %s · next in %ds · %s · values from the console\'s PHP %s',
 				\date( 'H:i:s', (int) $this->checks_at ),
 				$this->duration( $this->checks_seconds ),
 				\max( 0, (int) \ceil( $this->interval - ( \microtime( true ) - $this->checks_at ) ) ),
+				\sprintf(
+					null !== $this->site && SiteProbe::is_down( $this->site ) ? 'site DOWN, retry in %ds' : 'site next in %ds',
+					\max( 0, (int) \ceil( $this->site_interval() - ( \microtime( true ) - $this->site_at ) ) )
+				),
 				\PHP_VERSION
 			);
 		}
