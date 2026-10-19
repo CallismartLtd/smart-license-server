@@ -43,6 +43,7 @@ use SmartLicenseServer\Console\Commands\Apps\SoftwareCommand;
 use SmartLicenseServer\Console\Commands\Apps\ThemeCommand;
 use SmartLicenseServer\Console\Commands\CacheCommand;
 use SmartLicenseServer\Console\Commands\CronCommand;
+use SmartLicenseServer\Console\Commands\DiagnoseCommand;
 use SmartLicenseServer\Console\Commands\Installer;
 use SmartLicenseServer\Console\Commands\MigrateCommand;
 use SmartLicenseServer\Console\Commands\QueueCommand;
@@ -86,7 +87,8 @@ class CommandRegistry extends AbstractRegistry {
 		TestCommand::class,
 		QueueCommand::class,
 		Update::class,
-		CronCommand::class
+		CronCommand::class,
+		DiagnoseCommand::class
 	];
 
 	/*

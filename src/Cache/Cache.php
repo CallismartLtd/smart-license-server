@@ -62,6 +62,25 @@ final class Cache {
 	) {}
 
 	/**
+	 * Set cache adapter manually.
+	 * 
+	 * @param CacheAdapterInterface $adapter
+	 * @return void
+	 */
+	public function set_adapter( CacheAdapterInterface $adapter ) : void {
+		$this->adapter	= $adapter;
+	}
+
+	/**
+	 * Get the current cache adapter instance.
+	 * 
+	 * @return CacheAdapterInterface
+	 */
+	public function get_adapter() : CacheAdapterInterface {
+		return $this->adapter;
+	}
+
+	/**
 	 * Prevent cloning, which would create a second instance.
 	 */
 	private function __clone() {}

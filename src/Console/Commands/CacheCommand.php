@@ -34,6 +34,7 @@ use SmartLicenseServer\Utils\Stopwatch;
 class CacheCommand extends AbstractCommand {
 	public function __construct(
 		protected Cache $cache,
+		protected CacheAdapterRegistry $cache_adapter_registry,
 		InputInterface $io,
 		OutputInterface $output,
 		ScriptName $script_name
@@ -272,22 +273,32 @@ class CacheCommand extends AbstractCommand {
 			return 1;
 		}
 
-		if ( ! CacheAdapterRegistry::instance()->has( $adapter_id ) ) {
+		if ( ! $this->cache_adapter_registry->has( $adapter_id ) ) {
 			$this->output->error( sprintf( 'The cache adapter "%s" does not exist.', $adapter_id ) );
 			return 1;
 		}
 
-		if ( ! CacheAdapterRegistry::instance()->set_default_adapter( $adapter_id ) ) {
+		if ( ! $this->cache_adapter_registry->set_default_adapter( $adapter_id ) ) {
 			$this->output->error( 'Unable to set new adapter.' );
 			return 1;
 		}
 
-		// smliser_envProvider()->setCacheAdapter( true );
+		$adapter = $this->cache_adapter_registry->get_adapter( $adapter_id );
 
-		$adapter_class = CacheAdapterRegistry::instance()->get( $adapter_id );
-		$adapter_name  = $adapter_class ? $adapter_class::get_name() : $adapter_id;
+		if ( ! $adapter ) {
+			$this->output->error(
+				sprintf(
+					'Could not get a new instance of the adapter with id %s',
+					$adapter_id
+				)
+			);
 
-		$this->output->success( sprintf( 'Now using %s.', $adapter_name ) );
+			return 1;
+		}
+
+		$this->cache->set_adapter( $adapter );
+
+		$this->output->success( sprintf( 'Now using %s.', $adapter->get_name() ) );
 
 		return 0;
 	}
