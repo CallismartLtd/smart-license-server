@@ -912,7 +912,7 @@ final class AssetsManager {
 			'spinner_gif_2x'    => $this->urlmanager->assets_url( 'images/spinner-2x.gif' )->url(),
 			'theme_storage_key' => 'dashboard-theme',
 			'sidebar_state_key' => 'dashboard-menu-collapsed',
-			// 'app_search_api'    => \restAPIUrl( '/repository/' ),
+			'app_search_api'    => $this->urlmanager->url( 'smliser/v1/repository/' )->url(),
 			'uploads' => [
 				'max_upload_size'          => smliser_max_upload_size(),
 				'max_upload_size_readable' => Format::bytes( smliser_max_upload_size() )
