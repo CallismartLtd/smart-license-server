@@ -440,6 +440,10 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 			return 1;
 		}
 
+		if ( ! $this->require_auth() ) {
+			return 1;
+		}
+
 		$request = $this->buildAssetsRequest( $input->get_options() );
 
 		if ( ! $request ) {
