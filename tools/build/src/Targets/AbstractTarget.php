@@ -133,6 +133,15 @@ abstract class AbstractTarget {
 	}
 
 	/**
+	 * Build-relative directory of the bundled site themes (the default theme).
+	 *
+	 * @return string
+	 */
+	final public function themes_path() : string {
+		return BuildContext::join( $this->runtime_path(), 'themes' );
+	}
+
+	/**
 	 * Build-relative directory holding composer.json, composer.lock and vendor/.
 	 *
 	 * @return string

@@ -741,7 +741,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 
 				case 'assets':
 					try {
-						$result = $this->installer->link_public_assets();
+						$results = $this->installer->link_public_assets();
 					} catch ( \RuntimeException $e ) {
 						return [
 							'status' => 'failed',
@@ -749,11 +749,19 @@ final class WebInstaller implements ExecutionHandlerInterface {
 						];
 					}
 
-					return match ( $result ) {
-						AppInstaller::ASSETS_LINKED    => [ 'status' => 'done', 'detail' => 'Linked public/assets to system/assets.' ],
-						AppInstaller::ASSETS_COPIED    => [ 'status' => 'done', 'detail' => 'Your server does not allow links, so the assets were copied. Run setup again after each update.' ],
-						AppInstaller::ASSETS_UNCHANGED => [ 'status' => 'done', 'detail' => 'Already linked.' ],
-						default                        => [ 'status' => 'warning', 'detail' => 'public/assets already exists and was not created by the installer, so it was left as it is. Remove or rename it and run setup again to use the bundled assets.' ],
+					$kept = array_keys( $results, AppInstaller::ASSETS_KEPT, true );
+
+					if ( [] !== $kept ) {
+						return [
+							'status' => 'warning',
+							'detail' => sprintf( 'public/%s already exists and was not created by the installer, so it was left as it is. Remove or rename it and run setup again to use the bundled assets.', implode( ' and public/', $kept ) ),
+						];
+					}
+
+					return match ( true ) {
+						in_array( AppInstaller::ASSETS_COPIED, $results, true ) => [ 'status' => 'done', 'detail' => 'Your server does not allow links, so the assets were copied. Updates refresh the copies.' ],
+						in_array( AppInstaller::ASSETS_LINKED, $results, true ) => [ 'status' => 'done', 'detail' => sprintf( 'Linked public/%s.', implode( ' and public/', array_keys( $results ) ) ) ],
+						default                                                  => [ 'status' => 'done', 'detail' => 'Already linked.' ],
 					};
 
 				case 'tables':

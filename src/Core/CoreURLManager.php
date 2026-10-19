@@ -21,8 +21,8 @@ class CoreURLManager implements URLManagerInterface {
 		protected Settings $settings,
 		protected URL $app_url,
 		protected URL $admin_base_url,
-		protected URL $assets_url
-		
+		protected URL $assets_url,
+		protected URL $themes_url
 	) {}
 
 	/*
@@ -52,6 +52,16 @@ class CoreURLManager implements URLManagerInterface {
 	 */
 	public function assets_url( string $path = '', array $query = [] ) : URL {
 		return $this->assets_url->append_path( $path )->add_query_params( $query );
+	}
+
+	/**
+	 * Get the base URL to the published site theme assets.
+	 * 
+	 * @param string $path  Optional path to append.
+	 * @param array $query  Optional query params.
+	 */
+	public function themes_url( string $path = '', array $query = [] ) : URL {
+		return $this->themes_url->append_path( $path )->add_query_params( $query );
 	}
 
 	/*

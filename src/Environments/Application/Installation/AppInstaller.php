@@ -88,9 +88,15 @@ class AppInstaller {
 	public const ASSETS_COPY_MARKER = PublicAssets::COPY_MARKER;
 
 	/**
-	 * Name of the bundled assets inside public/.
+	 * Folders of system/ published in public/: public name => path inside system/.
+	 *
+	 * The core assets, and the default theme's assets (every theme's assets
+	 * are published at themes/<slug>).
 	 */
-	public const ASSETS_NAME = 'assets';
+	public const BUNDLED_ASSETS = [
+		'assets'         => 'assets',
+		'themes/default' => 'themes/default/assets',
+	];
 
 	/**
 	 * Minimum administrator password length, for every installer.
@@ -387,21 +393,27 @@ class AppInstaller {
 	}
 
 	/**
-	 * Publish the bundled assets (system/assets) at public/assets.
+	 * Publish the bundled assets (see BUNDLED_ASSETS) in public/.
 	 *
 	 * See PublicAssets::publish() for what is linked, copied, replaced or
 	 * kept.
 	 *
-	 * @param bool $force Rebuild even when the correct link already exists.
-	 * @return string One of the ASSETS_* constants describing what was done.
-	 * @throws \RuntimeException When the source folder is missing or the assets cannot be published.
+	 * @param bool $force Rebuild even when the correct links already exist.
+	 * @return array<string, string> Public name => one of the ASSETS_* constants.
+	 * @throws \RuntimeException When a source folder is missing or the assets cannot be published.
 	 */
-	public function link_public_assets( bool $force = false ) : string {
-		if ( ! $this->fs->is_dir( $this->assets_source_dir() ) ) {
-			throw new \RuntimeException( "The assets folder \"{$this->assets_source_dir()}\" does not exist. Re-upload the application files." );
+	public function link_public_assets( bool $force = false ) : array {
+		$results = [];
+
+		foreach ( $this->bundled_assets() as $name => $source ) {
+			if ( ! $this->fs->is_dir( $source ) ) {
+				throw new \RuntimeException( "The assets folder \"{$source}\" does not exist. Re-upload the application files." );
+			}
+
+			$results[ $name ] = $this->public_assets->publish( $source, $name, $force );
 		}
 
-		return $this->public_assets->publish( $this->assets_source_dir(), static::ASSETS_NAME, $force );
+		return $results;
 	}
 
 	/**
@@ -409,38 +421,64 @@ class AppInstaller {
 	 *
 	 * A link already shows the new files; a copy is rebuilt.
 	 *
-	 * @return string One of the ASSETS_* constants describing what was done.
-	 * @throws \RuntimeException When the source folder is missing or the assets cannot be published.
+	 * @return array<string, string> Public name => one of the ASSETS_* constants.
+	 * @throws \RuntimeException When a source folder is missing or the assets cannot be published.
 	 */
-	public function refresh_public_assets() : string {
-		return $this->public_assets->refresh( $this->assets_source_dir(), static::ASSETS_NAME );
+	public function refresh_public_assets() : array {
+		$results = [];
+
+		foreach ( $this->bundled_assets() as $name => $source ) {
+			$results[ $name ] = $this->public_assets->refresh( $source, $name );
+		}
+
+		return $results;
 	}
 
 	/**
-	 * Whether public/assets serves the bundled assets.
+	 * Bundled assets that are not reachable in public/.
+	 *
+	 * @return array<string, string> Public name => absolute path where it should be.
+	 */
+	public function missing_public_assets() : array {
+		$missing = [];
+
+		foreach ( array_keys( static::BUNDLED_ASSETS ) as $name ) {
+			if ( ! $this->public_assets->is_published( $name ) ) {
+				$missing[ $name ] = $this->public_assets->path( $name );
+			}
+		}
+
+		return $missing;
+	}
+
+	/**
+	 * Whether every bundled asset folder is reachable in public/.
 	 *
 	 * @return bool
 	 */
 	public function public_assets_available() : bool {
-		return $this->public_assets->is_published( static::ASSETS_NAME );
+		return [] === $this->missing_public_assets();
 	}
 
 	/**
-	 * Absolute path to the bundled assets folder (system/assets).
+	 * Absolute paths of the bundled asset folders.
 	 *
-	 * @return string
+	 * @return array<string, string> Public name => absolute path inside system/.
 	 */
-	public function assets_source_dir() : string {
-		return rtrim( \SMLISER_RUNTIME_DIR, '/\\' ) . '/assets';
+	public function bundled_assets() : array {
+		$runtime = rtrim( \SMLISER_RUNTIME_DIR, '/\\' );
+
+		return array_map( static fn( string $relative ) : string => $runtime . '/' . $relative, static::BUNDLED_ASSETS );
 	}
 
 	/**
-	 * Absolute path where the assets are published (public/assets).
+	 * Absolute path where a public name is published.
 	 *
+	 * @param string $name e.g. "assets" or "themes/default".
 	 * @return string
 	 */
-	public function assets_public_dir() : string {
-		return $this->public_assets->path( static::ASSETS_NAME );
+	public function public_asset_path( string $name ) : string {
+		return $this->public_assets->path( $name );
 	}
 
 	/**
@@ -1062,8 +1100,8 @@ class AppInstaller {
 			}
 		}
 
-		if ( ! $this->public_assets_available() ) {
-			$issues[] = sprintf( 'The public assets are not published: %s', $this->assets_public_dir() );
+		foreach ( $this->missing_public_assets() as $path ) {
+			$issues[] = sprintf( 'The public assets are not published: %s', $path );
 		}
 
 		if ( ! $this->has_database_connection() ) {

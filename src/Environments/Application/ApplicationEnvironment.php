@@ -131,6 +131,7 @@ class ApplicationEnvironment extends Environment {
 				app_url: url(),
 				admin_base_url: url(),
 				assets_url: url( '/assets/' ),
+				themes_url: url( '/themes/' ),
 			)
 		);
 

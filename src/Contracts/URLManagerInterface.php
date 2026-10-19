@@ -20,6 +20,15 @@ interface URLManagerInterface {
 	public const ADMIN_DOWNLOADS_URL_PREFIX_KEY  = 'admin_downloads_url_prefix';
 	public const UPLOADS_URL_PREFIX_KEY          = 'uploads_url_prefix';
 
+	/**
+	 * First path segments the configurable URL prefixes cannot use.
+	 *
+	 * Folders the web server serves from public/ before a request reaches
+	 * the app (assets, themes, extensions), the REST API prefix, and the
+	 * paths of core pages.
+	 */
+	public const RESERVED_URL_PREFIXES = [ 'assets', 'themes', 'extensions', 'smliser', 'documentation' ];
+
 
 	/*
 	 * -------------------------------------------------
@@ -46,6 +55,18 @@ interface URLManagerInterface {
 	 * @return URL
 	 */
 	public function assets_url( string $path = '', array $query = [] ) : URL;
+
+	/**
+	 * Get the base URL to the published site theme assets.
+	 *
+	 * Each theme's assets are published at <themes url>/<theme slug>/.
+	 *
+	 * @param string $path  Optional path to append, e.g. "default/css/theme.css".
+	 * @param array  $query Optional query params.
+	 *
+	 * @return URL
+	 */
+	public function themes_url( string $path = '', array $query = [] ) : URL;
 
 
 	/*

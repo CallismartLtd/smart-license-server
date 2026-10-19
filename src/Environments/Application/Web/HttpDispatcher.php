@@ -30,14 +30,20 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Email\RequestController as EmailRequestController;
-use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminDownloadMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\CallableResolver;
 use SmartLicenseServer\Environments\Application\Middlewares\CSRFMiddleware;
+use SmartLicenseServer\Environments\Application\Theming\CorePages;
+use SmartLicenseServer\Environments\Application\Theming\PageHandler;
+use SmartLicenseServer\Environments\Application\Theming\PageRoutes;
+use SmartLicenseServer\Environments\Application\Theming\ThemeRenderer;
+use SmartLicenseServer\Environments\Application\Theming\View;
+use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
+use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\Routing\DispatchStatus;
 use SmartLicenseServer\Routing\Router as CoreRouter;
 use SmartLicenseServer\SettingsAPI\SettingsController;
@@ -48,44 +54,60 @@ use SmartLicenseServer\SettingsAPI\SettingsController;
  * Registers application routes onto the core router and dispatches live HTTP
  * requests through middleware pipelines to resolve normalized HTTP responses.
  *
+ * Two kinds of route:
+ *  - Pages, registered through pages() (PageRoutes): the handler returns a
+ *    View and never prints; the active theme renders the View into the
+ *    Response.
+ *  - Everything else (admin pages, REST endpoints, file and asset
+ *    endpoints, actions), registered on router(): the handler returns its
+ *    own Response, and the theme layer is never built for the request.
+ *
+ * Unmatched paths follow the same rule: JSON for the REST API and for
+ * clients that ask for JSON, the built-in error document under the admin
+ * prefix, and the theme's 404 and 405 pages everywhere else.
+ *
  * @package SmartLicenseServer\Environments\Application\Routing
  * @since 0.2.0
  */
 final class HttpDispatcher {
 
-	/** 
-	 * The 404 page response callback.
-	 * 
-	 * @var callable
+	/**
+	 * Registers themed pages on the router.
+	 *
+	 * @var PageRoutes
 	 */
-	private $notFoundHandler;
+	private PageRoutes $pages;
 
 	/**
-	 * The 405 method not allowed page response callback. 
-	 * 
-	 * @var callable
+	 * Constructor.
+	 *
+	 * @param CoreRouter $router    The core router.
+	 * @param Container  $container The service container.
 	 */
-	private $methodNotAllowedHandler;
-
-	/**
-	 * The default home page response callback. 
-	 * 
-	 * @var callable
-	 */
-	private $defaultHomeHandler;
-
 	public function __construct(
 		protected CoreRouter $router,
 		protected Container $container
-
-	) {}
+	) {
+		$this->pages = new PageRoutes( $router );
+	}
 
 	/**
 	 * Direct access to the underlying core Router - group()/add()/get()/
 	 * post()/etc. all work exactly as documented there.
+	 *
+	 * Routes registered here are not themed: their handlers return a Response.
 	 */
 	public function router() : CoreRouter {
 		return $this->router;
+	}
+
+	/**
+	 * Registers themed pages: handlers return a View, the theme renders it.
+	 *
+	 * @return PageRoutes
+	 */
+	public function pages() : PageRoutes {
+		return $this->pages;
 	}
 
 	/**
@@ -94,8 +116,18 @@ final class HttpDispatcher {
 	 * @return self Fluent
 	 */
 	public function registerCoreRoutes() : self {
-		$this->router->any( '/', $this->defaultHomeHandler );
-		
+		/*
+		|-------------
+		| Core pages.
+		|-------------
+		*/
+		$this->pages->get( '/', [CorePages::class, 'home'] );
+
+		$this->router->group( 'documentation', function () {
+			$this->pages->get( '/', [CorePages::class, 'documentation'] );
+			$this->pages->get( '{category:slug}', [CorePages::class, 'documentation'] );
+		} );
+
 		$urlmanager = $this->container->get( URLManager::class );
 
 		/*
@@ -540,16 +572,6 @@ final class HttpDispatcher {
 
 		/*
 		|---------------------------
-		| The documentation routes
-		|---------------------------
-		*/
-		$this->router->group( 'documentation', function () {
-			$this->router->get( '/', [DefaultPage::class, 'doc_page'] );
-			$this->router->get( '{category:slug}', [DefaultPage::class, 'doc_page'] );
-		} );
-
-		/*
-		|---------------------------
 		| Uploads directory serving
 		|---------------------------
 		*/
@@ -668,73 +690,175 @@ final class HttpDispatcher {
 	}
 
 	/**
-	 * Sets the callback invoked when no route matches the path at all.
-	 * Receives `($request)`.
-	 * 
-	 * @param callable( Request ): Response $handler The callback to invoke when no route matches.
-	 * @return self
-	 */
-	public function notFound( callable $handler ) : self {
-		$this->notFoundHandler = $handler;
-
-		return $this;
-	}
-
-	/**
-	 * Sets the callback handler for the homepage.
-	 * 
-	 * @param callable( Request ) : Response $callback
-	 */
-	public function homeHandler( callable $callback ) : self {
-		$this->defaultHomeHandler = $callback;
-
-		return $this;
-	}
-
-	/**
-	 * Sets the callback invoked when a route matches the path but not the
-	 * method. Receives `($request, string[] $allowedMethods)`.
-	 * 
-	 * @param callable( Request, string[] ): Response $handler The callback to invoke when a route matches the path but not the method.
-	 * @return self
-	 */
-	public function methodNotAllowed( callable $handler ) : self {
-		$this->methodNotAllowedHandler = $handler;
-
-		return $this;
-	}
-
-	/**
 	 * Resolves a live (method, path) request against the route table and
-	 * dispatches it: on a match, runs the resolved middleware stack and
-	 * finally calls the handler; otherwise calls whichever of
-	 * notFound()/methodNotAllowed() applies, if set.
+	 * dispatches it.
 	 *
-	 * Returns whatever the handler (or fallback) returns - this class makes
-	 * no assumption about what that is (a Response object, void, anything),
-	 * since that's the handler's decision, not the router's.
+	 * On a match, runs the resolved middleware stack and finally calls the
+	 * handler: a page's View goes to the theme, anything else is normalized
+	 * by ensure_response(). Without a match, answers 404 or 405 (see
+	 * fallback()).
+	 *
+	 * @param Request $request
+	 * @return Response
 	 */
 	public function dispatch( Request $request ) : Response {
-		$result = $this->router->dispatch( $request->method(), $this->app_path( $request->path() ) );
+		$path   = $this->app_path( $request->path() );
+		$result = $this->router->dispatch( $request->method(), $path );
 
 		$request->set_route_param( $result->params );
 
-		$response = match ( $result->status ) {
-			DispatchStatus::Found => MiddlewarePipeline::run(
-				$this->container->get( CallableResolver::class ),
-				$result->middleware,
-				$result->handler,
-				$request,
-			),
-			DispatchStatus::NotFound => null !== $this->notFoundHandler
-				? ( $this->notFoundHandler )( $request )
-				: null,
-			DispatchStatus::MethodNotAllowed => null !== $this->methodNotAllowedHandler
-				? ( $this->methodNotAllowedHandler )( $request, $result->allowedMethods )
-				: null,
+		return match ( $result->status ) {
+			DispatchStatus::Found => $result->handler instanceof PageHandler
+				? $this->dispatch_page( $result->handler, $result->middleware, $request )
+				: $this->ensure_response(
+					MiddlewarePipeline::run(
+						$this->container->get( CallableResolver::class ),
+						$result->middleware,
+						$result->handler,
+						$request,
+					)
+				),
+			DispatchStatus::NotFound         => $this->fallback( $request, $path, 404 ),
+			DispatchStatus::MethodNotAllowed => $this->fallback( $request, $path, 405, $result->allowedMethods ),
 		};
+	}
 
-		return $this->ensure_response( $response );
+	/*
+	|-------
+	| PAGES
+	|-------
+	*/
+
+	/**
+	 * Run a page route and render its View with the theme.
+	 *
+	 * Middleware may answer with a Response instead (a redirect, say); it is
+	 * sent as it is. On a page route, middleware's $next() returns the View.
+	 *
+	 * @param PageHandler      $page
+	 * @param array<int,mixed> $middleware
+	 * @param Request          $request
+	 * @return Response
+	 */
+	private function dispatch_page( PageHandler $page, array $middleware, Request $request ) : Response {
+		$resolver = $this->container->get( CallableResolver::class );
+		$handler  = $resolver->resolve( $page->handler );
+
+		$result = MiddlewarePipeline::run(
+			$resolver,
+			$middleware,
+			fn ( Request $request ) : View => $this->call_page( $page, $handler, $request ),
+			$request
+		);
+
+		return $result instanceof View
+			? $this->render_page( $result, $request )
+			: $this->ensure_response( $result );
+	}
+
+	/**
+	 * Call a page handler: it must return a View and must not print.
+	 *
+	 * @param PageHandler $page    The page, for error messages.
+	 * @param callable    $handler The resolved handler.
+	 * @param Request     $request
+	 * @return View
+	 * @throws \LogicException When the handler prints or returns anything but a View.
+	 */
+	private function call_page( PageHandler $page, callable $handler, Request $request ) : View {
+		$level = ob_get_level();
+		ob_start();
+
+		try {
+			$view = $handler( $request );
+		} finally {
+			$output = '';
+
+			while ( ob_get_level() > $level ) {
+				$output = (string) ob_get_clean() . $output;
+			}
+		}
+
+		if ( '' !== $output ) {
+			throw new \LogicException( sprintf( 'The page handler %s printed output. A page returns a View and never prints; the theme renders it.', $page->describe() ) );
+		}
+
+		if ( ! $view instanceof View ) {
+			throw new \LogicException( sprintf( 'The page handler %s returned %s; a page must return a %s.', $page->describe(), get_debug_type( $view ), View::class ) );
+		}
+
+		return $view;
+	}
+
+	/**
+	 * Render a View with the active theme.
+	 *
+	 * The renderer is resolved here, on the first page of the request, so
+	 * non-page requests never build the theme layer.
+	 *
+	 * @param View    $view
+	 * @param Request $request
+	 * @return Response
+	 */
+	private function render_page( View $view, Request $request ) : Response {
+		return $this->container->get( ThemeRenderer::class )->render( $view, $request );
+	}
+
+	/**
+	 * Answer a request no route takes: 404, or 405 when the path exists.
+	 *
+	 *  - JSON under the REST prefix, or when the client asks for JSON;
+	 *  - the built-in error document under the admin prefix, which is not themed;
+	 *  - the theme's error page everywhere else.
+	 *
+	 * @param Request  $request
+	 * @param string   $path    Path relative to the application root.
+	 * @param int      $status  404 or 405.
+	 * @param string[] $allowed Methods the path accepts (405).
+	 * @return Response
+	 */
+	private function fallback( Request $request, string $path, int $status, array $allowed = [] ) : Response {
+		$urlmanager = $this->container->get( URLManager::class );
+		$message    = 405 === $status
+			? 'The request method is not allowed on this server.'
+			: 'The requested resource could not be found.';
+
+		if ( $request->wantsJson() || $this->path_in( $path, RESTProviderInterface::PREFIX ) ) {
+			$body = 405 === $status
+				? [ 'error' => 'Not Allowed', 'data' => [ 'message' => $message ] ]
+				: [ 'error' => 'Not found', 'message' => $message, 'data' => [ 'message' => $message ] ];
+
+			$response = Response::json( $body, $status );
+		} elseif ( $this->path_in( $path, $urlmanager->admin_url_prefix() ) ) {
+			$response = Response::error( new Exception( 405 === $status ? 'method_not_allowed' : 'not_found', $message, [ 'status' => $status ] ), $status );
+		} else {
+			$pages = $this->container->get( CorePages::class );
+
+			return $this->render_page(
+				405 === $status ? $pages->method_not_allowed( $request, $allowed ) : $pages->not_found( $request ),
+				$request
+			);
+		}
+
+		if ( 405 === $status ) {
+			$response->set_header( 'Allow', implode( ', ', $allowed ) );
+		}
+
+		return $response;
+	}
+
+	/**
+	 * Whether a path is a URL prefix or below it.
+	 *
+	 * @param string $path   Path relative to the application root.
+	 * @param string $prefix URL prefix, without slashes.
+	 * @return bool
+	 */
+	private function path_in( string $path, string $prefix ) : bool {
+		$path   = trim( $path, '/' );
+		$prefix = trim( $prefix, '/' );
+
+		return '' !== $prefix && ( $path === $prefix || str_starts_with( $path, $prefix . '/' ) );
 	}
 
 	/**
@@ -768,6 +892,11 @@ final class HttpDispatcher {
 	 * @throws \RuntimeException If the data type cannot be safely converted to a response.
 	 */
 	private function ensure_response( mixed $data ) : Response {
+		// A View is only for page routes: those go through dispatch_page().
+		if ( $data instanceof View ) {
+			throw new \LogicException( 'A route that is not a page returned a View. Register it with pages() to have it themed, or return a Response.' );
+		}
+
 		// Direct pass-through if it's already a Response instance.
 		if ( $data instanceof Response ) {
 			return $data;

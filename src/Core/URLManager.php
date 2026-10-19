@@ -21,6 +21,7 @@ use SmartLicenseServer\Exceptions\ProxyMethodException;
  *
  * @method URL url( string $path = '', array $query = [] )
  * @method URL assets_url( string $path = '', array $query = [] )
+ * @method URL themes_url( string $path = '', array $query = [] )
  *
  * @method string admin_url_prefix()
  * @method URL admin_url( string $page = '', string $tab = '', array $query = [] )

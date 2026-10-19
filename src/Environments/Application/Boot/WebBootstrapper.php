@@ -20,8 +20,9 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
 use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
-use SmartLicenseServer\Environments\Application\DefaultPage;
 use SmartLicenseServer\Environments\Application\Kernel\ExecutionHandlerInterface;
+use SmartLicenseServer\Environments\Application\Theming\ThemeManager;
+use SmartLicenseServer\Environments\Application\Theming\ThemeRenderer;
 use SmartLicenseServer\Environments\Application\Web\HttpExecutionHandler;
 use SmartLicenseServer\Environments\Application\Web\RestAPIProvider;
 use SmartLicenseServer\Environments\Application\Web\HttpDispatcher;
@@ -124,6 +125,22 @@ class WebBootstrapper implements BootstrapperInterface {
 			)
 		);
 
+		$container->singleton(
+			ThemeManager::class,
+			fn ( Container $c ) : ThemeManager => ThemeManager::from_runtime( $c->get( FileSystem::class ) )
+		);
+
+		$container->singleton(
+			ThemeRenderer::class,
+			fn ( Container $c ) : ThemeRenderer => new ThemeRenderer(
+				$c->get( ThemeManager::class ),
+				$c->get( URLManager::class ),
+				$c->get( Guard::class ),
+				$c->get( AssetsManager::class ),
+				$c->get( FileSystem::class )
+			)
+		);
+
 		$container->singleton( UserSessionCutoff::class,
 			fn() : UserSessionCutoff => new UserSessionCutoff()
 		);
@@ -160,12 +177,7 @@ class WebBootstrapper implements BootstrapperInterface {
 			);
 		}
 
-		$defaultPage = $container->get( DefaultPage::class );
-		
 		$container->get( HttpDispatcher::class )
-			->homeHandler( [ $defaultPage, 'home' ] )
-			->notFound( [ $defaultPage, 'not_found' ] )
-			->methodNotAllowed( [ $defaultPage, 'method_not_allowed' ] )
 			->registerCoreRoutes()
 			->registerProvider( $container->get( RESTProviderInterface::class ) );
 		

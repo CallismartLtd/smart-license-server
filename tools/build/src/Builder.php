@@ -20,7 +20,7 @@ final class Builder {
 	/**
 	 * Repository directories every build copies.
 	 */
-	private const SOURCE_DIRS = [ 'src', 'templates', 'assets' ];
+	private const SOURCE_DIRS = [ 'src', 'templates', 'assets', 'themes' ];
 
 	/**
 	 * Number of files copied in this run.
@@ -175,7 +175,9 @@ final class Builder {
 	}
 
 	/**
-	 * Copy src/, templates/ and assets/ into the runtime directory.
+	 * Copy src/, templates/, assets/ and themes/ into the runtime directory.
+	 *
+	 * Theme assets are not minified: a theme ships its files as written.
 	 *
 	 * @param AbstractTarget $target Target.
 	 * @throws BuildException When a copy fails.
@@ -187,6 +189,7 @@ final class Builder {
 			'src'       => $target->core_path(),
 			'templates' => $target->templates_path(),
 			'assets'    => $target->assets_path(),
+			'themes'    => $target->themes_path(),
 		];
 
 		foreach ( $destinations as $source => $destination ) {

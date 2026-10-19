@@ -77,7 +77,7 @@ class Installer extends AbstractCommand {
 			'make:roles'     => 'Install default roles.',
 			'make:admin'     => 'Create a human administrator account.',
 			'make:htaccess'  => 'Creates or updates the .htaccess file.',
-			'link:assets'    => 'Publishes system/assets at public/assets (symlink, or a copy where links are unavailable).',
+			'link:assets'    => 'Publishes the bundled assets and the default theme\'s assets in public/ (symlinks, or copies where links are unavailable).',
 			'mark:installed' => 'Verifies the installation and records it as complete.',
 			'token'          => 'Prints the setup token that claims the web installer.',
 			'help'           => 'Displays this help message.',
@@ -98,11 +98,11 @@ class Installer extends AbstractCommand {
 			'',
 			'   General: ',
 			'--force, -f        Replace or rebuild what a subcommand would otherwise leave as it is:',
-			'                     run            .env (after confirmation), .htaccess and public/assets.',
+			'                     run            .env (after confirmation), .htaccess and the published assets.',
 			'                                    Roles are never reinstalled by run; use make:roles --force.',
 			'                     make:dotenv    Replace the existing .env file (asks for confirmation first).',
 			'                     make:htaccess  Rewrite the existing .htaccess file.',
-			'                     link:assets    Rebuild public/assets: recreate the link, or switch between',
+			'                     link:assets    Rebuild public/assets and public/themes/default: recreate the links, or switch between',
 			'                                    link and copy based on what the server allows now.',
 			'                     make:roles     Install the default roles again over existing ones.',
 			'',
@@ -810,7 +810,7 @@ class Installer extends AbstractCommand {
 	}
 
 	/**
-	 * Publish system/assets at public/assets.
+	 * Publish the bundled assets in public/ (AppInstaller::BUNDLED_ASSETS).
 	 *
 	 * @param CommandInput $input
 	 * @return int
@@ -821,34 +821,43 @@ class Installer extends AbstractCommand {
 		$force = $this->is_forced( $input );
 
 		try {
-			$result = $this->installer->link_public_assets( $force );
+			$results = $this->installer->link_public_assets( $force );
 		} catch ( \RuntimeException $e ) {
 			$this->output->error( $e->getMessage() );
 			return 1;
 		}
 
-		$source = $this->installer->assets_source_dir();
-		$target = $this->installer->assets_public_dir();
+		$sources = $this->installer->bundled_assets();
+		$copied  = false;
 
-		switch ( $result ) {
-			case AppInstaller::ASSETS_LINKED:
-				$this->output->success( sprintf( '%s %s -> %s', $force ? 'Relinked' : 'Linked', $target, $source ) );
-				break;
+		foreach ( $results as $name => $result ) {
+			$source = $sources[ $name ];
+			$target = $this->installer->public_asset_path( $name );
 
-			case AppInstaller::ASSETS_COPIED:
-				$this->output->warning( 'Symlinks are not available on this server, so the assets were copied.' );
-				$this->output->success( sprintf( 'Copied %s to %s', $source, $target ) );
-				$this->output->info( 'Run this command again after every update to refresh the copy.' );
-				break;
+			switch ( $result ) {
+				case AppInstaller::ASSETS_LINKED:
+					$this->output->success( sprintf( '%s %s -> %s', $force ? 'Relinked' : 'Linked', $target, $source ) );
+					break;
 
-			case AppInstaller::ASSETS_UNCHANGED:
-				$this->output->success( sprintf( '%s is already linked to %s', $target, $source ) );
-				break;
+				case AppInstaller::ASSETS_COPIED:
+					$copied = true;
+					$this->output->success( sprintf( 'Copied %s to %s', $source, $target ) );
+					break;
 
-			default:
-				$this->output->warning( sprintf( '%s already exists and was not created by the installer, so it was left as it is.', $target ) );
-				$this->output->info( 'Remove or rename it, then run this command again to use the bundled assets. --force does not remove it.' );
-				break;
+				case AppInstaller::ASSETS_UNCHANGED:
+					$this->output->success( sprintf( '%s is already linked to %s', $target, $source ) );
+					break;
+
+				default:
+					$this->output->warning( sprintf( '%s already exists and was not created by the installer, so it was left as it is.', $target ) );
+					$this->output->info( 'Remove or rename it, then run this command again to use the bundled assets. --force does not remove it.' );
+					break;
+			}
+		}
+
+		if ( $copied ) {
+			$this->output->warning( 'Symlinks are not available on this server, so the assets were copied.' );
+			$this->output->info( 'Updates refresh the copies; run this command again if they are ever out of date.' );
 		}
 
 		$this->output->success( sprintf( 'Completed in %fs', $this->stop_timer() ) );

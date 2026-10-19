@@ -11,7 +11,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\SettingsAPI;
 
 use SmartLicenseServer\Admin\ContentHandlers\OptionsPage;
-use SmartLicenseServer\Core\Collection;
+use SmartLicenseServer\Contracts\URLManagerInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Email\Templates\EmailTemplateRegistry;
@@ -83,6 +83,7 @@ class SettingsController {
 			$this->is_system_admin();
 
 			$fields = $this->options_page->get_routing_fields();
+			$values = [];
 
 			foreach ( $fields as $field ) {
 
@@ -95,8 +96,21 @@ class SettingsController {
 				$default_value = $field['input']['value'] ?? '';
 
 				$value = $this->sanitize_slug( $request->get( $key, $default_value ) ) ?: $default_value;
+
+				// The web server or the app answers these paths before the prefix could.
+				if ( in_array( $value, URLManagerInterface::RESERVED_URL_PREFIXES, true ) ) {
+					throw new RequestException(
+						'invalid_param',
+						sprintf( '"%s" cannot be used as the %s: it is reserved. Reserved: %s.', $value, $field['label'] ?? $key, implode( ', ', URLManagerInterface::RESERVED_URL_PREFIXES ) )
+					);
+				}
+
+				$values[ $key ] = $value;
+			}
+
+			// Save only when every prefix is valid.
+			foreach ( $values as $key => $value ) {
 				$this->settings->set( $key, $value );
-		
 			}
 
 			return Response::json( [

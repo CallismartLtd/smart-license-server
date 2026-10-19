@@ -76,15 +76,24 @@ if ( '/index.php' === $path || str_starts_with( $path, '/index.php/' ) ) {
 } elseif ( '/' !== $path ) {
 	$file = realpath( $public . $path );
 
-	// Files may only come from public/ or the folder public/assets links to; never above them.
-	$roots  = array_filter( [ $public, realpath( $public . '/assets' ) ] );
+	// Files may only come from public/ or the folders its asset links point to
+	// (public/assets, public/themes/<slug>, public/extensions/<slug>); never above them.
+	$roots = [ $public, realpath( $public . '/assets' ) ];
+
+	foreach ( [ 'themes', 'extensions' ] as $group ) {
+		foreach ( glob( $public . '/' . $group . '/*', GLOB_ONLYDIR ) ?: [] as $dir ) {
+			$roots[] = realpath( $dir );
+		}
+	}
+
+	$roots  = array_filter( $roots );
 	$inside = false;
 
 	foreach ( $roots as $root ) {
 		$inside = $inside || ( false !== $file && str_starts_with( $file, $root . DIRECTORY_SEPARATOR ) );
 	}
 
-	// Existing files inside public/ (including through the assets link) are served directly.
+	// Existing files inside public/ (including through the asset links) are served directly.
 	if ( $inside && is_file( $file ) ) {
 		if ( 'php' === strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ) ) {
 			http_response_code( 404 );

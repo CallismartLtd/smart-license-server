@@ -22,10 +22,11 @@ use SmartLicenseServer\Build\BuildException;
  *                                             where the document root is this folder (Apache).
  *   server/nginx.conf, server/Caddyfile, server/apache.conf, server/server.php  (generated)
  *   manifest.json                             (written last, by the builder)
- *   system/smliser/, system/templates/, system/assets/, system/vendor/
+ *   system/smliser/, system/templates/, system/assets/, system/themes/, system/vendor/
  *
- * storage/, .env, public/.htaccess and the public/assets symlink are
- * created by the application at install, update or upgrade time.
+ * storage/, .env, public/.htaccess and the public/assets and
+ * public/themes/default symlinks are created by the application at
+ * install, update or upgrade time.
  */
 class StandaloneTarget extends AbstractTarget {
 
