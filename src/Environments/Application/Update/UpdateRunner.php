@@ -11,7 +11,6 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Environments\Application\Update;
 
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
-use SmartLicenseServer\FileSystem\FileSystem;
 use Throwable;
 
 /**
@@ -74,14 +73,12 @@ final class UpdateRunner {
 	 * @param UpdateService $updates   Checks, prepares and notifies.
 	 * @param Updater       $updater   Applies, finishes and rolls back.
 	 * @param AppInstaller  $installer Republishes the public assets and builds the Migrator.
-	 * @param FileSystem    $fs        Filesystem API.
 	 * @param string        $root      Application root.
 	 */
 	public function __construct(
 		private UpdateService $updates,
 		private Updater $updater,
 		private AppInstaller $installer,
-		private FileSystem $fs,
 		private string $root
 	) {
 		$this->root = rtrim( $root, '/\\' ) . '/';
@@ -446,8 +443,7 @@ final class UpdateRunner {
 	 */
 	private function relink_assets( ?callable $progress ) : void {
 		try {
-			$copied = $this->fs->is_file( rtrim( $this->installer->assets_public_dir(), '/\\' ) . '/' . AppInstaller::ASSETS_COPY_MARKER );
-			$this->installer->link_public_assets( $copied );
+			$this->installer->refresh_public_assets();
 		} catch ( Throwable $e ) {
 			$this->report( $progress, 'finish', self::STATUS_WARNING, sprintf( 'The public assets could not be republished: %s Run `smliser installer link:assets --force`.', $e->getMessage() ) );
 		}

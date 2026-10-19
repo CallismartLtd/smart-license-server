@@ -22,6 +22,7 @@ use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Core\DotEnv;
 use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Environments\Application\Assets\PublicAssets;
 use SmartLicenseServer\Environments\Application\Boot\InstallationState;
 use SmartLicenseServer\Environments\Application\Boot\MaintenanceFlag;
 use SmartLicenseServer\Environments\Application\Release\ReleaseManifest;
@@ -74,17 +75,22 @@ class AppInstaller {
 	public const APP_URL_KEY = 'SMLISER_APP_URL';
 
 	/**
-	 * Results of link_public_assets().
+	 * Results of link_public_assets() and refresh_public_assets().
 	 */
-	public const ASSETS_LINKED    = 'linked';    // A symlink was created.
-	public const ASSETS_COPIED    = 'copied';    // Symlinks are unavailable; the assets were copied.
-	public const ASSETS_UNCHANGED = 'unchanged'; // The correct symlink already existed.
-	public const ASSETS_KEPT      = 'kept';      // A folder not made by the installer exists; left alone.
+	public const ASSETS_LINKED    = PublicAssets::LINKED;    // A symlink was created.
+	public const ASSETS_COPIED    = PublicAssets::COPIED;    // Symlinks are unavailable; the assets were copied.
+	public const ASSETS_UNCHANGED = PublicAssets::UNCHANGED; // The correct symlink already existed.
+	public const ASSETS_KEPT      = PublicAssets::KEPT;      // A folder not made by the installer exists; left alone.
 
 	/**
-	 * Marker file identifying a copy of the assets made by link_public_assets().
+	 * Marker file identifying a copy of the assets.
 	 */
-	public const ASSETS_COPY_MARKER = '.smliser-assets-copy';
+	public const ASSETS_COPY_MARKER = PublicAssets::COPY_MARKER;
+
+	/**
+	 * Name of the bundled assets inside public/.
+	 */
+	public const ASSETS_NAME = 'assets';
 
 	/**
 	 * Minimum administrator password length, for every installer.
@@ -117,13 +123,14 @@ class AppInstaller {
 	 * Database-backed steps refuse to run until a verified connection has
 	 * been activated with use_connection().
 	 *
-	 * @param Database                $db        The shared application database.
-	 * @param DatabaseAdapterRegistry $adapters  Database adapter registry.
-	 * @param FileSystem              $fs        Filesystem API.
-	 * @param JobQueue                $job_queue Background job queue.
-	 * @param InstallationState       $state     The installation state file.
-	 * @param MaintenanceFlag         $flag      The maintenance flag file.
-	 * @param SchemaRegistry          $schema    The schema registry; holds the table prefix.
+	 * @param Database                $db            The shared application database.
+	 * @param DatabaseAdapterRegistry $adapters      Database adapter registry.
+	 * @param FileSystem              $fs            Filesystem API.
+	 * @param JobQueue                $job_queue     Background job queue.
+	 * @param InstallationState       $state         The installation state file.
+	 * @param MaintenanceFlag         $flag          The maintenance flag file.
+	 * @param SchemaRegistry          $schema        The schema registry; holds the table prefix.
+	 * @param PublicAssets            $public_assets Publishes static folders in public/.
 	 */
 	public function __construct(
 		protected Database $db,
@@ -132,7 +139,8 @@ class AppInstaller {
 		protected JobQueue $job_queue,
 		protected InstallationState $state,
 		protected MaintenanceFlag $flag,
-		protected SchemaRegistry $schema
+		protected SchemaRegistry $schema,
+		protected PublicAssets $public_assets
 	) {}
 
 	/**
@@ -379,112 +387,33 @@ class AppInstaller {
 	}
 
 	/**
-	 * Expose the bundled assets (system/assets) at public/assets.
+	 * Publish the bundled assets (system/assets) at public/assets.
 	 *
-	 * Prefers a relative symlink (public/assets -> ../system/assets), so the
-	 * installation folder can be moved and updates are visible immediately.
-	 * Where symlinks are unavailable (symlink() disabled, or not permitted
-	 * on the platform), the assets are copied instead, with a marker file so
-	 * later runs can refresh the copy.
-	 *
-	 * Safe to run repeatedly:
-	 *  - a correct symlink is left alone, unless $force is set;
-	 *  - a symlink to anything else, or a broken one, is replaced;
-	 *  - a copy made by this method is refreshed;
-	 *  - any other file or folder at public/assets is kept and reported,
-	 *    even with $force, so data this method did not create is never removed.
-	 *
-	 * $force rebuilds whatever this method manages: an existing correct link
-	 * is recreated, and the choice between link and copy is made again from
-	 * what the server allows now.
-	 *
-	 * PHP's stat and realpath caches are cleared after every change, so the
-	 * checks that follow (and later code in the same request) see the
-	 * current state of public/assets.
+	 * See PublicAssets::publish() for what is linked, copied, replaced or
+	 * kept.
 	 *
 	 * @param bool $force Rebuild even when the correct link already exists.
 	 * @return string One of the ASSETS_* constants describing what was done.
 	 * @throws \RuntimeException When the source folder is missing or the assets cannot be published.
 	 */
 	public function link_public_assets( bool $force = false ) : string {
-		$source = $this->assets_source_dir();
-		$target = $this->assets_public_dir();
-
-		if ( ! $this->fs->is_dir( $source ) ) {
-			throw new \RuntimeException( "The assets folder \"{$source}\" does not exist. Re-upload the application files." );
+		if ( ! $this->fs->is_dir( $this->assets_source_dir() ) ) {
+			throw new \RuntimeException( "The assets folder \"{$this->assets_source_dir()}\" does not exist. Re-upload the application files." );
 		}
 
-		$public_dir = dirname( $target );
-
-		if ( ! $this->fs->mkdir( $public_dir ) ) {
-			throw new \RuntimeException( "Could not create \"{$public_dir}\". Make sure the application folder is writable by the web server." );
-		}
-
-		/*
-		 * Symlinks are handled natively: the FileSystem API has no symlink
-		 * operations, and its delete()/rmdir() follow a link to a directory
-		 * and would empty system/assets instead of removing the link.
-		 */
-		$this->flush_stat_cache();
-
-		if ( is_link( $target ) ) {
-			if ( ! $force && $this->points_to( $target, $source ) ) {
-				return static::ASSETS_UNCHANGED;
-			}
-
-			if ( ! @unlink( $target ) && ! @rmdir( $target ) ) {
-				throw new \RuntimeException( "Could not replace the link \"{$target}\"." );
-			}
-
-			$this->flush_stat_cache();
-		} elseif ( $this->fs->exists( $target ) ) {
-			if ( ! $this->fs->is_file( $target . '/' . static::ASSETS_COPY_MARKER ) ) {
-				return static::ASSETS_KEPT;
-			}
-
-			if ( ! $this->fs->rmdir( $target, true ) ) {
-				throw new \RuntimeException( "Could not remove the previous copy of the assets at \"{$target}\"." );
-			}
-
-			$this->flush_stat_cache();
-		}
-
-		if ( function_exists( 'symlink' ) && @symlink( $this->relative_path( $public_dir, $source ), $target ) ) {
-			$this->flush_stat_cache();
-
-			if ( $this->fs->is_dir( $target ) ) {
-				return static::ASSETS_LINKED;
-			}
-
-			// A link that was created but does not resolve is useless; remove it before copying.
-			@unlink( $target );
-			$this->flush_stat_cache();
-		}
-
-		if ( ! $this->fs->copy( $source, $target, true ) ) {
-			throw new \RuntimeException( "Could not copy \"{$source}\" to \"{$target}\". Make sure the public folder is writable by the web server." );
-		}
-
-		if ( ! $this->fs->put_contents( $target . '/' . static::ASSETS_COPY_MARKER, "Copied from {$source} by the installer. Run the installer's asset command again after an update.\n" ) ) {
-			throw new \RuntimeException( "Could not write \"{$target}/" . static::ASSETS_COPY_MARKER . '".' );
-		}
-
-		$this->flush_stat_cache();
-
-		return static::ASSETS_COPIED;
+		return $this->public_assets->publish( $this->assets_source_dir(), static::ASSETS_NAME, $force );
 	}
 
 	/**
-	 * Clear PHP's stat and realpath caches.
+	 * Republish the bundled assets after system/ was replaced (update, rollback).
 	 *
-	 * is_dir(), is_link(), file_exists() and realpath() results are cached
-	 * per request; after creating or removing links and folders they can
-	 * describe a state that no longer exists.
+	 * A link already shows the new files; a copy is rebuilt.
 	 *
-	 * @return void
+	 * @return string One of the ASSETS_* constants describing what was done.
+	 * @throws \RuntimeException When the source folder is missing or the assets cannot be published.
 	 */
-	protected function flush_stat_cache() : void {
-		clearstatcache( true );
+	public function refresh_public_assets() : string {
+		return $this->public_assets->refresh( $this->assets_source_dir(), static::ASSETS_NAME );
 	}
 
 	/**
@@ -493,7 +422,7 @@ class AppInstaller {
 	 * @return bool
 	 */
 	public function public_assets_available() : bool {
-		return $this->fs->is_dir( $this->assets_public_dir() );
+		return $this->public_assets->is_published( static::ASSETS_NAME );
 	}
 
 	/**
@@ -511,56 +440,7 @@ class AppInstaller {
 	 * @return string
 	 */
 	public function assets_public_dir() : string {
-		return rtrim( \SMLISER_ROOT, '/\\' ) . '/public/assets';
-	}
-
-	/**
-	 * Whether a symlink resolves to the given directory.
-	 *
-	 * @param string $link   Symlink path.
-	 * @param string $target Expected target directory.
-	 * @return bool
-	 */
-	protected function points_to( string $link, string $target ) : bool {
-		$resolved = realpath( $link );
-
-		return false !== $resolved && realpath( $target ) === $resolved;
-	}
-
-	/**
-	 * Express a path relative to a directory, for portable symlinks.
-	 *
-	 * Falls back to the absolute path when no relative path exists (e.g.
-	 * different drives on Windows).
-	 *
-	 * @param string $from_dir Directory the link lives in.
-	 * @param string $to       Path the link points to.
-	 * @return string
-	 */
-	protected function relative_path( string $from_dir, string $to ) : string {
-		$from = realpath( $from_dir );
-		$to   = realpath( $to ) ?: $to;
-
-		if ( false === $from ) {
-			return $to;
-		}
-
-		$from_parts = explode( '/', trim( str_replace( '\\', '/', $from ), '/' ) );
-		$to_parts   = explode( '/', trim( str_replace( '\\', '/', $to ), '/' ) );
-
-		// Different roots (e.g. C: and D:) cannot be related.
-		if ( ( $from_parts[0] ?? '' ) !== ( $to_parts[0] ?? '' ) ) {
-			return $to;
-		}
-
-		while ( [] !== $from_parts && [] !== $to_parts && $from_parts[0] === $to_parts[0] ) {
-			array_shift( $from_parts );
-			array_shift( $to_parts );
-		}
-
-		$relative = str_repeat( '../', count( $from_parts ) ) . implode( '/', $to_parts );
-
-		return '' === $relative ? '.' : rtrim( $relative, '/' );
+		return $this->public_assets->path( static::ASSETS_NAME );
 	}
 
 	/**
