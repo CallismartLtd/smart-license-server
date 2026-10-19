@@ -24,6 +24,16 @@ use SmartLicenseServer\FileSystem\FileSystem;
  *
  * A flag without a reason is treated as maintenance.
  *
+ * Maintenance switched on by an operator (see MaintenanceMode) also records
+ * who switched it on, the hash of its bypass token, and whether background
+ * work is paused meanwhile:
+ *
+ *   { "reason": "maintenance", "since": "...", "by": "...",
+ *     "bypass": "<sha256 of the token>", "background": "paused" }
+ *
+ * A maintenance flag without "background" (written by hand, or by an older
+ * version) leaves background work running, as before.
+ *
  * @package SmartLicenseServer\Environments\Application\Boot
  * @since 0.2.0
  */
@@ -53,6 +63,16 @@ final class MaintenanceFlag {
 	 * @var string
 	 */
 	public const REASON_UPDATE = 'update';
+
+	/**
+	 * Background work waits while the flag is set.
+	 */
+	public const BACKGROUND_PAUSED = 'paused';
+
+	/**
+	 * Background work carries on while the flag is set.
+	 */
+	public const BACKGROUND_RUNNING = 'running';
 
 	/**
 	 * Class constructor.
@@ -143,6 +163,79 @@ final class MaintenanceFlag {
 				]
 			)
 		);
+	}
+
+	/**
+	 * Write a maintenance flag an operator switched on, atomically.
+	 *
+	 * @param string $message          Visitor-facing message; '' for the default.
+	 * @param int    $retry_after      Retry-After seconds; 0 omits it.
+	 * @param string $bypass_hash      SHA-256 of the bypass token (see MaintenanceBypass).
+	 * @param bool   $pause_background Whether scheduled tasks and queued jobs wait meanwhile.
+	 * @param string $by               Who switched it on, for the status.
+	 * @return void
+	 * @throws \RuntimeException When the flag cannot be written.
+	 */
+	public function write_maintenance( string $message, int $retry_after, string $bypass_hash, bool $pause_background, string $by = '' ) : void {
+		$this->write_json(
+			$this->file,
+			array_filter(
+				[
+					'reason'      => self::REASON_MAINTENANCE,
+					'message'     => $message,
+					'retry_after' => $retry_after,
+					'since'       => gmdate( DATE_ATOM ),
+					'by'          => $by,
+					'bypass'      => $bypass_hash,
+					'background'  => $pause_background ? self::BACKGROUND_PAUSED : self::BACKGROUND_RUNNING,
+				]
+			)
+		);
+	}
+
+	/**
+	 * Put back a flag exactly as read() returned it, every field included.
+	 *
+	 * For a process that replaced the flag for a while (an update) and
+	 * gives the previous one back.
+	 *
+	 * @param array<string, mixed> $flag A read() result.
+	 * @return void
+	 * @throws \RuntimeException When the flag cannot be written.
+	 */
+	public function restore( array $flag ) : void {
+		$this->write_json( $this->file, $flag );
+	}
+
+	/**
+	 * Whether maintenance asks background work to wait.
+	 *
+	 * Only a maintenance flag that says so: an update pauses background work
+	 * on its own terms (see CodeChangeDetector), an installation has none.
+	 *
+	 * @return bool
+	 */
+	public function background_paused() : bool {
+		$flag = $this->read();
+
+		return null !== $flag
+			&& self::REASON_MAINTENANCE === $this->reason()
+			&& self::BACKGROUND_PAUSED === ( $flag['background'] ?? self::BACKGROUND_RUNNING );
+	}
+
+	/**
+	 * The stored hash of the bypass token, when maintenance has one.
+	 *
+	 * @return string|null
+	 */
+	public function bypass_hash() : ?string {
+		$flag = $this->read();
+
+		if ( null === $flag || self::REASON_MAINTENANCE !== $this->reason() ) {
+			return null;
+		}
+
+		return is_string( $flag['bypass'] ?? null ) && '' !== $flag['bypass'] ? $flag['bypass'] : null;
 	}
 
 	/**

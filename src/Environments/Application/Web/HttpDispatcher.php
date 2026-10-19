@@ -18,6 +18,7 @@ use SmartLicenseServer\Admin\ActionHandlers\OtherFormsActions;
 use SmartLicenseServer\Admin\ActionHandlers\SystemManagement;
 use SmartLicenseServer\Admin\ActionHandlers\UpdateManagement;
 use SmartLicenseServer\Admin\ActionHandlers\BackgroundManagement;
+use SmartLicenseServer\Admin\ActionHandlers\MaintenanceManagement;
 use SmartLicenseServer\Admin\ContentHandlers\ToolsPage;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\Cache\CacheRequestController;
@@ -452,6 +453,29 @@ final class HttpDispatcher {
 								$this->router->post(
 									pattern: $pattern,
 									handler: [ UpdateManagement::class, $method ]
+								);
+							}
+						}
+					);
+
+					/*
+					|---------------------------
+					| MAINTENANCE PAGE ACTIONS
+					|---------------------------
+					*/
+					$this->router->group(
+						prefix: 'maintenance',
+						callback: function() {
+							$actions = [
+								'enable'  => 'enable',
+								'disable' => 'disable',
+								'bypass'  => 'renew_bypass',
+							];
+
+							foreach ( $actions as $pattern => $method ) {
+								$this->router->post(
+									pattern: $pattern,
+									handler: [ MaintenanceManagement::class, $method ]
 								);
 							}
 						}

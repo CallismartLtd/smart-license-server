@@ -65,8 +65,9 @@ class ScheduleCommand extends AbstractCommand {
 			'Options:',
 			'  --force           Force run all registered tasks immediately regardless of schedule.',
 			'',
-			'Nothing runs while the application is being updated, or while an update',
-			'waits for its finish step; due tasks stay due and run on the next call.',
+			'Nothing runs while the application is being updated, while an update waits',
+			'for its finish step, or while maintenance mode pauses background work; due',
+			'tasks stay due and run on the next call.',
 			'',
 			'Examples:',
 			"  {$prefix} run",
@@ -163,23 +164,26 @@ class ScheduleCommand extends AbstractCommand {
 	}
 
 	/**
-	 * Why tasks are not run while the application is updated.
+	 * Why tasks are not run while the application is updated or paused for maintenance.
 	 *
 	 * @param string $reason One of the CodeChangeDetector::REASON_* constants.
 	 * @param string $then   What happens to the tasks.
 	 * @return string
 	 */
 	private function skip_message( string $reason, string $then ) : string {
-		return CodeChangeDetector::REASON_UPDATING === $reason
-			? sprintf( 'The application is being updated. %s', $then )
-			: sprintf(
+		return match ( $reason ) {
+			CodeChangeDetector::REASON_UPDATING => sprintf( 'The application is being updated. %s', $then ),
+			CodeChangeDetector::REASON_PAUSED   => sprintf( 'Background work is paused for maintenance. %s', $then ),
+			default                             => sprintf(
 				'This process runs version %s but state.json records %s: an update has not finished. Run `%s update finish` (or roll back). %s',
 				$this->code_changes->running_version(),
 				$this->code_changes->installed_version() ?? 'another version',
 				$this->script_name,
 				$then
-			);
+			),
+		};
 	}
+
 
 	/**
 	 * List all registered scheduled tasks and their persisted state.

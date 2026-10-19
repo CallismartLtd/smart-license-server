@@ -286,8 +286,12 @@ class QueueCommand extends AbstractCommand {
 	 * @return int Exit code.
 	 */
 	private function work_within_budget( int $time_budget, ?string $queue_channel ) : int {
-		if ( null !== $this->code_changes->reason() ) {
-			$this->log( 'The application is being updated, or its update has not finished; no jobs taken in this run.' );
+		if ( null !== ( $reason = $this->code_changes->reason() ) ) {
+			$this->log(
+				CodeChangeDetector::REASON_PAUSED === $reason
+					? 'Background work is paused for maintenance; no jobs taken in this run.'
+					: 'The application is being updated, or its update has not finished; no jobs taken in this run.'
+			);
 			return 0;
 		}
 
@@ -336,10 +340,16 @@ class QueueCommand extends AbstractCommand {
 				return $this->exit_for_update();
 			}
 
-			// REASON_UPDATING: take no jobs until the update has ended.
-			$this->log( 'The application is being updated. No jobs are taken until it ends.' );
+			// REASON_UPDATING or REASON_PAUSED: take no jobs until it has ended.
+			$this->log(
+				CodeChangeDetector::REASON_PAUSED === $reason
+					? 'Background work is paused for maintenance. No jobs are taken until maintenance ends.'
+					: 'The application is being updated. No jobs are taken until it ends.'
+			);
 
-			if ( ! $this->wait_while( fn() => CodeChangeDetector::REASON_UPDATING === $this->code_changes->reason() ) ) {
+			$waiting = [ CodeChangeDetector::REASON_UPDATING, CodeChangeDetector::REASON_PAUSED ];
+
+			if ( ! $this->wait_while( fn() => \in_array( $this->code_changes->reason(), $waiting, true ) ) ) {
 				return 0;
 			}
 
@@ -347,7 +357,7 @@ class QueueCommand extends AbstractCommand {
 				return $this->exit_for_update();
 			}
 
-			$this->log( 'The update ended without a new version; resuming.' );
+			$this->log( CodeChangeDetector::REASON_PAUSED === $reason ? 'Maintenance ended; resuming.' : 'The update ended without a new version; resuming.' );
 		}
 	}
 

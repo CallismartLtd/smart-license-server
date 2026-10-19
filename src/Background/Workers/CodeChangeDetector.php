@@ -14,7 +14,9 @@ use SmartLicenseServer\Environments\Application\Boot\InstallationState;
 use SmartLicenseServer\Environments\Application\Boot\MaintenanceFlag;
 
 /**
- * Tells a long-running process that the code it loaded is no longer the code on disk.
+ * Tells a long-running process that the code it loaded is no longer the code
+ * on disk, or that background work must wait (an update, or maintenance with
+ * background work paused).
  *
  * A PHP process keeps the classes it loaded at start-up and loads the rest
  * lazily from disk. After an update the two no longer match: old classes in
@@ -31,6 +33,9 @@ use SmartLicenseServer\Environments\Application\Boot\MaintenanceFlag;
  *    process also finishes an update still waiting to be finished.
  *  - REASON_UPDATING: an update is swapping files (maintenance flag
  *    "update"). Load nothing; wait for it to end.
+ *  - REASON_PAUSED:   an operator switched maintenance on with background
+ *    work paused (see MaintenanceMode), e.g. for a database backup or
+ *    import. Take no work; wait for it to end. The code has not changed.
  *
  * Processes that start fresh for every run (cron, web-triggered workers)
  * do not need it.
@@ -42,6 +47,7 @@ final class CodeChangeDetector {
 	 */
 	public const REASON_UPDATING = 'updating';
 	public const REASON_CHANGED  = 'changed';
+	public const REASON_PAUSED   = 'paused';
 
 	/**
 	 * The version this process loaded.
@@ -54,7 +60,7 @@ final class CodeChangeDetector {
 	 * Constructor.
 	 *
 	 * @param InstallationState $state           The installation state (records the installed version).
-	 * @param MaintenanceFlag   $flag            The maintenance flag (marks an update in progress).
+	 * @param MaintenanceFlag   $flag            The maintenance flag (marks an update, or paused maintenance).
 	 * @param string|null       $running_version The version this process loaded; defaults to SMLISER_VER.
 	 */
 	public function __construct(
@@ -88,6 +94,11 @@ final class CodeChangeDetector {
 		// An unreadable state file is not evidence of an update; carry on.
 		if ( null !== $installed && $installed !== $this->running_version ) {
 			return self::REASON_CHANGED;
+		}
+
+		// Checked after a code change: a daemon on old code must still exit.
+		if ( $this->flag->background_paused() ) {
+			return self::REASON_PAUSED;
 		}
 
 		return null;

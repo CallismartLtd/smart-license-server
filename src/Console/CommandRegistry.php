@@ -45,6 +45,7 @@ use SmartLicenseServer\Console\Commands\CacheCommand;
 use SmartLicenseServer\Console\Commands\CronCommand;
 use SmartLicenseServer\Console\Commands\DiagnoseCommand;
 use SmartLicenseServer\Console\Commands\Installer;
+use SmartLicenseServer\Console\Commands\MaintenanceCommand;
 use SmartLicenseServer\Console\Commands\MigrateCommand;
 use SmartLicenseServer\Console\Commands\QueueCommand;
 use SmartLicenseServer\Console\Commands\ScheduleCommand;
@@ -88,7 +89,8 @@ class CommandRegistry extends AbstractRegistry {
 		QueueCommand::class,
 		Update::class,
 		CronCommand::class,
-		DiagnoseCommand::class
+		DiagnoseCommand::class,
+		MaintenanceCommand::class
 	];
 
 	/*

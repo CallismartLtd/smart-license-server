@@ -545,6 +545,9 @@ final class Updater {
 	/**
 	 * Put back the maintenance flag that existed before the update, or clear ours.
 	 *
+	 * Every field comes back, so operator maintenance keeps its bypass and
+	 * its background setting across an update.
+	 *
 	 * @param array|null $previous Flag contents before the update; null when there was none.
 	 * @return void
 	 */
@@ -554,11 +557,7 @@ final class Updater {
 			return;
 		}
 
-		$this->flag->write(
-			(string) ( $previous['reason'] ?? MaintenanceFlag::REASON_MAINTENANCE ),
-			(string) ( $previous['message'] ?? '' ),
-			(int) ( $previous['retry_after'] ?? 0 )
-		);
+		$this->flag->restore( $previous );
 	}
 
 	/**

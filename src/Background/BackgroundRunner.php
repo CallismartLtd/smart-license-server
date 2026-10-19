@@ -42,6 +42,7 @@ final class BackgroundRunner {
 	public const BUSY      = 'busy';       // Another run holds the lock.
 	public const THROTTLED = 'throttled';  // The cron URL was called again too soon.
 	public const UPDATING  = 'updating';   // An update is in progress or not finished.
+	public const PAUSED    = 'paused';     // Maintenance mode pauses background work.
 
 	/**
 	 * Minimum seconds between two runs started by the public cron URL.
@@ -106,10 +107,12 @@ final class BackgroundRunner {
 				return [ 'result' => self::THROTTLED ];
 			}
 
-			if ( null !== $this->code_changes->reason() ) {
-				$this->status->record( $source, $meta + [ 'skipped' => 'updating' ] );
+			if ( null !== ( $reason = $this->code_changes->reason() ) ) {
+				$paused = CodeChangeDetector::REASON_PAUSED === $reason;
 
-				return [ 'result' => self::UPDATING ];
+				$this->status->record( $source, $meta + [ 'skipped' => $paused ? 'maintenance' : 'updating' ] );
+
+				return [ 'result' => $paused ? self::PAUSED : self::UPDATING ];
 			}
 
 			return $this->run_locked( $source, $meta, $budget ?? ( \is_cli() ? self::CLI_QUEUE_BUDGET : self::WEB_QUEUE_BUDGET ), $log );

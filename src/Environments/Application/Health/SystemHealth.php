@@ -1020,10 +1020,14 @@ class SystemHealth {
 				MaintenanceFlag::REASON_UPDATE === $reason ? 'critical' : 'warning',
 				MaintenanceFlag::REASON_UPDATE === $reason
 					? 'The site is in maintenance because an update is being installed or did not finish. Visitors cannot use the site.'
-					: \sprintf( 'The site is in maintenance mode (%s). Visitors cannot use the site.', $reason ),
+					: \sprintf(
+						'The site is in maintenance mode (%s). Visitors cannot use the site%s.',
+						$reason,
+						$this->maintenance->background_paused() ? ', and scheduled tasks and queued jobs wait until it ends' : ''
+					),
 				MaintenanceFlag::REASON_UPDATE === $reason
 					? 'If no update is running, open the Updates page, or run `smliser update status` to finish or roll it back.'
-					: 'Turn maintenance mode off once the work is done.'
+					: 'Turn maintenance mode off once the work is done: Tools > Maintenance, or `smliser maintenance off`.'
 			);
 		}
 

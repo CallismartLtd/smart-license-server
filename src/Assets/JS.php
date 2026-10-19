@@ -193,6 +193,12 @@ final class JS {
 				'version'      => SMLISER_VER,
 				'footer'       => true,
 			],
+			'maintenance' => [
+				'url'          => $this->urlmanager->assets_url( sprintf( 'js/admin/maintenance%s.js', $suffix ) ),
+				'dependencies' => ['core-admin', 'modal', 'toast'],
+				'version'      => SMLISER_VER,
+				'footer'       => true,
+			],
 			'support-report' => [
 				'url'          => $this->urlmanager->assets_url( sprintf( 'js/admin/support-report%s.js', $suffix ) ),
 				'dependencies' => ['core-admin'],

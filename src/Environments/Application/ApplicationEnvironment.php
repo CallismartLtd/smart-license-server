@@ -28,6 +28,8 @@ use SmartLicenseServer\Environments\Application\Boot\BootMode;
 use SmartLicenseServer\Environments\Application\Boot\BootModeResolver;
 use SmartLicenseServer\Environments\Application\Boot\InstallationState;
 use SmartLicenseServer\Environments\Application\Boot\MaintenanceFlag;
+use SmartLicenseServer\Environments\Application\Maintenance\MaintenanceBypass;
+use SmartLicenseServer\Core\RequestFinisher;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
 use SmartLicenseServer\Environments\Application\Installation\InstallerSession;
 use SmartLicenseServer\Environments\Application\Installation\SetupToken;
@@ -91,6 +93,14 @@ class ApplicationEnvironment extends Environment {
 	 * @var bool
 	 */
 	protected bool $cronRequest = false;
+
+	/**
+	 * Whether this web request holds the bypass for operator maintenance
+	 * (see MaintenanceBypass), so it gets the site instead of the 503 page.
+	 *
+	 * @var bool
+	 */
+	protected bool $maintenanceBypassed = false;
 
 	/**
 	 * {@inheritdoc}
@@ -263,9 +273,13 @@ class ApplicationEnvironment extends Environment {
 
 		$this->cronRequest = ! \is_cli() && CronExecutionHandler::matches( url() );
 
+		if ( ! \is_cli() && ! $this->cronRequest && BootMode::Maintenance === $this->bootMode() ) {
+			$this->resolveMaintenanceBypass();
+		}
+
 		if ( $this->cronRequest ) {
 			$this->bootManager->add( new CronBootstrapper( $this->bootModeResolver ) );
-		} elseif ( $this->bootMode()->blocks_web() ) {
+		} elseif ( $this->webBlocked() ) {
 			$this->bootManager->add( new DowntimeBootstrapper( $this->bootModeResolver ) );
 		} else {
 			$this->bootManager->add( new WebBootstrapper() );
@@ -343,6 +357,56 @@ class ApplicationEnvironment extends Environment {
 	}
 
 	/**
+	 * Let the holder of the operator maintenance bypass use the site.
+	 *
+	 * A bypass link sets the cookie and redirects to the same URL without
+	 * the token, ending this request; a valid cookie lets the request boot
+	 * the site as usual (see MaintenanceBypass).
+	 *
+	 * @return void
+	 */
+	protected function resolveMaintenanceBypass() : void {
+		$bypass = new MaintenanceBypass( $this->bootModeResolver->flag() );
+		$token  = $bypass->link_token( $_GET );
+
+		if ( null !== $token ) {
+			// The same path and query as requested, without the token.
+			$uri   = (string) ( $_SERVER['REQUEST_URI'] ?? '/' );
+			$query = $_GET;
+
+			unset( $query[ MaintenanceBypass::QUERY ] );
+
+			$location = ( (string) \parse_url( $uri, \PHP_URL_PATH ) ?: '/' ) . ( [] === $query ? '' : '?' . \http_build_query( $query ) );
+
+			RequestFinisher::finish(
+				303,
+				'',
+				[
+					'Set-Cookie'    => MaintenanceBypass::cookie( $token, url()->is_ssl() ),
+					'Location'      => $location,
+					'Cache-Control' => 'no-store',
+				]
+			);
+
+			exit( 0 );
+		}
+
+		$this->maintenanceBypassed = $bypass->granted( $_COOKIE );
+	}
+
+	/**
+	 * Whether web requests get the downtime handler instead of the site.
+	 *
+	 * The boot mode blocks the web (BootMode::blocks_web()), unless this
+	 * request holds the bypass for operator maintenance.
+	 *
+	 * @return bool
+	 */
+	protected function webBlocked() : bool {
+		return $this->bootMode()->blocks_web() && ! $this->maintenanceBypassed;
+	}
+
+	/**
 	 * Get the boot mode for the current request or command.
 	 *
 	 * @return BootMode
@@ -385,7 +449,7 @@ class ApplicationEnvironment extends Environment {
 		 * Skip data stores, registries and authentication, which may
 		 * query a schema that is mid-upgrade.
 		 */
-		if ( $mode->blocks_web() && ! \is_cli() ) {
+		if ( $this->webBlocked() && ! \is_cli() ) {
 			$this->bootManager->bootAll();
 			return;
 		}

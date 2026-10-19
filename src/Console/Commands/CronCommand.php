@@ -140,6 +140,10 @@ class CronCommand extends AbstractCommand {
 				$this->output->warning( 'The application is being updated, or an update has not finished; nothing was run.' );
 				return 0;
 
+			case BackgroundRunner::PAUSED:
+				$this->output->warning( 'Maintenance mode pauses background work; nothing was run.' );
+				return 0;
+
 			default:
 				$this->output->success(
 					sprintf(

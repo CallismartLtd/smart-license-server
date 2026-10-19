@@ -19,6 +19,7 @@ use SmartLicenseServer\Templates\TemplateLocator;
 use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Environments\Application\Update\UpdateService;
 use SmartLicenseServer\Environments\Application\Health\SystemHealth;
+use SmartLicenseServer\Environments\Application\Maintenance\MaintenanceMode;
 use SmartLicenseServer\Background\BackgroundSetup;
 
 /**
@@ -35,7 +36,8 @@ class ToolsPage implements AdminPageInterface {
 		protected AssetsManager $assets_manager,
 		protected UpdateService $updates,
 		protected BackgroundSetup $background,
-		protected SystemHealth $health
+		protected SystemHealth $health,
+		protected MaintenanceMode $maintenance
 	) {
 		$this->register_assets();
 	}
@@ -63,6 +65,11 @@ class ToolsPage implements AdminPageInterface {
 
 		$this->assets_manager->set_script_category(
 			'background-setup',
+			AssetsManager::CATEGORY_ADMIN_DASHBOARD
+		);
+
+		$this->assets_manager->set_script_category(
+			'maintenance',
 			AssetsManager::CATEGORY_ADMIN_DASHBOARD
 		);
 	}
@@ -174,6 +181,25 @@ class ToolsPage implements AdminPageInterface {
 		$vars = \compact( 'overview', 'page_handler', 'request' );
 		$this->locator->render( 'admin.contents.system.updates', $vars );
 	}
+	/**
+	 * Render the maintenance page.
+	 *
+	 * Shows whether the site is in maintenance and why, and switches
+	 * operator maintenance on and off through admin/json/maintenance/*
+	 * (maintenance.js). While maintenance is on, this page is reached
+	 * through the bypass (see MaintenanceBypass).
+	 *
+	 * @param Request $request
+	 * @return void
+	 */
+	public function maintenance_page( Request $request ) : void {
+		$status       = $this->maintenance->status();
+		$page_handler = $this;
+
+		$vars = \compact( 'status', 'page_handler', 'request' );
+		$this->locator->render( 'admin.contents.system.maintenance', $vars );
+	}
+
 
 	/**
 	 * Render the background processing page.
@@ -263,6 +289,12 @@ class ToolsPage implements AdminPageInterface {
 				'callback'   => [$this, 'updates_page'],
 				'visibility' => true
 			],
+			[
+				'title'      => 'Maintenance',
+				'slug'       => 'maintenance',
+				'callback'   => [$this, 'maintenance_page'],
+				'visibility' => true
+			],
 		];
 	}
 
@@ -283,6 +315,7 @@ class ToolsPage implements AdminPageInterface {
 			'diagnostics' => 'System Diagnostics',
 			'health'      => 'Site Health',
 			'updates'     => 'Updates',
+			'maintenance' => 'Maintenance',
 			default       => ''
 		};
 

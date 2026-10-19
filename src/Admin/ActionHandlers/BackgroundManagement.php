@@ -277,6 +277,7 @@ class BackgroundManagement {
 		return match ( $this->code_changes->reason() ) {
 			CodeChangeDetector::REASON_UPDATING => $this->fail( 'The application is being updated. Try again once the update has finished.', 409 ),
 			CodeChangeDetector::REASON_CHANGED  => $this->fail( 'An update has not finished: the files are installed but the finish step has not run. Run `smliser update finish` (or roll back) first.', 409 ),
+			CodeChangeDetector::REASON_PAUSED   => $this->fail( 'Maintenance mode pauses background work. Turn maintenance off first, or switch it on again with background work kept running.', 409 ),
 			default                             => null,
 		};
 	}
