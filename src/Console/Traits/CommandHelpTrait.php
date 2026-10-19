@@ -38,7 +38,7 @@ trait CommandHelpTrait {
 	 * @return void
 	 */
 	protected function print_global_help() : void {
-		$this->output->writeln( \sprintf( '%s CLI', SMLISER_APP_NAME ) );
+		$this->output->info( \sprintf( '%s CLI', SMLISER_APP_NAME ) );
 		$this->output->newline();
 		$this->output->writeln( 'Usage:' );
 		$this->output->writeln( '  smliser [command]' );
