@@ -30,6 +30,7 @@ use SmartLicenseServer\Environments\Application\Boot\InstallationState;
 use SmartLicenseServer\Environments\Application\Boot\MaintenanceFlag;
 use SmartLicenseServer\Environments\Application\Maintenance\MaintenanceBypass;
 use SmartLicenseServer\Core\RequestFinisher;
+use SmartLicenseServer\Environments\Application\Assets\PublicAssets;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
 use SmartLicenseServer\Environments\Application\Installation\InstallerSession;
 use SmartLicenseServer\Environments\Application\Installation\SetupToken;
@@ -119,6 +120,7 @@ class ApplicationEnvironment extends Environment {
 		$this->container->singleton( MaintenanceFlag::class, $this->bootModeResolver->flag() );
 		$this->container->singleton( SetupToken::class, fn () : SetupToken => SetupToken::from_runtime( $fs ) );
 		$this->container->singleton( InstallerSession::class, fn () : InstallerSession => InstallerSession::from_runtime( $fs ) );
+		$this->container->singleton( PublicAssets::class, fn () : PublicAssets => PublicAssets::from_runtime( $fs ) );
 
 		$this->adoptExistingInstallation();
 
@@ -203,7 +205,6 @@ class ApplicationEnvironment extends Environment {
 				$c->get( UpdateService::class ),
 				$c->get( Updater::class ),
 				$c->get( AppInstaller::class ),
-				$c->get( FileSystem::class ),
 				\SMLISER_ROOT
 			)
 		);
