@@ -39,6 +39,7 @@ use SmartLicenseServer\Email\Providers\PostmarkProvider;
 use SmartLicenseServer\Email\Providers\ResendProvider;
 use SmartLicenseServer\Email\Providers\SendGridProvider;
 use SmartLicenseServer\Email\Providers\SMTPProvider;
+use SmartLicenseServer\Environments\Application\Health\HostResources;
 use SmartLicenseServer\FileSystem\Adapters\DirectFileSystem;
 use SmartLicenseServer\FileSystem\Adapters\FileSystemAdapterInterface;
 use SmartLicenseServer\FileSystem\FileSystem;
@@ -390,6 +391,11 @@ abstract class Environment {
 				$c->get( EmailProvidersRegistry::class )->get_default_sender_email(),
 				$c->get( HttpClient::class )
 			)
+		);
+
+		$this->container->singleton(
+			HostResources::class,
+			fn () : HostResources => new HostResources( \SMLISER_ROOT )
 		);
 	}
 
