@@ -15,7 +15,7 @@ define( 'SMLISER_APP_NAME', 'Smart License Server' );
  *
  * @var string
  */
-define( 'SMLISER_VER', '0.4.4' );
+define( 'SMLISER_VER', '0.4.6' );
 
 /**
  * Current database schema version.
