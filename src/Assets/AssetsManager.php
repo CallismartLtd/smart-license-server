@@ -25,13 +25,6 @@ use SmartLicenseServer\Utils\Format;
 final class AssetsManager {
 
 	/**
-	 * Client dashboard asset category name.
-	 * 
-	 * Used to group assets that are loaded in the client dashboard.
-	 */
-	const CATEGORY_CLIENT_DASHBOARD = 'client_dashboard';
-
-	/**
 	 * Admin asset category name.
 	 * 
 	 * Used to register assets that are loaded in the admin dashboard.
@@ -147,7 +140,6 @@ final class AssetsManager {
 		return [
 			self::UNCATEGORIZED,
 			self::CATEGORY_ADMIN_DASHBOARD,
-			self::CATEGORY_CLIENT_DASHBOARD,
 		];
 	}
 

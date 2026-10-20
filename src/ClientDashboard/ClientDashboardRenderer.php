@@ -37,12 +37,6 @@ class ClientDashboardRenderer {
 	public const HEADER_TEMPLATE          = 'frontend.header';
 	public const MENU_TEMPLATE            = 'frontend.menu';
 	public const CONTENT_TEMPLATE         = 'frontend.content';
-	public const AUTH_INDEX_TEMPLATE      = 'frontend.auth.index';
-	public const AUTH_LOGIN_TEMPLATE      = 'frontend.auth.login';
-	public const AUTH_SIGNUP_TEMPLATE     = 'frontend.auth.signup';
-	public const AUTH_FORGOT_PWD_TEMPLATE = 'frontend.auth.forgot-password';
-	public const AUTH_RESET_PWD_TEMPLATE  = 'frontend.auth.reset-password';
-	public const AUTH_2FA_TEMPLATE        = 'frontend.auth.2fa';
 	public const FOOTER_TEMPLATE          = 'frontend.footer';
 
 	/**

@@ -8,19 +8,15 @@
  */
 
 $this->partial(
-	'page-header',
+	'status',
 	[
-		'heading'     => 'Page Not Found',
-		'description' => 'The resource you requested does not exist.',
+		'diagram' => 'missing',
+		'heading' => 'Not Found',
+		'message' => 'The requested resource could not be found.',
+		'actions' => [
+			[ 'label' => 'Go back', 'action' => 'back' ],
+			[ 'label' => 'Home', 'url' => $this->url( '/' )->url() ],
+		],
+		'detail'  => sprintf( 'HTTP 404 · %s', $path ),
 	]
 );
-?>
-<section class="content">
-	<div class="message">
-		<div class="card">
-			<h3>Page Not Found</h3>
-			<p>The requested resource could not be found. Check the URL and try again.</p>
-			<div class="code-block"><code><?php echo escHtml( $path ); ?></code></div>
-		</div>
-	</div>
-</section>

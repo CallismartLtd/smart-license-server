@@ -9,33 +9,44 @@
  * @var SmartLicenseServer\Environments\Application\Theming\ThemeContext $this
  */
 
+$principal = $this->principal();
+$actions   = [ [ 'label' => 'API documentation', 'url' => $this->url( 'documentation' )->url(), 'accent' => true ] ];
+
+if ( null === $principal ) {
+	$actions[] = [ 'label' => 'Sign in', 'url' => $this->urls()->login_url()->url() ];
+} else {
+	$actions[] = $principal->is( 'system_admin' )
+		? [ 'label' => 'Admin', 'url' => $this->urls()->admin_url()->url() ]
+		: [ 'label' => 'Dashboard', 'url' => $this->urls()->client_dashboard_url()->url() ];
+}
+
 $this->partial(
-	'page-header',
+	'status',
 	[
-		'badge'       => 'Smart License Server Engine Active',
-		'heading'     => SMLISER_APP_NAME,
-		'description' => $view->get_description(),
+		'diagram' => 'connected',
+		'heading' => SMLISER_APP_NAME,
+		'message' => $view->get_description(),
+		'actions' => $actions,
+		'detail'  => sprintf( 'v%s · PHP %s', $app_version, $php_version ),
 	]
 );
 ?>
-<section class="content">
-	<div class="grid">
-		<div class="card">
-			<h3>CLI Control Engine</h3>
-			<p>Manage applications, licenses, and environment setup directly from your terminal using the global runner.</p>
-			<div class="code-block"><code>smliser status</code></div>
-		</div>
-
-		<div class="card">
-			<h3>DBPrism Abstraction</h3>
-			<p>Multi-adapter database abstraction layer supporting MySQL, MariaDB, PostgreSQL, and SQLite seamlessly.</p>
-			<div class="code-block"><code>callismart/dbprism</code></div>
-		</div>
-
-		<div class="card">
-			<h3>Runtime Environment</h3>
-			<p>Strict PHP 8.4+ execution engine utilizing Callismart HTTP/DTO and CommonMark Markdown parsing.</p>
-			<div class="code-block"><code>PHP v<?php echo escHtml( $php_version ); ?> · Smart License Server v<?php echo escHtml( $app_version ); ?></code></div>
-		</div>
+<div class="cells">
+	<div class="cell">
+		<h3>Command line</h3>
+		<p>Manage applications, licenses and the installation from the terminal.</p>
+		<code>smliser status</code>
 	</div>
-</section>
+
+	<div class="cell">
+		<h3>Any database</h3>
+		<p>MySQL, MariaDB, PostgreSQL and SQLite through one abstraction layer.</p>
+		<code>callismart/dbprism</code>
+	</div>
+
+	<div class="cell">
+		<h3>REST API</h3>
+		<p>Activate licenses, check updates and download releases from your software.</p>
+		<code>/smliser/v1/</code>
+	</div>
+</div>

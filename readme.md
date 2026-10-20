@@ -4,13 +4,6 @@
 
 It ships with a UI and tooling to monitor app usage and licensing, monetize your software through any payment platform, and integrate with up to **eight email service providers** and **five cache adapters** out of the box.
 
-<!--
-  NOTE: composer.json currently declares "license": "GPL-3.0-or-later" and
-  "name": "callismartltd/smart-license-server". Update composer.json to
-  "license": "MIT" and "name": "callismart/smart-license-server" so the
-  package manifest matches this README before publishing.
--->
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PHP Version](https://img.shields.io/badge/PHP-%5E8.4-777bb4.svg)](https://www.php.net/)
 

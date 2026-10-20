@@ -14,15 +14,16 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="color-scheme" content="light dark">
 	<?php $this->head(); ?>
 	<link rel="stylesheet" href="<?php echo escUrl( $this->asset_url( 'css/theme.css' )->url() ); ?>">
 </head>
 <body>
-	<div class="glow-bg"></div>
+	<?php if ( '' === $view->get_frame() ) : // A frame brings its own navigation. ?>
+		<?php $this->partial( 'header' ); ?>
+	<?php endif; ?>
 
-	<main class="container">
-		<?php $this->partial( 'navigation' ); ?>
-
+	<main class="site-main">
 		<?php echo $content; // phpcs:ignore -- rendered page. ?>
 	</main>
 

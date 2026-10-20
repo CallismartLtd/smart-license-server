@@ -8,8 +8,9 @@
  * Render order:
  *   1. frontend.header        — <head>, <body>, opens .smlcd-layout
  *   2. frontend.menu          — left sidebar (conditional, only if authenticated)
- *   3. frontend.content OR
- *      frontend.auth.login    — <main> with topbar or login form
+ *   3. frontend.content       — <main> with topbar
+ *
+ * Guests are not shown this shell: signing in is the themed sign-in page.
  *   4. frontend.footer        — closes layout, prints scripts, </body>, </html>
  *
  * @var array<string, array{title: string, slug: string, handler: callable, icon: string}> $menu
@@ -57,9 +58,6 @@ if ( $principal ) {
 	$settings  = UserSettings::for( $principal->get_actor() );
 	$theme     = (string) $settings->get( 'theme', 'dark' );
 	$collapsed = (bool) $settings->get( 'sidebar_collapsed', false );
-} else {
-	$styles  = ['client-auth', 'client-dashboard'];
-	$scripts = ['client-auth'];
 }
 
 /*
@@ -74,7 +72,7 @@ $title = ! empty( $menu )
 	? sprintf( '%s — %s', $menu[$active_slug]['title'], $title ) ?? $title
 	: $title;
 
-$template = $guard->has_principal() ? clientDashboardRegistry() : authTemplateRegistry();
+$template = clientDashboardRegistry();
 
 $this->render( ClientDashboardRenderer::HEADER_TEMPLATE, [
 	'menu'          => $menu,
@@ -109,14 +107,9 @@ if ( $principal ) {
 |--------------------------------------------------
 | 3. CONTENT
 |    <main class="smlcd-main"> ... </main>
-|    OR login form (frontend.auth.login)
 |--------------------------------------------------
 */
-$content_template = $principal
-	? ClientDashboardRenderer::CONTENT_TEMPLATE
-	: ClientDashboardRenderer::AUTH_INDEX_TEMPLATE;
-
-$this->render( $content_template, [
+$this->render( ClientDashboardRenderer::CONTENT_TEMPLATE, [
 	'principal'   => $principal,
 	'rest_base'   => $rest_base,
 	'active_slug' => $active_slug,

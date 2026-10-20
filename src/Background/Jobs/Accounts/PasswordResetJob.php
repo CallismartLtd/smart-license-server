@@ -59,8 +59,8 @@ class PasswordResetJob implements JobHandlerInterface {
 			return true;
 		}
 
-		$reset_url = $this->urlmanager->login_url( '', [ 'key' => $this->tokens->issue( $user ) ] )
-			->set_hash( 'reset-password' );
+		// The reset-password page (AuthPages::reset_password()).
+		$reset_url = $this->urlmanager->login_url( 'reset-password', [ 'key' => $this->tokens->issue( $user ) ] );
 
 		$reset_email = new PasswordResetEmail(
 			$user,

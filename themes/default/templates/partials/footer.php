@@ -6,8 +6,9 @@
  */
 
 ?>
-<footer>
-	<?php echo escHtml( SMLISER_APP_NAME ); ?> &copy; <?php echo escHtml( gmdate( 'Y' ) ); ?> —
-	Developed by <strong>Callistus Nwachukwu</strong>
-	(<a href="mailto:admin@callismart.com.ng">admin@callismart.com.ng</a>)
+<footer class="site-footer">
+	<div class="site-footer-inner">
+		<span><?php echo escHtml( sprintf( '%s v%s', SMLISER_APP_NAME, SMLISER_VER ) ); ?></span>
+		<span>&copy; <?php echo escHtml( gmdate( 'Y' ) ); ?> Callismart</span>
+	</div>
 </footer>

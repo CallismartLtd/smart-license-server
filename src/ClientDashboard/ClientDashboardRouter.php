@@ -15,7 +15,6 @@
 
 namespace SmartLicenseServer\ClientDashboard;
 
-use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
@@ -25,8 +24,7 @@ class ClientDashboardRouter {
 	
 	private function __construct(
 		protected Guard $guard,
-		protected ClientDashboardRegistry $client_dashboard_registry,
-		protected AuthTemplateRegistry $auth_template_registry
+		protected ClientDashboardRegistry $client_dashboard_registry
 	) {}
 
 	/*
@@ -111,24 +109,8 @@ class ClientDashboardRouter {
 	 * @return Response
 	 */
 	public function post_dispatch( Request $request ) : Response {
-		$post_action = $request->get( 'post_action' );
-		$status_code = 401;
-
-		if ( in_array( $post_action, \authTemplateRegistry()->slugs(), true ) ) {
-			$action = str_replace( '-', '_', $post_action );
-			$method = "handle_{$action}";
-
-			if ( \method_exists( AuthController::class, $method ) ) {
-				return AuthController::$method( $request );
-			}
-
-			$data        = [ 'success' => false, 'message' => 'Unable to handle authentication request.'];
-			$status_code = 500;
-
-		} else {
-			$data        = static::handle_post_action( $request );
-			$status_code = ( $data['success'] ?? false ) ? 200 : $status_code;
-		}
+		$data        = static::handle_post_action( $request );
+		$status_code = ( $data['success'] ?? false ) ? 200 : 401;
 
 		return ( new Response( $status_code ) )
 			->set_body( $data )
@@ -146,21 +128,8 @@ class ClientDashboardRouter {
 			return new RequestException( 'endpoint_not_found' );
 		}
 
+		// Signing in, up and out are actions of the sign-in page, not of the dashboard.
 		if ( ! $this->guard->has_principal() ) {
-			$pattern = implode(
-				'|',
-				array_map(
-					static fn( string $slug ) : string => preg_quote( $slug, '#' ),
-					\authTemplateRegistry()->slugs()
-				)
-			);
-
-			$is_auth = static::uri_end_matches( "client-dashboard/({$pattern})", $request->uri() );
-
-			if ( $is_auth ) {
-				return true;
-			}
-
 			return new RequestException( 'missing_auth' );
 		}
 
@@ -184,30 +153,5 @@ class ClientDashboardRouter {
 		$result = $registry->dispatch( $post_action, $request );
 
 		return (array) $result;
-	}
-
-	private static function uri_end_matches( string $pattern, string $uri ) : bool {
-		foreach( smliser_envProvider()->rest_namespaces() as $namespace ) {
-			$namespace = trim( $namespace, '/' );
-
-			// Normalize URI
-			$uri = ltrim( $uri, '/' );
-
-			// Find namespace position
-			$pos = strpos( $uri, $namespace );
-
-			if ( false === $pos ) {
-				return false;
-			}
-
-			// Slice from namespace onward
-			$uri = substr( $uri, $pos );
-
-			$namespace = preg_quote( $namespace, '#' );
-
-			return (bool) preg_match( "#^{$namespace}/{$pattern}(/|$)#", $uri );
-		}
-		
-		return false;
 	}
 }

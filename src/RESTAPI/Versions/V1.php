@@ -9,7 +9,6 @@
 
 namespace SmartLicenseServer\RESTAPI\Versions;
 
-use SmartLicenseServer\ClientDashboard\ClientDashboardRouter;
 use SmartLicenseServer\RESTAPI\Handlers\BulkMessages;
 use SmartLicenseServer\RESTAPI\Handlers\HostedApps;
 use SmartLicenseServer\RESTAPI\Handlers\Licenses;
@@ -179,18 +178,6 @@ class V1 implements RESTVersionInterface {
 	 * @var string
 	 */
 	private const BULK_MESSAGES_ROUTE = 'broadcasts';
-
-	/**
-	 * Client dashboard content route.
-	 * Slug is a path segment: /dashboard/{slug}
-	 */
-	private const CLIENT_DASHBOARD_ROUTE = 'client-dashboard/{dashboard_slug:slug}';
-	
-	/**
-	 * Client dashboard content route.
-	 * Slug is a path segment: /dashboard/{slug}
-	 */
-	private const CLIENT_POST_ROUTE = 'client-dashboard/{post_action:slug}';
 
 	/**
 	 * Get all route definitions for the API.
@@ -447,25 +434,6 @@ class V1 implements RESTVersionInterface {
 					'args'     => self::get_bulk_messages_args(),
 					'category' => 'broadcasts',
 					'name'     => 'Bulk Messages',
-				],
-				[
-					'route'    => self::CLIENT_DASHBOARD_ROUTE,
-					'methods'  => [ 'GET' ],
-					'handler'  => [ ClientDashboardRouter::class, 'dispatch' ],
-					'guard'    => [ ClientDashboardRouter::class, 'guard' ],
-					'args'     => [],
-					'category' => 'client-dashboard',
-					'name'     => 'Client Dashboard Content',
-				],
-				
-				[
-					'route'    => self::CLIENT_POST_ROUTE,
-					'methods'  => [ 'POST' ],
-					'handler'  => [ ClientDashboardRouter::class, 'post_dispatch' ],
-					'guard'    => [ ClientDashboardRouter::class, 'post_guard' ],
-					'args'     => [],
-					'category' => 'client-dashboard',
-					'name'     => 'Client Dashboard Post',
 				],
 			],
 		];

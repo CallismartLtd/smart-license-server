@@ -102,6 +102,13 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
 	}
 
 	/**
+	 * {@inheritdoc}
+	 */
+	protected function page_contract() : string {
+		return AdminPageInterface::class;
+	}
+
+	/**
 	 * Determine whether a key represents the root/overview menu item.
 	 *
 	 * @param string $key Already canonicalized.

@@ -10,7 +10,6 @@
 
 namespace SmartLicenseServer\Contracts;
 
-use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 
@@ -22,7 +21,7 @@ abstract class AbstractDashboardRegistry {
 	 * @var array<string, array{
 	 *     title: string,
 	 *     slug: string,
-	 *     handler: AdminPageInterface,
+	 *     handler: DashboardPageInterface,
 	 *     icon: string,
 	 *     visibility: bool|callable():bool
 	 * }>
@@ -91,7 +90,7 @@ abstract class AbstractDashboardRegistry {
 	 * @param array{
 	 *     title: string,
 	 *     slug: string,
-	 *     handler: AdminPageInterface,
+	 *     handler: DashboardPageInterface,
 	 *     visibility: bool|callable():bool,
 	 *     icon?: string
 	 * } $data
@@ -134,7 +133,7 @@ abstract class AbstractDashboardRegistry {
 			);
 		}
 
-		$this->assert_menu_handler_implements_admin_page( $data['handler'], $key );
+		$this->assert_menu_handler_implements_page_contract( $data['handler'], $key );
 
 		if ( ! is_callable( $data['handler']->index_page_handler() ) ) {
 			throw new EnvironmentBootstrapException(
@@ -162,7 +161,7 @@ abstract class AbstractDashboardRegistry {
 	 * @return array<string,
 	 *      array{title: string,
 	 *      slug: string,
-	 *      handler: class-string<AdminPageInterface>,
+	 *      handler: DashboardPageInterface,
 	 *      icon: string,
 	 *      visibility: bool|callable():bool
 	 * }>
@@ -179,7 +178,7 @@ abstract class AbstractDashboardRegistry {
 	 * @return array{
 	 *      title: string,
 	 *      slug: string,
-	 *      handler: AdminPageInterface,
+	 *      handler: DashboardPageInterface,
 	 *      icon: string,
 	 *      visibility: bool|callable():bool
 	 * }|null
@@ -301,12 +300,13 @@ abstract class AbstractDashboardRegistry {
 	 * Update menu handler.
 	 *
 	 * @param string $key
-	 * @param AdminPageInterface $handler
+	 * @param DashboardPageInterface $handler Must implement this registry's page_contract().
 	 * @return static
 	 */
-	public function set_handler( string $key, AdminPageInterface $handler ) : static {
+	public function set_handler( string $key, DashboardPageInterface $handler ) : static {
 		$key = $this->canonical_key( $key );
 		$this->assert_menu_exists( $key );
+		$this->assert_menu_handler_implements_page_contract( $handler, $key );
 
 		$this->menu[ $key ]['handler'] = $handler;
 
@@ -1108,6 +1108,16 @@ abstract class AbstractDashboardRegistry {
 	abstract protected function boot() : void;
 
 	/**
+	 * The page contract this registry's menu handlers implement.
+	 *
+	 * Each dashboard narrows DashboardPageInterface with its own rule for
+	 * what page callbacks do (e.g. AdminPageInterface, ClientPageInterface).
+	 *
+	 * @return class-string<DashboardPageInterface>
+	 */
+	abstract protected function page_contract() : string;
+
+	/**
 	 * Determine whether a key represents the root menu item.
 	 *
 	 * @param string $key.
@@ -1187,20 +1197,22 @@ abstract class AbstractDashboardRegistry {
 	}
 
 	/**
-	 * Ensure a handler class implements AdminPageInterface.
+	 * Ensure a handler implements this registry's page contract.
 	 * 
 	 * @param object $handler
 	 * @param string $key
 	 * @throws EnvironmentBootstrapException
 	 */
-	protected function assert_menu_handler_implements_admin_page( object $handler, string $key ) : void {
-		if ( is_subclass_of( $handler, AdminPageInterface::class ) ) {
+	protected function assert_menu_handler_implements_page_contract( object $handler, string $key ) : void {
+		$contract = $this->page_contract();
+
+		if ( $handler instanceof $contract ) {
 			return;
 		}
 
 		throw new EnvironmentBootstrapException(
 			'menu_error',
-			sprintf( 'Menu "%s" handler must implement %s.', $key, AdminPageInterface::class )
+			sprintf( 'Menu "%s" handler must implement %s.', $key, $contract )
 		);
 	}
 

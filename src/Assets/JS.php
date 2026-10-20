@@ -145,17 +145,10 @@ final class JS {
 				'footer'       => true
 			],
 
-			'client-dashboard' => [
-				'url'          => $this->urlmanager->assets_url( sprintf( 'js/client-dashboard%s.js', $suffix ) ),
-				'dependencies' => ['core-admin', 'modal'],
-				'version'      => SMLISER_VER,
-				'footer'       => true,
-				'category'     => AssetsManager::CATEGORY_CLIENT_DASHBOARD
-			],
-
-			'client-auth' => [
-				'url'          => $this->urlmanager->assets_url( sprintf( 'js/client-auth%s.js', $suffix ) ),
-				'dependencies' => ['modal', 'core-admin'],
+			// Posts the forms of themed pages to their JSON actions (View::FORMS_SCRIPT).
+			'page-forms' => [
+				'url'          => $this->urlmanager->assets_url( sprintf( 'js/page-forms%s.js', $suffix ) ),
+				'dependencies' => ['gobals'],
 				'version'      => SMLISER_VER,
 				'footer'       => true
 			],

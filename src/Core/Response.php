@@ -761,6 +761,11 @@ class Response {
 	/**
 	 * Render a complete HTML document for an HTTP error response.
 	 *
+	 * The last resort: it renders with no theme, no database and no files,
+	 * so its styles are inline. It is the reference of the brand's design
+	 * language; the default theme (themes/default/assets/css/theme.css)
+	 * uses the same tokens. Change a token in both places.
+	 *
 	 * @param string $message User-friendly error message or description.
 	 * @param string $nonce CSP nonce for the inline script handling the
 	 *                       page's action buttons. Must match the nonce

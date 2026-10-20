@@ -29,6 +29,10 @@ use SmartLicenseServer\Security\Context\Principal;
  *                               $this->footer() before </body>.
  *   templates/pages/<slug>.php  One per page template (View::get_template()).
  *                               Variables: the View's data, and $view.
+ *   templates/frames/<slug>.php When the View names a frame (View::set_frame()):
+ *                               a wrapper around the page, inside the layout.
+ *                               Variables: $content (the page's HTML), the
+ *                               View's data, and $view.
  *   templates/partials/<name>.php
  *                               Pieces included with $this->partial().
  *                               Variables: the data passed, and $view.
@@ -79,16 +83,21 @@ final class ThemeContext {
 	*/
 
 	/**
-	 * Render the page into the layout and return the document.
+	 * Render the page (into its frame, if any) into the layout and return the document.
 	 *
 	 * Called once by ThemeRenderer; not for templates.
 	 *
 	 * @return string
-	 * @throws ThemeException When the page template or the layout is missing.
+	 * @throws ThemeException When the page template, the frame or the layout is missing.
 	 */
 	public function render_document() : string {
 		$page    = $this->locate( 'pages/' . str_replace( '.', '/', $this->view->get_template() ) . '.php' );
 		$content = $this->capture( $page, $this->view->get_data() );
+
+		if ( '' !== $this->view->get_frame() ) {
+			$frame   = $this->locate( 'frames/' . str_replace( '.', '/', $this->view->get_frame() ) . '.php' );
+			$content = $this->capture( $frame, [ 'content' => $content ] + $this->view->get_data() );
+		}
 
 		return $this->capture( $this->locate( 'layout.php' ), [ 'content' => $content ] );
 	}
@@ -129,12 +138,18 @@ final class ThemeContext {
 	/**
 	 * Print what core puts before </body>: the page's scripts.
 	 *
+	 * The registered JS constants (smliser_var: CSRF token and header,
+	 * URLs) are printed first, because core scripts read them.
+	 *
 	 * @return void
 	 */
 	public function footer() : void {
-		if ( [] !== $this->view->get_scripts() ) {
-			$this->assets->print_scripts( ...$this->view->get_scripts() );
+		if ( [] === $this->view->get_scripts() ) {
+			return;
 		}
+
+		$this->assets->print_js_constants();
+		$this->assets->print_scripts( ...$this->view->get_scripts() );
 	}
 
 	/*

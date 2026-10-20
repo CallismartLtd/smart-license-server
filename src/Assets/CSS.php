@@ -130,19 +130,6 @@ final class CSS {
 				'version'      => SMLISER_VER,
 				'media-type'   => 'all'
 			],
-			'client-dashboard' => [
-				'url'          => $this->urlmanager->assets_url( sprintf( 'css/client-dashboard%s.css', $suffix ) ),
-				'dependencies' => ['variables', 'modal', 'tabler-icons', 'select2'],
-				'version'      => SMLISER_VER,
-				'media-type'   => 'all',
-				'category'     => AssetsManager::CATEGORY_CLIENT_DASHBOARD
-			],
-			'client-auth' => [
-				'url'          => $this->urlmanager->assets_url( sprintf( 'css/client-auth%s.css', $suffix ) ),
-				'dependencies' => ['modal'],
-				'version'      => SMLISER_VER,
-				'media-type'   => 'all'
-			],
 			'toast' => [
 				'url'          => $this->urlmanager->assets_url( sprintf( 'css/toast%s.css', $suffix ) ),
 				'dependencies' => [],

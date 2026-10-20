@@ -8,12 +8,16 @@
 
 namespace SmartLicenseServer\Admin\Contracts;
 
+use SmartLicenseServer\Contracts\DashboardPageInterface;
 use SmartLicenseServer\Core\Request;
 
 /**
  * Defines the contract all admin dashboard classes must implement.
+ *
+ * The page and submenu callbacks print the page content into the admin
+ * dashboard (templates/admin/content.php); the admin is not themed.
  */
-interface AdminPageInterface {
+interface AdminPageInterface extends DashboardPageInterface {
 	/**
 	 * Get the main page callback.
 	 * 

@@ -25,13 +25,32 @@ namespace SmartLicenseServer\Environments\Application\Theming;
  *
  * The data is extracted into the page template's scope, and the View
  * itself is available there as $view.
+ *
+ * A View may name a frame: a wrapper the theme renders around the page,
+ * inside the document layout, resolved under templates/frames/
+ * ('client-dashboard' → templates/frames/client-dashboard.php). Areas
+ * with their own chrome use it (the client dashboard's menus); their
+ * pages stay plain content.
  */
 final class View {
+
+	/**
+	 * Core script that posts the forms of themed pages to their JSON actions
+	 * (AssetsManager handle; see assets/js/page-forms.js for its markup contract).
+	 */
+	public const FORMS_SCRIPT = 'page-forms';
 
 	/**
 	 * A template slug: lowercase dot-separated segments.
 	 */
 	private const TEMPLATE_PATTERN = '/^[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)*$/';
+
+	/**
+	 * Frame slug; empty for none.
+	 *
+	 * @var string
+	 */
+	private string $frame = '';
 
 	/**
 	 * Page title, without the site name.
@@ -117,6 +136,23 @@ final class View {
 		}
 
 		$this->status_code = $code;
+
+		return $this;
+	}
+
+	/**
+	 * Name the frame the theme renders around the page; empty for none.
+	 *
+	 * @param string $frame Frame slug, e.g. 'client-dashboard'.
+	 * @return static
+	 * @throws \InvalidArgumentException When the slug is invalid.
+	 */
+	public function set_frame( string $frame ) : static {
+		if ( '' !== $frame && 1 !== preg_match( self::TEMPLATE_PATTERN, $frame ) ) {
+			throw new \InvalidArgumentException( sprintf( '"%s" is not a valid frame slug: use lowercase dot-separated segments.', $frame ) );
+		}
+
+		$this->frame = $frame;
 
 		return $this;
 	}
@@ -244,6 +280,15 @@ final class View {
 	 */
 	public function get_status_code() : int {
 		return $this->status_code;
+	}
+
+	/**
+	 * The frame slug; empty for none.
+	 *
+	 * @return string
+	 */
+	public function get_frame() : string {
+		return $this->frame;
 	}
 
 	/**

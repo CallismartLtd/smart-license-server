@@ -8,177 +8,109 @@
 
 namespace SmartLicenseServer\ClientDashboard;
 
-use SmartLicenseServer\ClientDashboard\TemplateHandlers\Overview;
+use SmartLicenseServer\ClientDashboard\ContentHandlers\OverviewPage;
+use SmartLicenseServer\ClientDashboard\Contracts\ClientPageInterface;
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
-use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
+use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
- * Dashboard menu and content callback registry.
- * 
- * 
- * Extends AbstractDashboardRegistry for the client-facing dashboard.
- * Boots with no hardcoded defaults — all menus are registered by the
- * application at bootstrap time.
+ * The client dashboard's menus, built like the admin dashboard's.
  *
- * Enforces that every registered handler implements DashboardHandlerInterface.
- * 
- * @example to register a menu in the client dashboard:
+ * Every page implements ClientPageInterface; the registry consumes the
+ * pages, and the client dashboard is built from the registry: the active
+ * theme draws the side menu, the submenus and the top menu from it (see
+ * ClientDashboard\Page\Dispatcher). Extensions and themes add, move,
+ * hide or remove menus, submenus and top menu items through the
+ * AbstractDashboardRegistry API.
+ *
+ * @example Register a page:
  * ```php
- *     clientDashboardRegistry()->register( 'licenses', [
- *          'title'   => 'License',
- *          'slug'    => 'licenses',
- *          'handler' => [LicenseHandler::class, 'handle'],
- *          'icon'    => 'ti ti-creative-commons-nd',
- *      ] );
+ * $container->get( ClientDashboardRegistry::class )
+ *     ->register( $page->get_menu_key(), $page->get_menu_data() );
+ * ```
  */
-class ClientDashboardRegistry extends AbstractDashboardRegistry {
-	/*
-	|-------------
-	| BOOTSTRAP
-	|-------------
-	*/
+final class ClientDashboardRegistry extends AbstractDashboardRegistry {
 
 	/**
-	 * No hardcoded defaults — client menus are fully application-defined.
+	 * Constructor.
 	 *
-	 * {@inheritDoc}
+	 * @param URLManager $urlmanager URL API, for the top menu links.
+	 * @param Container  $container  Builds the core pages.
+	 * @param Guard      $guard      The signed-in principal, for visibility.
+	 */
+	public function __construct(
+		protected URLManager $urlmanager,
+		protected Container $container,
+		protected Guard $guard
+	) {}
+
+	/**
+	 * Register the core pages and top menu items.
+	 *
+	 * @return void
 	 */
 	protected function boot() : void {
 		if ( $this->booted ) {
 			return;
 		}
 
-		$this->menu = [
-			'overview' => [
-				'title'   => 'Overview',
-				'slug'    => 'overview',
-				'handler' => [ Overview::class, 'handle' ],
-				'icon'    => 'ti ti-home',
-			],
+		$this->booted = true;
 
+		$core_menu = [
+			OverviewPage::class,
 		];
 
-		$this->booted = true;
-	}
+		foreach ( $core_menu as $id ) {
+			/** @var ClientPageInterface $page */
+			$page = $this->container->get( $id );
+			$this->register( $page->get_menu_key(), $page->get_menu_data() );
 
-	/*
-	|-----------
-	| REGISTER
-	|-----------
-	*/
-
-	/**
-	 * {@inheritDoc}
-	 *
-	 * Overrides parent to additionally enforce that the handler
-	 * implements DashboardHandlerInterface.
-	 *
-	 * @throws EnvironmentBootstrapException
-	 */
-	public function register( string $key, array $data, ?int $position = null ) : static {
-		$this->assert_handler_contract( $data['handler'] ?? null );
-		return parent::register( $key, $data, $position );
-	}
-
-	/*
-	|----------
-	| HANDLERS
-	|----------
-	*/
-
-	/**
-	 * Resolve and return the handler instance for a given slug.
-	 *
-	 * @param string $slug
-	 * @return DashboardHandlerInterface|null
-	 */
-	public function get_handler( string $slug ) : ?DashboardHandlerInterface {
-		$item = $this->get( $slug );
-
-		if ( null === $item ) {
-			return null;
-		}
-
-		$handler = $item['handler'];
-
-		// Handler may be a class-string or a [class, method] callable.
-		// For the dashboard, handlers are always instantiable classes.
-		$class = is_array( $handler ) ? $handler[0] : $handler;
-
-		if ( is_string( $class ) && class_exists( $class ) ) {
-			return new $class;
-		}
-
-		return null;
-	}
-
-	/**
-	 * Return all registered handlers as slug => handler instance map.
-	 *
-	 * @return array<string, DashboardHandlerInterface>
-	 */
-	public function get_handlers() : array {
-		$handlers = [];
-
-		foreach ( $this->all() as $key => $item ) {
-			$handler = $this->get_handler( $key );
-
-			if ( $handler instanceof DashboardHandlerInterface ) {
-				$handlers[ $key ] = $handler;
+			foreach ( $page->get_submenu() as $submenu ) {
+				$this->add_submenu( $page->get_menu_key(), $submenu );
 			}
 		}
 
-		return $handlers;
-	}
+		$this->add_top_menu( 'home_url', [
+			'title'      => 'Home',
+			'type'       => 'link',
+			'href'       => $this->urlmanager->url( '/' ),
+			'icon'       => 'ti ti-home',
+			'visibility' => true,
+		] );
 
-	/*
-	|----------------
-	| PRIVATE HELPERS
-	|----------------
-	*/
+		$this->add_top_menu( 'admin_dashboard', [
+			'title'      => 'Admin',
+			'type'       => 'link',
+			'href'       => $this->urlmanager->admin_url(),
+			'icon'       => 'ti ti-layout-dashboard',
+			'visibility' => fn () : bool => (bool) $this->guard->get_principal()?->is( 'system_admin' ),
+		] );
+
+		$this->add_top_menu( 'logout_button', [
+			'title'      => 'Sign out',
+			'type'       => 'link',
+			'href'       => $this->urlmanager->logout_url(),
+			'icon'       => 'ti ti-logout',
+			'visibility' => true,
+		] );
+	}
 
 	/**
-	 * Assert that a handler implements DashboardHandlerInterface.
-	 *
-	 * @param mixed $handler
-	 * @throws EnvironmentBootstrapException
+	 * {@inheritdoc}
 	 */
-	private function assert_handler_contract( mixed $handler ) : void {
-		$class = null;
-
-		if ( is_string( $handler ) ) {
-			$class = $handler;
-		} elseif ( is_array( $handler ) ) {
-			$class = $handler[0] ?? null;
-		}
-
-		if ( ! $class || ! is_string( $class ) ) {
-			throw new EnvironmentBootstrapException(
-				'dashboard_error',
-				'Dashboard handler must be a class string or [class, method] array.'
-			);
-		}
-
-		if ( ! class_exists( $class ) ) {
-			throw new EnvironmentBootstrapException(
-				'dashboard_error',
-				sprintf( 'Dashboard handler class "%s" does not exist.', $class )
-			);
-		}
-
-		if ( ! in_array( DashboardHandlerInterface::class, class_implements( $class ) ?: [], true ) ) {
-			throw new EnvironmentBootstrapException(
-				'dashboard_error',
-				sprintf(
-					'Dashboard handler "%s" must implement %s.',
-					$class,
-					DashboardHandlerInterface::class
-				)
-			);
-		}
+	protected function page_contract() : string {
+		return ClientPageInterface::class;
 	}
 
+	/**
+	 * Determine whether a key represents the root/overview menu item.
+	 *
+	 * @param string $key
+	 * @return bool
+	 */
 	public function is_root_menu( string $key ) : bool {
-		return false;
+		return 'overview' === $this->canonical_key( $key );
 	}
 }

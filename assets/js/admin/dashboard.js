@@ -80,7 +80,7 @@
 				const url 	= logoutLink.href;
 
 				try {
-					let response = await smliserFetchJSON( url );
+					let response = await smliserFetchJSON( url, { method: 'POST', credentials: 'same-origin' } );
 					if ( ! response.success ) {
 						throw new Error( response.message ?? response.data.message ?? 'Unknown error occurred.' );	
 					}

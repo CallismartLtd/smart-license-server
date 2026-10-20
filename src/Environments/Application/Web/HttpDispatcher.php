@@ -22,9 +22,10 @@ use SmartLicenseServer\Admin\ActionHandlers\MaintenanceManagement;
 use SmartLicenseServer\Admin\ContentHandlers\ToolsPage;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\Cache\CacheRequestController;
-use SmartLicenseServer\ClientDashboard\ClientDashboardRenderer;
-use SmartLicenseServer\ClientDashboard\Handlers\AuthController;
-use SmartLicenseServer\ClientDashboard\TemplateHandlers\AuthForms;
+use SmartLicenseServer\Auth\ActionHandlers\AuthManagement;
+use SmartLicenseServer\Auth\ContentHandlers\AuthPages;
+use SmartLicenseServer\ClientDashboard\ActionHandlers\PreferenceManagement;
+use SmartLicenseServer\ClientDashboard\Page\Dispatcher as ClientDashboardDispatcher;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
@@ -34,6 +35,7 @@ use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddlewar
 use SmartLicenseServer\Environments\Application\Middlewares\AdminDownloadMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\CallableResolver;
+use SmartLicenseServer\Environments\Application\Middlewares\ClientAccessMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\CSRFMiddleware;
 use SmartLicenseServer\Environments\Application\Theming\CorePages;
 use SmartLicenseServer\Environments\Application\Theming\PageHandler;
@@ -131,68 +133,61 @@ final class HttpDispatcher {
 		$urlmanager = $this->container->get( URLManager::class );
 
 		/*
-		|--------------------------
-		| Authentication routes.
-		|--------------------------
+		|-------------------------------------------------------------------
+		| Sign-in pages (themed) and the JSON actions their forms post to.
+		|-------------------------------------------------------------------
 		*/
 		$this->router->group( $urlmanager->login_url_prefix(),
 			function() {
-				$this->router->any(
-					pattern: '/',
-					handler: [AuthForms::class, 'render_login_form_shell'],
-				);
+				$this->pages->get( '/', [AuthPages::class, 'sign_in'] );
+				$this->pages->get( 'signup', [AuthPages::class, 'sign_up'] );
+				$this->pages->get( 'forgot-password', [AuthPages::class, 'forgot_password'] );
+				$this->pages->get( 'reset-password', [AuthPages::class, 'reset_password'] );
 
-				// Forms GET route.
-				$this->router->get(
-					pattern: 'form/login',
-					handler: [AuthForms::class, 'render_json_login_form']
-				);
-				$this->router->get(
-					pattern: 'form/signup',
-					handler: [AuthForms::class, 'render_json_signup_form']
-				);
-				$this->router->get(
-					pattern: 'form/forgot-password',
-					handler: [AuthForms::class, 'render_json_forgot_password_form']
-				);
-
-				// Forms POST route.
 				$this->router->post(
 					pattern: 'form/login',
-					handler: [AuthController::class, 'handle_login']
+					handler: [AuthManagement::class, 'handle_login']
 				);
 				$this->router->post(
 					pattern: 'form/signup',
-					handler: [AuthController::class, 'handle_signup']
+					handler: [AuthManagement::class, 'handle_signup']
 				);
 				$this->router->post(
 					pattern: 'form/forgot-password',
-					handler: [AuthController::class, 'handle_forgot_password']
+					handler: [AuthManagement::class, 'handle_forgot_password']
+				);
+				$this->router->post(
+					pattern: 'form/reset-password',
+					handler: [AuthManagement::class, 'handle_reset_password']
 				);
 			},
-			// Guest forms: the POSTs need the guest CSRF token; the GETs pass through.
+			// Guest forms: the POSTs need the guest CSRF token; the pages pass through.
 			middleware: [
 				CSRFMiddleware::class
 			]
 		);
  
 		/*
-		|----------------
-		| Logout routes.
-		|----------------
+		|-----------------------------------------------------------
+		| Logout: the signed-out page (signs this browser out), and
+		| the actions for scripts and "sign out everywhere".
+		|-----------------------------------------------------------
 		*/
 		$this->router->group( $urlmanager->logout_url_prefix(),
 			function() {
-				// This device only.
-				$this->router->get(
+				// This device, from a link: the signed-out page.
+				$this->pages->get( '/', [AuthPages::class, 'signed_out'] );
+
+				// This device, from a script: JSON.
+				$this->router->post(
 					pattern: '/',
-					handler: [AuthController::class, 'handle_logout']
+					handler: [AuthManagement::class, 'handle_logout']
 				);
 
 				// Every device: POST only, so it needs a CSRF token.
 				$this->router->post(
 					pattern: 'everywhere',
-					handler: [AuthController::class, 'handle_logout_everywhere']
+					handler: [AuthManagement::class, 'handle_logout_everywhere']
 				);
 			},
 			middleware: [
@@ -560,14 +555,29 @@ final class HttpDispatcher {
 		*/
 		$this->router->group( $urlmanager->client_dashboard_url_prefix(),
 			callback: function () {
-				$this->router->get(
-					pattern: '',
-					handler: [ClientDashboardRenderer::class, 'render_client_dashboard'],
-					middleware: []
-				);
+				// Pages (themed), built from ClientDashboardRegistry like the admin dashboard.
+				$this->pages->get( '/', [ClientDashboardDispatcher::class, 'render_client_dashboard'] );
+				$this->pages->get( '{page:slug}', [ClientDashboardDispatcher::class, 'render_client_dashboard'] );
+				$this->pages->get( '{page:slug}/{tab:slug}', [ClientDashboardDispatcher::class, 'render_client_dashboard'] );
+
+				/*
+				|-------------------------------------------------------------
+				| CLIENT DASHBOARD ACTIONS: POST, PUT, DELETE answering JSON.
+				|-------------------------------------------------------------
+				*/
+				$this->router->group( 'json', function () {
+					$this->router->post(
+						pattern: 'preferences',
+						handler: [PreferenceManagement::class, 'save']
+					);
+				},
+				middleware: [
+					CSRFMiddleware::class
+				] );
 			},
-			middleware: []
-		
+			middleware: [
+				ClientAccessMiddleware::class
+			]
 		);
 
 		/*

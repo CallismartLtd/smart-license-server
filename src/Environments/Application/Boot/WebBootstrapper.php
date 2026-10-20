@@ -11,7 +11,9 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Boot;
 
+use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Assets\AssetsManager;
+use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
 use SmartLicenseServer\Assets\CSS;
 use SmartLicenseServer\Assets\JS;
 use SmartLicenseServer\Environments\Application\Boot\BootstrapperInterface;
@@ -138,6 +140,27 @@ class WebBootstrapper implements BootstrapperInterface {
 				$c->get( Guard::class ),
 				$c->get( AssetsManager::class ),
 				$c->get( FileSystem::class )
+			)
+		);
+
+		/*
+		 * One registry per dashboard for the whole request, so menus added
+		 * by extensions and themes are the menus the dashboard is built from.
+		 */
+		$container->singleton(
+			AdminDashboardRegistry::class,
+			fn ( Container $c ) : AdminDashboardRegistry => new AdminDashboardRegistry(
+				$c->get( URLManager::class ),
+				$c
+			)
+		);
+
+		$container->singleton(
+			ClientDashboardRegistry::class,
+			fn ( Container $c ) : ClientDashboardRegistry => new ClientDashboardRegistry(
+				$c->get( URLManager::class ),
+				$c,
+				$c->get( Guard::class )
 			)
 		);
 

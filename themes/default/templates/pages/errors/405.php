@@ -9,18 +9,15 @@
  */
 
 $this->partial(
-	'page-header',
+	'status',
 	[
-		'heading'     => 'Method Not Allowed',
-		'description' => 'The requested resource does not support this HTTP method.',
+		'diagram' => 'missing',
+		'heading' => 'Method Not Allowed',
+		'message' => sprintf( '%s is not supported here. This address accepts %s.', $method, implode( ', ', $allowed ) ),
+		'actions' => [
+			[ 'label' => 'Go back', 'action' => 'back' ],
+			[ 'label' => 'Home', 'url' => $this->url( '/' )->url() ],
+		],
+		'detail'  => 'HTTP 405',
 	]
 );
-?>
-<section class="content">
-	<div class="message">
-		<div class="card">
-			<h3>Method Not Allowed</h3>
-			<p><?php echo escHtml( sprintf( '%s is not supported here. Allowed: %s.', $method, implode( ', ', $allowed ) ) ); ?></p>
-		</div>
-	</div>
-</section>
