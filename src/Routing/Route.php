@@ -30,6 +30,7 @@ final class Route {
 	 *                          route-specific middleware, in the order they should run.
 	 *                          Data only: Router never calls these, just carries them
 	 *                          through to DispatchResult for the environment to execute.
+	 *                          Read-only from outside; middleware() appends to it.
 	 */
 	public function __construct(
 		public readonly string $pattern,
@@ -37,7 +38,7 @@ final class Route {
 		public readonly mixed $handler,
 		public readonly bool $optionalTrailingSlash,
 		public readonly CompiledPattern $compiled,
-		public readonly array $middleware = []
+		public private(set) array $middleware = []
 	) {}
 
 	/**

@@ -1,6 +1,6 @@
 <?php
 /**
- * The theme REST API class file
+ * The WordPress theme information REST API class file
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\RESTAPI
@@ -17,9 +17,10 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\RepositoryVisibility;
 
 /**
- * Handles REST API Requests for hosted themes.
+ * Handles REST API requests for hosted WordPress themes: the theme-info
+ * endpoint WordPress sites call to check for updates.
  */
-class Themes extends DataStore {
+class WPThemes extends DataStore {
 
 	public function __construct(
 		protected AppsAnalytics $apps_analytics,

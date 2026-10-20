@@ -12,8 +12,8 @@ namespace SmartLicenseServer\RESTAPI\Versions;
 use SmartLicenseServer\RESTAPI\Handlers\BulkMessages;
 use SmartLicenseServer\RESTAPI\Handlers\HostedApps;
 use SmartLicenseServer\RESTAPI\Handlers\Licenses;
-use SmartLicenseServer\RESTAPI\Handlers\Plugins;
-use SmartLicenseServer\RESTAPI\Handlers\Themes;
+use SmartLicenseServer\RESTAPI\Handlers\WPPlugins;
+use SmartLicenseServer\RESTAPI\Handlers\WPThemes;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
 
 /**
@@ -302,8 +302,8 @@ class V1 implements RESTVersionInterface {
 				[
 					'route'    => self::PLUGIN_INFO,
 					'methods'  => ['GET'],
-					'handler'  => [ Plugins::class, 'plugin_info_response' ],
-					'guard'    => [ Plugins::class, 'info_permission_callback' ],
+					'handler'  => [ WPPlugins::class, 'plugin_info_response' ],
+					'guard'    => [ WPPlugins::class, 'info_permission_callback' ],
 					'args'     => self::get_app_info_args( 'plugin' ),
 					'category' => 'repository',
 					'name'     => 'Plugin Information',
@@ -313,8 +313,8 @@ class V1 implements RESTVersionInterface {
 				[
 					'route'    => self::THEME_INFO,
 					'methods'  => ['GET'],
-					'handler'  => [ Themes::class, 'theme_info_response' ],
-					'guard'    => [ Themes::class, 'info_permission_callback' ],
+					'handler'  => [ WPThemes::class, 'theme_info_response' ],
+					'guard'    => [ WPThemes::class, 'info_permission_callback' ],
 					'args'     => self::get_app_info_args( 'theme' ),
 					'category' => 'repository',
 					'name'     => 'Theme Information',
@@ -590,7 +590,7 @@ class V1 implements RESTVersionInterface {
 			'limit' => [
 				'required'    => false,
 				'type'        => 'integer',
-				'default'     => 10,
+				'default'     => 25,
 				'description' => 'Maximum number of apps per page.',
 			],
 			'app_slugs' => [
@@ -601,7 +601,7 @@ class V1 implements RESTVersionInterface {
 			'app_types' => [
 				'required'    => false,
 				'type'        => 'array',
-				'description' => 'An array of app types to filter by (e.g., [\'plugin\', \'theme\']).',
+				'description' => 'An array of app types to filter by (e.g., [\'plugin\', \'theme\']); every registered app type when omitted. An unregistered type gets 400.',
 			],
 			'status' => [
 				'required'    => false,

@@ -16,6 +16,7 @@ use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\HostingController;
 use SmartLicenseServer\HostedApps\RepositoryVisibility;
@@ -32,7 +33,8 @@ class HostedApps extends DataStore {
 		protected HostingController $hosting,
 		protected MonetizationRegistry $monetization,
 		protected AppsAnalytics $apps_analytics,
-		protected RepositoryVisibility $visibility
+		protected RepositoryVisibility $visibility,
+		protected HostedAppsRegistry $registry
 	) {}
 
 	/**
@@ -89,9 +91,11 @@ class HostedApps extends DataStore {
 	/**
 	 * Repository REST API handler.
 	 *
-	 * Lists active apps. The status parameter lists apps in another status
-	 * and is for system admins only (RepositoryVisibility); anyone else
-	 * asking for a status other than active gets 403.
+	 * Lists active apps of every registered app type (HostedAppsRegistry).
+	 * The app_types parameter narrows the types; an unregistered type gets
+	 * 400. The status parameter lists apps in another status and is for
+	 * system admins only (RepositoryVisibility); anyone else asking for a
+	 * status other than active gets 403.
 	 *
 	 * @param Request $request The current request object.
 	 * @return Response
@@ -101,7 +105,28 @@ class HostedApps extends DataStore {
 		$page   = $request->get( 'page' ) ?? 1;
 		$limit  = $request->get( 'limit' ) ?? 25;
 		$status = (string) ( $request->get( 'status' ) ?: AbstractHostedApp::STATUS_ACTIVE );
-		$types  = $request->get( 'types' ) ?: [ 'plugin', 'theme', 'software' ];
+		$types  = $this->registry->app_types();
+
+		if ( ! empty( $request->get( 'app_types' ) ) ) {
+			$types = [];
+
+			foreach ( (array) $request->get( 'app_types' ) as $type ) {
+				if ( ! $this->registry->is_app_type_registered( (string) $type ) ) {
+					return Response::error(
+						new RequestException(
+							'invalid_input',
+							sprintf( 'Unknown app type "%s". Registered app types: %s.', (string) $type, implode( ', ', $this->registry->app_types() ) ),
+							[ 'status' => 400 ]
+						),
+						400
+					);
+				}
+
+				$types[] = $this->registry->normalize_app_type( (string) $type );
+			}
+
+			$types = array_values( array_unique( $types ) );
+		}
 
 		if ( ! $this->visibility->can_view_status( $status ) ) {
 			return Response::error(

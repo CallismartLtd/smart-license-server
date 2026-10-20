@@ -83,7 +83,7 @@ final class Container {
 	public function singleton( string $id, ?object $definition = null ) : void {
 		$id = $this->normalize_id( $id );
 
-		$this->shared[$id] = $definition ?? fn() => $this->autowire( $id );
+		$this->shared[$id] = $definition ?? fn() => $this->construct( $id );
 
 		unset( $this->instances[$id] );
 	}
@@ -103,7 +103,7 @@ final class Container {
 	public function factory( string $id, ?Closure $factory = null ) : void {
 		$id = $this->normalize_id( $id );
 
-		$this->definitions[$id] = $factory ?? fn() => $this->autowire( $id );
+		$this->definitions[$id] = $factory ?? fn() => $this->construct( $id );
 
 		unset( $this->shared[$id], $this->instances[$id] );
 	}
@@ -314,7 +314,7 @@ final class Container {
 	}
 
 	/**
-	 * Automatically construct a concrete class.
+	 * Automatically construct a concrete class, guarded against circular dependencies.
 	 *
 	 * @template T of object
 	 *
@@ -323,6 +323,25 @@ final class Container {
 	 * @return T
 	 */
 	private function autowire( string $id ) : object {
+		/** @var T */
+		return $this->guarded( $id, fn () => $this->construct( $id ) );
+	}
+
+	/**
+	 * Construct a concrete class, resolving its constructor parameters.
+	 *
+	 * Not guarded: the caller marks $id as resolving, either autowire() or,
+	 * for singleton() and factory() registered without a definition,
+	 * resolve_definition(). Guarding here as well would see $id twice and
+	 * report a circular dependency on itself.
+	 *
+	 * @template T of object
+	 *
+	 * @param class-string<T> $id
+	 *
+	 * @return T
+	 */
+	private function construct( string $id ) : object {
 		if ( ! class_exists( $id ) ) {
 			throw $this->unresolvable(
 				"Unable to resolve '{$id}': the class does not exist."
@@ -345,32 +364,31 @@ final class Container {
 			);
 		}
 
-		/** @var T */
-		return $this->guarded( $id, function () use ( $id, $reflection ) {
-			try {
-				$constructor = $reflection->getConstructor();
+		try {
+			$constructor = $reflection->getConstructor();
 
-				if ( null === $constructor ) {
-					return $reflection->newInstance();
-				}
-
-				$arguments = array_map(
-					fn( ReflectionParameter $parameter ) => $this->resolve_parameter( $parameter ),
-					$constructor->getParameters()
-				);
-
-				return $reflection->newInstanceArgs( $arguments );
-			} catch ( Throwable $exception ) {
-				if ( $exception instanceof ContainerException ) {
-					throw $exception;
-				}
-
-				throw $this->unresolvable(
-					"Unable to autowire '{$id}': {$exception->getMessage()}",
-					$exception
-				);
+			if ( null === $constructor ) {
+				/** @var T */
+				return $reflection->newInstance();
 			}
-		} );
+
+			$arguments = array_map(
+				fn( ReflectionParameter $parameter ) => $this->resolve_parameter( $parameter ),
+				$constructor->getParameters()
+			);
+
+			/** @var T */
+			return $reflection->newInstanceArgs( $arguments );
+		} catch ( Throwable $exception ) {
+			if ( $exception instanceof ContainerException ) {
+				throw $exception;
+			}
+
+			throw $this->unresolvable(
+				"Unable to autowire '{$id}': {$exception->getMessage()}",
+				$exception
+			);
+		}
 	}
 
 	/**

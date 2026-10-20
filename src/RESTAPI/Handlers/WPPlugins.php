@@ -1,6 +1,6 @@
 <?php
 /**
- * The plugin REST API class file
+ * The WordPress plugin information REST API class file
  * 
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\RESTAPI
@@ -17,9 +17,10 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\RepositoryVisibility;
 
 /**
- * Handles REST API Requests for hosted plugins.
+ * Handles REST API requests for hosted WordPress plugins: the plugin-info
+ * endpoint WordPress sites call to check for updates.
  */
-class Plugins extends DataStore {
+class WPPlugins extends DataStore {
 
 	protected mixed $response_data = [];
 
