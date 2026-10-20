@@ -14,6 +14,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\RepositoryVisibility;
 
 /**
  * Handles REST API Requests for hosted themes.
@@ -21,10 +22,14 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 class Themes extends DataStore {
 
 	public function __construct(
-		protected AppsAnalytics $apps_analytics
+		protected AppsAnalytics $apps_analytics,
+		protected RepositoryVisibility $visibility
 	) {}
 	/**
 	 * Theme info endpoint permission callback.
+	 *
+	 * A theme that is not active is not found (404), except for a system
+	 * admin (RepositoryVisibility).
 	 * 
 	 * @param Request $request The REST API request object.
 	 * @return RequestException|false Error object if permission is denied, false otherwise.
@@ -45,7 +50,7 @@ class Themes extends DataStore {
 		}
 
 		$arg       = $theme_id ? $theme_id : $slug;
-		$cache_key = static::make_cache_key( __METHOD__, [$arg] );
+		$cache_key = static::make_cache_key( __METHOD__, [$arg, $this->visibility->audience()] );
 
 		/** @var \SmartLicenseServer\Exceptions\RequestException|false|array $data */
 		$data = static::cache_get( $cache_key );
@@ -57,9 +62,9 @@ class Themes extends DataStore {
 				$theme = HostedApplicationService::get_app_by_slug( 'theme', $slug );
 			}
 
-			if ( ! $theme ) {
+			if ( ! $theme || ! $this->visibility->can_view( $theme ) ) {
 				$message = __( 'The theme does not exist.', 'smliser' );
-				$theme   = new RequestException( 'theme_not_found', $message, [ 'status' => 404 ] );
+				$data    = new RequestException( 'theme_not_found', $message, [ 'status' => 404 ] );
 			} else {
 				$this->apps_analytics->log_client_access(
 					$theme,

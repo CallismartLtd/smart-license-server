@@ -18,6 +18,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\HostingController;
+use SmartLicenseServer\HostedApps\RepositoryVisibility;
 use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\Security\Context\Guard;
 
@@ -30,7 +31,8 @@ class HostedApps extends DataStore {
 		protected Guard $guard,
 		protected HostingController $hosting,
 		protected MonetizationRegistry $monetization,
-		protected AppsAnalytics $apps_analytics
+		protected AppsAnalytics $apps_analytics,
+		protected RepositoryVisibility $visibility
 	) {}
 
 	/**
@@ -87,6 +89,10 @@ class HostedApps extends DataStore {
 	/**
 	 * Repository REST API handler.
 	 *
+	 * Lists active apps. The status parameter lists apps in another status
+	 * and is for system admins only (RepositoryVisibility); anyone else
+	 * asking for a status other than active gets 403.
+	 *
 	 * @param Request $request The current request object.
 	 * @return Response
 	 */
@@ -94,8 +100,15 @@ class HostedApps extends DataStore {
 		$search = $request->get( 'search' );
 		$page   = $request->get( 'page' ) ?? 1;
 		$limit  = $request->get( 'limit' ) ?? 25;
-		$status = $request->get( 'status' ) ?: AbstractHostedApp::STATUS_ACTIVE;
+		$status = (string) ( $request->get( 'status' ) ?: AbstractHostedApp::STATUS_ACTIVE );
 		$types  = $request->get( 'types' ) ?: [ 'plugin', 'theme', 'software' ];
+
+		if ( ! $this->visibility->can_view_status( $status ) ) {
+			return Response::error(
+				new RequestException( 'unauthorized_scope', 'Only system administrators can list applications that are not active.', [ 'status' => 403 ] ),
+				403
+			);
+		}
 
 		$args = $search ? [
 			'term'   => $search,
@@ -139,14 +152,17 @@ class HostedApps extends DataStore {
 	 * Responds to HTTP GET request method on the single app route.
 	 * This method responds to /repostory/{app-type}/{app-slug}/ 
 	 * path of the our REST API namespace 
+	 *
+	 * An app that is not active is not found (404), except for a system
+	 * admin (RepositoryVisibility).
 	 * 
 	 * @param Request $request The REST API request object.
 	 */
-	public function single_app_get( Request $request ) : RequestException|Response {
+	public function single_app_get( Request $request ) : Response {
 		$app_type = (string) $request->getTyped( 'app_type', 'string', '' );
 		$app_slug = (string) $request->getTyped( 'app_slug', 'string', '' );
 
-		$cache_key = static::make_cache_key( __METHOD__, [$app_type, $app_slug] );
+		$cache_key = static::make_cache_key( __METHOD__, [$app_type, $app_slug, $this->visibility->audience()] );
 
 		/** @var \SmartLicenseServer\Exceptions\RequestException|false|array $data */
 		$data = static::cache_get( $cache_key );
@@ -154,7 +170,7 @@ class HostedApps extends DataStore {
 		if ( false === $data ) {
 			$app = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
 
-			if ( ! $app ) {
+			if ( ! $app || ! $this->visibility->can_view( $app ) ) {
 				$data = new RequestException( 'app_not_found', __( 'The requested app could not be found', 'smliser' ), ['status' => 404] );
 			} else {
 				$this->apps_analytics->log_client_access(
@@ -175,7 +191,7 @@ class HostedApps extends DataStore {
 		}
 
 		if ( $data instanceof RequestException ) {
-			return $data;
+			return Response::error( $data, 404 );
 		}
 		
 		return Response::json( $data, 200 );

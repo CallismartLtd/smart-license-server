@@ -14,6 +14,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\RepositoryVisibility;
 
 /**
  * Handles REST API Requests for hosted plugins.
@@ -23,11 +24,15 @@ class Plugins extends DataStore {
 	protected mixed $response_data = [];
 
 	public function __construct(
-		protected AppsAnalytics $apps_analytics
+		protected AppsAnalytics $apps_analytics,
+		protected RepositoryVisibility $visibility
 	) {}
 
 	/**
 	 * Plugin info endpoint permission callback.
+	 *
+	 * A plugin that is not active is not found (404), except for a system
+	 * admin (RepositoryVisibility).
 	 * 
 	 * @param Request $request The REST API request object.
 	 * @return RequestException|false Error object if permission is denied, false otherwise.
@@ -49,7 +54,7 @@ class Plugins extends DataStore {
 
 		
 		$arg       = $plugin_id ? $plugin_id : $slug;
-		$cache_key = $this->make_cache_key( __METHOD__, [$arg] );
+		$cache_key = $this->make_cache_key( __METHOD__, [$arg, $this->visibility->audience()] );
 
 		/** @var \SmartLicenseServer\Exceptions\RequestException|false|array $data */
 		$data = $this->cache_get( $cache_key );
@@ -61,9 +66,9 @@ class Plugins extends DataStore {
 				$plugin = HostedApplicationService::get_app_by_slug( 'plugin', $slug );
 			}
 
-			if ( ! $plugin ) {
+			if ( ! $plugin || ! $this->visibility->can_view( $plugin ) ) {
 				$message = __( 'The plugin does not exist, please check the typography or the plugin slug.', 'smliser' );
-				$plugin  = new RequestException( 'plugin_not_found', $message, [ 'status' => 404 ] );
+				$data    = new RequestException( 'plugin_not_found', $message, [ 'status' => 404 ] );
 			} else {
 				$this->apps_analytics->log_client_access(
 					$plugin,

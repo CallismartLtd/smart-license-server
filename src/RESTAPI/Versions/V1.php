@@ -603,6 +603,12 @@ class V1 implements RESTVersionInterface {
 				'type'        => 'array',
 				'description' => 'An array of app types to filter by (e.g., [\'plugin\', \'theme\']).',
 			],
+			'status' => [
+				'required'    => false,
+				'type'        => 'string',
+				'default'     => 'active',
+				'description' => 'The app status to list: active, deactivated, suspended or trash. Statuses other than active are for system admins only (403 for anyone else).',
+			],
 		];
 	}
 
