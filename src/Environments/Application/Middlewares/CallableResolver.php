@@ -86,7 +86,7 @@ final class CallableResolver {
 		if ( is_object( $data ) && method_exists( $data, '__invoke' ) ) {
 			return $data;
 		}
-\dd( $data );
+
 		throw new InvalidArgumentException(
 			sprintf( 'Unable to resolve supplied data of type [%s] to a valid callable.', get_debug_type( $data ) )
 		);
