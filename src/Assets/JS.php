@@ -192,6 +192,12 @@ final class JS {
 				'version'      => SMLISER_VER,
 				'footer'       => true,
 			],
+			'themes' => [
+				'url'          => $this->urlmanager->assets_url( sprintf( 'js/admin/themes%s.js', $suffix ) ),
+				'dependencies' => ['core-admin', 'modal', 'toast'],
+				'version'      => SMLISER_VER,
+				'footer'       => true,
+			],
 			'support-report' => [
 				'url'          => $this->urlmanager->assets_url( sprintf( 'js/admin/support-report%s.js', $suffix ) ),
 				'dependencies' => ['core-admin'],

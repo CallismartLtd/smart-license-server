@@ -29,6 +29,9 @@ use SmartLicenseServer\FileSystem\FileSystem;
  *  - A theme is a chain: the theme, its parent if it has one, then the
  *    default theme. A template or asset is taken from the first theme in
  *    the chain that has it.
+ *
+ * Installing, updating and removing themes is ThemeInstaller's job; this
+ * class finds them and records which one is active.
  */
 final class ThemeManager {
 
@@ -195,6 +198,127 @@ final class ThemeManager {
 		}
 
 		return $chain;
+	}
+
+	/*
+	|------------
+	| INSTALLED
+	|------------
+	*/
+
+	/**
+	 * Every installed theme folder, valid or not.
+	 *
+	 * Folders whose name starts with a dot (ThemeInstaller's working folder)
+	 * are not themes and are skipped.
+	 *
+	 * @return array<string, Theme|ThemeException> Folder name => the theme, or why it cannot be loaded; sorted by name.
+	 */
+	public function installed() : array {
+		$themes  = [];
+		$entries = $this->fs->is_dir( $this->installed_dir ) ? $this->fs->list_dir( $this->installed_dir ) : [];
+
+		foreach ( is_array( $entries ) ? $entries : [] as $entry ) {
+			$name = basename( $entry['path'] );
+
+			if ( ! $entry['is_dir'] || str_starts_with( $name, '.' ) ) {
+				continue;
+			}
+
+			try {
+				$themes[ $name ] = $this->find( $name );
+			} catch ( ThemeException $e ) {
+				$themes[ $name ] = $e;
+			}
+		}
+
+		ksort( $themes );
+
+		return $themes;
+	}
+
+	/**
+	 * Whether a theme folder is installed (valid or not).
+	 *
+	 * @param string $slug
+	 * @return bool
+	 */
+	public function is_installed( string $slug ) : bool {
+		return self::DEFAULT_SLUG !== $slug
+			&& 1 === preg_match( Theme::SLUG_PATTERN, $slug )
+			&& $this->fs->is_dir( $this->installed_dir . '/' . $slug );
+	}
+
+	/**
+	 * Installed themes whose parent is a theme.
+	 *
+	 * @param string $slug Parent slug.
+	 * @return string[] Child slugs.
+	 */
+	public function children( string $slug ) : array {
+		$children = [];
+
+		foreach ( $this->installed() as $name => $theme ) {
+			if ( $theme instanceof Theme && $slug === $theme->parent ) {
+				$children[] = $name;
+			}
+		}
+
+		return $children;
+	}
+
+	/**
+	 * Forget a loaded theme, after its folder was replaced or removed.
+	 *
+	 * @param string $slug
+	 * @return void
+	 */
+	public function forget( string $slug ) : void {
+		unset( $this->loaded[ $slug ] );
+	}
+
+	/*
+	|------------
+	| ACTIVATING
+	|------------
+	*/
+
+	/**
+	 * Make a theme the one that renders pages.
+	 *
+	 * The theme must load, support this app version and have a valid chain;
+	 * the default theme is activated by forgetting the record.
+	 *
+	 * @param string $slug
+	 * @return Theme The active theme.
+	 * @throws ThemeException When the theme cannot be used, or the record cannot be written.
+	 */
+	public function activate( string $slug ) : Theme {
+		if ( self::DEFAULT_SLUG === $slug ) {
+			if ( $this->fs->is_file( $this->active_file ) && ! $this->fs->delete( $this->active_file ) ) {
+				throw new ThemeException( sprintf( 'Could not write %s; check the permissions of the storage folder.', $this->active_file ) );
+			}
+
+			return $this->default_theme();
+		}
+
+		$this->forget( $slug );
+
+		$theme = $this->find( $slug );
+
+		if ( ! $theme->supports( $this->app_version ) ) {
+			throw new ThemeException( sprintf( 'The theme "%s" requires app version %s or later; this is %s.', $slug, $theme->requires, $this->app_version ) );
+		}
+
+		$this->chain( $theme );
+
+		$record = (string) json_encode( [ 'active' => $slug, 'activated_at' => gmdate( DATE_ATOM ) ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+
+		if ( ! $this->fs->put_contents( $this->active_file, $record . "\n" ) ) {
+			throw new ThemeException( sprintf( 'Could not write %s; check the permissions of the storage folder.', $this->active_file ) );
+		}
+
+		return $theme;
 	}
 
 	/*

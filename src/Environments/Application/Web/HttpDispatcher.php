@@ -19,6 +19,7 @@ use SmartLicenseServer\Admin\ActionHandlers\SystemManagement;
 use SmartLicenseServer\Admin\ActionHandlers\UpdateManagement;
 use SmartLicenseServer\Admin\ActionHandlers\BackgroundManagement;
 use SmartLicenseServer\Admin\ActionHandlers\MaintenanceManagement;
+use SmartLicenseServer\Admin\ActionHandlers\ThemeManagement;
 use SmartLicenseServer\Admin\ContentHandlers\ToolsPage;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\Cache\CacheRequestController;
@@ -504,6 +505,33 @@ final class HttpDispatcher {
 								$this->router->post(
 									pattern: $pattern,
 									handler: [ MaintenanceManagement::class, $method ]
+								);
+							}
+						}
+					);
+
+					/*
+					|------------------------------
+					| APPEARANCE > THEMES ACTIONS
+					|------------------------------
+					*/
+					$this->router->group(
+						prefix: 'themes',
+						callback: function() {
+							$actions = [
+								'activate' => 'activate',
+								'install'  => 'install',
+								'upload'   => 'upload',
+								'update'   => 'update',
+								'check'    => 'check',
+								'remove'   => 'remove',
+								'publish'  => 'publish',
+							];
+
+							foreach ( $actions as $pattern => $method ) {
+								$this->router->post(
+									pattern: $pattern,
+									handler: [ ThemeManagement::class, $method ]
 								);
 							}
 						}

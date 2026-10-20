@@ -129,11 +129,6 @@ class WebBootstrapper implements BootstrapperInterface {
 		);
 
 		$container->singleton(
-			ThemeManager::class,
-			fn ( Container $c ) : ThemeManager => ThemeManager::from_runtime( $c->get( FileSystem::class ) )
-		);
-
-		$container->singleton(
 			ThemeRenderer::class,
 			fn ( Container $c ) : ThemeRenderer => new ThemeRenderer(
 				$c->get( ThemeManager::class ),

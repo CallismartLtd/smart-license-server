@@ -14,6 +14,7 @@ use SmartLicenseServer\Admin\ContentHandlers\DashboardPage;
 use SmartLicenseServer\Admin\ContentHandlers\LicensePage;
 use SmartLicenseServer\Admin\ContentHandlers\OptionsPage;
 use SmartLicenseServer\Admin\ContentHandlers\RepositoryPage;
+use SmartLicenseServer\Admin\ContentHandlers\AppearancePage;
 use SmartLicenseServer\Admin\ContentHandlers\ToolsPage;
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 use SmartLicenseServer\Core\Container\Container;
@@ -39,6 +40,7 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
 			LicensePage::class,
 			BulkMessagePage::class,
 			AccessControlPage::class,
+			AppearancePage::class,
 			ToolsPage::class,
 			OptionsPage::class
 		];

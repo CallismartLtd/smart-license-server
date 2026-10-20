@@ -21,6 +21,11 @@ use Throwable;
  * Asks the REST API for the latest version, then downloads that version's
  * zip, checksums and checksums signature from the public artifact route
  * and verifies them before returning the zip.
+ *
+ * The same server is the marketplace for packages this application
+ * installs (site themes, see ThemeInstaller): latest_of() and
+ * download_artifact() do the same for any hosted app on it, and
+ * latest() and download() are those calls for this application.
  */
 final class UpdateServer {
 
@@ -93,7 +98,20 @@ final class UpdateServer {
 	 * @throws UpdateException When the server cannot be reached or does not answer as expected.
 	 */
 	public function latest( ?callable $progress = null ) : array {
-		$url = self::HOST . '/smliser/v1/repository/' . self::APP_TYPE . '/' . self::APP_SLUG;
+		return $this->latest_of( self::APP_TYPE, self::APP_SLUG, $progress );
+	}
+
+	/**
+	 * The latest version of a hosted app the update server publishes.
+	 *
+	 * @param string        $app_type Hosted app type on the update server.
+	 * @param string        $app_slug Hosted app slug on the update server.
+	 * @param callable|null $progress Progress callback, see UpdateProgressTrait.
+	 * @return array{version: string, security: bool, source: string}
+	 * @throws UpdateException When the server cannot be reached, does not publish the app, or does not answer as expected.
+	 */
+	public function latest_of( string $app_type, string $app_slug, ?callable $progress = null ) : array {
+		$url = self::HOST . '/smliser/v1/repository/' . rawurlencode( $app_type ) . '/' . rawurlencode( $app_slug );
 
 		$this->report( $progress, 'check', self::STATUS_INFO, sprintf( 'Asking %s for the latest version.', $url ) );
 
@@ -112,14 +130,18 @@ final class UpdateServer {
 		}
 
 		if ( 404 === $response->status_code ) {
-			throw new UpdateException( 'The update server does not publish this application.' );
+			throw new UpdateException(
+				self::APP_TYPE === $app_type && self::APP_SLUG === $app_slug
+					? 'The update server does not publish this application.'
+					: sprintf( 'The update server does not publish "%s".', $app_slug )
+			);
 		}
 
 		if ( ! $response->is_success() ) {
 			throw new UpdateException( sprintf( 'The update server answered with HTTP %d; try again later.', $response->status_code ) );
 		}
 
-		$app     = $response->json()[ self::APP_TYPE ] ?? null;
+		$app     = $response->json()[ $app_type ] ?? null;
 		$version = is_array( $app ) ? ( $app['version'] ?? null ) : null;
 
 		if ( ! is_string( $version ) || 1 !== preg_match( '/^\d+\.\d+\.\d+([.+-][0-9A-Za-z.+-]+)?$/', $version ) ) {
@@ -128,7 +150,7 @@ final class UpdateServer {
 
 		$security = true === ( $app['manifest']['security'] ?? false );
 
-		$this->report( $progress, 'check', self::STATUS_OK, sprintf( 'The update server publishes version %s%s.', $version, $security ? ' (security release)' : '' ) );
+		$this->report( $progress, 'check', self::STATUS_OK, sprintf( 'The update server publishes %s %s%s.', $app_slug, $version, $security ? ' (security release)' : '' ) );
 
 		return [
 			'version'  => $version,
@@ -149,12 +171,30 @@ final class UpdateServer {
 	 * @throws UpdateException When a download or a check fails; nothing downloaded is kept.
 	 */
 	public function download( string $version, string $dir, bool $trust_unsigned = false, ?callable $progress = null ) : array {
-		$base = self::package_base( $version );
-		$zip  = rtrim( $dir, '/\\' ) . '/' . $base . '.zip';
-		$url  = $this->artifact_url( $base . '.zip' );
+		return $this->download_artifact( self::APP_TYPE, self::APP_SLUG, self::package_base( $version ), $dir, $trust_unsigned, $progress );
+	}
 
-		$checksums = $this->fetch( $base . '.sha256', false, $progress );
-		$signature = $this->fetch( $base . '.sha256.sig', true, $progress );
+	/**
+	 * Download a hosted app's package artifacts and verify them.
+	 *
+	 * The app publishes <base>.zip, <base>.sha256 and (signed packages)
+	 * <base>.sha256.sig as artifacts; see PackageVerifier.
+	 *
+	 * @param string        $app_type       Hosted app type on the update server.
+	 * @param string        $app_slug       Hosted app slug on the update server.
+	 * @param string        $base           Artifact base name, e.g. "smliser-theme-acme-1.0.0".
+	 * @param string        $dir            Existing, writable directory to download into.
+	 * @param bool          $trust_unsigned Accept a package without a valid signature.
+	 * @param callable|null $progress       Progress callback, see UpdateProgressTrait.
+	 * @return array{zip: string, source: string, sha256: string, signed_by: ?string, warnings: string[]}
+	 * @throws UpdateException When a download or a check fails; nothing downloaded is kept.
+	 */
+	public function download_artifact( string $app_type, string $app_slug, string $base, string $dir, bool $trust_unsigned = false, ?callable $progress = null ) : array {
+		$zip = rtrim( $dir, '/\\' ) . '/' . $base . '.zip';
+		$url = $this->artifact_url( $app_type, $app_slug, $base . '.zip' );
+
+		$checksums = $this->fetch( $app_type, $app_slug, $base . '.sha256', false, $progress );
+		$signature = $this->fetch( $app_type, $app_slug, $base . '.sha256.sig', true, $progress );
 
 		$this->report( $progress, 'download', self::STATUS_INFO, sprintf( 'Downloading %s.', $url ) );
 
@@ -202,14 +242,16 @@ final class UpdateServer {
 	/**
 	 * Fetch a small artifact into memory.
 	 *
+	 * @param string        $app_type Hosted app type on the update server.
+	 * @param string        $app_slug Hosted app slug on the update server.
 	 * @param string        $name     Artifact file name.
 	 * @param bool          $optional Return null instead of failing when it is not published.
 	 * @param callable|null $progress Progress callback, see UpdateProgressTrait.
 	 * @return string|null
 	 * @throws UpdateException When it cannot be fetched.
 	 */
-	private function fetch( string $name, bool $optional = false, ?callable $progress = null ) : ?string {
-		$url = $this->artifact_url( $name );
+	private function fetch( string $app_type, string $app_slug, string $name, bool $optional = false, ?callable $progress = null ) : ?string {
+		$url = $this->artifact_url( $app_type, $app_slug, $name );
 
 		$this->report( $progress, 'download', self::STATUS_INFO, sprintf( 'Fetching %s.', $url ) );
 
@@ -238,13 +280,15 @@ final class UpdateServer {
 	}
 
 	/**
-	 * Public URL of a release artifact.
+	 * Public URL of a hosted app's artifact.
 	 *
-	 * @param string $name Artifact file name.
+	 * @param string $app_type Hosted app type on the update server.
+	 * @param string $app_slug Hosted app slug on the update server.
+	 * @param string $name     Artifact file name.
 	 * @return string
 	 */
-	private function artifact_url( string $name ) : string {
-		return self::HOST . '/downloads/' . self::APP_TYPE . '/' . self::APP_SLUG . '/artifacts/' . rawurlencode( $name );
+	private function artifact_url( string $app_type, string $app_slug, string $name ) : string {
+		return self::HOST . '/downloads/' . rawurlencode( $app_type ) . '/' . rawurlencode( $app_slug ) . '/artifacts/' . rawurlencode( $name );
 	}
 
 	/**
