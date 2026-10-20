@@ -15,6 +15,7 @@ use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\RepositoryVisibility;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 
 /**
  * Handles REST API requests for hosted WordPress themes: the theme-info
@@ -24,7 +25,8 @@ class WPThemes extends DataStore {
 
 	public function __construct(
 		protected AppsAnalytics $apps_analytics,
-		protected RepositoryVisibility $visibility
+		protected RepositoryVisibility $visibility,
+		protected MonetizationRegistry $monetization_registry
 	) {}
 	/**
 	 * Theme info endpoint permission callback.
