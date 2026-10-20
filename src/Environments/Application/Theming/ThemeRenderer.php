@@ -25,7 +25,9 @@ use Throwable;
  * a template that throws, a broken parent), the error is logged and the
  * page is rendered again with the default theme alone, so a broken theme
  * never leaves a visitor with a blank page. Only a failure of the default
- * theme itself propagates.
+ * theme itself propagates. The AssetsManager's page state (what is
+ * enqueued and printed) is rolled back before the second render, so the
+ * default theme prints the page's assets, and none of the failed theme's.
  *
  * Built only when a page is answered; requests for anything else never
  * construct it.
@@ -58,7 +60,8 @@ final class ThemeRenderer {
 	 * @throws Throwable When the default theme cannot render the page.
 	 */
 	public function render( View $view, Request $request ) : Response {
-		$theme = $this->themes->active();
+		$theme      = $this->themes->active();
+		$checkpoint = $this->assets->checkpoint();
 
 		try {
 			$html = $this->render_with( $this->themes->chain( $theme ), $view, $request );
@@ -68,6 +71,9 @@ final class ThemeRenderer {
 			}
 
 			\smliser_log_error( sprintf( '[Theme] The theme "%s" could not render the page "%s"; used the default theme: %s', $theme->slug, $view->get_template(), $e->getMessage() ) );
+
+			// The failed render's output is thrown away: so is what it enqueued and printed.
+			$this->assets->rollback( $checkpoint );
 
 			$html = $this->render_with( [ $this->themes->default_theme() ], $view, $request );
 		}

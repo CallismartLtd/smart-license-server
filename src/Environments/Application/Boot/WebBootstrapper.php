@@ -25,6 +25,7 @@ use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
 use SmartLicenseServer\Environments\Application\Kernel\ExecutionHandlerInterface;
 use SmartLicenseServer\Environments\Application\Theming\ThemeManager;
 use SmartLicenseServer\Environments\Application\Theming\ThemeRenderer;
+use SmartLicenseServer\Environments\Application\Theming\View;
 use SmartLicenseServer\Environments\Application\Web\HttpExecutionHandler;
 use SmartLicenseServer\Environments\Application\Web\RestAPIProvider;
 use SmartLicenseServer\Environments\Application\Web\HttpDispatcher;
@@ -199,6 +200,9 @@ class WebBootstrapper implements BootstrapperInterface {
 				UserSettings::for( $guard->principal()->get_actor() )
 			);
 		}
+
+		// Views put their assets on the request's AssetsManager.
+		View::use_assets( fn () : AssetsManager => $container->get( AssetsManager::class ) );
 
 		$container->get( HttpDispatcher::class )
 			->registerCoreRoutes()

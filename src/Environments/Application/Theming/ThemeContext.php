@@ -26,7 +26,9 @@ use SmartLicenseServer\Security\Context\Principal;
  *   templates/layout.php        The document: <html> to </html>.
  *                               Variables: $content (the page's HTML), $view.
  *                               Must call $this->head() inside <head> and
- *                               $this->footer() before </body>.
+ *                               $this->footer() before </body>, and enqueue
+ *                               the theme's own assets before head()
+ *                               (enqueue_style(), enqueue_script()).
  *   templates/pages/<slug>.php  One per page template (View::get_template()).
  *                               Variables: the View's data, and $view.
  *   templates/frames/<slug>.php When the View names a frame (View::set_frame()):
@@ -43,6 +45,11 @@ use SmartLicenseServer\Security\Context\Principal;
  *
  * Templates print; the output is captured and becomes the Response body.
  * Escape with escHtml(), escAttr() and escUrl().
+ *
+ * Assets are the AssetsManager's: the theme's own are registered and
+ * enqueued there (enqueue_style(), enqueue_script()), next to what the
+ * page asked for (View::add_style(), add_script(), add_js_constant()),
+ * and the AssetsManager prints them all in head() and footer().
  */
 final class ThemeContext {
 
@@ -119,7 +126,32 @@ final class ThemeContext {
 	}
 
 	/**
-	 * Print what core puts in <head>: title, description, the page's styles.
+	 * Whether a theme in the chain has a partial.
+	 *
+	 * For optional, more specific partials, e.g. one per app type:
+	 * `if ( $this->has_partial( "repository.details-{$type}" ) )`.
+	 *
+	 * @param string $name e.g. 'header' or 'docs.route-card'.
+	 * @return bool False for an invalid name.
+	 */
+	public function has_partial( string $name ) : bool {
+		if ( 1 !== preg_match( self::PARTIAL_PATTERN, $name ) ) {
+			return false;
+		}
+
+		try {
+			$this->locate( 'partials/' . str_replace( '.', '/', $name ) . '.php' );
+		} catch ( ThemeException ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Print what core puts in <head>: the title and description, then what
+	 * AssetsManager::print_head() prints (the enqueued styles, the JS
+	 * constants, the enqueued head scripts).
 	 *
 	 * @return void
 	 */
@@ -130,26 +162,77 @@ final class ThemeContext {
 			printf( "<meta name=\"description\" content=\"%s\">\n", \escAttr( $this->view->get_description() ) );
 		}
 
-		if ( [] !== $this->view->get_styles() ) {
-			$this->assets->print_styles( ...$this->view->get_styles() );
-		}
+		$this->assets->print_head();
 	}
 
 	/**
-	 * Print what core puts before </body>: the page's scripts.
-	 *
-	 * The registered JS constants (smliser_var: CSRF token and header,
-	 * URLs) are printed first, because core scripts read them.
+	 * Print what core puts before </body>: AssetsManager::print_footer()
+	 * (the enqueued scripts not printed in the head).
 	 *
 	 * @return void
 	 */
 	public function footer() : void {
-		if ( [] === $this->view->get_scripts() ) {
-			return;
+		$this->assets->print_footer();
+	}
+
+	/**
+	 * Enqueue a stylesheet of the theme (assets/<path>), printed by head().
+	 *
+	 * Registered on the AssetsManager as asset_handle( $name ), served from
+	 * the first theme in the chain that has the file and versioned with that
+	 * theme's version. Enqueuing a name again only enqueues it.
+	 *
+	 * @param string   $name         Short name, e.g. 'style'.
+	 * @param string   $path         Path inside assets/, e.g. 'css/theme.css'.
+	 * @param string[] $dependencies Style handles it needs (core handles, or asset_handle() of another).
+	 * @param string   $media        Media type.
+	 * @return void
+	 * @throws ThemeException When no theme in the chain has the file.
+	 */
+	public function enqueue_style( string $name, string $path, array $dependencies = [], string $media = 'all' ) : void {
+		$handle = $this->asset_handle( $name );
+
+		if ( ! $this->assets->has_style( $handle ) ) {
+			[ $theme, $path ] = $this->locate_asset( $path );
+			$this->assets->register_style( $handle, $this->urls->themes_url( $theme->slug . '/' . $path ), $dependencies, $theme->version, $media );
 		}
 
-		$this->assets->print_js_constants();
-		$this->assets->print_scripts( ...$this->view->get_scripts() );
+		$this->assets->enqueue_style( $handle );
+	}
+
+	/**
+	 * Enqueue a script of the theme (assets/<path>).
+	 *
+	 * Printed before </body> by footer(), or in <head> by head() after the
+	 * JS constants when $footer is false. Registered and versioned like
+	 * enqueue_style().
+	 *
+	 * @param string   $name         Short name, e.g. 'script'.
+	 * @param string   $path         Path inside assets/, e.g. 'js/theme.js'.
+	 * @param string[] $dependencies Script handles it needs (core handles, or asset_handle() of another).
+	 * @param bool     $footer       Print before </body> rather than in <head>.
+	 * @return void
+	 * @throws ThemeException When no theme in the chain has the file.
+	 */
+	public function enqueue_script( string $name, string $path, array $dependencies = [], bool $footer = true ) : void {
+		$handle = $this->asset_handle( $name );
+
+		if ( ! $this->assets->has_script( $handle ) ) {
+			[ $theme, $path ] = $this->locate_asset( $path );
+			$this->assets->register_script( $handle, $this->urls->themes_url( $theme->slug . '/' . $path ), $dependencies, $theme->version, $footer );
+		}
+
+		$this->assets->enqueue_script( $handle );
+	}
+
+	/**
+	 * The AssetsManager handle of a theme asset: "theme-<theme slug>-<name>".
+	 *
+	 * @param string $name Short name given to enqueue_style() or enqueue_script().
+	 * @return string
+	 */
+	public function asset_handle( string $name ) : string {
+		return 'theme-' . $this->theme()->slug . '-' . $name;
 	}
 
 	/*
@@ -236,6 +319,25 @@ final class ThemeContext {
 	 * @throws ThemeException When the path is invalid or no theme in the chain has the file.
 	 */
 	public function asset_url( string $path ) : URL {
+		[ $theme, $path ] = $this->locate_asset( $path );
+
+		return $this->urls->themes_url( $theme->slug . '/' . $path, [ 'version' => $theme->version ] );
+	}
+
+	/*
+	|---------
+	| HELPERS
+	|---------
+	*/
+
+	/**
+	 * The theme in the chain that has an asset, and the asset's clean path.
+	 *
+	 * @param string $path Path inside assets/.
+	 * @return array{0: Theme, 1: string}
+	 * @throws ThemeException When the path is invalid or no theme in the chain has the file.
+	 */
+	private function locate_asset( string $path ) : array {
 		$path = ltrim( $path, '/' );
 
 		if ( '' === $path || str_contains( $path, '\\' ) || in_array( '..', explode( '/', $path ), true ) ) {
@@ -244,18 +346,12 @@ final class ThemeContext {
 
 		foreach ( $this->chain as $theme ) {
 			if ( $this->fs->is_file( $theme->assets_dir() . '/' . $path ) ) {
-				return $this->urls->themes_url( $theme->slug . '/' . $path, [ 'version' => $theme->version ] );
+				return [ $theme, $path ];
 			}
 		}
 
 		throw new ThemeException( sprintf( 'No theme in the chain of "%s" has the asset "%s".', $this->theme()->slug, $path ) );
 	}
-
-	/*
-	|---------
-	| HELPERS
-	|---------
-	*/
 
 	/**
 	 * The file of a template, from the first theme in the chain that has it.

@@ -67,9 +67,12 @@ class HostedAppsRegistry extends AbstractRegistry {
 	 * @param array{
 	 *  class: class-string<HostedAppsInterface>,
 	 *  directory_class: class-string<Repository>,
-	 *  table: string 
-	 * }|null $data The app class and its database table name.
+	 *  table: string,
+	 *  labels?: array{singular: string, plural: string}
+	 * }|null $data The app class, its directory class, its database table name
+	 *              and, optionally, the names people read (see get_app_type_labels()).
 	 * @return static
+	 * @throws \InvalidArgumentException When a key is missing or invalid, or the type is a core type.
 	 */
 	public function register( string $type, array $data ) : static {
 		$this->ensure_core();
@@ -92,6 +95,10 @@ class HostedAppsRegistry extends AbstractRegistry {
 			throw new InvalidArgumentException(
 				sprintf( 'Directory class must extend "%s"', Repository::class )
 			);
+		}
+
+		if ( isset( $data['labels'] ) ) {
+			$this->assert_labels( $type, $data['labels'] );
 		}
 
 		// Core registry entries always win.
@@ -145,6 +152,7 @@ class HostedAppsRegistry extends AbstractRegistry {
 	 *  class: class-string<HostedAppsInterface>,
 	 *  directory_class: class-string<Repository>,
 	 *  table: string,
+	 *  labels?: array{singular: string, plural: string}
 	 * }|null $entry 
 	 */
 	public function get_app_type_data( string $type ) : ?array {
@@ -158,6 +166,7 @@ class HostedAppsRegistry extends AbstractRegistry {
 		 *  class: class-string<HostedAppsInterface>,
 		 *  directory_class: class-string<Repository>,
 		 *  table: string,
+		 *  labels?: array{singular: string, plural: string}
 		 * }|null $entry 
 		 */
 		return $entry;
@@ -218,6 +227,32 @@ class HostedAppsRegistry extends AbstractRegistry {
 	}
 
 	/**
+	 * Get the names people read for an app type, e.g. "Plugin" and "Plugins".
+	 *
+	 * The registered labels; for a type registered without labels, the
+	 * type key in words ("desktop-app" gives "Desktop App") for both, since
+	 * a plural cannot be guessed safely ("Software" is its own plural).
+	 *
+	 * @param string $type The app type.
+	 * @return array{singular: string, plural: string}|null Null when the type is not registered.
+	 */
+	public function get_app_type_labels( string $type ) : ?array {
+		$entry = $this->get_app_type_data( $type );
+
+		if ( ! $entry ) {
+			return null;
+		}
+
+		if ( isset( $entry['labels'] ) ) {
+			return $entry['labels'];
+		}
+
+		$words = ucwords( str_replace( [ '-', '_' ], ' ', $this->normalize_app_type( $type ) ) );
+
+		return [ 'singular' => $words, 'plural' => $words ];
+	}
+
+	/**
 	 * Get all registered app types.
 	 * 
 	 * @return string[] Array of registered app types.
@@ -255,6 +290,26 @@ class HostedAppsRegistry extends AbstractRegistry {
 	}
 
 	/**
+	 * Check the labels of a registration.
+	 *
+	 * @param string $type   The app type.
+	 * @param mixed  $labels The labels given.
+	 * @return void
+	 * @throws \InvalidArgumentException When the labels are not two non-empty strings.
+	 */
+	protected function assert_labels( string $type, mixed $labels ) : void {
+		$valid = is_array( $labels )
+			&& is_string( $labels['singular'] ?? null ) && '' !== trim( $labels['singular'] )
+			&& is_string( $labels['plural'] ?? null ) && '' !== trim( $labels['plural'] );
+
+		if ( ! $valid ) {
+			throw new \InvalidArgumentException(
+				sprintf( 'The "labels" of hosted app type "%s" must be an array with the non-empty strings "singular" and "plural".', $type )
+			);
+		}
+	}
+
+	/**
 	 * {@inheritDoc}
 	 */
 	protected function load_core() : void {
@@ -266,18 +321,21 @@ class HostedAppsRegistry extends AbstractRegistry {
 			'plugin' => [
 				'class'           => Plugin::class,
 				'directory_class' => PluginRepository::class,
-				'table'           => Plugin::get_db_table()
+				'table'           => Plugin::get_db_table(),
+				'labels'          => [ 'singular' => 'Plugin', 'plural' => 'Plugins' ],
 			],
 			'theme' => [
 				'class'           => Theme::class,
 				'directory_class' => ThemeRepository::class,
-				'table'           => Theme::get_db_table()
+				'table'           => Theme::get_db_table(),
+				'labels'          => [ 'singular' => 'Theme', 'plural' => 'Themes' ],
 			],
 			'software' => [
 				'class'           => Software::class,
 				'directory_class' => SoftwareRepository::class,
-				'table'           => Software::get_db_table()
-			]
+				'table'           => Software::get_db_table(),
+				'labels'          => [ 'singular' => 'Software', 'plural' => 'Software' ],
+			],
 		];
 
 		foreach ( $core_hosted_apps as $type => $data ) {

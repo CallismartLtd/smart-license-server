@@ -8,6 +8,9 @@
  * @var SmartLicenseServer\Environments\Application\Theming\ThemeContext $this
  */
 
+// The theme's own assets: enqueued before head(), which prints them with the page's.
+$this->enqueue_style( 'style', 'css/theme.css' );
+$this->enqueue_script( 'script', 'js/theme.js' );
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -16,7 +19,6 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="color-scheme" content="light dark">
 	<?php $this->head(); ?>
-	<link rel="stylesheet" href="<?php echo escUrl( $this->asset_url( 'css/theme.css' )->url() ); ?>">
 </head>
 <body>
 	<?php if ( '' === $view->get_frame() ) : // A frame brings its own navigation. ?>
@@ -29,7 +31,6 @@
 
 	<?php $this->partial( 'footer' ); ?>
 
-	<script src="<?php echo escUrl( $this->asset_url( 'js/theme.js' )->url() ); ?>" defer></script>
 	<?php $this->footer(); ?>
 </body>
 </html>

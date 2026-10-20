@@ -44,6 +44,7 @@ use SmartLicenseServer\Environments\Application\Theming\ThemeRenderer;
 use SmartLicenseServer\Environments\Application\Theming\View;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
+use SmartLicenseServer\HostedApps\ContentHandlers\RepositoryPages;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\Routing\DispatchStatus;
@@ -598,21 +599,15 @@ final class HttpDispatcher {
 		*/
 		$this->router->group( $urlmanager->repository_url_prefix(),
 			function() {
-				// Base.
-				$this->router->get( '', [] );
-
-				$this->router->get(
-					pattern: '{app_type}/{app_slug}',
-					handler: [],
-					middleware: []
-				);
+				// Pages; {app_type} is checked against HostedAppsRegistry by the handler.
+				$this->pages->get( '/', [RepositoryPages::class, 'index'] );
+				$this->pages->get( '{app_type:slug}', [RepositoryPages::class, 'app_type'] );
+				$this->pages->get( '{app_type:slug}/{app_slug:slug}', [RepositoryPages::class, 'app'] );
 
 				$this->router->get(
 					pattern: '{app_type}/{app_slug}/assets/{asset_name:.+}',
 					handler: [FileRequestController::class, 'get_app_static_asset']
 				);
-
-
 			},
 			middleware: []
 		);

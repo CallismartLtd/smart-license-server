@@ -89,6 +89,27 @@ final class AssetsManager {
 	private array $printed_scripts = [];
 
 	/**
+	 * Names of JS constants already printed on this request.
+	 *
+	 * @var array<string, true>
+	 */
+	private array $printed_js_constants = [];
+
+	/**
+	 * Handles of CSS assets the current page asked for, in request order.
+	 *
+	 * @var array<string, true>
+	 */
+	private array $enqueued_styles = [];
+
+	/**
+	 * Handles of JavaScript assets the current page asked for, in request order.
+	 *
+	 * @var array<string, true>
+	 */
+	private array $enqueued_scripts = [];
+
+	/**
 	 * Construct the manager and register the default assets.
 	 */
 	public function __construct(
@@ -234,7 +255,7 @@ final class AssetsManager {
 	}
 
 	/**
-	 * Unregister a CSS asset.
+	 * Unregister a CSS asset; it is also withdrawn from the current page.
 	 *
 	 * @param string $handle
 	 * @return bool True if the asset was registered and removed.
@@ -244,13 +265,13 @@ final class AssetsManager {
 			return false;
 		}
 
-		unset( $this->styles[ $handle ] );
+		unset( $this->styles[ $handle ], $this->enqueued_styles[ $handle ] );
 
 		return true;
 	}
 
 	/**
-	 * Unregister a JavaScript asset.
+	 * Unregister a JavaScript asset; it is also withdrawn from the current page.
 	 *
 	 * @param string $handle
 	 * @return bool True if the asset was registered and removed.
@@ -260,7 +281,7 @@ final class AssetsManager {
 			return false;
 		}
 
-		unset( $this->scripts[ $handle ] );
+		unset( $this->scripts[ $handle ], $this->enqueued_scripts[ $handle ] );
 
 		return true;
 	}
@@ -521,6 +542,8 @@ final class AssetsManager {
 			escUrl( $url->url() )
 		);
 
+		$this->printed_scripts[ $handle ] = true;
+
 		if ( $echo ) {
 			echo $html . PHP_EOL; // phpcs:ignore
 
@@ -554,6 +577,183 @@ final class AssetsManager {
 		foreach ( $this->resolve_scripts( $handles ) as $handle ) {
 			$this->print_script( $handle );
 		}
+	}
+
+	/*
+	|---------------------
+	| PAGE ASSETS (QUEUE)
+	|---------------------
+	*/
+
+	/**
+	 * Ask for registered styles on the current page.
+	 *
+	 * print_head() prints them, with their dependencies.
+	 *
+	 * @param string ...$handles
+	 * @return void
+	 * @throws \LogicException If a handle is not registered.
+	 */
+	public function enqueue_style( string ...$handles ) : void {
+		foreach ( $handles as $handle ) {
+			if ( ! isset( $this->styles[ $handle ] ) ) {
+				throw new \LogicException( sprintf( 'Cannot enqueue the unknown CSS asset "%s"; register it first.', $handle ) );
+			}
+
+			$this->enqueued_styles[ $handle ] = true;
+		}
+	}
+
+	/**
+	 * Ask for registered scripts on the current page.
+	 *
+	 * Scripts registered for the head (footer: false) are printed by
+	 * print_head(), the others by print_footer(), with their dependencies.
+	 *
+	 * @param string ...$handles
+	 * @return void
+	 * @throws \LogicException If a handle is not registered.
+	 */
+	public function enqueue_script( string ...$handles ) : void {
+		foreach ( $handles as $handle ) {
+			if ( ! isset( $this->scripts[ $handle ] ) ) {
+				throw new \LogicException( sprintf( 'Cannot enqueue the unknown JavaScript asset "%s"; register it first.', $handle ) );
+			}
+
+			$this->enqueued_scripts[ $handle ] = true;
+		}
+	}
+
+	/**
+	 * Withdraw a style from the current page.
+	 *
+	 * @param string $handle
+	 * @return bool True if it was enqueued.
+	 */
+	public function dequeue_style( string $handle ) : bool {
+		if ( ! isset( $this->enqueued_styles[ $handle ] ) ) {
+			return false;
+		}
+
+		unset( $this->enqueued_styles[ $handle ] );
+
+		return true;
+	}
+
+	/**
+	 * Withdraw a script from the current page.
+	 *
+	 * @param string $handle
+	 * @return bool True if it was enqueued.
+	 */
+	public function dequeue_script( string $handle ) : bool {
+		if ( ! isset( $this->enqueued_scripts[ $handle ] ) ) {
+			return false;
+		}
+
+		unset( $this->enqueued_scripts[ $handle ] );
+
+		return true;
+	}
+
+	/**
+	 * Handles of the styles the current page asked for.
+	 *
+	 * @return string[]
+	 */
+	public function get_enqueued_styles() : array {
+		return array_keys( $this->enqueued_styles );
+	}
+
+	/**
+	 * Handles of the scripts the current page asked for.
+	 *
+	 * @return string[]
+	 */
+	public function get_enqueued_scripts() : array {
+		return array_keys( $this->enqueued_scripts );
+	}
+
+	/**
+	 * Print what belongs in <head>, in this order:
+	 *
+	 *  1. the enqueued styles, dependencies first;
+	 *  2. every registered JS constant, so any script can rely on them;
+	 *  3. the head scripts: every enqueued script, or dependency of one,
+	 *     registered for the head (footer: false), with its own dependencies,
+	 *     which go in the head with it whatever their own flag says.
+	 *
+	 * Every asset and constant is printed once per request.
+	 *
+	 * @return void
+	 * @throws \LogicException If a dependency is unknown or circular.
+	 */
+	public function print_head() : void {
+		if ( [] !== $this->enqueued_styles ) {
+			$this->print_styles( ...array_keys( $this->enqueued_styles ) );
+		}
+
+		$this->print_js_constants();
+
+		$head = array_values( array_filter(
+			$this->resolve_scripts( array_keys( $this->enqueued_scripts ) ),
+			fn( string $handle ) : bool => false === $this->scripts[ $handle ]['footer']
+		) );
+
+		if ( [] !== $head ) {
+			$this->print_scripts( ...$head );
+		}
+	}
+
+	/**
+	 * Print what belongs before </body>: the enqueued scripts not printed
+	 * in the head, dependencies first.
+	 *
+	 * JS constants not printed yet (print_head() was not called) are printed
+	 * first, so no script runs without them.
+	 *
+	 * @return void
+	 * @throws \LogicException If a dependency is unknown or circular.
+	 */
+	public function print_footer() : void {
+		$this->print_js_constants();
+
+		if ( [] !== $this->enqueued_scripts ) {
+			$this->print_scripts( ...array_keys( $this->enqueued_scripts ) );
+		}
+	}
+
+	/**
+	 * Record the page state: what is enqueued and what was printed.
+	 *
+	 * For a renderer that may throw away output it already printed (the
+	 * theme falls back to the default theme): it restores the state with
+	 * rollback() before rendering again. Registrations are not recorded.
+	 *
+	 * @return array{styles: array<string, true>, scripts: array<string, true>, printed_styles: array<string, true>, printed_scripts: array<string, true>, printed_js_constants: array<string, true>}
+	 */
+	public function checkpoint() : array {
+		return [
+			'styles'               => $this->enqueued_styles,
+			'scripts'              => $this->enqueued_scripts,
+			'printed_styles'       => $this->printed_styles,
+			'printed_scripts'      => $this->printed_scripts,
+			'printed_js_constants' => $this->printed_js_constants,
+		];
+	}
+
+	/**
+	 * Restore the page state recorded by checkpoint().
+	 *
+	 * @param array{styles: array<string, true>, scripts: array<string, true>, printed_styles: array<string, true>, printed_scripts: array<string, true>, printed_js_constants: array<string, true>} $checkpoint
+	 * @return void
+	 */
+	public function rollback( array $checkpoint ) : void {
+		$this->enqueued_styles      = $checkpoint['styles'];
+		$this->enqueued_scripts     = $checkpoint['scripts'];
+		$this->printed_styles       = $checkpoint['printed_styles'];
+		$this->printed_scripts      = $checkpoint['printed_scripts'];
+		$this->printed_js_constants = $checkpoint['printed_js_constants'];
 	}
 
 	/**
@@ -739,6 +939,7 @@ final class AssetsManager {
 	 *
 	 * Call this before print_global_scripts()/print_category_scripts()
 	 * so consuming scripts can rely on the constants already existing.
+	 * A constant already printed on this request is skipped.
 	 *
 	 * @param bool $echo
 	 * @param string[]|null $names Restrict output to these constant names.
@@ -752,6 +953,9 @@ final class AssetsManager {
 		$constants = null === $names
 			? $this->js_constants
 			: array_intersect_key( $this->js_constants, array_flip( $names ) );
+
+		// Each constant is printed once per request.
+		$constants = array_diff_key( $constants, $this->printed_js_constants );
 
 		if ( empty( $constants ) ) {
 			return $echo ? null : '';
@@ -785,6 +989,8 @@ final class AssetsManager {
 			$id,
 			implode( "\n\r", $statements )
 		);
+
+		$this->printed_js_constants += array_fill_keys( array_keys( $constants ), true );
 
 		if ( $echo ) {
 			echo $html . PHP_EOL; // phpcs:ignore

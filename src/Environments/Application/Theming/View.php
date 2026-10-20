@@ -10,6 +10,9 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\Application\Theming;
 
+use SmartLicenseServer\Assets\AssetsManager;
+use SmartLicenseServer\Core\URL;
+
 /**
  * What a page handler returns: which page to show, with what data.
  *
@@ -31,6 +34,13 @@ namespace SmartLicenseServer\Environments\Application\Theming;
  * ('client-dashboard' → templates/frames/client-dashboard.php). Areas
  * with their own chrome use it (the client dashboard's menus); their
  * pages stay plain content.
+ *
+ * Assets are not held by the View: add_style(), add_script() and
+ * add_js_constant() register on the request's AssetsManager (bound once
+ * by the web bootstrapper, see use_assets()) and enqueue there. The
+ * AssetsManager prints them where they belong (styles, JS constants and
+ * head scripts in <head>; the other scripts before </body>) when the
+ * theme calls ThemeContext::head() and ThemeContext::footer().
  */
 final class View {
 
@@ -74,18 +84,18 @@ final class View {
 	private array $headers = [];
 
 	/**
-	 * Registered style handles the page needs (AssetsManager).
+	 * Gives the request's asset manager, where Views register and enqueue assets.
 	 *
-	 * @var string[]
+	 * @var (\Closure(): AssetsManager)|null
 	 */
-	private array $styles = [];
+	private static ?\Closure $assets_resolver = null;
 
 	/**
-	 * Registered script handles the page needs (AssetsManager).
+	 * The request's asset manager, once resolved.
 	 *
-	 * @var string[]
+	 * @var AssetsManager|null
 	 */
-	private array $scripts = [];
+	private static ?AssetsManager $assets = null;
 
 	/**
 	 * Constructor.
@@ -214,28 +224,105 @@ final class View {
 		return $this;
 	}
 
+	/*
+	|--------
+	| ASSETS
+	|--------
+	*/
+
 	/**
-	 * Ask for registered styles; the theme prints them in the head.
+	 * Bind the request's asset manager; called once by the web bootstrapper.
 	 *
-	 * @param string ...$handles AssetsManager style handles.
-	 * @return static
+	 * The manager is resolved on the first asset a View puts on a page, so
+	 * requests that never do (REST, files, admin actions) never build it.
+	 *
+	 * @param \Closure(): AssetsManager $resolver
+	 * @return void
 	 */
-	public function add_style( string ...$handles ) : static {
-		$this->styles = array_values( array_unique( [ ...$this->styles, ...$handles ] ) );
+	public static function use_assets( \Closure $resolver ) : void {
+		self::$assets_resolver = $resolver;
+		self::$assets          = null;
+	}
+
+	/**
+	 * Put a style on the page: enqueue a registered handle, or register a
+	 * new one first when a URL is given.
+	 *
+	 * @param string   $handle       Style handle.
+	 * @param URL|null $url          The stylesheet URL, to register a new handle; null for a registered one.
+	 * @param string[] $dependencies Style handles it needs (new handle only).
+	 * @param string   $version      Version, for caching (new handle only).
+	 * @param string   $media        Media type (new handle only).
+	 * @return static
+	 * @throws \LogicException When no asset manager is bound, or the handle is unknown or already registered.
+	 */
+	public function add_style( string $handle, ?URL $url = null, array $dependencies = [], string $version = '', string $media = 'all' ) : static {
+		$assets = self::assets();
+
+		if ( null !== $url ) {
+			$assets->register_style( $handle, $url, $dependencies, $version, $media );
+		}
+
+		$assets->enqueue_style( $handle );
 
 		return $this;
 	}
 
 	/**
-	 * Ask for registered scripts; the theme prints them before </body>.
+	 * Put a script on the page: enqueue a registered handle, or register a
+	 * new one first when a URL is given.
 	 *
-	 * @param string ...$handles AssetsManager script handles.
+	 * A script registered for the footer is printed before </body>; one
+	 * registered for the head (footer: false) in <head>, after the JS
+	 * constants.
+	 *
+	 * @param string   $handle       Script handle.
+	 * @param URL|null $url          The script URL, to register a new handle; null for a registered one.
+	 * @param string[] $dependencies Script handles it needs (new handle only).
+	 * @param string   $version      Version, for caching (new handle only).
+	 * @param bool     $footer       Print before </body> rather than in <head> (new handle only).
 	 * @return static
+	 * @throws \LogicException When no asset manager is bound, or the handle is unknown or already registered.
 	 */
-	public function add_script( string ...$handles ) : static {
-		$this->scripts = array_values( array_unique( [ ...$this->scripts, ...$handles ] ) );
+	public function add_script( string $handle, ?URL $url = null, array $dependencies = [], string $version = '', bool $footer = true ) : static {
+		$assets = self::assets();
+
+		if ( null !== $url ) {
+			$assets->register_script( $handle, $url, $dependencies, $version, $footer );
+		}
+
+		$assets->enqueue_script( $handle );
 
 		return $this;
+	}
+
+	/**
+	 * Expose data to scripts as a global constant: `const NAME = {...};`,
+	 * printed in <head> before every script.
+	 *
+	 * @param string               $name A valid JavaScript identifier.
+	 * @param array<string, mixed> $data
+	 * @return static
+	 * @throws \LogicException When no asset manager is bound, or the name is already registered.
+	 */
+	public function add_js_constant( string $name, array $data ) : static {
+		self::assets()->register_js_constant( $name, $data );
+
+		return $this;
+	}
+
+	/**
+	 * The bound asset manager.
+	 *
+	 * @return AssetsManager
+	 * @throws \LogicException When none is bound.
+	 */
+	private static function assets() : AssetsManager {
+		if ( null === self::$assets_resolver ) {
+			throw new \LogicException( 'No asset manager is bound to views: View::use_assets() is called by the web bootstrapper.' );
+		}
+
+		return self::$assets ??= ( self::$assets_resolver )();
 	}
 
 	/*
@@ -316,23 +403,5 @@ final class View {
 	 */
 	public function get_headers() : array {
 		return $this->headers;
-	}
-
-	/**
-	 * Style handles the page asked for.
-	 *
-	 * @return string[]
-	 */
-	public function get_styles() : array {
-		return $this->styles;
-	}
-
-	/**
-	 * Script handles the page asked for.
-	 *
-	 * @return string[]
-	 */
-	public function get_scripts() : array {
-		return $this->scripts;
 	}
 }

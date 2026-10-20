@@ -8,7 +8,10 @@
 
 $principal = $this->principal();
 $current   = rtrim( (string) $this->request()->path(), '/' );
-$links     = [ [ $this->url( 'documentation' ), 'Documentation' ] ];
+$links     = [
+	[ $this->urls()->repository_url(), 'Repository' ],
+	[ $this->url( 'documentation' ), 'Documentation' ],
+];
 
 if ( null === $principal ) {
 	$links[] = [ $this->urls()->login_url(), 'Sign in' ];
@@ -24,7 +27,10 @@ if ( null === $principal ) {
 
 	<nav class="site-nav" aria-label="Site">
 		<?php foreach ( $links as [ $url, $label ] ) : ?>
-			<?php $is_current = rtrim( (string) $url->get_path(), '/' ) === $current; ?>
+			<?php
+			$path       = rtrim( (string) $url->get_path(), '/' );
+			$is_current = $path === $current || ( '' !== $path && str_starts_with( $current, $path . '/' ) );
+			?>
 			<a href="<?php echo escUrl( $url->url() ); ?>"<?php echo $is_current ? ' aria-current="page"' : ''; ?>><?php echo escHtml( $label ); ?></a>
 		<?php endforeach; ?>
 	</nav>
