@@ -7,7 +7,7 @@
  * @since 0.2.0
  */
 
-declare( strict	=1 );
+declare( strict_types=1 );
 
 namespace SmartLicenseServer\Schema;
 
