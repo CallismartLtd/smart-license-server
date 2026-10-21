@@ -40,6 +40,7 @@ use SmartLicenseServer\Environments\Application\Boot\DowntimeBootstrapper;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\CoreURLManager;
 use SmartLicenseServer\Core\DataStore;
+use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
@@ -469,6 +470,8 @@ class ApplicationEnvironment extends Environment {
 		DataStore::set_urlmanager(
 			$this->container->get( URLManager::class )
 		);
+
+		DownloadToken::set_keys( $this->runtime->secret, $this->runtime->salt );
 
 		// Shadow boot hosted app registry.
 		$this->container->get( HostedAppsRegistry::class );

@@ -45,6 +45,24 @@ class License extends DataStore {
 	protected string $licensee_fullname = '';
 
 	/**
+	 * The licensee's email address.
+	 *
+	 * The license is delivered to it, and it is the only value used to link
+	 * a registered user to the license.
+	 *
+	 * @var string $licensee_email
+	 */
+	protected string $licensee_email = '';
+
+	/**
+	 * The ID of the registered user the license is linked to; 0 when the
+	 * licensee is anonymous.
+	 *
+	 * @var int $user_id
+	 */
+	protected int $user_id = 0;
+
+	/**
 	 * The license key
 	 * 
 	 * @var string $license_key
@@ -68,6 +86,45 @@ class License extends DataStore {
 		'type' => '',
 		'slug' => ''
 	];
+
+	/**
+	 * The ID of the pricing tier the license was issued from; 0 when it was
+	 * not issued from a tier. Informational only: the license holds its own
+	 * terms.
+	 *
+	 * @var int $tier_id
+	 */
+	protected int $tier_id = 0;
+
+	/**
+	 * The ID of the provider that sold the license; empty when none did.
+	 *
+	 * @var string $provider_id
+	 */
+	protected string $provider_id = '';
+
+	/**
+	 * The provider's reference for the sale (an order, a subscription, a
+	 * purchase request); empty when none. A provider and reference identify
+	 * one license.
+	 *
+	 * @var string $external_ref
+	 */
+	protected string $external_ref = '';
+
+	/**
+	 * Features the license includes.
+	 *
+	 * @var list<string> $features
+	 */
+	protected array $features = [];
+
+	/**
+	 * The domains the license is activated on, keyed by host; loaded on first use.
+	 *
+	 * @var array<string, LicenseActivation>|null $activations
+	 */
+	protected ?array $activations = null;
 
 	/**
 	 * The instance of the hosted aplication this license is issued to.
@@ -123,9 +180,7 @@ class License extends DataStore {
 	 * 
 	 * @var array $meta_data
 	 */
-	protected array $meta_data = [
-		'activated_on' => []
-	];
+	protected array $meta_data = [];
 
 	public const STATUS_ACTIVE      = 'active';
 	public const STATUS_EXPIRED     = 'expired';
@@ -168,6 +223,75 @@ class License extends DataStore {
 	 */
 	public function set_licensee_fullname( $name ) : static {
 		$this->licensee_fullname = static::sanitize_text( $name );
+
+		return $this;
+	}
+
+	/**
+	 * Set the licensee's email address.
+	 *
+	 * @param string $email A valid email address, or empty.
+	 * @return static
+	 * @throws \InvalidArgumentException When the value is not empty and not a valid email address.
+	 */
+	public function set_licensee_email( $email ) : static {
+		$email = strtolower( trim( (string) $email ) );
+
+		if ( '' !== $email && false === filter_var( $email, FILTER_VALIDATE_EMAIL ) ) {
+			throw new \InvalidArgumentException( sprintf( '"%s" is not a valid email address.', $email ) );
+		}
+
+		$this->licensee_email = $email;
+
+		return $this;
+	}
+
+	/**
+	 * Set the ID of the registered user the license is linked to.
+	 *
+	 * @param int $user_id 0 for none.
+	 * @return static
+	 */
+	public function set_user_id( $user_id ) : static {
+		$this->user_id = max( 0, (int) $user_id );
+
+		return $this;
+	}
+
+	/**
+	 * Set the pricing tier the license was issued from.
+	 *
+	 * @param int $tier_id 0 for none.
+	 * @return static
+	 */
+	public function set_tier_id( $tier_id ) : static {
+		$this->tier_id = max( 0, (int) $tier_id );
+
+		return $this;
+	}
+
+	/**
+	 * Set where the license came from: the provider and its reference for the sale.
+	 *
+	 * @param string $provider_id  The provider ID; empty for none.
+	 * @param string $external_ref The provider's reference; empty for none.
+	 * @return static
+	 */
+	public function set_source( string $provider_id, string $external_ref ) : static {
+		$this->provider_id  = static::sanitize_text( $provider_id );
+		$this->external_ref = static::sanitize_text( $external_ref );
+
+		return $this;
+	}
+
+	/**
+	 * Set the features the license includes.
+	 *
+	 * @param array<mixed> $features Feature names; empty and duplicate names are dropped.
+	 * @return static
+	 */
+	public function set_features( array $features ) : static {
+		$this->features = PricingTier::normalize_features( $features );
 
 		return $this;
 	}
@@ -241,7 +365,7 @@ class License extends DataStore {
 	/**
 	 * Set the license start date
 	 * 
-	 * @param string $start_date
+	 * @param string|DateTimeImmutable $start_date
 	 * @return static
 	 */
 	public function set_start_date( $start_date ) : static {
@@ -251,10 +375,15 @@ class License extends DataStore {
 	/**
 	 * Set the license end date
 	 * 
-	 * @param string $end_date
+	 * @param string|DateTimeImmutable|null $end_date Null or an empty string for no end (lifetime).
 	 * @return static
 	 */
 	public function set_end_date( $end_date ) : static {
+		if ( null === $end_date || '' === $end_date ) {
+			$this->end_date = null;
+			return $this;
+		}
+
 		return $this->set_date_prop( $end_date, 'end_date' );
 	}
 
@@ -360,6 +489,60 @@ class License extends DataStore {
 	 */
 	public function get_service_id() {
 		return $this->service_id;
+	}
+
+	/**
+	 * Get the licensee's email address.
+	 *
+	 * @return string
+	 */
+	public function get_licensee_email() : string {
+		return $this->licensee_email;
+	}
+
+	/**
+	 * Get the ID of the registered user the license is linked to.
+	 *
+	 * @return int 0 when the licensee is anonymous.
+	 */
+	public function get_user_id() : int {
+		return $this->user_id;
+	}
+
+	/**
+	 * Get the ID of the pricing tier the license was issued from.
+	 *
+	 * @return int 0 when it was not issued from a tier.
+	 */
+	public function get_tier_id() : int {
+		return $this->tier_id;
+	}
+
+	/**
+	 * Get the ID of the provider that sold the license.
+	 *
+	 * @return string Empty when none did.
+	 */
+	public function get_provider_id() : string {
+		return $this->provider_id;
+	}
+
+	/**
+	 * Get the provider's reference for the sale.
+	 *
+	 * @return string Empty when none.
+	 */
+	public function get_external_ref() : string {
+		return $this->external_ref;
+	}
+
+	/**
+	 * Get the features the license includes.
+	 *
+	 * @return list<string>
+	 */
+	public function get_features() : array {
+		return $this->features;
 	}
 
 	/**
@@ -600,6 +783,44 @@ class License extends DataStore {
 	}
 
 	/**
+	 * Get a license by its key.
+	 *
+	 * @param string $license_key
+	 * @return static|null
+	 */
+	public static function get_by_key( string $license_key ) : ?static {
+		if ( '' === $license_key ) {
+			return null;
+		}
+
+		$data = static::fetch_by( 'license_key', $license_key, TableName::LICENSES->table() );
+
+		return $data ? static::from_array( $data ) : null;
+	}
+
+	/**
+	 * Get the license a provider sold under the given reference.
+	 *
+	 * @param string $provider_id  The provider ID.
+	 * @param string $external_ref The provider's reference for the sale.
+	 * @return static|null
+	 */
+	public static function get_by_source( string $provider_id, string $external_ref ) : ?static {
+		if ( '' === $provider_id || '' === $external_ref ) {
+			return null;
+		}
+
+		$sql = static::query()->select( '*' )->from( TableName::LICENSES->table() )
+			->where( 'provider_id', '=', $provider_id )
+			->where( 'external_ref', '=', $external_ref )
+			->limit( 1 );
+
+		$data = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
+
+		return $data ? static::from_array( $data ) : null;
+	}
+
+	/**
 	 * Get all licenses with pagination support.
 	 *
 	 * @param int $page  Current page number.
@@ -691,6 +912,7 @@ class License extends DataStore {
 
 		$sql = static::query()->select( '*' )->from( $table )
 			->where( 'licensee_fullname', 'LIKE', $like )
+			->or_where( 'licensee_email', 'LIKE', $like )
 			->or_where( 'license_key', 'LIKE', $like )
 			->or_where( 'service_id', 'LIKE', $like )
 			->order_by( 'id', 'DESC' )
@@ -711,6 +933,7 @@ class License extends DataStore {
 		 */
 		$count_sql = static::query()->select( 'COUNT(*)' )->from( $table )
 			->where( 'licensee_fullname', 'LIKE', $like )
+			->or_where( 'licensee_email', 'LIKE', $like )
 			->or_where( 'license_key', 'LIKE', $like )
 			->or_where( 'service_id', 'LIKE', $like );
 
@@ -733,92 +956,89 @@ class License extends DataStore {
 
 	/**
 	 * Save the license.
+	 *
+	 * A new license gets a license key, and a service ID when it has none.
+	 * Metadata is saved with it, one row per key.
 	 * 
-	 * @return bool True when license is save, false otherwise
+	 * @return bool True when the license and all its metadata are saved, false otherwise.
 	 */
 	public function save() : bool {
-		$db         = static::$DB;
 		$table      = TableName::LICENSES->table();
 		$meta_table = TableName::LICENSE_META->table();
 		$now        = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
 		$data = [
 			'licensee_fullname'   => $this->get_licensee_fullname(),
+			'licensee_email'      => '' === $this->licensee_email ? null : $this->licensee_email,
+			'user_id'             => $this->user_id ?: null,
 			'service_id'          => $this->get_service_id(),
 			'app_prop'            => $this->get_app_prop( 'view' ),
+			'tier_id'             => $this->tier_id ?: null,
+			'provider_id'         => '' === $this->provider_id ? null : $this->provider_id,
+			'external_ref'        => '' === $this->external_ref ? null : $this->external_ref,
+			'features'            => Format::encode( $this->features, Format::ENCODING_PHP ),
 			'max_allowed_domains' => $this->get_max_allowed_domains( 'save' ),
 			'status'              => $this->get_status( 'edit' ),
 			'start_date'          => $this->get_start_date()?->format( 'Y-m-d H:i:s' ),
 			'end_date'            => $this->get_end_date()?->format( 'Y-m-d H:i:s' ),
 			'updated_at'          => $now->format( 'Y-m-d H:i:s' ),
-
 		];
 
-		$meta_data = $this->get_meta_data();
-
-
-		if ( $this->exists() ) {
-			$updated = $db->update( $table, $data, ['id' => $this->id] );
-			$this->set_updated_at( $now );
-			$updated_meta = 0;
-
-			foreach ( $meta_data as $k => $v ) {
-				
-				$sql = self::query()->select( 'id' )->from( $meta_table )
-					->where( 'meta_key', '=', $k )
-					->where( 'license_id', '=', $this->id );
-				$meta_id = $db->get_var( $sql->build(), $sql->get_bindings() );
-
-				$metadata = [
-					'meta_key'   => $k,
-					'meta_value' => Format::encode( $v, Format::ENCODING_PHP ),
-					'license_id' => $this->id
-				];
-
-				if ( $meta_id ) {
-					$metadata['id'] = $meta_id;
-					$done           = $db->update( $meta_table, $metadata, ['license_id' => $this->id] );
+		try {
+			$saved = static::$DB->transactional( function( Database $db ) use ( $table, $meta_table, $now, $data ) : bool {
+				if ( $this->exists() ) {
+					if ( false === $db->update( $table, $data, [ 'id' => $this->id ] ) ) {
+						return false;
+					}
 				} else {
-					$done = $db->insert( $meta_table, $metadata );
+					if ( '' === $this->service_id ) {
+						$this->set_service_id( static::make_service_id() );
+						$data['service_id'] = $this->service_id;
+					}
 
+					$data['license_key'] = $this->generate_license_key( '', false, 20 );
+					$data['created_at']  = $now->format( 'Y-m-d H:i:s' );
+					$inserted            = $db->insert( $table, $data );
+
+					if ( false === $inserted ) {
+						return false;
+					}
+
+					$this->set_id( $inserted );
+					$this->set_created_at( $now );
 				}
 
-				$done && $updated_meta++;
-			}
+				foreach ( $this->meta_data as $key => $value ) {
+					$sql = static::query()->select( 'id' )->from( $meta_table )
+						->where( 'license_id', '=', $this->id )
+						->where( 'meta_key', '=', $key )
+						->limit( 1 );
 
-			$result = ( false !== $updated ) || ( $updated_meta > 0 );
+					$meta_id = $db->get_var( $sql->build(), $sql->get_bindings() );
+					$stored  = Format::encode( $value, Format::ENCODING_PHP );
 
-		} else {
-			$data['license_key'] = $this->generate_license_key( '', false, 20 );
-			$data['created_at']  = $now->format( 'Y-m-d H:i:s' );
-			$inserted            = $db->insert( $table, $data );
+					$done = $meta_id
+						? $db->update( $meta_table, [ 'meta_value' => $stored ], [ 'id' => $meta_id ] )
+						: $db->insert( $meta_table, [ 'license_id' => $this->id, 'meta_key' => $key, 'meta_value' => $stored ] );
 
-			$inserted_meta = 0;
-			if ( $inserted ) {
-				$this->set_id( $db->get_insert_id() );
-				$this->set_license_key( $data['license_key'] );
-				$this->set_created_at( $now );
-				$this->set_updated_at( $now );
-
-				foreach ( $meta_data as $k => $v ) {
-					$metadata = [
-						'meta_key'   => $k,
-						'meta_value' => Format::encode( $v, Format::ENCODING_PHP ),
-						'license_id' => $this->id
-					];
-					$done = $db->insert( $meta_table, $metadata );
-
-					$done && $inserted_meta++;
+					if ( false === $done ) {
+						throw new Exception( 'license_meta_error', sprintf( 'Saving the license meta "%s" failed: %s', $key, $db->get_last_error() ) );
+					}
 				}
-			}
-			
-			$result = ( false !== $inserted ) || ( $inserted_meta > 0 );
+
+				return true;
+			} );
+		} catch ( Exception $e ) {
+			$saved = false;
+		}
+
+		if ( $saved ) {
+			$this->set_updated_at( $now );
 		}
 
 		static::cache_clear();
 
-		return false !== $result;
-
+		return $saved;
 	}
 
 	/**
@@ -867,11 +1087,12 @@ class License extends DataStore {
 		// Compile query structures via the Query Builder.
 		$delete_license_sql = static::query()->delete( $table )->where( 'id', '=', $this->id );
 		$delete_meta_sql    = static::query()->delete( $meta_table )->where( 'license_id', '=', $this->id );
+		$delete_activations = static::query()->delete( TableName::LICENSE_ACTIVATIONS->table() )->where( 'license_id', '=', $this->id );
 		$lock_query         = static::query()->select( 'id' )->from( $table )->where( 'id', '=', $this->id )->limit( 1 );
 
 		$deleted = false;
 
-		static::$DB->transactional( function( Database $db ) use ( $lock_query, $table, $delete_license_sql, $delete_meta_sql, &$deleted ) {
+		static::$DB->transactional( function( Database $db ) use ( $lock_query, $delete_license_sql, $delete_meta_sql, $delete_activations, &$deleted ) {
 			$lock_sql = $lock_query->lock_for_update()->build();
 
 			$exists = $db->get_row( $lock_sql, $lock_query->get_bindings() );
@@ -883,6 +1104,8 @@ class License extends DataStore {
 			if ( false === $db->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) ) {
 				throw new Exception( 'delete_error', 'Database execution failure dropping license metadata entries.' );
 			}
+
+			$db->execute( $delete_activations->build(), $delete_activations->get_bindings() );
 
 			if ( false === $db->execute( $delete_license_sql->build(), $delete_license_sql->get_bindings() ) ) {
 				throw new Exception( 'delete_error', 'Database execution failure dropping primary license record.' );
@@ -905,18 +1128,33 @@ class License extends DataStore {
 	 */
 
 	/**
-	 * Get All active licensed Websites.
+	 * Get the domains this license is activated on.
+	 *
+	 * @param string $context 'view' for a comma-separated list of hosts ("N/A"
+	 *                        when none); 'edit' for an array keyed by host.
+	 * @return string|array<string, array{origin: string, secret: string, activated_at: string|null}>
 	 */
 	public function get_active_domains( $context = 'view' ) {
-		$all_domains = $this->get_meta( 'activated_on', [] );
+		$activations = $this->get_activations();
 
-		if ( 'view' === $context && is_array( $all_domains ) ) {
-			$all_hosts   = array_keys( $all_domains );
-			$all_domains = ! empty( $all_hosts ) ? implode( ', ', $all_hosts ) : 'N/A';
+		if ( 'view' === $context ) {
+			return empty( $activations ) ? 'N/A' : implode( ', ', array_keys( $activations ) );
 		}
 
-		return $all_domains;
-		
+		return array_map( static fn ( LicenseActivation $activation ) : array => $activation->to_array(), $activations );
+	}
+
+	/**
+	 * Get the activations of this license, keyed by host.
+	 *
+	 * @return array<string, LicenseActivation>
+	 */
+	public function get_activations() : array {
+		if ( null === $this->activations ) {
+			$this->activations = $this->id ? LicenseActivation::get_for_license( $this->id ) : [];
+		}
+
+		return $this->activations;
 	}
 
 	/**
@@ -928,6 +1166,13 @@ class License extends DataStore {
 		$static = new static();
 		$static->set_id( $data['id'] ?? 0 );
 		$static->set_licensee_fullname( $data['licensee_fullname'] ?? '' );
+		$static->licensee_email = strtolower( (string) ( $data['licensee_email'] ?? '' ) );
+		$static->set_user_id( $data['user_id'] ?? 0 );
+		$static->set_tier_id( $data['tier_id'] ?? 0 );
+		$static->set_source( (string) ( $data['provider_id'] ?? '' ), (string) ( $data['external_ref'] ?? '' ) );
+
+		$features = Format::decode( $data['features'] ?? null );
+		$static->set_features( is_array( $features ) ? $features : [] );
 		$static->set_service_id( $data['service_id'] ?? '' );
 		$static->set_license_key( $data['license_key'] ?? '' );
 		$static->set_status( $data['status'] ?? '' );
@@ -964,9 +1209,11 @@ class License extends DataStore {
 
 	/**
 	 * Get total domains using this license.
+	 *
+	 * @return int
 	 */
 	public function get_total_active_domains() {
-		return count( (array) $this->get_meta( 'activated_on', [] ) );
+		return count( $this->get_activations() );
 	}
 
 	/**
@@ -974,80 +1221,107 @@ class License extends DataStore {
 	 * 
 	 * @param string $url The domain or website name.
 	 * @param bool $all_data  Whether to include the values of the domain.
-	 * @return mixed
+	 * @return array{origin: string, secret: string, activated_at: string|null}|string|null The domain data, or its origin when
+	 *                                                                                      $all_data is false; null when not activated.
 	 */
 	public function get_active_domain( $url, $all_data = true ) {
-		$all_domains = $this->get_active_domains( 'edit' );
+		$host       = $this->ensure_domain( $url )->get_host();
+		$activation = $this->get_activations()[ $host ] ?? null;
 
-		$url  = $this->ensure_domain( $url );
-		$host = $url->get_host();
-
-		if ( ! isset( $all_domains[$host] ) ) {
+		if ( null === $activation ) {
 			return null;
 		}
 
-		$domain_data = $all_domains[$host];
-
-		if ( $all_data ) {
-			return $domain_data;
-		}
-		return $domain_data['origin'];
-		
+		return $all_data ? $activation->to_array() : $activation->get_origin();
 	}
 
 	/**
-	 * Add or update the domains where this license is currently activated.
-	 * 
-	 * @param string $url The url of the site to be added.
-	 * @param string $site_secret The secret key for the site.
+	 * Activate this license on a new domain.
+	 *
+	 * Runs in a transaction that locks the license, so two activations at
+	 * the same time cannot exceed the domain limit or record one domain twice.
+	 *
+	 * @param string|URL $url         The site URL.
+	 * @param string     $secret_hash The HMAC of the site secret handed to the site.
+	 * @return true|Exception True when activated; an Exception (with a "status") when the
+	 *                        domain is already active, the limit is reached or the write fails.
 	 */
-	public function update_active_domains( $url, $site_secret ) {
-		$sites = $this->get_meta( 'activated_on', [] );
-		if ( ! is_array( $sites ) ) {
-			$sites = [];
+	public function activate_domain( string|URL $url, string $secret_hash ) : true|Exception {
+		if ( ! $this->id ) {
+			return new Exception( 'license_error', 'The license does not exist.', [ 'status' => 404 ] );
 		}
-		
-		$url    = $this->ensure_domain( $url );
-		$origin = $url->get_origin();
-		$host   = $url->get_host();
-		
-		$sites[$host] = [
-			'origin' => $origin,
-			'secret' => $site_secret,
-		];
 
-		$this->set_meta( 'activated_on', $sites );
-		$this->save();
+		$url = $this->ensure_domain( $url );
+
+		try {
+			static::$DB->transactional( function( Database $db ) use ( $url, $secret_hash ) : void {
+				$lock = static::query()->select( 'id', 'max_allowed_domains' )->from( TableName::LICENSES->table() )
+					->where( 'id', '=', $this->id )
+					->limit( 1 )->lock_for_update();
+				$row  = $db->get_row( $lock->build(), $lock->get_bindings() );
+
+				if ( ! $row ) {
+					throw new Exception( 'license_error', 'The license does not exist.', [ 'status' => 404 ] );
+				}
+
+				$current = LicenseActivation::get_for_license( $this->id );
+				$limit   = (int) $row['max_allowed_domains'];
+
+				if ( isset( $current[ $url->get_host() ] ) ) {
+					throw new Exception( 'domain_already_active', sprintf( 'The license is already activated on %s.', $url->get_host() ), [ 'status' => 409 ] );
+				}
+
+				if ( -1 !== $limit && count( $current ) >= $limit ) {
+					throw new Exception( 'license_error', 'Maximum allowed domains has been reached.', [ 'status' => 409 ] );
+				}
+
+				$inserted = $db->insert( TableName::LICENSE_ACTIVATIONS->table(), [
+					'license_id'   => $this->id,
+					'host'         => $url->get_host(),
+					'origin'       => $url->get_origin(),
+					'secret_hash'  => $secret_hash,
+					'activated_at' => gmdate( 'Y-m-d H:i:s' ),
+				] );
+
+				if ( false === $inserted ) {
+					throw new Exception( 'license_error', 'The activation could not be saved.', [ 'status' => 503 ] );
+				}
+			} );
+		} catch ( Exception $e ) {
+			return $e;
+		} finally {
+			$this->activations = null;
+			static::cache_clear();
+		}
+
+		return true;
 	}
 
 	/**
 	 * Remove a domain from activated list.
 	 * 
-	 * @param string $domain The domain
+	 * @param string|URL $domain The domain
+	 * @return bool True when the domain was active and is removed.
 	 */
 	public function remove_activated_domain( string|URL $domain ) : bool {
-		$sites = $this->get_meta( 'activated_on' );
+		$host = $this->ensure_domain( $domain )->get_host();
 
-		if ( empty( $sites ) || ! is_array( $sites ) ) {
+		if ( ! $this->id || ! isset( $this->get_activations()[ $host ] ) ) {
 			return false;
 		}
-		
-		$url  = $this->ensure_domain( $domain );
-		$host = $url->get_host();
 
-		unset( $sites[$host] );
-		
-		$this->set_meta( 'activated_on', $sites );
-		$this->save();
-		
-		return true;
+		$deleted = static::$DB->delete( TableName::LICENSE_ACTIVATIONS->table(), [ 'license_id' => $this->id, 'host' => $host ] );
+
+		$this->activations = null;
+		static::cache_clear();
+
+		return false !== $deleted && $deleted > 0;
 	}
 
 	/**
 	 * Whether license has reached max allowed domains.
 	 */
 	public function has_reached_max_allowed_domains() {
-
 		if ( -1 === $this->max_allowed_domains ) {
 			return false;
 		}
@@ -1061,13 +1335,7 @@ class License extends DataStore {
 	 * @param string $domain The name of the website.
 	 */
 	public function is_new_domain( string $domain ) {
-		$url = $this->ensure_domain( $domain );
-
-		$domain = $url->get_host();
-
-		$all_sites = $this->get_active_domains( 'edit' );
-		
-		return ! isset( $all_sites[$domain] );
+		return ! isset( $this->get_activations()[ $this->ensure_domain( $domain )->get_host() ] );
 	}
 
 	/**
@@ -1180,6 +1448,15 @@ class License extends DataStore {
 	 */
 	public function get_app_id() {
 		return $this->is_issued() ? $this->app->get_id() : 0;
+	}
+
+	/**
+	 * Make a service ID for a license that was given none.
+	 *
+	 * @return string
+	 */
+	public static function make_service_id() : string {
+		return 'svc_' . bin2hex( random_bytes( 12 ) );
 	}
 
 	/**

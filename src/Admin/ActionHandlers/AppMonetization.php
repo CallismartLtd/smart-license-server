@@ -26,10 +26,6 @@ class AppMonetization implements MonetizationHandlerInterface, LicenseHandlerInt
 		return $this->controller->toggle_monetization( $request );
 	}
 
-	public function handle_monetization_provider_product_request( Request $request ) : Response {
-		return $this->controller->get_provider_product( $request );
-	}
-
 	public function handle_monetization_tier_deletion_request( Request $request ) : Response {
 		return $this->controller->delete_monetization_tier( $request );
 	}

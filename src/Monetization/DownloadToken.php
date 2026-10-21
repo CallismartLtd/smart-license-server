@@ -62,9 +62,64 @@ class DownloadToken extends DataStore {
 	protected $expiry = 0;
 
 	/**
+	 * The application secret and salt the token and site-secret keys are
+	 * derived from; set once at boot (see set_keys()).
+	 *
+	 * @var array{secret: string, salt: string}
+	 */
+	private static array $keyring = [ 'secret' => '', 'salt' => '' ];
+
+	/**
 	 * Class constructor.
 	 */
 	public function __construct() {}
+
+	/*
+	|------
+	| KEYS
+	|------
+	*/
+
+	/**
+	 * Set the application secret and salt keys are derived from.
+	 *
+	 * Called once at boot, like DataStore::set_database().
+	 *
+	 * @param string $secret The application secret.
+	 * @param string $salt   The application salt.
+	 * @return void
+	 */
+	public static function set_keys( #[\SensitiveParameter] string $secret, #[\SensitiveParameter] string $salt ) : void {
+		self::$keyring = [ 'secret' => $secret, 'salt' => $salt ];
+	}
+
+	/**
+	 * Hash a site secret for storage and comparison.
+	 *
+	 * A site secret is handed to a site when a license is activated on it;
+	 * only this hash is stored.
+	 *
+	 * @param string $raw_secret The site secret.
+	 * @return string
+	 */
+	public static function hash_site_secret( #[\SensitiveParameter] string $raw_secret ) : string {
+		return hash_hmac( 'sha256', $raw_secret, self::key( 'license_site_secret' ) );
+	}
+
+	/**
+	 * Derive the key for a purpose from the application secret.
+	 *
+	 * @param string $context The purpose of the key.
+	 * @return string 32-byte key.
+	 * @throws \LogicException When the keys were not set at boot.
+	 */
+	private static function key( string $context ) : string {
+		if ( '' === self::$keyring['secret'] ) {
+			throw new \LogicException( 'DownloadToken::set_keys() must be called at boot before tokens are issued or verified.' );
+		}
+
+		return hash_hkdf( 'sha256', self::$keyring['secret'], 32, $context, self::$keyring['salt'] );
+	}
 
 	/*
 	|-----------------
@@ -323,10 +378,15 @@ class DownloadToken extends DataStore {
 	 */
 
 	/**
-	 * Generate a new download token for the app associated with a license
+	 * Generate a new download token for the app associated with a license.
+	 *
+	 * A token never outlives its license: it expires after $expiry seconds
+	 * or when the license ends, whichever comes first. A license that cannot
+	 * be served (not issued, expired, suspended, revoked, deactivated) gets
+	 * no token.
 	 * 
 	 * @param License $license The license object.
-	 * @param int $expiry The license expiry duration in seconds.
+	 * @param int $expiry The token lifetime in seconds.
 	 * @throws \SmartLicenseServer\Exceptions\Exception
 	 * @return string
 	 */
@@ -336,17 +396,23 @@ class DownloadToken extends DataStore {
 			throw new Exception( 'download_token_error', 'This license must be issued to a hosted application first.', ['status' => 400] );
 		}
 
+		$servable = $license->can_serve_license( $license->get_app_id() );
+
+		if ( $servable instanceof Exception ) {
+			throw $servable;
+		}
+
 		$static   = new static();
 		$app_type = $license->get_app()->get_type();
 		$app_slug = $license->get_app()->get_slug() ;
-		$expiry   = time() + (int) $expiry;
+		$expiry   = static::expiry_for( $license, (int) $expiry );
 
 		$static->set_app_prop( $app_type, $app_slug );
 		$static->set_license_key( $license->get_license_key() );
 		$static->set_expiry( $expiry );
 
 		$raw_token = static::generate_token();
-		$secret    = static::derive_key();
+		$secret    = self::key( 'download_token' );
 
 		$static->set_token( \hash_hmac( 'sha256', $raw_token, $secret ) );
 
@@ -390,7 +456,7 @@ class DownloadToken extends DataStore {
 
 		[$encoded_payload, $signature] = $parts;
 		
-		$secret = static::derive_key();
+		$secret = self::key( 'download_token' );
 
 		if ( ! hash_equals( hash_hmac( 'sha256', $encoded_payload, $secret ), $signature ) ) {
 			throw new Exception( 'download_token_invalid', 'Invalid download token signature.', ['status' => 403] );
@@ -421,6 +487,34 @@ class DownloadToken extends DataStore {
 			throw new Exception( 'download_token_invalid', 'Download token does not match requested app.', ['status' => 403] );
 		}
 
+		// The license must still be servable when the token is used.
+		$license = License::get_by_key( $static->get_license_key() );
+
+		if ( ! $license ) {
+			throw new Exception( 'download_token_invalid', 'The license this download token was issued for no longer exists.', ['status' => 403] );
+		}
+
+		$servable = $license->can_serve_license( (int) $app->get_id() );
+
+		if ( $servable instanceof Exception ) {
+			throw new Exception( 'download_token_invalid', $servable->get_error_message(), ['status' => 403] );
+		}
+
 		return $static;
+	}
+
+	/**
+	 * The expiry timestamp of a token issued now for a license: $lifetime
+	 * seconds from now, or the license's end, whichever comes first.
+	 *
+	 * @param License $license  The license.
+	 * @param int     $lifetime The token lifetime in seconds.
+	 * @return int Unix timestamp.
+	 */
+	public static function expiry_for( License $license, int $lifetime ) : int {
+		$expiry = time() + max( 0, $lifetime );
+		$end    = $license->get_end_date();
+
+		return null === $end ? $expiry : min( $expiry, $end->getTimestamp() );
 	}
 }

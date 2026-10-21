@@ -13,7 +13,13 @@ use Callismart\DBPrism\Utils\Constraint;
 use Callismart\DBPrism\Utils\ColumnType;
 
 /**
- * Stores pricing tier definitions.
+ * Stores pricing tiers: the templates licenses are issued from.
+ *
+ * A tier defines what a new license grants (term, number of sites,
+ * features) and names the one provider that sells it, with that provider's
+ * own data for it (`provider_data`). Its terms are copied onto each license
+ * at issue; changing a tier never changes licenses already issued. A tier
+ * that licenses were issued from is archived, not deleted.
  */
 class PricingTierSchema implements DatabaseSchemaInterface {
 
@@ -45,19 +51,15 @@ class PricingTierSchema implements DatabaseSchemaInterface {
 				->size( 255 )
 				->required(),
 
-			Column::make( 'product_id' )
+			Column::make( 'term_unit' )
 				->type( ColumnType::VARCHAR )
-				->size( 191 )
+				->size( 20 )
+				->default( 'lifetime' )
 				->required(),
 
-			Column::make( 'provider_id' )
-				->type( ColumnType::VARCHAR )
-				->size( 50 )
-				->required(),
-
-			Column::make( 'billing_cycle' )
-				->type( ColumnType::VARCHAR )
-				->size( 50 ),
+			Column::make( 'term_length' )
+				->type( ColumnType::INTEGER )
+				->default( 1 ),
 
 			Column::make( 'max_sites' )
 				->type( ColumnType::INTEGER )
@@ -65,6 +67,19 @@ class PricingTierSchema implements DatabaseSchemaInterface {
 
 			Column::make( 'features' )
 				->type( ColumnType::TEXT ),
+
+			Column::make( 'provider_id' )
+				->type( ColumnType::VARCHAR )
+				->size( 100 ),
+
+			Column::make( 'provider_data' )
+				->type( ColumnType::TEXT ),
+
+			Column::make( 'status' )
+				->type( ColumnType::VARCHAR )
+				->size( 20 )
+				->default( 'active' )
+				->required(),
 
 			Column::make( 'created_at' )
 				->type( ColumnType::DATETIME ),
@@ -80,6 +95,7 @@ class PricingTierSchema implements DatabaseSchemaInterface {
 		return [
 			Constraint::primary( "{$prefx}primary" )->on( 'id' ),
 			Constraint::index( "{$prefx}monetization_id_index" )->on( 'monetization_id' ),
+			Constraint::index( "{$prefx}provider_index" )->on( 'provider_id' ),
 			Constraint::foreign_key( "{$prefx}monetization_fk" )
 				->on( 'monetization_id' )
 				->references( TableName::MONETIZATION->table(), 'id' )
@@ -87,7 +103,7 @@ class PricingTierSchema implements DatabaseSchemaInterface {
 		];
 	}
 
-	protected static function constraintPrefix() {
+	protected static function constraintPrefix() : string {
 		return 'smliser_pricingtiers_';
 	}
 }

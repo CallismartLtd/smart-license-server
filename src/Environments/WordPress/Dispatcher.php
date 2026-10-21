@@ -61,7 +61,6 @@ class Dispatcher implements RequestDispatcherInterface {
 		'smliser_save_monetization_provider_options' => [ __CLASS__, 'handle_save_provider_options_request' ],
 		'smliser_upgrade'                            => [ __CLASS__, 'handle_database_migration_request' ],
 		'smliser_publish_bulk_message'               => [ __CLASS__, 'handle_bulk_message_publish_request' ],
-		'smliser_get_product_data'                   => [ __CLASS__, 'handle_monetization_provider_product_request' ],
 		'smliser_delete_monetization_tier'           => [ __CLASS__, 'handle_monetization_tier_deletion_request' ],
 		'smliser_toggle_monetization'                => [ __CLASS__, 'handle_toggle_monetization_request' ],
 		'smliser_access_control_save'                => [ __CLASS__, 'handle_access_control_save_request' ],
@@ -525,12 +524,6 @@ class Dispatcher implements RequestDispatcherInterface {
 		static::guard( $request, 'manage_options' );
 
 		return Controller::toggle_monetization( $request );
-	}
-
-	public static function handle_monetization_provider_product_request( Request $request ) : Response {
-		static::guard( $request, 'manage_options' );
-
-		return Controller::get_provider_product( $request );
 	}
 
 	public static function handle_monetization_tier_deletion_request( Request $request ) : Response {

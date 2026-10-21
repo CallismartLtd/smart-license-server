@@ -47,14 +47,6 @@ interface MonetizationHandlerInterface {
 	public function handle_toggle_monetization_request( Request $request ) : Response;
 
 	/**
-	 * Parse monetization provider product request.
-	 *
-	 * @param  Request $request
-	 * @return Response
-	 */
-	public function handle_monetization_provider_product_request( Request $request ) : Response;
-
-	/**
 	 * Parse monetization tier deletion request.
 	 *
 	 * @param  Request $request

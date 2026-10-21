@@ -12,7 +12,7 @@ namespace SmartLicenseServer\Schema;
 use Callismart\DBPrism\Utils\Column;
 use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Schema\Definitions\{
-	LicenseSchema, LicenseMetaSchema, AppsSchema, AppMetaSchema,
+	LicenseSchema, LicenseMetaSchema, LicenseActivationsSchema, AppsSchema, AppMetaSchema,
 	AnalyticsLogsSchema, AnalyticsDailySchema, AppDownloadTokenSchema,
 	MonetizationSchema, PricingTierSchema, BulkMessagesSchema,
 	BulkMessagesAppsSchema, OptionsSchema, OwnersSchema, UsersSchema,
@@ -232,6 +232,7 @@ class SchemaRegistry extends AbstractRegistry {
 		$schemas = [
 			LicenseSchema::class,
 			LicenseMetaSchema::class,
+			LicenseActivationsSchema::class,
 			AppsSchema::class,
 			AppMetaSchema::class,
 			AnalyticsLogsSchema::class,

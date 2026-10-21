@@ -264,13 +264,28 @@ class LicensePage implements AdminPageInterface {
 			],
 
 			[
+				'label' => 'Licensee Email',
+				'input' => [
+					'type'  => 'email',
+					'name'  => 'licensee_email',
+					'value' => $license?->get_licensee_email() ?? '',
+					'attr'  => [
+						'aria-label' => 'Licensee email address',
+						'title'      => 'The license is delivered to this address. A registered user with this verified address is linked to the license.',
+						'required'   => 'required',
+					]
+				]
+			],
+
+			[
 				'label' => 'Service ID',
 				'input' => [
 					'type'  => 'text',
 					'name'  => 'service_id',
 					'value' => $license?->get_service_id() ?? '',
 					'attr'  => [
-						'aria-label' => 'Enter Service ID'
+						'aria-label' => 'Enter Service ID',
+						'title'      => 'The ID a client activates the license with, together with the license key. Leave empty to generate one.',
 					]
 				]
 			],
@@ -333,6 +348,19 @@ class LicensePage implements AdminPageInterface {
 					'attr'  => [
 						'aria-label'          => 'Enter license end date.',
 						'smliser-date-picker' => 'datetime'
+					]
+				]
+			],
+
+			[
+				'label' => 'Features',
+				'input' => [
+					'type'  => 'textarea',
+					'name'  => 'features',
+					'value' => implode( ', ', $license?->get_features() ?? [] ),
+					'attr'  => [
+						'aria-label'  => 'License features',
+						'placeholder' => 'example: feature1, feature2, feature3',
 					]
 				]
 			],

@@ -322,12 +322,6 @@ final class HttpDispatcher {
 						middleware: []
 					);
 
-					$this->router->get(
-						pattern: 'tier-product',
-						handler: [AppMonetization::class, 'handle_monetization_provider_product_request'],
-						middleware: []
-					);
-
 					$this->router->delete(
 						pattern: 'pricing-tier',
 						handler: [AppMonetization::class, 'handle_monetization_tier_deletion_request'],
@@ -600,9 +594,9 @@ final class HttpDispatcher {
 						handler: [PreferenceManagement::class, 'save']
 					);
 				},
-					middleware: [
-						CSRFMiddleware::class
-					] );
+				middleware: [
+					CSRFMiddleware::class
+				] );
 			},
 			middleware: [
 				ClientAccessMiddleware::class

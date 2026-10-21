@@ -26,6 +26,7 @@ namespace SmartLicenseServer\Schema;
 enum TableName : string {
 	case LICENSES                 = 'licenses';
 	case LICENSE_META             = 'license_meta';
+	case LICENSE_ACTIVATIONS      = 'license_activations';
 	case APPS                     = 'apps';
 	case APP_META                 = 'app_meta';
 	case ITEM_DOWNLOAD_TOKEN      = 'item_download_token';

@@ -10,6 +10,7 @@
 namespace SmartLicenseServer\RESTAPI\Handlers;
 
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
+use SmartLicenseServer\Core\Dates\DateDuration;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\Exception;
@@ -25,16 +26,29 @@ use SmartLicenseServer\HostedApps\HostedApplicationService;
 class Licenses {
 
 	/**
-	 * Class constructor.
+	 * The header a site sends its site secret in, base64-encoded.
+	 *
+	 * A site gets its secret when the license is activated on it, and sends
+	 * it on every later request for that domain. It is not sent as
+	 * "Authorization: Bearer", which carries platform credentials only.
 	 */
-	private function __construct() {}
+	public const SITE_SECRET_HEADER = 'X-Smliser-Site-Secret';
+
+	/**
+	 * Class constructor.
+	 *
+	 * @param RepositoryAnalytics $analytics Records license activity.
+	 */
+	public function __construct(
+		protected RepositoryAnalytics $analytics
+	) {}
 
 	/**
 	 * The new license activation route permission callback.
 	 * 
 	 * @param Request $request The current request object.
 	 */
-	public static function activation_permission_callback( Request $request ) : bool|RequestException {
+	public function activation_permission_callback( Request $request ) : bool|RequestException {
 		$service_id  = $request->get( 'service_id' );
 		$license_key = $request->get( 'license_key' );
 		$domain      = $request->get( 'domain' );
@@ -64,7 +78,7 @@ class Licenses {
 		$request->set( 'smliser_resource', $license );
 
 		$status_access = $license->can_serve_license( $hosted_app->get_id() );
-		$domain_access = self::restrict_domain_activation( $domain, $request );
+		$domain_access = $this->restrict_domain_activation( $domain, $request );
 
 		$access_denied = is_smliser_error( $status_access ) || is_smliser_error( $domain_access );
 
@@ -86,7 +100,7 @@ class Licenses {
 	 * 
 	 * @param Request $request The current request object.
 	 */
-	public static function activation_response( Request $request ) {
+	public function activation_response( Request $request ) {
 		$service_id  = $request->get( 'service_id' );
 		$license_key = $request->get( 'license_key' );
 		$domain      = $request->get( 'domain' );
@@ -94,37 +108,47 @@ class Licenses {
 		/** @var License $license */
 		$license = $request->get( 'smliser_resource' );
 
+		$token_lifetime = (int) DateDuration::fromDays( 2 )->toSeconds();
+
 		$response_data = [
 			'message' => sprintf( 'License has been activated for your domain "%s"', $domain ),
 			'data'    => [
 				'license_key'    => $license_key,
 				'service_id'     => $service_id,
-				'download_token' => smliser_generate_item_token( $license, 2 * DAY_IN_SECONDS ),
-				'token_expiry'   => gmdate( 'Y-m-d', time() + ( 2 * DAY_IN_SECONDS ) ),
+				'download_token' => smliser_generate_item_token( $license, $token_lifetime ),
+				'token_expiry'   => gmdate( 'Y-m-d', DownloadToken::expiry_for( $license, $token_lifetime ) ),
 				'license_expiry' => $license->get_end_date()?->format( 'Y-m-d' ) ?? \gmdate( 'Y-m-d', \strtotime( '+15 years' ) )
 			]
 		];
 
-		if ( $license->is_new_domain( $domain ) && ! $license->has_reached_max_allowed_domains() ) {
-			$domain_secret                        = 'sc_' . bin2hex( random_bytes( 32 ) );
+		if ( $license->is_new_domain( $domain ) ) {
+			$domain_secret      = 'sc_' . bin2hex( random_bytes( 32 ) );
+			$domain_secret_hash = DownloadToken::hash_site_secret( $domain_secret );
+			$activated          = $license->activate_domain( $domain, $domain_secret_hash );
+
+			// The secret is only handed out once the activation is stored.
+			if ( $activated instanceof Exception ) {
+				return new Response( (int) ( $activated->get_error_data()['status'] ?? 409 ), [], [
+					'message' => $activated->get_error_message(),
+					'data'    => [ 'code' => $activated->get_error_code() ],
+				] );
+			}
+
 			$response_data['data']['site_secret'] = base64_encode( $domain_secret );
-			$domain_secret_hash                   = hash_hmac( 'sha256', $domain_secret, DownloadToken::derive_key() );
-			
-			$license->update_active_domains( $domain, $domain_secret_hash );
 		}
 
 		$response = new Response( 200, [], $response_data );
 
 		$license_data = [
 			'license_id' => $license->get_id(),
-			'ip_address' => smliser_get_client_ip(),
+			'ip_address' => $request->ip(),
 			'event_type' => 'activation',
 			'website'    => $domain,
 			'comment'    => 'License activated',
 			'duration'   => microtime( true ) - $request->startTime()
 		];
 
-		RepositoryAnalytics::log_license_activity( $license_data );
+		$this->analytics->log_license_activity( $license_data );
 		
 		return $response;
 	}
@@ -136,7 +160,7 @@ class Licenses {
 	 * @param Request $request The REST API request object
 	 * @return RequestException|true
 	 */
-	public static function deactivation_permission( Request $request ) : bool|RequestException {
+	public function deactivation_permission( Request $request ) : bool|RequestException {
 		$license_key = $request->get( 'license_key' );
 		$service_id  = $request->get( 'service_id' );
 		$license     = License::get_license( $service_id, $license_key );
@@ -157,7 +181,7 @@ class Licenses {
 
 		$request->set( 'smliser_resource', $license );
 		
-		return self::verify_domain( $request );
+		return $this->verify_domain( $request );
 	}
 
 	/**
@@ -166,7 +190,7 @@ class Licenses {
 	 * @param Request $request
 	 * @return Response
 	 */
-	public static function deactivation_response( Request $request ) : Response {
+	public function deactivation_response( Request $request ) : Response {
 		$domain = smliser_url_origin( $request->get( 'domain' ) );
 		/** @var License $license */
 		$license         = $request->get( 'smliser_resource' );
@@ -175,7 +199,7 @@ class Licenses {
 		$license->set_status( License::STATUS_DEACTIVATED );
 		$log_data = [
 			'license_id' => $license->get_id(),
-			'ip_address' => smliser_get_client_ip(),
+			'ip_address' => $request->ip(),
 			'event_type' => 'deactivation',
 			'website'    => $domain,
 			'comment'    => '',
@@ -208,7 +232,7 @@ class Licenses {
 
 		$log_data['comment'] = $response_data['message'];
 		
-		RepositoryAnalytics::log_license_activity( $log_data );
+		$this->analytics->log_license_activity( $log_data );
 		
 		$response = new Response( $status_code, [], $response_data );
 		
@@ -221,8 +245,8 @@ class Licenses {
 	 * @param Request $request The REST Request Object.
 	 * @return RequestException|true
 	 */
-	public static function uninstallation_permission( Request $request ) {
-		return self::deactivation_permission( $request );
+	public function uninstallation_permission( Request $request ) {
+		return $this->deactivation_permission( $request );
 	}
 
 	/**
@@ -230,10 +254,21 @@ class Licenses {
 	 * 
 	 * @param Request $request The REST Request Object
 	 */
-	public static function uninstallation_response( Request $request ) : Response {
+	public function uninstallation_response( Request $request ) : Response {
 		$domain = smliser_url_origin( $request->get( 'domain' ) );
 		/** @var License $license */
 		$license       = $request->get( 'smliser_resource' );
+
+		$log_data = [
+			'license_id' => $license->get_id(),
+			'event_type' => 'uninstallation',
+			'ip_address' => $request->ip(),
+			'website'    => $domain,
+			'comment'    => '',
+			'duration'   => microtime( true ) - $request->startTime()
+		];
+
+		$removed       = $license->remove_activated_domain( $domain );
 		$response_data = [
 			'data' => [
 				'license status' => $license->get_status(),
@@ -241,16 +276,7 @@ class Licenses {
 			]
 		];
 
-		$log_data = [
-			'license_id' => $license->get_id(),
-			'event_type' => 'uninstallation',
-			'ip_address' => smliser_get_client_ip(),
-			'website'    => $domain,
-			'comment'    => '',
-			'duration'   => microtime( true ) - $request->startTime()
-		];
-
-		if ( $license->remove_activated_domain( $domain ) ) {
+		if ( $removed ) {
 			$response_data['message'] = sprintf( 'The license uninstalled for the domain "%s" successfully.', $domain );
 			$status_code              = 200;
 		} else {
@@ -261,7 +287,7 @@ class Licenses {
 		$log_data['comment'] = $response_data['message'];
 
 		$response = new Response( $status_code, [], $response_data );
-		RepositoryAnalytics::log_license_activity( $log_data );
+		$this->analytics->log_license_activity( $log_data );
 
 		return $response;
 	}
@@ -272,7 +298,7 @@ class Licenses {
 	 * @param Request $request The REST API request object.
 	 * @return RequestException|true
 	 */
-	public static function validity_test_permission( Request $request ) {
+	public function validity_test_permission( Request $request ) {
 		$service_id  = $request->get( 'service_id' );
 		$license_key = $request->get( 'license_key' );
 		$app_type    = (string) $request->getTyped( 'app_type', 'string', '' );
@@ -294,7 +320,7 @@ class Licenses {
 		$request->set( 'smliser_resource', $license );
 		$request->set( 'hosted_app', $hosted_app );
 
-		$domain_access = self::verify_domain( $request );
+		$domain_access = $this->verify_domain( $request );
 		if ( is_smliser_error( $domain_access ) ) {
 			return $domain_access;
 		}
@@ -315,7 +341,7 @@ class Licenses {
 	 * - Domain validity.
 	 * - Download token validity.
 	 */
-	public static function validity_test_response( Request $request ) {
+	public function validity_test_response( Request $request ) {
 		/** @var License $license */
 		$license = $request->get( 'smliser_resource' );
 
@@ -340,14 +366,14 @@ class Licenses {
 		$log_data = [
 			'license_id' => $license->get_id(),
 			'event_type' => 'verification',
-			'ip_address' => smliser_get_client_ip(),
+			'ip_address' => $request->ip(),
 			'website'    => $request->get( 'domain' ),
 			'comment'    => \sprintf( 'Message: %s | Token validity: %s', $response_data['message'], $response_data['data']['token_validity'] ),
 			'duration'   => microtime( true ) - $request->startTime()
 		];
 
 		$response = new Response( 200, [], $response_data );
-		RepositoryAnalytics::log_license_activity( $log_data );
+		$this->analytics->log_license_activity( $log_data );
 
 		return $response;
 
@@ -359,7 +385,7 @@ class Licenses {
 	 * @param Request $request
 	 * @return RequestException|true
 	 */
-	public static function download_reauth_permission( Request $request ) {
+	public function download_reauth_permission( Request $request ) {
 		$service_id  = $request->get( 'service_id' );
 		$license_key = $request->get( 'license_key' );
 		$license     = License::get_license( $service_id, $license_key );
@@ -385,7 +411,7 @@ class Licenses {
 			return $status_access;
 		}
 
-		$domain_access = self::verify_domain( $request );
+		$domain_access = $this->verify_domain( $request );
 
 		if ( $domain_access instanceof Exception ) {
 			return $domain_access;
@@ -409,16 +435,16 @@ class Licenses {
 	 * @param Request $request.
 	 * @return Response
 	 */
-	public static function app_download_reauth( Request $request ) {
+	public function app_download_reauth( Request $request ) {
 		/** @var License $license */
 		$license   = $request->get( 'smliser_resource' );
-		$two_weeks = 2 * WEEK_IN_SECONDS;
+		$two_weeks = (int) DateDuration::fromWeeks( 2 )->toSeconds();
 		
 		$response_data = [
 			'message' => 'Download token has been refreshed.',
 			'data'    => [
 				'download_token' => smliser_generate_item_token( $license, $two_weeks ),
-				'token_expiry'   => gmdate( 'Y-m-d', time() + $two_weeks ),
+				'token_expiry'   => gmdate( 'Y-m-d', DownloadToken::expiry_for( $license, $two_weeks ) ),
 			]
 		];
 
@@ -432,7 +458,7 @@ class Licenses {
 	 * @param string $domain The domian name to check
 	 * @return false|RequestException Returns false if the domain is allowed, or a RequestException object if the domain is restricted.
 	 */
-	public static function restrict_domain_activation( string $domain, Request $request ) {
+	public function restrict_domain_activation( string $domain, Request $request ) {
 		/** @var License $license */
 		$license = $request->get( 'smliser_resource' );;
 
@@ -445,17 +471,20 @@ class Licenses {
 			return false;
 		}
 
-		$result = self::verify_domain( $request );
+		$result = $this->verify_domain( $request );
 		return is_smliser_error( $result ) ? $result : false;
 	}
 
 	/**
 	 * Verify that a domain can access the license REST API endpoint.
+	 *
+	 * The domain must be activated on the license, and the request must
+	 * carry its site secret, base64-encoded, in the SITE_SECRET_HEADER header.
 	 * 
 	 * @param Request $request The request object.
 	 * @return RequestException|true Error object on failure, true otherwise.
 	 */
-	public static function verify_domain( Request $request ) {
+	public function verify_domain( Request $request ) {
 		/** @var License $license */
 		$license = $request->get( 'smliser_resource' );
 		$domain  = $request->get( 'domain' );
@@ -467,10 +496,10 @@ class Licenses {
 		}
 
 		$known_secret  = $domain_data['secret'];
-		$client_secret = $request->bearerToken();
+		$client_secret = trim( (string) $request->get_header( self::SITE_SECRET_HEADER, '' ) );
 
-		if ( ! $client_secret ) {
-			return new RequestException( 'authorization_header_not_found', 'Please provide authorization header for this domain', [ 'status' => 400 ] );
+		if ( '' === $client_secret ) {
+			return new RequestException( 'site_secret_missing', sprintf( 'Send the site secret for this domain in the %s header.', self::SITE_SECRET_HEADER ), [ 'status' => 400 ] );
 		}
 
 		$client_secret = base64_decode( $client_secret );
@@ -479,10 +508,10 @@ class Licenses {
 			return new RequestException( 'invalid_token_format', 'Token could not be decoded properly, please be sure that the token is base64 encoded or not double encoding it.', [ 'status' => 400 ] );
 		}
 
-		$client_secret_hash = hash_hmac( 'sha256', $client_secret, DownloadToken::derive_key() );
+		$client_secret_hash = DownloadToken::hash_site_secret( $client_secret );
 
 		if ( ! hash_equals( $known_secret, $client_secret_hash ) ) {
-			return new RequestException( 'authorization_failed', 'Invalid authorization token', [ 'status' => 401 ] );
+			return new RequestException( 'site_secret_invalid', 'The site secret is not valid for this domain.', [ 'status' => 401 ] );
 		}
 
 		return true;
