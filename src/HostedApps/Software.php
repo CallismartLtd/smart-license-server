@@ -18,7 +18,7 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
 /**
  * Represents a hosted software in the repository.
  * 
- * A hosted software is any other application type that is not a plugin or theme.
+ * A hosted software is any other application type that is not a WordPress plugin or theme.
  */
 class Software extends AbstractHostedApp {
 	use SanitizeAwareTrait;

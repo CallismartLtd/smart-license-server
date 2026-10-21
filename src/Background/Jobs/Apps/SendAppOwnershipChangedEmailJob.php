@@ -11,7 +11,7 @@
  * changes on an existing app.
  *
  * Payload:
- *   app_type          (string) — e.g. 'plugin', 'theme', 'software'.
+ *   app_type          (string) — e.g. 'wpplugin', 'wptheme', 'software'.
  *   app_slug          (string) — The app slug.
  *   previous_owner_id (int)    — Owner ID before the transfer.
  *   new_owner_id      (int)    — Owner ID after the transfer.
@@ -53,7 +53,7 @@ class SendAppOwnershipChangedEmailJob implements JobHandlerInterface {
 
 	/**
 	 * @param array $payload {
-	 *     @type string $app_type          App type e.g. 'plugin'.
+	 *     @type string $app_type          App type e.g. 'wpplugin'.
 	 *     @type string $app_slug          App slug.
 	 *     @type int    $previous_owner_id Previous owner ID.
 	 *     @type int    $new_owner_id      New owner ID.

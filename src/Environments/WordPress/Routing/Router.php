@@ -63,12 +63,12 @@ use SmartLicenseServer\Routing\RoutePattern;
  *     add_filter( 'query_vars', array( $router, 'query_vars' ) );
  *
  *     $router->url( 'repository.assets', array(
- *         'app_type'       => 'plugins',
+ *         'app_type'       => 'wpplugin',
  *         'app_slug'       => 'smart-license-server',
  *         'asset_name'     => 'screenshot-1',
  *         'asset_name_ext' => 'png',
  *     ) );
- *     // => 'repository/plugins/smart-license-server/assets/screenshot-1.png'
+ *     // => 'repository/wpplugin/smart-license-server/assets/screenshot-1.png'
  */
 final class Router {
 

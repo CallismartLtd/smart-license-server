@@ -60,9 +60,9 @@ class WPThemes extends DataStore {
 
 		if ( false === $data ) {
 			if ( $theme_id ) {
-				$theme = HostedApplicationService::get_app_by_id( 'theme', $theme_id );
+				$theme = HostedApplicationService::get_app_by_id( 'wptheme', $theme_id );
 			} else {
-				$theme = HostedApplicationService::get_app_by_slug( 'theme', $slug );
+				$theme = HostedApplicationService::get_app_by_slug( 'wptheme', $slug );
 			}
 
 			if ( ! $theme || ! $this->visibility->can_view( $theme ) ) {

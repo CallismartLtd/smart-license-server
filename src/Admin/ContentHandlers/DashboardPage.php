@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Admin\ContentHandlers;
 
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Assets\AssetsManager;
@@ -41,8 +42,8 @@ class DashboardPage implements AdminPageInterface {
 	public function dashboard() {
 		$totals = [
 			'apps'     => $this->repo_analytics->get_total_apps(),
-			'plugins'  => $this->repo_analytics->get_total_apps( 'plugin' ),
-			'themes'   => $this->repo_analytics->get_total_apps( 'theme' ),
+			'wpplugin' => $this->repo_analytics->get_total_apps( 'wpplugin' ),
+			'wptheme'  => $this->repo_analytics->get_total_apps( 'wptheme' ),
 			'software' => $this->repo_analytics->get_total_apps( 'software' )
 		];
 		
@@ -65,8 +66,8 @@ class DashboardPage implements AdminPageInterface {
 			'Download Analytics' => [
 				'summary' => [
 					'total_downloads'    => $this->repo_analytics->get_total_downloads(),
-					'plugins_downloads'  => $this->repo_analytics->get_total_downloads( 'plugin' ),
-					'themes_downloads'   => $this->repo_analytics->get_total_downloads( 'theme' ),
+					'wpplugin_downloads' => $this->repo_analytics->get_total_downloads( 'wpplugin' ),
+					'wptheme_downloads'  => $this->repo_analytics->get_total_downloads( 'wptheme' ),
 					'software_downloads' => $this->repo_analytics->get_total_downloads( 'software' ),
 				],
 				'chart_data' => self::prepare_downloads_chart( $days_30, $days_7 ),
@@ -76,8 +77,8 @@ class DashboardPage implements AdminPageInterface {
 				'summary' => [
 					'total_accesses'         => $this->repo_analytics->get_total_client_accesses( $days_30 ),
 					'active_installations'   => $this->repo_analytics->get_active_installations( $days_30 ),
-					'plugin_installations'   => $this->repo_analytics->get_active_installations( $days_30, 'plugin' ),
-					'theme_installations'    => $this->repo_analytics->get_active_installations( $days_30, 'theme' ),
+					'wpplugin_installations' => $this->repo_analytics->get_active_installations( $days_30, 'wpplugin' ),
+					'wptheme_installations'  => $this->repo_analytics->get_active_installations( $days_30, 'wptheme' ),
 					'software_installations' => $this->repo_analytics->get_active_installations( $days_30, 'software' ),
 				],
 				'chart_data' => self::prepare_client_activity_chart( $days_30, $days_7 ),
@@ -127,7 +128,7 @@ class DashboardPage implements AdminPageInterface {
 		$status_data   = [];
 		foreach ( $apps_by_status as $type => $statuses ) {
 			foreach ( $statuses as $status => $count ) {
-				$key             = ucfirst( $type ) . ' - ' . ucfirst( $status );
+				$key             = HostedAppsRegistry::instance()->get_app_type_label( $type ) . ' - ' . ucfirst( $status );
 				$status_labels[] = $key;
 				$status_data[]   = $count;
 			}
@@ -149,7 +150,7 @@ class DashboardPage implements AdminPageInterface {
 		$maintenance_datasets = [];
 		foreach ( $maintained as $type => $months_data ) {
 			$dataset = [
-				'label' => ucfirst( $type ),
+				'label' => HostedAppsRegistry::instance()->get_app_type_label( $type, true ),
 				'data'  => [],
 			];
 			foreach ( $maintenance_labels as $month ) {
@@ -234,8 +235,8 @@ class DashboardPage implements AdminPageInterface {
 
 		// Downloads by Type (Pie Chart)
 		$downloads_by_type = [
-			'plugin'   => array_sum( $this->repo_analytics->get_downloads_per_day( $days_30, 'plugin' ) ),
-			'theme'    => array_sum( $this->repo_analytics->get_downloads_per_day( $days_30, 'theme' ) ),
+			'wpplugin' => array_sum( $this->repo_analytics->get_downloads_per_day( $days_30, 'wpplugin' ) ),
+			'wptheme'  => array_sum( $this->repo_analytics->get_downloads_per_day( $days_30, 'wptheme' ) ),
 			'software' => array_sum( $this->repo_analytics->get_downloads_per_day( $days_30, 'software' ) ),
 		];
 
@@ -308,7 +309,7 @@ class DashboardPage implements AdminPageInterface {
 			'downloads_by_type' => [
 				'type' => 'doughnut',
 				'data' => [
-					'labels'   => ['Plugins', 'Themes', 'Software'],
+					'labels'   => ['WordPress Plugins', 'WordPress Themes', 'Software'],
 					'datasets' => [
 						[
 							'label' => 'Downloads',
@@ -336,8 +337,8 @@ class DashboardPage implements AdminPageInterface {
 
 		// Active installations by type (Bar Chart)
 		$installations_by_type = [
-			'plugin'   => $this->repo_analytics->get_active_installations( $days_30, 'plugin' ),
-			'theme'    => $this->repo_analytics->get_active_installations( $days_30, 'theme' ),
+			'wpplugin' => $this->repo_analytics->get_active_installations( $days_30, 'wpplugin' ),
+			'wptheme'  => $this->repo_analytics->get_active_installations( $days_30, 'wptheme' ),
 			'software' => $this->repo_analytics->get_active_installations( $days_30, 'software' ),
 		];
 
@@ -402,7 +403,7 @@ class DashboardPage implements AdminPageInterface {
 			'installations_by_type' => [
 				'type' => 'bar',
 				'data' => [
-					'labels'   => ['Plugins', 'Themes', 'Software'],
+					'labels'   => ['WordPress Plugins', 'WordPress Themes', 'Software'],
 					'datasets' => [
 						[
 							'label'           => 'Active Installations',

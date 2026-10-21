@@ -160,6 +160,67 @@ final class UpdateServer {
 	}
 
 	/**
+	 * Browse the hosted apps the update server publishes (its repository REST listing).
+	 *
+	 * The server's search matches the start of an app's name, slug or author;
+	 * an empty search lists every app of the type.
+	 *
+	 * @param string        $app_type Hosted app type on the update server.
+	 * @param string        $search   Search term; empty to list.
+	 * @param int           $page     Page number, from 1.
+	 * @param int           $limit    Apps per page.
+	 * @param callable|null $progress Progress callback, see UpdateProgressTrait.
+	 * @return array{apps: list<array<string, mixed>>, pagination: array{total: int, page: int, limit: int, total_pages: int}}
+	 *         The apps as the REST API describes them, and the pagination.
+	 * @throws UpdateException When the server cannot be reached or does not answer as expected.
+	 */
+	public function browse( string $app_type, string $search = '', int $page = 1, int $limit = 24, ?callable $progress = null ) : array {
+		$query = [ 'app_types' => [ $app_type ], 'page' => max( 1, $page ), 'limit' => max( 1, $limit ) ];
+
+		if ( '' !== $search ) {
+			$query['search'] = $search;
+		}
+
+		$url = self::HOST . '/smliser/v1/repository/?' . http_build_query( $query );
+
+		$this->report( $progress, 'check', self::STATUS_INFO, sprintf( 'Asking %s for its %s apps.', self::HOST, $app_type ) );
+
+		try {
+			$response = $this->http->get(
+				url: $url,
+				headers: [
+					'Accept'     => 'application/json',
+					'User-Agent' => \smliser_http_ua( true )
+				],
+				options: [ 'timeout' => self::TIMEOUT ]
+			);
+		} catch ( Throwable $e ) {
+			throw new UpdateException( sprintf( 'Could not reach the update server: %s', $e->getMessage() ), 0, $e );
+		}
+
+		if ( ! $response->is_success() ) {
+			throw new UpdateException( sprintf( 'The update server answered with HTTP %d; try again later.', $response->status_code ) );
+		}
+
+		$body = $response->json();
+		$apps = is_array( $body ) ? ( $body['apps'] ?? null ) : null;
+
+		if ( ! is_array( $apps ) || ! is_array( $body['pagination'] ?? null ) ) {
+			throw new UpdateException( 'The update server did not answer with a repository listing; try again later.' );
+		}
+
+		return [
+			'apps'       => array_values( array_filter( $apps, 'is_array' ) ),
+			'pagination' => [
+				'total'       => (int) ( $body['pagination']['total'] ?? 0 ),
+				'page'        => (int) ( $body['pagination']['page'] ?? $page ),
+				'limit'       => (int) ( $body['pagination']['limit'] ?? $limit ),
+				'total_pages' => (int) ( $body['pagination']['total_pages'] ?? 0 ),
+			],
+		];
+	}
+
+	/**
 	 * Download a version's package and verify it.
 	 *
 	 * @param string $version        Version to download.

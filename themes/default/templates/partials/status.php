@@ -15,9 +15,9 @@
  * @var SmartLicenseServer\Environments\Application\Theming\ThemeContext $this
  */
 
-$tone    ??= '';
+$tone ??= '';
 $actions ??= [];
-$detail  ??= '';
+$detail ??= '';
 ?>
 <section class="status<?php echo '' !== $tone ? ' tone-' . escAttr( $tone ) : ''; ?>">
 	<div class="status-visual">

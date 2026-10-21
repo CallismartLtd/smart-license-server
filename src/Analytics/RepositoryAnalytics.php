@@ -343,8 +343,8 @@ class RepositoryAnalytics extends DataStore {
 
 		if ( $type ) {
 			$table = match( $type ) {
-				'plugin'   => TableName::PLUGINS->table(),
-				'theme'    => TableName::THEMES->table(),
+				'plugin'   => TableName::WP_PLUGINS->table(),
+				'theme'    => TableName::WP_THEMES->table(),
 				'software' => TableName::SOFTWARE->table(),
 			};
 
@@ -353,8 +353,8 @@ class RepositoryAnalytics extends DataStore {
 			return (int) static::$DB->get_var( $sql->build() );
 		}
 
-		$plugins_sql  = static::query()->select( 'COUNT(*) as total' )->from( TableName::PLUGINS->table() );
-		$themes_sql   = static::query()->select( 'COUNT(*) as total' )->from( TableName::THEMES->table() );
+		$plugins_sql  = static::query()->select( 'COUNT(*) as total' )->from( TableName::WP_PLUGINS->table() );
+		$themes_sql   = static::query()->select( 'COUNT(*) as total' )->from( TableName::WP_THEMES->table() );
 		$software_sql = static::query()->select( 'COUNT(*) as total' )->from( TableName::SOFTWARE->table() );
 
 		$compound_sql = $plugins_sql->union( $themes_sql )->union( $software_sql );
@@ -378,8 +378,8 @@ class RepositoryAnalytics extends DataStore {
 
 		if ( $type ) {
 			$table = match( $type ) {
-				'plugin'   => TableName::PLUGINS->table(),
-				'theme'    => TableName::THEMES->table(),
+				'plugin'   => TableName::WP_PLUGINS->table(),
+				'theme'    => TableName::WP_THEMES->table(),
 				'software' => TableName::SOFTWARE->table(),
 				default    => null,
 			};
@@ -404,11 +404,11 @@ class RepositoryAnalytics extends DataStore {
 
 		$base_sql = static::query()
 			->select( 'status', 'COUNT(*) as total', "'plugin' as app_type" )
-			->from( TableName::PLUGINS->table() )->group_by( 'status' );
+			->from( TableName::WP_PLUGINS->table() )->group_by( 'status' );
 
 		$themes_sql = static::query()
 			->select( 'status', 'COUNT(*) as total', "'theme' as app_type" )
-			->from( TableName::THEMES->table() )->group_by( 'status' );
+			->from( TableName::WP_THEMES->table() )->group_by( 'status' );
 
 		$software_sql = static::query()
 			->select( 'status', 'COUNT(*) as total', "'software' as app_type" )
@@ -477,8 +477,8 @@ class RepositoryAnalytics extends DataStore {
 
 		if ( $type ) {
 			$table = match( $type ) {
-				'plugin'   => TableName::PLUGINS->table(),
-				'theme'    => TableName::THEMES->table(),
+				'plugin'   => TableName::WP_PLUGINS->table(),
+				'theme'    => TableName::WP_THEMES->table(),
 				'software' => TableName::SOFTWARE->table(),
 			};
 
@@ -496,12 +496,12 @@ class RepositoryAnalytics extends DataStore {
 			// No type filter? Compile ALL tables using our brand new CompoundQueryIntent engine!
 			$plugins_sql = static::query()
 				->select( 'name', 'slug', 'status', 'updated_at', "'plugin' as app_type" )
-				->from( TableName::PLUGINS->table() )
+				->from( TableName::WP_PLUGINS->table() )
 				->where( 'updated_at', '>=', $date );
 
 			$themes_sql = static::query()
 				->select( 'name', 'slug', 'status', 'updated_at', "'theme' as app_type" )
-				->from( TableName::THEMES->table() )
+				->from( TableName::WP_THEMES->table() )
 				->where( 'updated_at', '>=', $date );
 
 			$software_sql = static::query()

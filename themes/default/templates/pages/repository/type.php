@@ -13,7 +13,7 @@
  */
 
 $empty = '' === $search
-	? sprintf( 'No %s are hosted here yet.', strtolower( $type['plural'] ) )
+	? sprintf( 'No %s are hosted here yet.', $type['plural'] )
 	: 'Nothing matches your search.';
 ?>
 <div class="page-heading">

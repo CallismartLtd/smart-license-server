@@ -109,17 +109,17 @@ class AppInstaller {
 	 * @var array<string, string>
 	 */
 	protected array $required_directories = [
-		'Application Root'    => \SMLISER_ROOT,
-		'Runtime Directory'   => \SMLISER_RUNTIME_DIR,
-		'Storage Directory'   => \SMLISER_STORAGE_DIR,
-		'Repository Root'     => \SMLISER_REPO_DIR,
-		'Plugins Repository'  => \SMLISER_PLUGINS_REPO_DIR,
-		'Themes Repository'   => \SMLISER_THEMES_REPO_DIR,
-		'Software Repository' => \SMLISER_SOFTWARE_REPO_DIR,
-		'Cache Directory'     => \SMLISER_CACHE_DIR,
-		'Temporary Directory' => \SMLISER_TMP_DIR,
-		'Uploads Directory'   => \SMLISER_UPLOADS_DIR,
-		'Logs Directory'      => \SMLISER_LOGS_DIR,
+		'Application Root'             => \SMLISER_ROOT,
+		'Runtime Directory'            => \SMLISER_RUNTIME_DIR,
+		'Storage Directory'            => \SMLISER_STORAGE_DIR,
+		'Repository Root'              => \SMLISER_REPO_DIR,
+		'WordPress Plugins Repository' => \SMLISER_WP_PLUGINS_REPO_DIR,
+		'WordPress Themes Repository'  => \SMLISER_WP_THEMES_REPO_DIR,
+		'Software Repository'          => \SMLISER_SOFTWARE_REPO_DIR,
+		'Cache Directory'              => \SMLISER_CACHE_DIR,
+		'Temporary Directory'          => \SMLISER_TMP_DIR,
+		'Uploads Directory'            => \SMLISER_UPLOADS_DIR,
+		'Logs Directory'               => \SMLISER_LOGS_DIR,
 	];
 
 	/**

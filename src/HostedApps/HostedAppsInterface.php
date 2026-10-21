@@ -205,7 +205,7 @@ interface HostedAppsInterface {
 	 */
 
 	/**
-	 * Get the application type (e.g., 'plugin', 'theme', 'library').
+	 * Get the application type (e.g., 'wpplugin', 'wptheme', 'software').
 	 * 
 	 * @return string
 	 */
@@ -320,7 +320,7 @@ interface HostedAppsInterface {
 	public function get_screenshots() : array;
 
 	/**
-	 * Get plugin icons
+	 * Get app icons
 	 * 
 	 * @return array
 	 */

@@ -48,7 +48,7 @@ class V1 implements RESTVersionInterface {
 	/**
 	 * App type route pattern, restricted to the three known app types.
 	 */
-	private const APP_TYPE_PATTERN = '{app_type:plugin|theme|software}';
+	private const APP_TYPE_PATTERN = '{app_type:wpplugin|wptheme|software}';
 
 	/**
 	 * Asset type route pattern, restricted to the four known asset types
@@ -120,7 +120,7 @@ class V1 implements RESTVersionInterface {
 	/** 
 	 * Route to perform CRUD operations on an application.
 	 * @example ```GET
-	 *  /repository/plugin/woocommerce
+	 *  /repository/wpplugin/woocommerce
 	 * ```
 	 * 
 	 * @var string
@@ -130,7 +130,7 @@ class V1 implements RESTVersionInterface {
 	/** 
 	 * Route to perform CRUD operations on an application.
 	 * @example ```GET
-	 *  /repository/plugin/woocommerce
+	 *  /repository/wpplugin/woocommerce
 	 * ```
 	 * 
 	 * @var string
@@ -140,7 +140,7 @@ class V1 implements RESTVersionInterface {
 	/** 
 	 * Route to  operations on an applications' assets.
 	 * @example ```POST
-	 *  /repository/plugin/smart-woo-pro/assets/
+	 *  /repository/wpplugin/smart-woo-pro/assets/
 	 * ```
 	 * 
 	 * @var string
@@ -149,7 +149,7 @@ class V1 implements RESTVersionInterface {
 	/** 
 	 * Route to  operations on an applications' assets.
 	 * @example ```POST
-	 *  /repository/plugin/smart-woo-pro/assets/banners
+	 *  /repository/wpplugin/smart-woo-pro/assets/banners
 	 * ```
 	 * 
 	 * @var string
@@ -160,7 +160,7 @@ class V1 implements RESTVersionInterface {
 	 * Route to a single application asset file.
 	 * 
 	 * @example `PUT`
-	 * /respository/theme/astra/assets/screenshots/screenshot
+	 * /repository/wptheme/astra/assets/screenshots/screenshot
 	 */
 	const APP_ASSET_TYPE_ROUTE = self::APP_ASSETS_TYPE_ROUTE . '/' . self::ASSET_NAME_PATTERN;
 

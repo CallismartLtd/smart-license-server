@@ -9,7 +9,7 @@
  * successful status update.
  *
  * Payload:
- *   app_type   (string) — e.g. 'plugin', 'theme', 'software'.
+ *   app_type   (string) — e.g. 'wpplugin', 'wptheme', 'software'.
  *   app_slug   (string) — The app slug.
  *   old_status (string) — The previous status.
  *   new_status (string) — The new status.
@@ -48,7 +48,7 @@ class SendAppStatusChangedEmailJob implements JobHandlerInterface {
 
 	/**
 	 * @param array $payload {
-	 *     @type string $app_type   App type e.g. 'plugin'.
+	 *     @type string $app_type   App type e.g. 'wpplugin'.
 	 *     @type string $app_slug   App slug.
 	 *     @type string $old_status Previous status.
 	 *     @type string $new_status New status.

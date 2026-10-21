@@ -13,9 +13,10 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Email\Templates\Apps;
 
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
-use SmartLicenseServer\HostedApps\Theme;
+use SmartLicenseServer\HostedApps\WPTheme;
 
 class AppUpdatedEmail extends EmailTemplate {
 
@@ -51,7 +52,7 @@ class AppUpdatedEmail extends EmailTemplate {
 			'{{app_name}}'    => $this->app->get_name(),
 			'{{new_version}}' => $this->app->get_version(),
 			'{{old_version}}' => $this->old_version,
-			'{{app_type}}'    => ucfirst( $this->app->get_type() ),
+			'{{app_type}}'    => HostedAppsRegistry::instance()->get_app_type_label( $this->app->get_type() ),
 			'{{app_slug}}'    => $this->app->get_slug(),
 		] );
 	}
@@ -151,10 +152,10 @@ class AppUpdatedEmail extends EmailTemplate {
 		return 'Sent to the app owner when a new version of their application is uploaded.';
 	}
 	public static function preview() : static {
-		$app = Theme::from_array_minimal( [
+		$app = WPTheme::from_array_minimal( [
 			'name'    => 'My Awesome Theme',
 			'version' => '2.0.0',
-			'type'    => 'theme',
+			'type'    => 'wptheme',
 			'slug'    => 'my-awesome-theme',
 		] );
 		return new static( $app, 'preview@example.com', '0.2.0' );

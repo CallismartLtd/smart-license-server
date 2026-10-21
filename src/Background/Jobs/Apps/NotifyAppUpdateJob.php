@@ -10,7 +10,7 @@
  * after successful zip upload. Dispatched alongside SendAppUpdatedEmailJob.
  *
  * Payload:
- *   app_type   (string) — e.g. 'plugin', 'theme', 'software'.
+ *   app_type   (string) — e.g. 'wpplugin', 'wptheme', 'software'.
  *   app_slug   (string) — The app slug.
  *   batch_size (int)    — Max licenses per run. Default 100.
  *   offset     (int)    — Pagination offset for batch continuation. Default 0.
@@ -54,7 +54,7 @@ class NotifyAppUpdateJob implements JobHandlerInterface {
 
 	/**
 	 * @param array $payload {
-	 *     @type string $app_type   App type e.g. 'plugin'.
+	 *     @type string $app_type   App type e.g. 'wpplugin'.
 	 *     @type string $app_slug   App slug.
 	 *     @type int    $batch_size Max licenses to process per run. Default 100.
 	 *     @type int    $offset     Pagination offset. Default 0.

@@ -14,6 +14,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Email\Templates\Apps;
 
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\Software;
@@ -53,7 +54,7 @@ class NewAppVersionNotificationEmail extends EmailTemplate {
 			'{{licensee_name}}' => $this->license->get_licensee_fullname(),
 			'{{app_name}}'      => $this->app->get_name(),
 			'{{app_version}}'   => $this->app->get_version(),
-			'{{app_type}}'      => ucfirst( $this->app->get_type() ),
+			'{{app_type}}'      => HostedAppsRegistry::instance()->get_app_type_label( $this->app->get_type() ),
 			'{{license_key}}'   => $this->license->get_license_key(),
 		] );
 	}
@@ -148,7 +149,7 @@ class NewAppVersionNotificationEmail extends EmailTemplate {
 		$app = Software::from_array_minimal( [
 			'name'    => 'My Awesome Plugin',
 			'version' => '2.0.0',
-			'type'    => 'plugin',
+			'type'    => 'wpplugin',
 			'slug'    => 'my-awesome-plugin',
 		] );
 

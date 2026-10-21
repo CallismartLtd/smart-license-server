@@ -1210,8 +1210,8 @@ input.smliser_toggle-switch-input {
     color: #bbf7d0;
 }
 
-.smliser-badge-theme,
-.smliser-badge-plugin,
+.smliser-badge-wordpress-theme,
+.smliser-badge-wordpress-plugin,
 .smliser-badge-software {
     background: rgba(115, 83, 228, 0.986);
     color: #ffffff;

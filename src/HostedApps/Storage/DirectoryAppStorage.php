@@ -53,8 +53,8 @@ class DirectoryAppStorage implements AppStorageAdapterInterface {
 	 * @var array<string, string>
 	 */
 	public const CORE_TYPE_DIRS = [
-		'plugin'   => 'plugins',
-		'theme'    => 'themes',
+		'wpplugin' => 'wp-plugins',
+		'wptheme'  => 'wp-themes',
 		'software' => 'software',
 	];
 

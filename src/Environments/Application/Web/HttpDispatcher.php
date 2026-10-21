@@ -511,9 +511,9 @@ final class HttpDispatcher {
 					);
 
 					/*
-					|------------------------------
-					| APPEARANCE > THEMES ACTIONS
-					|------------------------------
+					|--------------------------
+					| MODULES > THEMES ACTIONS
+					|--------------------------
 					*/
 					$this->router->group(
 						prefix: 'themes',
@@ -600,9 +600,9 @@ final class HttpDispatcher {
 						handler: [PreferenceManagement::class, 'save']
 					);
 				},
-				middleware: [
-					CSRFMiddleware::class
-				] );
+					middleware: [
+						CSRFMiddleware::class
+					] );
 			},
 			middleware: [
 				ClientAccessMiddleware::class
@@ -660,7 +660,7 @@ final class HttpDispatcher {
 				);
 
 				// App Zip Download.
-				// app_type matches: theme|plugin|addon.
+				// app_type matches the registered app types (HostedAppsRegistry).
 				// app_slug.ext:zip matches: {app_slug}.zip -> captures 'app_slug' & 'app_slug_ext'.
 				$this->router->get(
 					pattern: "{app_type:{$app_types}}/{app_slug.ext:zip}",
@@ -686,7 +686,7 @@ final class HttpDispatcher {
 				);
 
 				// App Zip Download.
-				// app_type matches: theme|plugin|addon.
+				// app_type matches the registered app types (HostedAppsRegistry).
 				// app_slug.ext:zip matches: {app_slug}.zip -> captures 'app_slug' & 'app_slug_ext'.
 				$this->router->get(
 					pattern: "{app_type:{$app_types}}/{app_id:int}",

@@ -17,7 +17,7 @@
  * command line, minus the leading "smliser" token:
  *
  *   smliser > license list
- *   smliser > app list --type=plugin
+ *   smliser > app list --type=wpplugin
  *   smliser > help
  *   smliser > help cache
  *   smliser > exit
@@ -329,7 +329,7 @@ class InteractiveShell extends AbstractCommandRouter implements RunnerInterface 
 	 * Split a raw input line into an array of argument tokens.
 	 *
 	 * Examples:
-	 *   'app list --type=plugin'           → ['app', 'list', '--type=plugin']
+	 *   'app list --type=wpplugin'         → ['app', 'list', '--type=wpplugin']
 	 *   'app search "my plugin" --limit=5' → ['app', 'search', 'my plugin', '--limit=5']
 	 *   "cache get 'some key'"             → ['cache', 'get', 'some key']
 	 *

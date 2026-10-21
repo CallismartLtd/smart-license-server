@@ -30,7 +30,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                 <select name="app_types" id="app_types" class="smliser-app-type-select">
                     <option value="<?php echo implode( '|', $app_types ); ?>">All</option>
                     <?php foreach( $app_types as $type ) : ?>
-                        <option value="<?php echo escHtml( $type ); ?>" <?php selected( $type, $request->get( 'app_types' ) ); ?>><?php echo escHtml( ucfirst( $type ) ); ?></option>
+                        <option value="<?php echo escHtml( $type ); ?>" <?php selected( $type, $request->get( 'app_types' ) ); ?>><?php echo escHtml( \SmartLicenseServer\HostedApps\HostedAppsRegistry::instance()->get_app_type_label( $type, true ) ); ?></option>
                     <?php endforeach; ?>
                 </select>
                 <input type="search" name="app_search" value="<?php echo $request->get( 'app_search' ) ?>" id="smliser-app-search-input" placeholder="Search apps">

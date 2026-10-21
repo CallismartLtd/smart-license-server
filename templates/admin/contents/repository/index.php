@@ -30,8 +30,8 @@ $menu_args = [
 		],
 
 		[
-			'title' => sprintf( '%s Repository', (string) $type ),
-			'label' => ucfirst( (string) $type ),
+			'title' => sprintf( '%s Repository', HostedAppsRegistry::instance()->get_app_type_label( (string) $type ) ),
+			'label' => HostedAppsRegistry::instance()->get_app_type_label( (string) $type, true ),
 			'url'   => $urlmanager->admin_repo_url()->add_query_param( 'type', $type )->url()
 		],
 
@@ -49,19 +49,19 @@ $menu_args = [
 		],
 
 		[
-			'title'  => 'Plugin Repository',
-			'label'  => 'Plugins',
-			'url'    => $urlmanager->admin_repo_url()->add_query_param( 'type', 'plugin' )->url(),
+			'title'  => 'WordPress Plugin Repository',
+			'label'  => 'WordPress Plugins',
+			'url'    => $urlmanager->admin_repo_url()->add_query_param( 'type', 'wpplugin' )->url(),
 			'icon'   => 'ti ti-plug',
-			'active' => 'plugin' === $type
+			'active' => 'wpplugin' === $type
 		],
 		
 		[
-			'title'  => 'Theme Repository',
-			'label'  => 'Themes',
-			'url'    => $urlmanager->admin_repo_url()->add_query_param( 'type', 'theme' )->url(),
+			'title'  => 'WordPress Theme Repository',
+			'label'  => 'WordPress Themes',
+			'url'    => $urlmanager->admin_repo_url()->add_query_param( 'type', 'wptheme' )->url(),
 			'icon'   => 'ti ti-palette',
-			'active' => 'theme' === $type
+			'active' => 'wptheme' === $type
 		],
 		
 		[
@@ -126,7 +126,7 @@ if ( ! $current_url->has_query_param( 'status' ) || ( $current_url->has_query_pa
 
         <?php if ( empty( $apps ) ) : ?>
             <?php if ( ! $current_url->has_query_param( 'status' ) ) :
-            	$type_name = $type ? $type : 'application';
+            	$type_name = $type ? HostedAppsRegistry::instance()->get_app_type_label( $type ) : 'application';
             	$message   = sprintf(
             		'No app found in the repository, upload new %1$s <a href="%3$s">here</a>.',
             		escHtml( $type_name ),

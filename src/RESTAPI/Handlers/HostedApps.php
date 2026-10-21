@@ -155,10 +155,15 @@ class HostedApps extends DataStore {
 			// Query repository.
 			$results = $search ? HostedApplicationService::search_apps( $args ) : HostedApplicationService::get_apps( $args );
 			
+			// Listings hold apps hydrated from their table row only (no version,
+			// readme, icons or manifest), so each is described from the fully
+			// loaded app, which HostedApplicationService caches.
 			if ( ! empty( $results['items'] ) ) {
 				foreach ( $results['items'] as &$app ) {
-					$app = $app->get_rest_response();
+					$app = ( HostedApplicationService::get_app_by_slug( $app->get_type(), $app->get_slug() ) ?? $app )->get_rest_response();
 				}
+
+				unset( $app );
 			}
 
 			$data = [

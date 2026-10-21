@@ -92,7 +92,7 @@ class HostedApplicationService extends DataStore {
 	}
 
 	/**
-	 * Get plugins from the repository.
+	 * Get WordPress plugins from the repository.
 	 *
 	 * @param array{
 	 *   page?: int,
@@ -101,7 +101,7 @@ class HostedApplicationService extends DataStore {
 	 * } $args
 	 * 
 	 * @return array{
-	 *  items: \SmartLicenseServer\HostedApps\Plugin[],
+	 *  items: \SmartLicenseServer\HostedApps\WPPlugin[],
 	 *  pagination: array{
 	 *      total: int,
 	 *      page: int,
@@ -111,12 +111,12 @@ class HostedApplicationService extends DataStore {
 	 * }
 	 */
 	public static function get_plugins( array $args = [] ) {
-		$args['types'] = [ 'plugin' ];
+		$args['types'] = [ 'wpplugin' ];
 		return static::get_apps( $args );
 	}
 
 	/**
-	 * Get themes from the repository.
+	 * Get WordPress themes from the repository.
 	 *
 	 * @param array{
 	 *  page?: int,
@@ -124,7 +124,7 @@ class HostedApplicationService extends DataStore {
 	 *  status?: string
 	 * } $args
 	 * @return array{
-	 *  items: \SmartLicenseServer\HostedApps\Theme[],
+	 *  items: \SmartLicenseServer\HostedApps\WPTheme[],
 	 *  pagination: array{
 	 *      total: int,
 	 *      page: int,
@@ -134,7 +134,7 @@ class HostedApplicationService extends DataStore {
 	 * }
 	 */
 	public static function get_themes( array $args = [] ) {
-		$args['types'] = [ 'theme' ];
+		$args['types'] = [ 'wptheme' ];
 		return static::get_apps( $args );
 	}
 
@@ -673,13 +673,12 @@ class HostedApplicationService extends DataStore {
 	 * Get the class for a hosted application type
 	 * 
 	 * @param string $type The type name.
-	 * @return class-string<AbstractHostedApp> $class_name The app's class name.
+	 * @return class-string<HostedAppsInterface>|null The app type's class; null when the type is not registered.
 	 */
 	public static function get_app_class( $type ) {
-		$class = '\\SmartLicenseServer\\HostedApps\\' . ucfirst( (string) $type );
-
-		return $class;
+		return HostedAppsRegistry::instance()->get_app_type_class( (string) $type );
 	}
+
 
 	/**
 	 * Get the repository class for a hosted application type

@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Admin;
 
 use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Utils\Format;
 
 use const SMLISER_APP_NAME;
@@ -49,7 +50,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                         </div>
                         <div class="smliser-dashboard-hero_down-item-content">
                             <span><?php echo escHtml( $value ); ?></span>
-                            <span><?php echo escHtml( sprintf( 'Total %s', ucfirst( $app_type ) ) ); ?></span>
+                            <span><?php echo escHtml( sprintf( 'Total %s', 'apps' === $app_type ? 'Apps' : HostedAppsRegistry::instance()->get_app_type_label( $app_type, true ) ) ); ?></span>
                         </div>
 
                     </div>
@@ -135,7 +136,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                                                     <div class="smliser-ranking-type">
                                                         <h5>
                                                             <i class="ti <?php echo escAttr( smliser_get_type_icon( $type ) ); ?>"></i>
-                                                            <?php echo escHtml( ucfirst( $type ) ); ?>
+                                                            <?php echo escHtml( HostedAppsRegistry::instance()->get_app_type_label( $type, true ) ); ?>
                                                         </h5>
                                                         <ol class="smliser-ranking-list">
                                                             <?php foreach ( array_slice( $apps, 0, 5 ) as $index => $app ) :
@@ -260,11 +261,11 @@ function get_metric_icon( mixed $key ) {
 		'active_installations'   => 'ti-server',
 		'total_downloads'        => 'ti-download',
 		'total_accesses'         => 'ti-activity',
-		'plugins_downloads'      => 'ti-plug',
-		'themes_downloads'       => 'ti-palette',
+		'wpplugin_downloads'     => 'ti-plug',
+		'wptheme_downloads'      => 'ti-palette',
 		'software_downloads'     => 'ti-package',
-		'plugin_installations'   => 'ti-plug',
-		'theme_installations'    => 'ti-palette',
+		'wpplugin_installations' => 'ti-plug',
+		'wptheme_installations'  => 'ti-palette',
 		'software_installations' => 'ti-package',
 		'activations'            => 'ti-check',
 		'deactivations'          => 'ti-x',
@@ -278,8 +279,8 @@ function get_metric_icon( mixed $key ) {
  */
 function smliser_get_type_icon( ?string $type ) {
 	$icons = [
-		'plugin'   => 'ti-plug',
-		'theme'    => 'ti-palette',
+		'wpplugin' => 'ti-plug',
+		'wptheme'  => 'ti-palette',
 		'software' => 'ti-package',
 	];
 	return $icons[ $type ] ?? 'ti-apps';
@@ -312,11 +313,11 @@ function smliser_format_metric_label( string $key ) {
 		'active_installations'   => 'Active Installations',
 		'total_downloads'        => 'Total Downloads',
 		'total_accesses'         => 'Total Accesses',
-		'plugins_downloads'      => 'Plugin Downloads',
-		'themes_downloads'       => 'Theme Downloads',
+		'wpplugin_downloads'     => 'WordPress Plugin Downloads',
+		'wptheme_downloads'      => 'WordPress Theme Downloads',
 		'software_downloads'     => 'Software Downloads',
-		'plugin_installations'   => 'Plugin Installations',
-		'theme_installations'    => 'Theme Installations',
+		'wpplugin_installations' => 'WordPress Plugin Installations',
+		'wptheme_installations'  => 'WordPress Theme Installations',
 		'software_installations' => 'Software Installations',
 		'activations'            => 'Activations',
 		'deactivations'          => 'Deactivations',

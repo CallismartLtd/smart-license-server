@@ -86,6 +86,11 @@ final class ThemeInstaller {
 	public const SOURCE_UPLOAD      = 'upload';
 
 	/**
+	 * Themes per page of the marketplace listing.
+	 */
+	public const MARKETPLACE_PER_PAGE = 24;
+
+	/**
 	 * Largest package accepted: number of entries and uncompressed bytes.
 	 */
 	public const MAX_FILES = 5000;
@@ -318,6 +323,59 @@ final class ThemeInstaller {
 		}
 
 		return $results;
+	}
+
+	/**
+	 * The themes the marketplace publishes, with what is installed here.
+	 *
+	 * Read from the update server's repository REST listing: the hosted apps
+	 * MARKETPLACE_TYPE whose slug starts with MARKETPLACE_PREFIX. The server
+	 * matches the start of a slug, so a search finds the themes whose slug
+	 * starts with the term.
+	 *
+	 * @param string $search Search term (start of a theme slug); empty to list.
+	 * @param int    $page   Page number, from 1.
+	 * @return array{
+	 *     themes: list<array{slug: string, name: string, version: string, summary: string, author: string,
+	 *         icon: string, homepage: string, installed: ?string, update: bool}>,
+	 *     pagination: array{total: int, page: int, limit: int, total_pages: int}
+	 * }
+	 * @throws ThemeException When the marketplace cannot be read.
+	 */
+	public function marketplace( string $search = '', int $page = 1 ) : array {
+		try {
+			$result = $this->server->browse( self::MARKETPLACE_TYPE, self::MARKETPLACE_PREFIX . strtolower( trim( $search ) ), $page, self::MARKETPLACE_PER_PAGE );
+		} catch ( UpdateException $e ) {
+			throw new ThemeException( $e->getMessage(), 0, $e );
+		}
+
+		$themes = [];
+
+		foreach ( $result['apps'] as $app ) {
+			$hosted = (string) ( $app['slug'] ?? '' );
+			$slug   = substr( $hosted, strlen( self::MARKETPLACE_PREFIX ) );
+
+			if ( ! str_starts_with( $hosted, self::MARKETPLACE_PREFIX ) || 1 !== preg_match( Theme::SLUG_PATTERN, $slug ) || ThemeManager::DEFAULT_SLUG === $slug ) {
+				continue;
+			}
+
+			$version   = (string) ( $app['version'] ?? '' );
+			$installed = $this->themes->is_installed( $slug ) ? $this->installed_version( $slug ) : null;
+
+			$themes[] = [
+				'slug'      => $slug,
+				'name'      => (string) ( $app['name'] ?? $slug ),
+				'version'   => $version,
+				'summary'   => trim( strip_tags( (string) ( $app['short_description'] ?? '' ) ) ),
+				'author'    => trim( strip_tags( (string) ( $app['author'] ?? '' ) ) ),
+				'icon'      => (string) ( $app['icon'] ?? '' ),
+				'homepage'  => (string) ( $app['homepage'] ?? '' ),
+				'installed' => $installed,
+				'update'    => null !== $installed && '' !== $version && version_compare( $version, $installed, '>' ),
+			];
+		}
+
+		return [ 'themes' => $themes, 'pagination' => $result['pagination'] ];
 	}
 
 	/*

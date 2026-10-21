@@ -1,0 +1,293 @@
+/**
+ * Modules pages (Themes, Marketplace; Extensions to come).
+ *
+ * One module card for every kind of module and every page, so installed
+ * themes, extensions and the marketplace look alike. Colors come from the
+ * admin design tokens (variables.css), so light and dark follow the admin.
+ */
+
+/*
+|---------
+| TOOLBAR
+|---------
+*/
+
+.smliser-modules-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px 24px;
+	margin-bottom: 20px;
+}
+
+.smliser-modules-toolbar .smliser-section-description {
+	flex: 1 1 320px;
+	margin: 0;
+}
+
+.smliser-modules-toolbar-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.smliser-modules-search {
+	display: flex;
+	flex: 1 1 360px;
+	gap: 8px;
+	max-width: 520px;
+}
+
+.smliser-modules-search input[type="search"] {
+	flex: 1;
+	min-width: 0;
+}
+
+/*
+|------
+| GRID
+|------
+*/
+
+.smliser-module-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 16px;
+}
+
+.smliser-modules-empty {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 32px 20px;
+	border: 1px dashed var(--dashboard-border);
+	border-radius: 10px;
+	color: var(--dashboard-text-muted);
+	justify-content: center;
+}
+
+.smliser-modules-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 16px;
+	margin-top: 24px;
+	color: var(--dashboard-text-muted);
+}
+
+/*
+|-------------
+| MODULE CARD
+|-------------
+*/
+
+.smliser-module-card {
+	display: grid;
+	grid-template-columns: 64px minmax(0, 1fr);
+	grid-template-rows: 1fr auto;
+	gap: 14px 16px;
+	padding: 18px;
+	border: 1px solid var(--dashboard-border);
+	border-radius: 12px;
+	background: var(--dashboard-surface);
+	box-shadow: var(--dashboard-shadow);
+	color: var(--dashboard-text);
+}
+
+.smliser-module-card.is-highlighted {
+	border-color: var(--dashboard-accent);
+	box-shadow: 0 0 0 1px var(--dashboard-accent), var(--dashboard-shadow);
+}
+
+.smliser-module-card-media {
+	width: 64px;
+	height: 64px;
+	overflow: hidden;
+	border: 1px solid var(--dashboard-border);
+	border-radius: 12px;
+	background: var(--dashboard-hover-bg);
+}
+
+.smliser-module-card-media img {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.smliser-module-card-initial {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	color: var(--dashboard-accent);
+	font-size: 26px;
+	font-weight: 700;
+}
+
+.smliser-module-card-body {
+	min-width: 0;
+}
+
+.smliser-module-card-header {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.smliser-module-card-title {
+	margin: 0;
+	overflow: hidden;
+	font-size: 1rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.smliser-module-card-version {
+	color: var(--dashboard-text-muted);
+	font-size: 12px;
+}
+
+.smliser-module-card-slug {
+	color: var(--dashboard-text-muted);
+	font-size: 12px;
+}
+
+.smliser-module-card-badges,
+.smliser-module-card-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 10px;
+	margin: 10px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.smliser-module-badge,
+.smliser-module-card-status {
+	padding: 2px 9px;
+	border-radius: 999px;
+	background: var(--dashboard-hover-bg);
+	color: var(--dashboard-text-muted);
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.smliser-module-badge--active,
+.smliser-module-card-status[data-tone="active"] {
+	background: var(--dashboard-success-bg);
+	color: var(--dashboard-success-text);
+}
+
+.smliser-module-badge--info,
+.smliser-module-card-status[data-tone="info"] {
+	background: var(--dashboard-info-bg);
+	color: var(--dashboard-info-text);
+}
+
+.smliser-module-badge--warning {
+	background: var(--dashboard-warning-bg);
+	color: var(--dashboard-warning-text);
+}
+
+.smliser-module-badge--danger,
+.smliser-module-card-status[data-tone="danger"] {
+	background: var(--dashboard-danger-bg);
+	color: var(--dashboard-danger-text);
+}
+
+.smliser-module-card-status {
+	display: inline-block;
+	margin: 10px 0 0;
+	border-radius: 8px;
+}
+
+.smliser-module-card-status[hidden] {
+	display: none;
+}
+
+.smliser-module-card-description {
+	display: -webkit-box;
+	margin: 10px 0 0;
+	overflow: hidden;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 3;
+	color: var(--dashboard-text-muted);
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.smliser-module-card-meta {
+	color: var(--dashboard-text-muted);
+	font-size: 12px;
+}
+
+.smliser-module-card-meta i {
+	margin-right: 2px;
+}
+
+.smliser-module-card-actions {
+	display: flex;
+	flex-wrap: wrap;
+	grid-column: 1 / -1;
+	align-items: center;
+	gap: 8px;
+	padding-top: 14px;
+	border-top: 1px solid var(--dashboard-border);
+}
+
+.smliser-module-action--danger {
+	color: var(--dashboard-danger);
+}
+
+.smliser-module-card-link {
+	margin-left: auto;
+	color: var(--dashboard-accent);
+	font-size: 13px;
+	text-decoration: none;
+}
+
+/*
+|-------
+| FORMS
+|-------
+*/
+
+.smliser-modules-form {
+	display: grid;
+	gap: 16px;
+	max-width: 640px;
+	padding: 24px;
+	border: 1px solid var(--dashboard-border);
+	border-radius: 12px;
+	background: var(--dashboard-surface);
+}
+
+.smliser-modules-field {
+	display: grid;
+	gap: 6px;
+	font-weight: 600;
+}
+
+.smliser-modules-check {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+}
+
+.smliser-modules-check input {
+	margin-top: 4px;
+}
+
+.smliser-modules-check small {
+	color: var(--dashboard-text-muted);
+}
+
+.smliser-modules-form-footer {
+	display: flex;
+	justify-content: flex-end;
+	padding-top: 16px;
+	border-top: 1px solid var(--dashboard-border);
+}

@@ -32,7 +32,7 @@
 				<h2><?php echo escHtml( $section['type']['plural'] ); ?> <span class="repo-count"><?php echo escHtml( (string) $section['type']['count'] ); ?></span></h2>
 
 				<?php if ( $section['type']['count'] > count( $section['apps'] ) ) : ?>
-					<a class="btn btn-small" href="<?php echo escUrl( $section['type']['url'] ); ?>"><?php echo escHtml( sprintf( 'All %s', strtolower( $section['type']['plural'] ) ) ); ?></a>
+					<a class="btn btn-small" href="<?php echo escUrl( $section['type']['url'] ); ?>"><?php echo escHtml( sprintf( 'All %s', $section['type']['plural'] ) ); ?></a>
 				<?php endif; ?>
 			</div>
 

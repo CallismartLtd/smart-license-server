@@ -13,7 +13,7 @@
 
 $all    = $this->urls()->repository_url()->url();
 $action = null === $current ? $all : $current['url'];
-$label  = null === $current ? 'Search the repository' : sprintf( 'Search %s', strtolower( $current['plural'] ) );
+$label  = null === $current ? 'Search the repository' : sprintf( 'Search %s', $current['plural'] );
 ?>
 <div class="repo-toolbar">
 	<form class="repo-search" role="search" method="get" action="<?php echo escUrl( $action ); ?>">

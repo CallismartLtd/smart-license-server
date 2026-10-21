@@ -57,7 +57,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 	}
 
 	public function description() : string {
-		return sprintf( 'Inspect and manage a hosted %s.', static::get_type() );
+		return sprintf( 'Inspect and manage the hosted %s.', HostedAppsRegistry::instance()->get_app_type_label( static::get_type(), true ) );
 	}
 
 	public function run( CommandInput $input ) : int {
@@ -86,7 +86,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 
 	public function help() : string {
 		$type           = static::get_type();
-		$name           = \ucfirst( $type );
+		$name           = HostedAppsRegistry::instance()->get_app_type_label( $type );
 		$prefix         = $this->command_prefix();
 		$statuses       = array_keys( AbstractHostedApp::get_statuses() );
 		$valid_statuses = implode( ', ', $statuses );
@@ -97,19 +97,19 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 		
 		return implode( PHP_EOL, [
 			'Subcommands:',
-			"  create                                   Create a new {$type}.",
-			"  update --slug=<slug>                     Update an existing {$type}.",
-			"  upload-asset --slug=<slug>               Upload a {$type} asset.",
-			"  change-status --slug=<slug>              Change {$type} status.",
-			"  trash --slug=<slug>                      Move a {$type} to trash.",
-			"  delete --slug=<slug>                     Move a {$type} to trash (same as trash).",
-			"  purge --slug=<slug>                      Permanently delete {$type}.",
+			"  create                                   Create a new {$name}.",
+			"  update --slug=<slug>                     Update an existing {$name}.",
+			"  upload-asset --slug=<slug>               Upload a {$name} asset.",
+			"  change-status --slug=<slug>              Change {$name} status.",
+			"  trash --slug=<slug>                      Move a {$name} to trash.",
+			"  delete --slug=<slug>                     Move a {$name} to trash (same as trash).",
+			"  purge --slug=<slug>                      Permanently delete {$name}.",
 			"  help                                     Show this help message.",
 			"",
 			"Options for create / update:",
-			"  --slug=<slug>                            {$name} slug. Required for {$type} update.",
-			"  --name=<name>                            {$name} display name. Required for new {$type}.",
-			"  --author=<author>                        Author name. Required for new {$type}.",
+			"  --slug=<slug>                            {$name} slug. Required for {$name} update.",
+			"  --name=<name>                            {$name} display name. Required for new {$name}.",
+			"  --author=<author>                        Author name. Required for new {$name}.",
 			"  --version=<version>                      Version string.",
 			"  --app-zip-file=<path>                    Local path to zip file (must be accessible).",
 			"  --app-zip-url=<url>                      Remote URL to download zip from.",
@@ -119,7 +119,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 			"  --download-url=<url>                     External download URL override.",
 			"  --owner-id=<id>                          Owner ID (system_admin only).",
 			"",
-			"Note: A zip file is required for a new {$type}. Provide --app-zip-file or --app-zip-url.",
+			"Note: A zip file is required for a new {$name}. Provide --app-zip-file or --app-zip-url.",
 			"",
 			"Options for upload-asset:",
 			"  --asset-type=<type>                      icons, banners, screenshots, cover.",
@@ -128,7 +128,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 			"  --asset-name=<name>                      Filename override (for replace operations).",
 			"",
 			"Options for change-status / trash / delete subcommands:",
-			"  --status=<status>                        New status for the {$type}.",
+			"  --status=<status>                        New status for the {$name}.",
 			"-f, --force, -y, --yes                     Skip confirmation prompt.",
 			"Valid statuses:",
 			"  {$valid_statuses}",
@@ -205,7 +205,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 		$this->output->success(
 			sprintf(
 				'%s "%s" saved successfully. Completed in %ss',
-				ucfirst( $type ),
+				HostedAppsRegistry::instance()->get_app_type_label( $type ),
 				$input->get_option( 'name', '' ),
 				$stopwatch->elapsed()
 			)
@@ -256,7 +256,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 		$this->output->success(
 			sprintf(
 				'%s "%s" updated successfully. Completed in %ss',
-				ucfirst( $type ),
+				HostedAppsRegistry::instance()->get_app_type_label( $type ),
 				$slug,
 				$stopwatch->elapsed()
 			)
@@ -326,7 +326,7 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 		if ( ! $app ) {
 			$this->output->error(
 				sprintf( '%s with slug "%s" not found.',
-					ucfirst( $type ), $slug
+					HostedAppsRegistry::instance()->get_app_type_label( $type ), $slug
 				)
 			);
 			return 1;

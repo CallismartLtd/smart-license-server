@@ -13,9 +13,10 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Email\Templates\Apps;
 
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
-use SmartLicenseServer\HostedApps\Plugin;
+use SmartLicenseServer\HostedApps\WPPlugin;
 
 class AppPublishedEmail extends EmailTemplate {
 
@@ -48,7 +49,7 @@ class AppPublishedEmail extends EmailTemplate {
 		return array_merge( parent::variables(), [
 			'{{app_name}}'    => $this->app->get_name(),
 			'{{app_version}}' => $this->app->get_version(),
-			'{{app_type}}'    => ucfirst( $this->app->get_type() ),
+			'{{app_type}}'    => HostedAppsRegistry::instance()->get_app_type_label( $this->app->get_type() ),
 			'{{app_slug}}'    => $this->app->get_slug(),
 		] );
 	}
@@ -146,10 +147,10 @@ class AppPublishedEmail extends EmailTemplate {
 		return 'Sent to the app owner when a hosted application is published.';
 	}
 	public static function preview() : static {
-		$app = Plugin::from_array_minimal( [
+		$app = WPPlugin::from_array_minimal( [
 			'name'    => 'My Awesome Plugin',
 			'version' => '0.2.0',
-			'type'    => 'plugin',
+			'type'    => 'wpplugin',
 			'slug'    => 'my-awesome-plugin',
 		] );
 		return new static( $app, 'preview@example.com' );

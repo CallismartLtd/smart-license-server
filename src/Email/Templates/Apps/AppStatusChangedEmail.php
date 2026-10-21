@@ -14,9 +14,10 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Email\Templates\Apps;
 
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
-use SmartLicenseServer\HostedApps\Plugin;
+use SmartLicenseServer\HostedApps\WPPlugin;
 
 class AppStatusChangedEmail extends EmailTemplate {
 
@@ -54,7 +55,7 @@ class AppStatusChangedEmail extends EmailTemplate {
 	protected function variables() : array {
 		return array_merge( parent::variables(), [
 			'{{app_name}}'   => $this->app->get_name(),
-			'{{app_type}}'   => ucfirst( $this->app->get_type() ),
+			'{{app_type}}'   => HostedAppsRegistry::instance()->get_app_type_label( $this->app->get_type() ),
 			'{{old_status}}' => ucfirst( $this->old_status ),
 			'{{new_status}}' => ucfirst( $this->new_status ),
 			'{{reason}}'     => $this->reason ?? 'No reason provided.',
@@ -159,9 +160,9 @@ class AppStatusChangedEmail extends EmailTemplate {
 		return 'Sent to the app owner when the status of their application is changed by an administrator.';
 	}
 	public static function preview() : static {
-		$app = Plugin::from_array_minimal( [
+		$app = WPPlugin::from_array_minimal( [
 			'name' => 'My Awesome Plugin',
-			'type' => 'plugin',
+			'type' => 'wpplugin',
 		] );
 		return new static( $app, 'preview@example.com', 'active', 'suspended', 'Violation of terms of service.' );
 	}

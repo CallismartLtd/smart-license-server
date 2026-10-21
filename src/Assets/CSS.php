@@ -124,6 +124,12 @@ final class CSS {
 				'version'      => SMLISER_VER,
 				'media-type'   => 'all'
 			],
+			'modules' => [
+				'url'          => $this->urlmanager->assets_url( sprintf( 'css/admin/modules%s.css', $suffix ) ),
+				'dependencies' => ['core-admin', 'tabler-icons'],
+				'version'      => SMLISER_VER,
+				'media-type'   => 'all'
+			],
 			'cache-stats' => [
 				'url'          => $this->urlmanager->assets_url( sprintf( 'css/admin/cache-stats%s.css', $suffix ) ),
 				'dependencies' => ['core-admin'],

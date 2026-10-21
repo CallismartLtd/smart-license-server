@@ -42,7 +42,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         
                         <tr>
                             <th>App Type:</th>
-                            <td><?php echo escHtml( $app->get_type() ); ?></td>
+                            <td><?php echo escHtml( \SmartLicenseServer\HostedApps\HostedAppsRegistry::instance()->get_app_type_label( $app->get_type() ) ); ?></td>
                         </tr>
 
                         <tr>

@@ -3,7 +3,7 @@
  * App command class file.
  *
  * Provides CLI subcommands for inspecting and managing hosted applications
- * across all three app types (plugin, theme, software).
+ * across every registered app type (wpplugin, wptheme, software, ...).
  *
  * Read operations work without authentication — consistent with the REST API
  * which allows anonymous GET requests on the repository route.
@@ -17,6 +17,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Console\Commands\Apps;
 
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Commands\AbstractCommand;
 use SmartLicenseServer\Console\Contracts\InputInterface;
@@ -70,17 +71,17 @@ class AppCommand extends AbstractCommand {
 			'  help                                    Show this help message.',
 			'',
 			'Options for list / search / count:',
-			'  --type=plugin|theme|software            Filter by app type. Repeatable.',
+			'  --type=<type>                           Filter by app type (wpplugin, wptheme, software, ...). Repeatable.',
 			'  --status=active|inactive|suspended      Filter by status. Default: active.',
 			'  --page=<n>                              Page number. Default: 1.',
 			'  --limit=<n>                             Items per page. Default: 20.',
 			'',
 			'Examples:',
 			"  {$prefix} list",
-			"  {$prefix} list --type=plugin --status=active",
+			"  {$prefix} list --type=wpplugin --status=active",
 			"  {$prefix} search \"my plugin\"",
-			"  {$prefix} get plugin my-plugin",
-			"  {$prefix} count --type=theme",
+			"  {$prefix} get wpplugin my-plugin",
+			"  {$prefix} count --type=wptheme",
 		] );
 	}
 
@@ -112,7 +113,7 @@ class AppCommand extends AbstractCommand {
 	 * List hosted applications with optional filters.
 	 */
 	public function handle_list( CommandInput $input ) : int {
-		$types  = $input->has_option( 'type' ) ? (array) $input->get_option( 'type' ) : [ 'plugin', 'theme', 'software' ];
+		$types  = $input->has_option( 'type' ) ? (array) $input->get_option( 'type' ) : HostedAppsRegistry::instance()->app_types();
 		$status = $input->get_option( 'status', AbstractHostedApp::STATUS_ACTIVE );
 		$page   = (int) $input->get_option( 'page', 1 );
 		$limit  = (int) $input->get_option( 'limit', 20 );
@@ -176,7 +177,7 @@ class AppCommand extends AbstractCommand {
 			return 1;
 		}
 
-		$types = $input->has_option( 'type' ) ? (array) $input->get_option( 'type', [] ) : [ 'plugin', 'theme', 'software' ];
+		$types = $input->has_option( 'type' ) ? (array) $input->get_option( 'type', [] ) : HostedAppsRegistry::instance()->app_types();
 		$limit = (int) $input->get_option( 'limit', 20 );
 		$page  = (int) $input->get_option( 'page', 1 );
 
@@ -271,7 +272,7 @@ class AppCommand extends AbstractCommand {
 	 * Count applications with optional filters.
 	 */
 	public function handle_count( CommandInput $input ) : int {
-		$types  = $input->has_option( 'type' ) ? (array) $input->get_option( 'type', [] ) : [ 'plugin', 'theme', 'software' ];
+		$types  = $input->has_option( 'type' ) ? (array) $input->get_option( 'type', [] ) : HostedAppsRegistry::instance()->app_types();
 		$status = $input->get_option( 'status', AbstractHostedApp::STATUS_ACTIVE );
 		$count  = HostedApplicationService::count_apps( compact( 'types', 'status' ) );
 

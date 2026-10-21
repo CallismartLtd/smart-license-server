@@ -16,13 +16,15 @@ use SmartLicenseServer\FileSystem\FileSystem;
  * A site theme: one folder with a manifest, templates and assets.
  *
  * Not to be confused with a hosted WordPress theme in the repository
- * (FileSystem\ThemeRepository, the "theme" app type): a site theme is how
+ * (FileSystem\WPThemeRepository, the "theme" app type): a site theme is how
  * this installation's own public pages look.
  *
  * Folder layout:
  *   theme.json        Manifest (see below).
  *   templates/        layout.php, pages/*.php, partials/*.php.
  *   assets/           Static files, published at public/themes/<slug>/.
+ *                     assets/screenshot.png (or .jpg, .webp), when present,
+ *                     is the theme's picture on the admin Modules > Themes page.
  *
  * theme.json:
  *   {

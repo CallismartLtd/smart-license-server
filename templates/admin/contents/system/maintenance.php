@@ -97,7 +97,7 @@ $chevron = '<svg class="smliser-diagnostics-panel-chevron" viewBox="0 0 24 24" w
 							'Retry-After'     => $status['retry_after'] > 0 ? $status['retry_after'] . ' seconds' : 'Default',
 							'Background work' => $status['background_paused'] ? 'Paused until maintenance ends.' : 'Running.',
 						];
-						?>
+			?>
 						<?php foreach ( $rows as $label => $value ) : ?>
 							<li class="smliser-health-check">
 								<div class="smliser-health-check-body">

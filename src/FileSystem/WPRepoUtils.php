@@ -12,8 +12,8 @@ namespace SmartLicenseServer\FileSystem;
 
 use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
-use SmartLicenseServer\HostedApps\Plugin;
-use SmartLicenseServer\HostedApps\Theme;
+use SmartLicenseServer\HostedApps\WPPlugin;
+use SmartLicenseServer\HostedApps\WPTheme;
 use TypeError;
 
 trait WPRepoUtils {
@@ -30,10 +30,10 @@ trait WPRepoUtils {
 	 * If the file does not exist or is corrupted, it will be regenerated
 	 * from the canonical manifest builder.
 	 *
-	 * @param Plugin|Theme $app
+	 * @param WPPlugin|WPTheme $app
 	 * @return array
 	 *
-	 * @throws TypeError When $app is not a Plugin or Theme.
+	 * @throws TypeError When $app is not a WPPlugin or WPTheme.
 	 */
 	public function get_app_dot_json( $app ) : array {
 		try {
@@ -53,10 +53,10 @@ trait WPRepoUtils {
 	 * The manifest is stored whenever the app exists in storage, whatever
 	 * the current file holds; it is returned either way.
 	 *
-	 * @param Plugin|Theme $app
+	 * @param WPPlugin|WPTheme $app
 	 * @return array The regenerated manifest content.
 	 *
-	 * @throws TypeError When $app is not a Plugin or Theme.
+	 * @throws TypeError When $app is not a WPPlugin or WPTheme.
 	 */
 	public function regenerate_app_dot_json( $app ) : array {
 		$manifest = $this->build_app_manifest( $app );
@@ -75,10 +75,10 @@ trait WPRepoUtils {
 	/**
 	 * Build the canonical app manifest.
 	 *
-	 * @param Plugin|Theme $app
+	 * @param WPPlugin|WPTheme $app
 	 * @return array
 	 */
-	protected function build_app_manifest( Plugin|Theme $app ) : array {
+	protected function build_app_manifest( WPPlugin|WPTheme $app ) : array {
 
 		$slug             = $app->get_slug();
 		$metadata         = $this->get_metadata( $slug );
@@ -113,7 +113,7 @@ trait WPRepoUtils {
 		$max_ver     = $metadata['tested_up_to'] ?? '';
 		$type        = strtolower( $app->get_type() );
 		$name_key    = sprintf( '%s_name', $type );
-		$version_key = ( $app instanceof Plugin ) ? 'stable_tag' : 'version';
+		$version_key = ( $app instanceof WPPlugin ) ? 'stable_tag' : 'version';
 		return [
 			'name'       => $metadata[$name_key] ?? $app->get_name(),
 			'slug'       => $app->get_slug(),

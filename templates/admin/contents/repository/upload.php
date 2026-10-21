@@ -61,12 +61,12 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
             </p>
 
             <div class="smliser-upload-cards">
-                <a class="smliser-upload-card" href="<?php echo $urlmanager->admin_repo_url( 'add-new', ['type' => 'plugin'] ); ?>">
+                <a class="smliser-upload-card" href="<?php echo $urlmanager->admin_repo_url( 'add-new', ['type' => 'wpplugin'] ); ?>">
                     <strong class="smliser-upload-card-title">WordPress Plugin</strong>
                     <span class="smliser-upload-card-description">Upload a plugin for WordPress sites</span>
                 </a>
 
-                <a class="smliser-upload-card" href="<?php echo $urlmanager->admin_repo_url( 'add-new', ['type' => 'theme'] ); ?>">
+                <a class="smliser-upload-card" href="<?php echo $urlmanager->admin_repo_url( 'add-new', ['type' => 'wptheme'] ); ?>">
                     <strong class="smliser-upload-card-title">WordPress Theme</strong>
                     <span class="smliser-upload-card-description">Upload a theme for WordPress sites</span>
                 </a>

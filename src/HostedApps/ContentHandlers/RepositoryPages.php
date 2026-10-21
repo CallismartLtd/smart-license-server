@@ -171,7 +171,7 @@ final class RepositoryPages {
 
 		return View::make( 'repository.type' )
 			->set_title( '' === $search ? $type['plural'] : sprintf( '%s matching "%s"', $type['plural'], $search ) )
-			->set_description( sprintf( 'Browse the %s hosted on this server.', strtolower( $type['plural'] ) ) )
+			->set_description( sprintf( 'Browse the %s hosted on this server.', $type['plural'] ) )
 			->set( 'types', $types )
 			->set( 'search', $search )
 			->set( 'type', $type )
@@ -187,7 +187,7 @@ final class RepositoryPages {
 	 *   array             $card The app's card.
 	 *   AbstractHostedApp $app  The app, for what only its type has. A theme
 	 *                           shows that in an optional partial per type,
-	 *                           e.g. 'repository.details-plugin'.
+	 *                           e.g. 'repository.details-wpplugin'.
 	 *   array<string, string> $sections Heading => HTML, the non-empty
 	 *                           SECTIONS, in order. The HTML comes from the
 	 *                           app's readme: print it through sanitize_html().
@@ -458,13 +458,13 @@ final class RepositoryPages {
 	}
 
 	/**
-	 * "plugins, themes and software" from the type summaries.
+	 * "WordPress Plugins, WordPress Themes and Software" from the type summaries.
 	 *
 	 * @param list<array{plural: string}> $types
 	 * @return string
 	 */
 	private function list_labels( array $types ) : string {
-		$labels = array_map( fn ( array $type ) : string => strtolower( $type['plural'] ), $types );
+		$labels = array_map( fn ( array $type ) : string => $type['plural'], $types );
 		$last   = array_pop( $labels );
 
 		return [] === $labels ? (string) $last : implode( ', ', $labels ) . ' and ' . $last;

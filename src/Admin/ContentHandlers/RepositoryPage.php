@@ -83,7 +83,7 @@ class RepositoryPage implements AdminPageInterface {
 			$add_url = $add_url->add_query_param( 'type', $current_url->get_query_param( 'type' ) );
 		}
 
-		$page_title = \sprintf( '%s Repository', ucfirst( (string) $type ) );
+		$page_title = '' === (string) $type ? 'Repository' : \sprintf( '%s Repository', HostedAppsRegistry::instance()->get_app_type_label( (string) $type ) );
 
 		if ( $has_status ) {
 			$page_title = sprintf( 'Status: %s', $status );
@@ -162,16 +162,16 @@ class RepositoryPage implements AdminPageInterface {
 				],
 
 				[
-					'title' => 'Plugin Repository',
-					'label' => 'Plugins',
-					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'plugin' )->url(),
+					'title' => 'WordPress Plugin Repository',
+					'label' => 'WordPress Plugins',
+					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'wpplugin' )->url(),
 					'icon'  => 'ti ti-plug',
 				],
 				
 				[
-					'title' => 'Theme Repository',
-					'label' => 'Themes',
-					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'theme' )->url(),
+					'title' => 'WordPress Theme Repository',
+					'label' => 'WordPress Themes',
+					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'wptheme' )->url(),
 					'icon'  => 'ti ti-palette',
 				],
 				
@@ -199,7 +199,7 @@ class RepositoryPage implements AdminPageInterface {
 
 		$slug = $type ? 'uploader' : 'upload';
 
-		$type_title = $type ? ucfirst( $type ) : '';
+		$type_title = $type ? HostedAppsRegistry::instance()->get_app_type_label( $type ) : '';
 		$title      = \sprintf( 'Upload New %s', $type_title );
 
 		$essential_fields = self::prepare_essential_app_fields( $request );
@@ -260,7 +260,7 @@ class RepositoryPage implements AdminPageInterface {
 			'icon' => 'ti ti-eye'
 		];
 		$essential_fields = self::prepare_essential_app_fields( $request, $app );
-		$type_title       = ucfirst( $type );
+		$type_title       = HostedAppsRegistry::instance()->get_app_type_label( $type );
 		
 		$urlmanager = $this->urlmanager;
 		$repo_page  = $this;
@@ -312,7 +312,7 @@ class RepositoryPage implements AdminPageInterface {
 			'icon' => 'ti ti-eye'
 		];
 
-		$type_title = ucfirst( $type );
+		$type_title = HostedAppsRegistry::instance()->get_app_type_label( $type );
 		$repo_class = $registry->get_app_type_directory_class( $type );
 		$app_files  = $repo_class->get_artifacts( $app->get_slug() );
 		
@@ -361,7 +361,7 @@ class RepositoryPage implements AdminPageInterface {
 		$template_header = [
 			'icon'              => $app->get_icon(),
 			'name'              => $app->get_name(),
-			'badges'            => [ $app->get_status(), $app->get_type(), $app->get_version() ],
+			'badges'            => [ $app->get_status(), HostedAppsRegistry::instance()->get_app_type_label( $app->get_type() ), $app->get_version() ],
 			'short_description' => $app->get_short_description(),
 			'buttons'           => [
 				[
@@ -397,7 +397,7 @@ class RepositoryPage implements AdminPageInterface {
 				],
 
 				[
-					'text'  => sprintf( 'Edit %s', ucfirst( $app->get_type() ) ),
+					'text'  => sprintf( 'Edit %s', HostedAppsRegistry::instance()->get_app_type_label( $app->get_type() ) ),
 					'url'   => $this->urlmanager->admin_repo_url( 'edit', ['app_id' => $app->get_id(), 'type' => $app->get_type()] )->url(),
 					'icon'  => 'ti ti-edit',
 					'class' => ['smliser-btn', 'smliser-btn-glass'],
@@ -405,7 +405,7 @@ class RepositoryPage implements AdminPageInterface {
 				],
 
 				[
-					'text'  => sprintf( 'Download %s', ucfirst( $app->get_type() ) ),
+					'text'  => sprintf( 'Download %s', HostedAppsRegistry::instance()->get_app_type_label( $app->get_type() ) ),
 					'url'   => $download_url->url(),
 					'icon'  => 'ti ti-download',
 					'class' => ['smliser-btn', 'smliser-btn-glass'],
@@ -416,7 +416,7 @@ class RepositoryPage implements AdminPageInterface {
 
 		if ( $app->can_be_restored() ) {
 			$template_header['buttons'][] = [
-				'text'  => sprintf( 'Restore %s', ucfirst( $app->get_type() ) ),
+				'text'  => sprintf( 'Restore %s', HostedAppsRegistry::instance()->get_app_type_label( $app->get_type() ) ),
 				'url'   => '',
 				'icon'  => 'ti ti-arrow-back-up',
 				'class' => ['smliser-btn', 'smliser-btn-glass', 'smliser-app-restore-button'],
@@ -424,7 +424,7 @@ class RepositoryPage implements AdminPageInterface {
 			];
 		} elseif ( $app->can_be_trashed() ) {
 			$template_header['buttons'][] = [
-				'text'  => sprintf( 'Trash %s', ucfirst( $app->get_type() ) ),
+				'text'  => sprintf( 'Trash %s', HostedAppsRegistry::instance()->get_app_type_label( $app->get_type() ) ),
 				'url'   => '',
 				'icon'  => 'ti ti-trash',
 				'class' => ['smliser-btn', 'smliser-btn-danger', 'smliser-app-delete-button'],
@@ -539,9 +539,9 @@ class RepositoryPage implements AdminPageInterface {
 	private function prepare_essential_app_fields( Request $request, ?AbstractHostedApp $app = null, ) {
 		$type              = $request->getTyped( 'type', 'string', '' );
 		$manifest_filename = match( $type ) {
-			'plugin' => 'readme.txt',
-			'theme'  => 'style.css',
-			default  => 'app.json'
+			'wpplugin' => 'readme.txt',
+			'wptheme'  => 'style.css',
+			default    => 'app.json'
 		};
 
 		$owner_option = [];
@@ -614,7 +614,7 @@ class RepositoryPage implements AdminPageInterface {
 			],
 			[
 				'label' => __( 'Owner', 'smliser' ),
-				'help'  => sprintf( 'Select the owner of the %s. %s Owner is the user or organization that host and maintain the %s in this repository.', $type, ucfirst( $type ), $type ),
+				'help'  => sprintf( 'Select the owner of the %1$s. The owner is the user or organization that hosts and maintains the %1$s in this repository.', HostedAppsRegistry::instance()->get_app_type_label( $type ) ),
 				'input' => [
 					'type'  => 'select',
 					'name'  => 'app_owner_id',
@@ -654,7 +654,7 @@ class RepositoryPage implements AdminPageInterface {
 	 */
 	public function get_menu_args( Request $request, ?HostedAppsInterface $app = null ) : array {
 		$tab      = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
-		$app_type = \ucfirst( $app?->get_type() ?? $request->get( 'type', '' ) );
+		$app_type = HostedAppsRegistry::instance()->get_app_type_label( (string) ( $app?->get_type() ?? $request->get( 'type', '' ) ) );
 		$app_name = $app?->get_name() ?? '';
 
 		$title = match( $tab ) {
@@ -675,7 +675,7 @@ class RepositoryPage implements AdminPageInterface {
 				],
 
 				[
-					'label' => smliser_pluralize( $app?->get_type() ?? $app_type ),
+					'label' => HostedAppsRegistry::instance()->get_app_type_label( (string) ( $app?->get_type() ?? $request->get( 'type', '' ) ), true ),
 					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', ( $app?->get_type() ?? $request->get( 'type', '' ) ) ),
 					'icon'  => 'ti ti-folder-open'
 				],

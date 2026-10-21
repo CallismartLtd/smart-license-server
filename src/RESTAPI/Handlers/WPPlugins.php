@@ -64,9 +64,9 @@ class WPPlugins extends DataStore {
 
 		if ( false === $data ) {
 			if ( $plugin_id ) {
-				$plugin = HostedApplicationService::get_app_by_id( 'plugin', $plugin_id );
+				$plugin = HostedApplicationService::get_app_by_id( 'wpplugin', $plugin_id );
 			} else {
-				$plugin = HostedApplicationService::get_app_by_slug( 'plugin', $slug );
+				$plugin = HostedApplicationService::get_app_by_slug( 'wpplugin', $slug );
 			}
 
 			if ( ! $plugin || ! $this->visibility->can_view( $plugin ) ) {

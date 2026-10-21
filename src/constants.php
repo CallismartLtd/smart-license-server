@@ -67,14 +67,14 @@ define( 'SMLISER_REPO_DIR', SMLISER_STORAGE_DIR . 'app-repository/' );
  *
  * @var string
  */
-define( 'SMLISER_PLUGINS_REPO_DIR', SMLISER_REPO_DIR . 'plugins/' );
+define( 'SMLISER_WP_PLUGINS_REPO_DIR', SMLISER_REPO_DIR . 'plugins/' );
 
 /**
  * Absolute path to the theme repository directory.
  *
  * @var string
  */
-define( 'SMLISER_THEMES_REPO_DIR', SMLISER_REPO_DIR . 'themes/' );
+define( 'SMLISER_WP_THEMES_REPO_DIR', SMLISER_REPO_DIR . 'themes/' );
 
 /**
  * Absolute path to the software repository directory.

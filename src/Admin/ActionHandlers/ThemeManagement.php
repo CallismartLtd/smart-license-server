@@ -18,7 +18,8 @@ use SmartLicenseServer\Environments\Application\Theming\ThemeManager;
 use SmartLicenseServer\Security\Context\Guard;
 
 /**
- * Admin actions of the Appearance > Themes page (admin/json/themes/*).
+ * Admin actions on site themes (admin/json/themes/*), from the Modules >
+ * Themes and Modules > Marketplace pages (ModulesPage, modules.js).
  *
  * System administrators only: a theme's templates run PHP on every public
  * page. See ThemeInstaller for how packages are verified and installed.

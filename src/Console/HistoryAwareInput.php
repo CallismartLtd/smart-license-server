@@ -32,7 +32,7 @@ use SmartLicenseServer\FileSystem\FileSystem;
  *
  *   # smliser-session: 2026-07-26 14:32:07
  *   license list
- *   app list --type=plugin
+ *   app list --type=wpplugin
  *   cache clear
  *
  * The marker is filtered back out on load — see load_history() — so

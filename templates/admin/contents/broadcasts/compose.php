@@ -45,7 +45,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                     <select id="smliser-app-select" name="associated_apps[]" title="<?php echo escHtml( 'Select a hosted application to associate this message with.' ); ?>" multiple>
                         <?php if ( $message ) : ?>
                             <?php foreach ( $message->get_associated_apps() as $type => $slugs ) : ?>
-                                <optgroup label="<?php echo escHtml( ucfirst( $type ) ); ?>">
+                                <optgroup label="<?php echo escHtml( \SmartLicenseServer\HostedApps\HostedAppsRegistry::instance()->get_app_type_label( $type, true ) ); ?>">
                                     <?php if ( is_array( $slugs ) ) : ?>
                                         <?php foreach ( $slugs as $slug ) : ?>
                                             <option value="<?php printf( '%s:%s', escAttr( $type ), escAttr( $slug ) ); ?>" selected><?php echo escHtml( $slug ) ?></option>

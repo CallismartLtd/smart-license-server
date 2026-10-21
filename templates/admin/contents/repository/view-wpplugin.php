@@ -1,0 +1,40 @@
+<?php
+/**
+ *  Admin WordPress plugin details page.
+ * 
+ * @author Callistus.
+ * @package Smliser\templates.
+ * @since 0.2.0
+ * @var SmartLicenseServer\HostedApps\WPPlugin $app The plugin object.
+ */
+
+defined( 'SMLISER_ROOT' ) || exit;
+
+// Authors listing will differ in the future.
+$author = sprintf(
+	'<ul>
+        <li><a href="%1$s">%2$s</a></li>
+    
+    </ul>',
+	$app->get_author_profile(),
+	$app->get_author()
+);
+
+$template_sidebar['Author']['content'] = $author;
+
+$screenshots = [];
+
+foreach( $app->get_screenshots() as $screenshot ) {
+	$screenshots[] = $screenshot['src'] ?? '';
+}
+
+$banners = $app->get_banners();
+$icons   = $app->get_icons();
+
+$images = [
+	'Icons'       => array_filter( $icons ),
+	'Banners'     => array_filter( $banners ),
+	'Screenshots' => array_filter( $screenshots ),
+];
+
+include_once __DIR__ . '/preview.php';

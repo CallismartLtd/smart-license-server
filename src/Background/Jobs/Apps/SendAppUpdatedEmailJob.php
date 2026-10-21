@@ -9,7 +9,7 @@
  * after successful zip upload.
  *
  * Payload:
- *   app_type (string) — e.g. 'plugin', 'theme', 'software'.
+ *   app_type (string) — e.g. 'wpplugin', 'wptheme', 'software'.
  *   app_slug (string) — The app slug.
  *
  * @author  Callistus Nwachukwu

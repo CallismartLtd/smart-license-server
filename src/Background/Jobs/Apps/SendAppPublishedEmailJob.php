@@ -9,7 +9,7 @@
  * after successful insert.
  *
  * Payload:
- *   app_type (string) — e.g. 'plugin', 'theme', 'software'.
+ *   app_type (string) — e.g. 'wpplugin', 'wptheme', 'software'.
  *   app_slug (string) — The app slug.
  *
  * @author  Callistus Nwachukwu
@@ -46,7 +46,7 @@ class SendAppPublishedEmailJob implements JobHandlerInterface {
 
 	/**
 	 * @param array $payload {
-	 *     @type string $app_type App type e.g. 'plugin'.
+	 *     @type string $app_type App type e.g. 'wpplugin'.
 	 *     @type string $app_slug App slug.
 	 * }
 	 * @return array{sent: int, skipped: int}

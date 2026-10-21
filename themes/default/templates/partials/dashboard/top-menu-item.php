@@ -27,7 +27,9 @@ $extra = 'a' === $tag ? sprintf( ' href="%s"', escUrl( $item['href'] ) ) : ' typ
 		<i class="<?php echo escAttr( $item['icon'] ); ?>" aria-hidden="true"></i>
 	<?php endif; ?>
 	<?php foreach ( $item['icons'] as $icon ) : ?>
-		<i class="<?php echo escAttr( $icon['class'] ); ?>"<?php foreach ( $icon['attributes'] ?? [] as $name => $value ) { printf( ' %s="%s"', escAttr( $name ), escAttr( $value ) ); } ?>></i>
+		<i class="<?php echo escAttr( $icon['class'] ); ?>"<?php foreach ( $icon['attributes'] ?? [] as $name => $value ) {
+			printf( ' %s="%s"', escAttr( $name ), escAttr( $value ) );
+		} ?>></i>
 	<?php endforeach; ?>
 	<?php if ( '' !== $item['title'] ) : ?>
 		<span><?php echo escHtml( $item['title'] ); ?></span>

@@ -75,7 +75,7 @@ final class AppFile {
 	/**
 	 * Construct a reference. Prefer the named constructors.
 	 *
-	 * @param string $type App type, e.g. "plugin".
+	 * @param string $type App type, e.g. "wpplugin".
 	 * @param string $slug App slug.
 	 * @param string $kind One of the kind constants.
 	 * @param string $name File name for named kinds; "" for the others.

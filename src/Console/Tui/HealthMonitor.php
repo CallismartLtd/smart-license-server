@@ -698,7 +698,7 @@ final class HealthMonitor {
 				// CSI ("ESC [ params final") or SS3 ("ESC O final"); a lone ESC is the Esc key.
 				if ( \preg_match( '/\G\033(?:\[([0-9;]*)([@-~])|O([A-Za-z]))/', $bytes, $match, 0, $i ) ) {
 					$keys[] = $this->sequence_key( $match[1], '' !== ( $match[3] ?? '' ) ? $match[3] : $match[2] );
-					$i     += \strlen( $match[0] ) - 1;
+					$i += \strlen( $match[0] ) - 1;
 				} else {
 					$keys[] = 'esc';
 				}
@@ -1347,7 +1347,7 @@ final class HealthMonitor {
 				'info'  => 'Nothing is required; this is for your information.',
 				default => 'See what was found above.',
 			}
-			: $check['recommendation'];
+		: $check['recommendation'];
 
 		foreach ( $this->wrap( $recommendation, $inner - 2 ) as $line ) {
 			$text[] = '  ' . $line;

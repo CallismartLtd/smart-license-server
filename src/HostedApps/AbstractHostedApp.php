@@ -671,7 +671,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	}
 
 	/**
-	 * Get plugin icons
+	 * Get app icons
 	 * 
 	 * @return array
 	 */
@@ -876,7 +876,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	 */
 
 	/**
-	 * Get the application type (e.g., 'plugin', 'theme', 'library').
+	 * Get the application type (e.g., 'wpplugin', 'wptheme', 'software').
 	 * 
 	 * @return string
 	 */

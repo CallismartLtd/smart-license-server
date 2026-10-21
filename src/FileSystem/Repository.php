@@ -75,7 +75,7 @@ abstract class Repository {
 	/**
 	 * Get the app type this repository serves.
 	 *
-	 * @return string The normalized app type, e.g. "plugin".
+	 * @return string The normalized app type, e.g. "wpplugin".
 	 */
 	abstract public function app_type() : string;
 

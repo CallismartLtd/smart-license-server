@@ -190,8 +190,8 @@ class WordPressEnvironment extends Environment {
 			$dirs_to_check = [
 				\SMLISER_REPO_DIR,
 				\SMLISER_UPLOADS_DIR,
-				\SMLISER_PLUGINS_REPO_DIR,
-				\SMLISER_THEMES_REPO_DIR,
+				\SMLISER_WP_PLUGINS_REPO_DIR,
+				\SMLISER_WP_THEMES_REPO_DIR,
 				\SMLISER_SOFTWARE_REPO_DIR,
 			];
 

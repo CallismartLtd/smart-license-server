@@ -38,9 +38,9 @@ namespace SmartLicenseServer\Console;
 use InvalidArgumentException;
 use RuntimeException;
 use SmartLicenseServer\Console\Commands\Apps\AppCommand;
-use SmartLicenseServer\Console\Commands\Apps\PluginCommand;
+use SmartLicenseServer\Console\Commands\Apps\WPPluginCommand;
 use SmartLicenseServer\Console\Commands\Apps\SoftwareCommand;
-use SmartLicenseServer\Console\Commands\Apps\ThemeCommand;
+use SmartLicenseServer\Console\Commands\Apps\WPThemeCommand;
 use SmartLicenseServer\Console\Commands\CacheCommand;
 use SmartLicenseServer\Console\Commands\CronCommand;
 use SmartLicenseServer\Console\Commands\DiagnoseCommand;
@@ -81,8 +81,8 @@ class CommandRegistry extends AbstractRegistry {
 		Installer::class,
 		CacheCommand::class,
 		AppCommand::class,
-		PluginCommand::class,
-		ThemeCommand::class,
+		WPPluginCommand::class,
+		WPThemeCommand::class,
 		SoftwareCommand::class,
 		SettingsCommand::class,
 		ServerCommand::class,

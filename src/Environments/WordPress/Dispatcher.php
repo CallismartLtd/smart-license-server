@@ -44,8 +44,8 @@ class Dispatcher implements RequestDispatcherInterface {
 	public static array $registered_handlers = [
 		'smliser_admin_download'                     => [ __CLASS__, 'handle_admin_download_request' ],
 		'smliser_download_image'                     => [ __CLASS__, 'handle_proxy_image_request' ],
-		'smliser_save_plugin'                        => [ __CLASS__, 'handle_save_app_request' ],
-		'smliser_save_theme'                         => [ __CLASS__, 'handle_save_app_request' ],
+		'smliser_save_wpplugin'                      => [ __CLASS__, 'handle_save_app_request' ],
+		'smliser_save_wptheme'                       => [ __CLASS__, 'handle_save_app_request' ],
 		'smliser_save_software'                      => [ __CLASS__, 'handle_save_app_request' ],
 		'smliser_save_license'                       => [ __CLASS__, 'handle_save_license_request' ],
 		'smliser_remove_licensed_domain'             => [ __CLASS__, 'handle_licensed_domain_removal_request' ],

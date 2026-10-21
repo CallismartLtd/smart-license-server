@@ -14,9 +14,10 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Email\Templates\Apps;
 
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\Email\Templates\EmailTemplate;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
-use SmartLicenseServer\HostedApps\Plugin;
+use SmartLicenseServer\HostedApps\WPPlugin;
 
 class AppOwnershipChangedEmail extends EmailTemplate {
 
@@ -62,7 +63,7 @@ class AppOwnershipChangedEmail extends EmailTemplate {
 		return array_merge( parent::variables(), [
 			'{{recipient_name}}' => $this->recipient_name,
 			'{{app_name}}'       => $this->app->get_name(),
-			'{{app_type}}'       => ucfirst( $this->app->get_type() ),
+			'{{app_type}}'       => HostedAppsRegistry::instance()->get_app_type_label( $this->app->get_type() ),
 			'{{app_slug}}'       => $this->app->get_slug(),
 			'{{previous_owner}}' => $this->previous_owner,
 			'{{new_owner}}'      => $this->new_owner,
@@ -175,9 +176,9 @@ class AppOwnershipChangedEmail extends EmailTemplate {
 		return 'Sent to both the previous and new owner when application ownership is transferred.';
 	}
 	public static function preview() : static {
-		$app = Plugin::from_array_minimal( [
+		$app = WPPlugin::from_array_minimal( [
 			'name' => 'My Awesome Plugin',
-			'type' => 'plugin',
+			'type' => 'wpplugin',
 			'slug' => 'my-awesome-plugin',
 		] );
 		return new static( $app, 'preview@example.com', 'Jane Doe', 'John Smith', 'Jane Doe', true );

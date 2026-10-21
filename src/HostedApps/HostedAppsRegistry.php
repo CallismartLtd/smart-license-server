@@ -14,10 +14,10 @@ use Override;
 use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
-use SmartLicenseServer\FileSystem\PluginRepository;
+use SmartLicenseServer\FileSystem\WPPluginRepository;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\FileSystem\SoftwareRepository;
-use SmartLicenseServer\FileSystem\ThemeRepository;
+use SmartLicenseServer\FileSystem\WPThemeRepository;
 
 /**
  * Centralized registry for managing any type of 
@@ -227,7 +227,7 @@ class HostedAppsRegistry extends AbstractRegistry {
 	}
 
 	/**
-	 * Get the names people read for an app type, e.g. "Plugin" and "Plugins".
+	 * Get the names people read for an app type, e.g. "WordPress Plugin" and "WordPress Plugins".
 	 *
 	 * The registered labels; for a type registered without labels, the
 	 * type key in words ("desktop-app" gives "Desktop App") for both, since
@@ -250,6 +250,23 @@ class HostedAppsRegistry extends AbstractRegistry {
 		$words = ucwords( str_replace( [ '-', '_' ], ' ', $this->normalize_app_type( $type ) ) );
 
 		return [ 'singular' => $words, 'plural' => $words ];
+	}
+
+	/**
+	 * The name people read for an app type, e.g. "WordPress Plugin".
+	 *
+	 * @param string $type   The app type.
+	 * @param bool   $plural The plural ("WordPress Plugins") instead.
+	 * @return string The type in words when it is not registered.
+	 */
+	public function get_app_type_label( string $type, bool $plural = false ) : string {
+		$labels = $this->get_app_type_labels( $type );
+
+		if ( null === $labels ) {
+			return ucwords( str_replace( [ '-', '_' ], ' ', $this->normalize_app_type( $type ) ) );
+		}
+
+		return $plural ? $labels['plural'] : $labels['singular'];
 	}
 
 	/**
@@ -318,17 +335,17 @@ class HostedAppsRegistry extends AbstractRegistry {
 		}
 
 		static $core_hosted_apps = [
-			'plugin' => [
-				'class'           => Plugin::class,
-				'directory_class' => PluginRepository::class,
-				'table'           => Plugin::get_db_table(),
-				'labels'          => [ 'singular' => 'Plugin', 'plural' => 'Plugins' ],
+			'wpplugin' => [
+				'class'           => WPPlugin::class,
+				'directory_class' => WPPluginRepository::class,
+				'table'           => WPPlugin::get_db_table(),
+				'labels'          => [ 'singular' => 'WordPress Plugin', 'plural' => 'WordPress Plugins' ],
 			],
-			'theme' => [
-				'class'           => Theme::class,
-				'directory_class' => ThemeRepository::class,
-				'table'           => Theme::get_db_table(),
-				'labels'          => [ 'singular' => 'Theme', 'plural' => 'Themes' ],
+			'wptheme' => [
+				'class'           => WPTheme::class,
+				'directory_class' => WPThemeRepository::class,
+				'table'           => WPTheme::get_db_table(),
+				'labels'          => [ 'singular' => 'WordPress Theme', 'plural' => 'WordPress Themes' ],
 			],
 			'software' => [
 				'class'           => Software::class,
@@ -345,14 +362,18 @@ class HostedAppsRegistry extends AbstractRegistry {
 		$this->core_loaded = true;
 	}
 
+	/**
+	 * Normalize an app type as given (a URL segment, a query or form field):
+	 * lowercase, without surrounding whitespace.
+	 *
+	 * Every app type has exactly one name ("wpplugin", "wptheme", "software",
+	 * or a registered custom type); no other spelling is accepted.
+	 *
+	 * @param string $type
+	 * @return string
+	 */
 	public function normalize_app_type( string $type ) : string {
-		$type = strtolower( $type );
-
-		return $type = match ( $type ) {
-			'plugins', 'plugin'     => 'plugin',
-			'themes', 'theme'       => 'theme',
-			'softwares', 'software' => 'software',
-			default                 => $type
-		};
+		return strtolower( trim( $type ) );
 	}
+
 }

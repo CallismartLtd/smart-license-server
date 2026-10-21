@@ -101,7 +101,7 @@ Smart License Server can be installed as a WordPress plugin or as a standalone a
 
 **Option A — Standard WordPress install:**
 
-1. Download the plugin zip: `https://apiv1.callismart.com.ng/downloads/plugin/smart-license-server.zip`
+1. Download the plugin zip: `https://apiv1.callismart.com.ng/downloads/wpplugin/smart-license-server.zip`
 2. In your WordPress dashboard, go to **Plugins → Add New → Upload Plugin**.
 3. Upload the zip file and click **Install Now**.
 4. Activate the plugin.
@@ -109,7 +109,7 @@ Smart License Server can be installed as a WordPress plugin or as a standalone a
 **Option B — WP-CLI (advanced):**
 
 ```bash
-wp plugin install https://apiv1.callismart.com.ng/downloads/plugin/smart-license-server.zip --activate
+wp plugin install https://apiv1.callismart.com.ng/downloads/wpplugin/smart-license-server.zip --activate
 ```
 
 ### As a Standalone Application

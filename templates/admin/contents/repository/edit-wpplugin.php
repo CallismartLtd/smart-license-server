@@ -1,0 +1,141 @@
+<?php
+/**
+ * WordPress plugin edit file: prepares the variables that will be used by the uploader.php
+ * 
+ * @author Callistus Nwachukwu
+ * @var \SmartLicenseServer\HostedApps\WPPlugin $app
+ */
+
+defined( 'SMLISER_ROOT' ) || exit;
+
+$title        = sprintf( 'Edit WordPress Plugin: %s', $app->get_name() );
+$other_fields = [
+	[
+		'label' => __( 'Required PHP Version', 'smliser' ),
+		'help'  => 'Use plugin readme.txt file to edit the plugin\'s required PHP version.',
+		'input' => [
+			'type'  => 'text',
+			'name'  => 'app_required_php_version',
+			'value' => $app->get_required_php(),
+			'class' => 'app-uploader-form-row',
+			'attr'  => [
+				'spellcheck' => 'off',
+				'readonly'   => true,
+			]
+		]
+	],
+
+	[
+		'label' => __( 'Required WordPress Version', 'smliser' ),
+		'help'  => 'Use plugin readme.txt file to edit the minimum WordPress version required to install this plugin',
+		'input' => [
+			'type'  => 'text',
+			'name'  => 'app_required_wp_version',
+			'value' => $app->get_requires_at_least(),
+			'class' => 'app-uploader-form-row',
+			'attr'  => [
+				'spellcheck' => 'off',
+				'readonly'   => true,
+			]
+		]
+	],
+
+	[
+		'label' => __( 'Tested WordPress Version', 'smliser' ),
+		'help'  => 'Use plugin the readme.txt file to edit the WordPress version this plugin has been tested up to.',
+		'input' => [
+			'type'  => 'text',
+			'name'  => 'app_tested_wp_version',
+			'value' => $app->get_tested_up_to(),
+			'class' => 'app-uploader-form-row',
+			'attr'  => [
+				'spellcheck' => 'off',
+				'readonly'   => true,
+			]
+		]
+	],
+
+	[
+		'label' => __( 'Plugin Support URL', 'smliser' ),
+		'input' => [
+			'type'  => 'text',
+			'name'  => 'app_support_url',
+			'value' => $app->get_support_url(),
+			'class' => 'app-uploader-form-row',
+			'attr'  => [
+				'spellcheck' => 'off'
+			]
+		]
+	],
+
+	[
+		'label' => __( 'Plugin Download URL', 'smliser' ),
+		'input' => [
+			'type'  => 'text',
+			'name'  => 'app_download_url',
+			'value' => $app->get_download_url(),
+			'class' => 'app-uploader-form-row',
+			'attr'  => [
+				'spellcheck' => 'off'
+			]
+		]
+	],
+
+	[
+		'label' => __( 'Plugin Homepage', 'smliser' ),
+		'input' => [
+			'type'  => 'text',
+			'name'  => 'app_homepage_url',
+			'value' => $app->get_homepage(),
+			'class' => 'app-uploader-form-row',
+			'attr'  => [
+				'spellcheck' => 'off'
+			]
+		]
+	],
+
+	[
+		'label' => __( 'App.json File', 'smliser' ),
+		'input' => [
+			'type'  => 'textarea',
+			'name'  => 'app_json_content',
+			'value' => smliser_safe_json_encode(
+				$app->get_manifest(),
+				JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+			),
+			'class' => 'app-uploader-form-row',
+			'attr'  => [
+				'class'                   => 'smliser-json-textarea',
+				'readonly'                => true,
+				'data-editor-description' => 'Edit the plugin\'s app.json file. Certain fields are automatically generated from the plugin readme.txt file and cannot be overridden here.'
+			]
+		]
+	],
+];
+
+$screenshots = [];
+
+foreach( $app->get_screenshots() as $screenshot ) {
+	$screenshots[] = $screenshot['src'] ?? '';
+}
+
+
+$assets = [
+	'icon' => [
+		'title'  => 'Icons',
+		'images' => $app->get_icons(),
+		'total'  => count( array_filter( $app->get_icons() ) )
+	],
+	'banner' => [
+		'title'  => 'Banners',
+		'images' => $app->get_banners(),
+		'total'  => count( array_filter( $app->get_banners() ) )
+	],
+	'screenshot' => [
+		'title'  => 'Screenshots',
+		'images' => $screenshots,
+		'total'  => count( array_filter( $screenshots ) )
+	],
+];
+
+include __DIR__ . '/uploader.php';

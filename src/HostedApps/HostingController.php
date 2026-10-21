@@ -209,7 +209,7 @@ class HostingController {
 			$data = [
 				'success' => true,
 				'data'    => [
-					'message'      => sprintf( '%s Saved', ucfirst( $app_type ) ),
+					'message'      => sprintf( '%s saved', HostedAppsRegistry::instance()->get_app_type_label( $app_type ) ),
 					'redirect_url' => $this->urlmanager->admin_repo_url( 'edit', [ 'type' => $app_type, 'app_id' => $app->get_id() ]
 					)
 				]];
@@ -226,13 +226,13 @@ class HostingController {
 	}
 
 	/**
-	 * Update a plugin.
+	 * Update a WordPress plugin (update_{$app_type}, see save_app()).
 	 * 
-	 * @param Plugin $plugin The plugin ID.
+	 * @param WPPlugin $plugin The plugin ID.
 	 * @param Request $request The request object.
 	 * @return true|RequestException
 	 */
-	protected function update_plugin( Plugin &$plugin, Request $request ) {
+	protected function update_wpplugin( WPPlugin &$plugin, Request $request ) {
 		$manifest = $request->get_file( 'app_json_file' );
 
 		if ( $manifest && $manifest->is_upload_successful() ) {
@@ -253,13 +253,13 @@ class HostingController {
 	}
 
 	/**
-	 * Update a theme.
+	 * Update a WordPress theme (update_{$app_type}, see save_app()).
 	 * 
-	 * @param Theme $theme
+	 * @param WPTheme $theme
 	 * @param Request $request
 	 * @return true|RequestException
 	 */
-	protected function update_theme( Theme &$theme, Request $request ) {
+	protected function update_wptheme( WPTheme &$theme, Request $request ) {
 		$manifest = $request->get_file( 'app_json_file' );
 
 		if ( $manifest && $manifest->is_upload_successful() ) {
@@ -810,7 +810,7 @@ class HostingController {
 			$this->cache->clear();
 
 			$data = [
-				'message'      => sprintf( '%s status changed from %s to %s', ucfirst( $app_type ), $old_status, $status ),
+				'message'      => sprintf( '%s status changed from %s to %s', HostedAppsRegistry::instance()->get_app_type_label( $app_type ), $old_status, $status ),
 				'redirect_url' => $this->urlmanager->admin_repo_url( 'view', [ 'type' => $app->get_type(), 'app_id' => $app->get_id() ] )
 			];
 
@@ -861,7 +861,7 @@ class HostingController {
 			$this->cache->clear();
 
 			$data = [
-				'message'      => sprintf( '%s renamed from "%s" to "%s".', ucfirst( $app->get_type() ), $app_slug, $new_slug ),
+				'message'      => sprintf( '%s renamed from "%s" to "%s".', HostedAppsRegistry::instance()->get_app_type_label( $app->get_type() ), $app_slug, $new_slug ),
 				'slug'         => $new_slug,
 				'redirect_url' => $this->urlmanager->admin_repo_url( 'view', [ 'type' => $app->get_type(), 'app_id' => $app->get_id() ] )
 			];

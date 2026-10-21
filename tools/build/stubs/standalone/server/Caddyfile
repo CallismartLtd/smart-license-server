@@ -13,7 +13,7 @@ licenses.example.com {
     root * /var/www/smart-license-server/public
     encode zstd gzip
 
-    # Largest upload accepted (plugin, theme and software packages).
+    # Largest upload accepted (WordPress plugin, WordPress theme and software packages).
     # Keep in line with PHP's upload_max_filesize and post_max_size.
     request_body {
         max_size 64MB

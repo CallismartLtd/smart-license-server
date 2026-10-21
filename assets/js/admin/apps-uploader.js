@@ -452,8 +452,7 @@ class AppUploader {
 
         if ( !app_id && fileInput.files.length === 0 ) {
             e.preventDefault();
-            const appType = StringUtils.ucfirst( this.queryParam.get( 'type' ) );
-            SmliserToast.show( `A ${ appType } file is required.`, 5000 );
+            SmliserToast.show( 'The application package (.zip) is required.', 5000 );
         }
     }
 
@@ -910,7 +909,7 @@ class AppUploader {
     async _maybeConvertToPng( file ) {
         const assetType = this.currentConfig.get( 'asset_type' );
         const appType   = this.currentConfig.get( 'app_type' );
-        const needsPng  = appType === 'theme' && assetType === 'screenshot';
+        const needsPng  = appType === 'wptheme' && assetType === 'screenshot';
 
         if ( needsPng && ! file.type.includes( 'image/png' ) ) {
             const converted = await this._convertToPng( file );
@@ -960,7 +959,7 @@ class AppUploader {
 
             const assetType = this.currentConfig.get( 'asset_type' );
             const appType   = this.currentConfig.get( 'app_type' );
-            const needsPng  = appType === 'theme' && assetType === 'screenshot';
+            const needsPng  = appType === 'wptheme' && assetType === 'screenshot';
 
             if ( needsPng && ! contentType.includes( 'image/png' ) ) {
                 const converted = await this._convertToPng( blob, fileName );
