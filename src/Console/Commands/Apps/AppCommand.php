@@ -28,6 +28,7 @@ use SmartLicenseServer\Console\Traits\CLIFilesystemAwareTrait;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Utils\Stopwatch;
 
 /**
@@ -37,12 +38,14 @@ class AppCommand extends AbstractCommand {
 	use CLIUtilsTrait, CLIFilesystemAwareTrait;
 
 	public function __construct(
+		Guard $guard,
 		FileSystem $file_system,
 		InputInterface $io,
 		OutputInterface $output,
 		ScriptName $script_name
 	) {
-		$this->file_system = $file_system;
+		$this->file_system	= $file_system;
+		$this->guard		= $guard;
 		return parent::__construct( $io, $output, $script_name );
 	}
 

@@ -15,6 +15,7 @@ use SmartLicenseServer\Security\Context\Guard;
 trait CLIUtilsTrait {
 	protected OutputInterface $output;
 	protected InputInterface $io;
+	protected Guard $guard;
 	/**
 	 * Validate that required positional arguments are present.
 	 */

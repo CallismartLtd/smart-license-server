@@ -27,6 +27,7 @@ use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\HostedApps\HostingController;
+use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Utils\Stopwatch;
 
 /**
@@ -37,12 +38,14 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 
 	public function __construct(
 		protected HostingController $controller,
+		Guard $guard,
 		FileSystem $file_system,
 		InputInterface $io,
 		OutputInterface $output,
 		ScriptName $script_name
 	) {
-		$this->file_system = $file_system;
+		$this->file_system	= $file_system;
+		$this->guard		= $guard;
 		return parent::__construct( $io, $output, $script_name );
 	}
 
