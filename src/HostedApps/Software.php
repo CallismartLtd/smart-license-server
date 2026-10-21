@@ -12,7 +12,6 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\FileSystem\SoftwareRepository;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
-use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
 /**
@@ -22,20 +21,6 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  */
 class Software extends AbstractHostedApp {
 	use SanitizeAwareTrait;
-	/**
-	 * The database table for software.
-	 * 
-	 * @var TableName
-	 */
-	const MAIN = TableName::SOFTWARE;
-
-	/**
-	 * The software metadata table
-	 * 
-	 * @var TableName
-	 */
-	const META = TableName::SOFTWARE_META;
-
 	/**
 	 * Software cover URL
 	 * 
@@ -58,39 +43,12 @@ class Software extends AbstractHostedApp {
 	}
 
 	/**
-	 * Get the database table for software.
-	 * 
-	 * @return string Database table name.
-	 */
-	public static function get_db_table() : string {
-		return static::MAIN->table();
-	}
-
-	/**
 	 * Get database fields.
 	 * 
 	 * @return array<int, string>
 	 */
 	public function get_fillable() : array {
 		return ['name', 'owner_id', 'author', 'status', 'download_link' ];
-	}
-
-	/**
-	 * Get the metadata table for software.
-	 * 
-	 * @return string Metadata table name.
-	 */
-	public static function get_db_meta_table() : string {
-		return self::META->table();
-	}
-
-	/**
-	 * Get meta foriegn key.
-	 * 
-	 * @return string Foreign key column name.
-	 */
-	protected function get_meta_foreign_key() : string {
-		return 'software_id';
 	}
 
 	/**

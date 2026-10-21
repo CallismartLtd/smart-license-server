@@ -12,8 +12,7 @@ namespace SmartLicenseServer\Schema;
 use Callismart\DBPrism\Utils\Column;
 use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Schema\Definitions\{
-	LicenseSchema, LicenseMetaSchema, WPPluginSchema, WPPluginMetaSchema,
-	WPThemeSchema, WPThemeMetaSchema, SoftwareSchema, SoftwareMetaSchema,
+	LicenseSchema, LicenseMetaSchema, AppsSchema, AppMetaSchema,
 	AnalyticsLogsSchema, AnalyticsDailySchema, AppDownloadTokenSchema,
 	MonetizationSchema, PricingTierSchema, BulkMessagesSchema,
 	BulkMessagesAppsSchema, OptionsSchema, OwnersSchema, UsersSchema,
@@ -233,12 +232,8 @@ class SchemaRegistry extends AbstractRegistry {
 		$schemas = [
 			LicenseSchema::class,
 			LicenseMetaSchema::class,
-			WPPluginSchema::class,
-			WPPluginMetaSchema::class,
-			WPThemeSchema::class,
-			WPThemeMetaSchema::class,
-			SoftwareSchema::class,
-			SoftwareMetaSchema::class,
+			AppsSchema::class,
+			AppMetaSchema::class,
 			AnalyticsLogsSchema::class,
 			AnalyticsDailySchema::class,
 			AppDownloadTokenSchema::class,

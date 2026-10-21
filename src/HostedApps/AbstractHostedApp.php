@@ -890,23 +890,6 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	abstract function get_icon() : string;
 
 	/**
-	 * Method to get the database table name.
-	 */
-	abstract public static function get_db_table() : string;
-
-	/**
-	 * Method to get the database meta table name.
-	 */
-	abstract public static function get_db_meta_table() : string;
-
-	/**
-	 * Get the foreign key column name for metadata table
-	 * 
-	 * @return string
-	 */
-	abstract protected function get_meta_foreign_key() : string;
-	
-	/**
 	 * Get an instance of this class from an array
 	 * @param array $data
 	 */
@@ -918,6 +901,42 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	 * @return array<int, string>
 	 */
 	abstract public function get_fillable() : array;
+
+	/*
+	|----------
+	| STORAGE
+	|----------
+	*/
+
+	/**
+	 * Get the table that holds apps of every type.
+	 *
+	 * An app is one record and its type is a value: every type is stored in
+	 * this table, with its type in the `app_type` column.
+	 *
+	 * @return string The prefixed table name.
+	 */
+	final public static function get_db_table() : string {
+		return TableName::APPS->table();
+	}
+
+	/**
+	 * Get the table that holds the metadata of apps of every type.
+	 *
+	 * @return string The prefixed table name.
+	 */
+	final public static function get_db_meta_table() : string {
+		return TableName::APP_META->table();
+	}
+
+	/**
+	 * Get the column of the meta table that holds the app ID.
+	 *
+	 * @return string
+	 */
+	final protected function get_meta_foreign_key() : string {
+		return 'app_id';
+	}
 
 	/**
 	|---------------------
@@ -968,6 +987,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 
 				$lock_query = static::query()->select( 'id' )->from( static::get_db_table() )
 					->where( 'id', '=', static::sanitize_int( $this->get_id() ) )
+					->where( 'app_type', '=', $this->get_type() )
 					->limit( 1 )->lock_for_update();
 				
 				$id = (int) $db->get_var( $lock_query->build(), $lock_query->get_bindings() );
@@ -976,7 +996,8 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 				if ( $id ) {
 					// Perform safe update query execution via builder context
 					$update_query = static::query()->update( static::get_db_table() )->set( $data )
-						->where( 'id', '=', $id );
+						->where( 'id', '=', $id )
+						->where( 'app_type', '=', $this->get_type() );
 					
 					if ( false === $db->execute( $update_query->build(), $update_query->get_bindings() ) ) {
 						throw new Exception( 'db_update_error', $db->get_last_error() );
@@ -1003,6 +1024,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 
 					$this->set_slug( $slug );
 
+					$data['app_type']   = $this->get_type();
 					$data['slug']       = $slug;
 					$data['created_at'] = $now->format( 'Y-m-d H:i:s' );
 
@@ -1068,11 +1090,12 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 		$meta_table  = $this->get_db_meta_table();
 		$foreign_key = $this->get_meta_foreign_key();
 
-		$delete_app_sql  = static::query()->delete( $table )->where( 'id', '=', $this->get_id() );
+		$delete_app_sql  = static::query()->delete( $table )->where( 'id', '=', $this->get_id() )->where( 'app_type', '=', $this->get_type() );
 		$delete_meta_sql = static::query()->delete( $meta_table )->where( $foreign_key, '=', $this->get_id() );
 		
-		$lock_query = static::query()->select( 'id', 'slug', 'type' )->from( $table )
+		$lock_query = static::query()->select( 'id', 'slug', 'app_type' )->from( $table )
 			->where( 'id', '=', $this->get_id() )
+			->where( 'app_type', '=', $this->get_type() )
 			->limit( 1 );
 
 		$deleted  = false;
@@ -1090,8 +1113,8 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 			if ( ! empty( $record['slug'] ) ) {
 				$app_slug = $record['slug'];
 			}
-			if ( ! empty( $record['type'] ) ) {
-				$app_type = $record['type'];
+			if ( ! empty( $record['app_type'] ) ) {
+				$app_type = $record['app_type'];
 			}
 
 			if ( false === $db->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) ) {

@@ -31,8 +31,8 @@ class HostedApplicationService extends DataStore {
 	use SanitizeAwareTrait;
 
 	private const APP_COLUMNS = [
-		'id', 'owner_id', 'name', 'slug', 'status',
-		'download_link', 'created_at', 'updated_at',
+		'id', 'app_type', 'owner_id', 'name', 'slug', 'status',
+		'author', 'download_link', 'created_at', 'updated_at',
 	];
 
 	/**
@@ -75,16 +75,15 @@ class HostedApplicationService extends DataStore {
 		$results = static::cache_get( $key );
 	
 		if ( false === $results ) {
-			$sql_parts = static::build_type_queries( $types, $status );
-	
-			if ( empty( $sql_parts ) ) {
+			$types = static::registered_types( $types );
+
+			if ( empty( $types ) ) {
 				return static::make_paginated_result( [], $page, $limit );
 			}
-	
-			[ $rows, $total ] = static::resolve_union_results( sql_parts: $sql_parts, limit: $limit, offset: $offset, use_window_fn: true );
-			$rows             = static::hydrate_rows( $rows );
-			$results          = static::make_paginated_result( $rows, $page, $limit, $total );
-	
+
+			[ $rows, $total ] = static::fetch_page( $types, $status, limit: $limit, offset: $offset );
+			$results          = static::make_paginated_result( static::hydrate_rows( $rows ), $page, $limit, $total );
+
 			static::cache_set( $key, $results, static::default_ttl() );
 		}
 	
@@ -233,15 +232,14 @@ class HostedApplicationService extends DataStore {
 				return static::make_paginated_result( data: [], page: $page, limit: $limit );
 			}
 	
-			$sql_parts = static::build_type_queries( $types, $status, $term );
-	
-			if ( empty( $sql_parts ) ) {
+			$types = static::registered_types( $types );
+
+			if ( empty( $types ) ) {
 				return static::make_paginated_result( data: [], page: $page, limit: $limit );
 			}
-	
-			[ $rows, $total ] = static::resolve_union_results( sql_parts: $sql_parts, limit: $limit, offset: $offset, use_window_fn: false );
-			$rows             = static::hydrate_rows( $rows );
-			$results          = static::make_paginated_result( data: $rows, page: $page, limit: $limit, total: $total );
+
+			[ $rows, $total ] = static::fetch_page( $types, $status, term: $term, limit: $limit, offset: $offset );
+			$results          = static::make_paginated_result( data: static::hydrate_rows( $rows ), page: $page, limit: $limit, total: $total );
 	
 			static::cache_set( $key, $results, static::default_ttl() );
 		}
@@ -262,14 +260,14 @@ class HostedApplicationService extends DataStore {
 
 		if ( false === $app || ! ( $app instanceof AbstractHostedApp ) ) {
 			$app_class = HostedAppsRegistry::instance()->get_app_type_class( $app_type );
-			$table     = HostedAppsRegistry::instance()->get_app_type_table( $app_type );
 			$app       = null;
 
-			if ( $table && $app_class && class_exists( $app_class ) ) {
+			if ( $app_class && class_exists( $app_class ) ) {
 				$db  = static::$DB;
 				$sql = static::query()
 					->select( '*' )
-					->from( $table )
+					->from( AbstractHostedApp::get_db_table() )
+					->where( 'app_type', '=', HostedAppsRegistry::instance()->normalize_app_type( $app_type ) )
 					->where( 'slug', '=', $app_slug )
 					->limit( 1 );
 
@@ -290,6 +288,9 @@ class HostedApplicationService extends DataStore {
 	/**
 	 * Get a single hosted application using its ID.
 	 *
+	 * App IDs are unique across all types; the type is checked too, so an ID
+	 * given with the wrong type finds nothing.
+	 *
 	 * @param string $app_type The app type can be one of the allowed app types.
 	 * @param int $id The app ID.
 	 * @return AbstractHostedApp|null The instance of a hosted application or null on failure.
@@ -300,17 +301,16 @@ class HostedApplicationService extends DataStore {
 
 		if ( false === $app || ! ( $app instanceof AbstractHostedApp ) ) {
 
-			$registry = HostedAppsRegistry::instance();
-
-			$app_class = $registry->get_app_type_class( $app_type );
-			$table     = $registry->get_app_type_table( $app_type );
+			$registry  = HostedAppsRegistry::instance();
+			$app_class = $registry->get_app_type_class( (string) $app_type );
 			$app       = null;
 
-			if ( $table && $app_class && class_exists( $app_class ) ) {
+			if ( $app_class && class_exists( $app_class ) ) {
 				$db  = static::$DB;
 				$sql = static::query()
 					->select( '*' )
-					->from( $table )
+					->from( AbstractHostedApp::get_db_table() )
+					->where( 'app_type', '=', $registry->normalize_app_type( (string) $app_type ) )
 					->where( 'id', '=', $id )
 					->limit( 1 );
 
@@ -370,19 +370,14 @@ class HostedApplicationService extends DataStore {
 		$results = static::cache_get( $key );
 	
 		if ( false === $results ) {
-			$sql_parts = static::build_type_queries(
-				$types,
-				$status,
-				extra_wheres: [ [ 'owner_id', '=', $owner_id ] ]
-			);
-	
-			if ( empty( $sql_parts ) ) {
+			$types = static::registered_types( $types );
+
+			if ( empty( $types ) ) {
 				return static::make_paginated_result( [], $page, $limit );
 			}
-	
-			[ $rows, $total ] = static::resolve_union_results( $sql_parts, $limit, $offset, use_window_fn: true );
-			$rows             = static::hydrate_rows( $rows );
-			$results          = static::make_paginated_result( $rows, $page, $limit, $total );
+
+			[ $rows, $total ] = static::fetch_page( $types, $status, owner_id: $owner_id, limit: $limit, offset: $offset );
+			$results          = static::make_paginated_result( static::hydrate_rows( $rows ), $page, $limit, $total );
 	
 			static::cache_set( $key, $results, static::default_ttl() );
 		}
@@ -414,28 +409,15 @@ class HostedApplicationService extends DataStore {
 		$count = static::cache_get( $key );
 	
 		if ( false === $count ) {
-			$sql_parts = static::build_type_queries( $types, $status );
-	
-			if ( empty( $sql_parts ) ) {
+			$types = static::registered_types( $types );
+
+			if ( empty( $types ) ) {
 				return 0;
 			}
-	
-			$db = static::$DB;
-	
-			if ( 1 === count( $sql_parts ) ) {
-				$count_sql = static::query()
-					->select( 'COUNT(*) as total_records' )
-					->from( $sql_parts[0]->get_table_name() )
-					->where( 'status', '=', $status );
-		
-				$total = $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
-				$count = (int) $total;
-			} else {
-				$union_sql = static::build_union_query( $sql_parts );
-				$count_sql = ( clone $union_sql )->select( 'COUNT(*) as total_records' )->as( 'app_count' );
-				$count     = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
-			}
-	
+
+			$count_sql = static::apps_query( [ 'COUNT(*)' ], $types, $status );
+			$count     = (int) static::$DB->get_var( $count_sql->build(), $count_sql->get_bindings() );
+
 			static::cache_set( $key, $count, static::default_ttl() );
 		}
 	
@@ -547,6 +529,7 @@ class HostedApplicationService extends DataStore {
 				$table = $app::get_db_table();
 				$lock  = static::query()->select( 'id', 'slug' )->from( $table )
 					->where( 'id', '=', $app->get_id() )
+					->where( 'app_type', '=', $type )
 					->limit( 1 )->lock_for_update();
 				$row   = $db->get_row( $lock->build(), $lock->get_bindings() );
 
@@ -606,7 +589,7 @@ class HostedApplicationService extends DataStore {
 	 *
 	 * @param Database $db The database, inside the rename transaction.
 	 * @param string $type App type.
-	 * @param string $table The type's app table.
+	 * @param string $table The apps table.
 	 * @param string $slug The slug.
 	 * @param Repository $repo_class The type's repository.
 	 * @return string|null What uses it, for the error message; null when free.
@@ -620,7 +603,7 @@ class HostedApplicationService extends DataStore {
 
 		$app_prop = sprintf( '%s/%s', $type, $slug );
 		$checks   = [
-			sprintf( 'another %s has it', $type )        => static::query()->select( 'id' )->from( $table )->where( 'slug', '=', $slug ),
+			sprintf( 'another %s has it', $type )        => static::query()->select( 'id' )->from( $table )->where( 'app_type', '=', $type )->where( 'slug', '=', $slug ),
 			'licenses still refer to it'                  => static::query()->select( 'id' )->from( TableName::LICENSES->table() )->where( 'app_prop', '=', $app_prop ),
 			'download tokens still refer to it'           => static::query()->select( 'id' )->from( TableName::APP_DOWNLOAD_TOKENS->table() )->where( 'app_prop', '=', $app_prop ),
 			'analytics still refer to it'                 => static::query()->select( 'app_slug' )->from( TableName::ANALYTICS_DAILY->table() )->where( 'app_type', '=', $type )->where( 'app_slug', '=', $slug ),
@@ -643,7 +626,7 @@ class HostedApplicationService extends DataStore {
 	 * Build the updates that move every record of an app's slug to a new one.
 	 *
 	 * @param string $type App type.
-	 * @param string $table The type's app table.
+	 * @param string $table The apps table.
 	 * @param string $old_slug The app's slug.
 	 * @param string $new_slug The new slug.
 	 * @param int $app_id The app's ID.
@@ -654,7 +637,7 @@ class HostedApplicationService extends DataStore {
 		$new_prop = sprintf( '%s/%s', $type, $new_slug );
 
 		return [
-			static::query()->update( $table )->set( [ 'slug' => $new_slug ] )->where( 'id', '=', $app_id ),
+			static::query()->update( $table )->set( [ 'slug' => $new_slug ] )->where( 'id', '=', $app_id )->where( 'app_type', '=', $type ),
 			static::query()->update( TableName::LICENSES->table() )->set( [ 'app_prop' => $new_prop ] )->where( 'app_prop', '=', $old_prop ),
 			static::query()->update( TableName::APP_DOWNLOAD_TOKENS->table() )->set( [ 'app_prop' => $new_prop ] )->where( 'app_prop', '=', $old_prop ),
 			static::query()->update( TableName::ANALYTICS_DAILY->table() )->set( [ 'app_slug' => $new_slug ] )->where( 'app_type', '=', $type )->where( 'app_slug', '=', $old_slug ),
@@ -752,165 +735,107 @@ class HostedApplicationService extends DataStore {
 	}
 
 	/**
-	 * @param  string[] $types
-	 * @param  string   $status
-	 * @param  string   $term          Optional search term; filters name/slug/author by prefix.
-	 * @param  array<array{string, string, mixed}> $extra_wheres
-	 *         Additional WHERE clauses applied to every intent, each as
-	 *         [ $column, $operator, $value ] (e.g. [ 'owner_id', '=', 5 ]).
-	 * @return SelectionIntent[]
+	 * Keep the given app types that are registered, normalized.
+	 *
+	 * @param string[] $types
+	 * @return list<string>
 	 */
-	private static function build_type_queries(
-		array  $types,
-		string $status,
-		string $term = '',
-		array  $extra_wheres = []
-	) : array {
-		$registry  = HostedAppsRegistry::instance();
-		$sql_parts = [];
-	
-		foreach ( $types as $type ) {
-			$table = $registry->get_app_type_table( $type );
-	
-			if ( ! $table ) {
-				continue;
-			}
-	
-			$query = static::query()
-				->select( "'{$type}' as type", ...static::APP_COLUMNS )
-				->from( $table )
-				->where( 'status', '=', $status );
-	
-			foreach ( $extra_wheres as [ $column, $operator, $value ] ) {
-				$query->where( $column, $operator, $value );
-			}
-	
-			if ( '' !== $term ) {
-				$query->where_group( static function ( SelectionIntent $group ) use ( $term ) {
-					$group->where_starts_with( 'name', $term )
-						->or_where_starts_with( 'slug', $term )
-						->or_where_starts_with( 'author', $term );
-				} );
-			}
-	
-			$sql_parts[] = $query;
-		}
-	
-		return $sql_parts;
+	private static function registered_types( array $types ) : array {
+		$registry = HostedAppsRegistry::instance();
+		$types    = array_map( static fn ( $type ) : string => $registry->normalize_app_type( (string) $type ), $types );
+
+		return array_values( array_unique( array_filter( $types, [ $registry, 'is_app_type_registered' ] ) ) );
 	}
 
 	/**
-	 * Execute query/queries and return raw rows plus a total record count.
+	 * Build a query on the apps table for apps of the given types and status.
 	 *
-	 * Handles three cases transparently:
-	 *   1. Single SelectionIntent  — uses a window function (when $use_window_fn
-	 *      is true) or a separate COUNT query (when false) to obtain the total.
-	 *   2. Two or more intents     — builds a UNION ALL sub-query and wraps it in
-	 *      a COUNT(*) sub-select for the total; always uses separate queries.
-	 *
-	 * @param  SelectionIntent[] $sql_parts       One or more query intents.
-	 * @param  int               $limit
-	 * @param  int               $offset
-	 * @param  bool              $use_window_fn   When true and there is only one
-	 *                                            intent, piggyback COUNT(*) OVER()
-	 *                                            onto the data query instead of
-	 *                                            issuing a separate count query.
-	 * @return array{ 0: array[], 1: int }        [ $rows, $total ]
+	 * @param string[] $columns  The columns to select.
+	 * @param string[] $types    Registered app types (see registered_types()).
+	 * @param string   $status   App status.
+	 * @param string   $term     Optional search term; matches the start of the name, slug or author.
+	 * @param int|null $owner_id Optional owner.
+	 * @return SelectionIntent
 	 */
-	private static function resolve_union_results( array $sql_parts, int $limit, int $offset, bool $use_window_fn ) : array {
-		$db = static::$DB;
-	
-		if ( 1 === count( $sql_parts ) ) {
-			$data_sql = $sql_parts[0];
-	
-			if ( $use_window_fn ) {
-				$data_sql->select( 'COUNT(*) OVER() as total_records' )
-					->limit( $limit )
-					->offset( $offset );
-	
-				$rows  = $db->get_results( $data_sql->build(), $data_sql->get_bindings() );
-				$total = ! empty( $rows ) ? (int) $rows[0]['total_records'] : 0;
-	
-				foreach ( $rows as &$row ) {
-					unset( $row['total_records'] );
-				}
-				unset( $row );
-			} else {
-				$count_sql = static::query()
-					->select( 'COUNT(*) as total_records' )
-					->from( $data_sql->get_table_name() );
-	
-				// Copy WHERE clauses onto the count query by cloning and stripping
-				// projection; simplest approach is cloning the intent directly.
-				$count_clone = clone $data_sql;
-				$count_clone->select( 'COUNT(*) as total_records' );
-	
-				$data_sql->limit( $limit )->offset( $offset );
-	
-				$rows  = $db->get_results( $data_sql->build(), $data_sql->get_bindings() );
-				$total = (int) $db->get_var( $count_clone->build(), $count_clone->get_bindings() );
-			}
-	
-			return [ $rows, $total ];
+	private static function apps_query( array $columns, array $types, string $status, string $term = '', ?int $owner_id = null ) : SelectionIntent {
+		$query = static::query()
+			->select( ...$columns )
+			->from( AbstractHostedApp::get_db_table() )
+			->where_in( 'app_type', $types )
+			->where( 'status', '=', $status );
+
+		if ( null !== $owner_id ) {
+			$query->where( 'owner_id', '=', $owner_id );
 		}
-	
-		// Two or more intents: build a UNION ALL.
-		$base_union = static::build_union_query( $sql_parts );
-	
-		$count_sql = ( clone $base_union )->select( 'COUNT(*) as total_records' )->as( 'app_count' );
+
+		if ( '' !== $term ) {
+			$query->where_group( static function ( SelectionIntent $group ) use ( $term ) {
+				$group->where_starts_with( 'name', $term )
+					->or_where_starts_with( 'slug', $term )
+					->or_where_starts_with( 'author', $term );
+			} );
+		}
+
+		return $query;
+	}
+
+	/**
+	 * Fetch one page of apps, ordered by name, and the total number of
+	 * matching apps.
+	 *
+	 * @param string[] $types    Registered app types (see registered_types()).
+	 * @param string   $status   App status.
+	 * @param string   $term     Optional search term.
+	 * @param int|null $owner_id Optional owner.
+	 * @param int      $limit
+	 * @param int      $offset
+	 * @return array{ 0: array<int, array<string, mixed>>, 1: int } [ $rows, $total ]
+	 */
+	private static function fetch_page( array $types, string $status, string $term = '', ?int $owner_id = null, int $limit = 20, int $offset = 0 ) : array {
+		$db = static::$DB;
+
+		$count_sql = static::apps_query( [ 'COUNT(*)' ], $types, $status, $term, $owner_id );
 		$total     = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
-	
-		$data_sql = $base_union->select( '*' )
-			->as( 'apps' )
+
+		if ( 0 === $total ) {
+			return [ [], 0 ];
+		}
+
+		$data_sql = static::apps_query( static::APP_COLUMNS, $types, $status, $term, $owner_id )
 			->order_by( 'name', 'ASC' )
+			->order_by( 'id', 'ASC' )
 			->limit( $limit )
 			->offset( $offset );
-	
+
 		$rows = $db->get_results( $data_sql->build(), $data_sql->get_bindings() );
-	
-		return [ $rows, $total ];
+
+		return [ $rows ?: [], $total ];
 	}
-	
+
 	/**
-	 * Hydrate raw DB rows into AbstractHostedApp instances in-place.
+	 * Hydrate raw DB rows into AbstractHostedApp instances.
 	 *
-	 * Rows whose type maps to an unknown/missing class are silently dropped.
+	 * Rows whose type is not registered are dropped.
 	 *
-	 * @param  array[] $rows  Raw associative rows from the DB.
+	 * @param  array<int, array<string, mixed>> $rows Raw associative rows from the apps table.
 	 * @return AbstractHostedApp[]
 	 */
 	private static function hydrate_rows( array $rows ) : array {
 		$registry = HostedAppsRegistry::instance();
-	
-		foreach ( $rows as $i => &$row ) {
-			$class = $registry->get_app_type_class( $row['type'] ?? '' );
-	
+		$apps     = [];
+
+		foreach ( $rows as $row ) {
+			$class = $registry->get_app_type_class( (string) ( $row['app_type'] ?? '' ) );
+
 			if ( ! $class || ! class_exists( $class ) ) {
-				unset( $rows[ $i ] );
 				continue;
 			}
-	
-			/** @var AbstractHostedApp $row */
-			$row = $class::from_array_minimal( (array) $row );
-		}
-		unset( $row );
-	
-		return $rows;
-	}
 
-	/**
-	 * Fold a list of SelectionIntents into a single UNION ALL CompoundQueryIntent.
-	 *
-	 * @param  SelectionIntent[] $sql_parts  At least two intents.
-	 * @return \Callismart\DBPrism\Query\QueryIntents\CompoundQueryIntent
-	 */
-	private static function build_union_query( array $sql_parts ) : mixed {
-		$base = null;
-	
-		foreach ( $sql_parts as $sql ) {
-			$base = ( null === $base ) ? $sql : $base->union_all( $sql );
+			/** @var AbstractHostedApp $app */
+			$app    = $class::from_array_minimal( (array) $row );
+			$apps[] = $app;
 		}
-	
-		return $base;
+
+		return $apps;
 	}
 }

@@ -13,27 +13,12 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\WPThemeRepository;
-use SmartLicenseServer\Schema\TableName;
 use SmartLicenseServer\Utils\Format;
 
 /**
  * Represents a typical theme hosted in the repository.
  */
 class WPTheme extends AbstractHostedApp {
-	/**
-	 * The database table for themes.
-	 * 
-	 * @var TableName
-	 */
-	const MAIN = TableName::WP_THEMES;
-
-	/**
-	 * The theme metadata table
-	 * 
-	 * @var TableName
-	 */
-	const META = TableName::WP_THEME_META;
-
 	/**
 	 * WordPress version requirement.
 	 * 
@@ -213,39 +198,12 @@ class WPTheme extends AbstractHostedApp {
 	 */
 
 	/**
-	 * Get the database table name.
-	 * 
-	 * @return string
-	 */
-	public static function get_db_table() : string {
-		return static::MAIN->table();
-	}
-
-	/**
 	 * Get database fields.
 	 * 
 	 * @return array<int, string>
 	 */
 	public function get_fillable() : array {
 		return [ 'owner_id', 'name', 'author', 'status', 'download_link' ];
-	}
-
-	/**
-	 * Get the database table name.
-	 * 
-	 * @return string
-	 */
-	public static function get_db_meta_table() : string {
-		return self::META->table();
-	}
-
-	/**
-	 * Get the foreign key column name for metadata table
-	 * 
-	 * @return string
-	 */
-	protected function get_meta_foreign_key() : string {
-		return 'theme_id';
 	}
 
 	/**

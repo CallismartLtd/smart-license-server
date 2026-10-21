@@ -35,7 +35,7 @@ class RepositoryAnalytics extends DataStore {
 	/**
 	 * Get total downloads across all apps (optionally filtered by type)
 	 * 
-	 * @param string|null $type 'plugin'|'theme'|'software' or null for all types
+	 * @param string|null $type 'wpplugin'|'wptheme'|'software' or null for all types
 	 * @return int
 	 */
 	public function get_total_downloads( ?string $type = null ) : int {
@@ -335,36 +335,17 @@ class RepositoryAnalytics extends DataStore {
 	/**
 	 * Get total apps hosted in the repository, optionally filtered by type.
 	 * 
-	 * @param string|null $type 'plugin'|'theme'|'software' or null for all types
+	 * @param string|null $type 'wpplugin'|'wptheme'|'software' or null for all types
 	 * @return int
 	 */
 	public function get_total_apps( ?string $type = null ) : int {
-		$total = 0;
+		$sql = static::query()->select( 'COUNT(*)' )->from( TableName::APPS->table() );
 
 		if ( $type ) {
-			$table = match( $type ) {
-				'plugin'   => TableName::WP_PLUGINS->table(),
-				'theme'    => TableName::WP_THEMES->table(),
-				'software' => TableName::SOFTWARE->table(),
-			};
-
-			$sql = static::query()->select( 'COUNT(*)' )->from( $table );
-
-			return (int) static::$DB->get_var( $sql->build() );
+			$sql->where( 'app_type', '=', $type );
 		}
 
-		$plugins_sql  = static::query()->select( 'COUNT(*) as total' )->from( TableName::WP_PLUGINS->table() );
-		$themes_sql   = static::query()->select( 'COUNT(*) as total' )->from( TableName::WP_THEMES->table() );
-		$software_sql = static::query()->select( 'COUNT(*) as total' )->from( TableName::SOFTWARE->table() );
-
-		$compound_sql = $plugins_sql->union( $themes_sql )->union( $software_sql );
-		$results      = static::$DB->get_results( $compound_sql->build() );
-
-		foreach ( $results as $row ) {
-			$total += (int) $row['total'];
-		}
-
-		return $total;
+		return (int) static::$DB->get_var( $sql->build(), $sql->get_bindings() );
 	}
 
 	/**
@@ -376,47 +357,16 @@ class RepositoryAnalytics extends DataStore {
 	public function get_apps_by_status( ?string $type = null ) : array {
 		$status_counts = [];
 
+		$sql = static::query()
+			->select( 'app_type', 'status', 'COUNT(*) as total' )
+			->from( TableName::APPS->table() )
+			->group_by( 'app_type', 'status' );
+
 		if ( $type ) {
-			$table = match( $type ) {
-				'plugin'   => TableName::WP_PLUGINS->table(),
-				'theme'    => TableName::WP_THEMES->table(),
-				'software' => TableName::SOFTWARE->table(),
-				default    => null,
-			};
-
-			if ( ! $table ) {
-				return [];
-			}
-
-			$sql = static::query()
-				->select( 'status', 'COUNT(*) as total' )
-				->from( $table )
-				->group_by( 'status' );
-
-			$results = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
-			
-			foreach ( $results as $row ) {
-				$status_counts[ $type ][ $row['status'] ] = (int) $row['total'];
-			}
-
-			return $status_counts;
+			$sql->where( 'app_type', '=', $type );
 		}
 
-		$base_sql = static::query()
-			->select( 'status', 'COUNT(*) as total', "'plugin' as app_type" )
-			->from( TableName::WP_PLUGINS->table() )->group_by( 'status' );
-
-		$themes_sql = static::query()
-			->select( 'status', 'COUNT(*) as total', "'theme' as app_type" )
-			->from( TableName::WP_THEMES->table() )->group_by( 'status' );
-
-		$software_sql = static::query()
-			->select( 'status', 'COUNT(*) as total', "'software' as app_type" )
-			->from( TableName::SOFTWARE->table() )->group_by( 'status' );
-
-		$compound_sql = $base_sql->union_all( $themes_sql )->union_all( $software_sql );
-		
-		$results = static::$DB->get_results( $compound_sql->build(), $compound_sql->get_bindings() );
+		$results = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
 
 		foreach ( $results as $row ) {
 			$status_counts[ $row['app_type'] ][ $row['status'] ] = (int) $row['total'];
@@ -475,46 +425,20 @@ class RepositoryAnalytics extends DataStore {
 		// Corrected time calculation mapping to your TimestampValue value object framework
 		$date = TimestampValue::now()->subtractMonths( $months )->format( 'Y-m-d H:i:s' );
 
+		$sql = static::query()
+			->select( 'name', 'slug', 'status', 'updated_at', 'app_type' )
+			->from( TableName::APPS->table() )
+			->where( 'updated_at', '>=', $date )
+			->order_by( 'updated_at', 'ASC' );
+
 		if ( $type ) {
-			$table = match( $type ) {
-				'plugin'   => TableName::WP_PLUGINS->table(),
-				'theme'    => TableName::WP_THEMES->table(),
-				'software' => TableName::SOFTWARE->table(),
-			};
+			$sql->where( 'app_type', '=', $type );
 
-			$sql = static::query()
-				->select( 'name', 'slug', 'status', 'updated_at', "'{$type}' as app_type" )
-				->from( $table )
-				->where( 'updated_at', '>=', $date )
-				->order_by( 'updated_at', 'ASC' );
-
-			$results = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
-			
-			// Critical Fix: Explicitly initialize the requested type index to guarantee structural consistency
+			// The requested type is always in the result, even without apps.
 			$maintained[ $type ] = [];
-		} else {
-			// No type filter? Compile ALL tables using our brand new CompoundQueryIntent engine!
-			$plugins_sql = static::query()
-				->select( 'name', 'slug', 'status', 'updated_at', "'plugin' as app_type" )
-				->from( TableName::WP_PLUGINS->table() )
-				->where( 'updated_at', '>=', $date );
-
-			$themes_sql = static::query()
-				->select( 'name', 'slug', 'status', 'updated_at', "'theme' as app_type" )
-				->from( TableName::WP_THEMES->table() )
-				->where( 'updated_at', '>=', $date );
-
-			$software_sql = static::query()
-				->select( 'name', 'slug', 'status', 'updated_at', "'software' as app_type" )
-				->from( TableName::SOFTWARE->table() )
-				->where( 'updated_at', '>=', $date );
-
-			// Captured using $compound_sql to extract unified bindings and strings safely
-			$compound_sql = $plugins_sql->union_all( $themes_sql )->union_all( $software_sql )
-				->order_by( 'updated_at', 'ASC' );
-
-			$results = static::$DB->get_results( $compound_sql->build(), $compound_sql->get_bindings() );
 		}
+
+		$results = static::$DB->get_results( $sql->build(), $sql->get_bindings() );
 
 		// Structural Safety Check: If the DB returns nothing, safely exit with our predictable layout
 		if ( empty( $results ) ) {

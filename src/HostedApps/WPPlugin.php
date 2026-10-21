@@ -11,26 +11,11 @@ namespace SmartLicenseServer\HostedApps;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Monetization\Monetization;
 use SmartLicenseServer\FileSystem\WPPluginRepository;
-use SmartLicenseServer\Schema\TableName;
 
 /**
  * Represents a typical plugin hosted in this repository.
  */
 class WPPlugin extends AbstractHostedApp {
-	/**
-	 * The plugin database table name.
-	 * 
-	 * @var TableName
-	 */
-	const MAIN = TableName::WP_PLUGINS;
-
-	/**
-	 * Plugin metadata table
-	 * 
-	 * @var TableName
-	 */
-	const META = TableName::WP_PLUGIN_META;
-
 	/**
 	 * WordPress version requirement.
 	 * 
@@ -395,38 +380,11 @@ class WPPlugin extends AbstractHostedApp {
 	}
 
 	/**
-	 * Get the database table name
-	 * 
-	 * @return string
-	 */
-	public static function get_db_table() : string {
-		return static::MAIN->table();
-	}
-
-	/**
 	 * Get database fields.
 	 * 
 	 * @return string[]
 	 */
 	public function get_fillable() : array {
 		return [ 'name', 'owner_id', 'author', 'status', 'author_profile', 'download_link' ];
-	}
-
-	/**
-	 * Get the database metadate table name.
-	 * 
-	 * @return string
-	 */
-	public static function get_db_meta_table() : string {
-		return self::META->table();
-	}
-
-	/**
-	 * Get the foreign key column name for metadata table
-	 * 
-	 * @return string
-	 */
-	protected function get_meta_foreign_key() : string {
-		return 'plugin_id';
 	}
 }

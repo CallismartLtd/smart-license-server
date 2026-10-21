@@ -23,7 +23,10 @@ use SmartLicenseServer\FileSystem\WPThemeRepository;
  * Centralized registry for managing any type of 
  * hosted application in this system.
  * 
- * This registry stores the app types, their classes, database table names.
+ * This registry stores the app types, their classes, their storage
+ * directory classes and their labels. Apps of every type share one database
+ * table (see AbstractHostedApp::get_db_table()), so a type has no table of
+ * its own.
  */
 class HostedAppsRegistry extends AbstractRegistry {
 	/**
@@ -67,10 +70,9 @@ class HostedAppsRegistry extends AbstractRegistry {
 	 * @param array{
 	 *  class: class-string<HostedAppsInterface>,
 	 *  directory_class: class-string<Repository>,
-	 *  table: string,
 	 *  labels?: array{singular: string, plural: string}
-	 * }|null $data The app class, its directory class, its database table name
-	 *              and, optionally, the names people read (see get_app_type_labels()).
+	 * }|null $data The app class, its directory class and, optionally, the
+	 *              names people read (see get_app_type_labels()).
 	 * @return static
 	 * @throws \InvalidArgumentException When a key is missing or invalid, or the type is a core type.
 	 */
@@ -79,10 +81,10 @@ class HostedAppsRegistry extends AbstractRegistry {
 
 		$type = $this->normalize_app_type( $type );
 
-		if ( ! isset( $data['class'] ) || ! isset( $data['table'] ) || ! isset( $data['directory_class'] ) ) {
+		if ( ! isset( $data['class'] ) || ! isset( $data['directory_class'] ) ) {
 			throw new \InvalidArgumentException(
 				sprintf(
-					'Hosted app registration for type "%s" must include "class", "directory_class" and "table" keys.',
+					'Hosted app registration for type "%s" must include "class" and "directory_class" keys.',
 					$type
 				)
 			);
@@ -151,7 +153,6 @@ class HostedAppsRegistry extends AbstractRegistry {
 	 * @return array{
 	 *  class: class-string<HostedAppsInterface>,
 	 *  directory_class: class-string<Repository>,
-	 *  table: string,
 	 *  labels?: array{singular: string, plural: string}
 	 * }|null $entry 
 	 */
@@ -165,7 +166,6 @@ class HostedAppsRegistry extends AbstractRegistry {
 		 * @var array{
 		 *  class: class-string<HostedAppsInterface>,
 		 *  directory_class: class-string<Repository>,
-		 *  table: string,
 		 *  labels?: array{singular: string, plural: string}
 		 * }|null $entry 
 		 */
@@ -186,22 +186,6 @@ class HostedAppsRegistry extends AbstractRegistry {
 		}
 
 		return $entry['class'];
-	}
-
-	/**
-	 * Get the database table name for a registered hosted app.
-	 * 
-	 * @param string $type The unique type identifier for the app.
-	 * @return string|null The table name if found, null otherwise.
-	 */
-	public function get_app_type_table( string $type ) : ?string {
-		$entry = $this->get_app_type_data( $type );
-	   
-		if ( ! $entry ) {
-			return null;
-		}
-
-		return $entry['table'];
 	}
 
 	/**
@@ -338,19 +322,16 @@ class HostedAppsRegistry extends AbstractRegistry {
 			'wpplugin' => [
 				'class'           => WPPlugin::class,
 				'directory_class' => WPPluginRepository::class,
-				'table'           => WPPlugin::get_db_table(),
 				'labels'          => [ 'singular' => 'WordPress Plugin', 'plural' => 'WordPress Plugins' ],
 			],
 			'wptheme' => [
 				'class'           => WPTheme::class,
 				'directory_class' => WPThemeRepository::class,
-				'table'           => WPTheme::get_db_table(),
 				'labels'          => [ 'singular' => 'WordPress Theme', 'plural' => 'WordPress Themes' ],
 			],
 			'software' => [
 				'class'           => Software::class,
 				'directory_class' => SoftwareRepository::class,
-				'table'           => Software::get_db_table(),
 				'labels'          => [ 'singular' => 'Software', 'plural' => 'Software' ],
 			],
 		];
