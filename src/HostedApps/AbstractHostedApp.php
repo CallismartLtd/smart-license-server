@@ -999,7 +999,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 						->where( 'id', '=', $id )
 						->where( 'app_type', '=', $this->get_type() );
 					
-					if ( false === $db->execute( $update_query->build(), $update_query->get_bindings() ) ) {
+					if ( 0 === $db->execute( $update_query->build(), $update_query->get_bindings() ) && ! empty( $db->get_last_error() ) ) {
 						throw new Exception( 'db_update_error', $db->get_last_error() );
 					}
 
@@ -1030,7 +1030,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 
 					$insert_query = static::query()->insert( $this->get_db_table() )->values( $data );
 					
-					if ( false === $db->execute( $insert_query->build(), $insert_query->get_bindings() ) ) {
+					if ( 0 === $db->execute( $insert_query->build(), $insert_query->get_bindings() ) ) {
 						throw new Exception( 'db_insert_error', $db->get_last_error() );
 					}
 
