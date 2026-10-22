@@ -9,7 +9,8 @@
 ( function () {
 	'use strict';
 
-	const queryParam = new URLSearchParams( window.location.search );
+	const queryParam	= new URLSearchParams( window.location.search );
+	const docEl			= document.documentElement;
 
 	/*
 	|----------------
@@ -162,6 +163,21 @@
 
 	function initDatePickers() {
 		CallismartDatePicker.mountAll();
+		CallismartDatePicker.setGlobalTheme( docEl.dataset.theme );
+
+        const observer = new MutationObserver( ( mutations ) => {
+            for ( const mutation of mutations ) {
+                if ( mutation.type === 'attributes' && mutation.attributeName === 'data-theme' ) {
+                    const theme = mutation.target.dataset.theme;
+                    CallismartDatePicker.setGlobalTheme( theme );
+                }
+            }	
+        });
+
+        observer.observe( docEl, {
+            attributes: true,
+            attributeFilter: [ 'data-theme' ]
+        });
 	}
 
 	function initHelpTooltips() {
@@ -1403,7 +1419,7 @@
 			return;
 		}
 
-		const isDark = 'dark' === document.documentElement.getAttribute( 'data-theme' );
+		const isDark = 'dark' === docEl.dataset.theme;
 
 		let container = targetEl.closest( '.tox-tinymce-wrapper' );
 
@@ -1472,7 +1488,7 @@
 		initBroadcastEditor();
 
 		// Re-init the editor when the theme toggles.
-		new MutationObserver( initBroadcastEditor ).observe( document.documentElement, {
+		new MutationObserver( initBroadcastEditor ).observe( docEl, {
 			attributes: true,
 			attributeFilter: [ 'data-theme' ],
 		} );
