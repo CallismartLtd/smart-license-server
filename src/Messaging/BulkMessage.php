@@ -199,7 +199,7 @@ class BulkMessage {
 	 * @return static
 	 */
 	public function set_associated_app( string $app_type, string $slug ) : static {
-		$app_type = sanitize_key( $app_type );
+		$app_type = $this->sanitize_key( $app_type );
 		$slug     = $this->sanitize_text( $slug );
 
 		if ( ! isset( $this->associated_apps[$app_type] ) ) {

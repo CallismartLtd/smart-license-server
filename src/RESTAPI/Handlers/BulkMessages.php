@@ -8,6 +8,8 @@
 
 namespace SmartLicenseServer\RESTAPI\Handlers;
 
+use SmartLicenseServer\Core\Dates\DateDuration;
+use SmartLicenseServer\Core\Dates\TimestampValue;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Exceptions\RequestException;
@@ -78,10 +80,9 @@ class BulkMessages {
 	 * @return Response The response object
 	 */
 	public static function mock_dispatch( Request $request ) : Response {
-		$page  = (int) $request->get( 'page', 1 );
-		$limit = (int) $request->get( 'limit', 10 );
-		$page  = max( 1, $page );
-		$limit = max( 1, $limit );
+		$page            = max( 1, (int) $request->get( 'page', 1 ) );
+		$limit           = max( 1, (int) $request->get( 'limit', 10 ) );
+		$target_messages = 2000; // Easily adjust this target as needed
 
 		$subjects = [
 			'Welcome to Callismart Tech Solutions!',
@@ -134,6 +135,28 @@ class BulkMessages {
 			'Custom Plugin Development – Built Around Your Needs',
 			'Callismart Tech: Where Innovation Meets Reliability',
 			'Thank You for Being Part of the Callismart Community 🎉',
+
+			// Additional subjects.
+			'Building Better WordPress Workflows',
+			'Manage Your Software Licenses with Ease',
+			'Make Client Billing More Efficient',
+			'Improve Your Software Delivery Process',
+			'Connect Your Business Through APIs',
+			'Professional Invoicing for Every Client',
+			'Simplify Software License Activation',
+			'Tools That Support Business Growth',
+			'Keep Your Software Up to Date',
+			'Build Custom Solutions for Your Business',
+			'Reduce Repetitive Administrative Tasks',
+			'Make License Management More Transparent',
+			'Discover Smarter WooCommerce Automation',
+			'Keep Your Development Workflow Organised',
+			'Plan Your Next Product Improvement',
+			'Improve Customer Experience with Automation',
+			'Prepare Your Next Software Release',
+			'Make Recurring Service Billing Easier',
+			'Create a More Efficient Support Workflow',
+			'Scale Your Digital Products with Confidence',
 		];
 
 		$bodies = [
@@ -187,25 +210,107 @@ class BulkMessages {
 			'<p><strong>Demo Message:</strong> Need a custom WordPress plugin? Callismart Tech offers bespoke plugin development services designed and built entirely around your unique requirements.</p>',
 			'<p><strong>Demo Message:</strong> At Callismart Tech, innovation and reliability are not a trade-off – they are the foundation of every product we design, build, and ship.</p>',
 			'<p><strong>Demo Message:</strong> Thank you for being a valued member of the Callismart Tech community. We are committed to building tools that grow alongside your business.</p>',
+
+			// Additional message bodies.
+			'<p><strong>Better WordPress Workflows:</strong> Simplify daily operations, reduce repetitive tasks, and improve the way your business manages digital services.</p>',
+			'<p><strong>Software License Management:</strong> Keep licenses organised, monitor activations, and manage software access from one central workflow.</p>',
+			'<p><strong>Efficient Client Billing:</strong> Organise service billing, prepare invoices, and maintain a consistent process for managing client payments.</p>',
+			'<p><strong>Software Delivery:</strong> Build a dependable release workflow with organised versions, clear release notes, and convenient update management.</p>',
+			'<p><strong>API Integrations:</strong> Connect applications through well-structured APIs and automate data exchange between the services your business depends on.</p>',
+			'<p><strong>Professional Invoicing:</strong> Create clear invoices with relevant service descriptions, billing periods, and payment details.</p>',
+			'<p><strong>License Activation:</strong> Manage activation and validation through a consistent workflow that helps you support customers using your software.</p>',
+			'<p><strong>Business Growth:</strong> Adopt practical automation tools that help your team manage increasing workloads while keeping everyday processes organised.</p>',
+			'<p><strong>Software Updates:</strong> Keep releases organised and make it easier for customers to access the appropriate software versions.</p>',
+			'<p><strong>Custom Development:</strong> Callismart Tech develops tailored WordPress plugins and web applications to address specific business requirements.</p>',
+			'<p><strong>Administrative Automation:</strong> Automate routine billing and licensing tasks so your team can focus on customer service and product development.</p>',
+			'<p><strong>Transparent Licensing:</strong> Maintain a clear overview of software licenses and activation status to support administration and customer assistance.</p>',
+			'<p><strong>WooCommerce Automation:</strong> Simplify service management, billing, and recurring business tasks with tools designed for WooCommerce.</p>',
+			'<p><strong>Development Practices:</strong> Use clear documentation, consistent coding practices, and repeatable testing to make software maintenance easier.</p>',
+			'<p><strong>Product Improvements:</strong> Review your workflow, identify bottlenecks, and prioritise improvements that deliver practical value to customers.</p>',
+			'<p><strong>Customer Experience:</strong> Clear communication and dependable processes help customers understand your services and get assistance when needed.</p>',
+			'<p><strong>Release Planning:</strong> Document changes between versions and test important workflows before publishing a new release.</p>',
+			'<p><strong>Recurring Billing:</strong> Keep service periods, invoice details, and renewal schedules organised to make recurring billing more manageable.</p>',
+			'<p><strong>Support Workflow:</strong> Record issue details, affected versions, and reproduction steps to help your support team investigate problems efficiently.</p>',
+			'<p><strong>Digital Product Growth:</strong> Choose maintainable tools and workflows that can adapt as your software products and customer base grow.</p>',
 		];
 
-		$total_messages = 50;
-		$total_pages    = (int) ceil( $total_messages / $limit );
-		$offset         = ( $page - 1 ) * $limit;
-		$start          = $offset + 1;
-		$end            = min( $offset + $limit, $total_messages );
+		$additional_subjects = [
+			'Improve Customer Experience with Automation',
+			'Prepare Your Next Software Release',
+			'Make Recurring Service Billing Easier',
+			'Create a More Efficient Support Workflow',
+			'Scale Your Digital Products with Confidence',
+			'Build Reliable Software Integrations',
+			'Organise Your Client Service Operations',
+			'Make Software Updates Easier to Manage',
+			'Improve Your Product Documentation',
+			'Plan for Sustainable Business Growth',
+		];
 
-		$items     = [];
+		$additional_bodies = [
+			'<p><strong>Customer Experience:</strong> Use clear communication and reliable workflows to help customers understand your products and receive timely assistance.</p>',
+			'<p><strong>Software Releases:</strong> Plan releases carefully, document changes, and test key features to improve the reliability of software delivery.</p>',
+			'<p><strong>Service Billing:</strong> Keep service periods, invoice details, and renewal schedules organised to make recurring billing more manageable.</p>',
+			'<p><strong>Support Operations:</strong> Capture issue details and reproduction steps to help your team investigate technical problems efficiently.</p>',
+			'<p><strong>Product Growth:</strong> Build maintainable workflows that can adapt as your software products and customer base grow.</p>',
+			'<p><strong>Integrations:</strong> Document API requirements, validate incoming data, and handle errors carefully when connecting external services.</p>',
+			'<p><strong>Client Operations:</strong> Standardise common service tasks so your team can deliver a more consistent customer experience.</p>',
+			'<p><strong>Update Management:</strong> Keep versions organised and provide clear release information so customers can follow product improvements.</p>',
+			'<p><strong>Documentation:</strong> Maintain practical guides, examples, and troubleshooting steps to make your software easier to adopt.</p>',
+			'<p><strong>Sustainable Growth:</strong> Review your processes regularly and prioritise improvements that support long-term maintainability.</p>',
+		];
+
+		$additional_index = 0;
+
+		while ( count( $subjects ) < $target_messages ) {
+			$template_index = $additional_index % count( $additional_subjects );
+			$edition        = intdiv( $additional_index, count( $additional_subjects ) ) + 1;
+
+			$subjects[] = sprintf(
+				'%s — Edition %d',
+				$additional_subjects[ $template_index ],
+				$edition
+			);
+
+			$bodies[] = $additional_bodies[ $template_index ] .
+				sprintf(
+					'<p><strong>Update %d:</strong> Explore how Callismart Tech can help you improve your workflow, organise your processes, and manage your digital products more effectively.</p>',
+					$edition
+				);
+
+			$additional_index++;
+		}
+
+		// Keep subjects and bodies aligned up to the target.
+		$total_messages = min(
+			$target_messages,
+			count( $subjects ),
+			count( $bodies )
+		);
+
+		$total_pages = (int) ceil( $total_messages / $limit );
+		$offset      = ( $page - 1 ) * $limit;
+		$end         = min( $offset + $limit, $total_messages );
+
+		$items       = [];
 		$base_time = time();
 
-		for ( $i = $start; $i <= $end; $i++ ) {
-			$timestamp = $base_time - ( $i * HOUR_IN_SECONDS );
+		for ( $index = $offset; $index < $end; $index++ ) {
+			$number    = $index + 1;
+			$timestamp = $base_time - ( $number * 3600 );
 			$date      = gmdate( 'Y-m-d H:i:s', $timestamp );
 
 			$items[] = [
-				'id'         => 'msg_' . gmdate( 'Ymd', $timestamp ) . '_' . str_pad( (string) $i, 3, '0', STR_PAD_LEFT ),
-				'subject'    => $subjects[ $i - 1 ],
-				'body'       => $bodies[ $i - 1 ],
+				'id'         => 'msg_' .
+					gmdate( 'Ymd', $timestamp ) . '_' .
+					str_pad(
+						(string) $number,
+						3,
+						'0',
+						STR_PAD_LEFT
+					),
+				'subject'    => $subjects[ $index ],
+				'body'       => $bodies[ $index ],
 				'created_at' => $date,
 				'updated_at' => $date,
 				'read'       => (bool) random_int( 0, 1 ),
