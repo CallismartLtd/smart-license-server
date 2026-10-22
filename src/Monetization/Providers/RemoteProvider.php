@@ -67,12 +67,18 @@ class RemoteProvider implements MonetizationProviderInterface {
 			$options[ $account->get_identifier() ] = $account->get_display_name();
 		}
 
+		$description = empty( $options )
+			? ( $app->get_owner_id()
+				? 'This app\'s owner has no active service account. Create one for the owner under Accounts → Service Accounts, then reload this page.'
+				: 'There is no active service account. Create one under Accounts → Service Accounts, then reload this page.' )
+			: 'The service account the store uses. Only it can issue licenses from this tier.';
+
 		return [
 			'service_account' => [
 				'type'        => 'select',
 				'label'       => 'Store service account',
 				'default'     => '',
-				'description' => 'The service account the store uses. Only it can issue licenses from this tier.',
+				'description' => $description,
 				'required'    => true,
 				'options'     => $options,
 			],
