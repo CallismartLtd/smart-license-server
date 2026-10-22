@@ -68,17 +68,6 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
 			],
 			'visibility' => true,
 		] );
-
-		$this->add_top_menu( 'logout_button', [
-			'title'      => 'Logout',
-			'type'       => 'link',
-			'href'       => $this->urlmanager->logout_url(),
-			'visibility' => true,
-			'icon'       => 'ti ti-logout',
-			'attributes' => [
-				'class' => 'smliser-logout-link-btn'
-			]
-		] );
 		
 		$this->add_top_menu( 'client_dashboard', [
 			'title'      => 'Client Dashboard',
@@ -87,7 +76,7 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
 			'visibility' => true,
 			'icon'       => 'ti ti-user',
 			'attributes' => [
-				'class' => 'dashboard-home-url smliser-btn-glass'
+				'class' => 'dashboard-home-url smliser-top-menu-link'
 			]
 		] );
 
@@ -98,7 +87,18 @@ final class AdminDashboardRegistry extends AbstractDashboardRegistry {
 			'visibility' => true,
 			'icon'       => 'ti ti-home',
 			'attributes' => [
-				'class' => 'dashboard-home-url smliser-btn-glass'
+				'class' => 'dashboard-home-url smliser-top-menu-link'
+			]
+		] );
+
+		$this->add_top_menu( 'logout_button', [
+			'title'      => 'Logout',
+			'type'       => 'link',
+			'href'       => $this->urlmanager->logout_url(),
+			'visibility' => true,
+			'icon'       => 'ti ti-logout',
+			'attributes' => [
+				'class' => 'smliser-top-menu-link'
 			]
 		] );
 	}
