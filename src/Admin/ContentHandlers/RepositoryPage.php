@@ -526,7 +526,22 @@ class RepositoryPage implements AdminPageInterface {
 		$urlmanager = $this->urlmanager;
 		$repo_page  = $this;
 		$app        = $monetization->get_app();
-		$vars       = compact( 'repo_page', 'urlmanager', 'request', 'monetization', 'is_new', 'app', 'url', 'providers', );
+
+		// Each provider's tier fields for this app, keyed by provider ID.
+		$provider_fields = [];
+
+		foreach ( array_keys( $providers ) as $provider_id ) {
+			$provider = $app ? $this->monetization_registry->get_provider( (string) $provider_id ) : null;
+
+			if ( $provider ) {
+				$provider_fields[ $provider_id ] = [
+					'name'   => $provider::get_name(),
+					'fields' => $provider->get_tier_schema( $app ),
+				];
+			}
+		}
+
+		$vars = compact( 'repo_page', 'urlmanager', 'request', 'monetization', 'is_new', 'app', 'url', 'providers', 'provider_fields' );
 		$this->locator->render( 'admin.contents.repository.monetization', $vars );
 	}
 

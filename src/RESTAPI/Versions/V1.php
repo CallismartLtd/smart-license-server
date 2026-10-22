@@ -12,6 +12,7 @@ namespace SmartLicenseServer\RESTAPI\Versions;
 use SmartLicenseServer\RESTAPI\Handlers\BulkMessages;
 use SmartLicenseServer\RESTAPI\Handlers\HostedApps;
 use SmartLicenseServer\RESTAPI\Handlers\Licenses;
+use SmartLicenseServer\RESTAPI\Handlers\Licensing;
 use SmartLicenseServer\RESTAPI\Handlers\WPPlugins;
 use SmartLicenseServer\RESTAPI\Handlers\WPThemes;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
@@ -171,6 +172,30 @@ class V1 implements RESTVersionInterface {
 	 * @var string
 	 */
 	private const DOWNLOAD_TOKEN_REAUTH = 'download-token-reauthentication/' . self::APP_ROUTE_PATTERN;
+
+	/**
+	 * Licensing API: the pricing tiers bound to the calling store.
+	 *
+	 * Example:
+	 *  /licensing/tiers
+	 */
+	private const LICENSING_TIERS = 'licensing/tiers';
+
+	/**
+	 * Licensing API: issue a license (POST), or find one by sale reference (GET).
+	 *
+	 * Example:
+	 *  /licensing/licenses?external_ref=order-1001
+	 */
+	private const LICENSING_LICENSES = 'licensing/licenses';
+
+	/**
+	 * Licensing API: one license the calling store issued (GET, PATCH).
+	 *
+	 * Example:
+	 *  /licensing/licenses/42
+	 */
+	private const LICENSING_LICENSE = 'licensing/licenses/{license_id:int}';
 
 	/**
 	 * REST endpoint for bulk messages fetching.
@@ -414,6 +439,63 @@ class V1 implements RESTVersionInterface {
 					'name'     => 'Download Token Reauthentication',
 				],
 
+				// Licensing API (remote stores, with a service account).
+				[
+					'route'    => self::LICENSING_TIERS,
+					'methods'  => ['GET'],
+					'handler'  => [ Licensing::class, 'tiers_response' ],
+					'guard'    => [ Licensing::class, 'issue_guard' ],
+					'args'     => [],
+					'category' => 'licensing',
+					'name'     => 'List Your Pricing Tiers',
+				],
+
+				[
+					'route'    => self::LICENSING_LICENSES,
+					'methods'  => ['POST'],
+					'handler'  => [ Licensing::class, 'issue_response' ],
+					'guard'    => [ Licensing::class, 'issue_guard' ],
+					'args'     => self::get_licensing_issue_args(),
+					'category' => 'licensing',
+					'name'     => 'Issue a License',
+				],
+
+				[
+					'route'    => self::LICENSING_LICENSES,
+					'methods'  => ['GET'],
+					'handler'  => [ Licensing::class, 'lookup_response' ],
+					'guard'    => [ Licensing::class, 'read_guard' ],
+					'args'     => [
+						'external_ref' => [
+							'required'    => true,
+							'type'        => 'string',
+							'description' => 'Your reference for the sale the license was issued for.',
+						],
+					],
+					'category' => 'licensing',
+					'name'     => 'Find a License by Sale Reference',
+				],
+
+				[
+					'route'    => self::LICENSING_LICENSE,
+					'methods'  => ['GET'],
+					'handler'  => [ Licensing::class, 'license_response' ],
+					'guard'    => [ Licensing::class, 'read_guard' ],
+					'args'     => [],
+					'category' => 'licensing',
+					'name'     => 'Get a License',
+				],
+
+				[
+					'route'    => self::LICENSING_LICENSE,
+					'methods'  => ['PATCH'],
+					'handler'  => [ Licensing::class, 'update_response' ],
+					'guard'    => [ Licensing::class, 'update_guard' ],
+					'args'     => self::get_licensing_update_args(),
+					'category' => 'licensing',
+					'name'     => 'Change a License',
+				],
+
 				// Mock Inbox Route (for testing)
 				[
 					'route'    => 'mock-inbox',
@@ -514,6 +596,76 @@ class V1 implements RESTVersionInterface {
 				'required'    => true,
 				'type'        => 'string',
 				'description' => 'The URL of the website where the license is currently activated.',
+			],
+		];
+	}
+
+	/**
+	 * Get Licensing API license issue arguments.
+	 *
+	 * @return array<string, array{required: bool, type: string, description: string}>
+	 */
+	private static function get_licensing_issue_args() : array {
+		return [
+			'tier_id' => [
+				'required'    => true,
+				'type'        => 'integer',
+				'description' => 'The ID of the pricing tier sold; one of your tiers (GET licensing/tiers).',
+			],
+			'external_ref' => [
+				'required'    => true,
+				'type'        => 'string',
+				'description' => 'Your reference for the sale (order or subscription ID). Issuing again with the same reference returns the license already issued.',
+			],
+			'licensee_email' => [
+				'required'    => true,
+				'type'        => 'string',
+				'description' => 'The buyer\'s email address; the license is delivered to it.',
+			],
+			'licensee_name' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'The buyer\'s name.',
+			],
+			'service_id' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'The ID the buyer\'s sites activate the license with, together with the license key. Generated when empty.',
+			],
+			'starts_at' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'When the license starts (a date, read as UTC without a time zone). Now when empty.',
+			],
+		];
+	}
+
+	/**
+	 * Get Licensing API license update arguments.
+	 *
+	 * @return array<string, array{required: bool, type: string, description: string}>
+	 */
+	private static function get_licensing_update_args() : array {
+		return [
+			'max_allowed_domains' => [
+				'required'    => false,
+				'type'        => 'integer',
+				'description' => 'The number of domains the license can be activated on; -1 for unlimited.',
+			],
+			'features' => [
+				'required'    => false,
+				'type'        => 'array',
+				'description' => 'The features the license includes; a list or a comma-separated string.',
+			],
+			'end_date' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'When the license ends (a date); empty or null for no end.',
+			],
+			'status' => [
+				'required'    => false,
+				'type'        => 'string',
+				'description' => 'The license status; empty to calculate it from its dates. "revoked" needs the monetization.license.revoke capability.',
 			],
 		];
 	}

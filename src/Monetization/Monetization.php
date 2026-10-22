@@ -35,7 +35,7 @@ class Monetization extends DataStore {
 	protected int $id = 0;
 
 	/**
-	 * App type (e.g. plugin, theme).
+	 * App type (e.g. wpplugin, wptheme).
 	 * 
 	 * @var string $app_type
 	 */
@@ -96,7 +96,7 @@ class Monetization extends DataStore {
 	}
 
 	/**
-	 * Get the app type (e.g. plugin, theme).
+	 * Get the app type (e.g. wpplugin, wptheme).
 	 * 
 	 * @return string
 	 */
@@ -177,7 +177,7 @@ class Monetization extends DataStore {
 	}
 
 	/**
-	 * Set the app type (e.g. plugin, theme).
+	 * Set the app type (e.g. wpplugin, wptheme).
 	 * 
 	 * @param string $app_type
 	 * @return static
@@ -475,21 +475,32 @@ class Monetization extends DataStore {
 	*/
 
 	/**
-	 * Convert this monetization to an associative array.
+	 * Convert this monetization to the array apps show publicly.
 	 *
-	 * @return array
+	 * Only active tiers are listed, each as buyers see it
+	 * (PricingTier::to_public_array()); providers' tier data is not shown.
+	 *
+	 * @return array{
+	 *  id: int,
+	 *  app_type: string,
+	 *  app_id: int,
+	 *  enabled: bool,
+	 *  tiers: list<array<string, mixed>>,
+	 *  created_at: string|null,
+	 *  updated_at: string|null
+	 * }
 	 */
 	public function to_array() : array {
+		$tiers = array_filter( $this->tiers, static fn ( PricingTier $tier ) : bool => $tier->is_active() );
+
 		return [
-			'id'       => $this->id,
-			'app_type' => $this->app_type,
-			'app_id'   => $this->app_id,
-			'enabled'  => $this->enabled,
-			'tiers'    => array_map( function( $tier ) {
-				return $tier->to_array();
-			}, $this->tiers ),
-			'created_at' => $this->created_at,
-			'updated_at' => $this->updated_at,
+			'id'         => $this->id,
+			'app_type'   => $this->app_type,
+			'app_id'     => $this->app_id,
+			'enabled'    => $this->enabled,
+			'tiers'      => array_values( array_map( static fn ( PricingTier $tier ) : array => $tier->to_public_array(), $tiers ) ),
+			'created_at' => $this->created_at?->format( DateTimeImmutable::ATOM ),
+			'updated_at' => $this->updated_at?->format( DateTimeImmutable::ATOM ),
 		];
 	}
 

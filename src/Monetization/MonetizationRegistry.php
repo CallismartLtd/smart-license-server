@@ -14,6 +14,7 @@ use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface;
+use SmartLicenseServer\Monetization\Providers\RemoteProvider;
 use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
@@ -32,7 +33,9 @@ final class MonetizationRegistry extends AbstractRegistry {
 	 *
 	 * @var class-string<MonetizationProviderInterface>[]
 	 */
-	private array $core_providers = [];
+	private array $core_providers = [
+		RemoteProvider::class,
+	];
 
 	/**
 	 * In-memory cache for persisted provider options.
@@ -137,12 +140,37 @@ final class MonetizationRegistry extends AbstractRegistry {
 	}
 
 	/**
+	 * Split a full provider ID ("<provider ID>[:<channel>]") into its parts.
+	 *
+	 * @param string $provider_id A provider ID, with or without a channel.
+	 * @return array{provider: string, channel: string}
+	 */
+	public static function parse_provider_id( string $provider_id ) : array {
+		$parts = explode( ':', $provider_id, 2 );
+
+		return [ 'provider' => $parts[0], 'channel' => $parts[1] ?? '' ];
+	}
+
+	/**
+	 * Build a full provider ID from a provider ID and a channel.
+	 *
+	 * @param string $provider The provider ID.
+	 * @param string $channel  The channel; empty for none.
+	 * @return string "<provider>" or "<provider>:<channel>".
+	 */
+	public static function make_provider_id( string $provider, string $channel ) : string {
+		return '' === $channel ? $provider : $provider . ':' . $channel;
+	}
+
+	/**
 	 * Get a monetization provider.
 	 * 
-	 * @param string $provider_id The provider ID
+	 * @param string $provider_id The provider ID; a full ID with a channel is accepted.
 	 * @return MonetizationProviderInterface|null
 	 */
 	public function get_provider( string $provider_id ) : ?MonetizationProviderInterface {
+		$provider_id = static::parse_provider_id( $provider_id )['provider'];
+
 		if ( '' === $provider_id ) {
 			return null;
 		}

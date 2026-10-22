@@ -83,7 +83,7 @@ class OptionsPage implements AdminPageInterface {
 			return;
 		}
 		
-		$providers    = $this->monetization_registry->all();
+		$providers    = $this->monetization_registry->all( true, true );
 		$page_handler = $this;
 		$urlmanager   = $this->urlmanager;
 		$vars         = compact(

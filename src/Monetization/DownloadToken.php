@@ -14,6 +14,7 @@ use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\Utils\BootKeyringTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
 
@@ -22,7 +23,7 @@ use SmartLicenseServer\Utils\TokenDeliveryTrait;
  * to hosted applications in the repository.
  */
 class DownloadToken extends DataStore {
-	use TokenDeliveryTrait, SanitizeAwareTrait;
+	use TokenDeliveryTrait, SanitizeAwareTrait, BootKeyringTrait;
 	/**
 	 * Token ID.
 	 * 
@@ -62,14 +63,6 @@ class DownloadToken extends DataStore {
 	protected $expiry = 0;
 
 	/**
-	 * The application secret and salt the token and site-secret keys are
-	 * derived from; set once at boot (see set_keys()).
-	 *
-	 * @var array{secret: string, salt: string}
-	 */
-	private static array $keyring = [ 'secret' => '', 'salt' => '' ];
-
-	/**
 	 * Class constructor.
 	 */
 	public function __construct() {}
@@ -81,19 +74,6 @@ class DownloadToken extends DataStore {
 	*/
 
 	/**
-	 * Set the application secret and salt keys are derived from.
-	 *
-	 * Called once at boot, like DataStore::set_database().
-	 *
-	 * @param string $secret The application secret.
-	 * @param string $salt   The application salt.
-	 * @return void
-	 */
-	public static function set_keys( #[\SensitiveParameter] string $secret, #[\SensitiveParameter] string $salt ) : void {
-		self::$keyring = [ 'secret' => $secret, 'salt' => $salt ];
-	}
-
-	/**
 	 * Hash a site secret for storage and comparison.
 	 *
 	 * A site secret is handed to a site when a license is activated on it;
@@ -103,22 +83,7 @@ class DownloadToken extends DataStore {
 	 * @return string
 	 */
 	public static function hash_site_secret( #[\SensitiveParameter] string $raw_secret ) : string {
-		return hash_hmac( 'sha256', $raw_secret, self::key( 'license_site_secret' ) );
-	}
-
-	/**
-	 * Derive the key for a purpose from the application secret.
-	 *
-	 * @param string $context The purpose of the key.
-	 * @return string 32-byte key.
-	 * @throws \LogicException When the keys were not set at boot.
-	 */
-	private static function key( string $context ) : string {
-		if ( '' === self::$keyring['secret'] ) {
-			throw new \LogicException( 'DownloadToken::set_keys() must be called at boot before tokens are issued or verified.' );
-		}
-
-		return hash_hkdf( 'sha256', self::$keyring['secret'], 32, $context, self::$keyring['salt'] );
+		return hash_hmac( 'sha256', $raw_secret, self::keyring_key( 'license_site_secret' ) );
 	}
 
 	/*
@@ -412,7 +377,7 @@ class DownloadToken extends DataStore {
 		$static->set_expiry( $expiry );
 
 		$raw_token = static::generate_token();
-		$secret    = self::key( 'download_token' );
+		$secret    = self::keyring_key( 'download_token' );
 
 		$static->set_token( \hash_hmac( 'sha256', $raw_token, $secret ) );
 
@@ -456,7 +421,7 @@ class DownloadToken extends DataStore {
 
 		[$encoded_payload, $signature] = $parts;
 		
-		$secret = self::key( 'download_token' );
+		$secret = self::keyring_key( 'download_token' );
 
 		if ( ! hash_equals( hash_hmac( 'sha256', $encoded_payload, $secret ), $signature ) ) {
 			throw new Exception( 'download_token_invalid', 'Invalid download token signature.', ['status' => 403] );

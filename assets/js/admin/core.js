@@ -1141,6 +1141,25 @@
 			}
 		};
 
+		/**
+		 * Show the selected provider's tier fields; the others are hidden and
+		 * disabled, so they are neither required nor submitted.
+		 *
+		 * @param {string} providerId - The selected provider ID; empty for none.
+		 */
+		const showProviderFields = ( providerId ) => {
+			tierForm.querySelectorAll( '.smliser-tier-provider-fields' ).forEach( ( group ) => {
+				const active = group.dataset.provider === providerId;
+
+				group.classList.toggle( 'smliser-hide', ! active );
+				group.querySelectorAll( 'input, select, textarea' ).forEach( ( field ) => {
+					field.disabled = ! active;
+				} );
+			} );
+		};
+
+		tierForm.querySelector( '#provider_id' )?.addEventListener( 'change', ( e ) => showProviderFields( e.target.value ) );
+
 		const openEditor = ( isEdit = false ) => {
 			if ( ! editorModal ) {
 				const submitBtn = el( 'button', {
@@ -1173,6 +1192,10 @@
 					}
 				} );
 
+				tierForm.querySelector( '#term_unit' ).value   = 'lifetime';
+				tierForm.querySelector( '#term_length' ).value = '1';
+				showProviderFields( '' );
+
 				openEditor();
 			},
 
@@ -1188,16 +1211,24 @@
 
 				const values = {
 					tier_name: tier.name,
-					product_id: tier.product_id,
-					billing_cycle: tier.billing_cycle,
-					provider_id: tier.provider_id,
-					max_sites: tier.max_sites,
+					term_unit: tier.term_unit,
+					term_length: tier.term_length || 1,
+					max_sites: -1 === tier.max_sites ? '' : tier.max_sites,
 					features: Array.isArray( tier.features ) ? tier.features.join( ', ' ) : tier.features,
+					provider_id: tier.provider_id,
 				};
 
 				for ( const [ id, value ] of Object.entries( values ) ) {
 					tierForm.querySelector( `#${ id }` ).value = value ?? '';
 				}
+
+				showProviderFields( tier.provider_id || '' );
+
+				const group = tierForm.querySelector( `.smliser-tier-provider-fields[data-provider="${ CSS.escape( tier.provider_id || '' ) }"]` );
+
+				group?.querySelectorAll( '[data-key]' ).forEach( ( field ) => {
+					field.value = tier.provider_data?.[ field.dataset.key ] ?? '';
+				} );
 
 				openEditor( true );
 			},
@@ -1229,7 +1260,13 @@
 						return;
 					}
 
-					SmliserToast.show( response.data?.message || 'Tier deleted', 3000 );
+					SmliserToast.show( response.data?.message || 'Tier deleted', 6000 );
+
+					// A tier that licenses were issued from is archived, not deleted.
+					if ( response.data?.archived ) {
+						setTimeout( () => window.location.reload(), 3000 );
+						return;
+					}
 
 					const table = document.querySelector( 'table.tier-list' );
 
@@ -1245,85 +1282,6 @@
 
 			closeModal() {
 				editorModal?.close();
-			},
-
-			async viewProductData( json ) {
-				const tier = StringUtils.JSONparse( json );
-
-				if ( ! tier ) {
-					return;
-				}
-
-				const imageSlot = el( 'span', { className: 'product-image-slot' } );
-				const priceCell = el( 'span', { className: 'price-field', textContent: 'Loading...' } );
-				const descCell  = el( 'span', { className: 'desc-field', textContent: 'Loading...' } );
-				const overlay   = el( 'div', { className: 'spinner-overlay show' },
-					el( 'img', { src: smliser_var.spinner_gif_2x, alt: 'Loading...', className: 'spinner-img' } ),
-				);
-
-				const row = ( label, value ) => el( 'tr', {},
-					el( 'th', { scope: 'row', textContent: label } ),
-					el( 'td', {}, value ?? '' ),
-				);
-
-				const body = el( 'div', {},
-					el( 'h2', { className: 'product-data-header' },
-						imageSlot,
-						el( 'span', { className: 'product-title', textContent: tier.name ?? '' } ),
-					),
-					el( 'table', { className: 'striped' },
-						el( 'tbody', {},
-							row( 'Product ID', String( tier.product_id ?? '' ) ),
-							row( 'Provider', String( tier.provider_id ?? '' ) ),
-							row( 'Billing Cycle', String( tier.billing_cycle ?? '' ) ),
-							row( 'Price', priceCell ),
-							row( 'Description', descCell ),
-						),
-					),
-					overlay,
-				);
-
-				const modal = new SmliserModal( {
-					body,
-					title: 'Product Details',
-					closeOnEscape: true,
-				} );
-
-				modal.on( 'afterClose', () => modal.destroy() );
-				modal.open();
-
-				const url = smliserAjaxUrl( 'tier-product', {
-					action: 'smliser_get_product_data',
-					provider_id: tier.provider_id,
-					product_id: tier.product_id,
-				}, { nonce: true } );
-
-				try {
-					const response = await smliserFetchJSON( url, { method: 'GET' } );
-
-					if ( ! response.success ) {
-						SmliserToast.show( response.data?.message || 'Could not fetch product data', 6000 );
-						return;
-					}
-
-					const product = response.data?.product ?? {};
-					const image   = product.images?.[ 0 ];
-
-					if ( image ) {
-						imageSlot.append( el( 'img', { src: image.src, alt: image.alt || 'Product Image', className: 'product-thumb' } ) );
-					}
-
-					priceCell.textContent = product.pricing?.price
-						? StringUtils.formatCurrency( product.pricing.price, product.currency )
-						: 'N/A';
-
-					// Provider-supplied HTML description.
-					descCell.innerHTML = product.description || '';
-				} catch ( error ) {
-					SmliserToast.show( error.message || 'An unexpected error occurred', 6000 );
-				} finally {
-					overlay.remove();
-				}
 			},
 
 			/**
@@ -1370,7 +1328,7 @@
 				return;
 			}
 
-			const tierBtn = e.target.closest( '.smliser-tier-edit, .smliser-tier-delete, .smliser-tier-view' );
+			const tierBtn = e.target.closest( '.smliser-tier-edit, .smliser-tier-delete' );
 
 			if ( tierBtn ) {
 				e.preventDefault();
@@ -1389,7 +1347,7 @@
 		tierForm.addEventListener( 'submit', async ( e ) => {
 			e.preventDefault();
 
-			tierForm.querySelectorAll( '#tier_name, #product_id, #billing_cycle, #provider_id, #features' ).forEach( requireField );
+			tierForm.querySelectorAll( '#tier_name, #term_unit, [data-required]:not(:disabled)' ).forEach( requireField );
 
 			if ( ! tierForm.reportValidity() ) {
 				return;

@@ -550,6 +550,25 @@ class PricingTier extends DataStore {
 		return $result;
 	}
 
+	/**
+	 * Get the pricing tiers a provider sells.
+	 *
+	 * @param string $provider_id The full provider ID, with its channel when it has one.
+	 * @return static[] Ordered by ID.
+	 */
+	public static function get_by_provider( string $provider_id ) : array {
+		if ( '' === $provider_id ) {
+			return [];
+		}
+
+		$sql = static::query()
+			->select( '*' )->from( TableName::PRICING_TIERS->table() )
+			->where( 'provider_id', '=', $provider_id )
+			->order_by( 'id', 'ASC' );
+
+		return array_map( [ static::class, 'from_array' ], static::$DB->get_results( $sql->build(), $sql->get_bindings() ) );
+	}
+
 	/*
 	|---------------------
 	| LICENSE TEMPLATE
@@ -738,6 +757,38 @@ class PricingTier extends DataStore {
 			'status'          => $this->get_status(),
 			'created_at'      => $this->get_created_at()?->format( DateTimeImmutable::ATOM ),
 			'updated_at'      => $this->get_updated_at()?->format( DateTimeImmutable::ATOM ),
+		];
+	}
+
+	/**
+	 * The tier as buyers see it: its terms and its provider's offer.
+	 *
+	 * The provider's tier data is not included; the provider decides what
+	 * of it buyers see (MonetizationProviderInterface::get_offer()).
+	 *
+	 * @return array{
+	 *  id: int,
+	 *  name: string,
+	 *  term_unit: string,
+	 *  term_length: int,
+	 *  term_label: string,
+	 *  max_sites: int,
+	 *  features: list<string>,
+	 *  offer: array{price: string, checkout_url: string}
+	 * }
+	 */
+	public function to_public_array() : array {
+		$provider = '' === $this->provider_id ? null : MonetizationRegistry::instance()->get_provider( $this->provider_id );
+
+		return [
+			'id'          => $this->get_id(),
+			'name'        => $this->get_name(),
+			'term_unit'   => $this->get_term_unit(),
+			'term_length' => $this->get_term_length(),
+			'term_label'  => $this->get_term_label(),
+			'max_sites'   => $this->get_max_sites(),
+			'features'    => $this->get_features(),
+			'offer'       => $provider?->get_offer( $this ) ?? [ 'price' => '', 'checkout_url' => '' ],
 		];
 	}
 

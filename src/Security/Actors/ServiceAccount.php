@@ -18,6 +18,7 @@ use SmartLicenseServer\Core\Collection;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Utils\BootKeyringTrait;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 use SmartLicenseServer\Utils\TokenDeliveryTrait;
@@ -32,7 +33,7 @@ use SmartLicenseServer\Utils\TokenDeliveryTrait;
  */
 class ServiceAccount extends DataStore implements ActorInterface {
 
-	use SanitizeAwareTrait, TokenDeliveryTrait, DatePropertyAwareTrait;
+	use SanitizeAwareTrait, TokenDeliveryTrait, DatePropertyAwareTrait, BootKeyringTrait;
 
 	/**
 	 * Service account active status.
@@ -496,6 +497,40 @@ class ServiceAccount extends DataStore implements ActorInterface {
 	}
 
 	/**
+	 * Get a service account by its identifier ("sa_…").
+	 *
+	 * @param string $identifier
+	 * @return static|null
+	 */
+	public static function get_by_identifier( string $identifier ) : ?static {
+		if ( '' === $identifier ) {
+			return null;
+		}
+
+		$data = static::fetch_by( 'identifier', $identifier, TableName::SERVICE_ACCOUNTS->table() );
+
+		return $data ? static::from_array( $data ) : null;
+	}
+
+	/**
+	 * Get the service accounts that can authenticate, optionally of one owner.
+	 *
+	 * @param int|null $owner_id The owner ID; null for every owner.
+	 * @return static[] Ordered by display name.
+	 */
+	public static function get_active( ?int $owner_id = null ) : array {
+		$sql = static::query()->select( '*' )->from( TableName::SERVICE_ACCOUNTS->table() )
+			->where( 'status', '=', self::STATUS_ACTIVE )
+			->order_by( 'display_name', 'ASC' );
+
+		if ( null !== $owner_id ) {
+			$sql->where( 'owner_id', '=', $owner_id );
+		}
+
+		return array_map( [ static::class, 'from_array' ], static::$DB->get_results( $sql->build(), $sql->get_bindings() ) );
+	}
+
+	/**
 	 * Count total records by status
 	 * 
 	 * @param string $status
@@ -594,7 +629,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
 		$encoded_payload = \smliser_safe_json_encode( $payload );
 
 		// Sign payload.
-		$secret    = self::derive_key();
+		$secret    = self::keyring_key( 'service_account_api_key' );
 		$signature = self::hmac_hash( $encoded_payload, $secret, 'sha256' );
 		
 		// Return client API key.
@@ -626,7 +661,7 @@ class ServiceAccount extends DataStore implements ActorInterface {
 		[$encoded_payload, $signature, $raw_key] = $parts;
 
 		// Validate HMAC signature.
-		$secret     = self::derive_key();
+		$secret     = self::keyring_key( 'service_account_api_key' );
 		$known_hash = self::hmac_hash( $encoded_payload, $secret, 'sha256' );
 		if ( ! hash_equals( $known_hash, $signature ) ) {
 			throw new \SmartLicenseServer\Exceptions\Exception(

@@ -5,7 +5,7 @@
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer\templates
  * @var \SmartLicenseServer\Core\Request $request
- * @var array<int|string, \SmartLicenseServer\Contracts\ServiceProviderInterface> $providers
+ * @var array<int|string, \SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface> $providers
  * @var \SmartLicenseServer\Admin\ContentHandlers\OptionsPage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  */
@@ -29,11 +29,16 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <td><?php echo escHtml( $id ); ?></td>
                         <td><?php echo escHtml( $provider::get_name() ); ?></td>
                         <td>
-                            <a href="<?php
-							echo escUrl( $urlmanager->admin_options_url( 'monetization' )
-								->add_query_params( ['provider' => $provider::get_id() ] )->url()
-							); ?>"
-                            class="button smliser-nav-btn"> <i class="ti ti-settings"></i> Configure</a></td>
+                            <?php if ( empty( $provider->get_settings_schema() ) ) : ?>
+                                <span>No settings</span>
+                            <?php else : ?>
+                                <a href="<?php
+								echo escUrl( $urlmanager->admin_options_url( 'monetization' )
+									->add_query_params( ['provider' => $provider::get_id() ] )->url()
+								); ?>"
+                                class="button smliser-nav-btn"> <i class="ti ti-settings"></i> Configure</a>
+                            <?php endif; ?>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

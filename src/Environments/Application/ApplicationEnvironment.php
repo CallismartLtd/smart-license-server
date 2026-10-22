@@ -41,6 +41,7 @@ use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\CoreURLManager;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Monetization\DownloadToken;
+use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environment;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
@@ -120,10 +121,23 @@ class ApplicationEnvironment extends Environment {
 		$this->container->singleton( BootModeResolver::class, $this->bootModeResolver );
 		$this->container->singleton( InstallationState::class, $this->bootModeResolver->state() );
 		$this->container->singleton( MaintenanceFlag::class, $this->bootModeResolver->flag() );
-		$this->container->singleton( SetupToken::class, fn () : SetupToken => SetupToken::from_runtime( $fs ) );
-		$this->container->singleton( InstallerSession::class, fn () : InstallerSession => InstallerSession::from_runtime( $fs ) );
-		$this->container->singleton( PublicAssets::class, fn () : PublicAssets => PublicAssets::from_runtime( $fs ) );
-		$this->container->singleton( ThemeManager::class, fn () : ThemeManager => ThemeManager::from_runtime( $fs ) );
+		
+		$this->container->singleton(
+			SetupToken::class,
+			fn () : SetupToken => SetupToken::from_runtime( $fs )
+		);
+		$this->container->singleton(
+			InstallerSession::class,
+			fn () : InstallerSession => InstallerSession::from_runtime( $fs )
+		);
+		$this->container->singleton(
+			PublicAssets::class,
+			fn () : PublicAssets => PublicAssets::from_runtime( $fs )
+		);
+		$this->container->singleton(
+			ThemeManager::class,
+			fn () : ThemeManager => ThemeManager::from_runtime( $fs )
+		);
 
 		$this->adoptExistingInstallation();
 
@@ -152,11 +166,15 @@ class ApplicationEnvironment extends Environment {
 			fn( Container $c ) : CallableResolver => new CallableResolver( $c )
 		);
 
+		$this->container->factory(
+			ReleaseSignature::class,
+			fn() : ReleaseSignature => new ReleaseSignature( ReleaseSignature::PUBLIC_KEYS )
+		);
 		$this->container->singleton(
 			PackageVerifier::class,
 			fn( Container $c ) => new PackageVerifier(
 				$c->get( FileSystem::class ),
-				new ReleaseSignature()
+				$c->get( ReleaseSignature::class )
 			)
 		);
 
@@ -185,7 +203,7 @@ class ApplicationEnvironment extends Environment {
 				server: $c->get( UpdateServer::class ),
 				updater: $c->get( Updater::class ),
 				verifier: $c->get( PackageVerifier::class ),
-				signature: new ReleaseSignature(),
+				signature: $c->get( ReleaseSignature::class ),
 				state: InstallationState::from_runtime( $c->get( FileSystem::class ) ),
 				settings: $c->get( Settings::class ),
 				fs: $c->get( FileSystem::class ),
@@ -215,7 +233,9 @@ class ApplicationEnvironment extends Environment {
 
 		$this->container->singleton(
 			BackgroundStatus::class,
-			fn ( Container $c ) : BackgroundStatus => BackgroundStatus::from_runtime( $c->get( FileSystem::class ) )
+			fn ( Container $c ) : BackgroundStatus => BackgroundStatus::from_runtime(
+				$c->get( FileSystem::class )
+			)
 		);
 
 		$this->container->singleton(
@@ -225,7 +245,7 @@ class ApplicationEnvironment extends Environment {
 				$c->get( QueueWorker::class ),
 				$c->get( CodeChangeDetector::class ),
 				$c->get( BackgroundStatus::class ),
-				rtrim( \SMLISER_STORAGE_DIR, '/\\' ) . '/background.lock'
+				\SMLISER_STORAGE_DIR . 'background.lock'
 			)
 		);
 
@@ -471,7 +491,9 @@ class ApplicationEnvironment extends Environment {
 			$this->container->get( URLManager::class )
 		);
 
+		// Models derive their keys from the application secret (BootKeyringTrait).
 		DownloadToken::set_keys( $this->runtime->secret, $this->runtime->salt );
+		ServiceAccount::set_keys( $this->runtime->secret, $this->runtime->salt );
 
 		// Shadow boot hosted app registry.
 		$this->container->get( HostedAppsRegistry::class );

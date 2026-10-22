@@ -13,6 +13,8 @@
  * @var \SmartLicenseServer\HostedApps\AbstractHostedApp|null $app
  * @var \SmartLicenseServer\Admin\ContentHandlers\RepositoryPage $repo_page
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var array<string, array{name: string, fields: array<string, array<string, mixed>>}> $provider_fields
+ *      Each provider's tier fields for this app, keyed by provider ID.
  */
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
@@ -84,35 +86,42 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <?php else: ?>
                             <?php foreach ( $monetization->get_tiers() as $tier ) : ?>
                                 <?php
-    		$features     = $tier->get_features();
-                            	$features_str = is_array( $features ) ? implode( ', ', $features ) : (string) $features;
+                            	$features_str = implode( ', ', $tier->get_features() );
+                            	$max_sites    = $tier->get_max_sites();
 
                             	// Encode the tier into JSON for JS handling
                             	$tier_json = smliser_safe_json_encode( [
                             		'id'              => $tier->get_id(),
                             		'name'            => $tier->get_name(),
-                            		'provider_id'     => $tier->get_provider_id(),
-                            		'product_id'      => $tier->get_product_id(),
-                            		'billing_cycle'   => $tier->get_billing_cycle(),
-                            		'max_sites'       => $tier->get_max_sites(),
-                            		'features'        => $features,
+                            		'term_unit'       => $tier->get_term_unit(),
+                            		'term_length'     => $tier->get_term_length(),
+                            		'max_sites'       => $max_sites,
+                            		'features'        => $tier->get_features(),
+                            		'provider_id'     => \SmartLicenseServer\Monetization\MonetizationRegistry::parse_provider_id( $tier->get_provider_id() )['provider'],
+                            		'provider_data'   => $tier->get_provider_data(),
+                            		'status'          => $tier->get_status(),
                             		'monetization_id' => $tier->get_monetization_id(),
                             	] );
                             	?>
                                 <tr class="tier-row-<?php echo escAttr( $tier->get_id() ) ?>">
-                                    <th><?php echo escHtml( $tier->get_name() ); ?></th>
+                                    <th>
+                                        <?php echo escHtml( $tier->get_name() ); ?>
+                                        <?php if ( ! $tier->is_active() ) : ?>
+                                            <br><small>(Archived)</small>
+                                        <?php endif; ?>
+                                    </th>
                                     <td>
                                         <div class="smliser-pricing-tier-info" data-json='<?php echo escAttr( $tier_json ); ?>'>
-                                            <p><strong>Provider:</strong> <?php echo escHtml( $tier->get_provider_id() ); ?></p>
-                                            <p><strong>Product ID:</strong> <?php echo escHtml( $tier->get_product_id() ); ?></p>
-                                            <p><strong>Billing Cycle:</strong> <?php echo escHtml( $tier->get_billing_cycle() ); ?></p>
-                                            <p><strong>Features:</strong> <?php echo escHtml( $features_str ); ?></p>
+                                            <p><strong>Term:</strong> <?php echo escHtml( $tier->get_term_label() ); ?></p>
+                                            <p><strong>Sites:</strong> <?php echo escHtml( \SmartLicenseServer\Monetization\PricingTier::UNLIMITED_SITES === $max_sites ? 'Unlimited' : (string) $max_sites ); ?></p>
+                                            <p><strong>Features:</strong> <?php echo escHtml( $features_str ?: 'None' ); ?></p>
+                                            <?php
+                                            $source   = \SmartLicenseServer\Monetization\MonetizationRegistry::parse_provider_id( $tier->get_provider_id() );
+                                            $provider = $provider_fields[ $source['provider'] ]['name'] ?? $source['provider'];
+                                            ?>
+                                            <p><strong>Provider:</strong> <?php echo escHtml( '' === $source['provider'] ? 'None (issued by an administrator)' : $provider . ( '' !== $source['channel'] ? ' » ' . $source['channel'] : '' ) ); ?></p>
 
                                             <div class="smliser-pricing-tier-actions">
-                                                <button type="button" class="button smliser-tier-view smliser-nav-btn" data-action="viewProductData">
-                                                    <span class="ti ti-visibility"></span> View Product Data
-                                                </button>
-
                                                 <button type="button" class="button smliser-tier-edit smliser-nav-btn" data-action="editTier">
                                                     <span class="ti ti-edit"></span> Edit
                                                 </button>
@@ -141,12 +150,10 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                     <?php if ( empty( $providers ) ) : ?>
                         <?php echo smliser_not_found_container( 'No monetization provider found' ); ?>
                     <?php else: ?>
-                        <?php foreach( $providers as $provider ): ?>
+                        <?php foreach( $provider_fields as $provider_id => $provider ): ?>
                             <div class="smliser-monetization-ui__monetization-provider">
-                                <p>Name: <strong><?php echo escHtml( $provider::get_name() ); ?></strong></p>
-                                <p>Base URL: <?php echo escHtml( $provider::get_url() ); ?></p>
-                                <p>Checkout URL: <?php echo escHtml( $provider::get_checkout_url() ); ?></p>
-
+                                <p>Name: <strong><?php echo escHtml( $provider['name'] ); ?></strong></p>
+                                <p>ID: <code><?php echo escHtml( $provider_id ); ?></code></p>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -165,26 +172,55 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                     <label for="tier_name">Tier Name:
                         <input type="text" name="tier_name" id="tier_name" field-name="Tier Name">
                     </label>
-                    <label for="product_id">Product ID:
-                        <input type="text" name="product_id" id="product_id" field-name="Product ID">
-                    </label>
-                    <label for="billing_cycle">Billing Cycle:
-                        <input type="text" name="billing_cycle" id="billing_cycle" placeholder="example: monthly, yearly" field-name="Billing Cycle">
-                    </label>
-                    <label for="provider_id">Monetization Provider:
-                        <select name="provider_id" id="provider_id" field-name="Monetization Provider">
-                            <option value="">--Choose Provider--</option>
-                            <?php foreach( $providers as $provider ) : ?>
-                                <option value="<?php echo escAttr( $provider::get_id() ) ?>"><?php echo escHtml( $provider::get_name() ); ?></option>
+                    <label for="term_unit">License Term:
+                        <select name="term_unit" id="term_unit" field-name="License Term">
+                            <?php foreach ( \SmartLicenseServer\Monetization\PricingTier::get_term_units() as $unit ) : ?>
+                                <option value="<?php echo escAttr( $unit ); ?>"><?php echo escHtml( \SmartLicenseServer\Monetization\PricingTier::TERM_LIFETIME === $unit ? 'Lifetime' : ucfirst( $unit ) . '(s)' ); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </label>
+                    <label for="term_length">Term Length:
+                        <input type="number" name="term_length" id="term_length" min="1" value="1" placeholder="Number of days, months or years">
+                    </label>
                     <label for="max_sites">Maximum Websites:
-                        <input type="number" name="max_sites" id="max_sites" placeholder="Leave empty for unlimited">
+                        <input type="number" name="max_sites" id="max_sites" min="1" placeholder="Leave empty for unlimited">
                     </label>
                     <label for="features">Features:
-                        <textarea type="number" name="features" id="features" placeholder="example: feature1, feature2, feature3" field-name="Features"></textarea>
+                        <textarea name="features" id="features" placeholder="example: feature1, feature2, feature3"></textarea>
                     </label>
+                    <label for="provider_id">Monetization Provider:
+                        <select name="provider_id" id="provider_id">
+                            <option value="">None (licenses issued by an administrator)</option>
+                            <?php foreach( $provider_fields as $provider_id => $provider ) : ?>
+                                <option value="<?php echo escAttr( $provider_id ) ?>"><?php echo escHtml( $provider['name'] ); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <?php foreach ( $provider_fields as $provider_id => $provider ) : ?>
+                        <div class="smliser-tier-provider-fields smliser-hide" data-provider="<?php echo escAttr( $provider_id ); ?>">
+                            <?php foreach ( $provider['fields'] as $key => $field ) :
+                            	$field_id = sprintf( 'provider_%s_%s', $provider_id, $key );
+                            	$name     = sprintf( 'provider_data[%s][%s]', $provider_id, $key );
+                            	$required = ! empty( $field['required'] ) ? ' data-required="1"' : '';
+                            	?>
+                                <label for="<?php echo escAttr( $field_id ); ?>"><?php echo escHtml( $field['label'] ?? $key ); ?>:
+                                    <?php if ( 'select' === ( $field['type'] ?? 'text' ) ) : ?>
+                                        <select name="<?php echo escAttr( $name ); ?>" id="<?php echo escAttr( $field_id ); ?>" data-key="<?php echo escAttr( $key ); ?>" field-name="<?php echo escAttr( $field['label'] ?? $key ); ?>"<?php echo $required; ?>>
+                                            <option value="">-- Choose --</option>
+                                            <?php foreach ( (array) ( $field['options'] ?? [] ) as $value => $label ) : ?>
+                                                <option value="<?php echo escAttr( (string) $value ); ?>"><?php echo escHtml( (string) $label ); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    <?php else : ?>
+                                        <input type="<?php echo escAttr( $field['type'] ?? 'text' ); ?>" name="<?php echo escAttr( $name ); ?>" id="<?php echo escAttr( $field_id ); ?>" data-key="<?php echo escAttr( $key ); ?>" field-name="<?php echo escAttr( $field['label'] ?? $key ); ?>"<?php echo $required; ?>>
+                                    <?php endif; ?>
+                                    <?php if ( ! empty( $field['description'] ) ) : ?>
+                                        <small><?php echo escHtml( $field['description'] ); ?></small>
+                                    <?php endif; ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endforeach; ?>
                 </form>
                 <div class="smliser-spinner"></div>
             </div>
