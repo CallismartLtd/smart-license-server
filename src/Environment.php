@@ -25,6 +25,7 @@ use SmartLicenseServer\Cache\Adapters\CacheAdapterInterface;
 use SmartLicenseServer\Cache\Adapters\SQLiteCacheAdapter;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
+use SmartLicenseServer\Core\CallableResolver;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Email\EmailProviderIcons;
@@ -396,6 +397,11 @@ abstract class Environment {
 		$this->container->singleton(
 			HostResources::class,
 			fn () : HostResources => new HostResources( \SMLISER_ROOT )
+		);
+
+		$this->container->singleton(
+			CallableResolver::class,
+			fn( Container $c ) : CallableResolver => new CallableResolver( $c )
 		);
 	}
 

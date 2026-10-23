@@ -23,7 +23,7 @@ function load_auth_template( string $template ) : string {
 /**
  * Load app authentication page header
  */
-function smliser_load_auth_header() {
+function load_auth_header() {
 	$theme_template_dir = get_template_directory() . '/smliser/auth/auth-header.php';
 	include_once file_exists( $theme_template_dir ) ? $theme_template_dir : \smliser_resolve_template( 'auth.auth-header.php' );
 }
@@ -31,7 +31,11 @@ function smliser_load_auth_header() {
 /**
  * Load app authentication page footer
  */
-function smliser_load_auth_footer() {
+function load_auth_footer() {
 	$theme_template_dir = get_template_directory() . '/smliser/auth/auth-footer.php';
 	include_once file_exists( $theme_template_dir ) ? $theme_template_dir : \smliser_resolve_template( 'auth.auth-footer.php' );
+}
+
+function set_early_theme_attribute() {
+    echo '<script>document.documentElement.setAttribute( \'data-theme\', \'light\');</script>';
 }

@@ -5,10 +5,11 @@
  * @author Callistus Nwachukwu
  * @package SmartLicenseServer
  */
-namespace SmartLicenseServer\Environments\Application\Middlewares;
+namespace SmartLicenseServer\Core;
 
 use InvalidArgumentException;
 use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Environments\Application\Middlewares\MiddlewareInterface;
 
 /**
  * Attempts to resolve a mixed data to a callable.
@@ -86,7 +87,7 @@ final class CallableResolver {
 		if ( is_object( $data ) && method_exists( $data, '__invoke' ) ) {
 			return $data;
 		}
-
+		
 		throw new InvalidArgumentException(
 			sprintf( 'Unable to resolve supplied data of type [%s] to a valid callable.', get_debug_type( $data ) )
 		);

@@ -35,7 +35,7 @@ use SmartLicenseServer\Email\RequestController as EmailRequestController;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminAccessMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AdminDownloadMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddleware;
-use SmartLicenseServer\Environments\Application\Middlewares\CallableResolver;
+use SmartLicenseServer\Core\CallableResolver;
 use SmartLicenseServer\Environments\Application\Middlewares\ClientAccessMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\CSRFMiddleware;
 use SmartLicenseServer\Environments\Application\Theming\CorePages;

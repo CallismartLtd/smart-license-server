@@ -49,7 +49,6 @@ use SmartLicenseServer\Environments\Application\Boot\CLIBootstrapper;
 use SmartLicenseServer\Environments\Application\Boot\CronBootstrapper;
 use SmartLicenseServer\Environments\Application\Web\CronExecutionHandler;
 use SmartLicenseServer\Environments\Application\Boot\WebBootstrapper;
-use SmartLicenseServer\Environments\Application\Middlewares\CallableResolver;
 use SmartLicenseServer\Environments\Application\Release\ReleaseSignature;
 use SmartLicenseServer\Environments\Application\Update\PackageVerifier;
 use SmartLicenseServer\Environments\Application\Update\Updater;
@@ -159,11 +158,6 @@ class ApplicationEnvironment extends Environment {
 				$this->runtime->salt,
 				$c->get( Cache::class )
 			)
-		);
-
-		$this->container->singleton(
-			CallableResolver::class,
-			fn( Container $c ) : CallableResolver => new CallableResolver( $c )
 		);
 
 		$this->container->factory(

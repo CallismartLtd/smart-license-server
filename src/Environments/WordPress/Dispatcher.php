@@ -36,6 +36,11 @@ use SmartLicenseServer\SettingsAPI\SettingsController;
  * their Response objects.
  */
 class Dispatcher implements RequestDispatcherInterface {
+	public function __construct(
+		protected Request $request,
+		protected RoutesManager $routes_manager
+	) {}
+
 	/**
 	 * Map of registered request triggers to callback.
 	 * 
@@ -93,34 +98,23 @@ class Dispatcher implements RequestDispatcherInterface {
 	 * we pass such request to Smart License Server, prempt futher WordPress execution and
 	 * terminate the request.
 	 */
-	public static function init_request() : void {
-		/** 
-		 * Single Request instance — all handlers read from this.
-		 * 
-		 * The values of query parameters in this object never ran through `wp_magic_quotes`
-		 */
-		$request = \smliser_request();
-		
-		/**
-		 * @disregard 
-		 * @var \SmartLicenseServer\Environments\WordPress\RoutesManager $routes_manager
-		 */
-		$routes_manager = \smliser_envProvider()->get_routes_manager();
-		$found_page     = $routes_manager->get_router()->match( $request->uri() );
+	public function init_request() : void {
+
+		$found_page     = $this->routes_manager->get_router()->match( $this->request->uri() );
 
 		if ( $found_page ) {
-			$request->set_params( $found_page['params'] );
-			$response = $found_page['handler']( $request );
+			$this->request->set_params( $found_page['params'] );
+			$response = $found_page['handler']( $this->request );
 
 			$response->send();
 			$response->stop();
 		}
 
-		if ( ! $request->hasValue( 'action' ) ) {
+		if ( ! $this->request->hasValue( 'action' ) ) {
 			return;
 		}
 
-		$trigger = $request->get( 'action' );
+		$trigger = $this->request->get( 'action' );
 
 		if ( ! is_string( $trigger ) || '' === $trigger ) {
 			return;
@@ -130,7 +124,7 @@ class Dispatcher implements RequestDispatcherInterface {
 
 		if ( $callback ) {
 			
-			$callback( $request )->send();
+			$callback( $this->request )->send();
 			exit;
 		}
 	}

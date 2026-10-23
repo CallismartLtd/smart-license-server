@@ -11,7 +11,7 @@ namespace SmartLicenseServer\Environments\WordPress;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URL;
-use SmartLicenseServer\Environments\Application\Middlewares\CallableResolver;
+use SmartLicenseServer\Core\CallableResolver;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\RESTAPI\RESTIndex;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;

@@ -91,7 +91,7 @@ class AdminMenu {
 		$routing_var = 'tab';
 
 		if ( $routing_var && $this->request->hasValue( $routing_var ) ) {
-			$submenu = $target_menu['handler']::get_submenu();
+			$submenu = $target_menu['handler']->get_submenu();
 
 			foreach( $submenu as $subm ) {
 				if ( $this->request->get( $routing_var ) === $subm['slug'] ) {
@@ -102,7 +102,7 @@ class AdminMenu {
 		}
 
 		if ( ! isset( $handler ) ) {
-			$handler = $target_menu['handler']::index_page_handler();
+			$handler = $target_menu['handler']->index_page_handler();
 		}
 
 		$handler( $this->request );

@@ -9,7 +9,9 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\WordPress;
 
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environments\WordPress\Routing\Router;
+use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
  * Registers every SmartLicenseServer rewrite rule and query var.
@@ -18,12 +20,10 @@ use SmartLicenseServer\Environments\WordPress\Routing\Router;
  */
 class RoutesManager {
 
-	private Router $router;
-
-	public function __construct() {
-		$this->router = new Router();
-		$this->define_routes();
-	}
+	public function __construct(
+		protected URLManager $urlmanager,
+		protected Router $router
+	) {}
 
 	/**
 	 * Registers all rewrite rules with WordPress. Hooks to `init` action.
@@ -46,10 +46,7 @@ class RoutesManager {
 	 * All route definitions, in the same order and grouping as the original
 	 * hand-written rules.
 	 */
-	private function define_routes() : void {
-		$repo_prefix    = smliser_get_repository_url_prefix();
-		$dashboard_slug = smliser_get_client_dashboard_url_prefix();
-		$download_slug  = smliser_get_download_url_prefix();
+	public function register() : void {
 
 		/*
 		|-------------------
@@ -57,7 +54,7 @@ class RoutesManager {
 		|-------------------
 		*/
 		$this->router->group(
-			$repo_prefix,
+			$this->urlmanager->repository_url_prefix(),
 			function ( Router $router ) : void {
 				// siteurl/repository
 				$router->add( '', 'smliser-repository' );
@@ -96,8 +93,8 @@ class RoutesManager {
 		|------------------
 		*/
 		$this->router->add(
-			pattern: $dashboard_slug,
-			pagename: 'client-dashboard',
+			pattern: $this->urlmanager->client_dashboard_url_prefix(),
+			pagename: $this->urlmanager->client_dashboard_url_prefix(),
 			handler: [ Dispatcher::class, 'render_client_dashboard' ]
 		);
 
@@ -107,7 +104,7 @@ class RoutesManager {
 		|-------------------------
 		*/
 		$this->router->group(
-			$download_slug,
+			$this->urlmanager->downloads_url_prefix(),
 			function ( Router $router ) : void {
 				
 				// License document download rule (specific): numeric license ID.

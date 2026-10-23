@@ -8,23 +8,35 @@
 
 namespace SmartLicenseServer\Environments\WordPress;
 
-use SmartLicenseServer\Cache\Adapters\WPCacheAdapter;
-use SmartLicenseServer\Environment;
-use SmartLicenseServer\Console\CommandRegistry;
-use SmartLicenseServer\Core\URL;
-use Callismart\DBPrism\Adapters\WPDBAdapter;
+use Callismart\DBPrism\Adapters\Contracts\DatabaseAdapterInterface;
+use Callismart\DBPrism\Database;
+use Callismart\DBPrism\DBConfigDTO;
+use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Autoloader;
-use SmartLicenseServer\Cache\CacheAdapterRegistry;
-use SmartLicenseServer\Console\OptionParser;
-use SmartLicenseServer\Console\Terminal;
-use SmartLicenseServer\Environments\WordPress\CLI\WPCLIInput;
-use SmartLicenseServer\Environments\WordPress\CLI\WPCLIOutput;
-use SmartLicenseServer\Environments\WordPress\CLI\WPCLIRunner;
-use SmartLicenseServer\FileSystem\Adapters\WPFileSystemAdapter;
-use SmartLicenseServer\FileSystem\FileSystemHelper;
-use SmartLicenseServer\RESTAPI\Versions\V1;
-use SmartLicenseServer\RuntimeConfig;
+use SmartLicenseServer\Background\Schedule\Scheduler;
+use SmartLicenseServer\Background\Workers\QueueWorker;
+use SmartLicenseServer\Cache\Cache;
+use SmartLicenseServer\Contracts\URLManagerInterface;
+use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Environment;
+use SmartLicenseServer\Core\CallableResolver;
+use SmartLicenseServer\Core\DataStore;
+use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\HostedApps\HostedAppsRegistry;
+use SmartLicenseServer\HostedApps\Storage\AppStorage;
+use SmartLicenseServer\HostedApps\Storage\DirectoryAppStorage;
+use SmartLicenseServer\Monetization\DownloadToken;
+use SmartLicenseServer\Security\Actors\ServiceAccount;
+use SmartLicenseServer\Security\Authentication\Session\SessionManager;
+use SmartLicenseServer\Security\Authentication\Session\UserSessionCutoff;
+use SmartLicenseServer\Security\CSRF\CSRF;
+use SmartLicenseServer\SettingsAPI\Providers\SettingsStorageInterface;
 use SmartLicenseServer\SettingsAPI\Providers\WPSettingsProvider;
+use SmartLicenseServer\SettingsAPI\Settings;
+use SmartLicenseServer\Templates\TemplateDiscovery;
 
 /**
  * Smart License Server running as a plugin in WordPress environment.
@@ -39,129 +51,286 @@ class WordPressEnvironment extends Environment {
 	protected AdminMenu $menu;
 	protected RoutesManager $routes_manager;
 
-	/**
-	 * Class constructor
-	 */
-	private function __construct( protected RuntimeConfig $runtime ) {
-		$this->bind_instance();
-
+	protected function registerDependencies(): void {
 		Autoloader::add_function_dir( __DIR__ . '/functions' );
+
+		$this->container->singleton( WordPressEnvironment::class, $this );
+		$this->container->singleton(
+			Request::class,
+			fn () : Request => Request::createFromGlobals()
+		);
+		$this->container->singleton(
+			DatabaseAdapterInterface::class,
+			fn () : DatabaseAdapterInterface => new WPDBAdapter( $GLOBALS['wpdb'] )
+		);
+
+		$this->container->singleton(
+			SettingsStorageInterface::class,
+			fn ( Container $c ) : SettingsStorageInterface => new WPSettingsProvider(
+				$c->get( Database::class )
+			)
+		);
 		
-		$this->setProps();
-		$this->route_register();
+		$this->container->set(
+			URLManagerInterface::class,
+			fn( Container $c ) : URLManagerInterface => new WPURLManager(
+				settings: $c->get( Settings::class ),
+				site_url: URL::from( site_url() ),
+				admin_base_url: URL::from( admin_url() ),
+				assets_url: URL::from( \plugin_dir_url( \SMLISER_FILE ) )->append_path( 'assets' ),
+				themes_url: URL::from( \get_stylesheet_directory_uri() ),
+			)
+		);
 
-		$this->register_action_hooks();
-		$this->register_filters();
+		$this->container->singleton(
+			DirectoryAppStorage::class,
+			fn ( Container $c ) : DirectoryAppStorage => new DirectoryAppStorage(
+				$c->get( FileSystem::class ),
+				SMLISER_REPO_DIR,
+				DirectoryAppStorage::CORE_TYPE_DIRS
+			)
+		);
+		
+		$this->container->singleton(
+			AppStorage::class,
+			fn( Container $c ) : AppStorage => AppStorage::instance(
+				$c->get( DirectoryAppStorage::class ),
+			)
+		);
 
-		register_activation_hook( SMLISER_FILE, [Installer::class, 'install'] );
+		$this->container->singleton(
+			SessionManager::class,
+			function( Container $c ) : SessionManager {
+				$is_secure   = $c->get( Request::class )->isSecure();
+				$cookie_name = sprintf( '%ssmliser-sid', $is_secure ? '__Host-' : '' );
+				return new SessionManager(
+					secret: $this->runtime->secret,
+					salt: $this->runtime->salt,
+					revocation_check: $c->get( UserSessionCutoff::class ),
+					secure: $is_secure,
+					cookie_name: $cookie_name
+				);
+			}
+		);
+
+		$this->container->singleton(
+			CSRF::class,
+			function( Container $c ) : CSRF {
+				$is_secure         = $c->get( Request::class )->isSecure();
+				$guest_cookie_name = sprintf( '%ssmliser-csrf', $is_secure ? '__Host-' : '' );
+				return new CSRF(
+					secret: $this->runtime->secret,
+					salt: $this->runtime->salt,
+					sessions: $c->get( SessionManager::class ),
+					secure: $is_secure,
+					guest_cookie: $guest_cookie_name
+				);
+			}
+		);
+
+		// \dd( $this->container->get( URLManager::class )->assets_url()->url() );
 	}
 
 	/**
 	 * {@inheritdoc}
 	 */
-	protected function bind_instance() : void {
-		static::$envProvider = $this;
+	public function boot() : void {
+		$this->container->get( RoutesManager::class )->register();
+		$this->container->get( AdminDashboardRegistry::class )->remove( 'modules' );
+		
+		DataStore::set_database(
+			$this->container->get( Database::class )
+		);
+
+		DataStore::set_cache(
+			$this->container->get( Cache::class )
+		);
+
+		DataStore::set_urlmanager(
+			$this->container->get( URLManager::class )
+		);
+
+		// Models derive their keys from the application secret (BootKeyringTrait).
+		DownloadToken::set_keys( $this->runtime->secret, $this->runtime->salt );
+		ServiceAccount::set_keys( $this->runtime->secret, $this->runtime->salt );
+
+		// Shadow boot hosted app registry.
+		$this->container->get( HostedAppsRegistry::class );
+		$this->container->get( AppStorage::class );
+
+
+		$this->container->get( TemplateDiscovery::class )
+			->discover( 'core', \SMLISER_RUNTIME_DIR . '/templates/', 0 );
+
+		$this->register_action_hooks();
+		$this->register_filters();
+
+		// register_activation_hook( SMLISER_FILE, [Installer::class, 'install'] );
 	}
 
-	/**
-	 * Bootstrap the class properties.
-	 */
-	private function setProps() : void {
-		$this->setup( [
-			'filesystem_adapter' => new WPFileSystemAdapter(),
-			'settings_provider'  => new WPSettingsProvider(),
-			'database_adapter'   => new WPDBAdapter( $GLOBALS['wpdb'] ),
-			'rest_api_provider'  => $this->container->get( RESTAPI::class ),
-		] );
-		
-		$this->identityProvider = $this->container->get( IdentityService::class );
-		$this->script_manager   = $this->container->get( ScriptManager::class );
-		$this->menu             = new AdminMenu( $this->adminDashboardRegistry(), $this->request() );
+	protected function createDatabaseConfig(): ?DBConfigDTO {
+		global $wpdb;
 
-		CacheAdapterRegistry::instance( $this->settings() )->add( WPCacheAdapter::class );
+		$parsed = $wpdb->parse_db_host( (string) $wpdb->dbhost );
+		[ $host, $port, $socket ] = false === $parsed ? [ (string) $wpdb->dbhost, null, null ] : $parsed;
+		return new DBConfigDTO( [
+			'driver'   => 'mysql',
+			'host'     => '' === $host ? 'localhost' : $host,
+			'port'     => $port,
+			'socket'   => $socket,
+			'dbname'   => $wpdb->dbname,
+			'username' => $wpdb->dbuser,
+			'password' => $wpdb->dbpassword,
+			'charset'  => $wpdb->charset ?: null,
+		] );
 	}
 
 	/**
 	 * Register action hooks
 	 */
 	protected function register_action_hooks() : void {
-		add_action( 'set_current_user', [$this->identityProvider, 'authenticate'] );
-		add_action( 'deleted_user', [IdentityService::class, 'desync_user'] );
-		add_action( 'admin_menu', [$this->menu, 'register_menus'] );
-		add_action( 'admin_menu', [$this->menu, 'submenu_index_name'], 999 );
+		$actions = [
+			[
+				'hook'     => 'set_current_user',
+				'callback' => [IdentityService::class, 'authenticate'],
+			],
+			[
+				'hook'     => 'deleted_user',
+				'callback' => [IdentityService::class, 'desync_user'],
+			],
+			[
+				'hook'     => 'admin_menu',
+				'callback' => [AdminMenu::class, 'register_menus'],
+			],
+			[
+				'hook'     => 'admin_menu',
+				'callback' => [AdminMenu::class, 'submenu_index_name'],
+				'priority' => 999,
+			],
+			[
+				'hook'     => 'admin_notices',
+				'callback' => [ $this, 'check_filesystem_errors'],
+			],
+			[
+				'hook'     => 'admin_notices',
+				'callback' => [$this, 'print_admin_notices'],
+			],
+			[
+				'hook'     => 'init',
+				'callback' => [RoutesManager::class, 'route_register'],
+			],
+			[
+				'hook'     => 'init',
+				'callback' => [$this, 'schedule_events'],
+				'priority' => 10,
+			],
+			[
+				'hook'     => 'init',
+				'callback' => [ScriptManager::class, 'register_scripts'],
+				'priority' => 10,
+			],
+			[
+				'hook'     => 'init',
+				'callback' => [ScriptManager::class, 'register_styles'],
+				'priority' => 10,
+			],
+			[
+				'hook'     => 'smliser_auth_page_header',
+				'callback' => '\SmartLicenseServer\Environments\WordPress\load_auth_header',
+			],
+			[
+				'hook'     => 'smliser_auth_page_footer',
+				'callback' => '\SmartLicenseServer\Environments\WordPress\load_auth_footer',
+			],
+			[
+				'hook'     => 'admin_init',
+				'callback' => [Dispatcher::class, 'init_request'],
+			],
+			[
+				'hook'     => 'template_redirect',
+				'callback' => [Dispatcher::class, 'init_request'],
+			],
+			[
+				'hook'     => 'wp_enqueue_scripts',
+				'callback' => [ScriptManager::class, 'enqueue_styles'],
+			],
+			[
+				'hook'     => 'wp_enqueue_scripts',
+				'callback' => [ScriptManager::class, 'enqueue_scripts'],
+			],
+			[
+				'hook'     => 'admin_enqueue_scripts',
+				'callback' => [ScriptManager::class, 'enqueue_styles'],
+			],
+			[
+				'hook'     => 'admin_head',
+				'callback' => '\SmartLicenseServer\Environments\WordPress\set_early_theme_attribute',
+				'priority' => 1, // Runs at the very beginning of <head>
+			],
+			[
+				'hook'     => 'admin_enqueue_scripts',
+				'callback' => [ScriptManager::class, 'enqueue_scripts'],
+			],
+			// [
+			// 	'hook'     => 'smliser_process_queue',
+			// 	'callback' => [QueueWorker::class, 'process_within_time_budget'],
+			// ],
+			// [
+			// 	'hook'     => 'smliser_run_scheduler',
+			// 	'callback' => [Scheduler::class, 'run_due_tasks'],
+			// ],
+			[
+				'hook'     => 'cli_init',
+				'callback' => [$this, 'setup_cli'],
+			],
+		];
 
-		add_action( 'admin_notices', [ $this, 'check_filesystem_errors'] );
-		add_action( 'admin_notices', [$this, 'print_admin_notices'] );
-		add_action( 'init', [$this->routes_manager, 'route_register'] );
+		$resolver	= $this->container->get( CallableResolver::class );
+		foreach ( $actions as $action ) {
+			add_action(
+				$action['hook'],
+				$resolver->resolve( $action['callback'] ),
+				$action['priority'] ?? 10,
+				$action['accepted_args'] ?? 1
+			);
+		}
 
-		add_action( 'init', [$this, 'schedule_events'], 10 );
-		add_action( 'init', [$this->script_manager, 'register_scripts'], 10 );
-		add_action( 'init', [$this->script_manager, 'register_styles'], 10 );
-		
-		add_action( 'smliser_auth_page_header', 'smliser_load_auth_header' );
-		add_action( 'smliser_auth_page_footer', 'smliser_load_auth_footer' );
-
-		add_action( 'admin_init', [Dispatcher::class, 'init_request'] );
-		add_action( 'template_redirect', [Dispatcher::class, 'init_request'] );
-		
-		add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
-		add_action( 'wp_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
-		add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_styles'] );
-		add_action( 'admin_enqueue_scripts', [$this->script_manager, 'enqueue_scripts'] );
-
-		add_action( 'smliser_process_queue', [$this->queue_worker(), 'process_within_time_budget'] );
-		add_action( 'smliser_run_scheduler', [$this->scheduler(), 'run_due_tasks'] );
-
-		add_action( 'cli_init', [$this, 'setup_cli'] );
 	}
 
 	/**
 	 * Register filters
 	 */
 	protected function register_filters() : void {
-		add_filter( 'redirect_canonical', [$this, 'disable_redirect_on_downloads'], 10, 2 );
-		add_filter( 'template_include', __NAMESPACE__ . '\\load_auth_template' );
-		add_filter( 'cron_schedules', [$this, 'register_cron'] );
-		add_filter( 'query_vars', [$this->routes_manager, 'query_vars'] );
-	}
+		$filters = [
+			[
+				'hook'          => 'redirect_canonical',
+				'callback'      => [$this, 'disable_redirect_on_downloads'],
+				'priority'      => 10,
+				'accepted_args' => 2,
+			],
+			[
+				'hook'     => 'template_include',
+				'callback' => __NAMESPACE__ . '\\load_auth_template',
+			],
+			[
+				'hook'     => 'cron_schedules',
+				'callback' => [$this, 'register_cron'],
+			],
+			[
+				'hook'     => 'query_vars',
+				'callback' => [RoutesManager::class, 'query_vars'],
+			],
+		];
 
-	/**
-	 * {@inheritdoc}
-	 */
-	public static function boot( RuntimeConfig $runtime ) : static {
-		
-		if ( ! isset( static::$envProvider ) ) {
-			new static( $runtime );
+		$resolver	= $this->container->get( CallableResolver::class );
+		foreach ( $filters as $filter ) {
+			add_filter(
+				$filter['hook'],
+				$resolver->resolve( $filter['callback'] ),
+				$filter['priority'] ?? 10,
+				$filter['accepted_args'] ?? 1
+			);
 		}
-
-		return static::$envProvider;
-	}
-
-	public static function url( string $path = '', array $qv = [] ) : URL {
-		return URL::from( site_url() )
-			->append_path( $path )
-			->add_query_params( $qv );
-	}
-	
-	public static function adminUrl( string $path = '', array $qv = [] ) : URL {
-		return URL::from( admin_url( 'admin.php' ) )
-			->append_path( $path )
-			->add_query_params( $qv );
-	}
-
-	public static function restAPIUrl( string $path = '', array $qv = [] ) : URL {
-		$namespace = 'smliser/v1'; // WordPress uses only the V1 REST.
-
-		return URL::from( rest_url( $namespace ) )
-			->append_path( $path )
-			->add_query_params( $qv );
-	}
-	
-	public static function assetsUrl( string $path = '', array $qv = [] ) : URL {
-		$path = FileSystemHelper::join_path( '/assets/', $path );
-		return URL::from( plugin_dir_url( SMLISER_FILE ) )
-			->append_path( $path )
-			->add_query_params( $qv );
 	}
 
 	/**
@@ -184,20 +353,20 @@ class WordPressEnvironment extends Environment {
 	 */
 	public function check_filesystem_errors() : void {
 		$transient_key  = 'smliser_fs_check_results';
-		$cached_results = get_transient( $transient_key );
+		$cached_results = [];// get_transient( $transient_key );
 
-		if ( false === $cached_results ) {
-			$dirs_to_check = [
-				\SMLISER_REPO_DIR,
-				\SMLISER_UPLOADS_DIR,
-				\SMLISER_WP_PLUGINS_REPO_DIR,
-				\SMLISER_WP_THEMES_REPO_DIR,
-				\SMLISER_SOFTWARE_REPO_DIR,
-			];
+		// if ( false === $cached_results ) {
+		// 	$dirs_to_check = [
+		// 		\SMLISER_REPO_DIR,
+		// 		\SMLISER_UPLOADS_DIR,
+		// 		\SMLISER_WP_PLUGINS_REPO_DIR,
+		// 		\SMLISER_WP_THEMES_REPO_DIR,
+		// 		\SMLISER_SOFTWARE_REPO_DIR,
+		// 	];
 
-			$cached_results = $this->filesystem()->test_dirs_read_write( $dirs_to_check );
-			set_transient( $transient_key, $cached_results, HOUR_IN_SECONDS );
-		}
+		// 	$cached_results = $this->->test_dirs_read_write( $dirs_to_check );
+		// 	set_transient( $transient_key, $cached_results, HOUR_IN_SECONDS );
+		// }
 
 		$errors = [];
 
@@ -270,10 +439,10 @@ class WordPressEnvironment extends Environment {
 	 * Print admin notices
 	 */
 	public function print_admin_notices() {
-		$repo_version = \smliser_settings()->get( 'smliser_repo_version', 0 );
-		if ( SMLISER_VER === $repo_version ) {
-			return;
-		}
+		// $repo_version = \smliser_settings()->get( 'smliser_repo_version', 0 );
+		// if ( SMLISER_VER === $repo_version ) {
+		// 	return;
+		// }
 		?>
         <div class="notice notice-info">
             <p>
@@ -300,19 +469,12 @@ class WordPressEnvironment extends Environment {
 	 * @since 0.2.0
 	 */
 	public function disable_redirect_on_downloads( $redirect_url, $requested_url ) {
-		$download_slug = (string) $this->url( smliser_get_download_url_prefix() );
-		if ( false !== strpos( $requested_url, $download_slug ) ) {
-			return false;
-		}
+		// $download_slug = (string) $this->url( smliser_get_download_url_prefix() );
+		// if ( false !== strpos( $requested_url, $download_slug ) ) {
+		// 	return false;
+		// }
 
 		return $redirect_url;
-	}
-
-	/**
-	 * Sets up custom routes.
-	 */
-	public function route_register() : void {
-		$this->routes_manager = new RoutesManager();
 	}
 
 	/**

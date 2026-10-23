@@ -11,7 +11,7 @@ namespace SmartLicenseServer\Environments\Application\Web;
 use InvalidArgumentException;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Environments\Application\Middlewares\CallableResolver;
+use SmartLicenseServer\Core\CallableResolver;
 use SmartLicenseServer\Environments\Application\Middlewares\MiddlewareInterface;
 
 /**

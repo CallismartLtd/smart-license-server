@@ -14,13 +14,20 @@ use SmartLicenseServer\Security\Permission\Capability;
 use SmartLicenseServer\Security\Permission\Role;
 use SmartLicenseServer\Assets\CSS;
 use SmartLicenseServer\Assets\JS;
+use SmartLicenseServer\Core\URL;
+use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Utils\Format;
 
 use function wp_register_script, wp_register_style, is_admin, wp_enqueue_script, wp_enqueue_style, wp_localize_script;
 
 final class ScriptManager {
 
-	public function __construct( private Request $request ) {}
+	public function __construct(
+		protected Request $request,
+		protected URLManager $urlmanager,
+		protected CSS $css,
+		protected JS $js
+	) {}
 
 	/**
 	 * Get script suffix depending on debug.
@@ -33,7 +40,7 @@ final class ScriptManager {
 	 * Registers CSS files.
 	 */
 	public function register_styles() : void {
-		foreach ( CSS::all( $this->script_suffix() ) as $handle => $style ) {
+		foreach ( $this->css->all( $this->script_suffix() ) as $handle => $style ) {
 			wp_register_style( $handle, $style['url'], $style['dependencies'], $style['version'], $style['media-type'] );
 		}
 	}
@@ -42,7 +49,7 @@ final class ScriptManager {
 	 * Registers JS files.
 	 */
 	public function register_scripts() : void {
-		foreach ( JS::all( $this->script_suffix() ) as $handle => $script ) {
+		foreach ( $this->js->all( $this->script_suffix() ) as $handle => $script ) {
 			wp_register_script( $handle, $script['url'], $script['dependencies'], $script['version'], $script['footer'] );
 		}
 	}
@@ -53,7 +60,7 @@ final class ScriptManager {
 	public function enqueue_scripts() {
 		wp_enqueue_script( 'datetime-picker' );
 		wp_enqueue_script( 'select2' );
-		wp_enqueue_script( 'smliser-script' );
+		wp_enqueue_script( 'core-admin' );
 
 		if ( is_admin() ) {
 			wp_enqueue_script( 'modal' );
@@ -79,8 +86,8 @@ final class ScriptManager {
 			wp_enqueue_script( 'cache-stats' );
 		}
 
-		// Localize main script
-		wp_localize_script( 'smliser-script', 'smliser_var', $this->allVars() );
+		// Localize main script.
+		wp_localize_script( 'core-admin', 'smliser_var', $this->allVars() );
 	}
 
 	/**
@@ -120,11 +127,11 @@ final class ScriptManager {
 	 */
 	private function allVars() : array {
 		return [
-			'ajaxURL'        => adminUrl( 'admin-ajax.php' )->url(),
+			'ajaxURL'        => admin_url( 'admin-ajax.php' ),
 			'csrf_token'     => wp_create_nonce( 'smliser_nonce' ),
 			'spinner_gif'    => \admin_url( 'images/spinner.gif' ),
 			'spinner_gif_2x' => \admin_url( 'images/spinner-2x.gif' ),
-			'app_search_api' => \restAPIUrl( '/repository/' ),
+			'app_search_api' => URL::from( \rest_url( 'smliser/v1/repository' ) )->url(),
 			'default_roles'  => [
 				'roles'        => Role::all( true ),
 				'capabilities' => Capability::get_caps()

@@ -14,7 +14,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environments\Application\Auth\IdentityService;
-use SmartLicenseServer\Environments\Application\Middlewares\CallableResolver;
+use SmartLicenseServer\Core\CallableResolver;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\RESTAPI\RESTVersionInterface;
