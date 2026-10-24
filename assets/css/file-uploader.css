@@ -1,0 +1,149 @@
+/**
+ * File uploader (file-uploader.js).
+ *
+ * Themed through the --smliser-uploader-* tokens. Each falls back to the
+ * themed pages' tokens, then the admin dashboard's, then a plain value, so
+ * the uploader fits wherever it is used without extra CSS.
+ */
+
+.smliser-uploader {
+	--smliser-uploader-border: var(--border, var(--dashboard-border, #d8dce2));
+	--smliser-uploader-bg: var(--bg, var(--dashboard-bg, #f5f6f8));
+	--smliser-uploader-surface: var(--surface, var(--dashboard-surface, #ffffff));
+	--smliser-uploader-ink: var(--ink, var(--dashboard-text, #12151a));
+	--smliser-uploader-muted: var(--muted, var(--dashboard-text-muted, #5b6270));
+	--smliser-uploader-accent: var(--accent, var(--dashboard-accent, #0f766e));
+	--smliser-uploader-accent-bg: var(--accent-bg, var(--dashboard-info-bg, #ecfeff));
+	--smliser-uploader-error: var(--failure, var(--dashboard-danger, #c2410c));
+	--smliser-uploader-radius: 8px;
+
+	display: grid;
+	gap: 8px;
+	color: var(--smliser-uploader-ink);
+}
+
+/* Kept in the form for FormData and validation; out of sight and out of layout. */
+.smliser-uploader__input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	border: 0;
+	white-space: nowrap;
+}
+
+.smliser-uploader__zone {
+	display: grid;
+	justify-items: center;
+	gap: 4px;
+	padding: 20px 16px;
+	border: 1.5px dashed var(--smliser-uploader-border);
+	border-radius: var(--smliser-uploader-radius);
+	background: var(--smliser-uploader-bg);
+	text-align: center;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.smliser-uploader__zone:hover,
+.smliser-uploader__zone.is-dragging {
+	border-color: var(--smliser-uploader-accent);
+	background: var(--smliser-uploader-accent-bg);
+}
+
+.smliser-uploader__zone:focus-visible {
+	outline: 2px solid var(--smliser-uploader-accent);
+	outline-offset: 2px;
+}
+
+.smliser-uploader__prompt {
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.smliser-uploader__hint {
+	color: var(--smliser-uploader-muted);
+	font-size: 12.5px;
+}
+
+.smliser-uploader__files {
+	display: grid;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.smliser-uploader__file {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 10px;
+	border: 1px solid var(--smliser-uploader-border);
+	border-radius: var(--smliser-uploader-radius);
+	background: var(--smliser-uploader-surface);
+}
+
+.smliser-uploader__thumb {
+	flex: none;
+	width: 40px;
+	height: 40px;
+	border-radius: 6px;
+	object-fit: cover;
+	background: var(--smliser-uploader-bg);
+}
+
+.smliser-uploader__thumb--file {
+	display: grid;
+	place-items: center;
+	color: var(--smliser-uploader-accent);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+}
+
+.smliser-uploader__meta {
+	display: grid;
+	flex: 1;
+	min-width: 0;
+}
+
+.smliser-uploader__name {
+	overflow: hidden;
+	font-size: 13.5px;
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.smliser-uploader__size {
+	color: var(--smliser-uploader-muted);
+	font-size: 12px;
+}
+
+.smliser-uploader__remove {
+	flex: none;
+	padding: 4px 10px;
+	border: 1px solid var(--smliser-uploader-border);
+	border-radius: 6px;
+	background: transparent;
+	color: var(--smliser-uploader-ink);
+	font: inherit;
+	font-size: 12.5px;
+	cursor: pointer;
+}
+
+.smliser-uploader__remove:hover,
+.smliser-uploader__remove:focus-visible {
+	border-color: var(--smliser-uploader-error);
+	color: var(--smliser-uploader-error);
+}
+
+.smliser-uploader__message {
+	margin: 0;
+	color: var(--smliser-uploader-error);
+	font-size: 12.5px;
+}

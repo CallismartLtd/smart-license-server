@@ -18,6 +18,7 @@ use SmartLicenseServer\Environments\Application\Theming\View;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
+use SmartLicenseServer\Monetization\Monetization;
 
 /**
  * The public repository: one route and one theme template per page.
@@ -239,6 +240,7 @@ final class RepositoryPages {
 			->set( 'sections', $sections )
 			->set( 'screenshots', $this->screenshots( $app ) )
 			->set( 'download', [ 'url' => $app->get_download_url()->url(), 'monetized' => $app->is_monetized() ] )
+			->set( 'pricing', $this->pricing( $app ) )
 			->set(
 				'links',
 				[
@@ -262,6 +264,49 @@ final class RepositoryPages {
 	| HELPERS
 	|---------
 	*/
+
+	/**
+	 * What buyers can buy for an app: its active pricing tiers as buyers see them.
+	 *
+	 * Empty when the app is not monetized or its monetization is disabled.
+	 * Each tier carries its provider's offer; a tier whose offer has no
+	 * checkout URL (e.g. licenses only an admin issues) is listed without a
+	 * way to buy it here.
+	 *
+	 * @param AbstractHostedApp $app
+	 * @return list<array{
+	 *  id: int,
+	 *  name: string,
+	 *  term_label: string,
+	 *  max_sites: int,
+	 *  features: list<string>,
+	 *  price: string,
+	 *  checkout_url: string
+	 * }>
+	 */
+	private function pricing( AbstractHostedApp $app ) : array {
+		$monetization = Monetization::get_by_app( $app->get_type(), $app->get_id() );
+
+		if ( ! $monetization || ! $monetization->is_enabled() ) {
+			return [];
+		}
+
+		$tiers = [];
+
+		foreach ( $monetization->to_array()['tiers'] as $tier ) {
+			$tiers[] = [
+				'id'           => (int) $tier['id'],
+				'name'         => (string) $tier['name'],
+				'term_label'   => (string) $tier['term_label'],
+				'max_sites'    => (int) $tier['max_sites'],
+				'features'     => array_values( array_map( 'strval', (array) $tier['features'] ) ),
+				'price'        => (string) ( $tier['offer']['price'] ?? '' ),
+				'checkout_url' => $this->http_url( (string) ( $tier['offer']['checkout_url'] ?? '' ) ),
+			];
+		}
+
+		return $tiers;
+	}
 
 	/**
 	 * Every registered app type, with its URL and number of active apps.
@@ -445,6 +490,18 @@ final class RepositoryPages {
 	 */
 	private function valid_url( ?URL $url ) : string {
 		return null !== $url && $url->is_valid() ? $url->url() : '';
+	}
+
+	/**
+	 * A URL when it is an absolute http(s) URL, otherwise empty.
+	 *
+	 * @param string $url
+	 * @return string
+	 */
+	private function http_url( string $url ) : string {
+		$scheme = strtolower( (string) parse_url( $url, PHP_URL_SCHEME ) );
+
+		return false !== filter_var( $url, FILTER_VALIDATE_URL ) && in_array( $scheme, [ 'http', 'https' ], true ) ? $url : '';
 	}
 
 	/**

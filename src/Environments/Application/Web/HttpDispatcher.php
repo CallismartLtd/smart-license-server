@@ -14,6 +14,7 @@ namespace SmartLicenseServer\Environments\Application\Web;
 use SmartLicenseServer\Admin\ActionHandlers\AccountManagements;
 use SmartLicenseServer\Admin\ActionHandlers\AppManagement;
 use SmartLicenseServer\Admin\ActionHandlers\AppMonetization;
+use SmartLicenseServer\Admin\ActionHandlers\PurchaseReview;
 use SmartLicenseServer\Admin\ActionHandlers\OtherFormsActions;
 use SmartLicenseServer\Admin\ActionHandlers\SystemManagement;
 use SmartLicenseServer\Admin\ActionHandlers\UpdateManagement;
@@ -46,6 +47,9 @@ use SmartLicenseServer\Environments\Application\Theming\View;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\DownloadsApi\FileRequestController;
 use SmartLicenseServer\HostedApps\ContentHandlers\RepositoryPages;
+use SmartLicenseServer\Monetization\ActionHandlers\PurchaseActions;
+use SmartLicenseServer\Monetization\ContentHandlers\PurchasePages;
+use SmartLicenseServer\Monetization\Providers\LocalProvider;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\Routing\DispatchStatus;
@@ -355,6 +359,22 @@ final class HttpDispatcher {
 						handler: [AppMonetization::class, 'handle_license_delete_request']
 					);
 
+					// Purchase request review (PurchaseReview).
+					$this->router->post(
+						pattern: 'purchase-request-note',
+						handler: [PurchaseReview::class, 'handle_note']
+					);
+
+					$this->router->post(
+						pattern: 'purchase-request-approve',
+						handler: [PurchaseReview::class, 'handle_approve']
+					);
+
+					$this->router->post(
+						pattern: 'purchase-request-reject',
+						handler: [PurchaseReview::class, 'handle_reject']
+					);
+
 					$this->router->post(
 						pattern: 'broadcast-save',
 						handler: [OtherFormsActions::class, 'handle_bulk_message_publish_request'],
@@ -620,6 +640,25 @@ final class HttpDispatcher {
 		);
 
 		/*
+		|------------------------------------------------------------
+		| Purchase pages of tiers sold by manual payment (LocalProvider).
+		|------------------------------------------------------------
+		*/
+		$this->router->group( LocalProvider::PURCHASE_PATH,
+			function() {
+				$this->pages->get( '{tier_id:int}', [PurchasePages::class, 'purchase'] );
+
+				$this->router->post(
+					pattern: '{tier_id:int}/submit',
+					handler: [PurchaseActions::class, 'submit']
+				);
+			},
+			middleware: [
+				CSRFMiddleware::class
+			]
+		);
+
+		/*
 		|-------------------
 		| Repository routes
 		|-------------------
@@ -682,6 +721,12 @@ final class HttpDispatcher {
 				$this->router->get(
 					pattern: 'license-document-{license_id:int}.txt',
 					handler: [FileRequestController::class, 'get_admin_license_document']
+				);
+
+				// A purchase request's receipt (reviewers only).
+				$this->router->get(
+					pattern: 'purchase-receipt-{request_id:int}',
+					handler: [FileRequestController::class, 'get_purchase_receipt']
 				);
 
 				// App Zip Download.

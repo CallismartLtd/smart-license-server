@@ -1,0 +1,83 @@
+<?php
+/**
+ * Admin purchase requests list: receipts buyers sent for tiers sold by manual payment.
+ *
+ * @author Callistus Nwachukwu
+ * @package Smliser\templates
+ * @var \SmartLicenseServer\Monetization\PurchaseRequest[] $purchase_requests
+ * @var string $status The status shown: pending, approved, rejected or all.
+ * @var int $pending_count Requests awaiting review.
+ * @var array $pagination
+ * @var \SmartLicenseServer\Core\Request $request
+ * @var \SmartLicenseServer\Admin\ContentHandlers\LicensePage $page_handler
+ * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ */
+
+use SmartLicenseServer\Monetization\PurchaseRequest;
+
+defined( 'SMLISER_ROOT' ) || exit;
+
+$args = $page_handler->get_menu_args( $request );
+
+$filters = [
+	PurchaseRequest::STATUS_PENDING  => sprintf( 'Pending (%d)', $pending_count ),
+	PurchaseRequest::STATUS_APPROVED => 'Approved',
+	PurchaseRequest::STATUS_REJECTED => 'Rejected',
+	'all'                            => 'All',
+];
+?>
+<div class="smliser-admin-page">
+	<?php smliser_print_admin_content_header( $args ); ?>
+	<div class="smliser-table-wrapper">
+		<p class="smliser-purchase-request-filters">
+			<?php foreach ( $filters as $value => $label ) : ?>
+				<?php if ( $value === $status ) : ?>
+					<strong><?php echo escHtml( $label ); ?></strong>
+				<?php else : ?>
+					<a href="<?php echo escUrl( $urlmanager->admin_license_page_url( 'purchase-requests', [ 'status' => $value ] )->url() ); ?>"><?php echo escHtml( $label ); ?></a>
+				<?php endif; ?>
+				<?php echo 'all' !== $value ? ' | ' : ''; ?>
+			<?php endforeach; ?>
+		</p>
+
+		<?php if ( empty( $purchase_requests ) ) : ?>
+			<?php echo sanitize_html( smliser_not_found_container( 'Purchase requests buyers send for tiers sold by manual payment will appear here.' ) ); ?>
+		<?php else : ?>
+			<table class="smliser-table widefat striped">
+				<thead>
+					<tr>
+						<th><?php echo escHtml( 'Request' ); ?></th>
+						<th><?php echo escHtml( 'Buyer' ); ?></th>
+						<th><?php echo escHtml( 'Bought' ); ?></th>
+						<th><?php echo escHtml( 'Price' ); ?></th>
+						<th><?php echo escHtml( 'Status' ); ?></th>
+						<th><?php echo escHtml( 'Submitted' ); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+					<?php foreach ( $purchase_requests as $purchase ) :
+						$tier = $purchase->get_tier();
+						?>
+						<tr>
+							<td class="smliser-edit-row">
+								#<?php echo escHtml( (string) $purchase->get_id() ); ?>
+								<p class="smliser-edit-link">
+									<a href="<?php echo escUrl( $urlmanager->admin_license_page_url( 'purchase-request', [ 'id' => $purchase->get_id() ] )->url() ); ?>">review</a>
+								</p>
+							</td>
+							<td>
+								<?php echo escHtml( $purchase->get_buyer_name() ); ?><br>
+								<small><?php echo escHtml( $purchase->get_buyer_email() ); ?></small>
+							</td>
+							<td><?php echo escHtml( $tier ? $tier->get_name() : sprintf( 'Deleted tier #%d', $purchase->get_tier_id() ) ); ?></td>
+							<td><?php echo escHtml( $purchase->get_price() ); ?></td>
+							<td><?php echo escHtml( ucfirst( $purchase->get_status() ) ); ?></td>
+							<td><?php echo escHtml( $purchase->get_created_at()?->format( smliser_datetime_format() ) ?? '' ); ?></td>
+						</tr>
+					<?php endforeach; ?>
+				</tbody>
+			</table>
+			<?php smliser_render_pagination( $pagination ); ?>
+		<?php endif; ?>
+	</div>
+</div>

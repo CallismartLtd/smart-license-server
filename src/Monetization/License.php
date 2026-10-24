@@ -834,6 +834,76 @@ class License extends DataStore {
 	}
 
 	/**
+	 * The license document: a plain-text certificate of this license.
+	 *
+	 * Served by the document download routes and attached to the email that
+	 * delivers a license bought by manual payment.
+	 *
+	 * @return string
+	 */
+	public function to_document() : string {
+		$license_key = $this->get_license_key();
+		$service_id  = $this->get_service_id();
+		$date_issued = $this->get_start_date()?->format( \smliser_datetime_format() ) ?? 'N/A';
+		$expiry      = $this->get_end_date()?->format( \smliser_datetime_format() ) ?? 'N/A';
+		$status      = $this->get_status();
+		$max_domains = $this->get_max_allowed_domains();
+		$licensee    = $this->get_licensee_fullname();
+		$today       = gmdate( 'F j, Y g:i:s a' );
+		$issuer      = Settings::instance()->get( Settings::REPOSITORY_NAME, SMLISER_APP_NAME );
+		$terms_url   = Settings::instance()->get( Settings::TERMS_URL, '' );
+		$app_id      = $this->is_issued() ? $this->get_app_id() : 'N/A';
+
+		$document = <<<LICENSE
+        ==================================================
+        SOFTWARE LICENSE CERTIFICATE
+        Issued by:  {$issuer}
+        Licensee:   {$licensee}
+        ==================================================
+        --------------------------------------------------
+        License Details
+        --------------------------------------------------
+        Status:         {$status}
+        Service ID:     {$service_id}
+        License Key:    {$license_key}
+        App ID:         {$app_id}
+
+        --------------------------------------------------
+        License Validity
+        --------------------------------------------------
+        Start Date:     {$date_issued}
+        End Date:       {$expiry}
+        Allowed Sites:  {$max_domains}
+
+        --------------------------------------------------
+        Activation Guide
+        --------------------------------------------------
+        Use the Service ID and License Key above to activate this software.
+
+        Note:
+        - The software already includes its internal ID.
+        - Activation may vary by product. Refer to product documentation.
+
+        --------------------------------------------------
+        License Terms (Summary)
+        --------------------------------------------------
+        ✔ Use on "{$max_domains}" domain(s)
+        ✔ Allowed for personal or client projects
+        ✘ Not allowed to resell, redistribute, or modify for resale
+
+        Full License Agreement:
+        {$terms_url}
+
+        --------------------------------------------------
+        Issued By:          {$issuer}
+        Auto Generated On:  {$today}
+        ==================================================
+        LICENSE;
+
+		return $document;
+	}
+
+	/**
 	 * Link the user's anonymous licenses to their account.
 	 *
 	 * Called once the user has proved they own their email address: every

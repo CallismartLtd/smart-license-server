@@ -499,6 +499,11 @@ code {
 	background: var(--surface);
 }
 
+/* A panel holding more than a short form, e.g. the purchase page. */
+.panel-wide {
+	max-width: 600px;
+}
+
 .panel-heading {
 	margin-bottom: 6px;
 	font-size: 1.35rem;
@@ -525,7 +530,9 @@ code {
 .field input[type="text"],
 .field input[type="email"],
 .field input[type="password"],
-.field select {
+.field input[type="file"],
+.field select,
+.field textarea {
 	width: 100%;
 	padding: 9px 12px;
 	border: 1px solid var(--border);
@@ -536,10 +543,49 @@ code {
 }
 
 .field input:focus,
-.field select:focus {
+.field select:focus,
+.field textarea:focus {
 	outline: 2px solid var(--accent);
 	outline-offset: -1px;
 	border-color: transparent;
+}
+
+.field textarea {
+	resize: vertical;
+}
+
+/* What is being bought, above the purchase form. */
+.purchase-summary {
+	display: grid;
+	gap: 6px;
+	margin-bottom: 20px;
+	padding: 14px 16px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--bg);
+	font-size: 14px;
+}
+
+.purchase-summary dt {
+	color: var(--muted);
+	font-size: 12.5px;
+}
+
+.purchase-summary dd {
+	margin: 0 0 6px;
+	font-weight: 600;
+}
+
+/* The seller's payment instructions, as they typed them. */
+.payment-instructions {
+	margin-bottom: 20px;
+	padding: 14px 16px;
+	border-left: 3px solid var(--accent);
+	border-radius: 4px;
+	background: var(--accent-bg);
+	font-size: 14px;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 }
 
 .field-hint {
@@ -930,6 +976,51 @@ code {
 .app-section > h2 {
 	margin-bottom: 14px;
 	font-size: 1.05rem;
+}
+
+/* An app's pricing tiers, side by side. */
+.pricing {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 16px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.pricing-tier {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 18px;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: var(--bg);
+}
+
+.pricing-name {
+	font-size: 1rem;
+}
+
+.pricing-price {
+	font-size: 1.25rem;
+	font-weight: 700;
+}
+
+.pricing-terms {
+	flex: 1;
+	margin: 0;
+	padding-left: 18px;
+	color: var(--muted);
+	font-size: 13.5px;
+}
+
+.pricing-terms li + li {
+	margin-top: 4px;
+}
+
+.pricing-note {
+	font-size: 13px;
 }
 
 .prose > * + * {

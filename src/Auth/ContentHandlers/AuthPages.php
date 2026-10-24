@@ -77,6 +77,7 @@ final class AuthPages {
 	 * GET <login prefix>/signup/ — create an account.
 	 *
 	 * Template 'auth.sign-up'. Data: $action, and
+	 *   string $email       Address to fill in, from ?email=; empty when absent or invalid.
 	 *   string $terms_url   Terms URL; empty when not set.
 	 *   string $privacy_url Privacy policy URL; empty when not set.
 	 *
@@ -84,7 +85,11 @@ final class AuthPages {
 	 * @return View
 	 */
 	public function sign_up( Request $request ) : View {
+		// ?email= fills the address in, e.g. from the email that delivers a purchased license.
+		$email = trim( (string) $request->get( 'email', '' ) );
+
 		return $this->form_page( 'auth.sign-up', 'Create an account', 'form/signup' )
+			->set( 'email', false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : '' )
 			->set( 'terms_url', (string) $this->settings->get( Settings::TERMS_URL, '' ) )
 			->set( 'privacy_url', (string) $this->settings->get( Settings::PRIVACY_POLICY_URL, '' ) );
 	}

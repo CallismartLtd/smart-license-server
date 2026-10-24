@@ -112,6 +112,14 @@ define( 'SMLISER_TMP_DIR', SMLISER_STORAGE_DIR . '.tmp/' );
 define( 'SMLISER_UPLOADS_DIR', SMLISER_STORAGE_DIR . 'uploads/' );
 
 /**
+ * Absolute path to the private directory: files only the app serves, after
+ * its own access checks (e.g. purchase receipts). Never served as is.
+ * 
+ * @var string
+ */
+define( 'SMLISER_PRIVATE_DIR', SMLISER_STORAGE_DIR . 'private/' );
+
+/**
  * Absolute path to the logs directory.
  * 
  * @var string

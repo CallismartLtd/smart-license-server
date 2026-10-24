@@ -34,6 +34,11 @@ use SmartLicenseServer\Email\Templates\Licenses\LicenseRenewedEmail;
 use SmartLicenseServer\Email\Templates\Licenses\LicenseSuspendedEmail;
 use SmartLicenseServer\Email\Templates\Apps\NewAppVersionNotificationEmail;
 use SmartLicenseServer\Email\Templates\Monetization\PaymentFailedEmail;
+use SmartLicenseServer\Email\Templates\Purchases\AdminPurchaseRequestEmail;
+use SmartLicenseServer\Email\Templates\Purchases\PurchaseRequestApprovedEmail;
+use SmartLicenseServer\Email\Templates\Purchases\PurchaseRequestMessageEmail;
+use SmartLicenseServer\Email\Templates\Purchases\PurchaseRequestReceivedEmail;
+use SmartLicenseServer\Email\Templates\Purchases\PurchaseRequestRejectedEmail;
 use SmartLicenseServer\Email\Templates\Monetization\PaymentReceivedEmail;
 use SmartLicenseServer\Email\Templates\Monetization\SubscriptionCancelledEmail;
 use SmartLicenseServer\Email\Templates\System\BulkMessageEmail;
@@ -126,6 +131,11 @@ class EmailTemplateRegistry {
 			AppOwnershipChangedEmail::class,
 
 			// Monetization
+			PurchaseRequestReceivedEmail::class,
+			AdminPurchaseRequestEmail::class,
+			PurchaseRequestMessageEmail::class,
+			PurchaseRequestApprovedEmail::class,
+			PurchaseRequestRejectedEmail::class,
 			PaymentReceivedEmail::class,
 			PaymentFailedEmail::class,
 			SubscriptionCancelledEmail::class,

@@ -51,6 +51,14 @@ final class View {
 	public const FORMS_SCRIPT = 'page-forms';
 
 	/**
+	 * Handle of the file uploader: its script and its style share it.
+	 * A page with input[type="file"][data-smliser-uploader] adds both.
+	 *
+	 * @var string
+	 */
+	public const UPLOADER_ASSET = 'file-uploader';
+
+	/**
 	 * A template slug: lowercase dot-separated segments.
 	 */
 	private const TEMPLATE_PATTERN = '/^[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)*$/';

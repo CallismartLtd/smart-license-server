@@ -21,6 +21,8 @@ use SmartLicenseServer\HostedApps\HostedAppsInterface;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\HostedApps\Storage\AppFile;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\Monetization\PurchaseRequest;
+use SmartLicenseServer\Monetization\PurchaseRequestService;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\SettingsAPI\Settings;
@@ -35,6 +37,7 @@ class FileRequestController {
 	public function __construct(
 		protected AppsAnalytics $apps_analytics,
 		protected Settings $settings,
+		protected PurchaseRequestService $purchase_requests,
 		Guard $guard
 	) {
 		$this->guard = $guard;
@@ -299,6 +302,47 @@ class FileRequestController {
 	}
 
 	/**
+	 * Serve a purchase request's receipt to a reviewer.
+	 *
+	 * Receipts live in the private directory and are served only here, to
+	 * principals who can issue licenses (the reviewers of purchase requests).
+	 * Images and PDFs open in the browser; nothing is cached.
+	 *
+	 * @param FileRequest|Request $request The file request object.
+	 * @return FileResponse
+	 */
+	public function get_purchase_receipt( FileRequest|Request $request ) : FileResponse {
+		try {
+			$principal = $this->guard->get_principal();
+
+			if ( ! $principal ) {
+				throw new FileRequestException( 401 );
+			}
+
+			if ( ! $principal->can( 'monetization.license.issue' ) ) {
+				throw new FileRequestException( 403 );
+			}
+
+			$purchase = PurchaseRequest::get_by_id( (int) $request->get( 'request_id' ) );
+			$path     = $purchase ? $this->purchase_requests->get_receipt_path( $purchase ) : null;
+
+			if ( null === $path ) {
+				throw new FileRequestException( 'file_not_found' );
+			}
+
+			// Named after the request; the stored name is random.
+			$name = sprintf( 'purchase-request-%d-receipt.%s', $purchase->get_id(), pathinfo( $path, PATHINFO_EXTENSION ) );
+
+			return ( new FileResponse( $path, $request, [ 'name' => $name, 'content_type' => $purchase->get_receipt_mime() ] ) )
+				->set_header( 'Content-Disposition', sprintf( 'inline; filename="%s"', $name ) )
+				->set_header( 'Cache-Control', 'private, no-store' );
+
+		} catch ( FileRequestException $e ) {
+			return FileResponse::error_response( $e, $request );
+		}
+	}
+
+	/**
 	 * Serves remote asset as a proxy, bypassing CORs restrictions for clients.
 	 * 
 	 * @param FileRequest|Request $request The file request object.
@@ -474,72 +518,13 @@ class FileRequestController {
 	}
 
 	/**
-	 * Generates a textual license certificate for a given license and request context.
+	 * The license document served for a license (License::to_document()).
 	 *
-	 * @param License $license   License object.
-	 * @param Settings Settings API instance (used for issuer, terms URL, etc.).
-	 * @return string The formatted license document.
+	 * @param License $license
+	 * @return string
 	 */
-	protected function generate_license_document( $license ) : string {
-		$license_key = $license->get_license_key();
-		$service_id  = $license->get_service_id();
-		$date_issued = $license->get_start_date()?->format( \smliser_datetime_format() ) ?? 'N/A';
-		$expiry      = $license->get_end_date()?->format( \smliser_datetime_format() ) ?? 'N/A';
-		$status      = $license->get_status();
-		$max_domains = $license->get_max_allowed_domains();
-		$licensee    = $license->get_licensee_fullname();
-		$today       = gmdate( 'F j, Y g:i:s a' );
-		$issuer      = $this->settings->get( Settings::REPOSITORY_NAME, SMLISER_APP_NAME );
-		$terms_url   = $this->settings->get( Settings::TERMS_URL, '' );
-		$app_id      = $license->is_issued() ? $license->get_app_id() : 'N/A';
-
-		$document = <<<LICENSE
-        ==================================================
-        SOFTWARE LICENSE CERTIFICATE
-        Issued by:  {$issuer}
-        Licensee:   {$licensee}
-        ==================================================
-        --------------------------------------------------
-        License Details
-        --------------------------------------------------
-        Status:         {$status}
-        Service ID:     {$service_id}
-        License Key:    {$license_key}
-        App ID:         {$app_id}
-
-        --------------------------------------------------
-        License Validity
-        --------------------------------------------------
-        Start Date:     {$date_issued}
-        End Date:       {$expiry}
-        Allowed Sites:  {$max_domains}
-
-        --------------------------------------------------
-        Activation Guide
-        --------------------------------------------------
-        Use the Service ID and License Key above to activate this software.
-
-        Note:
-        - The software already includes its internal ID.
-        - Activation may vary by product. Refer to product documentation.
-
-        --------------------------------------------------
-        License Terms (Summary)
-        --------------------------------------------------
-        ✔ Use on "{$max_domains}" domain(s)
-        ✔ Allowed for personal or client projects
-        ✘ Not allowed to resell, redistribute, or modify for resale
-
-        Full License Agreement:
-        {$terms_url}
-
-        --------------------------------------------------
-        Issued By:          {$issuer}
-        Auto Generated On:  {$today}
-        ==================================================
-        LICENSE;
-
-		return $document;
+	protected function generate_license_document( License $license ) : string {
+		return $license->to_document();
 	}
 
 	/**

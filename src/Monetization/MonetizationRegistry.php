@@ -14,6 +14,7 @@ use SmartLicenseServer\Contracts\AbstractRegistry;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\Monetization\Providers\MonetizationProviderInterface;
+use SmartLicenseServer\Monetization\Providers\LocalProvider;
 use SmartLicenseServer\Monetization\Providers\RemoteProvider;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -34,6 +35,7 @@ final class MonetizationRegistry extends AbstractRegistry {
 	 * @var class-string<MonetizationProviderInterface>[]
 	 */
 	private array $core_providers = [
+		LocalProvider::class,
 		RemoteProvider::class,
 	];
 

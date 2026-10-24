@@ -11,8 +11,15 @@ namespace SmartLicenseServer\Admin\ContentHandlers;
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\Environments\Application\Theming\View;
+use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Monetization\License;
+use SmartLicenseServer\Monetization\Monetization;
+use SmartLicenseServer\Monetization\PurchaseRequest;
+use SmartLicenseServer\Monetization\PurchaseRequestNote;
+use SmartLicenseServer\Monetization\PurchaseRequestService;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Templates\TemplateLocator;
 
@@ -27,8 +34,13 @@ class LicensePage implements AdminPageInterface {
 		protected TemplateLocator $locator,
 		protected RepositoryAnalytics $repository_analytics,
 		protected URLManager $urlmanager,
-		protected Settings $settings
-	) {}
+		protected Settings $settings,
+		protected PurchaseRequestService $purchase_requests,
+		protected AssetsManager $assets_manager
+	) {
+		// The purchase request review forms post through page-forms.js.
+		$this->assets_manager->set_script_category( View::FORMS_SCRIPT, AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+	}
 
 	/**
 	 * The license page dashbard
@@ -188,6 +200,69 @@ class LicensePage implements AdminPageInterface {
 	}
 
 	/**
+	 * Purchase requests: buyers' receipts for tiers sold by manual payment.
+	 *
+	 * Pending requests are listed first by default (?status=); the reviewer
+	 * opens one to check the receipt.
+	 *
+	 * @param Request $request
+	 */
+	public function purchase_requests_page( Request $request ) : void {
+		$status = (string) $request->get( 'status', PurchaseRequest::STATUS_PENDING );
+		$status = in_array( $status, [ PurchaseRequest::STATUS_PENDING, PurchaseRequest::STATUS_APPROVED, PurchaseRequest::STATUS_REJECTED, 'all' ], true ) ? $status : PurchaseRequest::STATUS_PENDING;
+		$data   = PurchaseRequest::get_all( (int) $request->get( 'paged', 1 ), (int) $request->get( 'limit', 20 ), 'all' === $status ? '' : $status );
+
+		$purchase_requests = $data['items'];
+		$pagination        = $data['pagination'];
+		$pending_count     = PurchaseRequest::count_pending();
+		$page_handler      = $this;
+		$urlmanager        = $this->urlmanager;
+		$vars              = compact( 'request', 'status', 'purchase_requests', 'pagination', 'pending_count', 'page_handler', 'urlmanager' );
+
+		$this->locator->render( 'admin.contents.license.purchase-requests', $vars );
+	}
+
+	/**
+	 * One purchase request, with its receipt.
+	 *
+	 * @param Request $request
+	 */
+	public function purchase_request_page( Request $request ) : void {
+		$request_id = (int) $request->get( 'id', 0 );
+		$purchase   = PurchaseRequest::get_by_id( $request_id );
+		$tier       = $purchase?->get_tier();
+		$app        = $tier ? Monetization::get_by_id( $tier->get_monetization_id() )?->get_app() : null;
+		$receipt    = $purchase ? $this->purchase_requests->get_receipt_path( $purchase ) : null;
+
+		$receipt_url = null !== $receipt ? $this->urlmanager->admin_downloads_url( sprintf( 'purchase-receipt-%d', $request_id ) )->url() : '';
+		$notes       = $purchase ? PurchaseRequestNote::get_for_request( $purchase->get_id() ) : [];
+
+		// Reviewers' names, for the notes and the decision.
+		$author_ids = array_unique( array_filter( array_merge(
+			array_map( static fn ( PurchaseRequestNote $note ) : int => $note->get_author_id(), $notes ),
+			[ (int) $purchase?->get_reviewed_by() ]
+		) ) );
+		$authors    = [];
+
+		foreach ( $author_ids as $author_id ) {
+			$authors[ $author_id ] = (string) User::get_by_id( $author_id )?->get_display_name() ?: sprintf( 'User #%d', $author_id );
+		}
+
+		// The review forms post to PurchaseReview through page-forms.js.
+		$actions = [
+			'note'    => $this->urlmanager->admin_url( 'admin/json/purchase-request-note' )->url(),
+			'approve' => $this->urlmanager->admin_url( 'admin/json/purchase-request-approve' )->url(),
+			'reject'  => $this->urlmanager->admin_url( 'admin/json/purchase-request-reject' )->url(),
+		];
+
+		$page_handler = $this;
+		$urlmanager   = $this->urlmanager;
+		$vars         = compact( 'request', 'request_id', 'purchase', 'tier', 'app', 'receipt_url', 'notes', 'authors', 'actions', 'page_handler', 'urlmanager' );
+
+		$this->locator->render( 'admin.contents.license.purchase-request', $vars );
+	}
+
+	/**
 	 * Get args for admin menu.
 	 * 
 	 * @return array
@@ -196,12 +271,14 @@ class LicensePage implements AdminPageInterface {
 		$tab = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
 
 		$title = match ( $tab ) {
-			'logs'    => 'License Activity Logs',
-			'add-new' => 'Add new license',
-			'edit'    => 'Edit license',
-			'view'    => 'License Details',
-			'search'  => 'Search Licenses',
-			default   => 'Licenses'
+			'logs'              => 'License Activity Logs',
+			'add-new'           => 'Add new license',
+			'edit'              => 'Edit license',
+			'view'              => 'License Details',
+			'search'            => 'Search Licenses',
+			'purchase-requests' => 'Purchase Requests',
+			'purchase-request'  => 'Purchase Request',
+			default             => 'Licenses'
 		};
 
 		$args = [
@@ -405,6 +482,18 @@ class LicensePage implements AdminPageInterface {
 				'slug'       => 'search',
 				'callback'   => [$this, 'search_page'],
 				'visibility' => true,
+			],
+			[
+				'title'      => 'Purchase Requests',
+				'slug'       => 'purchase-requests',
+				'callback'   => [$this, 'purchase_requests_page'],
+				'visibility' => true,
+			],
+			[
+				'title'      => 'Purchase Request',
+				'slug'       => 'purchase-request',
+				'callback'   => [$this, 'purchase_request_page'],
+				'visibility' => false
 			],
 			[
 				'title'      => 'View License',

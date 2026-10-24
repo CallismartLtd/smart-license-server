@@ -136,6 +136,13 @@ final class CSS {
 				'version'      => SMLISER_VER,
 				'media-type'   => 'all'
 			],
+			// Styles of the file uploader (file-uploader.js).
+			'file-uploader' => [
+				'url'          => $this->urlmanager->assets_url( sprintf( 'css/file-uploader%s.css', $suffix ) ),
+				'dependencies' => [],
+				'version'      => SMLISER_VER,
+				'media-type'   => 'all'
+			],
 			'toast' => [
 				'url'          => $this->urlmanager->assets_url( sprintf( 'css/toast%s.css', $suffix ) ),
 				'dependencies' => [],

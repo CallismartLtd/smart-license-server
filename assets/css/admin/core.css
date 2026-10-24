@@ -2518,3 +2518,101 @@ input.smliser_toggle-switch-input {
 	right: 6px;
 	padding: 4px 8px;
 }
+/* ============================================
+   PURCHASE REQUEST REVIEW
+   ============================================ */
+.smliser-review-receipt {
+    max-width: 100%;
+    max-height: 640px;
+    border: 1px solid var(--dashboard-border);
+    border-radius: var(--dashboard-radius);
+}
+
+.smliser-review-help {
+    color: var(--dashboard-text-muted);
+}
+
+.smliser-review-decisions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.smliser-review-form {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 14px;
+    border: 1px solid var(--dashboard-border);
+    border-radius: var(--dashboard-radius);
+}
+
+.smliser-review-form label {
+    display: grid;
+    gap: 6px;
+}
+
+.smliser-review-form label > span {
+    font-weight: 600;
+}
+
+.smliser-review-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.smliser-review-form .smliser-review-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.smliser-review-form .smliser-review-check > span {
+    font-weight: normal;
+}
+
+.smliser-review-form button {
+    justify-self: start;
+}
+
+.smliser-review-form .notice {
+    margin: 0;
+}
+
+.smliser-review-form .notice[data-state="error"] {
+    border-left-color: var(--dashboard-danger);
+}
+
+.smliser-review-form .notice[data-state="success"] {
+    border-left-color: var(--dashboard-success);
+}
+
+.smliser-review-notes {
+    display: grid;
+    gap: 10px;
+    margin: 0 0 16px;
+    padding: 0;
+    list-style: none;
+}
+
+.smliser-review-note {
+    padding: 10px 14px;
+    border-left: 3px solid var(--dashboard-border);
+    border-radius: 4px;
+    background: var(--dashboard-hover-bg);
+}
+
+.smliser-review-note.is-sent {
+    border-left-color: var(--dashboard-accent);
+}
+
+.smliser-review-note p {
+    margin: 0;
+}
+
+.smliser-review-note__meta {
+    margin-bottom: 4px !important;
+    color: var(--dashboard-text-muted);
+    font-size: 12.5px;
+}

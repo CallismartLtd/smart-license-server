@@ -33,6 +33,7 @@ enum TableName : string {
 	case APP_DOWNLOAD_TOKENS      = 'app_download_tokens';
 	case MONETIZATION             = 'monetization';
 	case PRICING_TIERS            = 'pricing_tiers';
+	case PURCHASE_REQUESTS        = 'purchase_requests';
 	case BULK_MESSAGES            = 'bulk_messages';
 	case BULK_MESSAGES_APPS       = 'bulk_messages_apps';
 	case OPTIONS                  = 'options';

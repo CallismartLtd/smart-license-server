@@ -57,6 +57,7 @@ use SmartLicenseServer\Environments\Application\Update\UpdateRunner;
 use SmartLicenseServer\Environments\Application\Update\UpdateService;
 use SmartLicenseServer\Environments\Application\Web\RestAPIProvider;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\HostedApps\Storage\AppStorage;
 use SmartLicenseServer\HostedApps\Storage\DirectoryAppStorage;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
@@ -500,6 +501,9 @@ class ApplicationEnvironment extends Environment {
 
 		// Shadow boot hosted app registry.
 		$this->container->get( HostedAppsRegistry::class );
+
+		// Models reach providers through MonetizationRegistry::instance(), which needs the container.
+		$this->container->get( MonetizationRegistry::class );
 		$this->container->get( AppStorage::class );
 
 		/*

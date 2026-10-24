@@ -152,6 +152,13 @@ final class JS {
 				'version'      => SMLISER_VER,
 				'footer'       => true
 			],
+			// Enhances input[type="file"][data-smliser-uploader] into a drop zone (View::UPLOADER_ASSET).
+			'file-uploader' => [
+				'url'          => $this->urlmanager->assets_url( sprintf( 'js/file-uploader%s.js', $suffix ) ),
+				'dependencies' => [],
+				'version'      => SMLISER_VER,
+				'footer'       => true
+			],
 			'toast' => [
 				'url'          => $this->urlmanager->assets_url( sprintf( 'js/toast%s.js', $suffix ) ),
 				'dependencies' => [],

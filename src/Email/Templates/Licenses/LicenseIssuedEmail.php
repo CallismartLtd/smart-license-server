@@ -47,8 +47,9 @@ class LicenseIssuedEmail extends EmailTemplate {
 		return array_merge( parent::variables(), [
 			'{{licensee_name}}'    => $this->license->get_licensee_fullname(),
 			'{{license_key}}'      => $this->license->get_license_key(),
-			'{{start_date}}'       => $this->license->get_start_date()->format( \smliser_datetime_format() ),
-			'{{end_date}}'         => $this->license->get_end_date()->format( \smliser_datetime_format() ),
+			'{{start_date}}'       => $this->license->get_start_date()?->format( \smliser_datetime_format() ) ?? 'N/A',
+			// A lifetime license has no end date.
+			'{{end_date}}'         => $this->license->get_end_date()?->format( \smliser_datetime_format() ) ?? 'Never (lifetime)',
 			'{{activation_limit}}' => (string) $this->license->get_max_allowed_domains(),
 		] );
 	}

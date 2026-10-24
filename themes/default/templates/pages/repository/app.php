@@ -14,6 +14,8 @@
  * @var array<string, string> $sections Heading => readme HTML.
  * @var list<array{src: string, caption: string}> $screenshots
  * @var array{url: string, monetized: bool} $download
+ * @var list<array{id: int, name: string, term_label: string, max_sites: int, features: list<string>, price: string, checkout_url: string}> $pricing
+ *      Active pricing tiers; empty when the app is not for sale.
  * @var array{homepage: string, support: string, author: string} $links
  * @var list<string> $tags
  * @var array{license: string, license_uri: string} $license
@@ -53,6 +55,9 @@ $details_partial = 'repository.details-' . $type['slug'];
 		<div class="actions">
 			<?php if ( $download['monetized'] ) : ?>
 				<span class="badge">Requires a license</span>
+				<?php if ( [] !== $pricing ) : ?>
+					<a class="btn btn-accent" href="#pricing">See pricing</a>
+				<?php endif; ?>
 			<?php else : ?>
 				<a class="btn btn-accent" href="<?php echo escUrl( $download['url'] ); ?>"><?php echo escHtml( '' !== $card['version'] ? sprintf( 'Download %s', $card['version'] ) : 'Download' ); ?></a>
 			<?php endif; ?>
@@ -70,6 +75,10 @@ $details_partial = 'repository.details-' . $type['slug'];
 
 <div class="app-layout">
 	<div class="app-main">
+		<?php if ( [] !== $pricing ) : ?>
+			<?php $this->partial( 'repository.pricing', [ 'tiers' => $pricing ] ); ?>
+		<?php endif; ?>
+
 		<?php if ( [] !== $screenshots ) : ?>
 			<section class="app-section">
 				<h2>Screenshots</h2>

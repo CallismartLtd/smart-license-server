@@ -119,6 +119,7 @@ class AppInstaller {
 		'Cache Directory'              => \SMLISER_CACHE_DIR,
 		'Temporary Directory'          => \SMLISER_TMP_DIR,
 		'Uploads Directory'            => \SMLISER_UPLOADS_DIR,
+		'Private Directory'            => \SMLISER_PRIVATE_DIR,
 		'Logs Directory'               => \SMLISER_LOGS_DIR,
 	];
 

@@ -26,6 +26,7 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\HostedApps\HostedAppsRegistry;
+use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\HostedApps\Storage\AppStorage;
 use SmartLicenseServer\HostedApps\Storage\DirectoryAppStorage;
 use SmartLicenseServer\Monetization\DownloadToken;
@@ -156,6 +157,9 @@ class WordPressEnvironment extends Environment {
 
 		// Shadow boot hosted app registry.
 		$this->container->get( HostedAppsRegistry::class );
+
+		// Models reach providers through MonetizationRegistry::instance(), which needs the container.
+		$this->container->get( MonetizationRegistry::class );
 		$this->container->get( AppStorage::class );
 
 

@@ -211,6 +211,8 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                                 <option value="<?php echo escAttr( (string) $value ); ?>"><?php echo escHtml( (string) $label ); ?></option>
                                             <?php endforeach; ?>
                                         </select>
+                                    <?php elseif ( 'textarea' === ( $field['type'] ?? 'text' ) ) : ?>
+                                        <textarea name="<?php echo escAttr( $name ); ?>" id="<?php echo escAttr( $field_id ); ?>" data-key="<?php echo escAttr( $key ); ?>" field-name="<?php echo escAttr( $field['label'] ?? $key ); ?>" rows="5"<?php echo $required; ?>></textarea>
                                     <?php else : ?>
                                         <input type="<?php echo escAttr( $field['type'] ?? 'text' ); ?>" name="<?php echo escAttr( $name ); ?>" id="<?php echo escAttr( $field_id ); ?>" data-key="<?php echo escAttr( $key ); ?>" field-name="<?php echo escAttr( $field['label'] ?? $key ); ?>"<?php echo $required; ?>>
                                     <?php endif; ?>
