@@ -61,6 +61,7 @@ use SmartLicenseServer\HostedApps\Storage\AppStorage;
 use SmartLicenseServer\HostedApps\Storage\DirectoryAppStorage;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
+use SmartLicenseServer\Security\Authentication\EmailVerificationToken;
 use SmartLicenseServer\Security\Authentication\PasswordResetToken;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -157,6 +158,14 @@ class ApplicationEnvironment extends Environment {
 				$this->runtime->secret,
 				$this->runtime->salt,
 				$c->get( Cache::class )
+			)
+		);
+
+		$this->container->singleton(
+			EmailVerificationToken::class,
+			fn () : EmailVerificationToken => new EmailVerificationToken(
+				$this->runtime->secret,
+				$this->runtime->salt
 			)
 		);
 

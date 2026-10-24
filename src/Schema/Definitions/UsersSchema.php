@@ -76,6 +76,10 @@ class UsersSchema implements DatabaseSchemaInterface {
 				->default( 'active' )
 				->required(),
 
+			// When the user proved they own `email`; NULL until then.
+			Column::make( 'email_verified_at' )
+				->type( ColumnType::DATETIME ),
+
 			Column::make( 'created_at' )
 				->type( ColumnType::DATETIME ),
 

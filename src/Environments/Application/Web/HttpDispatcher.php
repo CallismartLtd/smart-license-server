@@ -145,6 +145,7 @@ final class HttpDispatcher {
 				$this->pages->get( 'signup', [AuthPages::class, 'sign_up'] );
 				$this->pages->get( 'forgot-password', [AuthPages::class, 'forgot_password'] );
 				$this->pages->get( 'reset-password', [AuthPages::class, 'reset_password'] );
+				$this->pages->get( 'verify-email', [AuthPages::class, 'verify_email'] );
 
 				$this->router->post(
 					pattern: 'form/login',
@@ -161,6 +162,10 @@ final class HttpDispatcher {
 				$this->router->post(
 					pattern: 'form/reset-password',
 					handler: [AuthManagement::class, 'handle_reset_password']
+				);
+				$this->router->post(
+					pattern: 'form/resend-verification',
+					handler: [AuthManagement::class, 'handle_resend_verification']
 				);
 			},
 			// Guest forms: the POSTs need the guest CSRF token; the pages pass through.

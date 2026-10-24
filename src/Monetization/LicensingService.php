@@ -13,6 +13,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
+use SmartLicenseServer\Security\Actors\User;
 
 /**
  * The Licensing API: how licenses are issued and changed.
@@ -101,6 +102,13 @@ class LicensingService {
 		}
 
 		$contract = $tier->to_license_contract( $starts_at ?? new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) );
+
+		// A verified account owns its address, so the license is theirs from the start.
+		$owner = User::get_by_email( $license->get_licensee_email() );
+
+		if ( $owner && $owner->is_email_verified() ) {
+			$license->set_user_id( $owner->get_id() );
+		}
 
 		$license->set_app( $app )
 			->set_licensee_fullname( $licensee_name )

@@ -19,6 +19,7 @@ use SmartLicenseServer\Email\Templates\Accounts\OrganizationInviteEmail;
 use SmartLicenseServer\Email\Templates\Accounts\OrganizationMemberRemovedEmail;
 use SmartLicenseServer\Email\Templates\Accounts\PasswordChangedEmail;
 use SmartLicenseServer\Email\Templates\Accounts\PasswordResetEmail;
+use SmartLicenseServer\Email\Templates\Accounts\VerifyEmailEmail;
 use SmartLicenseServer\Email\Templates\Accounts\WelcomeEmail;
 use SmartLicenseServer\Email\Templates\Apps\AppOwnershipChangedEmail;
 use SmartLicenseServer\Email\Templates\Apps\AppPublishedEmail;
@@ -111,6 +112,7 @@ class EmailTemplateRegistry {
 			WelcomeEmail::class,
 			PasswordResetEmail::class,
 			PasswordChangedEmail::class,
+			VerifyEmailEmail::class,
 
 			// Organization
 			OrganizationInviteEmail::class,

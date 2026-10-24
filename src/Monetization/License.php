@@ -10,6 +10,7 @@
 namespace SmartLicenseServer\Monetization;
 
 use SmartLicenseServer\Schema\TableName;
+use SmartLicenseServer\Security\Actors\User;
 use Callismart\DBPrism\Database;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -465,11 +466,23 @@ class License extends DataStore {
 	}
 
 	/**
-	 * Get the the ID of the user associated with the license
-	 * 
-	 * @return int
+	 * Get the licensee's name.
+	 *
+	 * A license linked to a registered user shows that user's display name,
+	 * so the name follows the account. An anonymous license keeps the name
+	 * it was issued with.
+	 *
+	 * @return string
 	 */
 	public function get_licensee_fullname() {
+		if ( $this->user_id > 0 ) {
+			$name = (string) User::get_by_id( $this->user_id )?->get_display_name();
+
+			if ( '' !== $name ) {
+				return $name;
+			}
+		}
+
 		return $this->licensee_fullname;
 	}
 
@@ -818,6 +831,29 @@ class License extends DataStore {
 		$data = static::$DB->get_row( $sql->build(), $sql->get_bindings() );
 
 		return $data ? static::from_array( $data ) : null;
+	}
+
+	/**
+	 * Link the user's anonymous licenses to their account.
+	 *
+	 * Called once the user has proved they own their email address: every
+	 * license issued to that address and not linked to anyone yet becomes
+	 * theirs. Licenses already linked to another user are left alone.
+	 *
+	 * @param User $user A user whose email address is verified.
+	 * @return int Number of licenses linked.
+	 */
+	public static function link_to_user( User $user ) : int {
+		if ( ! $user->get_id() || ! $user->is_email_verified() ) {
+			return 0;
+		}
+
+		$sql = static::query()->update( TableName::LICENSES->table() )
+			->set( [ 'user_id' => (int) $user->get_id() ] )
+			->where( 'licensee_email', '=', strtolower( trim( $user->get_email() ) ) )
+			->where_null( 'user_id' );
+
+		return static::$DB->execute( $sql->build(), $sql->get_bindings() );
 	}
 
 	/**

@@ -109,6 +109,15 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
 	protected ?DateTimeImmutable $created_at = null;
 
 	/**
+	 * When the user proved they own their email address; null until then.
+	 *
+	 * Changing the email address of an existing user clears it.
+	 *
+	 * @var DateTimeImmutable|null
+	 */
+	protected ?DateTimeImmutable $email_verified_at = null;
+
+	/**
 	 * Date the user was last updated.
 	 *
 	 * @var DateTimeImmutable|null
@@ -232,8 +241,48 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
 	 * @return static
 	 */
 	public function set_email( $email ) : static {
-		$this->email = self::sanitize_text( $email );
+		$email = self::sanitize_text( $email );
+
+		// A new address is not verified, whatever the old one was.
+		if ( '' !== $this->email && strtolower( $email ) !== strtolower( $this->email ) ) {
+			$this->email_verified_at = null;
+		}
+
+		$this->email = $email;
 		return $this;
+	}
+
+	/**
+	 * Set when the user proved they own their email address.
+	 *
+	 * @param string|DateTimeImmutable|null $date Null or empty for not verified.
+	 * @return static
+	 */
+	public function set_email_verified_at( $date ) : static {
+		if ( null === $date || '' === $date ) {
+			$this->email_verified_at = null;
+			return $this;
+		}
+
+		return $this->set_date_prop( $date, 'email_verified_at' );
+	}
+
+	/**
+	 * Get when the user proved they own their email address.
+	 *
+	 * @return DateTimeImmutable|null Null when not verified.
+	 */
+	public function get_email_verified_at() : ?DateTimeImmutable {
+		return $this->email_verified_at;
+	}
+
+	/**
+	 * Whether the user proved they own their email address.
+	 *
+	 * @return bool
+	 */
+	public function is_email_verified() : bool {
+		return null !== $this->email_verified_at;
 	}
 
 	/**
@@ -404,11 +453,12 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
 
 			$now    = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 			$fields = [
-				'display_name'  => $this->get_display_name(),
-				'email'         => $this->get_email(),
-				'password_hash' => $this->get_password_hash(),
-				'status'        => $this->get_status(),
-				'updated_at'    => $now->format( 'Y-m-d H:i:s' )
+				'display_name'      => $this->get_display_name(),
+				'email'             => $this->get_email(),
+				'password_hash'     => $this->get_password_hash(),
+				'status'            => $this->get_status(),
+				'email_verified_at' => $this->email_verified_at?->format( 'Y-m-d H:i:s' ),
+				'updated_at'        => $now->format( 'Y-m-d H:i:s' )
 			];
 
 			$lock_sql = static::query()

@@ -13,6 +13,7 @@ namespace SmartLicenseServer\Security\Authentication;
 use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Exceptions\SecurityException;
+use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Permission\Role;
@@ -47,6 +48,13 @@ final class UserAccounts {
 	 * @var int
 	 */
 	private const SIGNUP_LOCK_SECONDS = 300;
+
+	/**
+	 * Shortest time between two verification emails to one user, in seconds.
+	 *
+	 * @var int
+	 */
+	public const VERIFICATION_RESEND_SECONDS = 60;
 
 	/**
 	 * @param Cache $cache The application cache.
@@ -150,6 +158,56 @@ final class UserAccounts {
 		}
 
 		return $user;
+	}
+
+	/*
+	|----------------------
+	| Email verification
+	|----------------------
+	*/
+
+	/**
+	 * Record that the user owns their email address.
+	 *
+	 * Licenses issued to that address before the account existed, or while it
+	 * was unverified, are linked to the user. Verifying an address already
+	 * verified changes nothing.
+	 *
+	 * @param User $user The user who opened a valid verification link.
+	 * @return int Number of licenses linked to the user.
+	 * @throws RequestException When the user cannot be saved.
+	 */
+	public function mark_email_verified( User $user ) : int {
+		if ( ! $user->is_email_verified() ) {
+			$user->set_email_verified_at( gmdate( 'Y-m-d H:i:s' ) );
+
+			if ( ! $user->save() ) {
+				throw new RequestException( 'user_save_error', 'Your email address could not be verified. Please try again.', [ 'status' => 500 ] );
+			}
+		}
+
+		return License::link_to_user( $user );
+	}
+
+	/**
+	 * Claim the right to send the user another verification email.
+	 *
+	 * At most one per VERIFICATION_RESEND_SECONDS, so the resend button
+	 * cannot flood the user's inbox or the job queue.
+	 *
+	 * @param User $user The user asking for a new link.
+	 * @return bool False when one was sent too recently.
+	 */
+	public function acquire_verification_resend( User $user ) : bool {
+		$key = sprintf( 'verification_resend_%d', (int) $user->get_id() );
+
+		if ( $this->cache->has( $key ) ) {
+			return false;
+		}
+
+		$this->cache->set( $key, time(), self::VERIFICATION_RESEND_SECONDS );
+
+		return true;
 	}
 
 	/**

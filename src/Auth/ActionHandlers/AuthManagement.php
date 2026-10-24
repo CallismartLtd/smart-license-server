@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Auth\ActionHandlers;
 
+use SmartLicenseServer\Background\Jobs\Accounts\EmailVerificationJob;
 use SmartLicenseServer\Background\Jobs\Accounts\PasswordResetJob;
 use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
 use SmartLicenseServer\Background\Queue\JobQueue;
@@ -18,6 +19,7 @@ use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
 use SmartLicenseServer\Security\Authentication\PasswordResetToken;
 use SmartLicenseServer\Security\Authentication\UserAccounts;
@@ -212,6 +214,8 @@ class AuthManagement {
 			]
 		);
 
+		$this->dispatch_job( EmailVerificationJob::class, [ 'user_id' => $principal->get_id() ] );
+
 		$this->dispatch_job(
 			SignupEmailJob::class,
 			[
@@ -230,6 +234,47 @@ class AuthManagement {
 				'success'  => true,
 				'message'  => 'Account created successfully! Check your email to verify your account.',
 				'redirect' => $this->urlmanager->client_dashboard_url()->url()
+			]
+		);
+	}
+
+	/*
+	|----------------------
+	| EMAIL VERIFICATION
+	|----------------------
+	*/
+
+	/**
+	 * POST <login prefix>/form/resend-verification — send a new link.
+	 *
+	 * For the signed-in user only; the link goes to the account's current
+	 * email address. Links sent earlier stay valid until they expire.
+	 *
+	 * @param Request $request
+	 * @return Response JSON { success, message }
+	 */
+	public function handle_resend_verification( Request $request ) : Response {
+		$user = $this->guard->get_principal()?->get_actor();
+
+		if ( ! ( $user instanceof User ) ) {
+			return static::error_response( 401, 'not_signed_in', 'Sign in to verify your email address.' );
+		}
+
+		if ( $user->is_email_verified() ) {
+			return static::success_response( 200, [ 'success' => true, 'message' => 'Your email address is already verified.' ] );
+		}
+
+		if ( ! $this->accounts->acquire_verification_resend( $user ) ) {
+			return static::error_response( 429, 'too_soon', 'A link was sent a moment ago. Check your inbox, or try again in a minute.' );
+		}
+
+		$this->dispatch_job( EmailVerificationJob::class, [ 'user_id' => $user->get_id() ] );
+
+		return static::success_response(
+			200,
+			[
+				'success' => true,
+				'message' => sprintf( 'A new verification link is on its way to %s.', $user->get_email() ),
 			]
 		);
 	}

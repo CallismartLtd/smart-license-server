@@ -969,7 +969,9 @@ class AppInstaller {
 				->set_password_hash( password_hash( $password, PASSWORD_ARGON2ID ) )
 				->set_created_at( new \DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) ) )
 				->set_id( 0 )
-				->set_status( User::STATUS_ACTIVE );
+				->set_status( User::STATUS_ACTIVE )
+				// The installer typed this address in themselves; nothing to prove.
+				->set_email_verified_at( new \DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) ) );
 			
 			if ( ! $admin->save() ) {
 				throw new DatabaseException( 'insert_error', $this->db->get_last_error() );

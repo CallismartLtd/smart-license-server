@@ -14,7 +14,11 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environments\Application\Theming\View;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
+use SmartLicenseServer\Exceptions\RequestException;
+use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Security\Authentication\EmailVerificationToken;
 use SmartLicenseServer\Security\Authentication\PasswordResetToken;
+use SmartLicenseServer\Security\Authentication\UserAccounts;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -49,7 +53,9 @@ final class AuthPages {
 		private PasswordIdentityProviderInterface $id_provider,
 		private URLManager $urls,
 		private Settings $settings,
-		private PasswordResetToken $reset_tokens
+		private PasswordResetToken $reset_tokens,
+		private EmailVerificationToken $verify_tokens,
+		private UserAccounts $accounts
 	) {}
 
 	/**
@@ -120,6 +126,50 @@ final class AuthPages {
 			->set( 'token', $valid ? $key : '' )
 			->set( 'email', $valid ? (string) $check['user']->get_email() : '' )
 			->set( 'reason', $valid ? '' : 'This password reset link is invalid or has expired. Ask for a new one.' );
+	}
+
+	/**
+	 * GET <login prefix>/verify-email?key=… — the link in the verification email.
+	 *
+	 * Opening a valid link verifies the address and links the licenses issued
+	 * to it. Doing so on GET is safe: the link only proves the mail arrived,
+	 * opening it twice changes nothing, and it signs nobody in.
+	 *
+	 * Template 'auth.verify-email'. Data:
+	 *   bool   $verified Whether the address is now verified.
+	 *   string $email    The verified address; empty on failure.
+	 *   int    $linked   Licenses linked to the account by this visit.
+	 *   string $reason   Why the link failed; empty on success.
+	 *   bool   $resend   Whether the visitor may ask for a new link (signed in, unverified).
+	 *   string $action   URL of the resend form.
+	 *
+	 * @param Request $request
+	 * @return View
+	 */
+	public function verify_email( Request $request ) : View {
+		$key      = (string) $request->get( 'key', '', false );
+		$check    = '' === $key ? [ 'valid' => false, 'reason' => 'This verification link is not valid.' ] : $this->verify_tokens->verify( $key );
+		$verified = false;
+		$linked   = 0;
+		$reason   = (string) ( $check['reason'] ?? '' );
+
+		if ( $check['valid'] ) {
+			try {
+				$linked   = $this->accounts->mark_email_verified( $check['user'] );
+				$verified = true;
+			} catch ( RequestException $e ) {
+				$reason = $e->get_error_message();
+			}
+		}
+
+		$current = $this->guard->get_principal()?->get_actor();
+
+		return $this->form_page( 'auth.verify-email', $verified ? 'Email verified' : 'Verify your email', 'form/resend-verification' )
+			->set( 'verified', $verified )
+			->set( 'email', $verified ? (string) $check['user']->get_email() : '' )
+			->set( 'linked', $linked )
+			->set( 'reason', $reason )
+			->set( 'resend', ! $verified && $current instanceof User && ! $current->is_email_verified() );
 	}
 
 	/**
