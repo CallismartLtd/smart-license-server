@@ -306,7 +306,9 @@ class FileRequestController {
 	 *
 	 * Receipts live in the private directory and are served only here, to
 	 * principals who can issue licenses (the reviewers of purchase requests).
-	 * Images and PDFs open in the browser; nothing is cached.
+	 * The review page shows them in a modal (purchase-review.js). Opened
+	 * directly, the sandbox policy keeps any script from running as this
+	 * site, so browsers may refuse to render a PDF there. Nothing is cached.
 	 *
 	 * @param FileRequest|Request $request The file request object.
 	 * @return FileResponse
@@ -335,7 +337,49 @@ class FileRequestController {
 
 			return ( new FileResponse( $path, $request, [ 'name' => $name, 'content_type' => $purchase->get_receipt_mime() ] ) )
 				->set_header( 'Content-Disposition', sprintf( 'inline; filename="%s"', $name ) )
-				->set_header( 'Cache-Control', 'private, no-store' );
+				->set_header( 'Cache-Control', 'private, no-store' )
+				// Uploaded by the public: never sniffed into another type, never run as a page of this site.
+				->set_header( 'X-Content-Type-Options', 'nosniff' )
+				->set_header( 'Content-Security-Policy', "default-src 'none'; img-src 'self'; sandbox" );
+
+		} catch ( FileRequestException $e ) {
+			return FileResponse::error_response( $e, $request );
+		}
+	}
+
+	/**
+	 * Serve one page image of a PDF receipt (ReceiptRasterizer) to a reviewer.
+	 *
+	 * Same access as the receipt itself (get_purchase_receipt()).
+	 *
+	 * @param FileRequest|Request $request The file request object.
+	 * @return FileResponse
+	 */
+	public function get_purchase_receipt_page( FileRequest|Request $request ) : FileResponse {
+		try {
+			$principal = $this->guard->get_principal();
+
+			if ( ! $principal ) {
+				throw new FileRequestException( 401 );
+			}
+
+			if ( ! $principal->can( 'monetization.license.issue' ) ) {
+				throw new FileRequestException( 403 );
+			}
+
+			$purchase = PurchaseRequest::get_by_id( (int) $request->get( 'request_id' ) );
+			$pages    = $purchase ? $this->purchase_requests->get_receipt_pages( $purchase ) : [];
+			$path     = $pages[ (int) $request->get( 'page' ) - 1 ] ?? null;
+
+			if ( null === $path ) {
+				throw new FileRequestException( 'file_not_found' );
+			}
+
+			return ( new FileResponse( $path, $request, [ 'name' => basename( $path ), 'content_type' => 'image/png' ] ) )
+				->set_header( 'Content-Disposition', 'inline' )
+				->set_header( 'Cache-Control', 'private, no-store' )
+				->set_header( 'X-Content-Type-Options', 'nosniff' )
+				->set_header( 'Content-Security-Policy', "default-src 'none'; sandbox" );
 
 		} catch ( FileRequestException $e ) {
 			return FileResponse::error_response( $e, $request );

@@ -56,7 +56,7 @@ final class View {
 	 *
 	 * @var string
 	 */
-	public const UPLOADER_ASSET = 'file-uploader';
+	public const UPLOADER_ASSET = 'smliser-uploader';
 
 	/**
 	 * A template slug: lowercase dot-separated segments.

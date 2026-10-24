@@ -2521,13 +2521,6 @@ input.smliser_toggle-switch-input {
 /* ============================================
    PURCHASE REQUEST REVIEW
    ============================================ */
-.smliser-review-receipt {
-    max-width: 100%;
-    max-height: 640px;
-    border: 1px solid var(--dashboard-border);
-    border-radius: var(--dashboard-radius);
-}
-
 .smliser-review-help {
     color: var(--dashboard-text-muted);
 }
@@ -2615,4 +2608,87 @@ input.smliser_toggle-switch-input {
     margin-bottom: 4px !important;
     color: var(--dashboard-text-muted);
     font-size: 12.5px;
+}
+.smliser-review-receipt-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.smliser-review-receipt-row > span:nth-child(2) {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.smliser-review-receipt-type {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: var(--dashboard-hover-bg);
+    color: var(--dashboard-accent);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* The receipt viewer (purchase-review.js). */
+.smliser-receipt-viewer {
+    display: grid;
+    place-items: center;
+    gap: 16px;
+    min-height: 200px;
+    max-height: 75vh;
+    overflow: auto;
+}
+
+.smliser-receipt-viewer__image {
+    max-width: 100%;
+    max-height: 70vh;
+    cursor: zoom-in;
+}
+
+.smliser-receipt-viewer.is-zoomed {
+    place-items: start;
+}
+
+.smliser-receipt-viewer.is-zoomed .smliser-receipt-viewer__image {
+    max-width: none;
+    max-height: none;
+    cursor: zoom-out;
+}
+
+/* A rendered PDF page: shaded so pages read as paper on the modal. */
+.smliser-receipt-viewer__page {
+    max-height: none;
+    width: 100%;
+    max-width: 800px;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.smliser-receipt-viewer.is-zoomed .smliser-receipt-viewer__page {
+    width: auto;
+    max-width: none;
+}
+
+.smliser-receipt-viewer__pdf {
+    width: 100%;
+    height: 70vh;
+    border: 0;
+    border-radius: 6px;
+    background: #ffffff;
+}
+
+.smliser-receipt-viewer__status[data-state="error"] {
+    color: var(--dashboard-danger);
+}
+
+.smliser-receipt-viewer__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }

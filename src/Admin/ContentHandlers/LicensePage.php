@@ -13,6 +13,7 @@ use SmartLicenseServer\Analytics\RepositoryAnalytics;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Environments\Application\Theming\View;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Monetization\License;
@@ -36,10 +37,12 @@ class LicensePage implements AdminPageInterface {
 		protected URLManager $urlmanager,
 		protected Settings $settings,
 		protected PurchaseRequestService $purchase_requests,
-		protected AssetsManager $assets_manager
+		protected AssetsManager $assets_manager,
+		protected FileSystem $fs
 	) {
-		// The purchase request review forms post through page-forms.js.
+		// The purchase request review page: its forms post through page-forms.js; purchase-review.js shows receipts.
 		$this->assets_manager->set_script_category( View::FORMS_SCRIPT, AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+		$this->assets_manager->set_script_category( 'purchase-review', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
 	}
 
 	/**
@@ -234,8 +237,15 @@ class LicensePage implements AdminPageInterface {
 		$app        = $tier ? Monetization::get_by_id( $tier->get_monetization_id() )?->get_app() : null;
 		$receipt    = $purchase ? $this->purchase_requests->get_receipt_path( $purchase ) : null;
 
-		$receipt_url = null !== $receipt ? $this->urlmanager->admin_downloads_url( sprintf( 'purchase-receipt-%d', $request_id ) )->url() : '';
-		$notes       = $purchase ? PurchaseRequestNote::get_for_request( $purchase->get_id() ) : [];
+		$receipt_url   = null !== $receipt ? $this->urlmanager->admin_downloads_url( sprintf( 'purchase-receipt-%d', $request_id ) )->url() : '';
+		$receipt_size  = null !== $receipt ? (int) $this->fs->filesize( $receipt ) : 0;
+		$page_count    = $purchase ? count( $this->purchase_requests->get_receipt_pages( $purchase ) ) : 0;
+		$receipt_pages = array_map(
+			fn ( int $page ) : string => $this->urlmanager->admin_downloads_url( sprintf( 'purchase-receipt-%d/page-%d', $request_id, $page ) )->url(),
+			$page_count ? range( 1, $page_count ) : []
+		);
+
+		$notes = $purchase ? PurchaseRequestNote::get_for_request( $purchase->get_id() ) : [];
 
 		// Reviewers' names, for the notes and the decision.
 		$author_ids = array_unique( array_filter( array_merge(
@@ -257,7 +267,7 @@ class LicensePage implements AdminPageInterface {
 
 		$page_handler = $this;
 		$urlmanager   = $this->urlmanager;
-		$vars         = compact( 'request', 'request_id', 'purchase', 'tier', 'app', 'receipt_url', 'notes', 'authors', 'actions', 'page_handler', 'urlmanager' );
+		$vars         = compact( 'request', 'request_id', 'purchase', 'tier', 'app', 'receipt_url', 'receipt_size', 'receipt_pages', 'notes', 'authors', 'actions', 'page_handler', 'urlmanager' );
 
 		$this->locator->render( 'admin.contents.license.purchase-request', $vars );
 	}

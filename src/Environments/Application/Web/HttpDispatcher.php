@@ -729,6 +729,12 @@ final class HttpDispatcher {
 					handler: [FileRequestController::class, 'get_purchase_receipt']
 				);
 
+				// A page image of a purchase request's PDF receipt (reviewers only).
+				$this->router->get(
+					pattern: 'purchase-receipt-{request_id:int}/page-{page:int}',
+					handler: [FileRequestController::class, 'get_purchase_receipt_page']
+				);
+
 				// App Zip Download.
 				// app_type matches the registered app types (HostedAppsRegistry).
 				// app_slug.ext:zip matches: {app_slug}.zip -> captures 'app_slug' & 'app_slug_ext'.

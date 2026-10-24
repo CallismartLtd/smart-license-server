@@ -153,8 +153,8 @@ final class JS {
 				'footer'       => true
 			],
 			// Enhances input[type="file"][data-smliser-uploader] into a drop zone (View::UPLOADER_ASSET).
-			'file-uploader' => [
-				'url'          => $this->urlmanager->assets_url( sprintf( 'js/file-uploader%s.js', $suffix ) ),
+			'smliser-uploader' => [
+				'url'          => $this->urlmanager->assets_url( sprintf( 'js/smliser-uploader%s.js', $suffix ) ),
 				'dependencies' => [],
 				'version'      => SMLISER_VER,
 				'footer'       => true
@@ -164,6 +164,14 @@ final class JS {
 				'dependencies' => [],
 				'version'      => SMLISER_VER,
 				'footer'       => true
+			],
+
+			// The receipt viewer of the purchase request review page.
+			'purchase-review' => [
+				'url'          => $this->urlmanager->assets_url( sprintf( 'js/admin/purchase-review%s.js', $suffix ) ),
+				'dependencies' => ['gobals', 'modal'],
+				'version'      => SMLISER_VER,
+				'footer'       => true,
 			],
 
 			'site-health' => [

@@ -20,7 +20,7 @@
  * Inputs added to the page later are enhanced with
  * SmliserUploader.init( container ).
  *
- * Styles: file-uploader.css, themed through the --smliser-uploader-* tokens.
+ * Styles: smliser-uploader.css, themed through the --smliser-uploader-* tokens.
  */
 ( function () {
 	'use strict';

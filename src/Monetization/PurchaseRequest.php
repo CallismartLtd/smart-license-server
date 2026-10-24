@@ -380,6 +380,20 @@ class PurchaseRequest extends DataStore {
 	}
 
 	/**
+	 * Number of requests from an IP address awaiting review.
+	 *
+	 * @param string $ip
+	 * @return int
+	 */
+	public static function count_pending_from_ip( string $ip ) : int {
+		$sql = static::query()->select( 'COUNT(*)' )->from( TableName::PURCHASE_REQUESTS->table() )
+			->where( 'ip_address', '=', substr( $ip, 0, 45 ) )
+			->where( 'status', '=', self::STATUS_PENDING );
+
+		return (int) static::$DB->get_var( $sql->build(), $sql->get_bindings() );
+	}
+
+	/**
 	 * Number of requests awaiting review.
 	 *
 	 * @return int

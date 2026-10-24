@@ -9,6 +9,8 @@
  * @var \SmartLicenseServer\HostedApps\HostedAppsInterface|null $app
  * @var int $request_id
  * @var string $receipt_url Empty when the receipt file is missing.
+ * @var int $receipt_size The receipt's size in bytes; 0 when missing.
+ * @var string[] $receipt_pages URLs of a PDF receipt's page images; empty when not rendered.
  * @var \SmartLicenseServer\Monetization\PurchaseRequestNote[] $notes Oldest first.
  * @var array<int, string> $authors Reviewer names by user ID.
  * @var array{note: string, approve: string, reject: string} $actions URLs the review forms post to.
@@ -33,7 +35,6 @@ $args = $page_handler->get_menu_args( $request );
 	]
 );
 
-$is_image = $purchase && str_starts_with( $purchase->get_receipt_mime(), 'image/' );
 ?>
 <div class="smliser-admin-page">
 	<?php smliser_print_admin_content_header( $args ); ?>
@@ -109,16 +110,22 @@ $is_image = $purchase && str_starts_with( $purchase->get_receipt_mime(), 'image/
 
 				<h3>Receipt</h3>
 				<?php if ( '' === $receipt_url ) : ?>
-					<p>The receipt file is missing from storage.</p>
+					<p class="smliser-review-help">The receipt file is missing from storage.</p>
 				<?php else : ?>
-					<p>
-						<a class="smliser-btn smliser-surface-btn" href="<?php echo escUrl( $receipt_url ); ?>" target="_blank" rel="noopener">
-							<i class="ti ti-file-invoice"></i> Open <?php echo escHtml( $purchase->get_receipt_name() ?: 'receipt' ); ?>
-						</a>
-					</p>
-					<?php if ( $is_image ) : ?>
-						<p><img class="smliser-review-receipt" src="<?php echo escUrl( $receipt_url ); ?>" alt="Payment receipt"></p>
-					<?php endif; ?>
+					<div class="smliser-review-receipt-row">
+						<span class="smliser-review-receipt-type"><?php echo escHtml( strtoupper( (string) ( explode( '/', $purchase->get_receipt_mime() )[1] ?? 'file' ) ) ); ?></span>
+						<span>
+							<strong><?php echo escHtml( $purchase->get_receipt_name() ?: 'receipt' ); ?></strong><br>
+							<small><?php echo escHtml( \SmartLicenseServer\Utils\Format::bytes( $receipt_size ) ); ?></small>
+						</span>
+						<button type="button" class="smliser-btn smliser-surface-btn" data-smliser-receipt
+							data-url="<?php echo escAttr( $receipt_url ); ?>"
+							data-mime="<?php echo escAttr( $purchase->get_receipt_mime() ); ?>"
+							data-pages="<?php echo escAttr( (string) smliser_safe_json_encode( $receipt_pages ) ); ?>"
+							data-name="<?php echo escAttr( sprintf( 'purchase-request-%d-receipt.%s', $purchase->get_id(), pathinfo( $purchase->get_receipt_file(), PATHINFO_EXTENSION ) ) ); ?>">
+							<i class="ti ti-eye"></i> View receipt
+						</button>
+					</div>
 				<?php endif; ?>
 
 				<?php if ( $purchase->is_pending() ) : ?>

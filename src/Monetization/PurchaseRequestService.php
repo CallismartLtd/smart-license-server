@@ -11,6 +11,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Monetization;
 
 use SmartLicenseServer\Background\Jobs\Purchases\PurchaseRequestEmailJob;
+use SmartLicenseServer\Background\Jobs\Purchases\RasterizeReceiptJob;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Core\UploadedFile;
@@ -29,8 +30,14 @@ use SmartLicenseServer\Security\Actors\User;
  * with monetization enabled. The receipt is stored in the private
  * directory, which only the app serves, under a random name. One email
  * address has at most one pending request per tier, so a buyer waiting for
- * review cannot pile up duplicates. The buyer and the admin email address
- * are told.
+ * review cannot pile up duplicates, and one IP address has at most
+ * MAX_PENDING_PER_IP pending requests, which bounds the storage one source
+ * can use. The buyer and the admin email address are told.
+ *
+ * A receipt must be a JPG, PNG, WEBP or PDF by its content, not its name.
+ * An image must decode as that type within MAX_IMAGE_SIDE and
+ * MAX_IMAGE_PIXELS; a PDF must be complete and name no active content
+ * (PDF_ACTIVE_CONTENT).
  *
  * Reviewing: reviewers add notes, internal or also emailed to the buyer,
  * at any time. A pending request is decided once: approving issues the
@@ -60,13 +67,46 @@ class PurchaseRequestService {
 	];
 
 	/**
-	 * @param FileSystem       $fs        The filesystem API.
-	 * @param LicensingService $licensing Issues the license of an approved request.
-	 * @param JobQueue         $job_queue Sends the emails.
+	 * Largest image receipt, in pixels per side. Larger images are refused
+	 * before a reviewer's browser has to decode them.
+	 *
+	 * @var int
+	 */
+	public const MAX_IMAGE_SIDE = 10000;
+
+	/**
+	 * Largest image receipt, in pixels (width × height).
+	 *
+	 * @var int
+	 */
+	public const MAX_IMAGE_PIXELS = 40000000;
+
+	/**
+	 * Most pending requests one IP address may have. Each carries a receipt
+	 * of up to MAX_RECEIPT_BYTES, so this bounds what one source can store.
+	 *
+	 * @var int
+	 */
+	public const MAX_PENDING_PER_IP = 5;
+
+	/**
+	 * PDF names for active content: scripts, launching programs, embedded
+	 * files and forms that run code. A receipt needs none of them.
+	 *
+	 * @var string[]
+	 */
+	public const PDF_ACTIVE_CONTENT = [ '/JavaScript', '/JS', '/Launch', '/EmbeddedFile', '/RichMedia', '/XFA' ];
+
+	/**
+	 * @param FileSystem        $fs         The filesystem API.
+	 * @param LicensingService  $licensing  Issues the license of an approved request.
+	 * @param ReceiptRasterizer $rasterizer Renders PDF receipts for reviewers.
+	 * @param JobQueue          $job_queue  Runs the emails and the receipt rendering in the background.
 	 */
 	public function __construct(
 		protected FileSystem $fs,
 		protected LicensingService $licensing,
+		protected ReceiptRasterizer $rasterizer,
 		JobQueue $job_queue
 	) {
 		$this->job_queue = $job_queue;
@@ -149,6 +189,10 @@ class PurchaseRequestService {
 			return new Exception( 'request_pending', 'A purchase request for this option from this email address is already awaiting review. You will get an email once it is reviewed.', [ 'status' => 409 ] );
 		}
 
+		if ( '' !== $ip && PurchaseRequest::count_pending_from_ip( $ip ) >= self::MAX_PENDING_PER_IP ) {
+			return new Exception( 'too_many_requests', 'Too many purchase requests are awaiting review from your network. Please wait until they are reviewed.', [ 'status' => 429 ] );
+		}
+
 		$problem = $this->check_receipt( $receipt );
 
 		if ( null !== $problem ) {
@@ -193,6 +237,11 @@ class PurchaseRequestService {
 
 		$this->email( $request, PurchaseRequestEmailJob::EVENT_RECEIVED );
 		$this->email( $request, PurchaseRequestEmailJob::EVENT_ADMIN );
+
+		// Reviewers see a PDF as images of its pages, rendered by the worker, which may have Imagick when the web PHP does not.
+		if ( 'application/pdf' === $mime ) {
+			$this->dispatch_job( RasterizeReceiptJob::class, [ 'request_id' => $request->get_id() ] );
+		}
 
 		return $request;
 	}
@@ -364,6 +413,19 @@ class PurchaseRequestService {
 	}
 
 	/**
+	 * The page images of a request's PDF receipt (ReceiptRasterizer).
+	 *
+	 * @param PurchaseRequest $request
+	 * @return list<string> Absolute paths in page order; empty for an image
+	 *                      receipt, or a PDF not rendered (yet, or at all).
+	 */
+	public function get_receipt_pages( PurchaseRequest $request ) : array {
+		$path = 'application/pdf' === $request->get_receipt_mime() ? $this->get_receipt_path( $request ) : null;
+
+		return null === $path ? [] : $this->rasterizer->get_pages( $path );
+	}
+
+	/**
 	 * Why an uploaded receipt is not accepted.
 	 *
 	 * @param UploadedFile|null $receipt
@@ -382,8 +444,69 @@ class PurchaseRequestService {
 			return new Exception( 'receipt_too_large', sprintf( 'The receipt must be %d MB or smaller.', self::MAX_RECEIPT_BYTES / 1024 / 1024 ), [ 'status' => 413, 'field_id' => 'receipt' ] );
 		}
 
-		if ( ! isset( self::RECEIPT_TYPES[ (string) $receipt->get_detected_mime() ] ) ) {
+		$mime = (string) $receipt->get_detected_mime();
+
+		if ( ! isset( self::RECEIPT_TYPES[ $mime ] ) ) {
 			return new Exception( 'receipt_type', sprintf( 'The receipt must be a %s file.', implode( ', ', self::RECEIPT_TYPES ) ), [ 'status' => 415, 'field_id' => 'receipt' ] );
+		}
+
+		return 'application/pdf' === $mime
+			? $this->check_pdf( (string) $receipt->get_contents() )
+			: $this->check_image( (string) $receipt->get_tmp_path(), $mime );
+	}
+
+	/**
+	 * Why an image receipt is not accepted.
+	 *
+	 * The image must decode as the type its content claims, and stay within
+	 * MAX_IMAGE_SIDE and MAX_IMAGE_PIXELS, so a small file cannot expand
+	 * into an image that stalls the reviewer's browser.
+	 *
+	 * @param string $path Temporary file.
+	 * @param string $mime Detected MIME type.
+	 * @return Exception|null
+	 */
+	protected function check_image( string $path, string $mime ) : ?Exception {
+		$info = @getimagesize( $path );
+
+		if ( false === $info || $info['mime'] !== $mime ) {
+			return new Exception( 'receipt_unreadable', 'The receipt image could not be read. Please upload it again or send a PDF.', [ 'status' => 422, 'field_id' => 'receipt' ] );
+		}
+
+		[ $width, $height ] = $info;
+
+		if ( $width < 1 || $height < 1 || $width > self::MAX_IMAGE_SIDE || $height > self::MAX_IMAGE_SIDE || $width * $height > self::MAX_IMAGE_PIXELS ) {
+			return new Exception( 'receipt_dimensions', sprintf( 'The receipt image is too large (%d × %d pixels). Please send a smaller image or a PDF.', $width, $height ), [ 'status' => 422, 'field_id' => 'receipt' ] );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Why a PDF receipt is not accepted.
+	 *
+	 * The file must start with a PDF header and end with a PDF trailer, and
+	 * name none of PDF_ACTIVE_CONTENT. The scan reads the file as stored, so
+	 * it does not see names inside compressed object streams: it refuses the
+	 * common cases, it does not prove a PDF harmless. Receipts are viewed in
+	 * the browser's own PDF viewer, never as a page of this site.
+	 *
+	 * @param string $contents The file.
+	 * @return Exception|null
+	 */
+	protected function check_pdf( string $contents ) : ?Exception {
+		if ( ! str_starts_with( $contents, '%PDF-' ) || ! str_contains( substr( $contents, -1024 ), '%%EOF' ) ) {
+			return new Exception( 'receipt_unreadable', 'The receipt PDF is incomplete or damaged. Please upload it again.', [ 'status' => 422, 'field_id' => 'receipt' ] );
+		}
+
+		// Names may spell characters as #xx ("/J#61vaScript"); read them as written out.
+		$names = (string) preg_replace_callback( '/#([0-9A-Fa-f]{2})/', static fn ( array $m ) : string => chr( (int) hexdec( $m[1] ) ), $contents );
+
+		foreach ( self::PDF_ACTIVE_CONTENT as $name ) {
+			// A name ends at a delimiter: "/JS" must not match "/JSomething".
+			if ( preg_match( '#' . preg_quote( $name, '#' ) . '(?![A-Za-z0-9])#', $names ) ) {
+				return new Exception( 'receipt_active_content', 'The receipt PDF contains scripts or embedded files, which receipts do not need. Please export or print it to a plain PDF and upload that.', [ 'status' => 422, 'field_id' => 'receipt' ] );
+			}
 		}
 
 		return null;
