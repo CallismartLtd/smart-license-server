@@ -34,6 +34,7 @@ enum TableName : string {
 	case MONETIZATION             = 'monetization';
 	case PRICING_TIERS            = 'pricing_tiers';
 	case PURCHASE_REQUESTS        = 'purchase_requests';
+	case PURCHASE_REQUEST_NOTES   = 'purchase_request_notes';
 	case BULK_MESSAGES            = 'bulk_messages';
 	case BULK_MESSAGES_APPS       = 'bulk_messages_apps';
 	case OPTIONS                  = 'options';

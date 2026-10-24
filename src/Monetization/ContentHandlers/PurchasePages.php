@@ -58,6 +58,7 @@ class PurchasePages {
 	 *   string   $accept       The receipt types, for the file input's accept attribute.
 	 *   string   $types_label  The receipt types, as people read them.
 	 *   int      $max_mb       Largest receipt, in megabytes.
+	 *   int      $max_bytes    Largest receipt, in bytes (for the uploader).
 	 *
 	 * @param Request $request
 	 * @return View
@@ -96,10 +97,13 @@ class PurchasePages {
 				'accept'       => implode( ',', array_keys( PurchaseRequestService::RECEIPT_TYPES ) ),
 				'types_label'  => implode( ', ', PurchaseRequestService::RECEIPT_TYPES ),
 				'max_mb'       => (int) ( PurchaseRequestService::MAX_RECEIPT_BYTES / 1024 / 1024 ),
+				'max_bytes'    => PurchaseRequestService::MAX_RECEIPT_BYTES,
 			]
 		)
 			->set_title( sprintf( 'Buy %s — %s', (string) $app?->get_name(), $tier->get_name() ) )
 			->set_header( 'Cache-Control', 'no-store' )
-			->add_script( View::FORMS_SCRIPT );
+			->add_script( View::FORMS_SCRIPT )
+			->add_script( View::UPLOADER_ASSET )
+			->add_style( View::UPLOADER_ASSET );
 	}
 }

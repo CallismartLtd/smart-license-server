@@ -4,6 +4,7 @@
  *
  * @author Callistus Nwachukwu
  * @var string $action      The URL the form posts to.
+ * @var string $email       Address to fill in (?email=); may be empty.
  * @var string $terms_url   Terms URL; empty when not set.
  * @var string $privacy_url Privacy policy URL; empty when not set.
  * @var SmartLicenseServer\Environments\Application\Theming\ThemeContext $this
@@ -26,7 +27,7 @@ if ( null !== $this->principal() ) {
 		</label>
 		<label class="field">
 			<span class="field-label">Email</span>
-			<input type="email" name="email" autocomplete="email" required>
+			<input type="email" name="email" autocomplete="email" value="<?php echo escAttr( $email ?? '' ); ?>" required>
 		</label>
 		<label class="field">
 			<span class="field-label">Password</span>

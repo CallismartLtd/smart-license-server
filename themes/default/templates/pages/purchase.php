@@ -17,6 +17,7 @@
  * @var string   $accept       Receipt MIME types for the file input.
  * @var string   $types_label  Receipt types, as people read them.
  * @var int      $max_mb       Largest receipt, in megabytes.
+ * @var int      $max_bytes    Largest receipt, in bytes.
  * @var SmartLicenseServer\Environments\Application\Theming\ThemeContext $this
  */
 
@@ -81,11 +82,11 @@ $guest = '' === $buyer_email;
 			<input type="text" name="payment_reference" maxlength="255">
 			<span class="field-hint">E.g. the transfer ID or the name the payment was made in.</span>
 		</label>
-		<label class="field">
-			<span class="field-label">Receipt</span>
-			<input type="file" name="receipt" accept="<?php echo escAttr( $accept ); ?>" required>
-			<span class="field-hint"><?php echo escHtml( sprintf( '%s, up to %d MB.', $types_label, $max_mb ) ); ?></span>
-		</label>
+		<div class="field">
+			<span class="field-label" id="receipt-label">Payment receipt</span>
+			<input type="file" name="receipt" accept="<?php echo escAttr( $accept ); ?>" required aria-labelledby="receipt-label"
+				data-smliser-uploader data-max-size="<?php echo escAttr( (string) $max_bytes ); ?>" data-label="Drop your receipt here or click to choose">
+		</div>
 		<label class="field">
 			<span class="field-label">Note (optional)</span>
 			<textarea name="note" rows="3"></textarea>
