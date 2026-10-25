@@ -7,7 +7,7 @@
  * @var \SmartLicenseServer\Monetization\PurchaseRequest[] $purchase_requests
  * @var string $status The status shown: all (the default), pending, approved or rejected.
  * @var array{pending: int, approved: int, rejected: int} $status_counts Requests per status.
- * @var string $delete_url URL the bulk delete form posts to.
+ * @var string $delete_url URL the delete forms post to (one request, or the selected ones).
  * @var array $pagination
  * @var \SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Admin\ContentHandlers\LicensePage $page_handler
@@ -45,15 +45,19 @@ $last_filter = array_key_last( $filters );
 		<?php if ( empty( $purchase_requests ) ) : ?>
 			<?php echo sanitize_html( smliser_not_found_container( 'Purchase requests buyers send for tiers sold by manual payment will appear here.' ) ); ?>
 		<?php else : ?>
-			<form method="post" action="<?php echo escUrl( $delete_url ); ?>" data-smliser-form
+			<?php // The row checkboxes belong to this form through their form attribute, so each row can hold its own delete form. ?>
+			<form id="smliser-purchase-requests-bulk" method="post" action="<?php echo escUrl( $delete_url ); ?>" data-smliser-form
 				data-confirm="Delete the selected purchase requests, with their notes and receipts? Licenses issued from them are kept. This cannot be undone." data-confirm-label="Delete" data-confirm-danger>
-			<div class="notice" data-smliser-form-message hidden></div>
-			<input type="hidden" name="status" value="<?php echo escAttr( $status ); ?>">
-			<div class="smliser-actions-wrapper">
-				<div class="smliser-bulk-actions">
-					<button type="submit" class="smliser-btn smliser-btn-danger"><i class="ti ti-trash"></i> Delete selected</button>
+				<div class="notice" data-smliser-form-message hidden></div>
+				<input type="hidden" name="status" value="<?php echo escAttr( $status ); ?>">
+				<div class="smliser-actions-wrapper">
+					<div class="smliser-bulk-actions">
+						<button type="submit" class="smliser-btn smliser-btn-danger" data-smliser-needs-selection hidden>
+							<i class="ti ti-trash"></i> Delete selected (<span data-smliser-selection-count>0</span>)
+						</button>
+					</div>
 				</div>
-			</div>
+			</form>
 			<table class="smliser-table widefat striped">
 				<thead>
 					<tr>
@@ -71,12 +75,22 @@ $last_filter = array_key_last( $filters );
 						$tier = $purchase->get_tier();
 						?>
 						<tr>
-							<td><input type="checkbox" class="smliser-checkbox" name="ids[]" value="<?php echo escAttr( (string) $purchase->get_id() ); ?>" aria-label="<?php echo escAttr( sprintf( 'Select request #%d', $purchase->get_id() ) ); ?>"></td>
+							<td><input type="checkbox" class="smliser-checkbox" form="smliser-purchase-requests-bulk" name="ids[]" value="<?php echo escAttr( (string) $purchase->get_id() ); ?>" aria-label="<?php echo escAttr( sprintf( 'Select request #%d', $purchase->get_id() ) ); ?>"></td>
 							<td class="smliser-edit-row">
 								#<?php echo escHtml( (string) $purchase->get_id() ); ?>
-								<p class="smliser-edit-link">
-									<a href="<?php echo escUrl( $urlmanager->admin_license_page_url( 'purchase-request', [ 'id' => $purchase->get_id() ] )->url() ); ?>">review</a>
-								</p>
+								<div class="smliser-edit-link">
+									<a href="<?php echo escUrl( $urlmanager->admin_license_page_url( 'purchase-request', [ 'id' => $purchase->get_id() ] )->url() ); ?>">review</a> |
+									<form class="smliser-row-action" method="post" action="<?php echo escUrl( $delete_url ); ?>" data-smliser-form
+										data-confirm="<?php echo escAttr( $purchase->get_license_id()
+											? sprintf( 'Delete purchase request #%d, with its notes and receipt? License #%d is kept. This cannot be undone.', $purchase->get_id(), $purchase->get_license_id() )
+											: sprintf( 'Delete purchase request #%d, with its notes and receipt? This cannot be undone.', $purchase->get_id() ) ); ?>"
+										data-confirm-label="Delete" data-confirm-danger>
+										<input type="hidden" name="request_id" value="<?php echo escAttr( (string) $purchase->get_id() ); ?>">
+										<input type="hidden" name="status" value="<?php echo escAttr( $status ); ?>">
+										<button type="submit" class="smliser-row-action__delete">delete</button>
+										<span class="notice" data-smliser-form-message hidden></span>
+									</form>
+								</div>
 							</td>
 							<td>
 								<?php echo escHtml( $purchase->get_buyer_name() ); ?><br>
@@ -90,7 +104,6 @@ $last_filter = array_key_last( $filters );
 					<?php endforeach; ?>
 				</tbody>
 			</table>
-			</form>
 			<?php smliser_render_pagination( $pagination ); ?>
 		<?php endif; ?>
 	</div>

@@ -977,10 +977,29 @@
 		const checkboxes = Array.from( document.querySelectorAll( '.smliser-license-checkbox, .smliser-checkbox' ) );
 		let lastChecked  = null;
 
+		/*
+		 * Bulk controls follow the selection:
+		 *   [data-smliser-needs-selection]  Hidden while no row is selected.
+		 *   [data-smliser-selection-count]  Shows how many rows are selected.
+		 */
+		const syncSelection = () => {
+			const count = checkboxes.filter( ( checkbox ) => checkbox.checked ).length;
+
+			document.querySelectorAll( '[data-smliser-needs-selection]' ).forEach( ( element ) => {
+				element.hidden = 0 === count;
+			} );
+
+			document.querySelectorAll( '[data-smliser-selection-count]' ).forEach( ( element ) => {
+				element.textContent = String( count );
+			} );
+		};
+
 		selectAll.addEventListener( 'change', () => {
 			checkboxes.forEach( ( checkbox ) => {
 				checkbox.checked = selectAll.checked;
 			} );
+
+			syncSelection();
 		} );
 
 		checkboxes.forEach( ( checkbox, index ) => {
@@ -997,8 +1016,13 @@
 
 				lastChecked       = index;
 				selectAll.checked = checkboxes.every( ( cb ) => cb.checked );
+				syncSelection();
 			} );
 		} );
+
+		// The browser may restore checked boxes when the page is revisited.
+		selectAll.checked = checkboxes.length > 0 && checkboxes.every( ( cb ) => cb.checked );
+		syncSelection();
 	}
 
 	function initEntityDelete() {

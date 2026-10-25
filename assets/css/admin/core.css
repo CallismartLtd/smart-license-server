@@ -323,9 +323,10 @@ input[type="checkbox"].smliser-licence-key-visibility-toggle {
     gap: 5px;
 }
 
-/* Show the edit link when hovering over the table cell */
+/* Show the edit link when hovering over the table cell, and while a row action reports an outcome */
 tr:hover:has(.smliser-edit-link) .smliser-edit-link,
-.smliser-edit-link:focus-within {
+.smliser-edit-link:focus-within,
+.smliser-edit-link:has([data-smliser-form-message]:not([hidden])) {
     opacity: 1;
     animation: fadeIn 1s;
 }
@@ -2847,4 +2848,42 @@ input.smliser_toggle-switch-input {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+}
+
+/* Bulk controls hidden until rows are selected (core.js, initBulkSelect) */
+[data-smliser-needs-selection][hidden] {
+    display: none !important;
+}
+
+/* A row action submitted as a form, shown like the row's links */
+.smliser-row-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+}
+
+.smliser-row-action__delete {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: var(--dashboard-danger);
+    cursor: pointer;
+}
+
+.smliser-row-action__delete:hover,
+.smliser-row-action__delete:focus-visible {
+    text-decoration: underline;
+}
+
+.smliser-row-action__delete:disabled {
+    opacity: .6;
+    cursor: progress;
+}
+
+.smliser-row-action [data-smliser-form-message] {
+    margin: 0;
+    padding: 2px 6px;
+    font-size: .85em;
 }
