@@ -348,7 +348,7 @@ class FileRequestController {
 	}
 
 	/**
-	 * Serve one page image of a PDF receipt (ReceiptRasterizer) to a reviewer.
+	 * Serve one page image of a PDF receipt (PurchaseRequestService::render_receipt_pages()) to a reviewer.
 	 *
 	 * Same access as the receipt itself (get_purchase_receipt()).
 	 *

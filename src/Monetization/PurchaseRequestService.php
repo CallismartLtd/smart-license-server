@@ -14,6 +14,7 @@ use SmartLicenseServer\Background\Jobs\Purchases\PurchaseRequestEmailJob;
 use SmartLicenseServer\Background\Jobs\Purchases\RasterizeReceiptJob;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
+use SmartLicenseServer\Core\Pdf\PdfRasterizer;
 use SmartLicenseServer\Core\UploadedFile;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\FileSystem\FileSystem;
@@ -101,15 +102,29 @@ class PurchaseRequestService {
 	public const PDF_ACTIVE_CONTENT = [ '/JavaScript', '/JS', '/Launch', '/EmbeddedFile', '/RichMedia', '/XFA' ];
 
 	/**
-	 * @param FileSystem        $fs         The filesystem API.
-	 * @param LicensingService  $licensing  Issues the license of an approved request.
-	 * @param ReceiptRasterizer $rasterizer Renders PDF receipts for reviewers.
-	 * @param JobQueue          $job_queue  Runs the emails and the receipt rendering in the background.
+	 * Most pages of a PDF receipt drawn for reviewers. A receipt is a page or two.
+	 *
+	 * @var int
+	 */
+	public const RECEIPT_PAGES = 5;
+
+	/**
+	 * Resolution PDF receipts are drawn at, in dots per inch: an A4 page is 1240 × 1754 pixels.
+	 *
+	 * @var int
+	 */
+	public const RECEIPT_DPI = 150;
+
+	/**
+	 * @param FileSystem       $fs         The filesystem API.
+	 * @param LicensingService $licensing  Issues the license of an approved request.
+	 * @param PdfRasterizer    $rasterizer Draws PDF receipts as page images for reviewers.
+	 * @param JobQueue         $job_queue  Runs the emails and the receipt drawing in the background.
 	 */
 	public function __construct(
 		protected FileSystem $fs,
 		protected LicensingService $licensing,
-		protected ReceiptRasterizer $rasterizer,
+		protected PdfRasterizer $rasterizer,
 		JobQueue $job_queue
 	) {
 		$this->job_queue = $job_queue;
@@ -241,7 +256,7 @@ class PurchaseRequestService {
 		$this->email( $request, PurchaseRequestEmailJob::EVENT_RECEIVED );
 		$this->email( $request, PurchaseRequestEmailJob::EVENT_ADMIN );
 
-		// Reviewers see a PDF as images of its pages, rendered by the worker, which may have Imagick when the web PHP does not.
+		// Reviewers see a PDF as images of its pages, drawn by the worker (PdfRasterizer), which may have a renderer the web PHP lacks.
 		if ( 'application/pdf' === $mime ) {
 			$this->dispatch_job( RasterizeReceiptJob::class, [ 'request_id' => $request->get_id() ] );
 		}
@@ -445,16 +460,50 @@ class PurchaseRequestService {
 	}
 
 	/**
-	 * The page images of a request's PDF receipt (ReceiptRasterizer).
+	 * Draw a request's PDF receipt as page images for reviewers (PdfRasterizer).
+	 *
+	 * At most RECEIPT_PAGES pages at RECEIPT_DPI, written next to the receipt
+	 * in "<receipt>.pages/", replacing pages drawn before. Run from
+	 * RasterizeReceiptJob: drawing can take seconds.
+	 *
+	 * @param PurchaseRequest $request
+	 * @return int|Exception The number of pages drawn, or why none were.
+	 */
+	public function render_receipt_pages( PurchaseRequest $request ) : int|Exception {
+		if ( 'application/pdf' !== $request->get_receipt_mime() ) {
+			return new Exception( 'not_pdf', 'The receipt is not a PDF.' );
+		}
+
+		$path = $this->get_receipt_path( $request );
+
+		if ( null === $path ) {
+			return new Exception( 'receipt_missing', 'The receipt file is missing.' );
+		}
+
+		return $this->rasterizer->rasterize( $path, static::receipt_pages_dir( $path ), self::RECEIPT_PAGES, self::RECEIPT_DPI );
+	}
+
+	/**
+	 * The page images of a request's PDF receipt (render_receipt_pages()).
 	 *
 	 * @param PurchaseRequest $request
 	 * @return list<string> Absolute paths in page order; empty for an image
-	 *                      receipt, or a PDF not rendered (yet, or at all).
+	 *                      receipt, or a PDF not drawn (yet, or at all).
 	 */
 	public function get_receipt_pages( PurchaseRequest $request ) : array {
 		$path = 'application/pdf' === $request->get_receipt_mime() ? $this->get_receipt_path( $request ) : null;
 
-		return null === $path ? [] : $this->rasterizer->get_pages( $path );
+		return null === $path ? [] : $this->rasterizer->get_pages( static::receipt_pages_dir( $path ), self::RECEIPT_PAGES );
+	}
+
+	/**
+	 * The directory a PDF receipt's page images are written to.
+	 *
+	 * @param string $receipt_path Absolute path of the receipt.
+	 * @return string
+	 */
+	protected static function receipt_pages_dir( string $receipt_path ) : string {
+		return $receipt_path . '.pages/';
 	}
 
 	/**

@@ -14,10 +14,9 @@ use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Monetization\PurchaseRequest;
 use SmartLicenseServer\Monetization\PurchaseRequestService;
-use SmartLicenseServer\Monetization\ReceiptRasterizer;
 
 /**
- * Renders the pages of a PDF receipt to images (ReceiptRasterizer).
+ * Draws the pages of a PDF receipt as images (PurchaseRequestService::render_receipt_pages()).
  *
  * Queued when a buyer submits a PDF receipt, so the buyer never waits for
  * it. When it fails or cannot run, reviewers see the PDF in the browser's
@@ -26,8 +25,7 @@ use SmartLicenseServer\Monetization\ReceiptRasterizer;
 class RasterizeReceiptJob implements JobHandlerInterface {
 
 	public function __construct(
-		protected PurchaseRequestService $requests,
-		protected ReceiptRasterizer $rasterizer
+		protected PurchaseRequestService $requests
 	) {}
 
 	/**
@@ -39,17 +37,11 @@ class RasterizeReceiptJob implements JobHandlerInterface {
 	public function handle( array $payload = [] ) : mixed {
 		$request = PurchaseRequest::get_by_id( (int) ( $payload['request_id'] ?? 0 ) );
 
-		if ( ! $request || 'application/pdf' !== $request->get_receipt_mime() ) {
-			return [ 'success' => false, 'message' => 'There is no PDF receipt for this request.' ];
+		if ( ! $request ) {
+			return [ 'success' => false, 'message' => 'The purchase request does not exist.' ];
 		}
 
-		$path = $this->requests->get_receipt_path( $request );
-
-		if ( null === $path ) {
-			return [ 'success' => false, 'message' => 'The receipt file is missing.' ];
-		}
-
-		$pages = $this->rasterizer->rasterize( $path );
+		$pages = $this->requests->render_receipt_pages( $request );
 
 		if ( $pages instanceof Exception ) {
 			return [ 'success' => false, 'message' => $pages->get_error_message() ];
