@@ -15,7 +15,7 @@ use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Background\Workers\CodeChangeDetector;
 use SmartLicenseServer\Background\Workers\QueueWorker;
 use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Core\PhpRuntime;
+use SmartLicenseServer\Core\Process\PhpRuntime;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Security\Context\Guard;
 

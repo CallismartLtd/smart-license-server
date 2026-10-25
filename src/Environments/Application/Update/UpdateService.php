@@ -13,7 +13,7 @@ namespace SmartLicenseServer\Environments\Application\Update;
 use SmartLicenseServer\Background\Jobs\Updates\UpdateNotificationJob;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
-use SmartLicenseServer\Core\PhpRuntime;
+use SmartLicenseServer\Core\Process\PhpRuntime;
 use SmartLicenseServer\Environments\Application\Boot\InstallationState;
 use SmartLicenseServer\Environments\Application\Release\ReleaseManifest;
 use SmartLicenseServer\Environments\Application\Release\ReleaseSignature;

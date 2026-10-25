@@ -20,7 +20,7 @@ use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Console\SignalInfo;
 use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
-use SmartLicenseServer\Core\PhpRuntime;
+use SmartLicenseServer\Core\Process\PhpRuntime;
 use SmartLicenseServer\Environments\Application\Update\PhpCli;
 
 /**

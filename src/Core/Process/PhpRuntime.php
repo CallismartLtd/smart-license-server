@@ -8,7 +8,7 @@
 
 declare( strict_types=1 );
 
-namespace SmartLicenseServer\Core;
+namespace SmartLicenseServer\Core\Process;
 
 /**
  * Changes PHP's runtime limits safely on hosts that restrict them.

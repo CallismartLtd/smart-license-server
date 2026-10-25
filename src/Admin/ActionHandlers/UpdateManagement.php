@@ -9,7 +9,7 @@
 namespace SmartLicenseServer\Admin\ActionHandlers;
 
 use SmartLicenseServer\Core\Request;
-use SmartLicenseServer\Core\PhpRuntime;
+use SmartLicenseServer\Core\Process\PhpRuntime;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Environments\Application\Update\UpdateException;
 use SmartLicenseServer\Environments\Application\Update\Updater;
