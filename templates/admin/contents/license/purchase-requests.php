@@ -5,8 +5,8 @@
  * @author Callistus Nwachukwu
  * @package Smliser\templates
  * @var \SmartLicenseServer\Monetization\PurchaseRequest[] $purchase_requests
- * @var string $status The status shown: pending, approved, rejected or all.
- * @var int $pending_count Requests awaiting review.
+ * @var string $status The status shown: all (the default), pending, approved or rejected.
+ * @var array{pending: int, approved: int, rejected: int} $status_counts Requests per status.
  * @var string $delete_url URL the bulk delete form posts to.
  * @var array $pagination
  * @var \SmartLicenseServer\Core\Request $request
@@ -21,11 +21,12 @@ defined( 'SMLISER_ROOT' ) || exit;
 $args = $page_handler->get_menu_args( $request );
 
 $filters = [
-	PurchaseRequest::STATUS_PENDING  => sprintf( 'Pending (%d)', $pending_count ),
-	PurchaseRequest::STATUS_APPROVED => 'Approved',
-	PurchaseRequest::STATUS_REJECTED => 'Rejected',
-	'all'                            => 'All',
+	'all'                            => sprintf( 'All (%d)', array_sum( $status_counts ) ),
+	PurchaseRequest::STATUS_PENDING  => sprintf( 'Pending (%d)', $status_counts[ PurchaseRequest::STATUS_PENDING ] ),
+	PurchaseRequest::STATUS_APPROVED => sprintf( 'Approved (%d)', $status_counts[ PurchaseRequest::STATUS_APPROVED ] ),
+	PurchaseRequest::STATUS_REJECTED => sprintf( 'Rejected (%d)', $status_counts[ PurchaseRequest::STATUS_REJECTED ] ),
 ];
+$last_filter = array_key_last( $filters );
 ?>
 <div class="smliser-admin-page">
 	<?php smliser_print_admin_content_header( $args ); ?>
@@ -37,7 +38,7 @@ $filters = [
 				<?php else : ?>
 					<a href="<?php echo escUrl( $urlmanager->admin_license_page_url( 'purchase-requests', [ 'status' => $value ] )->url() ); ?>"><?php echo escHtml( $label ); ?></a>
 				<?php endif; ?>
-				<?php echo 'all' !== $value ? ' | ' : ''; ?>
+				<?php echo $last_filter !== $value ? ' | ' : ''; ?>
 			<?php endforeach; ?>
 		</p>
 

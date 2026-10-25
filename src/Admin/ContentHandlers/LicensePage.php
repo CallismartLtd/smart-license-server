@@ -207,23 +207,23 @@ class LicensePage implements AdminPageInterface {
 	/**
 	 * Purchase requests: buyers' receipts for tiers sold by manual payment.
 	 *
-	 * Pending requests are listed first by default (?status=); the reviewer
-	 * opens one to check the receipt.
+	 * All requests are listed by default, newest first; ?status= shows one
+	 * status. The reviewer opens one to check the receipt.
 	 *
 	 * @param Request $request
 	 */
 	public function purchase_requests_page( Request $request ) : void {
-		$status = (string) $request->get( 'status', PurchaseRequest::STATUS_PENDING );
-		$status = in_array( $status, [ PurchaseRequest::STATUS_PENDING, PurchaseRequest::STATUS_APPROVED, PurchaseRequest::STATUS_REJECTED, 'all' ], true ) ? $status : PurchaseRequest::STATUS_PENDING;
+		$status = (string) $request->get( 'status', 'all' );
+		$status = in_array( $status, [ PurchaseRequest::STATUS_PENDING, PurchaseRequest::STATUS_APPROVED, PurchaseRequest::STATUS_REJECTED, 'all' ], true ) ? $status : 'all';
 		$data   = PurchaseRequest::get_all( (int) $request->get( 'paged', 1 ), (int) $request->get( 'limit', 20 ), 'all' === $status ? '' : $status );
 
 		$purchase_requests = $data['items'];
 		$pagination        = $data['pagination'];
-		$pending_count     = PurchaseRequest::count_pending();
+		$status_counts     = PurchaseRequest::count_by_status();
 		$delete_url        = $this->urlmanager->admin_url( 'admin/json/purchase-request-delete' )->url();
 		$page_handler      = $this;
 		$urlmanager        = $this->urlmanager;
-		$vars              = compact( 'request', 'status', 'purchase_requests', 'pagination', 'pending_count', 'delete_url', 'page_handler', 'urlmanager' );
+		$vars              = compact( 'request', 'status', 'purchase_requests', 'pagination', 'status_counts', 'delete_url', 'page_handler', 'urlmanager' );
 
 		$this->locator->render( 'admin.contents.license.purchase-requests', $vars );
 	}

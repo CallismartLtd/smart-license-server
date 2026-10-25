@@ -441,6 +441,24 @@ class PurchaseRequest extends DataStore {
 	}
 
 	/**
+	 * Number of requests with each status.
+	 *
+	 * @return array{pending: int, approved: int, rejected: int} A status with no requests counts 0.
+	 */
+	public static function count_by_status() : array {
+		$sql    = static::query()->select( 'status', 'COUNT(*) as total' )->from( TableName::PURCHASE_REQUESTS->table() )->group_by( 'status' );
+		$counts = [ self::STATUS_PENDING => 0, self::STATUS_APPROVED => 0, self::STATUS_REJECTED => 0 ];
+
+		foreach ( static::$DB->get_results( $sql->build(), $sql->get_bindings() ) as $row ) {
+			if ( isset( $counts[ $row['status'] ?? '' ] ) ) {
+				$counts[ $row['status'] ] = (int) $row['total'];
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * Decided requests whose receipt file is still stored and that were
 	 * reviewed before a moment, oldest first (receipt retention).
 	 *
