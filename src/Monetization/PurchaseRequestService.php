@@ -47,6 +47,14 @@ use SmartLicenseServer\Security\Actors\User;
  * can still be approved, e.g. once a disputed payment is resolved: the
  * rejection is kept in the notes. An approved request is final, since its
  * license exists; change or revoke the license instead.
+ *
+ * Deleting and cleanup: a reviewer can delete a request of any status,
+ * which removes its record, notes, receipt and page images, never a
+ * license issued from it. Receipts are kept while a request is pending;
+ * once it is decided, CleanPurchaseReceiptsJob removes its receipt file
+ * after the receipt retention period (Settings::RECEIPT_RETENTION_DAYS),
+ * keeping the request as a record, and removes receipt files no request
+ * refers to.
  */
 class PurchaseRequestService {
 	use QueueAwareTrait;
@@ -504,6 +512,199 @@ class PurchaseRequestService {
 	 */
 	protected static function receipt_pages_dir( string $receipt_path ) : string {
 		return $receipt_path . '.pages/';
+	}
+
+	/*
+	|----------------------
+	| DELETING AND CLEANUP
+	|----------------------
+	*/
+
+	/**
+	 * Delete a request: its record, its notes, its receipt and the receipt's page images.
+	 *
+	 * Any status can be deleted, e.g. spam while pending. Nobody is emailed.
+	 * A license issued from the request is kept: it is the buyer's, and is
+	 * changed or revoked on its own page. The records go first; a receipt
+	 * file that cannot be deleted then is removed later by
+	 * clean_orphaned_receipts().
+	 *
+	 * @param PurchaseRequest $request
+	 * @return true|Exception
+	 */
+	public function delete( PurchaseRequest $request ) : true|Exception {
+		$path = $this->get_receipt_path( $request );
+
+		try {
+			if ( ! $request->delete() ) {
+				return new Exception( 'request_not_deleted', 'The purchase request could not be deleted. Please try again.', [ 'status' => 500 ] );
+			}
+		} catch ( \Throwable $e ) {
+			return new Exception( 'request_not_deleted', 'The purchase request could not be deleted. Please try again.', [ 'status' => 500 ] );
+		}
+
+		if ( null !== $path ) {
+			$this->delete_receipt_files( $path );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Delete a decided request's receipt file and page images, keeping the request.
+	 *
+	 * Used by receipt retention (CleanPurchaseReceiptsJob). The request keeps
+	 * the receipt's name and type and gets an internal note saying when and
+	 * why the file went. A pending request's receipt is never removed: it
+	 * is still needed for the decision.
+	 *
+	 * @param PurchaseRequest $request A decided request.
+	 * @param string          $reason  Why, for the note.
+	 * @return true|Exception
+	 */
+	public function remove_receipt( PurchaseRequest $request, string $reason ) : true|Exception {
+		if ( $request->is_pending() ) {
+			return new Exception( 'request_pending', 'The receipt of a pending request is kept until it is decided.', [ 'status' => 409 ] );
+		}
+
+		if ( '' === $request->get_receipt_file() ) {
+			return true;
+		}
+
+		$path = $this->get_receipt_path( $request );
+
+		// A file already missing is cleared all the same.
+		if ( null !== $path && ! $this->delete_receipt_files( $path ) ) {
+			return new Exception( 'receipt_not_deleted', 'The receipt file could not be deleted.', [ 'status' => 500 ] );
+		}
+
+		$request->clear_receipt_file();
+
+		try {
+			$request->save();
+		} catch ( \Throwable $e ) {
+			// The file is gone; clean_orphaned_receipts() never needs it, and the next run clears the record.
+			return new Exception( 'request_not_saved', 'The receipt file was deleted, but the request could not be updated.', [ 'status' => 500 ] );
+		}
+
+		try {
+			PurchaseRequestNote::make( $request->get_id(), 0, $reason, false )->save();
+		} catch ( \Throwable $e ) {
+			// The record already says the file is gone; the note only explains why.
+		}
+
+		return true;
+	}
+
+	/**
+	 * Delete receipt files no request refers to, and page images whose receipt is gone.
+	 *
+	 * These are left when a delete could not remove the files, or a
+	 * submission stored a receipt but not its request. Only files older than
+	 * $min_age_seconds are touched, so a receipt being submitted right now
+	 * (stored, its request not yet saved) is never taken for one. Empty month
+	 * and year directories of past months are removed too.
+	 *
+	 * @param int $min_age_seconds Files modified more recently are left alone.
+	 * @param int $limit           Most receipts removed in one call.
+	 * @return array{removed: int, failed: int}
+	 */
+	public function clean_orphaned_receipts( int $min_age_seconds = 86400, int $limit = 200 ) : array {
+		$removed = 0;
+		$failed  = 0;
+		$root    = static::receipts_dir();
+		$cutoff  = time() - max( 0, $min_age_seconds );
+		$current = gmdate( 'Y/m' );
+
+		foreach ( $this->list_subdirs( $root, '/^\d{4}$/' ) as $year ) {
+			foreach ( $this->list_subdirs( $year['path'], '/^\d{2}$/' ) as $month ) {
+				if ( $removed + $failed >= $limit ) {
+					break 2;
+				}
+
+				$subdir  = basename( $year['path'] ) . '/' . basename( $month['path'] );
+				$entries = $this->fs->list_dir( $month['path'] ) ?: [];
+				$files   = [];
+				$pages   = [];
+
+				foreach ( $entries as $entry ) {
+					$name = basename( $entry['path'] );
+
+					if ( $entry['is_file'] && $entry['mtime'] < $cutoff ) {
+						$files[ $subdir . '/' . $name ] = $entry['path'];
+					} elseif ( $entry['is_dir'] && str_ends_with( $name, '.pages' ) ) {
+						$pages[] = $entry['path'];
+					}
+				}
+
+				$kept = array_flip( PurchaseRequest::get_referenced_receipt_files( array_keys( $files ) ) );
+
+				foreach ( $files as $relative => $path ) {
+					if ( isset( $kept[ $relative ] ) ) {
+						continue;
+					}
+
+					if ( $removed + $failed >= $limit ) {
+						break;
+					}
+
+					$this->delete_receipt_files( $path ) ? $removed++ : $failed++;
+				}
+
+				// Page images of a receipt that is gone.
+				foreach ( $pages as $dir ) {
+					$receipt = substr( rtrim( $dir, '/\\' ), 0, -strlen( '.pages' ) );
+
+					if ( ! $this->fs->is_file( $receipt ) && $this->fs->is_dir( $dir ) ) {
+						$this->fs->rmdir( $dir, true );
+					}
+				}
+
+				if ( $subdir !== $current && [] === ( $this->fs->list_dir( $month['path'] ) ?: [] ) ) {
+					$this->fs->rmdir( $month['path'] );
+				}
+			}
+
+			if ( ! str_starts_with( $current, basename( $year['path'] ) . '/' ) && [] === ( $this->fs->list_dir( $year['path'] ) ?: [] ) ) {
+				$this->fs->rmdir( $year['path'] );
+			}
+		}
+
+		return compact( 'removed', 'failed' );
+	}
+
+	/**
+	 * Delete a receipt file and its page images.
+	 *
+	 * @param string $path Absolute path of the receipt.
+	 * @return bool Whether the receipt file is gone.
+	 */
+	protected function delete_receipt_files( string $path ) : bool {
+		$pages = static::receipt_pages_dir( $path );
+
+		if ( $this->fs->is_dir( $pages ) ) {
+			$this->fs->rmdir( $pages, true );
+		}
+
+		return ! $this->fs->is_file( $path ) || $this->fs->delete( $path );
+	}
+
+	/**
+	 * The subdirectories of a directory whose names match a pattern.
+	 *
+	 * @param string $dir
+	 * @param string $pattern A regular expression for the name.
+	 * @return list<array{path: string}>
+	 */
+	protected function list_subdirs( string $dir, string $pattern ) : array {
+		$entries = $this->fs->list_dir( $dir ) ?: [];
+
+		return array_values(
+			array_filter(
+				$entries,
+				static fn ( array $entry ) : bool => $entry['is_dir'] && 1 === preg_match( $pattern, basename( $entry['path'] ) )
+			)
+		);
 	}
 
 	/**

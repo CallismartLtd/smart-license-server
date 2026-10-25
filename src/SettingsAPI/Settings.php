@@ -93,6 +93,12 @@ class Settings {
 	public const LOG_RETENTION_DAYS = 'log_retention_days';
 
 	/**
+	 * The option name for how many days a decided purchase request's receipt
+	 * file is kept (0 keeps it forever).
+	 */
+	public const RECEIPT_RETENTION_DAYS = 'receipt_retention_days';
+
+	/**
 	 * The option name for the environment mode.
 	 */
 	public const ENVIRONMENT_MODE = 'environment_mode';

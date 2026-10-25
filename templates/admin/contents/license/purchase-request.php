@@ -11,9 +11,10 @@
  * @var string $receipt_url Empty when the receipt file is missing.
  * @var int $receipt_size The receipt's size in bytes; 0 when missing.
  * @var string[] $receipt_pages URLs of a PDF receipt's page images; empty when not rendered.
+ * @var int $receipt_retention Days a decided request's receipt is kept; 0 keeps it.
  * @var \SmartLicenseServer\Monetization\PurchaseRequestNote[] $notes Oldest first.
  * @var array<int, string> $authors Reviewer names by user ID.
- * @var array{note: string, approve: string, reject: string} $actions URLs the review forms post to.
+ * @var array{note: string, approve: string, reject: string, delete: string} $actions URLs the review forms post to.
  * @var \SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Admin\ContentHandlers\LicensePage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
@@ -109,7 +110,9 @@ $args = $page_handler->get_menu_args( $request );
 				</table>
 
 				<h3>Receipt</h3>
-				<?php if ( '' === $receipt_url ) : ?>
+				<?php if ( '' === $receipt_url && '' === $purchase->get_receipt_file() ) : ?>
+					<p class="smliser-review-help"><?php echo escHtml( sprintf( 'The receipt (%s) was deleted after the receipt retention period. See the notes.', $purchase->get_receipt_name() ?: 'receipt' ) ); ?></p>
+				<?php elseif ( '' === $receipt_url ) : ?>
 					<p class="smliser-review-help">The receipt file is missing from storage.</p>
 				<?php else : ?>
 					<div class="smliser-review-receipt-row">
@@ -126,6 +129,9 @@ $args = $page_handler->get_menu_args( $request );
 							<i class="ti ti-eye"></i> View receipt
 						</button>
 					</div>
+					<?php if ( ! $purchase->is_pending() && $receipt_retention > 0 && $purchase->get_reviewed_at() ) : ?>
+						<p class="smliser-review-help"><?php echo escHtml( sprintf( 'Kept until about %s (%d days after the decision), then deleted automatically. The request stays.', $purchase->get_reviewed_at()->modify( sprintf( '+%d days', $receipt_retention ) )->format( smliser_datetime_format() ), $receipt_retention ) ); ?></p>
+					<?php endif; ?>
 				<?php endif; ?>
 
 				<?php if ( $purchase->can_approve() ) : ?>
@@ -168,7 +174,7 @@ $args = $page_handler->get_menu_args( $request );
 						<?php foreach ( $notes as $note ) : ?>
 							<li class="smliser-review-note<?php echo $note->is_sent_to_buyer() ? ' is-sent' : ''; ?>">
 								<p class="smliser-review-note__meta">
-									<strong><?php echo escHtml( $authors[ $note->get_author_id() ] ?? 'Unknown' ); ?></strong>
+									<strong><?php echo escHtml( $authors[ $note->get_author_id() ] ?? ( 0 === $note->get_author_id() ? 'System' : 'Unknown' ) ); ?></strong>
 									· <?php echo escHtml( $note->get_created_at()?->format( smliser_datetime_format() ) ?? '' ); ?>
 									· <?php echo escHtml( $note->is_sent_to_buyer() ? 'Emailed to the buyer' : 'Internal' ); ?>
 								</p>
@@ -190,6 +196,21 @@ $args = $page_handler->get_menu_args( $request );
 						<span>Also email this note to the buyer (<?php echo escHtml( $purchase->get_buyer_email() ); ?>)</span>
 					</label>
 					<button type="submit" class="smliser-btn smliser-surface-btn"><i class="ti ti-note"></i> Add note</button>
+				</form>
+
+				<h3>Delete</h3>
+				<p class="smliser-review-help">
+					<?php if ( $purchase->get_license_id() ) : ?>
+						<?php echo escHtml( sprintf( 'Deletes this request, its notes and its receipt. License #%d is kept; change or revoke it on its own page.', $purchase->get_license_id() ) ); ?>
+					<?php else : ?>
+						Deletes this request, its notes and its receipt. The buyer is not told.
+					<?php endif; ?>
+				</p>
+				<form class="smliser-review-form" method="post" action="<?php echo escUrl( $actions['delete'] ); ?>" data-smliser-form
+					data-confirm="<?php echo escAttr( sprintf( 'Delete purchase request #%d? This cannot be undone.', $purchase->get_id() ) ); ?>" data-confirm-label="Delete" data-confirm-danger>
+					<div class="notice" data-smliser-form-message hidden></div>
+					<input type="hidden" name="request_id" value="<?php echo escAttr( (string) $purchase->get_id() ); ?>">
+					<button type="submit" class="smliser-btn smliser-btn-danger"><i class="ti ti-trash"></i> Delete request</button>
 				</form>
 			</div>
 		</div>

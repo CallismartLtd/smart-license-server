@@ -11,6 +11,11 @@
  *                                     { success, message, redirect? }.
  *   [data-smliser-form-message]       Inside the form: the message is written here,
  *                                     with data-state="error|success".
+ *   form[data-confirm="…"]            Asks this question first and posts only when
+ *                                     confirmed (SmliserModal.confirm when modal.js
+ *                                     is loaded, otherwise the browser's dialog).
+ *     data-confirm-label="…"          The confirm button's text (default "OK").
+ *     data-confirm-danger             Styles the confirmation as destructive.
  *   form[data-pass-redirect]          Also posts the page's redirect_url query
  *                                     parameter, so sign-in returns the visitor
  *                                     where they were sent from.
@@ -49,6 +54,10 @@
 	 * @return {Promise<void>}
 	 */
 	async function submit( form ) {
+		if ( form.dataset.confirm && ! await confirmed( form ) ) {
+			return;
+		}
+
 		const button = form.querySelector( '[type="submit"]' );
 		const body   = new FormData( form );
 		const target = new URL( window.location.href ).searchParams.get( 'redirect_url' );
@@ -96,6 +105,26 @@
 		form.querySelectorAll( '[data-password-strength]' ).forEach( ( output ) => {
 			output.dataset.strength = '';
 		} );
+	}
+
+	/**
+	 * Ask a form's data-confirm question.
+	 *
+	 * @param {HTMLFormElement} form
+	 * @return {Promise<boolean>}
+	 */
+	async function confirmed( form ) {
+		const message = form.dataset.confirm;
+
+		if ( 'undefined' !== typeof SmliserModal && 'function' === typeof SmliserModal.confirm ) {
+			return SmliserModal.confirm( {
+				message,
+				confirmText: form.dataset.confirmLabel || 'OK',
+				danger: form.hasAttribute( 'data-confirm-danger' ),
+			} );
+		}
+
+		return window.confirm( message );
 	}
 
 	/**

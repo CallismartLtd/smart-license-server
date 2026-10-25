@@ -169,6 +169,19 @@ class PurchaseRequest extends DataStore {
 	}
 
 	/**
+	 * Forget the stored receipt file once it is deleted (receipt retention).
+	 *
+	 * The uploaded name and type are kept, so the request still says what
+	 * the buyer sent.
+	 *
+	 * @return static
+	 */
+	public function clear_receipt_file() : static {
+		$this->receipt_file = '';
+		return $this;
+	}
+
+	/**
 	 * @param string $ip The IP address the request came from.
 	 * @return static
 	 */
@@ -427,11 +440,100 @@ class PurchaseRequest extends DataStore {
 		return (int) static::$DB->get_var( $sql->build(), $sql->get_bindings() );
 	}
 
+	/**
+	 * Decided requests whose receipt file is still stored and that were
+	 * reviewed before a moment, oldest first (receipt retention).
+	 *
+	 * A decided request without a review date (set outside the review
+	 * actions) counts from when it was last updated.
+	 *
+	 * @param DateTimeImmutable $before Reviewed before this moment.
+	 * @param int               $limit  Most requests returned.
+	 * @return static[]
+	 */
+	public static function get_with_receipts_reviewed_before( DateTimeImmutable $before, int $limit = 100 ) : array {
+		$moment = $before->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+		$sql    = static::query()->select( '*' )->from( TableName::PURCHASE_REQUESTS->table() )
+			->where_in( 'status', [ self::STATUS_APPROVED, self::STATUS_REJECTED ] )
+			->where( 'receipt_file', '!=', '' )
+			->where_group(
+				static function ( $group ) use ( $moment ) : void {
+					$group->where( 'reviewed_at', '<', $moment )
+						->or_where_group(
+							static function ( $undated ) use ( $moment ) : void {
+								$undated->where_null( 'reviewed_at' )->where( 'updated_at', '<', $moment );
+							}
+						);
+				}
+			)
+			->order_by( 'id', 'ASC' )
+			->limit( max( 1, $limit ) );
+
+		return array_map( [ static::class, 'from_array' ], static::$DB->get_results( $sql->build(), $sql->get_bindings() ) );
+	}
+
+	/**
+	 * Which of these receipt files a request still refers to.
+	 *
+	 * @param list<string> $files Paths relative to the receipts directory, e.g. "2026/10/<name>.pdf".
+	 * @return list<string> The files that belong to a request.
+	 */
+	public static function get_referenced_receipt_files( array $files ) : array {
+		if ( [] === $files ) {
+			return [];
+		}
+
+		$sql = static::query()->select( 'receipt_file' )->from( TableName::PURCHASE_REQUESTS->table() )
+			->where_in( 'receipt_file', $files );
+
+		return array_values( array_map( 'strval', (array) static::$DB->get_col( $sql->build(), $sql->get_bindings() ) ) );
+	}
+
 	/*
 	|---------
 	| WRITERS
 	|---------
 	*/
+
+	/**
+	 * Delete the request and its notes.
+	 *
+	 * Only the records: the receipt file is the caller's to delete
+	 * (PurchaseRequestService::delete()), and a license issued from the
+	 * request is kept.
+	 *
+	 * @return bool
+	 * @throws DatabaseException When the database refuses the delete.
+	 */
+	public function delete() : bool {
+		if ( ! $this->id ) {
+			return false;
+		}
+
+		$table        = TableName::PURCHASE_REQUESTS->table();
+		$lock_query   = static::query()->select( 'id' )->from( $table )->where( 'id', '=', $this->id )->limit( 1 );
+		$delete_notes = static::query()->delete( TableName::PURCHASE_REQUEST_NOTES->table() )->where( 'request_id', '=', $this->id );
+		$delete_row   = static::query()->delete( $table )->where( 'id', '=', $this->id );
+
+		return (bool) static::$DB->transactional( function ( Database $db ) use ( $lock_query, $delete_notes, $delete_row ) {
+			if ( ! $db->get_row( $lock_query->lock_for_update()->build(), $lock_query->get_bindings() ) ) {
+				throw new DatabaseException( 'delete_failed', 'The purchase request was already deleted.' );
+			}
+
+			// A request may have no notes, so 0 fails only with an error.
+			if ( 0 === $db->execute( $delete_notes->build(), $delete_notes->get_bindings() ) && ! empty( $db->get_last_error() ) ) {
+				throw new DatabaseException( 'delete_failed', $db->get_last_error() );
+			}
+
+			if ( 0 === $db->execute( $delete_row->build(), $delete_row->get_bindings() ) ) {
+				throw new DatabaseException( 'delete_failed', $db->get_last_error() ?: 'The purchase request could not be deleted.' );
+			}
+
+			$this->id = 0;
+
+			return true;
+		} );
+	}
 
 	/**
 	 * Save the request.

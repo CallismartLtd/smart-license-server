@@ -501,6 +501,17 @@ class OptionsPage implements AdminPageInterface {
 			],
 
 			[
+				'label' => 'Receipt Retention (Days)',
+				'help'  => 'Days a payment receipt is kept after its purchase request is approved or rejected. The receipt file is then deleted; the request stays as a record. 0 keeps receipts forever.',
+				'input' => [
+					'type'  => 'number',
+					'name'  => Settings::RECEIPT_RETENTION_DAYS,
+					'value' => $settings->get( Settings::RECEIPT_RETENTION_DAYS, 90 ),
+					'attr'  => [ 'min' => 0 ],
+				],
+			],
+
+			[
 				'label' => 'Environment Mode',
 				'help'  => 'Defines whether this repository operates in production, staging, or development mode.',
 				'input' => [

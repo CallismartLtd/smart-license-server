@@ -376,6 +376,11 @@ final class HttpDispatcher {
 					);
 
 					$this->router->post(
+						pattern: 'purchase-request-delete',
+						handler: [PurchaseReview::class, 'handle_delete']
+					);
+
+					$this->router->post(
 						pattern: 'broadcast-save',
 						handler: [OtherFormsActions::class, 'handle_bulk_message_publish_request'],
 					);

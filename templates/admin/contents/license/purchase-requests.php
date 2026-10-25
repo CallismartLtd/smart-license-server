@@ -7,6 +7,7 @@
  * @var \SmartLicenseServer\Monetization\PurchaseRequest[] $purchase_requests
  * @var string $status The status shown: pending, approved, rejected or all.
  * @var int $pending_count Requests awaiting review.
+ * @var string $delete_url URL the bulk delete form posts to.
  * @var array $pagination
  * @var \SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Admin\ContentHandlers\LicensePage $page_handler
@@ -43,9 +44,19 @@ $filters = [
 		<?php if ( empty( $purchase_requests ) ) : ?>
 			<?php echo sanitize_html( smliser_not_found_container( 'Purchase requests buyers send for tiers sold by manual payment will appear here.' ) ); ?>
 		<?php else : ?>
+			<form method="post" action="<?php echo escUrl( $delete_url ); ?>" data-smliser-form
+				data-confirm="Delete the selected purchase requests, with their notes and receipts? Licenses issued from them are kept. This cannot be undone." data-confirm-label="Delete" data-confirm-danger>
+			<div class="notice" data-smliser-form-message hidden></div>
+			<input type="hidden" name="status" value="<?php echo escAttr( $status ); ?>">
+			<div class="smliser-actions-wrapper">
+				<div class="smliser-bulk-actions">
+					<button type="submit" class="smliser-btn smliser-btn-danger"><i class="ti ti-trash"></i> Delete selected</button>
+				</div>
+			</div>
 			<table class="smliser-table widefat striped">
 				<thead>
 					<tr>
+						<th><input type="checkbox" id="smliser-select-all" aria-label="Select all"></th>
 						<th><?php echo escHtml( 'Request' ); ?></th>
 						<th><?php echo escHtml( 'Buyer' ); ?></th>
 						<th><?php echo escHtml( 'Bought' ); ?></th>
@@ -59,6 +70,7 @@ $filters = [
 						$tier = $purchase->get_tier();
 						?>
 						<tr>
+							<td><input type="checkbox" class="smliser-checkbox" name="ids[]" value="<?php echo escAttr( (string) $purchase->get_id() ); ?>" aria-label="<?php echo escAttr( sprintf( 'Select request #%d', $purchase->get_id() ) ); ?>"></td>
 							<td class="smliser-edit-row">
 								#<?php echo escHtml( (string) $purchase->get_id() ); ?>
 								<p class="smliser-edit-link">
@@ -77,6 +89,7 @@ $filters = [
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+			</form>
 			<?php smliser_render_pagination( $pagination ); ?>
 		<?php endif; ?>
 	</div>

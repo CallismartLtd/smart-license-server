@@ -8,7 +8,7 @@
  *     data-url="…"                The receipt's admin download URL.
  *     data-mime="…"               Its MIME type as stored by the server.
  *     data-pages="[…]"            For a PDF: JSON list of its page image URLs, rendered
- *                                 by the server (ReceiptRasterizer); empty when none.
+ *                                 by the server (PdfRasterizer); empty when none.
  *     data-name="…"               File name for "Download".
  *
  * The file is fetched with the reviewer's session and shown from a blob

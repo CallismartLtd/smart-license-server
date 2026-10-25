@@ -536,6 +536,14 @@ class Scheduler {
 			->weekly_on( 'sunday', '05:00' )
 			->label( 'Clean Trashed Apps' );
 
+		// Delete purchase receipts past their retention, and orphaned ones - daily.
+		$this->call(
+			'clean_purchase_receipts',
+			[ $this->core_schedules, 'cleanPurchaseReceipts' ]
+		)
+			->daily_at( '05:30' )
+			->label( 'Clean Purchase Receipts' );
+
 		// Release stale running jobs every 15 minutes.
 		$this->call(
 			'release_stale_running_jobs',

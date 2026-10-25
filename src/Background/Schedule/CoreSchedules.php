@@ -15,6 +15,7 @@ use SmartLicenseServer\Background\Jobs\Licenses\ExpireLicensesJob;
 use SmartLicenseServer\Background\Jobs\Licenses\NotifyExpiringLicensesJob;
 use SmartLicenseServer\Background\Jobs\Licenses\PruneLicenseMetaJob;
 use SmartLicenseServer\Background\Jobs\Monetization\CleanExpiredTokensJob;
+use SmartLicenseServer\Background\Jobs\Purchases\CleanPurchaseReceiptsJob;
 use SmartLicenseServer\Background\Jobs\Updates\ApplyUpdateJob;
 use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\JobQueue;
@@ -132,6 +133,22 @@ final class CoreSchedules {
 			JobDTO::make(
 				job_class : CleanTrashedAppsJob::class,
 				payload   : [ 'days_in_trash' => 30, 'batch_size' => 50 ],
+				queue     : JobDTO::QUEUE_LOW,
+			)
+		);
+	}
+
+	/**
+	 * Delete old and orphaned purchase receipts — daily.
+	 *
+	 * The retention period is read by the job (Settings::RECEIPT_RETENTION_DAYS),
+	 * so a change applies from the next run.
+	 */
+	public function cleanPurchaseReceipts() : void {
+		$this->job_queue->dispatch(
+			JobDTO::make(
+				job_class : CleanPurchaseReceiptsJob::class,
+				payload   : [ 'batch_size' => 100 ],
 				queue     : JobDTO::QUEUE_LOW,
 			)
 		);

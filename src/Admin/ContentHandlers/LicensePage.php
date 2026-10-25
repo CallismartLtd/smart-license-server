@@ -10,6 +10,7 @@ namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Analytics\RepositoryAnalytics;
+use SmartLicenseServer\Background\Jobs\Purchases\CleanPurchaseReceiptsJob;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Core\URLManager;
@@ -23,6 +24,7 @@ use SmartLicenseServer\Monetization\PurchaseRequestNote;
 use SmartLicenseServer\Monetization\PurchaseRequestService;
 use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Templates\TemplateLocator;
+
 
 use function compact;
 
@@ -218,9 +220,10 @@ class LicensePage implements AdminPageInterface {
 		$purchase_requests = $data['items'];
 		$pagination        = $data['pagination'];
 		$pending_count     = PurchaseRequest::count_pending();
+		$delete_url        = $this->urlmanager->admin_url( 'admin/json/purchase-request-delete' )->url();
 		$page_handler      = $this;
 		$urlmanager        = $this->urlmanager;
-		$vars              = compact( 'request', 'status', 'purchase_requests', 'pagination', 'pending_count', 'page_handler', 'urlmanager' );
+		$vars              = compact( 'request', 'status', 'purchase_requests', 'pagination', 'pending_count', 'delete_url', 'page_handler', 'urlmanager' );
 
 		$this->locator->render( 'admin.contents.license.purchase-requests', $vars );
 	}
@@ -247,6 +250,9 @@ class LicensePage implements AdminPageInterface {
 
 		$notes = $purchase ? PurchaseRequestNote::get_for_request( $purchase->get_id() ) : [];
 
+		// When a decided request's receipt is deleted (CleanPurchaseReceiptsJob); 0 keeps it.
+		$receipt_retention = max( 0, (int) $this->settings->get( Settings::RECEIPT_RETENTION_DAYS, CleanPurchaseReceiptsJob::DEFAULT_RETENTION_DAYS ) );
+
 		// Reviewers' names, for the notes and the decision.
 		$author_ids = array_unique( array_filter( array_merge(
 			array_map( static fn ( PurchaseRequestNote $note ) : int => $note->get_author_id(), $notes ),
@@ -263,11 +269,12 @@ class LicensePage implements AdminPageInterface {
 			'note'    => $this->urlmanager->admin_url( 'admin/json/purchase-request-note' )->url(),
 			'approve' => $this->urlmanager->admin_url( 'admin/json/purchase-request-approve' )->url(),
 			'reject'  => $this->urlmanager->admin_url( 'admin/json/purchase-request-reject' )->url(),
+			'delete'  => $this->urlmanager->admin_url( 'admin/json/purchase-request-delete' )->url(),
 		];
 
 		$page_handler = $this;
 		$urlmanager   = $this->urlmanager;
-		$vars         = compact( 'request', 'request_id', 'purchase', 'tier', 'app', 'receipt_url', 'receipt_size', 'receipt_pages', 'notes', 'authors', 'actions', 'page_handler', 'urlmanager' );
+		$vars         = compact( 'request', 'request_id', 'purchase', 'tier', 'app', 'receipt_url', 'receipt_size', 'receipt_pages', 'receipt_retention', 'notes', 'authors', 'actions', 'page_handler', 'urlmanager' );
 
 		$this->locator->render( 'admin.contents.license.purchase-request', $vars );
 	}
