@@ -40,9 +40,12 @@ use SmartLicenseServer\Security\Actors\User;
  * (PDF_ACTIVE_CONTENT).
  *
  * Reviewing: reviewers add notes, internal or also emailed to the buyer,
- * at any time. A pending request is decided once: approving issues the
- * license (provider "local", reference "request-<ID>") and emails it;
- * rejecting needs a reason, which is emailed. A decided request is final.
+ * at any time. Approving issues the license (provider "local", reference
+ * "request-<ID>") and emails it; rejecting needs a reason, which is
+ * emailed. A pending request can be approved or rejected. A rejected one
+ * can still be approved, e.g. once a disputed payment is resolved: the
+ * rejection is kept in the notes. An approved request is final, since its
+ * license exists; change or revoke the license instead.
  */
 class PurchaseRequestService {
 	use QueueAwareTrait;
@@ -285,11 +288,13 @@ class PurchaseRequestService {
 	}
 
 	/**
-	 * Approve a pending request: issue its license and email it to the buyer.
+	 * Approve a pending or rejected request: issue its license and email it.
 	 *
 	 * Issuing follows LicensingService::issue(): the tier must still exist and
 	 * be active, and the reference "request-<ID>" makes it happen once even
-	 * if two reviewers approve at the same moment.
+	 * if two reviewers approve at the same moment. Approving a rejected
+	 * request first records the rejection in its notes, since the approval
+	 * replaces it on the request.
 	 *
 	 * @param PurchaseRequest $request     The request.
 	 * @param int             $reviewer_id Who approved it.
@@ -297,8 +302,8 @@ class PurchaseRequestService {
 	 * @return License|Exception The license issued.
 	 */
 	public function approve( PurchaseRequest $request, int $reviewer_id, string $message = '' ) : License|Exception {
-		if ( ! $request->is_pending() ) {
-			return new Exception( 'request_decided', sprintf( 'This request was already %s.', $request->get_status() ), [ 'status' => 409 ] );
+		if ( ! $request->can_approve() ) {
+			return new Exception( 'request_decided', sprintf( 'This request was already approved; its license is #%d.', $request->get_license_id() ), [ 'status' => 409 ] );
 		}
 
 		$tier = $request->get_tier();
@@ -317,6 +322,10 @@ class PurchaseRequestService {
 
 		if ( $license instanceof Exception ) {
 			return $license;
+		}
+
+		if ( PurchaseRequest::STATUS_REJECTED === $request->get_status() ) {
+			$this->record_rejection( $request );
 		}
 
 		$request->set_review( PurchaseRequest::STATUS_APPROVED, $reviewer_id, $message, (int) $license->get_id() );
@@ -341,8 +350,8 @@ class PurchaseRequestService {
 	 * @return PurchaseRequest|Exception
 	 */
 	public function reject( PurchaseRequest $request, int $reviewer_id, string $reason ) : PurchaseRequest|Exception {
-		if ( ! $request->is_pending() ) {
-			return new Exception( 'request_decided', sprintf( 'This request was already %s.', $request->get_status() ), [ 'status' => 409 ] );
+		if ( ! $request->can_reject() ) {
+			return new Exception( 'request_decided', sprintf( 'This request was already %s; only a pending request can be rejected.', $request->get_status() ), [ 'status' => 409 ] );
 		}
 
 		if ( '' === trim( $reason ) ) {
@@ -360,6 +369,29 @@ class PurchaseRequestService {
 		$this->email( $request, PurchaseRequestEmailJob::EVENT_REJECTED );
 
 		return $request;
+	}
+
+	/**
+	 * Keep a rejection in the request's notes before an approval replaces it.
+	 *
+	 * Written as the rejecting reviewer's note, marked as sent to the buyer,
+	 * because the reason was emailed to them.
+	 *
+	 * @param PurchaseRequest $request A rejected request.
+	 * @return void
+	 */
+	protected function record_rejection( PurchaseRequest $request ) : void {
+		$body = sprintf(
+			"Rejected on %s, before this approval. Reason sent to the buyer:\n%s",
+			$request->get_reviewed_at()?->format( \smliser_datetime_format() ) ?? 'an unknown date',
+			$request->get_review_note()
+		);
+
+		try {
+			PurchaseRequestNote::make( $request->get_id(), $request->get_reviewed_by(), $body, true )->save();
+		} catch ( \Throwable $e ) {
+			// The approval goes ahead: the license is issued, and losing this note loses no money.
+		}
 	}
 
 	/**

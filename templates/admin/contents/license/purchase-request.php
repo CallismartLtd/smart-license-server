@@ -128,9 +128,13 @@ $args = $page_handler->get_menu_args( $request );
 					</div>
 				<?php endif; ?>
 
-				<?php if ( $purchase->is_pending() ) : ?>
-					<h3>Decision</h3>
-					<p class="smliser-review-help">Check the receipt against your account for <?php echo escHtml( $purchase->get_price() ?: 'the price shown' ); ?>. A decision is final and is emailed to the buyer.</p>
+				<?php if ( $purchase->can_approve() ) : ?>
+					<h3><?php echo escHtml( $purchase->is_pending() ? 'Decision' : 'Reconsider' ); ?></h3>
+					<?php if ( $purchase->is_pending() ) : ?>
+						<p class="smliser-review-help">Check the receipt against your account for <?php echo escHtml( $purchase->get_price() ?: 'the price shown' ); ?>. The decision is emailed to the buyer. A rejected request can still be approved later; an approval is final.</p>
+					<?php else : ?>
+						<p class="smliser-review-help">This request was rejected. If the payment has since been confirmed (e.g. a resolved dispute), approve it: the license is issued and emailed, and the rejection stays in the notes.</p>
+					<?php endif; ?>
 					<div class="smliser-review-decisions">
 						<form class="smliser-review-form" method="post" action="<?php echo escUrl( $actions['approve'] ); ?>" data-smliser-form>
 							<div class="notice" data-smliser-form-message hidden></div>
@@ -139,18 +143,20 @@ $args = $page_handler->get_menu_args( $request );
 								<span>Message to the buyer (optional)</span>
 								<textarea name="message" rows="3" placeholder="Sent with the license."></textarea>
 							</label>
-							<button type="submit" class="smliser-btn smliser-btn-glass"><i class="ti ti-circle-check"></i> Approve and issue the license</button>
+							<button type="submit" class="smliser-btn smliser-btn-glass"><i class="ti ti-circle-check"></i> <?php echo escHtml( $purchase->is_pending() ? 'Approve and issue the license' : 'Approve after all and issue the license' ); ?></button>
 						</form>
 
-						<form class="smliser-review-form" method="post" action="<?php echo escUrl( $actions['reject'] ); ?>" data-smliser-form>
-							<div class="notice" data-smliser-form-message hidden></div>
-							<input type="hidden" name="request_id" value="<?php echo escAttr( (string) $purchase->get_id() ); ?>">
-							<label>
-								<span>Reason (sent to the buyer)</span>
-								<textarea name="reason" rows="3" required placeholder="E.g. no payment matching this receipt was received."></textarea>
-							</label>
-							<button type="submit" class="smliser-btn smliser-btn-danger"><i class="ti ti-circle-x"></i> Reject</button>
-						</form>
+						<?php if ( $purchase->can_reject() ) : ?>
+							<form class="smliser-review-form" method="post" action="<?php echo escUrl( $actions['reject'] ); ?>" data-smliser-form>
+								<div class="notice" data-smliser-form-message hidden></div>
+								<input type="hidden" name="request_id" value="<?php echo escAttr( (string) $purchase->get_id() ); ?>">
+								<label>
+									<span>Reason (sent to the buyer)</span>
+									<textarea name="reason" rows="3" required placeholder="E.g. no payment matching this receipt was received."></textarea>
+								</label>
+								<button type="submit" class="smliser-btn smliser-btn-danger"><i class="ti ti-circle-x"></i> Reject</button>
+							</form>
+						<?php endif; ?>
 					</div>
 				<?php endif; ?>
 

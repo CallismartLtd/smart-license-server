@@ -24,7 +24,9 @@ use SmartLicenseServer\Utils\SanitizeAwareTrait;
  *
  * The request carries the receipt and the price the buyer was shown. It is
  * pending until an admin approves it, which issues the license, or rejects
- * it with a reason. A request is never edited by the buyer after submission.
+ * it with a reason. A rejected request can still be approved later; an
+ * approved one is final. A request is never edited by the buyer after
+ * submission.
  */
 class PurchaseRequest extends DataStore {
 	use SanitizeAwareTrait, DatePropertyAwareTrait;
@@ -276,6 +278,26 @@ class PurchaseRequest extends DataStore {
 	}
 
 	public function is_pending() : bool {
+		return self::STATUS_PENDING === $this->status;
+	}
+
+	/**
+	 * Whether the request can be approved: it is pending, or it was rejected
+	 * and is being reconsidered (e.g. a disputed payment that was resolved).
+	 * An approved request is final: its license exists.
+	 *
+	 * @return bool
+	 */
+	public function can_approve() : bool {
+		return in_array( $this->status, [ self::STATUS_PENDING, self::STATUS_REJECTED ], true );
+	}
+
+	/**
+	 * Whether the request can be rejected: only while it is pending.
+	 *
+	 * @return bool
+	 */
+	public function can_reject() : bool {
 		return self::STATUS_PENDING === $this->status;
 	}
 

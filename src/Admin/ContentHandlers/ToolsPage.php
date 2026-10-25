@@ -9,6 +9,7 @@
 namespace SmartLicenseServer\Admin\ContentHandlers;
 
 use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
+use SmartLicenseServer\Background\Queue\JobDTO;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Schedule\Scheduler;
 use SmartLicenseServer\Core\Request;
@@ -110,16 +111,16 @@ class ToolsPage implements AdminPageInterface {
 			? $this->job_queue->get_failed_jobs( $page, $limit, $queue )
 			: $this->job_queue->get_jobs( $page, $limit, $queue, $status );
 		$log_rentention = (int) $this->settings->get( Settings::LOG_RETENTION_DAYS, 30 );
-		$queue_stats    = [];
+		$queue_stats    = $this->job_queue->get_status_counts();
 
-		foreach ( [ 'pending', 'running', 'failed', 'completed' ] as $st ) {
-			$queue_stats[$st] = $this->job_queue->count_jobs_by_status( $st );
-		}
+		// The status filter lists the queue; failed jobs are archived out of it and have their own tab.
+		$failed_count = $queue_stats[ JobDTO::STATUS_FAILED ];
+		unset( $queue_stats[ JobDTO::STATUS_FAILED ] );
 
 		$page_handler = $this;
 		$urlmanager   = $this->urlmanager;
 		$vars         = \compact(
-			'jobs', 'page_handler', 'request', 'urlmanager', 'queue_stats',
+			'jobs', 'page_handler', 'request', 'urlmanager', 'queue_stats', 'failed_count',
 			'log_rentention'
 		);
 		$this->locator->render( 'admin.contents.system.queues', $vars );

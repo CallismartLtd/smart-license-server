@@ -230,6 +230,27 @@ class JobQueue {
 	}
 
 	/**
+	 * How many jobs are in each state.
+	 *
+	 * A job is pending, running, retrying or completed while it is in the
+	 * queue; once it runs out of attempts it leaves the queue for the
+	 * failed jobs archive, so "failed" counts the archive. Every report of
+	 * the queue's state reads this, so they agree.
+	 *
+	 * @param string|null $queue Optionally restrict to a specific queue.
+	 * @return array{pending: int, running: int, retrying: int, completed: int, failed: int}
+	 */
+	public function get_status_counts( ?string $queue = null ) : array {
+		return [
+			JobDTO::STATUS_PENDING   => $this->count_jobs_by_status( JobDTO::STATUS_PENDING, $queue ),
+			JobDTO::STATUS_RUNNING   => $this->count_jobs_by_status( JobDTO::STATUS_RUNNING, $queue ),
+			JobDTO::STATUS_RETRYING  => $this->count_jobs_by_status( JobDTO::STATUS_RETRYING, $queue ),
+			JobDTO::STATUS_COMPLETED => $this->count_jobs_by_status( JobDTO::STATUS_COMPLETED, $queue ),
+			JobDTO::STATUS_FAILED    => $this->count_failed_jobs( $queue ),
+		];
+	}
+
+	/**
 	 * Remove a job from the queue permanently.
 	 *
 	 * For failed jobs, prefer archive_failed_job() via record_job_failed()

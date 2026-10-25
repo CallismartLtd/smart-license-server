@@ -389,7 +389,8 @@ class Sanitizer {
 				'%0d', '%0a', '%0D', '%0A',  // CRLF injection
 				'content-type:', 'bcc:', 'to:', 'cc:', 'from:' // Header injection
 			];
-			$url = str_ireplace( $remove_chars, '', $url );
+			// Only after the scheme: "to:" would otherwise match inside "mailto:" itself.
+			$url = 'mailto:' . str_ireplace( $remove_chars, '', substr( $url, 7 ) );
 		}
 
 		// Remove HTML entities
@@ -465,24 +466,10 @@ class Sanitizer {
 			}
 		}
 
-		// Add path with trailing slash logic
-		if ( isset( $parsed['path'] ) ) {
-			$path = $parsed['path'];
-			
-			// Files (with extensions) - no trailing slash
-			if ( preg_match( '/\.[a-z0-9]{2,6}$/i', $path ) ) {
-				$rebuilt .= $path;
-			} else {
-				// Directories - ensure trailing slash
-				$path = rtrim( $path, '/' );
-				$rebuilt .= $path;
-				if ( '' !== $path ) {
-					$rebuilt .= '/';
-				}
-			}
-		} else {
-			$rebuilt .= '/';
-		}
+		// The path as given: adding or removing a trailing slash changes the
+		// address, and other sites may not answer the changed one. Unsafe
+		// characters were stripped above.
+		$rebuilt .= $parsed['path'] ?? '';
 
 		// Add query string
 		if ( isset( $parsed['query'] ) ) {

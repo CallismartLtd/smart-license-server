@@ -29,8 +29,7 @@
 					<?php endforeach; ?>
 				</ul>
 				<?php if ( '' !== $tier['checkout_url'] ) : ?>
-					<?php // Kept exactly as the seller entered it (escUrl() rewrites paths); only http(s) URLs reach here. ?>
-					<a class="btn btn-accent btn-block" href="<?php echo escAttr( $tier['checkout_url'] ); ?>" rel="noopener">Buy</a>
+					<a class="btn btn-accent btn-block" href="<?php echo escUrl( $tier['checkout_url'] ); ?>" rel="noopener">Buy</a>
 				<?php else : ?>
 					<p class="muted pricing-note">Contact the seller to buy this option.</p>
 				<?php endif; ?>

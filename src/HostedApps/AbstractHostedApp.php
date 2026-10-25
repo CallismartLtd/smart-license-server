@@ -1117,11 +1117,13 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 				$app_type = $record['app_type'];
 			}
 
-			if ( false === $db->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) ) {
+			// execute() returns the rows changed, 0 on failure: an app may have no metadata, so 0 fails only with an error.
+			if ( 0 === $db->execute( $delete_meta_sql->build(), $delete_meta_sql->get_bindings() ) && ! empty( $db->get_last_error() ) ) {
 				throw new Exception( 'delete_error', 'Database execution failure dropping application metadata rows.' );
 			}
 
-			if ( false === $db->execute( $delete_app_sql->build(), $delete_app_sql->get_bindings() ) ) {
+			// The record was just locked, so it exists: deleting it must change a row.
+			if ( 0 === $db->execute( $delete_app_sql->build(), $delete_app_sql->get_bindings() ) ) {
 				throw new Exception( 'delete_error', 'Database execution failure dropping primary application entry.' );
 			}
 

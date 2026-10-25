@@ -1211,7 +1211,10 @@ class License extends DataStore {
 				throw new Exception( 'delete_error', 'Database execution failure dropping license metadata entries.' );
 			}
 
-			$db->execute( $delete_activations->build(), $delete_activations->get_bindings() );
+			// A license may have no activations, so 0 fails only with an error.
+			if ( 0 === $db->execute( $delete_activations->build(), $delete_activations->get_bindings() ) && ! empty( $db->get_last_error() ) ) {
+				throw new Exception( 'delete_error', 'Database execution failure dropping license activations.' );
+			}
 
 			if ( 0 === $db->execute( $delete_license_sql->build(), $delete_license_sql->get_bindings() ) ) {
 				throw new Exception( 'delete_error', 'Database execution failure dropping primary license record.' );

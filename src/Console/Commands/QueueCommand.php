@@ -415,21 +415,24 @@ class QueueCommand extends AbstractCommand {
 	 * @return int
 	 */
 	public function handle_status( CommandInput $input ) : int {
-		$statuses = [ 'pending', 'running', 'failed', 'completed' ];
-		$rows     = [];
-		$total    = 0;
+		$counts = $this->queue->get_status_counts();
+		$failed = $counts[ JobDTO::STATUS_FAILED ];
+		$queued = array_sum( $counts ) - $failed;
+		$rows   = [];
 
-		foreach ( $statuses as $status ) {
-			$count = $this->queue->count_jobs_by_status( $status );
-			$total += $count;
-
+		foreach ( $counts as $status => $count ) {
 			$rows[] = [ strtoupper( $status ), $count ];
 		}
 
 		$this->output->newline();
 		$this->output->table( [ 'Status', 'Count' ], $rows );
 		$this->output->newline();
-		$this->output->writeln( sprintf( 'Total Jobs across all states: %d', $total ) );
+		// Failed jobs are archived out of the queue (JobQueue::get_status_counts()).
+		$this->output->writeln( sprintf( 'Total jobs: %d (%d in the queue, %d failed).', $queued + $failed, $queued, $failed ) );
+
+		if ( $failed > 0 ) {
+			$this->output->writeln( sprintf( 'See why they failed: %s failed', $this->command_prefix() ) );
+		}
 
 		return 0;
 	}

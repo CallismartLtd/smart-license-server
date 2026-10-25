@@ -2661,18 +2661,174 @@ input.smliser_toggle-switch-input {
     cursor: zoom-out;
 }
 
-/* A rendered PDF page: shaded so pages read as paper on the modal. */
-.smliser-receipt-viewer__page {
-    max-height: none;
-    width: 100%;
-    max-width: 800px;
-    background: #ffffff;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+/*
+ * A PDF as a document (documentViewer() in purchase-review.js).
+ *
+ * The modal takes its full height and its body stops scrolling; the viewer
+ * fills what is left, so only the page canvas scrolls, at any screen height.
+ */
+.smliser-receipt-modal.is-document {
+    height: 90vh;
 }
 
-.smliser-receipt-viewer.is-zoomed .smliser-receipt-viewer__page {
-    width: auto;
-    max-width: none;
+.smliser-receipt-modal.is-document .smliser-modal-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+}
+
+.smliser-receipt-viewer.is-document {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+}
+
+.smliser-doc {
+    --smliser-doc-page-width: 820px;
+    display: flex;
+    flex-direction: column;
+    /* The modal's full width, whatever the pages' size, so zooming never resizes the modal. */
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    border: 1px solid var(--dashboard-border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.smliser-doc__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--dashboard-border);
+    background: var(--dashboard-surface);
+}
+
+.smliser-doc__group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.smliser-doc__tool {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--dashboard-text);
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.smliser-doc__tool:hover:not(:disabled) {
+    border-color: var(--dashboard-border);
+    background: var(--dashboard-hover-bg);
+}
+
+.smliser-doc__tool:focus-visible {
+    outline: 2px solid var(--dashboard-accent);
+    outline-offset: 1px;
+}
+
+/* Overrides the dashboard's grey disabled buttons: a dimmed icon is enough here. */
+.smliser-doc__tool:disabled {
+    border-color: transparent;
+    background: transparent;
+    opacity: 0.35;
+    cursor: default;
+}
+
+.smliser-doc__counter,
+.smliser-doc__zoom-level {
+    min-width: 48px;
+    padding: 0 6px;
+    color: var(--dashboard-text-muted);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.smliser-doc__counter {
+    min-width: 96px;
+}
+
+/* The desk the pages lie on. */
+.smliser-doc__canvas {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 24px;
+    overflow: auto;
+    background: #525659;
+}
+
+.smliser-doc__canvas:focus-visible {
+    outline: 2px solid var(--dashboard-accent);
+    outline-offset: -2px;
+}
+
+.smliser-doc__page-wrap {
+    flex: none;
+    margin: 0;
+}
+
+.smliser-doc__page {
+    width: var(--smliser-doc-page-width);
+    aspect-ratio: 210 / 297;
+    border-radius: 2px;
+    background-color: #ffffff;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.25);
+    user-select: none;
+}
+
+.smliser-doc__page.is-loading {
+    background-image: linear-gradient(100deg, #ffffff 40%, #eef0f3 50%, #ffffff 60%);
+    background-size: 200% 100%;
+    animation: smliser-doc-shimmer 1.2s linear infinite;
+}
+
+.smliser-doc__page.is-failed {
+    display: grid;
+    place-items: center;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.smliser-doc__page-number {
+    margin: 8px 0 14px;
+    color: #d1d5db;
+    font-size: 12px;
+    text-align: center;
+}
+
+@keyframes smliser-doc-shimmer {
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .smliser-doc__page.is-loading {
+        animation: none;
+    }
 }
 
 .smliser-receipt-viewer__pdf {

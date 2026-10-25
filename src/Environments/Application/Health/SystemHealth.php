@@ -339,10 +339,7 @@ class SystemHealth {
 	 * @return array<string, string>
 	 */
 	private function collect_background_diagnostics() : array {
-		$queue_stats = [];
-		foreach ( [ 'pending', 'running', 'failed', 'completed' ] as $status ) {
-			$queue_stats[ $status ] = $this->job_queue->count_jobs_by_status( $status );
-		}
+		$queue_stats = $this->job_queue->get_status_counts();
 
 		$tasks   = $this->scheduler->get_tasks_with_state();
 		$waiting = $this->delayed_jobs( 0 );
@@ -351,6 +348,7 @@ class SystemHealth {
 		return [
 			'Pending Jobs'   => (string) $queue_stats['pending'],
 			'Running Jobs'   => (string) $queue_stats['running'],
+			'Retrying Jobs'  => (string) $queue_stats['retrying'],
 			'Failed Jobs'    => (string) $queue_stats['failed'],
 			'Completed Jobs' => (string) $queue_stats['completed'],
 			'Waiting Since'  => null === $waiting['oldest']
@@ -938,13 +936,14 @@ class SystemHealth {
 		// inspecting the connection also measures the database size, which can be slow.
 
 		// Failed/stuck jobs.
-		$failed_count = $this->job_queue->count_jobs_by_status( 'failed' );
+		// Failed jobs leave the queue for the archive, so count the archive.
+		$failed_count = $this->job_queue->count_failed_jobs();
 		$checks[]     = [
 			'id'      => 'failed_jobs',
 			'label'   => 'Failed Jobs',
 			'status'  => 0 === $failed_count ? 'pass' : ( $failed_count < 50 ? 'warning' : 'critical' ),
 			'message' => 0 === $failed_count
-				? 'No failed jobs in the queue.'
+				? 'No failed jobs in the archive.'
 				: \sprintf( '%d failed job(s) in the archive.', $failed_count ),
 			'recommendation' => 0 === $failed_count
 				? null

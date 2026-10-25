@@ -13,10 +13,10 @@
  *
  * The file is fetched with the reviewer's session and shown from a blob
  * URL typed with the stored MIME type, and only for the types receipts
- * may have: an image as an image; a PDF as the images of its pages the
- * server rendered, the same in every browser, or, when there are none, in
- * the browser's PDF viewer if it has one (otherwise the reviewer is told
- * to download it).
+ * may have: an image as an image; a PDF as a document of the pages the
+ * server rendered (documentViewer()), the same in every browser, or,
+ * when there are none, in the browser's PDF viewer if it has one
+ * (otherwise the reviewer is told to download it).
  * Anything else is offered as a download, never rendered. The blob URL
  * is released when the modal closes.
  *
@@ -63,8 +63,9 @@
 			title: `Receipt: ${ name }`,
 			body,
 			footer,
-			width: '900px',
-			customClass: 'smliser-receipt-modal',
+			width: pages.length ? '960px' : '900px',
+			// A document fills the modal's height and scrolls inside; see core.css.
+			customClass: pages.length ? 'smliser-receipt-modal is-document' : 'smliser-receipt-modal',
 		} );
 
 		let objectUrl = '';
@@ -110,15 +111,8 @@
 
 		if ( 'application/pdf' === mime && pages.length ) {
 			// The pages as the server rendered them: one look in every browser, nothing in the PDF runs.
-			pages.forEach( ( src, index ) => {
-				const page = element( 'img', 'smliser-receipt-viewer__image smliser-receipt-viewer__page' );
-				page.alt     = `Receipt ${ name }, page ${ index + 1 } of ${ pages.length }`;
-				page.src     = src;
-				page.loading = 'lazy';
-				page.title   = 'Click to zoom';
-				page.addEventListener( 'click', () => body.classList.toggle( 'is-zoomed' ) );
-				body.appendChild( page );
-			} );
+			body.classList.add( 'is-document' );
+			body.appendChild( documentViewer( pages, name ) );
 			return;
 		}
 
@@ -144,6 +138,228 @@
 		image.title = 'Click to zoom';
 		image.addEventListener( 'click', () => body.classList.toggle( 'is-zoomed' ) );
 		body.appendChild( image );
+	}
+
+	/*
+	|----------------
+	|Document viewer
+	|----------------
+	*/
+
+	/**
+	 * Zoom levels, as a share of the fitted page width.
+	 *
+	 * @type {number[]}
+	 */
+	const ZOOMS = [ 0.5, 0.75, 1, 1.25, 1.5, 2, 3 ];
+
+	/**
+	 * Widest a page is drawn at 100%, in CSS pixels.
+	 *
+	 * @type {number}
+	 */
+	const PAGE_MAX_WIDTH = 820;
+
+	/**
+	 * A document viewer for the rendered pages of a PDF.
+	 *
+	 * Pages are sheets of paper on a canvas, each drawn as the background of
+	 * an element sized to the page's own proportions, so it reads as a
+	 * document: no image cursor, dragging or "save image". The toolbar pages
+	 * through and zooms; 100% fits the page to the canvas width.
+	 *
+	 * Keyboard, on the canvas: PageDown/PageUp change page, + and - zoom,
+	 * 0 fits the width.
+	 *
+	 * @param {string[]} pages Page image URLs, in order.
+	 * @param {string}   name  The receipt's file name, for labels.
+	 * @return {HTMLElement}
+	 */
+	function documentViewer( pages, name ) {
+		const root    = element( 'div', 'smliser-doc' );
+		const toolbar = element( 'div', 'smliser-doc__toolbar' );
+		const canvas  = element( 'div', 'smliser-doc__canvas' );
+		const counter = element( 'span', 'smliser-doc__counter' );
+		const level   = element( 'span', 'smliser-doc__zoom-level' );
+		const prev    = toolButton( 'ti ti-chevron-up', 'Previous page' );
+		const next    = toolButton( 'ti ti-chevron-down', 'Next page' );
+		const out     = toolButton( 'ti ti-minus', 'Zoom out' );
+		const into    = toolButton( 'ti ti-plus', 'Zoom in' );
+		const fit     = toolButton( 'ti ti-arrows-horizontal', 'Fit width' );
+		const sheets  = [];
+
+		let zoom    = ZOOMS.indexOf( 1 );
+		let current = 0;
+
+		root.setAttribute( 'role', 'region' );
+		root.setAttribute( 'aria-label', `Receipt ${ name }` );
+		toolbar.setAttribute( 'role', 'toolbar' );
+		canvas.tabIndex = 0;
+		canvas.setAttribute( 'aria-label', 'Receipt pages' );
+		counter.setAttribute( 'aria-live', 'polite' );
+
+		toolbar.append(
+			group( prev, counter, next ),
+			group( out, level, into, fit )
+		);
+
+		pages.forEach( ( src, index ) => {
+			const wrap  = element( 'figure', 'smliser-doc__page-wrap' );
+			const sheet = element( 'div', 'smliser-doc__page is-loading' );
+			const label = element( 'figcaption', 'smliser-doc__page-number', `${ index + 1 }` );
+
+			sheet.setAttribute( 'role', 'img' );
+			sheet.setAttribute( 'aria-label', `Page ${ index + 1 } of ${ pages.length }` );
+			sheet.dataset.index = String( index );
+
+			// Size the sheet to the page before showing it, so nothing jumps.
+			const probe = new Image();
+			probe.onload = () => {
+				sheet.style.aspectRatio     = `${ probe.naturalWidth } / ${ probe.naturalHeight }`;
+				sheet.style.backgroundImage = `url("${ src.replace( /"/g, '%22' ) }")`;
+				sheet.classList.remove( 'is-loading' );
+			};
+			probe.onerror = () => {
+				sheet.classList.remove( 'is-loading' );
+				sheet.classList.add( 'is-failed' );
+				sheet.textContent = 'This page could not be loaded.';
+			};
+			probe.src = src;
+
+			wrap.append( sheet, label );
+			canvas.appendChild( wrap );
+			sheets.push( sheet );
+		} );
+
+		root.append( toolbar, canvas );
+
+		/**
+		 * Draw the counter, the zoom level and the buttons' states.
+		 */
+		const update = () => {
+			counter.textContent = `Page ${ current + 1 } of ${ pages.length }`;
+			level.textContent   = `${ Math.round( ZOOMS[ zoom ] * 100 ) }%`;
+			prev.disabled       = 0 === current;
+			next.disabled       = pages.length - 1 === current;
+			out.disabled        = 0 === zoom;
+			into.disabled       = ZOOMS.length - 1 === zoom;
+			fit.disabled        = 1 === ZOOMS[ zoom ];
+		};
+
+		/**
+		 * Scroll a page to the top of the canvas.
+		 *
+		 * @param {number} index
+		 * @param {ScrollBehavior} [behavior='smooth']
+		 */
+		const goTo = ( index, behavior = 'smooth' ) => {
+			const target = sheets[ Math.max( 0, Math.min( pages.length - 1, index ) ) ].parentElement;
+
+			canvas.scrollTo( { top: target.offsetTop - canvas.offsetTop - 16, behavior } );
+		};
+
+		/**
+		 * The page width at 100%: the canvas width less its padding, at most PAGE_MAX_WIDTH.
+		 *
+		 * @return {number}
+		 */
+		const fitted = () => Math.max( 200, Math.min( canvas.clientWidth - 48, PAGE_MAX_WIDTH ) );
+
+		/**
+		 * Size the pages for a zoom level, keeping the current page in view.
+		 *
+		 * @param {number} index Index in ZOOMS.
+		 */
+		const setZoom = ( index ) => {
+			zoom = Math.max( 0, Math.min( ZOOMS.length - 1, index ) );
+
+			root.style.setProperty( '--smliser-doc-page-width', `${ Math.round( fitted() * ZOOMS[ zoom ] ) }px` );
+			update();
+			goTo( current, 'auto' );
+		};
+
+		// The current page is the one showing most.
+		const visible = new Map();
+		const observer = new IntersectionObserver( ( entries ) => {
+			entries.forEach( ( entry ) => visible.set( Number( entry.target.dataset.index ), entry.intersectionRatio ) );
+
+			let best = current;
+
+			visible.forEach( ( ratio, index ) => {
+				if ( ratio > ( visible.get( best ) ?? 0 ) ) {
+					best = index;
+				}
+			} );
+
+			if ( best !== current ) {
+				current = best;
+				update();
+			}
+		}, { root: canvas, threshold: [ 0, 0.25, 0.5, 0.75, 1 ] } );
+
+		sheets.forEach( ( sheet ) => observer.observe( sheet ) );
+
+		prev.addEventListener( 'click', () => goTo( current - 1 ) );
+		next.addEventListener( 'click', () => goTo( current + 1 ) );
+		out.addEventListener( 'click', () => setZoom( zoom - 1 ) );
+		into.addEventListener( 'click', () => setZoom( zoom + 1 ) );
+		fit.addEventListener( 'click', () => setZoom( ZOOMS.indexOf( 1 ) ) );
+
+		canvas.addEventListener( 'keydown', ( event ) => {
+			const keys = {
+				PageDown: () => goTo( current + 1 ),
+				PageUp: () => goTo( current - 1 ),
+				'+': () => setZoom( zoom + 1 ),
+				'=': () => setZoom( zoom + 1 ),
+				'-': () => setZoom( zoom - 1 ),
+				0: () => setZoom( ZOOMS.indexOf( 1 ) ),
+			};
+
+			if ( keys[ event.key ] ) {
+				event.preventDefault();
+				keys[ event.key ]();
+			}
+		} );
+
+		// The canvas has its width once the modal shows it; refit when the window changes.
+		requestAnimationFrame( () => setZoom( zoom ) );
+		window.addEventListener( 'resize', () => root.isConnected && setZoom( zoom ) );
+
+		return root;
+	}
+
+	/**
+	 * A toolbar button showing an icon.
+	 *
+	 * @param {string} icon  Icon classes.
+	 * @param {string} label Accessible name and tooltip.
+	 * @return {HTMLButtonElement}
+	 */
+	function toolButton( icon, label ) {
+		const button = element( 'button', 'smliser-doc__tool' );
+		const glyph  = element( 'i', icon );
+
+		button.type  = 'button';
+		button.title = label;
+		button.setAttribute( 'aria-label', label );
+		glyph.setAttribute( 'aria-hidden', 'true' );
+		button.appendChild( glyph );
+
+		return button;
+	}
+
+	/**
+	 * Group toolbar controls.
+	 *
+	 * @param {...HTMLElement} controls
+	 * @return {HTMLElement}
+	 */
+	function group( ...controls ) {
+		const wrap = element( 'div', 'smliser-doc__group' );
+
+		wrap.append( ...controls );
+
+		return wrap;
 	}
 
 	/**

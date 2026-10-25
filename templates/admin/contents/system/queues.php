@@ -13,7 +13,8 @@
  * @var SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Background\Queue\JobDTO[] $jobs
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
- * @var array<string, int> $queue_stats
+ * @var array<string, int> $queue_stats Jobs in the queue by status (pending, running, retrying, completed).
+ * @var int $failed_count Jobs in the failed jobs archive.
  * @var int $log_rentention
  */
 
@@ -42,7 +43,7 @@ $menu_args = $page_handler->get_top_menu_args( $request );
 
 $menu_args['actions'] = [
 	[
-		'label'  => 'Failed Jobs',
+		'label'  => sprintf( 'Failed Jobs (%d)', $failed_count ),
 		'url'    => $urlmanager->admin_tools_page_url( 'queues' )->add_query_param( 'section', 'failed' ),
 		'icon'   => 'ti ti-clock-exclamation',
 		'active' => 'failed' === $request->query( 'section' )
