@@ -161,25 +161,12 @@ class RequestController {
 
 			$actor = $this->guard->principal()->get_actor();
 
-			// Universal Self-Deletion Prevention (Users & Service Accounts).
-			if ( $actor && $ent_object->get_id() === $actor->get_id() && get_class( $ent_object ) === get_class( $actor ) ) {
-				throw new RequestException( 'precondition_failed', 'You cannot delete your own active identity.' );
-			}
-
-			// Universal Last Administrative Lockout Safeguard.
-			$role = ContextServiceProvider::get_principal_role( $ent_object );
-			
-			if ( $role && 'system_admin' === $role->get_slug() ) {
-				$admins = ContextServiceProvider::get_platform_admins();
-				
-				// Count active admins filtering out the target entity ID
-				$remaining_admins = array_filter( $admins, function( $admin ) use ( $ent_object ) {
-					return $admin->get_id() !== $ent_object->get_id();
-				} );
-
-				if ( empty( $remaining_admins ) ) {
-					throw new RequestException( 'precondition_failed', 'Action blocked: Cannot delete the sole remaining system administrator.' );
-				}
+			if ( $ent_object instanceof User ) {
+				// Not yourself, and never the last active system administrator.
+				ContextServiceProvider::assert_can_delete_user( $ent_object, $actor );
+			} elseif ( $ent_object->get_id() === $actor->get_id() && get_class( $ent_object ) === get_class( $actor ) ) {
+				// A service account cannot delete itself either.
+				throw new RequestException( 'precondition_failed', 'You cannot delete your own active identity.', [ 'status' => 409 ] );
 			}
 
 			// Execution
@@ -240,9 +227,20 @@ class RequestController {
 			if ( ! in_array( $status, User::get_allowed_statuses(), true ) ) {
 				throw new RequestException( 'invalid_user_status', 'The status provided is not allowed.', ['status' => 400] );
 			}
+
+			// Before anything is written: the edit must not lock administrators out.
+			$role_slug = (string) $request->get( 'role_slug', '' );
+
+			ContextServiceProvider::assert_can_change_user_access(
+				$user,
+				$this->guard->get_principal()?->get_actor(),
+				'' !== $role_slug ? $role_slug : (string) ContextServiceProvider::get_principal_role( $user )?->get_slug(),
+				(string) $status
+			);
 			
-			$password_1 = $request->get( 'password_1' );
-			$password_2 = $request->get( 'password_2' );
+			// Empty, or absent when the form leaves them out: the password is not changed.
+			$password_1 = (string) $request->get( 'password_1', '' );
+			$password_2 = (string) $request->get( 'password_2', '' );
 
 			if ( $password_1 !== $password_2 ) {
 				throw new RequestException( 'password_mismatch', 'Password mismatch, please check and try again.', ['status' => 400] );
@@ -307,11 +305,12 @@ class RequestController {
 			return $e;
 
 		} catch ( Exception $e ) {
+			$data = $e->get_error_data();
 
 			return new RequestException(
 				$e->get_error_code(),
 				$e->get_error_message(),
-				[ 'status' => 500 ]
+				[ 'status' => is_array( $data ) && isset( $data['status'] ) ? (int) $data['status'] : 500 ]
 			);
 		}
 	}
@@ -577,6 +576,10 @@ class RequestController {
 				[ 'status' => 400 ]
 			);
 
+		} catch ( RequestException $e ) {
+			// Before Exception, which it extends: keeps its own status (e.g. 400).
+			$error = $e;
+
 		} catch ( Exception $e ) {
 
 			$error = new RequestException(
@@ -584,9 +587,6 @@ class RequestController {
 				$e->get_error_message(),
 				[ 'status' => 500 ]
 			);
-		} catch ( RequestException $e ) {
-			$error = $e;
-
 		}
 
 		return Response::error( $error )
@@ -702,7 +702,12 @@ class RequestController {
 
 	/**
 	 * Save role to the database
-	 * 
+	 *
+	 * A new slug creates the role; an existing custom role takes the posted
+	 * label and capabilities, for every actor that has it. A canonical role
+	 * (DefaultRoles) is locked: it is only assigned, never changed, whatever
+	 * is posted, as the role builder shows it.
+	 *
 	 * @param Request $request The request object.
 	 * @param ActorInterface $actor The either User or ServiceAccount instance.
 	 * @throws Exception
@@ -725,15 +730,17 @@ class RequestController {
 			$this->check_permissions( 'security.role.update' );
 		}
 
-		$role->set_label( $role_label )
-			->set_capabilities( $caps );
-		
-		if ( ! $role->save() ) {
-			throw new RequestException(
-				'role_save_error',
-				'Unable to save role to the database.',
-				[ 'status' => 500 ]
-			);
+		if ( ! $role->get_is_canonical() ) {
+			$role->set_label( $role_label )
+				->set_capabilities( $caps );
+
+			if ( ! $role->save() ) {
+				throw new RequestException(
+					'role_save_error',
+					'Unable to save role to the database.',
+					[ 'status' => 500 ]
+				);
+			}
 		}
 		
 		// Context binding.

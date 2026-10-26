@@ -461,7 +461,7 @@ class ContextServiceProvider extends DataStore {
 	public static function get_owner_subject( Owner $owner ) : ?OwnerSubjectInterface {
 
 		return match( $owner->get_type() ) {
-			Owner::TYPE_ORGANIZATION => Organization::get_by_id( $owner->get_id() ),
+			Owner::TYPE_ORGANIZATION => Organization::get_by_id( $owner->get_subject_id() ),
 			Owner::TYPE_INDIVIDUAL   => User::get_by_id( $owner->get_subject_id() ),
 			default                  => null
 		};
@@ -813,6 +813,118 @@ class ContextServiceProvider extends DataStore {
 				]
 			);
 		}
+	}
+
+	/*
+	|-----------------------
+	| ADMINISTRATOR LOCKOUT
+	|-----------------------
+	*/
+
+	/**
+	 * Refuse deleting a user when it would lock administrators out.
+	 *
+	 * Follows the two lockout rules (assert_admin_remains()):
+	 * 1. Nobody deletes their own account.
+	 * 2. The last active system administrator cannot be deleted.
+	 *
+	 * @param User                $user The user to delete, as stored.
+	 * @param ActorInterface|null $by   Who deletes; null when no one is signed in (e.g. the CLI).
+	 * @throws SecurityException When refused (status 409).
+	 */
+	public static function assert_can_delete_user( User $user, ?ActorInterface $by ) : void {
+		if ( static::is_same_user( $user, $by ) ) {
+			throw new SecurityException( 'self_lockout', 'You cannot delete your own account.', [ 'status' => 409 ] );
+		}
+
+		static::assert_admin_remains( $user, false );
+	}
+
+	/**
+	 * Refuse changing a user's platform role or status when it would lock administrators out.
+	 *
+	 * Admin dashboard access needs both the system_admin platform role and
+	 * an active status, so a change to either counts. The lockout rules:
+	 * 1. Nobody changes their own platform role or status; another
+	 *    administrator must. This also stops anyone raising their own access.
+	 * 2. The last active system administrator keeps both.
+	 *
+	 * Call before the change is written, with the user as stored.
+	 *
+	 * @param User                $user   The user to change, as stored.
+	 * @param ActorInterface|null $by     Who changes it; null when no one is signed in (e.g. the CLI).
+	 * @param string              $role   The platform role slug the user will have.
+	 * @param string              $status The status the user will have.
+	 * @throws SecurityException When refused (status 409).
+	 */
+	public static function assert_can_change_user_access( User $user, ?ActorInterface $by, string $role, string $status ) : void {
+		if ( ! $user->exists() ) {
+			return;
+		}
+
+		$current_role = (string) static::get_principal_role( $user )?->get_slug();
+
+		if ( static::is_same_user( $user, $by ) ) {
+			if ( $role !== $current_role ) {
+				throw new SecurityException( 'self_lockout', 'You cannot change your own role; another administrator must.', [ 'status' => 409 ] );
+			}
+
+			if ( $status !== $user->get_status() ) {
+				throw new SecurityException( 'self_lockout', 'You cannot change your own status; another administrator must.', [ 'status' => 409 ] );
+			}
+		}
+
+		$keeps_access = DefaultRoles::get( 'system_admin' )['slug'] === $role && User::STATUS_ACTIVE === $status;
+
+		static::assert_admin_remains( $user, $keeps_access );
+	}
+
+	/**
+	 * Active system administrators: platform admins (get_platform_admins()) who can sign in.
+	 *
+	 * @param int $excluding_user_id A user left out of the count, e.g. one about to lose access; 0 for none.
+	 * @return int
+	 */
+	public static function count_active_platform_admins( int $excluding_user_id = 0 ) : int {
+		$ids = [];
+
+		foreach ( static::get_platform_admins() as $admin ) {
+			if ( $admin->can_authenticate() && $admin->get_id() !== $excluding_user_id ) {
+				$ids[ $admin->get_id() ] = true;
+			}
+		}
+
+		return count( $ids );
+	}
+
+	/**
+	 * Refuse a change that leaves no active system administrator.
+	 *
+	 * @param User $user         The user changed, as stored.
+	 * @param bool $keeps_access Whether the user is still an active system administrator after the change.
+	 * @throws SecurityException When refused (status 409).
+	 */
+	protected static function assert_admin_remains( User $user, bool $keeps_access ) : void {
+		$has_access = $user->can_authenticate() && DefaultRoles::get( 'system_admin' )['slug'] === static::get_principal_role( $user )?->get_slug();
+
+		if ( $has_access && ! $keeps_access && 0 === static::count_active_platform_admins( $user->get_id() ) ) {
+			throw new SecurityException(
+				'last_admin',
+				sprintf( '%s is the only active system administrator. Make another user an active system administrator first.', $user->get_display_name() ?: $user->get_email() ),
+				[ 'status' => 409 ]
+			);
+		}
+	}
+
+	/**
+	 * Whether an actor is this user.
+	 *
+	 * @param User                $user
+	 * @param ActorInterface|null $actor
+	 * @return bool
+	 */
+	protected static function is_same_user( User $user, ?ActorInterface $actor ) : bool {
+		return $actor instanceof User && $actor->get_id() === $user->get_id();
 	}
 
 	/*
