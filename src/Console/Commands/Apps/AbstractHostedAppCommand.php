@@ -531,22 +531,6 @@ abstract class AbstractHostedAppCommand extends AbstractCommand {
 	}
 
 	/**
-	 * Tell whether the user confirmed up front with -y, --yes, -f or --force.
-	 *
-	 * @param CommandInput $input
-	 * @return bool
-	 */
-	private function is_confirmed( CommandInput $input ) : bool {
-		foreach ( [ 'y', 'yes', 'f', 'force' ] as $flag ) {
-			if ( true === $input->get_option( $flag ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/**
 	 * Build app request object.
 	 */
 	private function buildRequest( array $opts ) : ?Request {

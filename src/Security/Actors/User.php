@@ -418,6 +418,55 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
 	}
 
 	/**
+	 * Find users, newest first.
+	 *
+	 * @param string $search Part of the display name or email address; empty for all.
+	 * @param string $status Only users with this status; empty for all.
+	 * @param int    $page   Page number.
+	 * @param int    $limit  Users per page.
+	 * @return array{
+	 *  items: static[],
+	 *  pagination: array{page: int, limit: int, total: int, total_pages: int}
+	 * }
+	 */
+	public static function find_all( string $search = '', string $status = '', int $page = 1, int $limit = 20 ) : array {
+		$page   = max( 1, $page );
+		$limit  = max( 1, $limit );
+		$table  = TableName::USERS->table();
+		$sql    = static::query()->select( '*' )->from( $table );
+		$count  = static::query()->select( 'COUNT(*)' )->from( $table );
+		$search = trim( $search );
+
+		foreach ( [ $sql, $count ] as $query ) {
+			if ( '' !== $status ) {
+				$query->where( 'status', '=', $status );
+			}
+
+			if ( '' !== $search ) {
+				$query->where_group(
+					static function ( $group ) use ( $search ) : void {
+						$group->where_contains( 'display_name', $search )->or_where_contains( 'email', $search );
+					}
+				);
+			}
+		}
+
+		$sql->order_by( 'id', 'DESC' )->limit( $limit )->offset( static::$DB->calculate_query_offset( $page, $limit ) );
+
+		$total = (int) static::$DB->get_var( $count->build(), $count->get_bindings() );
+
+		return [
+			'items'      => array_map( [ static::class, 'from_array' ], static::$DB->get_results( $sql->build(), $sql->get_bindings() ) ),
+			'pagination' => [
+				'page'        => $page,
+				'limit'       => $limit,
+				'total'       => $total,
+				'total_pages' => (int) ceil( $total / $limit ),
+			],
+		];
+	}
+
+	/**
 	 * Count total records of users by status
 	 * 
 	 * @param string $status

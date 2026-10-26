@@ -4,6 +4,7 @@
  */
 namespace SmartLicenseServer\Console\Traits;
 
+use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\OptionParser;
@@ -70,6 +71,44 @@ trait CLIUtilsTrait {
 
 		$this->output->error( 'Authentication required.' );
 		$this->output->writeln( 'Set SMLISER_CLI_API_KEY in your .env file and ensure the service account is active.' );
+		return false;
+	}
+
+	/**
+	 * Check that the principal has one of the capabilities.
+	 *
+	 * A system administrator has every capability.
+	 *
+	 * @param string ...$capabilities Capabilities, any one of which is enough.
+	 * @return bool
+	 */
+	private function require_capability( string ...$capabilities ) : bool {
+		if ( ! $this->require_auth() ) {
+			return false;
+		}
+
+		if ( $this->guard->get_principal()->can_any( $capabilities ) ) {
+			return true;
+		}
+
+		$this->output->error( sprintf( 'Permission denied: this needs the %s capability.', implode( '" or "', $capabilities ) ) );
+
+		return false;
+	}
+
+	/**
+	 * Tell whether the user confirmed up front with -y, --yes, -f or --force.
+	 *
+	 * @param CommandInput $input
+	 * @return bool
+	 */
+	private function is_confirmed( CommandInput $input ) : bool {
+		foreach ( [ 'y', 'yes', 'f', 'force' ] as $flag ) {
+			if ( true === $input->get_option( $flag ) ) {
+				return true;
+			}
+		}
+
 		return false;
 	}
 

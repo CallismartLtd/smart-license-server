@@ -51,6 +51,7 @@ use SmartLicenseServer\Console\Commands\QueueCommand;
 use SmartLicenseServer\Console\Commands\ScheduleCommand;
 use SmartLicenseServer\Console\Commands\ServerCommand;
 use SmartLicenseServer\Console\Commands\SettingsCommand;
+use SmartLicenseServer\Console\Commands\UserCommand;
 use SmartLicenseServer\Console\Commands\SiteThemeCommand;
 use SmartLicenseServer\Console\Commands\TestCommand;
 use SmartLicenseServer\Console\Commands\Update;
@@ -85,6 +86,7 @@ class CommandRegistry extends AbstractRegistry {
 		WPThemeCommand::class,
 		SoftwareCommand::class,
 		SettingsCommand::class,
+		UserCommand::class,
 		ServerCommand::class,
 		TestCommand::class,
 		QueueCommand::class,
