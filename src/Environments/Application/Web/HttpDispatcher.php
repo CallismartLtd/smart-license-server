@@ -26,6 +26,7 @@ use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
 use SmartLicenseServer\Cache\CacheRequestController;
 use SmartLicenseServer\Auth\ActionHandlers\AuthManagement;
 use SmartLicenseServer\Auth\ContentHandlers\AuthPages;
+use SmartLicenseServer\ClientDashboard\ActionHandlers\ContextSwitch;
 use SmartLicenseServer\ClientDashboard\ActionHandlers\PreferenceManagement;
 use SmartLicenseServer\ClientDashboard\Page\Dispatcher as ClientDashboardDispatcher;
 use SmartLicenseServer\Core\Container\Container;
@@ -609,6 +610,12 @@ final class HttpDispatcher {
 		$this->router->group( $urlmanager->client_dashboard_url_prefix(),
 			callback: function () {
 				// Pages (themed), built from ClientDashboardRegistry like the admin dashboard.
+				// A license document, for the user it is linked to (My licenses).
+				$this->router->get(
+					pattern: 'download/license/{license_id:int}',
+					handler: [FileRequestController::class, 'get_client_license_document']
+				);
+
 				$this->pages->get( '/', [ClientDashboardDispatcher::class, 'render_client_dashboard'] );
 				$this->pages->get( '{page:slug}', [ClientDashboardDispatcher::class, 'render_client_dashboard'] );
 				$this->pages->get( '{page:slug}/{tab:slug}', [ClientDashboardDispatcher::class, 'render_client_dashboard'] );
@@ -622,6 +629,11 @@ final class HttpDispatcher {
 					$this->router->post(
 						pattern: 'preferences',
 						handler: [PreferenceManagement::class, 'save']
+					);
+
+					$this->router->post(
+						pattern: 'context',
+						handler: [ContextSwitch::class, 'switch']
 					);
 				},
 				middleware: [

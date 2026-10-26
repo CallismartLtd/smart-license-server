@@ -23,6 +23,8 @@ use SmartLicenseServer\Security\Authentication\UserAuthenticator;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Owner;
+use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
+use SmartLicenseServer\Security\Permission\Role;
 
 class WebIdentityProvider implements PasswordIdentityProviderInterface {
 
@@ -58,25 +60,53 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 			return null;
 		}
 
-		$owner_id = $session->claim( 'owner_id' );
+		$context = $this->resolve_context( $user, $session->claim( 'owner_id' ) );
 
-		$owner = null;
-
-		if ( null !== $owner_id ) {
-			$owner = Owner::get_by_id( (int) $owner_id );
+		if ( null === $context ) {
+			return null;
 		}
 
-		$owner_subject = $owner
-			? ContextServiceProvider::get_owner_subject( $owner )
-			: null;
+		[ $owner, $role ] = $context;
 
-		$role = ContextServiceProvider::get_principal_role(
-			$user,
-			$owner_subject
-		);
+		$principal = new Principal( $user, $role, $owner );
+
+		$this->guard->set_principal( $principal );
+
+		return $principal;
+	}
+
+	/**
+	 * Act for someone else: the user themselves, or one of their organizations.
+	 *
+	 * Allowed only for a context ContextServiceProvider::get_context_role()
+	 * accepts. The session keeps its sign-in time and expiry; only the owner
+	 * it acts for changes. An organization gets its resource owner record
+	 * here if it has none (ContextServiceProvider::ensure_owner()).
+	 *
+	 * @param OwnerSubjectInterface $subject The signed-in user, or an organization.
+	 * @return RequestException|Principal The new principal, or why the switch was refused.
+	 */
+	public function switch_context( OwnerSubjectInterface $subject ) : RequestException|Principal {
+		$user = $this->guard->get_principal()?->get_actor();
+
+		if ( ! $user instanceof User ) {
+			return new RequestException( 'not_signed_in', 'Sign in to switch who you act for.', [ 'status' => 401 ] );
+		}
+
+		$role = ContextServiceProvider::get_context_role( $user, $subject );
 
 		if ( ! $role ) {
-			return null;
+			return new RequestException( 'context_forbidden', sprintf( 'You cannot act for %s.', $subject->get_display_name() ), [ 'status' => 403 ] );
+		}
+
+		try {
+			$owner = $subject instanceof User
+				? ContextServiceProvider::get_self_owner( $user, $role )
+				: ContextServiceProvider::ensure_owner( $subject );
+
+			$this->sessions->update_claims( [ 'owner_id' => $owner?->get_id() ] );
+		} catch ( \Throwable $e ) {
+			return new RequestException( 'context_switch_failed', 'Switching failed. Please try again.', [ 'status' => 500 ] );
 		}
 
 		$principal = new Principal( $user, $role, $owner );
@@ -84,6 +114,42 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 		$this->guard->set_principal( $principal );
 
 		return $principal;
+	}
+
+	/**
+	 * The owner and role a user acts with, from their session's owner claim.
+	 *
+	 * The claimed owner is used while the user may still act for it. When
+	 * they may not any more (removed from the organization, the organization
+	 * suspended or deleted) they act for themselves again, rather than being
+	 * signed out.
+	 *
+	 * @param User  $user     The signed-in user.
+	 * @param mixed $owner_id The session's owner_id claim.
+	 * @return array{0: Owner|null, 1: Role}|null Null when the user has no role at all.
+	 */
+	protected function resolve_context( User $user, mixed $owner_id ) : ?array {
+		$owner   = null !== $owner_id ? Owner::get_by_id( (int) $owner_id ) : null;
+		$subject = $owner ? ContextServiceProvider::get_owner_subject( $owner ) : null;
+		$role    = $subject ? ContextServiceProvider::get_context_role( $user, $subject ) : null;
+
+		if ( $owner && $role ) {
+			return [ $owner, $role ];
+		}
+
+		$role = ContextServiceProvider::get_context_role( $user, $user );
+
+		if ( ! $role ) {
+			return null;
+		}
+
+		try {
+			$owner = ContextServiceProvider::get_self_owner( $user, $role );
+		} catch ( \Throwable ) {
+			$owner = ContextServiceProvider::get_owner_for( $user );
+		}
+
+		return [ $owner, $role ];
 	}
 
 	/**

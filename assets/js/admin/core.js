@@ -186,7 +186,7 @@
 
 	function initEntitySearches() {
 		/** @type {HTMLSelectElement|null} */
-		const usersSearch        = document.querySelector( '#user_id' );
+		const usersSearch        = document.querySelector( '#user_id, #member_id' );
 		const ownerSubjectSearch = document.querySelector( '#subject_id' );
 		const ownersSearch       = document.querySelector( '#owner_id, #app_owner_id' );
 

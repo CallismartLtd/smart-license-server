@@ -95,15 +95,8 @@ class UserAuthenticator implements AuthenticatorInterface {
 			);
 		}
 
-		// Is this user a valid resource owner?
-		$owner = ContextServiceProvider::get_default_owner( $user );
-
-		// Maybe acting for self or another resource owner like an organization?
-		$owner_subject = $owner ? ContextServiceProvider::get_owner_subject( $owner ) : null;
-
-		// Actor's role for either an organization or self
-		// must be valid regardless.
-		$role = ContextServiceProvider::get_principal_role( $user, $owner_subject );
+		// A sign-in always starts acting for the user themselves.
+		$role = ContextServiceProvider::get_context_role( $user, $user );
 
 		if ( ! $role ) {
 			return AuthenticationResult::failure(
@@ -111,6 +104,13 @@ class UserAuthenticator implements AuthenticatorInterface {
 				error_code: 'invalid_role',
 				message: 'Authentication denied due to invalid role.'
 			);
+		}
+
+		// A resource owner gets their owner record here if they have none, so they can own apps.
+		try {
+			$owner = ContextServiceProvider::get_self_owner( $user, $role );
+		} catch ( \Throwable ) {
+			$owner = ContextServiceProvider::get_owner_for( $user );
 		}
 
 		return AuthenticationResult::authenticated(

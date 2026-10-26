@@ -927,6 +927,41 @@ class License extends DataStore {
 	}
 
 	/**
+	 * Get the licenses linked to a user, newest first.
+	 *
+	 * A license is linked when it was issued to the user's account, or to
+	 * their email address once they verified it (link_to_user()).
+	 *
+	 * @param int $user_id The user.
+	 * @param int $page    Page number.
+	 * @param int $limit   Licenses per page.
+	 * @return array{
+	 *  items: static[],
+	 *  pagination: array{page: int, limit: int, total: int, total_pages: int}
+	 * }
+	 */
+	public static function get_for_user( int $user_id, int $page = 1, int $limit = 20 ) : array {
+		$page  = max( 1, $page );
+		$limit = max( 1, $limit );
+		$table = TableName::LICENSES->table();
+		$sql   = static::query()->select( '*' )->from( $table )->where( 'user_id', '=', $user_id )
+			->order_by( 'id', 'DESC' )->limit( $limit )->offset( static::$DB->calculate_query_offset( $page, $limit ) );
+		$count = static::query()->select( 'COUNT(*)' )->from( $table )->where( 'user_id', '=', $user_id );
+		$total = $user_id > 0 ? (int) static::$DB->get_var( $count->build(), $count->get_bindings() ) : 0;
+		$rows  = $user_id > 0 ? static::$DB->get_results( $sql->build(), $sql->get_bindings() ) : [];
+
+		return [
+			'items'      => array_map( [ static::class, 'from_array' ], $rows ),
+			'pagination' => [
+				'page'        => $page,
+				'limit'       => $limit,
+				'total'       => $total,
+				'total_pages' => (int) ceil( $total / $limit ),
+			],
+		];
+	}
+
+	/**
 	 * Get all licenses with pagination support.
 	 *
 	 * @param int $page  Current page number.

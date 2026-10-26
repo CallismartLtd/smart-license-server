@@ -85,7 +85,36 @@ final class Principal {
 	 * @return bool
 	 */
 	public function is( string $role_slug ) : bool {
-		return $role_slug === $this->role->get_slug();
+		if ( $role_slug !== $this->role->get_slug() ) {
+			return false;
+		}
+
+		return self::SYS_ADMIN !== $role_slug || ! $this->in_organization();
+	}
+
+	/**
+	 * Whether the principal acts for an organization.
+	 *
+	 * system_admin is a platform role: it is honoured only when the principal
+	 * acts for no owner, for a person or for the platform. Held inside an
+	 * organization (assigned before that was refused, or written directly),
+	 * it grants nothing: is( 'system_admin' ) is false and every capability
+	 * is denied, so it can never lift an organization member to platform
+	 * administrator.
+	 *
+	 * @return bool
+	 */
+	public function in_organization() : bool {
+		return (bool) $this->owner?->is_organization();
+	}
+
+	/**
+	 * Whether the role is system_admin held inside an organization, where it grants nothing.
+	 *
+	 * @return bool
+	 */
+	private function holds_void_role() : bool {
+		return self::SYS_ADMIN === $this->role->get_slug() && $this->in_organization();
 	}
 
 	/**
@@ -99,6 +128,10 @@ final class Principal {
 	public function can( string $capability ) : bool {
 		if ( $this->is( self::SYS_ADMIN ) ) {
 			return true;
+		}
+
+		if ( $this->holds_void_role() ) {
+			return false;
 		}
 
 		try {

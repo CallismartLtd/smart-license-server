@@ -15,6 +15,9 @@ use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environments\Application\Theming\CorePages;
 use SmartLicenseServer\Environments\Application\Theming\View;
+use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Security\Context\ContextServiceProvider;
+use SmartLicenseServer\Security\Context\Guard;
 
 /**
  * The client dashboard's page handler, built from the registry.
@@ -37,8 +40,19 @@ use SmartLicenseServer\Environments\Application\Theming\View;
  *         top_menu: list<array{key: string, title: string, icon: string,
  *             icons: list<array{class: string, attributes: array<string, string>}>,
  *             type: string, href: string, attributes: array<string, string>}>,
- *         current: array{menu: string, submenu: ?string}
+ *         current: array{menu: string, submenu: ?string},
+ *         context: array{
+ *             action: string,
+ *             current: string,
+ *             options: list<array{value: string, label: string, role: string, type: string, current: bool}>
+ *         },
+ *         account: array{name: string, email: string, verified: bool, resend_url: string}
  *     }
+ *     context is who the user can act for (ContextServiceProvider::get_acting_contexts()),
+ *     the user themselves first; a theme shows a switcher posting "context" to
+ *     context.action when there is more than one option. account.verified is
+ *     false until the user verifies their email; a theme shows a notice with
+ *     a button posting to account.resend_url.
  *   - the title of the current submenu or menu, unless the page set one.
  *
  * An unknown or hidden page or tab is the theme's 404 page.
@@ -61,11 +75,13 @@ final class Dispatcher {
 	 * @param ClientDashboardRegistry $registry   The client dashboard's menus.
 	 * @param URLManager              $urlmanager URL API.
 	 * @param CorePages               $core_pages The 404 page.
+	 * @param Guard                   $guard      The signed-in principal.
 	 */
 	public function __construct(
 		private ClientDashboardRegistry $registry,
 		private URLManager $urlmanager,
-		private CorePages $core_pages
+		private CorePages $core_pages,
+		private Guard $guard
 	) {}
 
 	/**
@@ -174,6 +190,58 @@ final class Dispatcher {
 			'menu'     => $menu,
 			'top_menu' => $top_menu,
 			'current'  => [ 'menu' => $current_key, 'submenu' => $current_submenu ],
+			'context'  => $this->context(),
+			'account'  => $this->account(),
+		];
+	}
+
+	/**
+	 * Who the signed-in user can act for, and who they act for now.
+	 *
+	 * @return array{action: string, current: string, options: list<array{value: string, label: string, role: string, type: string, current: bool}>}
+	 */
+	private function context() : array {
+		$principal = $this->guard->get_principal();
+		$user      = $principal?->get_actor();
+		$owner     = $principal?->get_owner();
+		$current   = $owner && $owner->is_organization()
+			? sprintf( '%s:%d', $owner->get_type(), $owner->get_subject_id() )
+			: sprintf( '%s:%d', (string) $user?->get_type(), (int) $user?->get_id() );
+		$options   = [];
+
+		if ( $user instanceof User ) {
+			foreach ( ContextServiceProvider::get_acting_contexts( $user ) as $context ) {
+				$value     = sprintf( '%s:%d', $context['subject']->get_type(), $context['subject']->get_id() );
+				$options[] = [
+					'value'   => $value,
+					'label'   => $context['subject'] instanceof User ? sprintf( '%s (you)', $context['subject']->get_display_name() ) : $context['subject']->get_display_name(),
+					'role'    => $context['role']->get_label(),
+					'type'    => $context['subject']->get_type(),
+					'current' => $value === $current,
+				];
+			}
+		}
+
+		return [
+			'action'  => $this->urlmanager->client_dashboard_url( 'json/context' )->url(),
+			'current' => $current,
+			'options' => $options,
+		];
+	}
+
+	/**
+	 * The signed-in user's account, for notices such as email verification.
+	 *
+	 * @return array{name: string, email: string, verified: bool, resend_url: string}
+	 */
+	private function account() : array {
+		$user = $this->guard->get_principal()?->get_actor();
+
+		return [
+			'name'       => $user instanceof User ? $user->get_display_name() : '',
+			'email'      => $user instanceof User ? $user->get_email() : '',
+			'verified'   => ! $user instanceof User || $user->is_email_verified(),
+			'resend_url' => $this->urlmanager->login_url( 'form/resend-verification' )->url(),
 		];
 	}
 

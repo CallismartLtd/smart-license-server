@@ -281,6 +281,13 @@ class ContextServiceProvider extends DataStore {
 	 * @throws DatabaseException Sensitive database error, caller must handle accordingly.
 	 */
 	public static function save_actor_role( ActorInterface $actor, Role $role, ?OwnerSubjectInterface $subject = null ) : bool {
+		// A platform role: inside an organization it would grant nothing (Principal::in_organization()).
+		if ( $subject && Owner::TYPE_ORGANIZATION === $subject->get_type() && static::is_platform_role( $role ) ) {
+			throw new InvalidArgumentException(
+				sprintf( '"%s" is a platform role and cannot be given inside an organization.', $role->get_label() ?: $role->get_slug() )
+			);
+		}
+
 		$table        = TableName::PRINCIPAL_ROLES->table();
 		$subject_type = $subject ? $subject->get_type() : Owner::TYPE_INDIVIDUAL;
 		$subject_id   = $subject ? $subject->get_id() : $actor->get_id();
@@ -792,6 +799,165 @@ class ContextServiceProvider extends DataStore {
 				]
 			);
 		}
+	}
+
+	/*
+	|-------------------
+	| OWNERSHIP CONTEXT
+	|-------------------
+	*/
+
+	/**
+	 * Whether a role is the platform administrator role, which only exists outside organizations.
+	 *
+	 * @param Role $role
+	 * @return bool
+	 */
+	public static function is_platform_role( Role $role ) : bool {
+		return DefaultRoles::get( 'system_admin' )['slug'] === $role->get_slug();
+	}
+
+	/**
+	 * The resource owner record of a person or an organization.
+	 *
+	 * @param OwnerSubjectInterface $subject A user or an organization.
+	 * @return Owner|null Null when it has none yet (ensure_owner() makes one).
+	 */
+	public static function get_owner_for( OwnerSubjectInterface $subject ) : ?Owner {
+		if ( ! $subject->get_id() ) {
+			return null;
+		}
+
+		$sql = static::query()
+			->select( 'id' )->from( TableName::RESOURCE_OWNERS->table() )
+			->where( 'subject_id', '=', $subject->get_id() )
+			->where( 'type', '=', $subject->get_type() )
+			->limit( 1 );
+
+		$id = (int) static::$DB->get_var( $sql->build(), $sql->get_bindings() );
+
+		return $id ? Owner::get_by_id( $id ) : null;
+	}
+
+	/**
+	 * The resource owner record of a person or an organization, made when missing.
+	 *
+	 * Every subject that someone acts for, or that hosts apps, has one: it
+	 * is what apps, pricing and service accounts belong to. It is made the
+	 * first time it is needed, named after the subject.
+	 *
+	 * @param OwnerSubjectInterface $subject A saved user or organization.
+	 * @return Owner
+	 * @throws SecurityException When it cannot be saved.
+	 */
+	public static function ensure_owner( OwnerSubjectInterface $subject ) : Owner {
+		$owner = static::get_owner_for( $subject );
+
+		if ( $owner ) {
+			return $owner;
+		}
+
+		$owner = ( new Owner() )
+			->set_name( $subject->get_display_name() )
+			->set_subject_id( $subject->get_id() )
+			->set_type( $subject->get_type() )
+			->set_status( Owner::STATUS_ACTIVE );
+
+		if ( ! $subject->get_id() || ! $owner->save() ) {
+			throw new SecurityException( 'owner_save_error', sprintf( 'A resource owner record for %s could not be made.', $subject->get_display_name() ), [ 'status' => 500 ] );
+		}
+
+		return $owner;
+	}
+
+	/**
+	 * A person's own resource owner record, made when their role lets them host apps.
+	 *
+	 * A user whose own role has hosted_apps.create (a resource owner) always
+	 * has one, so they can own apps, made the first time it is needed (sign-in,
+	 * signup or switching back to themselves). Anyone else gets theirs only
+	 * when one already exists.
+	 *
+	 * @param User $user The user.
+	 * @param Role $role Their own role.
+	 * @return Owner|null
+	 * @throws SecurityException When a needed record cannot be saved.
+	 */
+	public static function get_self_owner( User $user, Role $role ) : ?Owner {
+		$owner = static::get_owner_for( $user );
+
+		if ( $owner || ! $role->has_capability( 'hosted_apps.create' ) ) {
+			return $owner;
+		}
+
+		return static::ensure_owner( $user );
+	}
+
+	/**
+	 * The role a user has when acting for a subject, if they may act for it at all.
+	 *
+	 * A user may act:
+	 * - for themselves, with their own role;
+	 * - for an active organization they are a member of, with the role they
+	 *   hold there. system_admin held inside an organization does not count
+	 *   (it grants nothing there). A member's status is their account's, which
+	 *   sign-in already requires to be active.
+	 *
+	 * @param User                  $user    The user.
+	 * @param OwnerSubjectInterface $subject Themselves or an organization.
+	 * @return Role|null Null when the user may not act for it.
+	 */
+	public static function get_context_role( User $user, OwnerSubjectInterface $subject ) : ?Role {
+		if ( $subject instanceof User ) {
+			return $subject->get_id() === $user->get_id() ? static::get_principal_role( $user ) : null;
+		}
+
+		if ( ! $subject instanceof Organization || Organization::STATUS_ACTIVE !== $subject->get_status() ) {
+			return null;
+		}
+
+		$sql = static::query()
+			->select( 'id' )->from( TableName::ORGANIZATION_MEMBERS->table() )
+			->where( 'organization_id', '=', $subject->get_id() )
+			->where( 'member_id', '=', $user->get_id() )
+			->limit( 1 );
+
+		if ( ! static::$DB->get_var( $sql->build(), $sql->get_bindings() ) ) {
+			return null;
+		}
+
+		$role = static::get_principal_role( $user, $subject );
+
+		return $role && ! static::is_platform_role( $role ) ? $role : null;
+	}
+
+	/**
+	 * Everyone a user may act for: themselves first, then their organizations by name.
+	 *
+	 * @param User $user
+	 * @return list<array{subject: OwnerSubjectInterface, role: Role}>
+	 */
+	public static function get_acting_contexts( User $user ) : array {
+		$contexts = [];
+		$own_role = static::get_context_role( $user, $user );
+
+		if ( $own_role ) {
+			$contexts[] = [ 'subject' => $user, 'role' => $own_role ];
+		}
+
+		$organizations = [];
+
+		foreach ( static::get_user_organizations( $user ) ?? [] as $organization ) {
+			$role = static::get_context_role( $user, $organization );
+
+			if ( $role ) {
+				$organizations[] = [ 'subject' => $organization, 'role' => $role ];
+			}
+		}
+
+		usort( $organizations, static fn ( array $a, array $b ) : int => strcasecmp( $a['subject']->get_display_name(), $b['subject']->get_display_name() ) );
+
+		return array_merge( $contexts, $organizations );
 	}
 
 	/*

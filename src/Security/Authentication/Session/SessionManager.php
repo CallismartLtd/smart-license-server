@@ -237,6 +237,37 @@ final class SessionManager {
 	}
 
 	/**
+	 * Change claims of the current session, keeping everything else.
+	 *
+	 * The session keeps its ID, sign-in time, expiry and "remember me", so
+	 * changing what the user acts for neither extends nor shortens it, nor
+	 * escapes a sign-out-everywhere cut-off. A claim set to null is removed.
+	 *
+	 * @param array<string,mixed> $claims Claims to set or (null) remove.
+	 * @return Session The updated session.
+	 *
+	 * @throws RuntimeException When there is no valid session, or the token cannot be made.
+	 */
+	public function update_claims( array $claims ) : Session {
+		$session = $this->require();
+		$merged  = array_filter( array_merge( $session->claims, $claims ), static fn ( $value ) : bool => null !== $value );
+
+		$updated = new Session(
+			id: $session->id,
+			principal_id: $session->principal_id,
+			issued_at: time(),
+			expires_at: $session->expires_at,
+			claims: $merged,
+			authenticated_at: $session->authenticated_at,
+			persistent: $session->persistent
+		);
+
+		$this->issue( $updated );
+
+		return $updated;
+	}
+
+	/**
 	 * Resolve the current browser session.
 	 *
 	 * Returns null when the cookie does not exist, is malformed, fails

@@ -23,6 +23,7 @@ use SmartLicenseServer\HostedApps\Storage\AppFile;
 use SmartLicenseServer\Monetization\License;
 use SmartLicenseServer\Monetization\PurchaseRequest;
 use SmartLicenseServer\Monetization\PurchaseRequestService;
+use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\SecurityAwareTrait;
 use SmartLicenseServer\SettingsAPI\Settings;
@@ -298,6 +299,43 @@ class FileRequestController {
 				[ 'trace' => $e->getTraceAsString() ]
 			);
 			return FileResponse::error_response( $exception, $request );
+		}
+	}
+
+	/**
+	 * Serve a license document to the user the license is linked to.
+	 *
+	 * For the client dashboard's "My licenses". Only the license's own user
+	 * gets it; for anyone else the license does not exist, so its ID tells
+	 * them nothing. Nothing is cached.
+	 *
+	 * @param FileRequest|Request $request The file request object.
+	 * @return FileResponse
+	 */
+	public function get_client_license_document( FileRequest|Request $request ) : FileResponse {
+		try {
+			$user    = $this->guard->get_principal()?->get_actor();
+			$license = License::get_by_id( (int) $request->get( 'license_id', 0 ) );
+
+			if ( ! $user instanceof User || ! $license || ! $user->get_id() || $license->get_user_id() !== (int) $user->get_id() ) {
+				throw new FileRequestException( 'file_not_found' );
+			}
+
+			$response = new FileResponse(
+				static::generate_license_document( $license ),
+				$request,
+				[
+					'type'         => 'document',
+					'is_file'      => false,
+					'name'         => sprintf( 'license-document-%d.txt', $license->get_id() ),
+					'content_type' => 'text/plain',
+				]
+			);
+
+			return $response->set_header( 'Cache-Control', 'no-store' );
+
+		} catch ( FileRequestException $e ) {
+			return FileResponse::error_response( $e, $request );
 		}
 	}
 

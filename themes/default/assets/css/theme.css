@@ -744,6 +744,169 @@ code {
 	color: var(--muted);
 }
 
+/* Who the user acts for: themselves or one of their organizations. */
+.dash-context {
+	position: relative;
+	margin-left: auto;
+}
+
+.dash-context-field {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13.5px;
+}
+
+.dash-context-label {
+	color: var(--muted);
+	white-space: nowrap;
+}
+
+.dash-context select {
+	max-width: 260px;
+	padding: 6px 8px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--surface);
+	color: var(--ink);
+	font: inherit;
+}
+
+.dash-context .notice {
+	position: absolute;
+	top: calc(100% + 6px);
+	right: 0;
+	z-index: 2;
+	width: max-content;
+	max-width: 320px;
+	margin: 0;
+}
+
+/* Records: the client dashboard's lists of licenses, purchases and the like. */
+.records {
+	display: grid;
+	gap: 16px;
+	padding: 0;
+	list-style: none;
+}
+
+.record {
+	padding: 20px 22px;
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	background: var(--surface);
+}
+
+.record-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 14px;
+}
+
+.record-head h3 {
+	font-size: 1rem;
+}
+
+.record-facts {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 12px 20px;
+	margin: 0;
+}
+
+.record-facts dt {
+	color: var(--muted);
+	font-size: 12.5px;
+}
+
+.record-facts dd {
+	margin: 2px 0 0;
+	font-size: 14px;
+	overflow-wrap: anywhere;
+}
+
+.record-key {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.record-key code {
+	font-family: var(--mono);
+	font-size: 13px;
+}
+
+.record-message,
+.record-notes li {
+	margin-top: 14px;
+	padding: 10px 12px;
+	border-left: 3px solid var(--border);
+	background: var(--bg);
+	font-size: 14px;
+}
+
+.record-message p,
+.record-notes p {
+	margin: 4px 0 0;
+}
+
+.record-notes {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.record-notes .muted {
+	font-size: 12.5px;
+}
+
+.record-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 16px;
+}
+
+.badge[data-tone="success"] {
+	border-color: var(--success);
+	background: var(--success-bg);
+	color: var(--success);
+}
+
+.badge[data-tone="failure"] {
+	border-color: var(--failure);
+	background: var(--failure-bg);
+	color: var(--failure);
+}
+
+/* Email verification and other account notices above the page. */
+.dash-notice {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 24px;
+}
+
+.dash-notice p {
+	margin: 0;
+}
+
+.dash-notice form {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.dash-notice form .notice {
+	margin: 0;
+}
+
 /*
 |------------
 | REPOSITORY
@@ -1170,6 +1333,14 @@ code {
 	.dash-top {
 		flex-direction: column;
 		align-items: flex-start;
+	}
+
+	.dash-context {
+		margin-left: 0;
+	}
+
+	.dash-context select {
+		max-width: 100%;
 	}
 
 	.app-hero {

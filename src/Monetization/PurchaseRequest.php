@@ -16,6 +16,7 @@ use DateTimeZone;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\DatabaseException;
 use SmartLicenseServer\Schema\TableName;
+use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Utils\DatePropertyAwareTrait;
 use SmartLicenseServer\Utils\SanitizeAwareTrait;
 
@@ -388,6 +389,58 @@ class PurchaseRequest extends DataStore {
 
 		return [
 			'items'      => $items,
+			'pagination' => [
+				'page'        => $page,
+				'limit'       => $limit,
+				'total'       => $total,
+				'total_pages' => (int) ceil( $total / $limit ),
+			],
+		];
+	}
+
+	/**
+	 * Get a buyer's requests, newest first.
+	 *
+	 * The buyer's requests are those made while signed in to their account,
+	 * and, once they verified their email address, those made as a guest with
+	 * it: the same rule that links licenses to an account.
+	 *
+	 * @param User $user  The buyer.
+	 * @param int  $page  Page number.
+	 * @param int  $limit Requests per page.
+	 * @return array{
+	 *  items: static[],
+	 *  pagination: array{page: int, limit: int, total: int, total_pages: int}
+	 * }
+	 */
+	public static function get_for_buyer( User $user, int $page = 1, int $limit = 20 ) : array {
+		$page    = max( 1, $page );
+		$limit   = max( 1, $limit );
+		$table   = TableName::PURCHASE_REQUESTS->table();
+		$sql     = static::query()->select( '*' )->from( $table );
+		$count   = static::query()->select( 'COUNT(*)' )->from( $table );
+		$user_id = (int) $user->get_id();
+		$email   = $user->is_email_verified() ? strtolower( trim( $user->get_email() ) ) : '';
+
+		foreach ( [ $sql, $count ] as $query ) {
+			$query->where_group(
+				static function ( $group ) use ( $user_id, $email ) : void {
+					$group->where( 'user_id', '=', $user_id );
+
+					if ( '' !== $email ) {
+						$group->or_where( 'buyer_email', '=', $email );
+					}
+				}
+			);
+		}
+
+		$sql->order_by( 'id', 'DESC' )->limit( $limit )->offset( static::$DB->calculate_query_offset( $page, $limit ) );
+
+		$total = $user_id > 0 ? (int) static::$DB->get_var( $count->build(), $count->get_bindings() ) : 0;
+		$rows  = $user_id > 0 ? static::$DB->get_results( $sql->build(), $sql->get_bindings() ) : [];
+
+		return [
+			'items'      => array_map( [ static::class, 'from_array' ], $rows ),
 			'pagination' => [
 				'page'        => $page,
 				'limit'       => $limit,
