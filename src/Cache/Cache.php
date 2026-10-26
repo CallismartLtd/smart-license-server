@@ -36,6 +36,7 @@ use SmartLicenseServer\SettingsAPI\Settings;
  * @method void set_settings( array<string, mixed> $settings ) Set adapter configuration.
  * @method bool is_supported() Tells whether the adapter can run in the host environment.
  * @method bool is_active() Tells whether the cache is active.
+ * @method bool is_persistent() Tells whether a value written in one request can be read in the next.
  * @method CacheStats get_stats() Return runtime statistics for this cache adapter.
  * @method bool test( array<string, mixed> $settings ) Test whether the adapter can connect and operate with the supplied settings.
  * @method string get_name() Get the cache adapter name.

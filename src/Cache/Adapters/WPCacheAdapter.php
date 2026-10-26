@@ -210,6 +210,10 @@ class WPCacheAdapter implements CacheAdapterInterface {
 		return $this->is_supported();
 	}
 
+	public function is_persistent() : bool {
+		return \wp_using_ext_object_cache();
+	}
+
 	/*
 	|--------------------------------------------
 	| DIAGNOSTICS & STATS

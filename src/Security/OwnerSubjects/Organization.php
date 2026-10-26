@@ -290,6 +290,18 @@ class Organization extends DataStore implements OwnerSubjectInterface {
 	}
 
 	/**
+	 * Get by slug.
+	 *
+	 * @param string $slug
+	 * @return static|null
+	 */
+	public static function get_by_slug( string $slug ) : ?static {
+		$data = '' !== $slug ? static::fetch_by( 'slug', $slug, TableName::ORGANIZATIONS->table() ) : null;
+
+		return $data ? static::from_array( $data ) : null;
+	}
+
+	/**
 	 * Save organization.
 	 * 
 	 * @return bool True on success, false when saving fails.

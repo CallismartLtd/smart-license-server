@@ -485,6 +485,12 @@ class ContextServiceProvider extends DataStore {
 				throw new InvalidArgumentException( 'The role assigned to this member does not exist.' );
 			}
 
+			if ( ! in_array( $role->get_slug(), DefaultRoles::ORGANIZATION_ROLES, true ) ) {
+				throw new InvalidArgumentException(
+					sprintf( '"%s" cannot be held inside an organization. Choose one of: %s.', $role->get_label() ?: $role->get_slug(), implode( ', ', DefaultRoles::ORGANIZATION_ROLES ) )
+				);
+			}
+
 			$table = TableName::ORGANIZATION_MEMBERS->table();
 			$now   = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
 
@@ -618,7 +624,19 @@ class ContextServiceProvider extends DataStore {
 				throw new DatabaseException( 'delete_failed', $db->get_last_error() );
 			}
 
-			static::delete_actor_role( $member, $organization );
+			// The role belongs to the member's user, not to the membership record.
+			$user = $member->get_user();
+
+			if ( $user ) {
+				static::delete_actor_role( $user, $organization );
+			} else {
+				$db->delete( TableName::PRINCIPAL_ROLES->table(), [
+					'principal_id'       => $member->get_member_id(),
+					'principal_type'     => Owner::TYPE_INDIVIDUAL,
+					'owner_subject_type' => Owner::TYPE_ORGANIZATION,
+					'owner_subject_id'   => $organization->get_id(),
+				] );
+			}
 		} );
 	}
 
@@ -1454,7 +1472,7 @@ class ContextServiceProvider extends DataStore {
 			->where( 'ra.principal_type', '=', Owner::TYPE_INDIVIDUAL )
 			->where( 'ra.owner_subject_type', '=', Owner::TYPE_ORGANIZATION )
 			->where( 'ra.owner_subject_id', '=', $organization->get_id() )
-			->where( 'r.slug', '=', DefaultRoles::get( 'system_admin' )['slug'] );
+			->where( 'r.slug', '=', DefaultRoles::get( 'organization_admin' )['slug'] );
 
 		$rows = $db->get_results( $sql->build(), $sql->get_bindings() );
 

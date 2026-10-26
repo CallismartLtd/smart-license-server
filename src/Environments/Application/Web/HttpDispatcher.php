@@ -27,6 +27,7 @@ use SmartLicenseServer\Cache\CacheRequestController;
 use SmartLicenseServer\Auth\ActionHandlers\AuthManagement;
 use SmartLicenseServer\Auth\ContentHandlers\AuthPages;
 use SmartLicenseServer\ClientDashboard\ActionHandlers\ContextSwitch;
+use SmartLicenseServer\ClientDashboard\ActionHandlers\OrganizationActions;
 use SmartLicenseServer\ClientDashboard\ActionHandlers\PreferenceManagement;
 use SmartLicenseServer\ClientDashboard\Page\Dispatcher as ClientDashboardDispatcher;
 use SmartLicenseServer\Core\Container\Container;
@@ -634,6 +635,62 @@ final class HttpDispatcher {
 					$this->router->post(
 						pattern: 'context',
 						handler: [ContextSwitch::class, 'switch']
+					);
+
+					// Organizations, members and invitations (OrganizationActions).
+					$this->router->post(
+						pattern: 'organizations/create',
+						handler: [OrganizationActions::class, 'create']
+					);
+
+					$this->router->post(
+						pattern: 'organizations/leave',
+						handler: [OrganizationActions::class, 'leave']
+					);
+
+					$this->router->post(
+						pattern: 'invitations/accept',
+						handler: [OrganizationActions::class, 'accept']
+					);
+
+					$this->router->post(
+						pattern: 'invitations/decline',
+						handler: [OrganizationActions::class, 'decline']
+					);
+
+					$this->router->post(
+						pattern: 'organization/rename',
+						handler: [OrganizationActions::class, 'rename']
+					);
+
+					$this->router->post(
+						pattern: 'organization/delete',
+						handler: [OrganizationActions::class, 'delete']
+					);
+
+					$this->router->post(
+						pattern: 'organization/members/role',
+						handler: [OrganizationActions::class, 'change_role']
+					);
+
+					$this->router->post(
+						pattern: 'organization/members/remove',
+						handler: [OrganizationActions::class, 'remove_member']
+					);
+
+					$this->router->post(
+						pattern: 'organization/invitations/send',
+						handler: [OrganizationActions::class, 'invite']
+					);
+
+					$this->router->post(
+						pattern: 'organization/invitations/resend',
+						handler: [OrganizationActions::class, 'resend_invitation']
+					);
+
+					$this->router->post(
+						pattern: 'organization/invitations/revoke',
+						handler: [OrganizationActions::class, 'revoke_invitation']
 					);
 				},
 				middleware: [

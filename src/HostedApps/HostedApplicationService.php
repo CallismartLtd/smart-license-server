@@ -386,6 +386,28 @@ class HostedApplicationService extends DataStore {
 	}
 
 	/**
+	 * Count the apps a resource owner owns, whatever their type or status.
+	 *
+	 * Trashed apps count: they still belong to the owner until they are
+	 * deleted for good.
+	 *
+	 * @param int $owner_id Resource owner ID.
+	 * @return int
+	 */
+	public static function count_apps_for_owner( int $owner_id ) : int {
+		if ( $owner_id <= 0 ) {
+			return 0;
+		}
+
+		$sql = static::query()
+			->select( 'COUNT(*)' )
+			->from( AbstractHostedApp::get_db_table() )
+			->where( 'owner_id', '=', $owner_id );
+
+		return (int) static::$DB->get_var( $sql->build(), $sql->get_bindings() );
+	}
+
+	/**
 	 * Count hosted applications across multiple types by status.
 	 *
 	 * @param array{

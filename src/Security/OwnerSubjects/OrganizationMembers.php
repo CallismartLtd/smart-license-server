@@ -111,7 +111,10 @@ class OrganizationMembers implements IteratorAggregate, Countable, JsonSerializa
 	 * @return OrganizationMember|null
 	 */
 	public function first() : ?OrganizationMember {
-		return $this->all()[0] ?? null;
+		// Members are keyed by their membership ID, not by position.
+		$first = reset( $this->members );
+
+		return false === $first ? null : $first;
 	}
 
 	/**
@@ -120,8 +123,9 @@ class OrganizationMembers implements IteratorAggregate, Countable, JsonSerializa
 	 * @return OrganizationMember|null
 	 */
 	public function last() : ?OrganizationMember {
-		$all = $this->all();
-		return $all[ count( $all ) - 1 ] ?? null;
+		$last = end( $this->members );
+
+		return false === $last ? null : $last;
 	}
 
 	/**

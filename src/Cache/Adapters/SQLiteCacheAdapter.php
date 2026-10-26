@@ -878,6 +878,13 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
 		return isset( $this->db );
 	}
 
+	/**
+	 * {@inheritdoc}
+	 */
+	public function is_persistent() : bool {
+		return true;
+	}
+
 	public function is_supported() : bool {
 		return class_exists( SQLite3::class );
 	}

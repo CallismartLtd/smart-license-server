@@ -136,6 +136,19 @@ interface CacheAdapterInterface extends ServiceProviderInterface {
 	public function is_active() : bool;
 
 	/**
+	 * Tells whether a value written in one request can be read in the next.
+	 *
+	 * False for a cache that lives only as long as the request (the runtime
+	 * adapter, or WordPress without a persistent object cache). Anything
+	 * that must outlive the request, such as an invitation, needs true.
+	 * This says what the adapter is built to do; Site Health's probe checks
+	 * that the configured backend really keeps values.
+	 *
+	 * @return bool
+	 */
+	public function is_persistent() : bool;
+
+	/**
 	|--------------------------------------------------------------------------
 	| DIAGNOSTICS
 	|--------------------------------------------------------------------------

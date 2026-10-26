@@ -248,6 +248,16 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
 	}
 
 	/**
+	 * {@inheritdoc}
+	 *
+	 * APCu keeps values in the web server's shared memory between requests.
+	 * The CLI has its own memory, so values are not shared with it.
+	 */
+	public function is_persistent() : bool {
+		return true;
+	}
+
+	/**
 	|--------------------------------------------------------------------------
 	| DIAGNOSTICS
 	|--------------------------------------------------------------------------

@@ -107,6 +107,13 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
 		return $this->memcached instanceof Memcached;
 	}
 
+	/**
+	 * {@inheritdoc}
+	 */
+	public function is_persistent() : bool {
+		return true;
+	}
+
 	/*
 	|----------------
 	| KEY BUILDER

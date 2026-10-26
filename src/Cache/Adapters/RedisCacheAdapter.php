@@ -133,6 +133,13 @@ class RedisCacheAdapter implements CacheAdapterInterface {
 		return ( $this->redis instanceof Redis );
 	}
 
+	/**
+	 * {@inheritdoc}
+	 */
+	public function is_persistent() : bool {
+		return true;
+	}
+
 	/*
 	|----------------
 	| KEY BUILDER

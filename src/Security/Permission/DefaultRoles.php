@@ -92,6 +92,61 @@ final class DefaultRoles {
 		],
 
 		/**
+		 * Organization Administrator.
+		 *
+		 * Runs an organization: everything a resource owner does for the
+		 * organization's apps, plus its settings, members, invitations and
+		 * service accounts. Held only inside an organization; the user who
+		 * creates one gets it there.
+		 */
+		'organization_admin' => [
+			'label'        => 'Organization Administrator',
+			'is_canonical' => true,
+			'slug'         => 'organization_admin',
+			'capabilities' => [
+				// Hosted applications.
+				'hosted_apps.create',
+				'hosted_apps.update',
+				'hosted_apps.delete',
+				'hosted_apps.change_status',
+				'hosted_apps.upload_assets',
+				'hosted_apps.edit_assets',
+				'hosted_apps.delete_assets',
+				'hosted_apps.access_files',
+
+				// Monetization.
+				'monetization.pricing.create',
+				'monetization.pricing.update',
+				'monetization.pricing.delete',
+
+				'monetization.license.create',
+				'monetization.license.update',
+				'monetization.license.revoke',
+				'monetization.license.issue',
+				'monetization.license.delete',
+
+				// Visibility.
+				'repository.view',
+				'repository.download',
+				'analytics.view',
+
+				// The organization and its people.
+				'security.organization.update',
+				'security.organization.delete',
+				'security.organization.view',
+				'security.organization.add_members',
+				'security.organization.update_members',
+				'security.organization.remove_members',
+				'security.user.invite',
+
+				'security.service_account.create',
+				'security.service_account.update',
+				'security.service_account.delete',
+				'security.service_account.view',
+			],
+		],
+
+		/**
 		 * Resource Administrator.
 		 *
 		 * Manages applications, monetization, and visibility layers.
@@ -209,6 +264,17 @@ final class DefaultRoles {
 			],
 		],
 	];
+
+	/**
+	 * The roles a member can hold inside an organization, most powerful first.
+	 *
+	 * Fixed: platform roles (system_admin, security_admin) and custom roles
+	 * are left out, because their capabilities are not limited to one
+	 * organization.
+	 *
+	 * @var list<string>
+	 */
+	public const ORGANIZATION_ROLES = [ 'organization_admin', 'resource_admin', 'app_manager', 'license_manager', 'analyst', 'viewer' ];
 
 	/**
 	 * Prevent instantiation.

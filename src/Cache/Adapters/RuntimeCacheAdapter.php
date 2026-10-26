@@ -219,6 +219,15 @@ class RuntimeCacheAdapter implements CacheAdapterInterface {
 		return true;
 	}
 
+	/**
+	 * {@inheritdoc}
+	 *
+	 * Values live in this process's memory and end with the request.
+	 */
+	public function is_persistent() : bool {
+		return false;
+	}
+
 	/*
 	|--------------------------------------------
 	| DIAGNOSTICS & STATS
