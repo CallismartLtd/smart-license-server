@@ -895,13 +895,6 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	 */
 	abstract public static function from_array( $data ) : static;
 
-	/**
-	 * Get database fields.
-	 * 
-	 * @return array<int, string>
-	 */
-	abstract public function get_fillable() : array;
-
 	/*
 	|----------
 	| STORAGE
@@ -955,19 +948,15 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	 * @return bool|Exception Does not throw.
 	 */
 	public function save() : bool|Exception {
-		$db_fields = $this->get_fillable();
 
-		$data = [];
-		foreach( $db_fields as $key ) {
-			$method = "get_{$key}";
-			if ( ! \is_callable( [$this, $method] ) ) {
-				continue;
-			}
-
-			$value = 'get_author' === $method ? $this->$method( '' ) : $this->$method();
-
-			$data[$key] = is_array( $value ) ? Format::encode( $value, Format::ENCODING_PHP ) : (string) $value;
-		}
+		$data = [
+			'name'				=> $this->get_name(),
+			'status'			=> $this->get_status(),
+			'owner_id'			=> $this->get_owner_id(),
+			'author'			=> $this->get_author(),
+			'author_profile'	=> $this->get_author_profile()?->url(),
+			'download_link'		=> $this->get_download_url()->url(),
+		];
 
 		// A rolled-back save must not leave the model looking saved.
 		$identity = [ $this->id, $this->slug, $this->created_at, $this->updated_at ];
@@ -986,7 +975,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 				$data['updated_at'] = $now->format( 'Y-m-d H:i:s' );
 
 				$lock_query = static::query()->select( 'id' )->from( static::get_db_table() )
-					->where( 'id', '=', static::sanitize_int( $this->get_id() ) )
+					->where( 'id', '=', $this->get_id() )
 					->where( 'app_type', '=', $this->get_type() )
 					->limit( 1 )->lock_for_update();
 				
@@ -1009,7 +998,7 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 					}
 
 					// The same slug upload_zip() will store the package under.
-					$name = $this->get_slug() ?: strtolower( str_replace( ' ', '-', $this->get_name() ) );
+					$name = $this->get_slug() ?: Format::slugify( $this->get_name() );
 					$slug = Repository::slug_from( $name );
 
 					if ( '' === $slug ) {
@@ -1023,11 +1012,6 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 					}
 
 					$this->set_slug( $slug );
-
-					// The default download link is made from the slug, which was empty above.
-					if ( array_key_exists( 'download_link', $data ) && \is_callable( [ $this, 'get_download_link' ] ) ) {
-						$data['download_link'] = (string) $this->get_download_link();
-					}
 
 					$data['app_type']   = $this->get_type();
 					$data['slug']       = $slug;

@@ -97,7 +97,7 @@ class WPTheme extends AbstractHostedApp {
 	 * @return URL
 	 */
 	public function get_author_profile() : ?URL {
-		return URL::from( $this->author['author_url'] ?? '' );
+		return URL::from( $this->author['author_url'] ?? $this->author_profile ?? '' );
 	}
 
 	/**
@@ -190,27 +190,12 @@ class WPTheme extends AbstractHostedApp {
 
 		return parent::set_author( $value );
 	}
-	
-	/**
-	|--------------
-	| CRUD METHODS
-	|--------------
-	 */
 
-	/**
-	 * Get database fields.
-	 * 
-	 * @return array<int, string>
-	 */
-	public function get_fillable() : array {
-		return [ 'owner_id', 'name', 'author', 'status', 'download_link' ];
-	}
-
-	/**
+	/*
 	|--------------------
 	| UTILITY METHODS
 	|--------------------
-	 */
+	*/
 
 	/**
 	 * Converts associative array to object of this class.

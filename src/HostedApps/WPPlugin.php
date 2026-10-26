@@ -192,14 +192,6 @@ class WPPlugin extends AbstractHostedApp {
 	}
 
 	/**
-	 * Get Download link.
-	 * @return string
-	 */
-	public function get_download_link() : string {
-		return $this->get_download_url()->url();
-	}
-
-	/**
 	 * Get Banners
 	 * 
 	 * @return array $banners
@@ -345,7 +337,7 @@ class WPPlugin extends AbstractHostedApp {
 			'manifest'          => $this->get_manifest(),
 			'homepage'          => $this->get_homepage()->url(),
 			'package'           => $this->get_download_url()->url(),
-			'download_link'     => $this->get_download_link(),
+			'download_link'     => $this->get_download_url()->url(),
 			'banners'           => $this->get_banners(),
 			'screenshots'       => $this->get_screenshots(),
 			'icons'             => $this->get_icons(),
@@ -377,14 +369,5 @@ class WPPlugin extends AbstractHostedApp {
 		}
 
 		return $data;
-	}
-
-	/**
-	 * Get database fields.
-	 * 
-	 * @return string[]
-	 */
-	public function get_fillable() : array {
-		return [ 'name', 'owner_id', 'author', 'status', 'author_profile', 'download_link' ];
 	}
 }

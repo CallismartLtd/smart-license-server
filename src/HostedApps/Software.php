@@ -43,15 +43,6 @@ class Software extends AbstractHostedApp {
 	}
 
 	/**
-	 * Get database fields.
-	 * 
-	 * @return array<int, string>
-	 */
-	public function get_fillable() : array {
-		return ['name', 'owner_id', 'author', 'status', 'download_link' ];
-	}
-
-	/**
 	 * Get the application icon URL.
 	 * 
 	 * @return string Icon URL.
@@ -81,7 +72,7 @@ class Software extends AbstractHostedApp {
 	 * @return URL|null
 	 */
 	public function get_author_profile() : ?URL {
-		return URL::from( $this->author );
+		return $this->author_profile;
 	}
 
 	/*
