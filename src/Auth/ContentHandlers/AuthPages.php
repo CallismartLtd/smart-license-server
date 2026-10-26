@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Auth\ContentHandlers;
 
 use SmartLicenseServer\Core\Request;
+use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environments\Application\Theming\View;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
@@ -61,16 +62,20 @@ final class AuthPages {
 	/**
 	 * GET <login prefix>/ — sign in.
 	 *
-	 * Template 'auth.sign-in'. Data: $action.
+	 * Template 'auth.sign-in'. Data: $action, and
+	 *   string $redirect_url The page's ?redirect_url= when on this site; empty otherwise.
 	 *
 	 * A redirect_url query parameter is posted with the form, so the visitor
-	 * returns where they were sent from.
+	 * returns where they were sent from. The link to sign up carries it on,
+	 * so someone without an account (e.g. invited to an organization) gets
+	 * back too.
 	 *
 	 * @param Request $request
 	 * @return View
 	 */
 	public function sign_in( Request $request ) : View {
-		return $this->form_page( 'auth.sign-in', 'Sign in', 'form/login' );
+		return $this->form_page( 'auth.sign-in', 'Sign in', 'form/login' )
+			->set( 'redirect_url', $this->redirect_url( $request ) );
 	}
 
 	/**
@@ -80,6 +85,8 @@ final class AuthPages {
 	 *   string $email       Address to fill in, from ?email=; empty when absent or invalid.
 	 *   string $terms_url   Terms URL; empty when not set.
 	 *   string $privacy_url Privacy policy URL; empty when not set.
+	 *   string $redirect_url The page's ?redirect_url= when on this site; empty otherwise.
+	 *                        The form posts it, and signing up returns there.
 	 *
 	 * @param Request $request
 	 * @return View
@@ -91,7 +98,21 @@ final class AuthPages {
 		return $this->form_page( 'auth.sign-up', 'Create an account', 'form/signup' )
 			->set( 'email', false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : '' )
 			->set( 'terms_url', (string) $this->settings->get( Settings::TERMS_URL, '' ) )
-			->set( 'privacy_url', (string) $this->settings->get( Settings::PRIVACY_POLICY_URL, '' ) );
+			->set( 'privacy_url', (string) $this->settings->get( Settings::PRIVACY_POLICY_URL, '' ) )
+			->set( 'redirect_url', $this->redirect_url( $request ) );
+	}
+
+	/**
+	 * The page's ?redirect_url= when it is on this site, for the links between
+	 * signing in and signing up to carry it on; empty otherwise.
+	 *
+	 * @param Request $request
+	 * @return string
+	 */
+	private function redirect_url( Request $request ) : string {
+		$url = URL::from( (string) $request->get( 'redirect_url', '' ) );
+
+		return $url->is_valid() && $url->get_origin() === $this->urls->url()->get_origin() ? $url->url() : '';
 	}
 
 	/**

@@ -883,6 +883,91 @@ code {
 	color: var(--failure);
 }
 
+/* An invitation and other records that ask for an answer. */
+.record-highlight {
+	margin-bottom: 24px;
+	border-color: var(--accent);
+}
+
+.record-highlight > p {
+	color: var(--muted);
+	font-size: 14px;
+}
+
+.record-compact {
+	padding: 14px 18px;
+}
+
+.record-compact .record-head {
+	margin-bottom: 0;
+}
+
+.record-compact .record-actions {
+	margin-top: 12px;
+}
+
+.record-head .muted {
+	font-size: 13px;
+}
+
+.record-actions form {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+}
+
+.record-actions .notice,
+.inline-form .notice {
+	flex-basis: 100%;
+	margin: 0;
+}
+
+.inline-form select {
+	padding: 4px 8px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--surface);
+	color: var(--ink);
+	font: inherit;
+	font-size: 13px;
+}
+
+/* Sections of a dashboard page. */
+.dash-section {
+	margin-top: 36px;
+}
+
+.dash-section > h2 {
+	margin-bottom: 12px;
+	font-size: 1.1rem;
+}
+
+.dash-section > .muted {
+	margin-bottom: 14px;
+	font-size: 14px;
+}
+
+.dash-subheading {
+	margin: 24px 0 12px;
+	font-size: 1rem;
+}
+
+.dash-form {
+	max-width: 420px;
+}
+
+.dash-danger {
+	padding-top: 24px;
+	border-top: 1px solid var(--border);
+}
+
+.dash-danger .btn:hover {
+	border-color: var(--failure);
+	color: var(--failure);
+}
+
 /* Email verification and other account notices above the page. */
 .dash-notice {
 	display: flex;

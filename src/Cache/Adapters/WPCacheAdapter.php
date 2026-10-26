@@ -210,8 +210,14 @@ class WPCacheAdapter implements CacheAdapterInterface {
 		return $this->is_supported();
 	}
 
+	/**
+	 * {@inheritdoc}
+	 *
+	 * WordPress's own object cache ends with the request; only an external
+	 * object cache drop-in (Redis, Memcached, ...) keeps values.
+	 */
 	public function is_persistent() : bool {
-		return \wp_using_ext_object_cache();
+		return $this->is_supported() && function_exists( 'wp_using_ext_object_cache' ) && (bool) wp_using_ext_object_cache();
 	}
 
 	/*

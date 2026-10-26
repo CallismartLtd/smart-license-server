@@ -1597,8 +1597,18 @@
 		}
 
 		const existingRoles = StringUtils.JSONparse( roleBuilderEl.getAttribute( 'data-roles' ), null );
+		const allowedRoles  = StringUtils.JSONparse( roleBuilderEl.getAttribute( 'data-allowed-roles' ), null );
+		let data            = smliser_var.default_roles;
 
-		window.SmliserRoleBuilder = new RoleBuilder( roleBuilderEl, smliser_var.default_roles, existingRoles );
+		// data-allowed-roles: only these roles are offered, e.g. those a member can hold inside an organization.
+		if ( Array.isArray( allowedRoles ) && data?.roles ) {
+			data = {
+				...data,
+				roles: Object.fromEntries( Object.entries( data.roles ).filter( ( [ slug ] ) => allowedRoles.includes( slug ) ) ),
+			};
+		}
+
+		window.SmliserRoleBuilder = new RoleBuilder( roleBuilderEl, data, existingRoles );
 	}
 
 	/**

@@ -9,6 +9,7 @@
  * @var \SmartLicenseServer\Core\URL $avatar_url
  * @var string $avatar_name
  * @var array $role
+ * @var string[] $allowed_roles Optional. Role slugs the role builder offers; all roles when not set.
  * @var SmartLicenseServer\Security\OwnerSubjects\Organization $organization
  * @var \SmartLicenseServer\Core\Request $request
  * @var \SmartLicenseServer\Admin\ContentHandlers\AccessControlPage $page_handler
@@ -254,6 +255,9 @@ if ( $render_image_only ) {
                 role="region"
                 aria-labelledby="smliser-roles-title"
                 data-roles="<?php echo escAttr( smliser_json_encode_attr( isset( $role ) ? $role : [] ) ); ?>"
+                <?php if ( isset( $allowed_roles ) ) : ?>
+                    data-allowed-roles="<?php echo escAttr( smliser_json_encode_attr( $allowed_roles ) ); ?>"
+                <?php endif; ?>
             ></div>
 
         <?php endif; ?>

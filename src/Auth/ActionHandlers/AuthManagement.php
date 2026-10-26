@@ -96,12 +96,10 @@ class AuthManagement {
 			);
 		}
 
-		$redirect_url = URL::from( $request->post( 'redirect_url', '' ) );
-
-		if ( ! $redirect_url->is_valid() || $redirect_url->get_origin() !== $this->urlmanager->url()->get_origin() ) {
-			$redirect_url = $this->guard->get_principal()?->is( 'system_admin' )
-				? $this->urlmanager->admin_url() : $this->urlmanager->client_dashboard_url();
-		}
+		$redirect_url = $this->redirect_url(
+			$request,
+			$this->guard->get_principal()?->is( 'system_admin' ) ? $this->urlmanager->admin_url() : $this->urlmanager->client_dashboard_url()
+		);
 
 		// Return success with redirect
 		return static::success_response(
@@ -163,6 +161,24 @@ class AuthManagement {
 		}
 
 		return Response::redirect( $this->urlmanager->logout_url( $data['success'] ? [ 'everywhere' => '1' ] : [] ), 303 );
+	}
+
+	/**
+	 * Where to send the user after signing in or up: the posted redirect_url
+	 * when it is on this site, otherwise the fallback.
+	 *
+	 * @param Request $request
+	 * @param URL     $fallback
+	 * @return URL
+	 */
+	private function redirect_url( Request $request, URL $fallback ) : URL {
+		$redirect_url = URL::from( (string) $request->post( 'redirect_url', '' ) );
+
+		if ( ! $redirect_url->is_valid() || $redirect_url->get_origin() !== $this->urlmanager->url()->get_origin() ) {
+			return $fallback;
+		}
+
+		return $redirect_url;
 	}
 
 	/*
@@ -233,7 +249,8 @@ class AuthManagement {
 			[
 				'success'  => true,
 				'message'  => 'Account created successfully! Check your email to verify your account.',
-				'redirect' => $this->urlmanager->client_dashboard_url()->url()
+				// Back where they were sent from, e.g. an organization invitation.
+				'redirect' => $this->redirect_url( $request, $this->urlmanager->client_dashboard_url() )->url()
 			]
 		);
 	}

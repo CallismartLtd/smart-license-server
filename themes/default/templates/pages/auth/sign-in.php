@@ -3,7 +3,8 @@
  * The sign-in page.
  *
  * @author Callistus Nwachukwu
- * @var string $action The URL the form posts to.
+ * @var string $action       The URL the form posts to.
+ * @var string $redirect_url Where to return after signing in (?redirect_url=, this site only); may be empty.
  * @var SmartLicenseServer\Environments\Application\Theming\ThemeContext $this
  */
 
@@ -35,6 +36,6 @@ if ( null !== $this->principal() ) {
 
 	<div class="panel-links">
 		<p><a href="<?php echo escUrl( $this->urls()->login_url( 'forgot-password' )->url() ); ?>">Forgot your password?</a></p>
-		<p>No account? <a href="<?php echo escUrl( $this->urls()->login_url( 'signup' )->url() ); ?>">Create one</a></p>
+		<p>No account? <a href="<?php echo escUrl( $this->urls()->login_url( 'signup', '' !== $redirect_url ? [ 'redirect_url' => $redirect_url ] : [] )->url() ); ?>">Create one</a></p>
 	</div>
 </div>

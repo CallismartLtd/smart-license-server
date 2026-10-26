@@ -7,6 +7,7 @@
  * @var string $email       Address to fill in (?email=); may be empty.
  * @var string $terms_url   Terms URL; empty when not set.
  * @var string $privacy_url Privacy policy URL; empty when not set.
+ * @var string $redirect_url Where to return after signing up (?redirect_url=, this site only); may be empty.
  * @var SmartLicenseServer\Environments\Application\Theming\ThemeContext $this
  */
 
@@ -67,6 +68,6 @@ if ( null !== $this->principal() ) {
 	</form>
 
 	<div class="panel-links">
-		<p>Have an account? <a href="<?php echo escUrl( $this->urls()->login_url()->url() ); ?>">Sign in</a></p>
+		<p>Have an account? <a href="<?php echo escUrl( $this->urls()->login_url( '', '' !== $redirect_url ? [ 'redirect_url' => $redirect_url ] : [] )->url() ); ?>">Sign in</a></p>
 	</div>
 </div>

@@ -18,6 +18,7 @@ use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\OwnerSubjects\Organization;
+use SmartLicenseServer\Security\Permission\DefaultRoles;
 use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Templates\TemplateLocator;
@@ -545,8 +546,11 @@ class AccessControlPage implements AdminPageInterface {
 			'id'      => smliser_get_current_url()->get_query_param( 'org_id', 0 )
 		] );
 
+		// Only the roles a member can hold inside an organization (DefaultRoles::ORGANIZATION_ROLES).
+		$allowed_roles = DefaultRoles::ORGANIZATION_ROLES;
+
 		$vars = compact( 'request', 'form_fields', 'avatar_name', 'avatar_url',
-			'title', 'organization', 'role', 'urlmanager', 'page_handler', 'back_url'
+			'title', 'organization', 'role', 'urlmanager', 'page_handler', 'back_url', 'allowed_roles'
 		);
 
 		$this->locator->render( 'admin.contents.accounts.access-control-form', $vars );
