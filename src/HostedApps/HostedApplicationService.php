@@ -14,6 +14,7 @@ use Callismart\DBPrism\Database;
 use Callismart\DBPrism\Query\SQLBuilder;
 use SmartLicenseServer\Core\DataStore;
 use SmartLicenseServer\Exceptions\Exception;
+use SmartLicenseServer\Exceptions\StorageException;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\Storage\AppFile;
@@ -336,7 +337,7 @@ class HostedApplicationService extends DataStore {
 	 * @param array{
 	 *   page?:   int,
 	 *   limit?:  int,
-	 *   status?: string,
+	 *   status?: string,  One status (default active); "" for every status.
 	 *   types?:  string[]
 	 * } $args
 	 * @return array{
@@ -363,7 +364,7 @@ class HostedApplicationService extends DataStore {
 		$page   = max( 1, (int) $args['page'] );
 		$limit  = max( 1, (int) $args['limit'] );
 		$offset = $db->calculate_query_offset( $page, $limit );
-		$status = $args['status'];
+		$status = '' === (string) $args['status'] ? null : (string) $args['status'];
 		$types  = array_filter( (array) $args['types'] );
 	
 		$key     = static::make_cache_key( __METHOD__, compact( 'owner_id', 'page', 'limit', 'status', 'types' ) );
@@ -480,6 +481,51 @@ class HostedApplicationService extends DataStore {
 		}
 
 		return $app_data;
+	}
+
+	/**
+	 * Delete a trashed app for good: its database record, then its files.
+	 *
+	 * The record goes first: if deleting the files then fails, the app is
+	 * still in the trash listing, and CleanTrashedAppsJob finishes it.
+	 *
+	 * Refused, with nothing deleted, when the slug has live files (deleting
+	 * files removes the live and trashed copies alike, and the slug's record
+	 * may be the live app's) or when the slug's record is not in the trash.
+	 * A trashed app whose record is already gone only has its files deleted.
+	 *
+	 * @param string $app_type The app type.
+	 * @param string $app_slug The app slug.
+	 * @return true|Exception True when deleted; otherwise the reason, with a
+	 *                        "status" in its data: "app_not_in_trash" for a
+	 *                        refusal, any other code for a failure. Does
+	 *                        not throw.
+	 */
+	public static function purge_trashed_app( string $app_type, string $app_slug ) : true|Exception {
+		try {
+			$app = static::get_app_by_slug( $app_type, $app_slug );
+
+			if ( AppStorage::instance()->has_app( $app_type, $app_slug ) || ( null !== $app && AbstractHostedApp::STATUS_TRASH !== $app->get_status() ) ) {
+				return new Exception( 'app_not_in_trash', 'Only an app in the trash can be deleted for good. Move it to the trash first.', [ 'status' => 409 ] );
+			}
+
+			if ( null !== $app && ! $app->delete() ) {
+				return new Exception( 'delete_failed', 'The app could not be deleted. Please try again.', [ 'status' => 500 ] );
+			}
+
+			$purged = HostedAppsRegistry::instance()->get_app_type_directory_class( $app_type )?->purge( $app_slug );
+
+			// Not found: the files are already gone.
+			if ( $purged instanceof Exception && StorageException::NOT_FOUND !== $purged->get_error_code() ) {
+				return $purged;
+			}
+
+			return true;
+		} catch ( Exception $e ) {
+			return $e;
+		} catch ( \Throwable $e ) {
+			return new Exception( 'delete_failed', $e->getMessage(), [ 'status' => 500 ] );
+		}
 	}
 
 	/*
@@ -774,17 +820,20 @@ class HostedApplicationService extends DataStore {
 	 *
 	 * @param string[] $columns  The columns to select.
 	 * @param string[] $types    Registered app types (see registered_types()).
-	 * @param string   $status   App status.
+	 * @param string|null $status App status; null for every status.
 	 * @param string   $term     Optional search term; matches the start of the name, slug or author.
 	 * @param int|null $owner_id Optional owner.
 	 * @return SelectionIntent
 	 */
-	private static function apps_query( array $columns, array $types, string $status, string $term = '', ?int $owner_id = null ) : SelectionIntent {
+	private static function apps_query( array $columns, array $types, ?string $status, string $term = '', ?int $owner_id = null ) : SelectionIntent {
 		$query = static::query()
 			->select( ...$columns )
 			->from( AbstractHostedApp::get_db_table() )
-			->where_in( 'app_type', $types )
-			->where( 'status', '=', $status );
+			->where_in( 'app_type', $types );
+
+		if ( null !== $status ) {
+			$query->where( 'status', '=', $status );
+		}
 
 		if ( null !== $owner_id ) {
 			$query->where( 'owner_id', '=', $owner_id );
@@ -806,14 +855,14 @@ class HostedApplicationService extends DataStore {
 	 * matching apps.
 	 *
 	 * @param string[] $types    Registered app types (see registered_types()).
-	 * @param string   $status   App status.
+	 * @param string|null $status App status; null for every status.
 	 * @param string   $term     Optional search term.
 	 * @param int|null $owner_id Optional owner.
 	 * @param int      $limit
 	 * @param int      $offset
 	 * @return array{ 0: array<int, array<string, mixed>>, 1: int } [ $rows, $total ]
 	 */
-	private static function fetch_page( array $types, string $status, string $term = '', ?int $owner_id = null, int $limit = 20, int $offset = 0 ) : array {
+	private static function fetch_page( array $types, ?string $status, string $term = '', ?int $owner_id = null, int $limit = 20, int $offset = 0 ) : array {
 		$db = static::$DB;
 
 		$count_sql = static::apps_query( [ 'COUNT(*)' ], $types, $status, $term, $owner_id );

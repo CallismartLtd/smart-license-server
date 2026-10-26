@@ -1024,6 +1024,11 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 
 					$this->set_slug( $slug );
 
+					// The default download link is made from the slug, which was empty above.
+					if ( array_key_exists( 'download_link', $data ) && \is_callable( [ $this, 'get_download_link' ] ) ) {
+						$data['download_link'] = (string) $this->get_download_link();
+					}
+
 					$data['app_type']   = $this->get_type();
 					$data['slug']       = $slug;
 					$data['created_at'] = $now->format( 'Y-m-d H:i:s' );

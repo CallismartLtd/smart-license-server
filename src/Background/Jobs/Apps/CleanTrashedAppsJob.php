@@ -23,11 +23,7 @@ namespace SmartLicenseServer\Background\Jobs\Apps;
 
 use SmartLicenseServer\Background\Jobs\JobHandlerInterface;
 use SmartLicenseServer\Core\Dates\TimestampValue;
-use SmartLicenseServer\Exceptions\Exception;
-use SmartLicenseServer\Exceptions\StorageException;
-use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\HostedApps\HostedApplicationService;
-use SmartLicenseServer\HostedApps\HostedAppsRegistry;
 use SmartLicenseServer\HostedApps\Storage\AppStorage;
 
 /**
@@ -90,34 +86,13 @@ class CleanTrashedAppsJob implements JobHandlerInterface {
 			$type = $data['app_type'];
 			$slug = $data['app_slug'];
 
-			try {
-				if ( $storage->has_app( $type, $slug ) ) {
-					$skipped++;
-					continue;
-				}
+			$result = HostedApplicationService::purge_trashed_app( $type, $slug );
 
-				$app = HostedApplicationService::get_app_by_slug( $type, $slug );
-
-				if ( null !== $app && AbstractHostedApp::STATUS_TRASH !== $app->get_status() ) {
-					$skipped++;
-					continue;
-				}
-
-				if ( null !== $app && ! $app->delete() ) {
-					$failed++;
-					continue;
-				}
-
-				$purged = HostedAppsRegistry::instance()->get_app_type_directory_class( $type )?->purge( $slug );
-
-				// Not found: the files are already gone.
-				if ( $purged instanceof Exception && StorageException::NOT_FOUND !== $purged->get_error_code() ) {
-					$failed++;
-					continue;
-				}
-
+			if ( true === $result ) {
 				$deleted++;
-			} catch ( \Throwable ) {
+			} elseif ( 'app_not_in_trash' === $result->get_error_code() ) {
+				$skipped++;
+			} else {
 				$failed++;
 			}
 		}

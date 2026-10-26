@@ -38,12 +38,16 @@ trait SecurityAwareTrait {
 
 	/**
 	 * Tells whether the current principal owns or has permission to work on the app.
-	 * 
+	 *
+	 * A new app has no owner yet, so it passes. A platform app (owner 0)
+	 * belongs to no one but the platform, so only a system administrator
+	 * may work on it, the same as on an app another owner holds.
+	 *
 	 * @param HostedAppsInterface $app.
 	 * @throws RequestException On failure.
 	 */
 	private function check_app_ownership( HostedAppsInterface $app ) : void {
-		if ( ! $app->exists() || ! $app->get_owner_id() ) {
+		if ( ! $app->exists() ) {
 			return;
 		}
 

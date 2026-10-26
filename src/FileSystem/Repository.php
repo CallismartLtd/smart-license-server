@@ -499,6 +499,42 @@ abstract class Repository {
 	}
 
 	/**
+	 * Get an app's assets grouped by asset type, for pages that manage them.
+	 *
+	 * Every asset type of asset_types() is a key, in its order, even with no
+	 * asset. A stored asset whose name is not one of the app type's (see
+	 * asset_type_of()) is left out. Each URL carries the asset's modification
+	 * time, so a replaced asset is not shown from the browser's cache.
+	 *
+	 * @param string $slug The app slug.
+	 * @return array<string, list<array{name: string, url: string}>>
+	 */
+	public function assets_by_type( string $slug ) : array {
+		$grouped = array_fill_keys( array_keys( $this->asset_types() ), [] );
+
+		try {
+			$assets = $this->storage->list_assets( $this->app_type(), $slug );
+		} catch ( StorageException ) {
+			return $grouped;
+		}
+
+		foreach ( $assets as $asset ) {
+			$type = $this->asset_type_of( $asset['name'] );
+
+			if ( null === $type || ! array_key_exists( $type, $grouped ) ) {
+				continue;
+			}
+
+			$grouped[ $type ][] = [
+				'name' => $asset['name'],
+				'url'  => $this->asset_url( $slug, $asset['name'] )->add_query_param( 'ver', (string) $asset['mtime'] )->url(),
+			];
+		}
+
+		return $grouped;
+	}
+
+	/**
 	 * Get the names of an app's assets.
 	 *
 	 * @param string $slug The app slug.

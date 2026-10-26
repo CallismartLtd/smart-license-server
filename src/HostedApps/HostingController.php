@@ -131,7 +131,10 @@ class HostingController {
 			$zip_uploaded = $app_zip_file instanceof \SmartLicenseServer\Core\UploadedFile
 							   && $app_zip_file->is_upload_successful();
 			$old_owner_id = $app->get_owner_id();
-		
+			$is_admin     = $this->guard->get_principal()?->is( 'system_admin' ) ?? false;
+
+			// Only a system administrator chooses an app's owner. Anyone else
+			// creates apps for the owner they act for, whatever the request says.
 			if ( $app->exists() ) {
 
 				$update_method = "update_{$app_type}";
@@ -146,13 +149,11 @@ class HostingController {
 					throw $updated;
 				}
 
-				$is_admin = $this->guard->get_principal()?->is( 'system_admin' ) ?? false;
-
 				if ( $is_admin && $request->hasValue( 'app_owner_id' ) ) {
 					$app->set_owner_id( $request->get( 'app_owner_id' ) );
 				}
-				
-			} elseif ( $request->hasValue( 'app_owner_id' ) ) {
+
+			} elseif ( $is_admin && $request->hasValue( 'app_owner_id' ) ) {
 				$app->set_owner_id( $request->get( 'app_owner_id' ) );
 			} else {
 				$app->set_owner_id( $this->guard->get_principal()?->get_owner()?->get_id() ?? 0 );
@@ -751,7 +752,21 @@ class HostingController {
 			if ( $old_status === $status ) {
 				throw new RequestException( 'precondition_failed', sprintf( 'Status is already "%s".', $status ) );
 			}
-			
+
+			// A suspension is the platform's decision: only a system administrator
+			// suspends an app, and while it lasts its owner cannot change its status.
+			$suspension = AbstractHostedApp::STATUS_SUSPENDED;
+
+			if ( ( $suspension === $status || $suspension === $old_status ) && ! $this->guard->get_principal()?->is( 'system_admin' ) ) {
+				throw new RequestException(
+					'unauthorized_scope',
+					$suspension === $old_status
+						? sprintf( 'This %s is suspended. Only a system administrator can lift the suspension.', HostedAppsRegistry::instance()->get_app_type_label( $app->get_type() ) )
+						: 'Only a system administrator can suspend an app.',
+					[ 'status' => 403 ]
+				);
+			}
+
 			$from_trash = AbstractHostedApp::STATUS_TRASH === $old_status;
 			$to_trash   = AbstractHostedApp::STATUS_TRASH === $status;
 			$repo_class = null;
@@ -815,6 +830,48 @@ class HostingController {
 			];
 
 			return Response::json( [ 'success' => true, 'data' => $data ], 200 );
+
+		} catch ( RequestException $e ) {
+			return Response::error( $e )
+				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
+		}
+	}
+
+	/**
+	 * Delete an app in the trash for good, without waiting for
+	 * CleanTrashedAppsJob. See HostedApplicationService::purge_trashed_app().
+	 *
+	 * Request params: app_type, app_slug.
+	 *
+	 * @param Request $request
+	 * @return Response JSON: { success, data: { message } }.
+	 */
+	public function delete_app( Request $request ) : Response {
+		try {
+			$this->check_permissions( 'hosted_apps.delete' );
+
+			$app_type = (string) $request->get( 'app_type', '' );
+			$app_slug = (string) $request->get( 'app_slug', '' );
+			$app      = HostedApplicationService::get_app_by_slug( $app_type, $app_slug );
+
+			if ( ! $app ) {
+				throw new RequestException( 'resource_not_found', 'This app does not exist.', [ 'status' => 404 ] );
+			}
+
+			$this->check_app_ownership( $app );
+
+			$name   = $app->get_name();
+			$result = HostedApplicationService::purge_trashed_app( $app->get_type(), $app->get_slug() );
+
+			if ( $result instanceof Exception ) {
+				$data = $result->get_error_data();
+
+				throw new RequestException( $result->get_error_code(), $result->get_error_message(), [ 'status' => (int) ( is_array( $data ) ? ( $data['status'] ?? 500 ) : 500 ) ] );
+			}
+
+			$this->cache->clear();
+
+			return Response::json( [ 'success' => true, 'data' => [ 'message' => sprintf( '%s is deleted for good.', $name ) ] ], 200 );
 
 		} catch ( RequestException $e ) {
 			return Response::error( $e )

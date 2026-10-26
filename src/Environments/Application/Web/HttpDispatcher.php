@@ -27,6 +27,7 @@ use SmartLicenseServer\Cache\CacheRequestController;
 use SmartLicenseServer\Auth\ActionHandlers\AuthManagement;
 use SmartLicenseServer\Auth\ContentHandlers\AuthPages;
 use SmartLicenseServer\ClientDashboard\ActionHandlers\ContextSwitch;
+use SmartLicenseServer\ClientDashboard\ActionHandlers\AppActions;
 use SmartLicenseServer\ClientDashboard\ActionHandlers\OrganizationActions;
 use SmartLicenseServer\ClientDashboard\ActionHandlers\PreferenceManagement;
 use SmartLicenseServer\ClientDashboard\Page\Dispatcher as ClientDashboardDispatcher;
@@ -691,6 +692,32 @@ final class HttpDispatcher {
 					$this->router->post(
 						pattern: 'organization/invitations/revoke',
 						handler: [OrganizationActions::class, 'revoke_invitation']
+					);
+
+					// The current owner's apps (AppActions).
+					$this->router->post(
+						pattern: 'apps/save',
+						handler: [AppActions::class, 'save']
+					);
+
+					$this->router->post(
+						pattern: 'apps/status',
+						handler: [AppActions::class, 'status']
+					);
+
+					$this->router->post(
+						pattern: 'apps/delete',
+						handler: [AppActions::class, 'delete']
+					);
+
+					$this->router->post(
+						pattern: 'apps/assets/upload',
+						handler: [AppActions::class, 'upload_assets']
+					);
+
+					$this->router->post(
+						pattern: 'apps/assets/delete',
+						handler: [AppActions::class, 'delete_asset']
 					);
 				},
 				middleware: [

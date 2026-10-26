@@ -61,6 +61,10 @@ final class DefaultRoles {
 				'hosted_apps.access_files',
 
 				// Monetization.
+				'monetization.create',
+				'monetization.update',
+				'monetization.change_status',
+
 				'monetization.pricing.create',
 				'monetization.pricing.update',
 				'monetization.pricing.delete',
@@ -115,6 +119,10 @@ final class DefaultRoles {
 				'hosted_apps.access_files',
 
 				// Monetization.
+				'monetization.create',
+				'monetization.update',
+				'monetization.change_status',
+
 				'monetization.pricing.create',
 				'monetization.pricing.update',
 				'monetization.pricing.delete',
@@ -165,6 +173,10 @@ final class DefaultRoles {
 				'hosted_apps.access_files',
 
 				// Monetization
+				'monetization.create',
+				'monetization.update',
+				'monetization.change_status',
+
 				'monetization.pricing.create',
 				'monetization.pricing.update',
 				'monetization.pricing.delete',

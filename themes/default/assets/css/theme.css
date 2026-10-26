@@ -528,6 +528,7 @@ code {
 }
 
 .field input[type="text"],
+.field input[type="url"],
 .field input[type="email"],
 .field input[type="password"],
 .field select,
@@ -956,6 +957,100 @@ code {
 
 .dash-form {
 	max-width: 420px;
+}
+
+.dash-form-wide {
+	max-width: 560px;
+}
+
+/* A page's lead with its main action beside it. */
+.dash-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 16px;
+}
+
+.dash-toolbar .dash-lead {
+	margin: 0;
+}
+
+/* Links that filter a list, e.g. apps by status. */
+.dash-filters {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 20px;
+}
+
+.dash-filters a {
+	padding: 5px 12px;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	color: var(--muted);
+	font-size: 13px;
+	text-decoration: none;
+}
+
+.dash-filters a:hover {
+	color: var(--ink);
+}
+
+.dash-filters a[aria-current="page"] {
+	border-color: var(--accent);
+	background: var(--accent-bg);
+	color: var(--ink);
+	font-weight: 600;
+}
+
+/* An app's images, by kind. */
+.asset-group + .asset-group {
+	margin-top: 8px;
+}
+
+.asset-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: 12px;
+	margin: 0 0 14px;
+	padding: 0;
+	list-style: none;
+}
+
+.asset-tile {
+	display: grid;
+	gap: 8px;
+	padding: 10px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--surface);
+}
+
+.asset-tile img {
+	display: block;
+	width: 100%;
+	height: 110px;
+	border-radius: 4px;
+	background: var(--bg);
+	object-fit: contain;
+}
+
+.asset-name {
+	color: var(--muted);
+	font-family: var(--mono);
+	font-size: 12px;
+	overflow-wrap: anywhere;
+}
+
+.asset-tile form {
+	display: grid;
+	gap: 6px;
+}
+
+.asset-tile .notice {
+	margin: 0;
 }
 
 .dash-danger {

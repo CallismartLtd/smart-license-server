@@ -223,7 +223,7 @@ class Controller {
 
 		try {
 			
-			$this->check_permissions( 'change_status' );
+			$this->check_permissions( 'monetization.change_status' );
 
 			$monetization_id = (int) $request->get( 'monetization_id' );
 			$enabled         = (bool) $request->getTyped( 'enabled', 'boolean', false );

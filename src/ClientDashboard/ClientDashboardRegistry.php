@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\ClientDashboard;
 
+use SmartLicenseServer\ClientDashboard\ContentHandlers\AppsPage;
 use SmartLicenseServer\ClientDashboard\ContentHandlers\LicensesPage;
 use SmartLicenseServer\ClientDashboard\ContentHandlers\OrganizationPage;
 use SmartLicenseServer\ClientDashboard\ContentHandlers\OrganizationsPage;
@@ -66,6 +67,7 @@ final class ClientDashboardRegistry extends AbstractDashboardRegistry {
 			OverviewPage::class,
 			LicensesPage::class,
 			PurchasesPage::class,
+			AppsPage::class,
 			OrganizationsPage::class,
 			OrganizationPage::class,
 		];
