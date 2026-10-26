@@ -33,6 +33,8 @@ use SmartLicenseServer\Security\Context\Guard;
  *   - the Tabler icons style, because menu icons are Tabler classes;
  *   - the page forms script (View::FORMS_SCRIPT), so a page's forms post
  *     to the client dashboard's JSON actions with the CSRF token;
+ *   - the core modal (MODAL_ASSET), so forms with data-confirm ask in a
+ *     SmliserModal dialog;
  *   - the data $dashboard, built from the registry, visible items only:
  *     array{
  *         menu: list<array{key: string, title: string, icon: string, url: string, current: bool,
@@ -68,6 +70,12 @@ final class Dispatcher {
 	 * Core style of the icon classes menus use (AssetsManager handle).
 	 */
 	public const ICON_STYLE = 'tabler-icons';
+
+	/**
+	 * Core modal (AssetsManager handle, script and style): SmliserModal, which
+	 * page-forms.js uses for the data-confirm questions of dashboard forms.
+	 */
+	public const MODAL_ASSET = 'modal';
 
 	/**
 	 * Constructor.
@@ -124,6 +132,8 @@ final class Dispatcher {
 		return $view
 			->set_frame( self::FRAME )
 			->add_style( self::ICON_STYLE )
+			->add_style( self::MODAL_ASSET )
+			->add_script( self::MODAL_ASSET )
 			->add_script( View::FORMS_SCRIPT )
 			->set( 'dashboard', $this->dashboard( $key, null !== $submenu ? $submenu['slug'] : null ) );
 	}

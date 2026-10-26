@@ -11,9 +11,11 @@
  *                                     { success, message, redirect? }.
  *   [data-smliser-form-message]       Inside the form: the message is written here,
  *                                     with data-state="error|success".
- *   form[data-confirm="…"]            Asks this question first and posts only when
- *                                     confirmed (SmliserModal.confirm when modal.js
- *                                     is loaded, otherwise the browser's dialog).
+ *   form[data-confirm="…"]            Asks this question first, in a SmliserModal dialog,
+ *                                     and posts only when confirmed. Pages with such
+ *                                     forms load modal.js (the client dashboard does);
+ *                                     without it, the browser's own dialog is the
+ *                                     last resort, so the question is never skipped.
  *     data-confirm-label="…"          The confirm button's text (default "OK").
  *     data-confirm-danger             Styles the confirmation as destructive.
  *   form[data-pass-redirect]          Also posts the page's redirect_url query

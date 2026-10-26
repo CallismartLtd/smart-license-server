@@ -108,9 +108,10 @@ final class JS {
 				'version'      => SMLISER_VER,
 				'footer'       => true
 			],
+			// SmliserModal; plain JavaScript, so themed pages load it without jQuery.
 			'modal' => [
 				'url'          => $this->urlmanager->assets_url( sprintf( 'js/modal%s.js', $suffix ) ),
-				'dependencies' => ['jquery'],
+				'dependencies' => [],
 				'version'      => SMLISER_VER,
 				'footer'       => true
 			],
