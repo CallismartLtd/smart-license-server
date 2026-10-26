@@ -260,13 +260,19 @@ class OrganizationMember implements ActorInterface {
 		return $this->id > 0;
 	}
 
+	/**
+	 * Load the user this membership is for, once per member and member ID.
+	 *
+	 * Kept on the instance: a function-level static would be shared by
+	 * every member, so only the first one loaded would get its user.
+	 *
+	 * @return void
+	 */
 	protected function load_user() : void {
-		static $loaded;
-		if ( isset( $loaded ) ) {
+		if ( null !== $this->user && $this->user->get_id() === $this->member_id ) {
 			return;
 		}
 
-		$this->user = User::get_by_id( $this->member_id );
-		$loaded     = true;
+		$this->user = $this->member_id > 0 ? User::get_by_id( $this->member_id ) : null;
 	}
 }

@@ -104,18 +104,10 @@ class ContextServiceProvider extends DataStore {
 				->select( 'COUNT(*)' )->from( $table )
 				->where_contains( 'display_name', $term );
 
-			$row   = $db->get_row( $sql->build(), $sql->get_bindings() );
+			$rows  = $db->get_results( $sql->build(), $sql->get_bindings() );
 			$total = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
 
-			$class_name = static::get_entity_classname( $type );
-
-			$result = [];
-
-			if ( $row && class_exists( $class_name ) && method_exists( $class_name, 'from_array' ) ) {
-				$result[] = $class_name::from_array( (array) $row );
-			}
-
-			return static::make_paginated_result( data: $result, page: $page, limit: $limit, total: $total );
+			return static::make_paginated_result( data: static::hydrate_rows( $rows, $type ), page: $page, limit: $limit, total: $total );
 
 		}
 
@@ -159,18 +151,10 @@ class ContextServiceProvider extends DataStore {
 
 			$sql->limit( $limit )->offset( $offset );
 
-			$row   = $db->get_row( $sql->build(), $sql->get_bindings() );
-			$total = $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
-			
-			$class_name = static::get_entity_classname( $added_type );
+			$rows  = $db->get_results( $sql->build(), $sql->get_bindings() );
+			$total = (int) $db->get_var( $count_sql->build(), $count_sql->get_bindings() );
 
-			$result = [];
-
-			if ( $row && class_exists( $class_name ) && method_exists( $class_name, 'from_array' ) ) {
-				$result[] = $class_name::from_array( (array) $row );
-			}
-
-			return static::make_paginated_result( data: $result, page: $page, limit: $limit, total: $total );
+			return static::make_paginated_result( data: static::hydrate_rows( $rows, $added_type ), page: $page, limit: $limit, total: $total );
 		}
 
 		$base_union = null;
@@ -574,27 +558,22 @@ class ContextServiceProvider extends DataStore {
 	 * @return Organization[]|null
 	 */
 	public static function get_user_organizations( User $user ) : ?array {
-		$table = TableName::ORGANIZATIONS->table();
-		$db    = static::$DB;
-
 		$sql = static::query()
-			->select( 'organization_id' )->from( $table )
-			->where( 'member_id', '=', $user->get_id() )
-			->limit( 1 );
+			->select( 'organization_id' )->from( TableName::ORGANIZATION_MEMBERS->table() )
+			->where( 'member_id', '=', $user->get_id() );
 
-		$results = $db->get_col( $sql->build(), $sql->get_bindings() );
+		$organizations = [];
 
-		foreach ( $results as $index => &$result ) {
-			$org = Organization::get_by_id( $result['id'] ?? 0 );
+		foreach ( (array) static::$DB->get_col( $sql->build(), $sql->get_bindings() ) as $organization_id ) {
+			$organization = Organization::get_by_id( (int) $organization_id );
 
-			if ( ! $org ) {
-				unset( $results[$index] );
+			// A membership whose organization is gone is skipped.
+			if ( $organization ) {
+				$organizations[ $organization->get_id() ] = $organization;
 			}
-
-			$result = $org;
 		}
 
-		return empty( $results ) ? null : $results;
+		return [] === $organizations ? null : array_values( $organizations );
 	}
 
 	/**
@@ -1205,6 +1184,23 @@ class ContextServiceProvider extends DataStore {
 
 			return true;
 		} );
+	}
+
+	/**
+	 * Turn database rows of one entity type into entity objects.
+	 *
+	 * @param array<int, array<string, mixed>> $rows
+	 * @param string                           $type An entity type, e.g. Owner::TYPE_INDIVIDUAL.
+	 * @return list<object> Empty when the type has no class.
+	 */
+	protected static function hydrate_rows( array $rows, string $type ) : array {
+		$class_name = static::get_entity_classname( $type );
+
+		if ( ! $class_name || ! class_exists( $class_name ) || ! method_exists( $class_name, 'from_array' ) ) {
+			return [];
+		}
+
+		return array_values( array_map( static fn ( $row ) => $class_name::from_array( (array) $row ), $rows ) );
 	}
 
 	/**
