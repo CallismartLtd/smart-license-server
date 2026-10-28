@@ -63,11 +63,12 @@ interface HostedAppsInterface {
 	 */
 	public function set_status( string $status ) : static;
 	/**
-	 * Set app author
-	 * 
-	 * @param string|array $value
+	 * Set the author's name.
+	 *
+	 * @param string $value
+	 * @return static
 	 */
-	public function set_author( string|array $value ) : static;
+	public function set_author( string $value ) : static;
 
 	/**
 	 * Set app homepage URL
@@ -254,11 +255,11 @@ interface HostedAppsInterface {
 	public function get_download_url() : URL;
 
 	/**
-	 * Get the application author.
-	 * 
-	 * @return string|array
+	 * Get the author's name.
+	 *
+	 * @return string
 	 */
-	public function get_author() : string|array;
+	public function get_author() : string;
 
 	/**
 	 * get author profile

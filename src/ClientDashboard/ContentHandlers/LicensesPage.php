@@ -73,20 +73,33 @@ final class LicensesPage implements ClientPageInterface {
 	 */
 	public function licenses( Request $request ) : View {
 		$user   = $this->current_user();
-		$result = License::get_for_user( (int) $user?->get_id(), (int) $request->get( 'paged', 1 ), 20 );
+		$page	= (int) $request->get( 'paged', 1 );
+		$limit	= (int) $request->get( 'limit', 20 );
+		$result = $user->is_email_verified()
+			? License::get_for_user( (int) $user?->get_id(), $page, $limit )
+			: [
+				'items'			=> [],
+				'pagination'	=> [
+					'page'			=> $page,
+					'limit'			=> $limit,
+					'total'			=> 0, 
+					'total_pages'	=> 0
+				]
+			];
 
 		$licenses = array_map(
 			fn ( License $license ) : array => [
-				'id'           => (int) $license->get_id(),
-				'app'          => (string) ( $license->get_app()?->get_name() ?? 'App no longer available' ),
-				'tier'         => (string) PricingTier::get_by_id( $license->get_tier_id() )?->get_name(),
-				'status'       => ucfirst( $license->get_status() ),
-				'status_key'   => $license->get_status(),
-				'expires'      => $this->format_date( $license->get_end_date(), 'Never' ),
-				'sites'        => sprintf( '%d of %s', $license->get_total_active_domains(), $license->get_max_allowed_domains() ),
-				'key'          => (string) $license->get_license_key(),
-				'partial_key'  => $license->get_partial_key(),
-				'document_url' => $this->urlmanager->client_dashboard_url( sprintf( 'download/license/%d', $license->get_id() ) )->url(),
+				'id'				=> (int) $license->get_id(),
+				'app'				=> (string) ( $license->get_app()?->get_name() ?? 'App no longer available' ),
+				'tier'				=> (string) PricingTier::get_by_id( $license->get_tier_id() )?->get_name(),
+				'status'			=> ucfirst( $license->get_status() ),
+				'status_key'		=> $license->get_status(),
+				'expires'			=> $this->format_date( $license->get_end_date(), 'Never' ),
+				'sites'				=> sprintf( '%d of %s', $license->get_total_active_domains(), $license->get_max_allowed_domains() ),
+				'key'				=> (string) $license->get_license_key(),
+				'partial_key'		=> $license->get_partial_key(),
+				'document_url'		=> $this->urlmanager->client_dashboard_url( sprintf( 'download/license/%d', $license->get_id() ) )->url(),
+				'app_download_url'	=> $license->get_app() ? $this->urlmanager->client_dashboard_url( sprintf( 'download/%d/%s/%s.zip', $license->get_id(), $license->get_app()->get_type(), $license->get_app()->get_slug() ) ) : null
 			],
 			$result['items']
 		);

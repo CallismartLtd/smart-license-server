@@ -8,7 +8,6 @@
 
 namespace SmartLicenseServer\HostedApps;
 
-use Override;
 use SmartLicenseServer\Core\URL;
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
 use SmartLicenseServer\Monetization\Monetization;
@@ -41,20 +40,6 @@ class WPTheme extends AbstractHostedApp {
 	protected $requires_php = '';
 
 	/**
-	 * Author .
-	 * 
-	 * @var array $author The properties of the theme author.
-	 */
-	protected array|string $author = [
-		'user_nicename' => '',
-		'profile'       => '',
-		'avatar'        => '',
-		'display_name'  => '',
-		'author'        => '',
-		'author_url'    => ''
-	];
-
-	/**
 	 * The theme's screenshot.png url
 	 * 
 	 * @var string $screenshot_url
@@ -75,29 +60,12 @@ class WPTheme extends AbstractHostedApp {
 	}
 
 	/**
-	 * Get the theme author name
-	 * 
-	 * @param string $context The author property to return. 
-	 * @return string|array
-	 */
-	public function get_author( $context = 'author' ) : string|array {
-		$author = parent::get_author();
-
-		if ( ! empty( $context ) && array_key_exists( $context, (array) $author ) ) {
-			return $author[ $context ];
-		}
-
-		return $author;
-
-	}
-
-	/**
 	 * Get the author profile URL
-	 * 
-	 * @return URL
+	 *
+	 * @return URL|null
 	 */
 	public function get_author_profile() : ?URL {
-		return URL::from( $this->author['author_url'] ?? $this->author_profile ?? '' );
+		return $this->author_profile;
 	}
 
 	/**
@@ -178,19 +146,6 @@ class WPTheme extends AbstractHostedApp {
 		$this->screenshot_url = $url;
 	}
 
-	/**
-	 * {@inheritdoc}
-	 */
-	#[Override]
-	public function set_author( string|array $value ) : static {
-		if ( ! is_array( $value ) ) {
-
-			$value = ['author' => $value];
-		}
-
-		return parent::set_author( $value );
-	}
-
 	/*
 	|--------------------
 	| UTILITY METHODS
@@ -222,18 +177,9 @@ class WPTheme extends AbstractHostedApp {
 		$self->set_version( $theme_metadata['version'] ?? '' );
 		$self->set_tags( $theme_metadata['tags'] ?? [] );
 
-		$author = Format::decode( $result['author'] );
-		
-		$self->set_author( [
-			'user_nicename' => $theme_metadata['author_nicename'] ?? $author['author_nicename'] ?? '',
-			'profile'       => $theme_metadata['author_profile'] ?? $author['author_profile'] ?? '',
-			'avatar'        => $theme_metadata['author_avatar'] ?? $author['author_avatar'] ?? '',
-			'display_name'  => $theme_metadata['author_display_name'] ?? $author['author_display_name'] ?? '',
-			'author'        => $theme_metadata['author'] ?? $author['author'] ?? '',
-			'author_url'    => $theme_metadata['author_uri'] ?? $author['author_url'] ?? '',
-		] );
-
-		$self->set_author_profile( $theme_metadata['author_profile'] ?? '' );
+		// The stored author is the owner's; style.css only fills what was never set.
+		$self->set_author( (string) ( $result['author'] ?? '' ) ?: (string) ( $theme_metadata['author'] ?? '' ) );
+		$self->set_author_profile( (string) ( $result['author_profile'] ?? '' ) ?: (string) ( $theme_metadata['author_uri'] ?? '' ) );
 		$self->set_requires_at_least( $theme_metadata['requires_at_least'] ?? '' );
 		$self->set_tested_up_to( $theme_metadata['tested_up_to'] ?? '' );
 		$self->set_requires_php( $theme_metadata['requires_php'] ?? '' );
@@ -293,6 +239,28 @@ class WPTheme extends AbstractHostedApp {
 	}
 
 	/**
+	 * The author as the WordPress.org themes API gives it, for theme
+	 * installers that read that shape. Built from the stored name and
+	 * profile URL; nothing else about the author is kept.
+	 *
+	 * @return array{user_nicename: string, profile: string, avatar: string, display_name: string, author: string, author_url: string}
+	 */
+	protected function rest_author() : array {
+		$name    = $this->get_author();
+		$profile = $this->get_author_profile();
+		$url     = $profile && $profile->is_valid() ? $profile->url() : '';
+
+		return [
+			'user_nicename' => Format::slugify( $name ),
+			'profile'       => $url,
+			'avatar'        => '',
+			'display_name'  => $name,
+			'author'        => $name,
+			'author_url'    => $url,
+		];
+	}
+
+	/**
 	 * Concrete implementation of rest response for themes.
 	 * 
 	 * @return array
@@ -305,7 +273,7 @@ class WPTheme extends AbstractHostedApp {
 			'type'                    => $this->get_type(),
 			'version'                 => $this->get_version(),
 			'preview_url'             => $this->get_meta( 'preview_url' ),
-			'author'                  => $this->get_author( '' ),
+			'author'                  => $this->rest_author(),
 			'manifest'                => $this->get_manifest(),
 			'icon'                    => $this->get_icon(),
 			'screenshot_url'          => $this->get_screenshot_url(),

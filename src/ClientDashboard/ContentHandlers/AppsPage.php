@@ -210,7 +210,7 @@ final class AppsPage implements ClientPageInterface {
 	 * View data (template client.app):
 	 *   array{id: int, type: string, type_label: string, name: string, slug: string, version: string,
 	 *       status: string, status_label: string, created: string, updated: string, public_url: string} $app
-	 *   list<array{name: string, label: string, value: string, type: string, required: bool}> $fields
+	 *   list<array{name: string, label: string, value: string, type: string, required: bool, hint: string}> $fields
 	 *       The details form's fields, the app type's included.
 	 *   array{update: bool, change_status: bool, delete: bool, upload_assets: bool, delete_assets: bool} $can
 	 *   array<string, string> $statuses Statuses the owner may choose, status => label.
@@ -264,13 +264,12 @@ final class AppsPage implements ClientPageInterface {
 			is_string( $value )   => $value,
 			default               => '',
 		};
-		$author = $app->get_author();
 
 		$fields = [
-			[ 'name' => 'app_name', 'label' => 'Name', 'value' => $app->get_name(), 'type' => 'text', 'required' => true ],
-			[ 'name' => 'app_author', 'label' => 'Author', 'value' => is_string( $author ) ? $author : '', 'type' => 'text', 'required' => true ],
-			[ 'name' => 'app_author_url', 'label' => 'Author profile URL', 'value' => $string( $app->get_author_profile() ), 'type' => 'url', 'required' => false ],
-			[ 'name' => 'app_homepage_url', 'label' => 'Homepage URL', 'value' => $string( $app->get_homepage() ), 'type' => 'url', 'required' => false ],
+			[ 'name' => 'app_name', 'label' => 'Name', 'value' => $app->get_name(), 'type' => 'text', 'required' => true, 'hint' => '' ],
+			[ 'name' => 'app_author', 'label' => 'Author', 'value' => $app->get_author(), 'type' => 'text', 'required' => true, 'hint' => '' ],
+			[ 'name' => 'app_author_url', 'label' => 'Author profile URL', 'value' => $string( $app->get_author_profile() ), 'type' => 'url', 'required' => false, 'hint' => '' ],
+			[ 'name' => 'app_homepage_url', 'label' => 'Homepage URL', 'value' => $string( $app->get_homepage() ), 'type' => 'url', 'required' => false, 'hint' => '' ],
 		];
 
 		// The app type's own fields: what HostingController::update_{type}() reads.
@@ -286,11 +285,20 @@ final class AppsPage implements ClientPageInterface {
 		};
 
 		$extra['app_support_url']  = [ 'Support URL', $app->get_support_url() ];
-		$extra['app_download_url'] = [ 'Download URL', $app->get_download_url() ];
 
 		foreach ( $extra as $name => [ $label, $value ] ) {
-			$fields[] = [ 'name' => $name, 'label' => $label, 'value' => $string( $value ), 'type' => 'url', 'required' => false ];
+			$fields[] = [ 'name' => $name, 'label' => $label, 'value' => $string( $value ), 'type' => 'url', 'required' => false, 'hint' => '' ];
 		}
+
+		// Only a link elsewhere is stored; empty means this site serves the download.
+		$fields[] = [
+			'name'     => 'app_download_url',
+			'label'    => 'Download URL',
+			'value'    => $string( $app->get_custom_download_url() ),
+			'type'     => 'url',
+			'required' => false,
+			'hint'     => sprintf( 'Leave empty to serve downloads from this site, at %s', $this->urlmanager->app_downloads_url( $app->get_type(), $app->get_slug() )->url() ),
+		];
 
 		return View::make(
 			'client.app',

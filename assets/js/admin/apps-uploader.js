@@ -1530,7 +1530,7 @@ class AppUploader {
             modalBody.innerHTML = `
                 <label for="artifact-name" class="smliser-form-label-row">
                     <span class="smliser-form-label">Artifact File Name: <i class="smliser-form-description ti ti-question-mark" title="The artifact is saved under this exact name, extension included (e.g. &quot;my-app-1.0.0.zip.sha256&quot;). Leave it empty to use the uploaded file's name. Unsafe characters are sanitized, e.g. &quot;my artifact.zip&quot; becomes &quot;my-artifact.zip&quot;."></i></span>
-                    <input type="text" class="smliser-form-input" style="font-size: 15px;" id="artifact-name" name="canonical_filename" required>
+                    <input type="text" class="smliser-form-input" style="font-size: 15px;" id="artifact-name" name="canonical_filename" autocomplete="off" required>
                     
                 </label>
                 <span class="smliser-spinner modal"></span>
@@ -1558,7 +1558,7 @@ class AppUploader {
             this.artifactModal = new SmliserModal({
                 title: '',
                 body: modalBody,
-                width: '90%',
+                // width: '90%',
                 footer: modalFooter,
                 autoFocus: false,
             });

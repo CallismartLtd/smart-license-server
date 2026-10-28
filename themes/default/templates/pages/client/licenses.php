@@ -4,7 +4,7 @@
  *
  * @author Callistus Nwachukwu
  * @var list<array{id: int, app: string, tier: string, status: string, status_key: string,
- *     expires: string, sites: string, key: string, partial_key: string, document_url: string}> $licenses
+ *     expires: string, sites: string, key: string, partial_key: string, document_url: string, app_download_url: string}> $licenses
  * @var array{page: int, total_pages: int, total: int, previous_url: string, next_url: string} $pagination
  * @var bool $verified Whether the user's email address is verified.
  * @var SmartLicenseServer\Environments\Application\Theming\ThemeContext $this
@@ -59,7 +59,11 @@ $tones = [
 				<div class="record-actions">
 					<a class="btn btn-small" href="<?php echo escUrl( $license['document_url'] ); ?>" download>
 						<i class="ti ti-file-download" aria-hidden="true"></i>
-						<span>License document</span>
+						<span>Download License</span>
+					</a>
+					<a class="btn btn-small" href="<?php echo escUrl( $license['app_download_url'] ); ?>" download>
+						<i class="ti ti-download" aria-hidden="true"></i>
+						<span>Download <?php echo escHtml( $license['app'] ); ?></span>
 					</a>
 				</div>
 			</li>

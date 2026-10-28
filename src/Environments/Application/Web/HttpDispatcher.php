@@ -604,20 +604,29 @@ final class HttpDispatcher {
 			]
 		);
 
+		$hosted_apps_registry = $this->container->get( HostedAppsRegistry::class );	
+		$app_types = implode( '|', array_map( 'preg_quote', $hosted_apps_registry->app_types() ) );
 		/*
 		|------------------------------
 		| The client dashboard routes.
 		|------------------------------
 		*/
 		$this->router->group( $urlmanager->client_dashboard_url_prefix(),
-			callback: function () {
-				// Pages (themed), built from ClientDashboardRegistry like the admin dashboard.
+			callback: function () use ( $app_types ) {
+				
 				// A license document, for the user it is linked to (My licenses).
 				$this->router->get(
 					pattern: 'download/license/{license_id:int}',
 					handler: [FileRequestController::class, 'get_client_license_document']
 				);
 
+				// Licensed app download, for the user associated with the license.
+				$this->router->get(
+					pattern: "download/{license_id:int}/{app_type:{$app_types}}/{app_slug.ext:zip}",
+					handler: [FileRequestController::class, 'get_client_licensed_app']
+				);
+
+				// Pages (themed), built from ClientDashboardRegistry like the admin dashboard.
 				$this->pages->get( '/', [ClientDashboardDispatcher::class, 'render_client_dashboard'] );
 				$this->pages->get( '{page:slug}', [ClientDashboardDispatcher::class, 'render_client_dashboard'] );
 				$this->pages->get( '{page:slug}/{tab:slug}', [ClientDashboardDispatcher::class, 'render_client_dashboard'] );
@@ -784,11 +793,6 @@ final class HttpDispatcher {
 		| File download routes
 		|-----------------------
 		*/
-		$hosted_apps_registry = $this->container->get( HostedAppsRegistry::class );
-			
-		// Escape types safely and implode with pipe.
-		$app_types = implode( '|', array_map( 'preg_quote', $hosted_apps_registry->app_types() ) );
-
 		$this->router->group(
 			prefix: $urlmanager->downloads_url_prefix(),
 			callback: function () use ( $app_types ) {

@@ -77,11 +77,15 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	protected string $version = '';
 
 	/**
-	 * Author .
-	 * 
-	 * @var string|array $author The author of the app
+	 * The author's name.
+	 *
+	 * Every app type stores its author the same way: a name here and a URL in
+	 * $author_profile. Shapes other APIs expect (e.g. the WordPress.org theme
+	 * author object) are built in the app's REST response, never stored.
+	 *
+	 * @var string $author
 	 */
-	protected string|array $author;
+	protected string $author = '';
 
 	/**
 	 * Author profile.
@@ -175,9 +179,14 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	protected int $active_installs = 0;
 
 	/**
-	 * Download link.
-	 * 
-	 * @var URL|null $download_link The file url.
+	 * A download link of the owner's choosing.
+	 *
+	 * Null means the app is downloaded from this site, at the URL derived
+	 * from its type and slug when it is asked for (get_download_url()). Only
+	 * a link elsewhere is stored, so the site's own link follows the slug
+	 * and the site's address instead of being frozen in the database.
+	 *
+	 * @var URL|null $download_link
 	 */
 	protected ?URL $download_link = null;
 
@@ -344,17 +353,14 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	}
 
 	/**
-	 * Set app author property.
-	 * 
-	 * @param string|array $value
+	 * Set the author's name.
+	 *
+	 * @param string $value
+	 * @return static
 	 */
-	public function set_author( string|array $value ) : static {
-		if ( is_array( $value ) ) {
-			$this->author = \array_merge( (array) $this->author, $value );
-		} else {
-			$this->author = $value;
-		}
-		
+	public function set_author( string $value ) : static {
+		$this->author = self::sanitize_text( $value );
+
 		return $this;
 	}
 
@@ -630,11 +636,11 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	}
 
 	/**
-	 * Get the application author.
-	 * 
-	 * @return string|array
+	 * Get the author's name.
+	 *
+	 * @return string
 	 */
-	public function get_author() : string|array {
+	public function get_author() : string {
 		return $this->author;
 	}
 
@@ -954,8 +960,8 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 			'status'			=> $this->get_status(),
 			'owner_id'			=> $this->get_owner_id(),
 			'author'			=> $this->get_author(),
-			'author_profile'	=> $this->get_author_profile()?->url(),
-			'download_link'		=> $this->get_download_url()->url(),
+			'author_profile'	=> $this->get_author_profile()?->is_valid() ? $this->get_author_profile()->url() : null,
+			'download_link'		=> $this->get_custom_download_url()?->url(),
 		];
 
 		// A rolled-back save must not leave the model looking saved.
@@ -1329,31 +1335,50 @@ abstract class AbstractHostedApp extends DataStore implements HostedAppsInterfac
 	*/
 
 	/**
-	 * Set Download url.
-	 * 
-	 * @param string|URL|null $url The download url.
+	 * Set a download link of the owner's choosing.
+	 *
+	 * An empty or invalid URL, or this site's own download URL for the app,
+	 * clears it: the app is then downloaded from this site (see $download_link).
+	 *
+	 * @param string|URL|null $url The download URL.
+	 * @return static
 	 */
 	public function set_download_url( string|URL|null $url = '' ) : static {
-		$url = ( $url instanceof URL ) ? $url : URL::from( $url );
-		
-		if ( $url->is_valid() ) {
-			$this->download_link = $url->sanitize();
-		} else {
-			$this->download_link = static::$urlmanager->app_downloads_url(
-				$this->get_type(), $this->get_slug()
-			);
-		}
+		$url = ( $url instanceof URL ) ? $url : URL::from( (string) $url );
+
+		$this->download_link = $url->is_valid() && $url->url() !== $this->site_download_url()->url()
+			? $url->sanitize()
+			: null;
 
 		return $this;
 	}
 
 	/**
-	 * Get the download URL for the application.
+	 * Get the download URL for the application: the owner's link, or this
+	 * site's own.
+	 *
+	 * @return URL
 	 */
 	public function get_download_url() : URL {
-		return $this->download_link ?? static::$urlmanager->app_downloads_url(
-			$this->get_type(), $this->get_slug()
-		);
+		return $this->download_link ?? $this->site_download_url();
+	}
+
+	/**
+	 * Get the download link of the owner's choosing.
+	 *
+	 * @return URL|null Null when the app is downloaded from this site.
+	 */
+	public function get_custom_download_url() : ?URL {
+		return $this->download_link;
+	}
+
+	/**
+	 * This site's download URL for the app, from its type and slug.
+	 *
+	 * @return URL
+	 */
+	protected function site_download_url() : URL {
+		return static::$urlmanager->app_downloads_url( $this->get_type(), $this->get_slug() );
 	}
 
 	/**

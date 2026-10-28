@@ -436,29 +436,9 @@ final class RepositoryPages {
 			'icon'    => $app->get_icon(),
 			'summary' => trim( strip_tags( $app->get_short_description() ) ),
 			'version' => $app->get_version(),
-			'author'  => $this->author_name( $app->get_author() ),
+			'author'  => $app->get_author(),
 			'updated' => $app->get_updated_at(),
 		];
-	}
-
-	/**
-	 * The author's name, whether the app stores a name or an author record.
-	 *
-	 * @param string|array<string, mixed> $author
-	 * @return string
-	 */
-	private function author_name( string|array $author ) : string {
-		if ( is_string( $author ) ) {
-			return $author;
-		}
-
-		foreach ( [ 'author', 'name', 'author_name' ] as $key ) {
-			if ( is_string( $author[ $key ] ?? null ) && '' !== $author[ $key ] ) {
-				return $author[ $key ];
-			}
-		}
-
-		return '';
 	}
 
 	/**

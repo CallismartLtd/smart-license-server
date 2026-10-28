@@ -5,7 +5,7 @@
  * @author Callistus Nwachukwu
  * @var array{id: int, type: string, type_label: string, name: string, slug: string, version: string,
  *     status: string, status_label: string, created: string, updated: string, public_url: string} $app
- * @var list<array{name: string, label: string, value: string, type: string, required: bool}> $fields
+ * @var list<array{name: string, label: string, value: string, type: string, required: bool, hint: string}> $fields
  * @var array{update: bool, change_status: bool, delete: bool, upload_assets: bool, delete_assets: bool} $can
  * @var array<string, string> $statuses Statuses the owner may choose, status => label.
  * @var list<array{type: string, label: string, hint: string, items: list<array{name: string, url: string}>}> $assets
@@ -85,6 +85,9 @@ $suspended = 'suspended' === $app['status'];
 				<label class="field">
 					<span class="field-label"><?php echo escHtml( $field['label'] ); ?></span>
 					<input type="<?php echo escAttr( $field['type'] ); ?>" name="<?php echo escAttr( $field['name'] ); ?>" value="<?php echo escAttr( $field['value'] ); ?>"<?php echo $field['required'] ? ' required' : ''; ?><?php echo 'url' === $field['type'] ? ' placeholder="https://"' : ''; ?>>
+					<?php if ( '' !== $field['hint'] ) : ?>
+						<span class="field-hint"><?php echo escHtml( $field['hint'] ); ?></span>
+					<?php endif; ?>
 				</label>
 			<?php endforeach; ?>
 

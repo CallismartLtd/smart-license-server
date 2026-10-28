@@ -303,6 +303,63 @@ class FileRequestController {
 	}
 
 	/**
+	 * Serve licensed app the licensee.
+	 * 
+	 * @param FileRequest|Request $request
+	 * @return FileResponse
+	 */
+	public function get_client_licensed_app( FileRequest|Request $request ) : FileResponse {
+		try {
+			$user    = $this->guard->get_principal()?->get_actor();
+			$license = License::get_by_id( (int) $request->get( 'license_id', 0 ) );
+
+			if ( ! $user instanceof User || ! $license || ! $user->get_id() || $license->get_user_id() !== (int) $user->get_id() ) {
+				throw new FileRequestException( 'file_not_found' );
+			}
+
+			$licensed_app	= $license->get_app();
+			$app_slug		= $request->get( 'app_slug' );
+			$app_type		= $request->get( 'app_type' );
+			
+			if ( ! $licensed_app || $licensed_app->get_slug() !== $app_slug || $licensed_app->get_type() !== $app_type ) {
+				throw new FileRequestException( 'app_not_found' );
+			}
+			
+			$package	= $licensed_app->get_package();
+
+			if ( null === $package ) {
+				throw new FileRequestException( 'file_not_found' );
+			}
+			
+			$response = new FileResponse(
+				$package,
+				$request,
+				['type' => $licensed_app->get_type()]
+			);
+
+			$response->post_response_action(
+				[$this->apps_analytics, 'log_download'],
+				$licensed_app,
+				$request->ip(),
+				(string) $request->userAgent()
+			);
+
+			$response->post_response_action(
+				[$this->apps_analytics, 'log_client_access'],
+				$licensed_app,
+				'download',
+				$request->ip(),
+				(string) $request->userAgent()
+			);
+			
+			return $response;
+			
+		}  catch ( FileRequestException $e ) {
+			return FileResponse::error_response( $e, $request );
+		}
+	}
+	
+	/**
 	 * Serve a license document to the user the license is linked to.
 	 *
 	 * For the client dashboard's "My licenses". Only the license's own user

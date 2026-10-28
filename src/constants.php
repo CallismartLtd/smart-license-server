@@ -24,7 +24,7 @@ define( 'SMLISER_VER', '0.4.6' );
  *
  * @var string
  */
-define( 'SMLISER_DB_VER', '0.2.0' );
+define( 'SMLISER_DB_VER', '0.2.1' );
 
 /*
 |---------------------------------------

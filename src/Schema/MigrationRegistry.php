@@ -38,7 +38,11 @@ final class MigrationRegistry {
 	 *
 	 * @var class-string<\Callismart\DBPrism\Migrations\Contracts\MigrationInterface>[]
 	 */
-	private const MIGRATIONS = [];
+	private const MIGRATIONS = [
+		// Schema 0.2.1.
+		Migrations\ClearBrokenAppLinks::class,
+		Migrations\FlattenThemeAuthors::class,
+	];
 
 	/**
 	 * Every registered migration, oldest first.
