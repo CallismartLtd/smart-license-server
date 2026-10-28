@@ -62,10 +62,6 @@ class WebBootstrapper implements BootstrapperInterface {
 	 * {@inheritdoc}
 	 */
 	public function register( Container $container ) : void {
-		$container->singleton(
-			Request::class,
-			fn () : Request => Request::createFromGlobals()
-		);
 
 		$container->singleton(
 			HttpDispatcher::class,

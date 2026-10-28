@@ -11,6 +11,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Installation;
 
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Environments\Application\Boot\BootModeResolver;
 use SmartLicenseServer\Environments\Application\Kernel\ExecutionHandlerInterface;
@@ -109,7 +110,9 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		private readonly SetupToken $token,
 		private readonly BootModeResolver $resolver,
 		private readonly FileSystem $fs,
-		private readonly InstallerPage $page = new InstallerPage()
+		private readonly Request $request,
+		private readonly InstallerPage $page = new InstallerPage(),
+		
 	) {}
 
 	/**
@@ -297,7 +300,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 			return $this->token_form( 'The request did not come from this site. Reload the page and try again.', 403 );
 		}
 
-		$input = $_POST['setup_token'] ?? '';
+		$input = $this->request->post( 'setup_token', '' );
 
 		if ( ! is_string( $input ) || ! $this->token->verify( $input ) ) {
 			// Slows down guessing; the token itself is 128 bits.
@@ -394,12 +397,12 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	 * @return Response
 	 */
 	private function owner_post() : Response {
-		if ( ! $this->is_same_origin() || ! $this->session->verify_csrf( $_POST['_csrf'] ?? null ) ) {
+		if ( ! $this->is_same_origin() || ! $this->session->verify_csrf( $this->request->post( '_csrf' ) ) ) {
 			$this->session->flash( 'error', 'The form expired. Please try again.' );
 			return $this->next();
 		}
 
-		$action = is_string( $_POST['action'] ?? null ) ? $_POST['action'] : '';
+		$action = (string) $this->request->post( 'action', '' );
 
 		if ( 'release' === $action ) {
 			$this->session->release();
@@ -446,7 +449,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		return self::STEP_SETUP === $action
 			&& self::STEP_ADMIN === $step
 			&& $this->wants_json()
-			&& isset( InstallerPage::SETUP_TASKS[ (string) ( $_POST['task'] ?? '' ) ] );
+			&& isset( InstallerPage::SETUP_TASKS[ (string) $this->request->post( 'task', '' ) ] );
 	}
 
 	/**
@@ -572,8 +575,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		$values = [];
 
 		foreach ( $fields as $name => $field ) {
-			$value = $_POST[ $name ] ?? '';
-			$value = is_string( $value ) ? $value : '';
+			$value = (string) $this->request->post( $name, '' );
 
 			// Secrets are used exactly as typed and never sent back to the browser.
 			if ( 'db_password' !== $name && 'db_encryption_key' !== $name ) {
@@ -629,7 +631,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	 * @return Response
 	 */
 	private function run_setup() : Response {
-		$task = is_string( $_POST['task'] ?? null ) ? $_POST['task'] : '';
+		$task = (string) $this->request->post( 'task', '' );
 
 		if ( $this->wants_json() && isset( InstallerPage::SETUP_TASKS[ $task ] ) ) {
 			return Response::json(
@@ -709,7 +711,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		try {
 			switch ( $task ) {
 				case 'site_url':
-					$input = $_POST['app_url'] ?? '';
+					$input = $this->request->post( 'app_url', '' );
 					$input = is_string( $input ) && '' !== trim( $input ) ? $input : $this->detect_app_url();
 
 					try {
@@ -807,10 +809,10 @@ final class WebInstaller implements ExecutionHandlerInterface {
 	 * @return Response
 	 */
 	private function save_admin( array $assessment ) : Response {
-		$name     = trim( is_string( $_POST['admin_name'] ?? null ) ? $_POST['admin_name'] : '' );
-		$email    = trim( is_string( $_POST['admin_email'] ?? null ) ? $_POST['admin_email'] : '' );
-		$password = is_string( $_POST['admin_password'] ?? null ) ? $_POST['admin_password'] : '';
-		$confirm  = is_string( $_POST['admin_password_confirm'] ?? null ) ? $_POST['admin_password_confirm'] : '';
+		$name     = trim( $this->request->post( 'admin_name', '' ) );
+		$email    = trim( $this->request->post( 'admin_email', '' ) );
+		$password = (string) $this->request->post( 'admin_password', '' );
+		$confirm  = (string) $this->request->post( 'admin_password_confirm', '' );
 		$values   = [
 			'admin_name'  => $name,
 			'admin_email' => $email,
@@ -1024,11 +1026,11 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		$base = $this->base_path();
 
 		return match ( true ) {
-			$base . self::PATH === $path                => self::URL_PATH,
-			$this->script_path() . self::PATH === $path => self::URL_PATH_INFO,
-			array_key_exists( self::QUERY_VAR, $_GET ) && in_array( $path, [ $base, $this->script_path() ], true )
-					   => self::URL_QUERY,
-			default => null,
+			$base . self::PATH === $path								=> self::URL_PATH,
+			$this->script_path() . self::PATH === $path					=> self::URL_PATH_INFO,
+			$this->request->has( self::QUERY_VAR ) 
+			&& in_array( $path, [ $base, $this->script_path() ], true )	=> self::URL_QUERY,
+			default														=> null,
 		};
 	}
 

@@ -40,6 +40,7 @@ use SmartLicenseServer\Environments\Application\Boot\DowntimeBootstrapper;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\CoreURLManager;
 use SmartLicenseServer\Core\DataStore;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Monetization\DownloadToken;
 use SmartLicenseServer\Security\Actors\ServiceAccount;
 use SmartLicenseServer\Core\URLManager;
@@ -395,17 +396,17 @@ class ApplicationEnvironment extends Environment {
 	 * @return void
 	 */
 	protected function resolveMaintenanceBypass() : void {
-		$bypass = new MaintenanceBypass( $this->bootModeResolver->flag() );
-		$token  = $bypass->link_token( $_GET );
+		$bypass		= new MaintenanceBypass( $this->bootModeResolver->flag() );
+		$request	= $this->container->get( Request::class );
+		$token		= $bypass->link_token( $request->query( MaintenanceBypass::QUERY, '' ) );
 
 		if ( null !== $token ) {
 			// The same path and query as requested, without the token.
-			$uri   = (string) ( $_SERVER['REQUEST_URI'] ?? '/' );
-			$query = $_GET;
+			$query	= (array) $request->query();
 
 			unset( $query[ MaintenanceBypass::QUERY ] );
 
-			$location = ( (string) \parse_url( $uri, \PHP_URL_PATH ) ?: '/' ) . ( [] === $query ? '' : '?' . \http_build_query( $query ) );
+			$location = ( (string) \parse_url( $request->uri(), \PHP_URL_PATH ) ?: '/' ) . ( [] === $query ? '' : '?' . \http_build_query( $query ) );
 
 			RequestFinisher::finish(
 				303,

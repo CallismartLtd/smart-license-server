@@ -12,6 +12,7 @@ declare( strict_types=1 );
 namespace SmartLicenseServer\Environments\Application\Boot;
 
 use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
 use SmartLicenseServer\Environments\Application\Installation\InstallerSession;
 use SmartLicenseServer\Environments\Application\Installation\SetupToken;
@@ -67,7 +68,8 @@ final class DowntimeBootstrapper implements BootstrapperInterface {
 					$c->get( InstallerSession::class ),
 					$c->get( SetupToken::class ),
 					$resolver,
-					$c->get( FileSystem::class )
+					$c->get( FileSystem::class ),
+					$c->get( Request::class ),
 				)
 			);
 		} else {

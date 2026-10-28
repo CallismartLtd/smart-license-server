@@ -83,13 +83,11 @@ final class MaintenanceBypass {
 	 * The caller answers with the cookie and a redirect to the URL without
 	 * the token (see cookie()), so the link only has to be opened once.
 	 *
-	 * @param array<string, mixed> $query The request's query parameters ($_GET).
+	 * @param string $token.
 	 * @return string|null
 	 */
-	public function link_token( array $query ) : ?string {
-		$token = $query[ self::QUERY ] ?? null;
-
-		return \is_string( $token ) && $this->accepts( $token ) ? $token : null;
+	public function link_token( string $token ) : ?string {
+		return $this->accepts( $token ) ? $token : null;
 	}
 
 	/**

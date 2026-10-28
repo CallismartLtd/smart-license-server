@@ -27,6 +27,7 @@ use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Cache\CacheAdapterRegistry;
 use SmartLicenseServer\Core\CallableResolver;
 use SmartLicenseServer\Core\Container\Container;
+use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Email\EmailProviderIcons;
 use SmartLicenseServer\Email\EmailProvidersRegistry;
@@ -182,6 +183,11 @@ abstract class Environment {
 				cache_memory: 4,
 				dir_perm: \SMLISER_DIR_PERMISSION
 			)
+		);
+
+		$this->container->singleton(
+			Request::class,
+			fn () : Request => Request::createFromGlobals()
 		);
 	}
 
