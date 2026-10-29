@@ -30,20 +30,21 @@ $menu_args = $page_handler->get_top_menu_args( $request );
 <div class="smliser-admin-page">
     <?php smliser_print_admin_content_header( $menu_args ); ?>
 
-    <div class="smliser-tools-actions" id="smliser-background-actions">
-        <button
-            type="button"
-            class="smliser-btn smliser-btn-glass"
-            data-bg-action="schedule/run"
-            data-confirm="Run every task that is due now? Each runs in this request."
-        ><i class="ti ti-player-play"></i> Run due tasks</button>
-        <span class="smliser-section-description">
-            <i class="ti ti-info-circle"></i>
-            Tasks normally run from cron (`schedule run` every minute). Use these buttons to run them now; nothing runs while the application is being updated.
-        </span>
-    </div>
-
     <div class="smliser-table-wrapper">
+
+        <div class="smliser-tools-actions" id="smliser-background-actions">
+            <span class="smliser-section-description">
+                <i class="ti ti-info-circle"></i>
+                Tasks normally run from cron (`schedule run` every minute). Use these buttons to run them now; nothing runs while the application is being updated.
+            </span>
+            <button
+                type="button"
+                class="smliser-btn smliser-btn-glass"
+                data-bg-action="schedule/run"
+                data-confirm="Run every task that is due now? Each runs in this request."
+            ><i class="ti ti-player-play"></i> Run due tasks</button>
+
+        </div>
         <table class="smliser-table widefat striped">
             <thead class="<?php echo empty( $tasks ) ? 'smliser-hide': ''; ?>">
                 <tr>

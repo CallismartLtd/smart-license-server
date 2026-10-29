@@ -1,14 +1,19 @@
 /**
- * "Copy report" buttons on the Site Health and System Diagnostics pages.
+ * "Generate report" buttons on the Site Health and System Diagnostics pages.
  *
- * Builds a plain-text report for support requests from what the page
- * already shows, so nothing is computed twice:
+ * Builds a support report from what the page already shows, so nothing
+ * is computed twice:
  *
  *  - Site Health: every check on the page (the additional checks too,
  *    once they have finished), then the System Diagnostics, fetched from
  *    site-health-check/diagnostics only when the button is clicked —
  *    collecting them is too slow for every page load.
  *  - System Diagnostics: the panels on the page.
+ *
+ * The report always ends up in a selected, readonly textarea: the page's
+ * own [data-support-report-text] field when it has one, otherwise a
+ * SmliserModal with download buttons (.txt and .json) in its footer.
+ * Copying to the clipboard is attempted, but never relied on.
  *
  * A button carries data-support-report="health" or "diagnostics" and
  * data-report-meta, the header from ToolsPage::report_meta().
@@ -20,30 +25,40 @@
 	const TIMEOUT_MS = 60000;
 	const STATUSES   = [ 'critical', 'warning', 'info', 'pass' ];
 	const TONE       = 'smliser-health-tone--';
+	const TITLES     = {
+		health: 'Site Health',
+		diagnostics: 'System Diagnostics',
+	};
+
+	const generated  = {};
 
 	document.addEventListener( 'DOMContentLoaded', () => {
 		document.querySelectorAll( '[data-support-report]' ).forEach( ( button ) => {
-			button.addEventListener( 'click', () => copyReport( button ) );
+			button.addEventListener( 'click', () => generateReport( button ) );
+		} );
+
+		document.querySelectorAll( '[data-support-report-download]' ).forEach( ( button ) => {
+			button.addEventListener( 'click', () => downloadGenerated( button ) );
 		} );
 	} );
 
 	/**
-	 * Build the report for the button's page and copy it.
+	 * Build the report for the button's page and show it.
 	 *
 	 * @param {HTMLButtonElement} button
 	 * @return {Promise<void>}
 	 */
-	async function copyReport( button ) {
+	async function generateReport( button ) {
 		const kind    = button.dataset.supportReport;
 		const meta    = readJSON( button.dataset.reportMeta );
 		const restore = setBusy( button );
 
-		let text;
+		let report;
 
 		try {
-			text = 'health' === kind
+			report = 'health' === kind
 				? await healthReport( meta )
-				: header( 'System Diagnostics', meta ) + formatDiagnostics( diagnosticsFromPage() ).replace( /^\n/, '' );
+				: diagnosticsReport( meta );
 		} catch ( error ) {
 			restore();
 			SmliserToast.show( error?.message || 'The report could not be built.', { type: 'error' } );
@@ -52,12 +67,36 @@
 
 		restore();
 
+		const text = formatReport( report );
+
+		// Copy before displaying: the fallback copy selects its own temporary
+		// textarea, which would otherwise steal the selection from ours.
+		let copied = true;
+
 		try {
 			await writeClipboard( text );
-			SmliserToast.show( 'Report copied. Paste it into your support request.', { type: 'success' } );
 		} catch ( error ) {
-			showForManualCopy( text );
+			copied = false;
 		}
+
+		const field = reportField( kind );
+
+		if ( field ) {
+			field.value     = text;
+			generated[ kind ] = { report, text };
+
+			setDownloads( kind, true );
+			selectField( field );
+		} else {
+			showInModal( report, text );
+		}
+
+		SmliserToast.show(
+			copied
+				? 'Report generated and copied. Paste it into your support request.'
+				: 'Report generated. Press Ctrl+C (Cmd+C) to copy the selected text.',
+			{ type: copied ? 'success' : 'warning' }
+		);
 	}
 
 	/*
@@ -67,66 +106,131 @@
 	*/
 
 	/**
+	 * Fields every report shares.
+	 *
+	 * @param {string} kind "health" or "diagnostics".
+	 * @param {Object} meta {product, version, schema, site}
+	 * @return {Object}
+	 */
+	function baseReport( kind, meta ) {
+		return {
+			kind,
+			product: meta.product || 'Smart License Server',
+			generated: new Date().toISOString(),
+			site: meta.site || window.location.origin,
+			version: meta.version || 'unknown',
+			schema: meta.schema || 'unknown',
+		};
+	}
+
+	/**
 	 * Site Health: the checks on the page, then the diagnostics from the server.
 	 *
 	 * @param {Object} meta
-	 * @return {Promise<string>}
+	 * @return {Promise<Object>}
 	 */
 	async function healthReport( meta ) {
 		const { checks, pending } = checksFromPage();
-		const lines               = [ '== Health Checks ==' ];
+		const report              = baseReport( 'health', meta );
 
-		checks
-			.sort( ( a, b ) => STATUSES.indexOf( a.status ) - STATUSES.indexOf( b.status ) )
-			.forEach( ( check ) => {
-				lines.push( `[${ check.status.toUpperCase() }] ${ check.label }: ${ check.message }` );
-
-				if ( check.recommendation ) {
-					lines.push( `    Recommendation: ${ check.recommendation }` );
-				}
-			} );
-
-		if ( pending > 0 ) {
-			lines.push( `(${ pending } additional check(s) were still running when this report was copied.)` );
-		}
-
-		let diagnostics;
+		report.checks  = checks.sort( ( a, b ) => STATUSES.indexOf( a.status ) - STATUSES.indexOf( b.status ) );
+		report.pending = pending;
 
 		try {
-			diagnostics = formatDiagnostics( ( await fetchDiagnostics() ).diagnostics ?? {} );
+			report.diagnostics = ( await fetchDiagnostics() ).diagnostics ?? {};
 		} catch ( error ) {
-			diagnostics = `\n== System Diagnostics ==\nCould not be collected: ${ error?.message || 'request failed' }\n`;
+			report.diagnostics       = {};
+			report.diagnostics_error = error?.message || 'request failed';
 		}
 
-		return header( 'Site Health', meta ) + lines.join( '\n' ) + '\n' + diagnostics;
+		return report;
+	}
+
+	/**
+	 * System Diagnostics: the panels on the page.
+	 *
+	 * @param {Object} meta
+	 * @return {Object}
+	 */
+	function diagnosticsReport( meta ) {
+		return { ...baseReport( 'diagnostics', meta ), diagnostics: diagnosticsFromPage() };
+	}
+
+	/*
+	|-----------
+	| FORMATTING
+	|-----------
+	*/
+
+	/**
+	 * Render a report as plain text.
+	 *
+	 * @param {Object} report
+	 * @return {string}
+	 */
+	function formatReport( report ) {
+		const blocks = [];
+
+		if ( 'health' === report.kind ) {
+			blocks.push( formatChecks( report ) );
+		}
+
+		blocks.push( formatDiagnostics( report ) );
+
+		return header( report ) + blocks.join( '\n' );
 	}
 
 	/**
 	 * Report header.
 	 *
-	 * @param {string} title
-	 * @param {Object} meta {product, version, schema, site}
+	 * @param {Object} report
 	 * @return {string}
 	 */
-	function header( title, meta ) {
+	function header( report ) {
 		return [
-			`${ meta.product || 'Smart License Server' } ${ title } Report`,
-			`Generated: ${ new Date().toISOString().replace( 'T', ' ' ).replace( /\.\d+Z$/, ' UTC' ) }`,
-			`Site: ${ meta.site || window.location.origin }`,
-			`Version: ${ meta.version || 'unknown' } (schema ${ meta.schema || 'unknown' })`,
-			'',
-			'',
-		].join( '\n' );
+			`${ report.product } ${ TITLES[ report.kind ] } Report`,
+			`Generated: ${ report.generated.replace( 'T', ' ' ).replace( /\.\d+Z$/, ' UTC' ) }`,
+			`Site: ${ report.site }`,
+			`Version: ${ report.version } (schema ${ report.schema })`,
+		].join( '\n' ) + '\n\n';
 	}
 
 	/**
-	 * Format diagnostics sections as text.
+	 * Health checks as text.
 	 *
-	 * @param {Object<string, Object<string, string>>} sections
+	 * @param {Object} report
 	 * @return {string}
 	 */
-	function formatDiagnostics( sections ) {
-		return Object.entries( sections ).map( ( [ section, rows ] ) => {
+	function formatChecks( report ) {
+		const lines = [ '== Health Checks ==' ];
+
+		report.checks.forEach( ( check ) => {
+			lines.push( `[${ check.status.toUpperCase() }] ${ check.label }: ${ check.message }` );
+
+			if ( check.recommendation ) {
+				lines.push( `    Recommendation: ${ check.recommendation }` );
+			}
+		} );
+
+		if ( report.pending > 0 ) {
+			lines.push( `(${ report.pending } additional check(s) were still running when this report was generated.)` );
+		}
+
+		return lines.join( '\n' ) + '\n';
+	}
+
+	/**
+	 * Diagnostics sections as text.
+	 *
+	 * @param {Object} report
+	 * @return {string}
+	 */
+	function formatDiagnostics( report ) {
+		if ( report.diagnostics_error ) {
+			return `== System Diagnostics ==\nCould not be collected: ${ report.diagnostics_error }\n`;
+		}
+
+		return Object.entries( report.diagnostics ).map( ( [ section, rows ] ) => {
 			const entries = Object.entries( rows ?? {} );
 
 			// The full extension list is long; one line is enough for support.
@@ -134,8 +238,8 @@
 				? [ entries.map( ( [ name, version ] ) => ( 'Loaded' === version ? name : `${ name } ${ version }` ) ).join( ', ' ) ]
 				: entries.map( ( [ label, value ] ) => `${ label }: ${ value }` );
 
-			return `\n== ${ section } ==\n${ body.join( '\n' ) }\n`;
-		} ).join( '' );
+			return `== ${ section } ==\n${ body.join( '\n' ) }\n`;
+		} ).join( '\n' );
 	}
 
 	/*
@@ -270,25 +374,163 @@
 		}
 	}
 
+	/*
+	|--------------
+	| DISPLAYING IT
+	|--------------
+	*/
+
 	/**
-	 * Show the report selected in a modal when the browser refuses to copy.
+	 * The page's report textarea, if it has one.
 	 *
-	 * @param {string} value
+	 * @param {string} kind "health" or "diagnostics".
+	 * @return {HTMLTextAreaElement|null}
 	 */
-	function showForManualCopy( value ) {
+	function reportField( kind ) {
+		return document.querySelector( `[data-support-report-text="${ kind }"]` );
+	}
+
+	/**
+	 * Select all the text in a field, opening its panel first: a selection
+	 * inside a closed <details> is invisible. Focus keeps the highlight in
+	 * its active colour.
+	 *
+	 * @param {HTMLTextAreaElement} field
+	 */
+	function selectField( field ) {
+		const panel = field.closest( 'details' );
+
+		if ( panel ) {
+			panel.open = true;
+		}
+
+		field.focus();
+		field.select();
+		field.setSelectionRange( 0, field.value.length ); // iOS Safari ignores select() alone.
+	}
+
+	/**
+	 * Show the report in a modal, for pages without a report textarea.
+	 *
+	 * @param {Object} report
+	 * @param {string} value  The report as text.
+	 */
+	function showInModal( report, value ) {
 		const area = document.createElement( 'textarea' );
 
 		area.value         = value;
 		area.readOnly      = true;
-		area.style.cssText = 'width:100%;min-height:360px;font-family:monospace;font-size:12px;';
+		area.spellcheck    = false;
+		area.style.cssText = 'width:100%;min-height:360px;box-sizing:border-box;font-family:monospace;font-size:12px;';
+		area.setAttribute( 'aria-label', 'Support report' );
 
-		const modal = new SmliserModal( { title: 'Copy this report', body: area, width: '760px' } );
+		const stamp  = report.generated.replace( /[-:]/g, '' ).replace( /\.\d+Z$/, '' ).replace( 'T', '-' );
+		const name   = fileName( report );
+		const footer = document.createElement( 'div' );
+
+		footer.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+		footer.append(
+			downloadButton( 'Download .txt', () => download( `${ name }.txt`, value, 'text/plain' ) ),
+			downloadButton( 'Download .json', () => download( `${ name }.json`, JSON.stringify( report, null, 2 ), 'application/json' ) )
+		);
+
+		const modal = new SmliserModal( {
+			title: `${ TITLES[ report.kind ] } Report`,
+			body: area,
+			footer,
+			width: '760px',
+			closeOnBackdropClick: false, // A drag-selection ending on the backdrop would close it.
+			autoFocus: false,            // Otherwise the close button takes focus after the selection.
+		} );
+
+		// afterOpen fires once the modal is in the DOM and its animation is done.
+		modal.on( 'afterOpen', () => selectField( area ) );
+		modal.on( 'afterClose', () => modal.destroy() );
 
 		modal.open();
-		area.focus();
-		area.select();
+	}
+	/**
+	 * File name shared by every download of a report.
+	 *
+	 * @param {Object} report
+	 * @return {string} Without extension.
+	 */
+	function fileName( report ) {
+		const stamp = report.generated.replace( /[-:]/g, '' ).replace( /\.\d+Z$/, '' ).replace( 'T', '-' );
 
-		SmliserToast.show( 'Your browser blocked copying. Press Ctrl+C (Cmd+C) to copy the selected report.', { type: 'warning' } );
+		return `smliser-${ report.kind }-report-${ stamp }`;
+	}
+
+	/**
+	 * Enable or disable the page's download buttons for a report kind.
+	 *
+	 * @param {string}  kind
+	 * @param {boolean} enabled
+	 */
+	function setDownloads( kind, enabled ) {
+		document.querySelectorAll( `[data-support-report-download][data-support-report-kind="${ kind }"]` ).forEach( ( button ) => {
+			button.disabled = ! enabled;
+		} );
+	}
+
+	/**
+	 * Download the report last generated on this page.
+	 *
+	 * @param {HTMLButtonElement} button
+	 */
+	function downloadGenerated( button ) {
+		const entry = generated[ button.dataset.supportReportKind ];
+
+		if ( ! entry ) {
+			return;
+		}
+
+		const name = fileName( entry.report );
+
+		if ( 'json' === button.dataset.supportReportDownload ) {
+			download( `${ name }.json`, JSON.stringify( entry.report, null, 2 ), 'application/json' );
+		} else {
+			download( `${ name }.txt`, entry.text, 'text/plain' );
+		}
+	}
+	
+	/**
+	 * @param {string}   label
+	 * @param {Function} onClick
+	 * @return {HTMLButtonElement}
+	 */
+	function downloadButton( label, onClick ) {
+		const button = document.createElement( 'button' );
+		const icon   = document.createElement( 'i' );
+
+		button.type      = 'button';
+		button.className = 'smliser-btn smliser-btn-glass';
+		icon.className   = 'ti ti-download';
+
+		button.append( icon, ` ${ label }` );
+		button.addEventListener( 'click', onClick );
+
+		return button;
+	}
+
+	/**
+	 * Save text as a file.
+	 *
+	 * @param {string} filename
+	 * @param {string} content
+	 * @param {string} mime
+	 */
+	function download( filename, content, mime ) {
+		const url  = URL.createObjectURL( new Blob( [ content ], { type: `${ mime };charset=utf-8` } ) );
+		const link = document.createElement( 'a' );
+
+		link.href     = url;
+		link.download = filename;
+		document.body.append( link );
+		link.click();
+		link.remove();
+
+		setTimeout( () => URL.revokeObjectURL( url ), 1000 );
 	}
 
 	/*

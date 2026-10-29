@@ -32,17 +32,15 @@ $section_icons = [
             <p>No diagnostic data available.</p>
         </div>
     <?php else : ?>
-        <div class="smliser-tools-actions">
-            <button
-                type="button"
-                class="smliser-btn smliser-btn-glass"
+        <div class="smliser-tools-actions" style="margin: 20px;">
+            <div class="smliser-section-description" style="justify-self: center;">
+                <i class="ti ti-info-circle"></i>
+                <span>System Diagnostics</span>
+            </div>
+            <button type="button" class="smliser-btn smliser-btn-glass"
                 data-support-report="diagnostics"
                 data-report-meta="<?php echo escAttr( (string) \json_encode( $report_meta ) ); ?>"
             ><i class="ti ti-clipboard-copy"></i> Copy diagnostics</button>
-            <span class="smliser-section-description">
-                <i class="ti ti-info-circle"></i>
-                Copies everything on this page as plain text, for a support request. It contains no passwords or keys.
-            </span>
         </div>
 
         <div class="smliser-diagnostics-grid" id="smliser-diagnostics-grid">

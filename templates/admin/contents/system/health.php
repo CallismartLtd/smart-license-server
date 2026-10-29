@@ -117,18 +117,6 @@ $async_config = [
 			<p>No health checks available.</p>
 		</div>
 	<?php else : ?>
-		<div class="smliser-tools-actions">
-			<button
-				type="button"
-				class="smliser-btn smliser-btn-glass"
-				data-support-report="health"
-				data-report-meta="<?php echo escAttr( (string) \json_encode( $report_meta ) ); ?>"
-			><i class="ti ti-clipboard-copy"></i> Copy report for support</button>
-			<span class="smliser-section-description">
-				<i class="ti ti-info-circle"></i>
-				Copies these checks and the System Diagnostics as plain text to paste into a support request. It contains no passwords or keys.
-			</span>
-		</div>
 
 		<div class="smliser-health-overview smliser-health-tone--<?php echo escAttr( $overall_status ); ?>" id="smliser-health-overview">
 			<span class="smliser-health-overview-icon">
@@ -231,6 +219,58 @@ $async_config = [
 					</div>
 				</details>
 			<?php endforeach; ?>
+			<details class="smliser-diagnostics-panel smliser-health-panel" id="smliser-health-report" open>
+				<summary class="smliser-diagnostics-panel-summary">
+					<span class="smliser-diagnostics-panel-summary-left">
+						<span class="smliser-diagnostics-panel-icon">
+							<i class="ti ti-clipboard-text"></i>
+						</span>
+						<span class="smliser-diagnostics-panel-title">Support Report</span>
+					</span>
+					<span class="smliser-diagnostics-panel-summary-right">
+						<svg class="smliser-diagnostics-panel-chevron" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<polyline points="6 9 12 15 18 9" />
+						</svg>
+					</span>
+				</summary>
+				<div class="smliser-diagnostics-panel-body">
+					<textarea
+						class="smliser-support-report-text"
+						data-support-report-text="health"
+						rows="12"
+						readonly
+						spellcheck="false"
+						aria-label="Support report"
+						placeholder="Click “Generate report” to build the report."
+					></textarea>
+
+					<div class="smliser-support-report-actions">
+						<button
+							type="button"
+							class="smliser-btn smliser-btn-glass"
+							data-support-report="health"
+							data-report-meta="<?php echo escAttr( (string) \json_encode( $report_meta ) ); ?>"
+						><i class="ti ti-report-medical"></i> Generate report</button>
+
+						<button
+							type="button"
+							class="smliser-btn smliser-btn-glass"
+							data-support-report-download="txt"
+							data-support-report-kind="health"
+							disabled
+						><i class="ti ti-download"></i> Download .txt</button>
+
+						<button
+							type="button"
+							class="smliser-btn smliser-btn-glass"
+							data-support-report-download="json"
+							data-support-report-kind="health"
+							disabled
+						><i class="ti ti-download"></i> Download .json</button>
+					</div>
+				</div>
+			</details>
 		</div>
+		
 	<?php endif; ?>
 </div>
