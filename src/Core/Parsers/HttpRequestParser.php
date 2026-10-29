@@ -28,9 +28,9 @@ class HttpRequestParser {
 	/**
 	 * Content types this parser knows how to handle (base mime, no parameters).
 	 */
-	private const CONTENT_TYPE_MULTIPART  = 'multipart/form-data';
-	private const CONTENT_TYPE_URLENCODED = 'application/x-www-form-urlencoded';
-	private const CONTENT_TYPE_JSON       = 'application/json';
+	private const CONTENT_TYPE_MULTIPART	= 'multipart/form-data';
+	private const CONTENT_TYPE_URLENCODED	= 'application/x-www-form-urlencoded';
+	private const CONTENT_TYPE_JSON			= 'application/json';
 
 	/**
 	 * Methods for which PHP does NOT natively populate $_POST/$_FILES

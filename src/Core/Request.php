@@ -75,14 +75,14 @@ class Request {
 	private array $params = [];
 
 	/**
-	 * Dedicated storage for query parameters $_GET.
+	 * Dedicated storage for URL query parameter.
 	 * 
 	 * @var array
 	 */
 	protected array $query = [];
 
 	/**
-	 * Dedicated storage for POST form parameters $_POST.
+	 * Dedicated storage for POST form parameters.
 	 * 
 	 * @var array
 	 */
@@ -204,16 +204,18 @@ class Request {
 	 * @param string $uri     The request URI, defaults to $_SERVER['REQUEST_URI'].
 	 */
 	public function __construct( array $params = [], array $headers = [], string $method = '', string $uri = '' ) {
-		$this->startTime = microtime( true );
+		$this->startTime	= microtime( true );
+		
 		$this->parse_server();
 		$this->parse_cookies();
 
-		$this->method = ! empty( $method ) ? strtoupper( $method ) : ( $this->server['REQUEST_METHOD'] ?? 'GET' );
-		$this->uri    = ! empty( $uri ) ? $uri : ( $this->server['REQUEST_URI'] ?? '/' );
+		$this->method	= ! empty( $method ) ? strtoupper( $method ) : ( $this->server['REQUEST_METHOD'] ?? 'GET' );
+		$this->uri		= ! empty( $uri ) ? $uri : ( $this->server['REQUEST_URI'] ?? '/' );
 		
 		$this->set_headers( empty( $headers ) ? $this->parse_default_headers() : $headers );
 
 		if ( in_array( $this->method(), [static::PATCH, static::PUT, static::DELETE], true ) ) {
+			
 			try {
 				$parser = new HttpRequestParser(
 					method: $this->method,
@@ -223,16 +225,15 @@ class Request {
 				);
 
 				$result = $parser->parse();
-				$this->parse_post( $result['post'] );
-				$this->parse_uploaded_files( $result['files'] );
+				$this->set_post_data( $result['post'] );
+				$this->set_uploaded_files( $result['files'] );
 			} catch ( \Exception $e ) {
 				throw $e;
-				// $this->parse_post();
-				// $this->parse_uploaded_files();
 			}
+
 		} else {
-			$this->parse_post();
-			$this->parse_uploaded_files();
+			$this->set_post_data( $_POST );
+			$this->set_uploaded_files( $_FILES );
 		}
 		
 		$this->parse_query();
@@ -243,7 +244,6 @@ class Request {
 			$this->build_merged_params();
 		}
 
-		// $this->parse_uploaded_files();
 	}
 
 	/**
@@ -256,13 +256,13 @@ class Request {
 	}
 
 	/*
-	|--------------------------------------------------------------------------
+	|-------------------------------
 	| DEDICATED PARAMETER BAG APIS
-	|--------------------------------------------------------------------------
+	|-------------------------------
 	*/
 
 	/**
-	 * Access query $_GET parameters.
+	 * Access the URL query parameter.
 	 *
 	 * @param string|null $key     Parameter key or null to get all query parameters.
 	 * @param mixed       $default Default value if parameter key is missing.
@@ -277,7 +277,7 @@ class Request {
 	}
 
 	/**
-	 * Access form post ($_POST) parameters.
+	 * Access form post parameters.
 	 *
 	 * @param string|null $key     Parameter key or null to get all post parameters.
 	 * @param mixed       $default Default value if parameter key is missing.
@@ -473,26 +473,6 @@ class Request {
 	}
 
 	/**
-	 * Get only the specified parameters.
-	 * 
-	 * @param array $parameters Array of parameter names to include.
-	 * @return array
-	 */
-	public function only( array $parameters ) : array {
-		return array_intersect_key( $this->params, array_flip( $parameters ) );
-	}
-
-	/**
-	 * Get all parameters except the specified ones.
-	 * 
-	 * @param array $parameters Array of parameter names to exclude.
-	 * @return array
-	 */
-	public function except( array $parameters ) : array {
-		return array_diff_key( $this->params, array_flip( $parameters ) );
-	}
-
-	/**
 	 * Magic getter.
 	 * 
 	 * @param string $name Parameter name.
@@ -575,17 +555,6 @@ class Request {
 	}
 
 	/**
-	 * Tells whether the value of a parameter matches expected value.
-	 * 
-	 * @param string $param    Parameter key.
-	 * @param mixed  $expected Expected value.
-	 * @return bool
-	 */
-	public function param_matches( string $param, mixed $expected ) : bool {
-		return $this->get( $param ) === $expected;
-	}
-
-	/**
 	 * Return all merged parameters as array.
 	 *
 	 * @return array
@@ -618,9 +587,9 @@ class Request {
 	}
 
 	/*
-	|--------------------------------------------------------------------------
+	|--------------------
 	| HEADER MANAGEMENT
-	|--------------------------------------------------------------------------
+	|--------------------
 	*/
 
 	/**
@@ -699,9 +668,9 @@ class Request {
 	}
 
 	/*
-	|--------------------------------------------------------------------------
+	|---------------------------------------
 	| HTTP METADATA & CONVENIENCE HELPERS
-	|--------------------------------------------------------------------------
+	|---------------------------------------
 	*/
 
 	/**
@@ -1104,16 +1073,25 @@ class Request {
 	 * @param array|null $query_params
 	 */
 	protected function parse_query( ?array $query_params = null ) : void {
-		$this->query = $query_params ?? $_GET;
+
+		if ( null == $query_params ) {
+			$query	= (string) parse_url( $this->uri(), \PHP_URL_QUERY );
+
+			$query_params = [];
+
+			parse_str( $query, $query_params );
+		}
+
+		$this->query = $query_params;
 	}
 
 	/**
 	 * Populate post parameters, pulls from superglobals when null is passed.
 	 * 
-	 * @param array|null $post_data
+	 * @param array $post_data
 	 */
-	protected function parse_post( ?array $post_data = null ) : void {
-		$this->post = $post_data ?? $_POST;
+	protected function set_post_data( array $post_data ) : void {
+		$this->post = $post_data;
 	}
 
 	/**
@@ -1220,21 +1198,13 @@ class Request {
 	}
 
 	/**
-	 * Parse and normalize uploaded files into collections.
+	 * Set and normalize uploaded files into collections.
 	 * 
-	 * @param ?array $files
+	 * @param array $files
 	 */
-	public function parse_uploaded_files( ?array $files = null ) : void {
-		if ( null !== $files ) {
-			foreach ( $files as $key => $entry ) {
-				$this->files[$key] = UploadedFileCollection::from_array( $key, $entry );
-			}
-
-			return;
-		}
-
-		foreach ( $_FILES as $key => $_ ) {
-			$this->files[ $key ] = UploadedFileCollection::from_files( $key );
+	public function set_uploaded_files( array $files ) : void {
+		foreach ( $files as $key => $entry ) {
+			$this->files[$key] = UploadedFileCollection::from_array( $key, $entry );
 		}
 	}
 }
