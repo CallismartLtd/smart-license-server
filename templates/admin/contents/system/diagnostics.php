@@ -40,7 +40,7 @@ $section_icons = [
             <button type="button" class="smliser-btn smliser-btn-glass"
                 data-support-report="diagnostics"
                 data-report-meta="<?php echo escAttr( (string) \json_encode( $report_meta ) ); ?>"
-            ><i class="ti ti-clipboard-copy"></i> Copy diagnostics</button>
+            ><i class="ti ti-analyze"></i> Generate report</button>
         </div>
 
         <div class="smliser-diagnostics-grid" id="smliser-diagnostics-grid">

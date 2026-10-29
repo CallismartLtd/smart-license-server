@@ -223,7 +223,7 @@ $async_config = [
 				<summary class="smliser-diagnostics-panel-summary">
 					<span class="smliser-diagnostics-panel-summary-left">
 						<span class="smliser-diagnostics-panel-icon">
-							<i class="ti ti-clipboard-text"></i>
+							<i class="ti ti-message-dots"></i>
 						</span>
 						<span class="smliser-diagnostics-panel-title">Support Report</span>
 					</span>
@@ -250,7 +250,7 @@ $async_config = [
 							class="smliser-btn smliser-btn-glass"
 							data-support-report="health"
 							data-report-meta="<?php echo escAttr( (string) \json_encode( $report_meta ) ); ?>"
-						><i class="ti ti-report-medical"></i> Generate report</button>
+						><i class="ti ti-analyze"></i> Generate report</button>
 
 						<button
 							type="button"
