@@ -40,9 +40,9 @@ $args = $repo_page->get_menu_args( $request, isset( $app ) ? $app : null );
         <ul class="smliser-app-artifacts">
             <?php
 			$new_upload_config = rawurlencode( smliser_json_encode_attr( [
-                	'app_slug' => $app->get_slug(),
-                	'app_type' => $app->get_type(),
-                	'isNew'    => true
+				'app_slug' => $app->get_slug(),
+				'app_type' => $app->get_type(),
+				'isNew'    => true
 			] ) );
 foreach( $app_files as $file_data ) :
 	$download_url = 'main' === $file_data['slug'] ? $app->get_download_url() : $urlmanager->app_artifact_download_url( $app->get_type(), $app->get_slug(), $file_data['filename'] );

@@ -29,7 +29,7 @@ defined( 'SMLISER_ROOT' ) || exit;
 						'Logs over %s days are automatically deleted.',
 						escHtml( $log_duration )
 					)
-				
+
 ?>
             </p>
         </div>

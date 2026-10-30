@@ -82,7 +82,7 @@ final class LicensesPage implements ClientPageInterface {
 				'pagination'	=> [
 					'page'			=> $page,
 					'limit'			=> $limit,
-					'total'			=> 0, 
+					'total'			=> 0,
 					'total_pages'	=> 0
 				]
 			];

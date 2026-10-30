@@ -108,7 +108,7 @@ final class Process {
 		// Read while it runs, so a chatty program never blocks on a full pipe.
 		while ( $status['running'] ) {
 			$result['output'] .= (string) stream_get_contents( $pipes[1] );
-			$result['error']  .= (string) stream_get_contents( $pipes[2] );
+			$result['error'] .= (string) stream_get_contents( $pipes[2] );
 
 			if ( microtime( true ) >= $deadline ) {
 				proc_terminate( $process, 9 );
@@ -121,7 +121,7 @@ final class Process {
 		}
 
 		$result['output'] .= (string) stream_get_contents( $pipes[1] );
-		$result['error']  .= (string) stream_get_contents( $pipes[2] );
+		$result['error'] .= (string) stream_get_contents( $pipes[2] );
 
 		fclose( $pipes[1] );
 		fclose( $pipes[2] );

@@ -44,7 +44,7 @@ final class ThemeInstaller extends ModuleInstaller {
 	public const NOUN               = 'theme';
 	public const RESULT_KEY         = 'theme';
 	public const LIST_KEY           = 'themes';
-	public const MARKETPLACE_PREFIX = 'smliser-theme-';
+	public const MARKETPLACE_TYPE	= 'smliser-theme';
 
 	/**
 	 * Constructor.

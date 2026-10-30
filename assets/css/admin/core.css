@@ -2464,9 +2464,10 @@ input.smliser_toggle-switch-input {
 }
 
 textarea[data-support-report-text] {
-    margin: 5px;
+    margin: 5px 0;
     min-height: 250px;
     resize: none;
+    background-color: var( --dashboard-bg );
 }
 
 @keyframes smliser-health-spin {
@@ -2491,6 +2492,22 @@ textarea[data-support-report-text] {
     }
 }
 
+.smliser-support-report-actions {
+    margin: 10px 0;
+    padding: 6px;
+    border-top: 1px dashed var( --dashboard-border );
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 5px;
+    font-size: 12px;
+}
+
+.smliser-support-report-actions button {
+    font-size: 12px;
+    gap: 2px;
+}
 /*
 |-------------------------------
 | Background Processing page

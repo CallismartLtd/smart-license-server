@@ -383,10 +383,10 @@ function smliser_render_pagination( array $pagination, string $base_url = '', st
                 <?php endif; ?>
 
                 <?php
-				// Window pages.
-				for ( $i = $start; $i <= $end; $i++ ) :
-					$class = ( $i === $page ) ? 'button current' : 'button';
-					?>
+    			// Window pages.
+    			for ( $i = $start; $i <= $end; $i++ ) :
+    				$class = ( $i === $page ) ? 'button current' : 'button';
+    				?>
                     <a class="<?php echo escAttr( $class ); ?>"
                        href="<?php echo escUrl( $base_url->add_query_params( [ $page_param => $i, 'limit' => $limit ] )->url() ); ?>">
                         <?php echo intval( $i ); ?>

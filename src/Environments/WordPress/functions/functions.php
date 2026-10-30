@@ -37,5 +37,5 @@ function load_auth_footer() {
 }
 
 function set_early_theme_attribute() {
-    echo '<script>document.documentElement.setAttribute( \'data-theme\', \'light\');</script>';
+	echo '<script>document.documentElement.setAttribute( \'data-theme\', \'light\');</script>';
 }

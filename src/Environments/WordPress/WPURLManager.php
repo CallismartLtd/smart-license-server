@@ -16,7 +16,7 @@ use SmartLicenseServer\SettingsAPI\Settings;
 /**
  * WordPress URL manager.
  */
-final class WPURLManager implements URLManagerInterface {    
+final class WPURLManager implements URLManagerInterface {
 	public function __construct(
 		protected Settings $settings,
 		protected URL $site_url,
@@ -89,16 +89,16 @@ final class WPURLManager implements URLManagerInterface {
 	public function admin_url( string $page = '', string $tab = '', array $query = [] ) : URL {
 		$url    = $this->admin_base_url
 			->append_path( $this->admin_url_prefix() );
-        
-        if ( ! empty( $page ) ) {
-            $url    = $url->add_query_param( 'page', "smliser-{$page}");
-        }
+		
+		if ( ! empty( $page ) ) {
+			$url    = $url->add_query_param( 'page', "smliser-{$page}" );
+		}
 
-        if ( ! empty( $tab ) ) {
-            $url    = $url->add_query_param( 'tab', $tab );
-        }
+		if ( ! empty( $tab ) ) {
+			$url    = $url->add_query_param( 'tab', $tab );
+		}
 
-        return $url->add_query_params( $query );
+		return $url->add_query_params( $query );
 	}
 
 	/*

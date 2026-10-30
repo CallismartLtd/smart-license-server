@@ -52,7 +52,7 @@ class WordPressEnvironment extends Environment {
 	protected AdminMenu $menu;
 	protected RoutesManager $routes_manager;
 
-	protected function registerDependencies(): void {
+	protected function registerDependencies() : void {
 		Autoloader::add_function_dir( __DIR__ . '/functions' );
 
 		$this->container->singleton( WordPressEnvironment::class, $this );
@@ -172,7 +172,7 @@ class WordPressEnvironment extends Environment {
 		// register_activation_hook( SMLISER_FILE, [Installer::class, 'install'] );
 	}
 
-	protected function createDatabaseConfig(): ?DBConfigDTO {
+	protected function createDatabaseConfig() : ?DBConfigDTO {
 		global $wpdb;
 
 		$parsed = $wpdb->parse_db_host( (string) $wpdb->dbhost );

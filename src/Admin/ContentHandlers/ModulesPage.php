@@ -14,6 +14,7 @@ use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\Environments\Application\Extensions\ExtensionManager;
 use SmartLicenseServer\Environments\Application\Theming\Theme;
 use SmartLicenseServer\Environments\Application\Theming\ThemeException;
 use SmartLicenseServer\Environments\Application\Theming\ThemeInstaller;
@@ -63,7 +64,8 @@ class ModulesPage implements AdminPageInterface {
 	 * Sections of the Marketplace page: section => header label. The first is the default.
 	 */
 	public const MARKETPLACE_SECTIONS = [
-		'themes' => 'Themes',
+		'extensions'	=> 'Extensions',
+		'themes'		=> 'Themes',
 	];
 
 	/**
@@ -81,6 +83,7 @@ class ModulesPage implements AdminPageInterface {
 		protected URLManager $urlmanager,
 		protected AssetsManager $assets_manager,
 		protected ThemeManager $themes,
+		protected ExtensionManager $extensions,
 		protected ThemeInstaller $installer,
 		protected FileSystem $fs
 	) {
@@ -429,7 +432,7 @@ class ModulesPage implements AdminPageInterface {
 	 * @return string URL; empty for none.
 	 */
 	private function screenshot( Theme $theme ) : string {
-		foreach ( [ 'screenshot.png', 'screenshot.jpg', 'screenshot.webp' ] as $file ) {
+		foreach ( [ 'screenshot.png', 'screenshot.jpg', 'screenshot.webp', 'screenshot.svg' ] as $file ) {
 			if ( $this->fs->is_file( $theme->assets_dir() . '/' . $file ) ) {
 				return $this->urlmanager->themes_url( $theme->slug . '/' . $file, [ 'version' => $theme->version ] )->url();
 			}

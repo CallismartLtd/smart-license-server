@@ -90,7 +90,7 @@ $fallback = $recorded !== $active;
 		];
 	
 	
-	?>
+		?>
 		<form class="smliser-form-container" data-module-form="upload" enctype="multipart/form-data">
 
 			<div class="smliser-flex-form">

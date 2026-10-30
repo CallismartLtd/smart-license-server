@@ -86,7 +86,7 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                         <?php else: ?>
                             <?php foreach ( $monetization->get_tiers() as $tier ) : ?>
                                 <?php
-                            	$features_str = implode( ', ', $tier->get_features() );
+    							$features_str = implode( ', ', $tier->get_features() );
                             	$max_sites    = $tier->get_max_sites();
 
                             	// Encode the tier into JSON for JS handling
@@ -116,9 +116,9 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
                                             <p><strong>Sites:</strong> <?php echo escHtml( \SmartLicenseServer\Monetization\PricingTier::UNLIMITED_SITES === $max_sites ? 'Unlimited' : (string) $max_sites ); ?></p>
                                             <p><strong>Features:</strong> <?php echo escHtml( $features_str ?: 'None' ); ?></p>
                                             <?php
-                                            $source   = \SmartLicenseServer\Monetization\MonetizationRegistry::parse_provider_id( $tier->get_provider_id() );
-                                            $provider = $provider_fields[ $source['provider'] ]['name'] ?? $source['provider'];
-                                            ?>
+                            				$source   = \SmartLicenseServer\Monetization\MonetizationRegistry::parse_provider_id( $tier->get_provider_id() );
+                            	$provider = $provider_fields[ $source['provider'] ]['name'] ?? $source['provider'];
+                            	?>
                                             <p><strong>Provider:</strong> <?php echo escHtml( '' === $source['provider'] ? 'None (issued by an administrator)' : $provider . ( '' !== $source['channel'] ? ' » ' . $source['channel'] : '' ) ); ?></p>
 
                                             <div class="smliser-pricing-tier-actions">

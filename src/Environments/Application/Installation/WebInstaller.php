@@ -1028,7 +1028,7 @@ final class WebInstaller implements ExecutionHandlerInterface {
 		return match ( true ) {
 			$base . self::PATH === $path								=> self::URL_PATH,
 			$this->script_path() . self::PATH === $path					=> self::URL_PATH_INFO,
-			$this->request->has( self::QUERY_VAR ) 
+			$this->request->has( self::QUERY_VAR )
 			&& in_array( $path, [ $base, $this->script_path() ], true )	=> self::URL_QUERY,
 			default														=> null,
 		};

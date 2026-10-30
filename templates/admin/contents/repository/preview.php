@@ -88,7 +88,7 @@ defined( 'SMLISER_ROOT' ) || exit;
                     <div class="smliser-screenshot-gallery">
                         <div tabindex="0" class="smliser-gallery-preview">
                             <?php
-								$first_title = array_key_first( $images );
+                				$first_title = array_key_first( $images );
             	$first_image = current( $images );
             	?>
                             <h3 class="smliser-gallery-preview_title"><?php echo escHtml( $first_title ); ?></h3>

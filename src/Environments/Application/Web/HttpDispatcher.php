@@ -604,7 +604,7 @@ final class HttpDispatcher {
 			]
 		);
 
-		$hosted_apps_registry = $this->container->get( HostedAppsRegistry::class );	
+		$hosted_apps_registry = $this->container->get( HostedAppsRegistry::class );
 		$app_types = implode( '|', array_map( 'preg_quote', $hosted_apps_registry->app_types() ) );
 		/*
 		|------------------------------
@@ -729,9 +729,9 @@ final class HttpDispatcher {
 						handler: [AppActions::class, 'delete_asset']
 					);
 				},
-				middleware: [
-					CSRFMiddleware::class
-				] );
+					middleware: [
+						CSRFMiddleware::class
+					] );
 			},
 			middleware: [
 				ClientAccessMiddleware::class

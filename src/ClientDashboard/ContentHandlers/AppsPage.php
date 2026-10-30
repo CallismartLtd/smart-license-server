@@ -179,7 +179,7 @@ final class AppsPage implements ClientPageInterface {
 	 * View data (template client.app-new):
 	 *   array<string, string> $types App types, type => label.
 	 *   int $max_size Largest upload, in bytes.
-		 *   string $action The save action's URL.
+	 *   string $action The save action's URL.
 	 *
 	 * @param Request $request
 	 * @return View
@@ -216,7 +216,7 @@ final class AppsPage implements ClientPageInterface {
 	 *   array<string, string> $statuses Statuses the owner may choose, status => label.
 	 *   list<array{type: string, label: string, hint: string, items: list<array{name: string, url: string}>}> $assets
 	 *   int $max_size Largest upload, in bytes.
-		 *   string $list_url The list.
+	 *   string $list_url The list.
 	 *   array<string, string> $actions Action URLs: save, status, delete, asset_upload, asset_delete.
 	 *
 	 * @param Request $request

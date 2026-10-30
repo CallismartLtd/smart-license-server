@@ -243,7 +243,7 @@ $async_config = [
 						aria-label="Support report"
 						placeholder="Click “Generate report” to build the report."
 					></textarea>
-
+					
 					<div class="smliser-support-report-actions">
 						<button
 							type="button"
