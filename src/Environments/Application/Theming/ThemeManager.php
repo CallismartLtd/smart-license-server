@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\Application\Theming;
 
+use SmartLicenseServer\Environments\Application\Modules\ModuleManager;
 use SmartLicenseServer\FileSystem\FileSystem;
 
 /**
@@ -33,7 +34,7 @@ use SmartLicenseServer\FileSystem\FileSystem;
  * Installing, updating and removing themes is ThemeInstaller's job; this
  * class finds them and records which one is active.
  */
-final class ThemeManager {
+final class ThemeManager implements ModuleManager {
 
 	/**
 	 * Slug of the built-in default theme; reserved.

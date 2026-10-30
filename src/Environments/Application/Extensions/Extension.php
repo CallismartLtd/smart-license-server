@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\Application\Extensions;
 
+use SmartLicenseServer\Environments\Application\Modules\Module;
 use SmartLicenseServer\FileSystem\FileSystem;
 
 /**
@@ -19,6 +20,8 @@ use SmartLicenseServer\FileSystem\FileSystem;
  *   extension.json   Manifest (see below).
  *   src/             PHP source, PSR-4 mapped to the manifest's "namespace".
  *                    The folder can be renamed with "source".
+ *   assets/          Optional. Public assets (CSS, JS, images), published in
+ *                    public/extensions/<slug>. No PHP in it.
  *
  * extension.json:
  *   {
@@ -44,7 +47,7 @@ use SmartLicenseServer\FileSystem\FileSystem;
  *
  * Backslashes are doubled in JSON ("Acme\\Invoices\\").
  */
-final class Extension {
+final class Extension implements Module {
 
 	/**
 	 * Manifest file name.
@@ -196,6 +199,10 @@ final class Extension {
 			throw new ExtensionException( sprintf( 'The source folder "%s" of the extension "%s" is invalid: use a relative folder.', $source, $slug ) );
 		}
 
+		if ( 'assets' === explode( '/', $source )[0] ) {
+			throw new ExtensionException( sprintf( 'The source folder of the extension "%s" cannot be assets/: assets are published in public/ and must not hold PHP.', $slug ) );
+		}
+
 		if ( ! $fs->is_dir( $path . '/' . $source ) ) {
 			throw new ExtensionException( sprintf( 'The extension "%s" has no "%s" source folder.', $slug, $source ) );
 		}
@@ -238,5 +245,23 @@ final class Extension {
 	 */
 	public function source_dir() : string {
 		return $this->path . '/' . $this->source;
+	}
+
+	/**
+	 * Absolute path of the assets folder (it may not exist).
+	 *
+	 * @return string
+	 */
+	public function assets_dir() : string {
+		return $this->path . '/assets';
+	}
+
+	/**
+	 * The name of this extension's assets inside public/ (PublicAssets).
+	 *
+	 * @return string
+	 */
+	public function public_name() : string {
+		return 'extensions/' . $this->slug;
 	}
 }

@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\Application\Theming;
 
+use SmartLicenseServer\Environments\Application\Modules\Module;
 use SmartLicenseServer\FileSystem\FileSystem;
 
 /**
@@ -39,7 +40,7 @@ use SmartLicenseServer\FileSystem\FileSystem;
  *     "author":      "..."            Optional.
  *   }
  */
-final class Theme {
+final class Theme implements Module {
 
 	/**
 	 * Manifest file name.

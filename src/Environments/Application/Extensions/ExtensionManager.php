@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\Environments\Application\Extensions;
 
+use SmartLicenseServer\Environments\Application\Modules\ModuleManager;
 use SmartLicenseServer\FileSystem\FileSystem;
 
 /**
@@ -32,7 +33,7 @@ use SmartLicenseServer\FileSystem\FileSystem;
  * Installing, updating and removing extensions is the installer's job; this
  * class finds them and records which ones are enabled.
  */
-final class ExtensionManager {
+final class ExtensionManager implements ModuleManager {
 
 	/**
 	 * Loaded extensions, by slug.

@@ -1,6 +1,10 @@
 <?php
 /**
- * PSR-4 Autoloader for Smart License Server.
+ * Autoloader for Smart License Server.
+ *
+ * The core app's classes load through Composer. This class extends that
+ * same Composer class loader with supplementary namespaces (the extensions
+ * of the application) and loads the app's function files.
  * 
  * @package SmartLicenseServer
  * @since   0.2.0
@@ -8,18 +12,17 @@
 
 namespace SmartLicenseServer;
 
+use Composer\Autoload\ClassLoader;
 use const DIRECTORY_SEPARATOR;
 
 class Autoloader {
-	
+
 	/**
-	 * Namespace to directory mappings
+	 * Composer's class loader for this installation's vendor folder.
 	 * 
-	 * @var array
+	 * @var ClassLoader|null
 	 */
-	private static array $namespaces = [
-		'SmartLicenseServer\\' => __DIR__ . DIRECTORY_SEPARATOR,
-	];
+	private static ?ClassLoader $composer = null;
 
 	/**
 	 * Function directories to autoload
@@ -38,65 +41,50 @@ class Autoloader {
 	private static array $loaded_function_files = [];
 	
 	/**
-	 * Register the autoloader
+	 * Load Composer's autoloader and the registered function files.
 	 */
 	public static function boot() : void {
 		static::require_vendor();
-		// spl_autoload_register( array( __CLASS__, 'autoload' ), true, false );
 		static::autoload_functions();
 	}
-	
+
 	/**
-	 * Autoload classes
+	 * Add a PSR-4 namespace to Composer's class loader.
 	 * 
-	 * @param string $class The fully-qualified class name.
+	 * Classes of the namespace load from the base directory like the core's
+	 * own: the file of `Acme\Invoices\Sub\Foo` for the namespace
+	 * `Acme\Invoices\` is `<base_dir>/Sub/Foo.php`. Composer looks a
+	 * namespace up after the ones registered before it, so the core's
+	 * mappings always win. Adding a namespace and directory again changes
+	 * nothing.
+	 * 
+	 * @param string $namespace The namespace prefix, ending with a backslash.
+	 * @param string $base_dir  The directory the namespace maps to.
+	 * @throws \InvalidArgumentException When the namespace does not end with a backslash.
+	 * @throws \LogicException When Composer's loader is not available, or is
+	 *                         classmap-authoritative (it would never look up
+	 *                         a namespace added at runtime).
 	 */
-	public static function autoload( $class ) : void {
-		// Check each registered namespace.
-		foreach ( static::$namespaces as $namespace => $base_dir ) {
-			// Does the class use the namespace prefix?
-			$len = strlen( $namespace );
-			if ( 0 !== strncmp( $namespace, $class, $len ) ) {
-				continue;
-			}
-			
-			// Get the relative class name.
-			$relative_class = substr( $class, $len );
-			
-			// Try to load the file
-			$file = static::get_file_path( $base_dir, $relative_class );
-			
-			if ( $file ) {
-				require_once $file;
-				break;
-			}
+	public static function add_namespace( string $namespace, string $base_dir ) : void {
+		if ( ! str_ends_with( $namespace, '\\' ) ) {
+			throw new \InvalidArgumentException( sprintf( 'The namespace "%s" must end with a backslash.', $namespace ) );
 		}
-	}
-	
-	/**
-	 * Convert class name to file path
-	 * 
-	 * @param string $base_dir   Base directory
-	 * @param string $class_name Relative class name
-	 * @return string|false File path or false if not found
-	 */
-	private static function get_file_path( $base_dir, $class_name ) : string|bool {
-		// Replace namespace separators with directory separators.
-		$class_name = str_replace( '\\', DIRECTORY_SEPARATOR, $class_name );
-		$filename   = $class_name . '.php';
-		$full_path  = $base_dir . $filename;
-		
-		return file_exists( $full_path ) ? $full_path : false;
-	}
-	
-	/**
-	 * Add a namespace mapping
-	 * 
-	 * @param string $namespace The namespace
-	 * @param string $base_dir  The base directory
-	 */
-	public static function add_namespace( $namespace, $base_dir ) {
-		static::$namespaces[ $namespace ] = rtrim( $base_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+
+		$composer = static::$composer;
+
+		if ( null === $composer ) {
+			throw new \LogicException( 'Composer\'s class loader is not available, so namespaces cannot be added.' );
+		}
+
+		if ( $composer->isClassMapAuthoritative() ) {
+			throw new \LogicException( 'Composer\'s class loader is classmap-authoritative and never looks up a namespace added at runtime.' );
+		}
+
+		$base_dir = rtrim( $base_dir, '/\\' );
+
+		if ( ! in_array( $base_dir, $composer->getPrefixesPsr4()[ $namespace ] ?? [], true ) ) {
+			$composer->addPsr4( $namespace, $base_dir );
+		}
 	}
 
 	/**
@@ -125,10 +113,18 @@ class Autoloader {
 	}
 
 	/**
-	 * Require composer autoloader
+	 * Require composer autoloader and keep its class loader.
 	 */
 	private static function require_vendor() : void {
-		require_once __DIR__ . '/../vendor/autoload.php';
+		$vendor = __DIR__ . '/../vendor';
+		$loader = require_once $vendor . '/autoload.php';
+
+		// require_once returns the loader only the first time the file is included.
+		if ( ! $loader instanceof ClassLoader ) {
+			$loader = ClassLoader::getRegisteredLoaders()[ realpath( $vendor ) ] ?? null;
+		}
+
+		static::$composer = $loader instanceof ClassLoader ? $loader : null;
 	}
 
 	/**
