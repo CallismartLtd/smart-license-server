@@ -69,7 +69,7 @@
 			if ( 'check' === action ) {
 				restore();
 				showUpdates( root, response?.data?.updates || {} );
-				SmliserToast.show( response?.data?.message || 'Done.', { type: 'success' } );
+				SmliserToast.show( response?.data?.message || 'Done.', { type: 'success', duration: 10000 } );
 				return;
 			}
 
@@ -109,7 +109,7 @@
 			done( await post( root.dataset.moduleKind, form.dataset.moduleForm, body ) );
 		} catch ( error ) {
 			restore();
-			SmliserToast.show( error?.message || 'The module could not be installed.', { type: 'error' } );
+			SmliserToast.show( error?.message || 'The module could not be installed.', { type: 'error', duration: 15000 } );
 		}
 	}
 
@@ -120,8 +120,8 @@
 	 * @return {void}
 	 */
 	function done( response ) {
-		( response?.data?.warnings || [] ).forEach( ( warning ) => SmliserToast.show( warning, { type: 'warning' } ) );
-		SmliserToast.show( response?.data?.message || 'Done.', { type: 'success' } );
+		( response?.data?.warnings || [] ).forEach( ( warning ) => SmliserToast.show( warning, { type: 'warning', duration: 10000 } ) );
+		SmliserToast.show( response?.data?.message || 'Done.', { type: 'success', duration: 10000 } );
 		setTimeout( () => window.location.reload(), 1500 );
 	}
 

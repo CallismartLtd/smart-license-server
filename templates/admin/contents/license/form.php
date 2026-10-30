@@ -8,6 +8,7 @@
  * @var \SmartLicenseServer\Admin\ContentHandlers\LicensePage $page_handler
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
  * @var \SmartLicenseServer\Monetization\License|null $license
+ * @var string $tab
  */
 
 defined( 'SMLISER_ROOT' ) || exit;

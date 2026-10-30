@@ -11,7 +11,8 @@
   word-wrap: normal !important;
 }
 
-.smliser-tools-actions {
+.smliser-tools-actions,
+.smliser-modules-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;

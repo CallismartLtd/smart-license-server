@@ -21,40 +21,101 @@ $fallback = $recorded !== $active;
 <div class="smliser-admin-page smliser-modules" id="smliser-modules" data-module-kind="theme">
 	<?php smliser_print_admin_content_header( $menu_args ); ?>
 
-	<?php if ( 'upload' === $section ) : ?>
-		<p class="smliser-section-description">
-			<i class="ti ti-info-circle"></i>
-			A theme package is a zip holding one folder named after the theme. Upload its .sha256 and .sha256.sig beside it; PHP is allowed only in templates/, and links, server configuration files and paths outside the theme folder are refused.
-		</p>
+	<?php if ( 'upload' === $section ) :
+		$form_fields	= [
+			[
+				'label'	=> 'Package (.zip)',
+				'help'	=> '',
+				'input'	=> [
+					'type'	=> 'file',
+					'name'	=> 'package',
+					'attr'	=> [
+						'accept'				=> '.zip, application/zip',
+						'required'				=> true,
+						'data-smliser-uploader'	=> true,
+					]
+				]
+			],
+			[
+				'label'	=> 'Checksums (.sha256)',
+				'help'	=> '',
+				'input'	=> [
+					'type'	=> 'file',
+					'name'	=> 'checksums',
+					'attr'	=> [
+						'accept'				=> '.sha256',
+						'data-smliser-uploader'	=> true
+					]
+				]
+			],
+			[
+				'label'	=> 'Signature (.sha256.sig)',
+				'help'	=> '',
+				'input'	=> [
+					'type'	=> 'file',
+					'name'	=> 'signature',
+					'attr'	=> [
+						'accept'				=> '.sig',
+						'data-smliser-uploader'	=> true
+					]
+				]
+			],
+			[
+				'label'	=> 'Overwrite',
+				'help'	=> 'Replace the installed theme of the same slug (same or newer version; downgrades are refused)',
+				'input'	=> [
+					'type'	=> 'checkbox',
+					'name'	=> 'replace',
+					'value'	=> '0'
+				]
+			],
+			[
+				'label'	=> 'Trust Package',
+				'help'	=> 'Trust this package without a valid signature (only for a package you built or received directly: its templates run on every public page)',
+				'input'	=> [
+					'type'	=> 'checkbox',
+					'name'	=> 'trust_unsigned',
+					'value'	=> '0'
+				]
+			],
+			[
+				'label'	=> 'Activate it once installed',
+				'help'	=> 'Activate this package after installing?',
+				'input'	=> [
+					'type'	=> 'checkbox',
+					'name'	=> 'activate',
+					'value'	=> '0'
+				]
+			],
+		];
+	
+	
+	?>
+		<form class="smliser-form-container" data-module-form="upload" enctype="multipart/form-data">
 
-		<form class="smliser-modules-form" data-module-form="upload" enctype="multipart/form-data">
-			<label class="smliser-modules-field">
-				<span>Package (.zip)</span>
-				<input type="file" name="package" accept=".zip,application/zip" required>
-			</label>
-			<label class="smliser-modules-field">
-				<span>Checksums (.sha256)</span>
-				<input type="file" name="checksums" accept=".sha256">
-			</label>
-			<label class="smliser-modules-field">
-				<span>Signature (.sha256.sig)</span>
-				<input type="file" name="signature" accept=".sig">
-			</label>
-			<label class="smliser-modules-check">
-				<input type="checkbox" name="replace" value="1">
-				<span>Replace the installed theme of the same slug <small>(same or newer version; downgrades are refused)</small></span>
-			</label>
-			<label class="smliser-modules-check">
-				<input type="checkbox" name="trust_unsigned" value="1">
-				<span>Trust this package without a valid signature <small>(only for a package you built or received directly: its templates run on every public page)</small></span>
-			</label>
-			<label class="smliser-modules-check">
-				<input type="checkbox" name="activate" value="1">
-				<span>Activate it once installed</span>
-			</label>
-			<div class="smliser-modules-form-footer">
-				<button type="submit" class="smliser-btn smliser-btn-glass"><i class="ti ti-upload"></i> Upload and install</button>
+			<div class="smliser-flex-form">
+				<?php foreach ( $form_fields as $field ) : ?>
+					<?php if ( 'checkbox' !== $field['input']['type'] ) : ?>
+						<?php smliser_render_input_field( $field ); ?>
+					<?php endif; ?>
+				<?php endforeach; ?>
 			</div>
+
+			<div class="smliser-form-row" style="gap: 20px;">
+				<?php foreach ( $form_fields as $field ) : ?>
+					<?php if ( 'checkbox' === $field['input']['type'] ) : ?>
+						<span class="smliser-form-row">
+							<?php smliser_render_field_help_icon( $field['help'], $field['input']['name'] ); ?>
+							<?php smliser_render_toggle_switch( $field['input'] ); ?>
+						</span>
+					<?php endif; ?>
+				<?php endforeach; ?>
+			</div>
+
+			<button type="submit" class="smliser-btn smliser-btn-glass">
+				<i class="ti ti-upload"></i> Upload and install
+			</button>
+
 		</form>
 	<?php else : ?>
 		<div class="smliser-modules-toolbar">
@@ -63,7 +124,7 @@ $fallback = $recorded !== $active;
 				<?php if ( $fallback ) : ?>
 					<?php echo escHtml( sprintf( 'The active theme "%s" cannot be used, so the default theme renders the public pages. The error log says why.', $recorded ) ); ?>
 				<?php else : ?>
-					Themes change how the public pages look; the admin dashboard is never themed.
+					Themes change how the public pages look.
 				<?php endif; ?>
 			</p>
 			<div class="smliser-modules-toolbar-actions">

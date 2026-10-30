@@ -143,7 +143,27 @@
 }
 
 .smliser-uploader__message {
-	margin: 0;
-	color: var(--smliser-uploader-error);
-	font-size: 12.5px;
+    position: relative;
+    margin: 4px 0 0;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--smliser-uploader-error) 30%, transparent);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--smliser-uploader-error) 7%, var(--smliser-uploader-surface));
+    color: var(--smliser-uploader-error);
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+/* Pointer connecting the message to the drop zone. */
+.smliser-uploader__message::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: 24px;
+    width: 10px;
+    height: 10px;
+    transform: rotate(45deg);
+    border-top: 1px solid color-mix(in srgb, var(--smliser-uploader-error) 30%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--smliser-uploader-error) 30%, transparent);
+    background: color-mix(in srgb, var(--smliser-uploader-error) 7%, var(--smliser-uploader-surface));
 }

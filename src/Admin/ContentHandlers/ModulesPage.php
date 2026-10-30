@@ -86,6 +86,8 @@ class ModulesPage implements AdminPageInterface {
 	) {
 		$this->assets_manager->set_style_category( self::ASSETS, AssetsManager::CATEGORY_ADMIN_DASHBOARD );
 		$this->assets_manager->set_script_category( self::ASSETS, AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+		$this->assets_manager->set_script_category( 'smliser-uploader', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
+		$this->assets_manager->set_style_category( 'smliser-uploader', AssetsManager::CATEGORY_ADMIN_DASHBOARD );
 	}
 
 	/*

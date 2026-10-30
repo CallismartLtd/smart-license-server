@@ -194,7 +194,10 @@
 		 * Listen to the zone, the input and the form.
 		 */
 		bind() {
-			this.zone.addEventListener( 'click', () => this.input.click() );
+			this.zone.addEventListener( 'click', e => {
+				e.preventDefault();
+				this.input.click();
+			});
 			this.zone.addEventListener( 'keydown', ( event ) => {
 				if ( 'Enter' === event.key || ' ' === event.key ) {
 					event.preventDefault();
@@ -233,8 +236,11 @@
 			} );
 
 			// A required input is hidden, so point the browser's complaint at the zone.
-			this.input.addEventListener( 'invalid', () => {
-				this.say( this.multiple ? 'Choose at least one file.' : 'Choose a file.' );
+			// Capture native form validation and present it through the uploader.
+			this.input.addEventListener( 'invalid', ( event ) => {
+				event.preventDefault();
+
+				this.say( this.input.validationMessage );
 				this.zone.focus();
 			} );
 		}
@@ -311,6 +317,7 @@
 			this.list.replaceChildren();
 			this.list.hidden = ! this.files.length;
 			this.root.classList.toggle( 'has-files', this.files.length > 0 );
+			this.zone.classList.toggle( 'smliser-hide', ! this.multiple && this.files.length > 0 );
 
 			this.files.forEach( ( file, index ) => {
 				const item = document.createElement( 'li' );

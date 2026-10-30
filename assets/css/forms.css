@@ -1480,6 +1480,7 @@ li.smliser-org-member .smliser-org-member_header img {
     }
 }
 
+.smliser-flex-form,
 .smliser-license-form {
     position: relative;
     display: flex;
