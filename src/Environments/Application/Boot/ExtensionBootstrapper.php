@@ -11,9 +11,9 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Boot;
 
+use SmartLicenseServer\Autoloader;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Environments\Application\Extensions\Extension;
-use SmartLicenseServer\Environments\Application\Extensions\ExtensionAutoloader;
 use SmartLicenseServer\Environments\Application\Extensions\ExtensionException;
 use SmartLicenseServer\Environments\Application\Extensions\ExtensionInterface;
 use SmartLicenseServer\Environments\Application\Extensions\ExtensionManager;
@@ -25,7 +25,8 @@ use SmartLicenseServer\Environments\Application\Extensions\ExtensionManager;
  * every other bootstrapper.
  *
  *  - register(): resolves the enabled extensions (ExtensionManager::resolve()),
- *    makes their classes loadable, builds each entry class through the
+ *    makes their classes loadable (Autoloader::add_namespace(), which
+ *    extends Composer's class loader), builds each entry class through the
  *    container and calls its register(), in dependency order.
  *  - boot(): calls each registered extension's boot(), in the same order.
  *
@@ -86,7 +87,6 @@ final class ExtensionBootstrapper implements BootstrapperInterface {
 	 */
 	public function register( Container $container ) : void {
 		$resolved = $container->get( ExtensionManager::class )->resolve();
-		$loader   = $container->get( ExtensionAutoloader::class );
 
 		foreach ( $resolved['skipped'] as $slug => $reason ) {
 			$this->failed[ $slug ] = true;
@@ -105,7 +105,7 @@ final class ExtensionBootstrapper implements BootstrapperInterface {
 			}
 
 			try {
-				$loader->add( $extension );
+				Autoloader::add_namespace( $extension->namespace, $extension->source_dir() );
 
 				$instance = $container->get( $extension->entry );
 

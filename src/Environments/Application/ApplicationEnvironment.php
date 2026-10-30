@@ -32,7 +32,6 @@ use SmartLicenseServer\Environments\Application\Maintenance\MaintenanceBypass;
 use SmartLicenseServer\Core\RequestFinisher;
 use SmartLicenseServer\Environments\Application\Assets\PublicAssets;
 use SmartLicenseServer\Environments\Application\Theming\ThemeManager;
-use SmartLicenseServer\Environments\Application\Extensions\ExtensionAutoloader;
 use SmartLicenseServer\Environments\Application\Extensions\ExtensionManager;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
 use SmartLicenseServer\Environments\Application\Installation\InstallerSession;
@@ -146,10 +145,6 @@ class ApplicationEnvironment extends Environment {
 		$this->container->singleton(
 			ExtensionManager::class,
 			fn () : ExtensionManager => ExtensionManager::from_runtime( $fs )
-		);
-		$this->container->singleton(
-			ExtensionAutoloader::class,
-			fn () : ExtensionAutoloader => new ExtensionAutoloader( $fs )
 		);
 
 		$this->adoptExistingInstallation();
