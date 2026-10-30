@@ -42,10 +42,10 @@ $chevron = '<svg class="smliser-diagnostics-panel-chevron" viewBox="0 0 24 24" w
 		</div>
 	</div>
 
-	<div class="smliser-diagnostics-grid">
+	<div class="smliser-diagnostics-grid" id="smliser-diagnostics-grid">
 
 		<?php /* Live status. */ ?>
-		<details class="smliser-diagnostics-panel smliser-health-panel smliser-health-tone--<?php echo escAttr( $tone ); ?>" id="smliser-background-live" open>
+		<details class="smliser-diagnostics-panel smliser-health-panel smliser-health-tone--<?php echo escAttr( $tone ); ?>" id="smliser-background-live">
 			<summary class="smliser-diagnostics-panel-summary">
 				<span class="smliser-diagnostics-panel-summary-left">
 					<span class="smliser-diagnostics-panel-icon"><i class="ti ti-activity-heartbeat"></i></span>

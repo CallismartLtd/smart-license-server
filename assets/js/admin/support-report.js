@@ -421,7 +421,7 @@
 		area.value         = value;
 		area.readOnly      = true;
 		area.spellcheck    = false;
-		area.style.cssText = 'width:100%;min-height:360px;box-sizing:border-box;font-family:monospace;font-size:12px;';
+		area.style.cssText = 'width:100%;min-height:360px;box-sizing:border-box;font-family:monospace;font-size:12px;resize:none;';
 		area.setAttribute( 'aria-label', 'Support report' );
 
 		const stamp  = report.generated.replace( /[-:]/g, '' ).replace( /\.\d+Z$/, '' ).replace( 'T', '-' );

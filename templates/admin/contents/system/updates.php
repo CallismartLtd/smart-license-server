@@ -119,7 +119,7 @@ $chevron = '<svg class="smliser-diagnostics-panel-chevron" viewBox="0 0 24 24" w
 		</ul>
 	</div>
 
-	<div class="smliser-diagnostics-grid">
+	<div class="smliser-diagnostics-grid" id="smliser-diagnostics-grid">
 
 		<?php /* Release and actions. */ ?>
 		<details class="smliser-diagnostics-panel smliser-health-panel smliser-health-tone--<?php echo escAttr( $check['available'] ? ( $check['security'] ? 'critical' : 'warning' ) : 'pass' ); ?>" open>

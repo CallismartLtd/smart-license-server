@@ -2068,8 +2068,12 @@
 		const distribute = ( panels, columnCount ) => {
 			// Measure before moving anything; moving nodes changes layout mid-measurement.
 			const heights = panels.map( ( panel ) => panel.getBoundingClientRect().height );
-			const columns = Array.from( { length: columnCount }, () => el( 'div', { className: 'smliser-diagnostics-column' } ) );
-			const totals  = new Array( columnCount ).fill( 0 );
+			const single  = 1 === panels.length;
+
+			// A lone panel gets one column, so there are no empty tracks beside it.
+			const count   = single ? 1 : columnCount;
+			const columns = Array.from( { length: count }, () => el( 'div', { className: 'smliser-diagnostics-column' } ) );
+			const totals  = new Array( count ).fill( 0 );
 
 			panels.forEach( ( panel, index ) => {
 				const shortest = totals.indexOf( Math.min( ...totals ) );
@@ -2078,7 +2082,11 @@
 				totals[ shortest ] += heights[ index ];
 			} );
 
-			grid.replaceChildren( el( 'div', { className: 'smliser-diagnostics-columns' }, ...columns ) );
+			const wrapper = el( 'div', { className: 'smliser-diagnostics-columns' }, ...columns );
+
+			wrapper.classList.toggle( 'smliser-diagnostics-columns--single', single );
+
+			grid.replaceChildren( wrapper );
 			grid.classList.add( 'smliser-diagnostics-grid--columns' );
 		};
 

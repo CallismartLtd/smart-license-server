@@ -75,7 +75,7 @@ $chevron = '<svg class="smliser-diagnostics-panel-chevron" viewBox="0 0 24 24" w
 		</div>
 	</div>
 
-	<div class="smliser-diagnostics-grid">
+	<div class="smliser-diagnostics-grid" id="smliser-diagnostics-grid">
 
 		<?php if ( $status['active'] ) : ?>
 			<?php /* Current maintenance. */ ?>

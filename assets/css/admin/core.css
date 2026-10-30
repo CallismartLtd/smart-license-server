@@ -2117,6 +2117,11 @@ input.smliser_toggle-switch-input {
     min-width: 0;
 }
 
+.smliser-diagnostics-columns--single {
+	grid-template-columns: minmax( 0, 640px );
+	justify-content: center;
+}
+
 .smliser-diagnostics-panel {
     background: var(--dashboard-surface);
     border: 1px solid var(--dashboard-border);

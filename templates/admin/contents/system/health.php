@@ -136,7 +136,7 @@ $async_config = [
 			</ul>
 		</div>
 
-		<div class="smliser-diagnostics-grid" id="smliser-health-grid">
+		<div class="smliser-diagnostics-grid" id="smliser-diagnostics-grid">
 			<details
 				class="smliser-diagnostics-panel smliser-health-panel smliser-health-tone--pending"
 				id="smliser-health-async"
