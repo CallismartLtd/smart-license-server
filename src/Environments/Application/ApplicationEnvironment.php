@@ -32,11 +32,14 @@ use SmartLicenseServer\Environments\Application\Maintenance\MaintenanceBypass;
 use SmartLicenseServer\Core\RequestFinisher;
 use SmartLicenseServer\Environments\Application\Assets\PublicAssets;
 use SmartLicenseServer\Environments\Application\Theming\ThemeManager;
+use SmartLicenseServer\Environments\Application\Extensions\ExtensionAutoloader;
+use SmartLicenseServer\Environments\Application\Extensions\ExtensionManager;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
 use SmartLicenseServer\Environments\Application\Installation\InstallerSession;
 use SmartLicenseServer\Environments\Application\Installation\SetupToken;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Environments\Application\Boot\DowntimeBootstrapper;
+use SmartLicenseServer\Environments\Application\Boot\ExtensionBootstrapper;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\CoreURLManager;
 use SmartLicenseServer\Core\DataStore;
@@ -139,6 +142,14 @@ class ApplicationEnvironment extends Environment {
 		$this->container->singleton(
 			ThemeManager::class,
 			fn () : ThemeManager => ThemeManager::from_runtime( $fs )
+		);
+		$this->container->singleton(
+			ExtensionManager::class,
+			fn () : ExtensionManager => ExtensionManager::from_runtime( $fs )
+		);
+		$this->container->singleton(
+			ExtensionAutoloader::class,
+			fn () : ExtensionAutoloader => new ExtensionAutoloader( $fs )
 		);
 
 		$this->adoptExistingInstallation();
@@ -314,6 +325,12 @@ class ApplicationEnvironment extends Environment {
 		} else {
 			$this->bootManager->add( new WebBootstrapper() );
 		}
+
+		/*
+		 * Extensions come last, so they boot after the core routes, registries
+		 * and theme services exist. They load only in the normal boot mode.
+		 */
+		$this->bootManager->add( new ExtensionBootstrapper( $this->bootModeResolver ) );
 
 		$this->bootManager->registerAll();
 	}
