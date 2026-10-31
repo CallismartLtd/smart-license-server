@@ -28,6 +28,7 @@ final class BuildContext {
 	 * @param string      $node        Node.js binary, used to run esbuild.
 	 * @param string|null $sign_key       Ed25519 signing key file; null builds an unsigned release.
 	 * @param bool        $allow_unsigned Allow a build without a signing key (local testing only).
+	 * @param bool        $production     Whether to use production build settings.
 	 */
 	public function __construct(
 		public readonly string $repo_root,
@@ -39,7 +40,8 @@ final class BuildContext {
 		public readonly bool $minify = true,
 		public readonly string $node = 'node',
 		public readonly ?string $sign_key = null,
-		public readonly bool $allow_unsigned = false
+		public readonly bool $allow_unsigned = false,
+		public readonly bool $production = false
 	) {}
 
 	/**

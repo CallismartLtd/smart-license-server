@@ -56,6 +56,7 @@ final class Builder {
 		$this->validate( $target );
 		$this->prepare_output();
 		$this->copy_sources( $target );
+		$this->configure_update_server( $target );
 		$this->copy_root_files( $target );
 
 		if ( $this->context->minify && $target->minify_assets() ) {
@@ -84,6 +85,40 @@ final class Builder {
 		$this->console->write(
 			sprintf( '%sDone in %.1fs → %s', PHP_EOL, microtime( true ) - $started, $this->context->out_dir )
 		);
+	}
+
+	/**
+	 * Set the update server URL in the copied application for production builds.
+	 *
+	 * The repository source stays configured for local development.
+	 *
+	 * @param AbstractTarget $target
+	 * @throws BuildException When the copied UpdateServer source cannot be updated.
+	 */
+	private function configure_update_server( AbstractTarget $target ) : void {
+		if ( ! $this->context->production ) {
+			return;
+		}
+
+		$path	= $this->context->target( $target->core_path() . '/Environments/Application/Update/UpdateServer.php' );
+
+		$source = @file_get_contents( $path );
+
+		if ( false === $source ) {
+			throw new BuildException( 'Could not read the copied UpdateServer.php for production configuration.' );
+		}
+
+		$local_host = "public const HOST = 'https://smliser.local';";
+		if ( 1 !== substr_count( $source, $local_host ) ) {
+			throw new BuildException( 'Could not find exactly one local UpdateServer::HOST declaration to replace.' );
+		}
+
+		$production_host = "public const HOST = 'https://apiv1.callismart.com.ng';";
+		if ( false === file_put_contents( $path, str_replace( $local_host, $production_host, $source ) ) ) {
+			throw new BuildException( 'Could not write the production UpdateServer::HOST declaration.' );
+		}
+
+		$this->console->success( 'Update server URL set to https://apiv1.callismart.com.ng' );
 	}
 
 	/*

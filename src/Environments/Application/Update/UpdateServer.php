@@ -32,11 +32,10 @@ final class UpdateServer {
 	use UpdateProgressTrait;
 
 	/**
-	 * The update server. Set by hand; point it at a mock server to test.
+	 * The update server URL.
 	 *
 	 * @var string
 	 */
-	// public const HOST = 'https://apiv1.callismart.com.ng';
 	public const HOST = 'https://smliser.local';
 
 	/**

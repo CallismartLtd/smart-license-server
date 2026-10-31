@@ -25,6 +25,7 @@
  *   --npm=<path>        npm binary, used once to install esbuild. Default: npm
  *   --node=<path>       Node.js binary, used to run esbuild. Default: node
  *   --no-minify         Skip writing minified *.min.js / *.min.css assets.
+ *   --production        Build with the production update server URL.
  *   --sign-key=<path>   Ed25519 key that signs the .sha256 checksums. Default: the path in
  *                       SMLISER_SIGNING_KEY. Required: the build stops unless its public
  *                       key is listed in ReleaseSignature::PUBLIC_KEYS, so every release
@@ -93,7 +94,7 @@ $console = new BuildConsole();
 try {
 	// getopt() stops at the first positional argument, so parse by hand to
 	// allow options on either side of the target name.
-	$allowed = [ 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'help' => false, 'sign-key' => true, 'generate-key' => true, 'allow-unsigned' => false ];
+	$allowed = [ 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'production' => false, 'help' => false, 'sign-key' => true, 'generate-key' => true, 'allow-unsigned' => false ];
 	$options = [];
 	$name    = null;
 
@@ -164,7 +165,8 @@ try {
 		! isset( $options['no-minify'] ),
 		(string) ( $options['node'] ?? 'node' ),
 		( $options['sign-key'] ?? getenv( 'SMLISER_SIGNING_KEY' ) ) ?: null,
-		isset( $options['allow-unsigned'] )
+		isset( $options['allow-unsigned'] ),
+		isset( $options['production'] )
 	);
 
 	( new Builder( $context, $console ) )->run( new $targets[ $name ]() );
