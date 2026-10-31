@@ -12,6 +12,7 @@ namespace SmartLicenseServer\Environments\Application\Update;
 
 use Callismart\Http\HttpClient;
 use SmartLicenseServer\FileSystem\FileSystem;
+use SmartLicenseServer\HostedApps\MarketplaceAttestation;
 use Throwable;
 
 /**
@@ -30,6 +31,8 @@ use Throwable;
 final class UpdateServer {
 
 	use UpdateProgressTrait;
+
+	private PackageVerifier $marketplace_verifier;
 
 	/**
 	 * The update server URL.
@@ -77,14 +80,18 @@ final class UpdateServer {
 	 * Constructor.
 	 *
 	 * @param HttpClient      $http     Outgoing HTTP client.
-	 * @param PackageVerifier $verifier Checks the downloaded package.
-	 * @param FileSystem      $fs       Filesystem API.
+	 * @param PackageVerifier      $verifier             Checks application releases.
+	 * @param FileSystem           $fs                   Filesystem API.
+	 * @param PackageVerifier|null $marketplace_verifier Checks hosted app packages.
 	 */
 	public function __construct(
 		private HttpClient $http,
 		private PackageVerifier $verifier,
-		private FileSystem $fs
-	) {}
+		private FileSystem $fs,
+		?PackageVerifier $marketplace_verifier = null
+	) {
+		$this->marketplace_verifier = $marketplace_verifier ?? $verifier;
+	}
 
 	/**
 	 * The latest release the update server publishes.
@@ -280,7 +287,10 @@ final class UpdateServer {
 		$this->report( $progress, 'download', self::STATUS_OK, sprintf( 'Downloaded %s (%s) to %s.', basename( $zip ), $this->size( $zip ), $zip ) );
 
 		try {
-			$verified = $this->verifier->verify( $zip, $checksums, $signature, $trust_unsigned, $progress );
+			$marketplace_module = in_array( $app_type, MarketplaceAttestation::REQUIRED_APP_TYPES, true );
+			$identity = $marketplace_module ? [ 'type' => $app_type, 'slug' => $app_slug, 'artifact' => $base . '.zip' ] : null;
+			$verifier = $marketplace_module ? $this->marketplace_verifier : $this->verifier;
+			$verified = $verifier->verify( $zip, $checksums, $signature, $trust_unsigned, $progress, $identity );
 		} catch ( UpdateException $e ) {
 			$this->discard( $zip );
 			throw $e;

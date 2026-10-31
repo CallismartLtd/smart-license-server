@@ -21,6 +21,7 @@ use SmartLicenseServer\FileSystem\SmliserExtensionRepository;
 use SmartLicenseServer\FileSystem\SmliserThemeRepository;
 use SmartLicenseServer\FileSystem\WPThemeRepository;
 use SmartLicenseServer\HostedApps\Storage\AppFile;
+use SmartLicenseServer\HostedApps\Storage\AppStorage;
 
 /**
  * Centralized registry for managing any type of 
@@ -76,7 +77,8 @@ class HostedAppsRegistry extends AbstractRegistry {
 	 *  labels?: array{singular: string, plural: string},
 	 *  description?: string,
 	 *  icon?: string,
-	 *  storage_dir?: string
+	 *  storage_dir?: string,
+	 *  marketplace_attestation?: bool
 	 * }|null $data The app class, its directory class and, optionally, the
 	 *              names people read (see get_app_type_labels()).
 	 * @return static
@@ -117,6 +119,10 @@ class HostedAppsRegistry extends AbstractRegistry {
 
 		if ( isset( $data['storage_dir'] ) && ( ! is_string( $data['storage_dir'] ) || ! AppFile::is_segment( $data['storage_dir'] ) ) ) {
 			throw new InvalidArgumentException( sprintf( 'The storage_dir for hosted app type "%s" must be a valid directory name.', $type ) );
+		}
+
+		if ( isset( $data['marketplace_attestation'] ) && ! is_bool( $data['marketplace_attestation'] ) ) {
+			throw new InvalidArgumentException( sprintf( 'marketplace_attestation for hosted app type "%s" must be a boolean.', $type ) );
 		}
 
 		// Core registry entries always win.
@@ -172,7 +178,8 @@ class HostedAppsRegistry extends AbstractRegistry {
 	 *  labels?: array{singular: string, plural: string},
 	 *  description?: string,
 	 *  icon?: string,
-	 *  storage_dir?: string
+	 *  storage_dir?: string,
+	 *  marketplace_attestation?: bool
 	 * }|null $entry 
 	 */
 	public function get_app_type_data( string $type ) : ?array {
@@ -188,7 +195,8 @@ class HostedAppsRegistry extends AbstractRegistry {
 		 *  labels?: array{singular: string, plural: string},
 		 *  description?: string,
 		 *  icon?: string,
-		 *  storage_dir?: string
+		 *  storage_dir?: string,
+		 *  marketplace_attestation?: bool
 		 * }|null $entry 
 		 */
 		return $entry;
@@ -216,6 +224,43 @@ class HostedAppsRegistry extends AbstractRegistry {
 		}
 
 		return $directories;
+	}
+
+	/**
+	 * Whether uploads of ZIP artifacts for a hosted type should receive a
+	 * marketplace attestation. Custom hosted types may opt in at registration.
+	 */
+	public function uses_marketplace_attestation( string $type ) : bool {
+		$data = $this->get_app_type_data( $type );
+		return true === ( $data['marketplace_attestation'] ?? false );
+	}
+
+	/**
+	 * Create the marketplace checksum and signature for a hosted artifact.
+	 *
+	 * This operation is available to every registered hosted app type; whether
+	 * uploads invoke it automatically is controlled by the type registration.
+	 *
+	 * @return array{filename: string, sha256: string, signature: string}
+	 */
+	public function attest_artifact( string $type, string $slug, string $filename ) : array {
+		$type = $this->normalize_app_type( $type );
+
+		if ( ! $this->is_app_type_registered( $type ) ) {
+			throw new InvalidArgumentException( sprintf( 'Hosted app type "%s" is not registered.', $type ) );
+		}
+
+		return $this->container->get( MarketplaceAttestation::class )->attest(
+			$this->container->get( AppStorage::class ),
+			$type,
+			$slug,
+			$filename
+		);
+	}
+
+	/** Ensure marketplace signing configuration is valid before a package write. */
+	public function assert_attestation_configured() : void {
+		$this->container->get( MarketplaceAttestation::class )->assert_configured();
 	}
 
 	/**
@@ -396,6 +441,7 @@ class HostedAppsRegistry extends AbstractRegistry {
 				'description'     => 'Upload themes for Smliser applications.',
 				'icon'            => 'ti ti-palette',
 				'storage_dir'     => 'smliser-theme',
+				'marketplace_attestation' => true,
 			],
 			'smliser-extension' => [
 				'class'           => SmliserExtension::class,
@@ -404,6 +450,7 @@ class HostedAppsRegistry extends AbstractRegistry {
 				'description'     => 'Upload extensions for Smliser applications.',
 				'icon'            => 'ti ti-puzzle',
 				'storage_dir'     => 'smliser-extension',
+				'marketplace_attestation' => true,
 			],
 		];
 

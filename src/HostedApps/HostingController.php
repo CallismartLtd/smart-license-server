@@ -611,6 +611,19 @@ class HostingController {
 				);
 			}
 
+			$requires_attestation = $registry->uses_marketplace_attestation( $app_type )
+				&& str_ends_with( strtolower( $canonical_filename ), '.zip' );
+
+			if ( $requires_attestation ) {
+				if ( null === $artifact_file ) {
+					throw new RequestException( 'invalid_input', 'Re-upload this ZIP so the marketplace can attest its new artifact name.' );
+				}
+
+				// Refuse before the ZIP is stored if the hosting service has no
+				// matching marketplace key configured.
+				$registry->assert_attestation_configured();
+			}
+
 			if ( null === $artifact_file ) {
 
 				if ( ! $is_edit ) {
@@ -636,6 +649,14 @@ class HostingController {
 					$response_data->get_error_code(),
 					$response_data->get_error_message(),
 					$response_data->get_error_data()
+				);
+			}
+
+			if ( $requires_attestation ) {
+				$response_data['attestation'] = $registry->attest_artifact(
+					$app_type,
+					$app->get_slug(),
+					$canonical_filename
 				);
 			}
 

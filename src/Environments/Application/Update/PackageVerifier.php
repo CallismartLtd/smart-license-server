@@ -55,7 +55,7 @@ final class PackageVerifier {
 	 *
 	 * @throws UpdateException When a check fails.
 	 */
-	public function verify( string $zip, ?string $checksums, ?string $signature, bool $trust_unsigned = false, ?callable $progress = null ) : array {
+	public function verify( string $zip, ?string $checksums, ?string $signature, bool $trust_unsigned = false, ?callable $progress = null, ?array $expected_identity = null ) : array {
 		$name   = basename( $zip );
 		$actual = $this->fs->is_file( $zip ) ? hash_file( 'sha256', $zip ) : false;
 
@@ -74,6 +74,10 @@ final class PackageVerifier {
 			$this->report( $progress, 'verify', self::STATUS_WARNING, sprintf( '%s has no checksums file (accepted: --trust-unsigned). SHA-256 %s.', $name, $actual ) );
 
 			return $result;
+		}
+
+		if ( null !== $expected_identity && ! $this->matches_attestation_identity( $checksums, $expected_identity ) ) {
+			throw new UpdateException( 'The marketplace attestation does not match this hosted app and artifact.' );
 		}
 
 		$signer = null === $signature || ! $this->signature->configured() ? null : $this->signature->signer( $checksums, $signature );
@@ -107,6 +111,25 @@ final class PackageVerifier {
 		$this->report( $progress, 'verify', self::STATUS_OK, sprintf( '%s matches its published SHA-256 %s.', $name, $actual ) );
 
 		return $result;
+	}
+
+	/**
+	 * Check the identity header included in marketplace-signed checksum files.
+	 *
+	 * @param array{type: string, slug: string, artifact: string} $expected
+	 */
+	private function matches_attestation_identity( string $checksums, array $expected ) : bool {
+		$headers = [];
+		foreach ( preg_split( '/\R/', $checksums ) ?: [] as $line ) {
+			if ( 1 === preg_match( '/^# (type|slug|artifact): (.+)$/', trim( $line ), $match ) ) {
+				$headers[ $match[1] ] = $match[2];
+			}
+		}
+
+		return str_contains( $checksums, "# smliser-marketplace-attestation-v1\n" )
+			&& ( $headers['type'] ?? null ) === $expected['type']
+			&& ( $headers['slug'] ?? null ) === $expected['slug']
+			&& ( $headers['artifact'] ?? null ) === $expected['artifact'];
 	}
 
 	/**
