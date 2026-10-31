@@ -1120,6 +1120,17 @@ class SystemHealth {
 		$page     = 'Tools > Background Processing';
 
 		if ( null === $detected['mode'] ) {
+			if ( $detected['scheduler'] || $detected['worker'] ) {
+				$message = $detected['scheduler']
+					? 'The standalone scheduler is running, but queued jobs need a queue worker to process them.'
+					: 'The queue worker is running, but scheduled tasks need an automatic scheduler trigger.';
+				$recommendation = $detected['scheduler']
+					? 'Start the queue worker shown in Tools > Background Processing. On shared hosting, use the combined `smliser cron` command instead.'
+					: 'Add the scheduler cron job shown in Tools > Background Processing, or use the combined `smliser cron` command.';
+
+				return [ $this->make_check( 'background_processing', 'Background Processing', 'warning', $message, $recommendation ) ];
+			}
+
 			if ( null === $last ) {
 				return [ $this->make_check(
 					'background_processing',

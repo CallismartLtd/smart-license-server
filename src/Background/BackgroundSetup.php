@@ -87,30 +87,32 @@ final class BackgroundSetup {
 	/**
 	 * What runs background work now.
 	 *
-	 * "mode" is null when nothing runs the scheduled tasks: never set up, or
-	 * stopped (a worker without cron runs jobs but not the schedules).
+	 * "mode" is null when no complete runner combination is active. The
+	 * standalone scheduler and queue worker need to be active together;
+	 * `smliser cron` and the cron URL each handle both kinds of work.
 	 *
-	 * @return array{mode: ?string, cron: bool, worker: bool, url: bool, last: ?array{source: string, at: string, age: int}}
+	 * @return array{mode: ?string, cron: bool, scheduler: bool, worker: bool, url: bool, last: ?array{source: string, at: string, age: int}}
 	 */
 	public function detect() : array {
-		$cron = $this->alive( BackgroundStatus::SOURCE_CLI_CRON, self::CRON_ALIVE )
-			|| $this->alive( BackgroundStatus::SOURCE_SCHEDULE_RUN, self::CRON_ALIVE );
-		$worker = $this->alive( BackgroundStatus::SOURCE_WORKER, self::WORKER_ALIVE );
-		$url    = $this->alive( BackgroundStatus::SOURCE_CRON_URL, self::CRON_ALIVE );
+		$cron      = $this->alive( BackgroundStatus::SOURCE_CLI_CRON, self::CRON_ALIVE );
+		$scheduler = $this->alive( BackgroundStatus::SOURCE_SCHEDULE_RUN, self::CRON_ALIVE );
+		$worker    = $this->alive( BackgroundStatus::SOURCE_WORKER, self::WORKER_ALIVE );
+		$url       = $this->alive( BackgroundStatus::SOURCE_CRON_URL, self::CRON_ALIVE );
 
 		$mode = match ( true ) {
-			$cron && $worker => self::MODE_SERVER,
-			$cron            => self::MODE_PANEL,
-			$url             => self::MODE_URL,
-			default          => null,
+			$worker && ( $cron || $scheduler ) => self::MODE_SERVER,
+			$cron                               => self::MODE_PANEL,
+			$url                                => self::MODE_URL,
+			default                             => null,
 		};
 
 		return [
-			'mode'   => $mode,
-			'cron'   => $cron,
-			'worker' => $worker,
-			'url'    => $url,
-			'last'   => $this->status->latest_runner(),
+			'mode'      => $mode,
+			'cron'      => $cron,
+			'scheduler' => $scheduler,
+			'worker'    => $worker,
+			'url'       => $url,
+			'last'      => $this->status->latest_runner(),
 		];
 	}
 
@@ -137,12 +139,16 @@ final class BackgroundSetup {
 			];
 		}
 
-		if ( $detected['worker'] ) {
+		if ( $detected['scheduler'] || $detected['worker'] ) {
+			$message = $detected['scheduler']
+				? 'The scheduler runs scheduled tasks, but no queue worker processes dispatched jobs: start the queue worker below.'
+				: 'The queue worker runs jobs, but no automatic trigger runs scheduled tasks: add the scheduler cron job below.';
+
 			return [
 				'tone'    => 'warning',
 				'icon'    => 'ti ti-alert-triangle',
 				'title'   => 'Partly running',
-				'message' => 'The queue worker runs jobs, but nothing runs the scheduled tasks: add the scheduler cron job below.',
+				'message' => $message,
 			];
 		}
 
@@ -176,7 +182,7 @@ final class BackgroundSetup {
 	public function runners() : array {
 		$sources = [
 			BackgroundStatus::SOURCE_CLI_CRON     => [ 'Cron (smliser cron)', self::CRON_ALIVE ],
-			BackgroundStatus::SOURCE_SCHEDULE_RUN => [ 'Cron (smliser schedule run)', self::CRON_ALIVE ],
+			BackgroundStatus::SOURCE_SCHEDULE_RUN => [ 'Scheduler command (smliser schedule run)', self::CRON_ALIVE ],
 			BackgroundStatus::SOURCE_WORKER       => [ 'Queue worker (smliser queue work)', self::WORKER_ALIVE ],
 		];
 
@@ -301,13 +307,14 @@ final class BackgroundSetup {
 		$user    = $env['user'] ?? 'www-data';
 		$group   = $env['group'] ?? $user;
 		$console = $root . '/' . self::CONSOLE;
+		$log     = rtrim( (string) \SMLISER_LOGS_DIR, '/\\' ) . '/background-cron.log';
 
 		return [
 			'steps' => [
 				[
 					'title'   => 'Run the scheduler every minute',
-					'content' => "* * * * * cd {$root} && {$php} " . self::CONSOLE . ' schedule run >> /dev/null 2>&1',
-					'note'    => sprintf( 'Add it to the crontab of %s (crontab -u %s -e), the user PHP runs as for this site, so files it creates stay writable.', $user, $user ),
+					'content' => '* * * * * cd ' . escapeshellarg( $root ) . ' && ' . escapeshellarg( $php ) . ' ' . self::CONSOLE . ' schedule run >> ' . escapeshellarg( $log ) . ' 2>&1',
+					'note'    => sprintf( 'Add it to the crontab of %s (crontab -u %s -e), the user PHP runs as for this site, so files it creates stay writable. Output is appended to %s.', $user, $user, $log ),
 				],
 				[
 					'title'   => 'systemd: /etc/systemd/system/smliser-worker.service',
@@ -368,6 +375,7 @@ final class BackgroundSetup {
 	 */
 	private function panel_config() : array {
 		$env = $this->environment();
+		$log = rtrim( (string) \SMLISER_LOGS_DIR, '/\\' ) . '/background-cron.log';
 
 		return [
 			'steps' => [
@@ -383,8 +391,8 @@ final class BackgroundSetup {
 				],
 				[
 					'title'   => 'Command',
-					'content' => "cd {$env['root']} && {$env['php']} " . self::CONSOLE . ' cron >/dev/null 2>&1',
-					'note'    => 'Runs the due scheduled tasks, then queued jobs for up to 45 seconds. Runs never overlap.',
+					'content' => 'cd ' . escapeshellarg( $env['root'] ) . ' && ' . escapeshellarg( $env['php'] ) . ' ' . self::CONSOLE . ' cron >> ' . escapeshellarg( $log ) . ' 2>&1',
+					'note'    => 'Runs the due scheduled tasks, then queued jobs for up to 45 seconds. Runs never overlap. Output is appended to ' . $log . '.',
 				],
 			],
 			'notes' => $this->php_notes( $env ),
