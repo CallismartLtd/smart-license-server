@@ -114,7 +114,7 @@ final class ThemeInstaller extends ModuleInstaller {
 	 * {@inheritdoc}
 	 */
 	protected function publish_action() : string {
-		return 'run `site-theme publish`';
+		return 'run `theme publish`';
 	}
 
 	/**

@@ -52,7 +52,8 @@ use SmartLicenseServer\Console\Commands\ScheduleCommand;
 use SmartLicenseServer\Console\Commands\ServerCommand;
 use SmartLicenseServer\Console\Commands\SettingsCommand;
 use SmartLicenseServer\Console\Commands\UserCommand;
-use SmartLicenseServer\Console\Commands\SiteThemeCommand;
+use SmartLicenseServer\Console\Commands\ThemeCommand;
+use SmartLicenseServer\Console\Commands\ExtensionCommand;
 use SmartLicenseServer\Console\Commands\TestCommand;
 use SmartLicenseServer\Console\Commands\Update;
 use SmartLicenseServer\Console\Commands\WhoAmI;
@@ -94,7 +95,8 @@ class CommandRegistry extends AbstractRegistry {
 		CronCommand::class,
 		DiagnoseCommand::class,
 		MaintenanceCommand::class,
-		SiteThemeCommand::class,
+		ThemeCommand::class,
+		ExtensionCommand::class,
 	];
 
 	/*

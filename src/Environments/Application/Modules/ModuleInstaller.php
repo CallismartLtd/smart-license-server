@@ -189,7 +189,7 @@ abstract class ModuleInstaller {
 	/**
 	 * What to do when assets could not be published, as a sentence start in lowercase.
 	 *
-	 * @return string E.g. "run `site-theme publish`".
+	 * @return string E.g. "run `theme publish`".
 	 */
 	abstract protected function publish_action() : string;
 
