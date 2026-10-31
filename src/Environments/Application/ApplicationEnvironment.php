@@ -274,7 +274,7 @@ class ApplicationEnvironment extends Environment {
 			fn ( Container $c ) : DirectoryAppStorage => new DirectoryAppStorage(
 				$c->get( FileSystem::class ),
 				SMLISER_REPO_DIR,
-				DirectoryAppStorage::CORE_TYPE_DIRS
+				$c->get( HostedAppsRegistry::class )->get_app_storage_type_dirs()
 			)
 		);
 		

@@ -289,7 +289,7 @@
 			const crumbs = [ { label: 'All types', type: '', slug: '' } ];
 
 			if ( this.type ) {
-				crumbs.push( { label: StringUtils.ucfirst( this.type ), type: this.type, slug: '' } );
+				crumbs.push( { label: this.type, type: this.type, slug: '' } );
 			}
 
 			if ( this.slug ) {
@@ -405,7 +405,7 @@
 			for ( const entry of entries ) {
 				const button = el( 'button', { type: 'button', class: 'smliser-repo-browser__folder' },
 					el( 'i', { class: 'root' === level ? 'ti ti-folders' : 'ti ti-folder', 'aria-hidden': 'true' } ),
-					el( 'span', { class: 'smliser-repo-browser__folder-name' }, 'root' === level ? StringUtils.ucfirst( entry.name ) : entry.name ),
+					el( 'span', { class: 'smliser-repo-browser__folder-name' }, 'root' === level ? entry.name : entry.name ),
 					el( 'span', { class: 'smliser-repo-browser__meta' }, entry.mtime ? `Changed ${ formatDate( entry.mtime ) }` : '' )
 				);
 

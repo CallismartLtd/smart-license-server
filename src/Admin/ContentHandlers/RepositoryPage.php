@@ -83,7 +83,8 @@ class RepositoryPage implements AdminPageInterface {
 			$add_url = $add_url->add_query_param( 'type', $current_url->get_query_param( 'type' ) );
 		}
 
-		$page_title = '' === (string) $type ? 'Repository' : \sprintf( '%s Repository', HostedAppsRegistry::instance()->get_app_type_label( (string) $type ) );
+		$page_title        = '' === (string) $type ? 'Repository' : \sprintf( '%s Repository', HostedAppsRegistry::instance()->get_app_type_label( (string) $type ) );
+		$app_type_actions = $this->app_type_actions( (string) $type );
 
 		if ( $has_status ) {
 			$page_title = sprintf( 'Status: %s', $status );
@@ -92,7 +93,7 @@ class RepositoryPage implements AdminPageInterface {
 		$urlmanager = $this->urlmanager;
 		$repo_page  = $this;
 		$vars       = compact( 'repo_page', 'urlmanager', 'add_url', 'apps', 'page_title',
-			'pagination', 'current_url', 'request', 'type', 'status'
+			'pagination', 'current_url', 'request', 'type', 'status', 'app_type_actions'
 		);
 		$this->locator->render( 'admin.contents.repository.index', $vars );
 
@@ -147,43 +148,20 @@ class RepositoryPage implements AdminPageInterface {
 					'label' => 'Repository',
 					'url'   => $this->urlmanager->admin_repo_url()->url()
 				],
-
-				[
-					'label' => 'Search Repository'
-				]
+				[ 'label' => 'Search Repository' ]
 			],
-
-			'actions' => [
+			'actions' => array_merge(
 				[
-					'title' => 'Upload New Application',
-					'label' => 'Upload New',
-					'url'   => $add_url->url(),
-					'icon'  => 'ti ti-upload',
+					[
+						'title' => 'Upload New Application',
+						'label' => 'Upload New',
+						'url'   => $add_url->url(),
+						'icon'  => 'ti ti-upload',
+					],
 				],
-
-				[
-					'title' => 'WordPress Plugin Repository',
-					'label' => 'WordPress Plugins',
-					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'wpplugin' )->url(),
-					'icon'  => 'ti ti-plug',
-				],
-				
-				[
-					'title' => 'WordPress Theme Repository',
-					'label' => 'WordPress Themes',
-					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'wptheme' )->url(),
-					'icon'  => 'ti ti-palette',
-				],
-				
-				[
-					'title' => 'Software Repository',
-					'label' => 'Software',
-					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', 'software' )->url(),
-					'icon'  => 'ti ti-device-desktop-code',
-				],
-			]
+				$this->app_type_actions()
+			),
 		];
-		
 		$urlmanager = $this->urlmanager;
 		$repo_page  = $this;
 		$vars       = compact( 'repo_page', 'urlmanager', 'add_url', 'apps', 'pagination', 'current_url', 'request', 'menu_args',
@@ -197,10 +175,16 @@ class RepositoryPage implements AdminPageInterface {
 	public function upload_page( Request $request ) {
 		$type = $request->get( 'type', null );
 
+		if ( $type && ! HostedApplicationService::app_type_is_allowed( $type ) ) {
+			echo smliser_not_found_container( 'This hosted app type is not registered.' );
+			return;
+		}
+
 		$slug = $type ? 'uploader' : 'upload';
 
 		$type_title = $type ? HostedAppsRegistry::instance()->get_app_type_label( $type ) : '';
 		$title      = \sprintf( 'Upload New %s', $type_title );
+		$app_type_options = $this->app_type_options();
 
 		$essential_fields = self::prepare_essential_app_fields( $request );
 		$app_action       = [
@@ -212,7 +196,7 @@ class RepositoryPage implements AdminPageInterface {
 
 		$urlmanager = $this->urlmanager;
 		$repo_page  = $this;
-		$vars       = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'title', 'request', 'essential_fields', 'type' );
+		$vars       = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'title', 'request', 'essential_fields', 'type', 'app_type_options' );
 		$this->locator->render( "admin.contents.repository.{$slug}", $vars );
 	}
 
@@ -265,7 +249,8 @@ class RepositoryPage implements AdminPageInterface {
 		$urlmanager = $this->urlmanager;
 		$repo_page  = $this;
 		$vars       = compact( 'repo_page', 'urlmanager', 'type_title', 'app_action', 'request', 'essential_fields', 'type', 'app' );
-		$this->locator->render( "admin.contents.repository.edit-{$type}", $vars );
+		$template = "admin.contents.repository.edit-{$type}";
+		$this->locator->render( $this->locator->exists( $template ) ? $template : 'admin.contents.repository.edit-generic', $vars );
 	}
 
 	/**
@@ -463,7 +448,8 @@ class RepositoryPage implements AdminPageInterface {
 			'template_header', 'template_sidebar'
 		);
 		
-		$this->locator->render( "admin.contents.repository.view-{$type}", $vars );
+		$template = "admin.contents.repository.view-{$type}";
+		$this->locator->render( $this->locator->exists( $template ) ? $template : 'admin.contents.repository.view-generic', $vars );
 	}
 
 	/**
@@ -543,6 +529,55 @@ class RepositoryPage implements AdminPageInterface {
 
 		$vars = compact( 'repo_page', 'urlmanager', 'request', 'monetization', 'is_new', 'app', 'url', 'providers', 'provider_fields' );
 		$this->locator->render( 'admin.contents.repository.monetization', $vars );
+	}
+
+	/**
+	 * Build links for all registered app types.
+	 *
+	 * @param string|null $active_type Type whose repository is currently open.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function app_type_actions( ?string $active_type = null ) : array {
+		$registry = HostedAppsRegistry::instance();
+		$actions  = [];
+
+		foreach ( $registry->app_types() as $type ) {
+			$data   = $registry->get_app_type_data( $type ) ?? [];
+			$plural = $registry->get_app_type_label( $type, true );
+			$actions[] = [
+				'title'  => sprintf( '%s Repository', $plural ),
+				'label'  => $plural,
+				'url'    => $this->urlmanager->admin_repo_url( '', [ 'type' => $type ] )->url(),
+				'icon'   => $data['icon'] ?? 'ti ti-package',
+				'active' => $type === $active_type,
+			];
+		}
+
+		return $actions;
+	}
+
+	/**
+	 * Build upload cards for every registered app type.
+	 *
+	 * @return array<int, array{type: string, label: string, description: string, icon: string, url: string}>
+	 */
+	private function app_type_options() : array {
+		$registry = HostedAppsRegistry::instance();
+		$options  = [];
+
+		foreach ( $registry->app_types() as $type ) {
+			$data = $registry->get_app_type_data( $type ) ?? [];
+			$label = $registry->get_app_type_label( $type );
+			$options[] = [
+				'type'        => $type,
+				'label'       => $label,
+				'description' => $data['description'] ?? sprintf( 'Upload and manage %s.', strtolower( $registry->get_app_type_label( $type, true ) ) ),
+				'icon'        => $data['icon'] ?? 'ti ti-package',
+				'url'         => $this->urlmanager->admin_repo_url( 'add-new', [ 'type' => $type ] )->url(),
+			];
+		}
+
+		return $options;
 	}
 
 	/**
@@ -669,7 +704,8 @@ class RepositoryPage implements AdminPageInterface {
 	 */
 	public function get_menu_args( Request $request, ?HostedAppsInterface $app = null ) : array {
 		$tab      = $request->get( 'tab' ) ?? $request->route_param( 'tab' );
-		$app_type = HostedAppsRegistry::instance()->get_app_type_label( (string) ( $app?->get_type() ?? $request->get( 'type', '' ) ) );
+		$type     = (string) ( $app?->get_type() ?? $request->get( 'type', '' ) );
+		$app_type = HostedAppsRegistry::instance()->get_app_type_label( $type );
 		$app_name = $app?->get_name() ?? '';
 
 		$title = match( $tab ) {
@@ -690,7 +726,7 @@ class RepositoryPage implements AdminPageInterface {
 				],
 
 				[
-					'label' => HostedAppsRegistry::instance()->get_app_type_label( (string) ( $app?->get_type() ?? $request->get( 'type', '' ) ), true ),
+					'label' => HostedAppsRegistry::instance()->get_app_type_label( $type, true ),
 					'url'   => $this->urlmanager->admin_repo_url()->add_query_param( 'type', ( $app?->get_type() ?? $request->get( 'type', '' ) ) ),
 					'icon'  => 'ti ti-folder-open'
 				],
@@ -705,7 +741,7 @@ class RepositoryPage implements AdminPageInterface {
 					'url'   => $this->urlmanager->admin_repo_url( 'edit',
 						[
 							'app_id' => $app?->get_id() ?? 0,
-							'type'   => $app?->get_type() ?? $app_type,
+							'type'   => $type,
 						]
 					),
 					'icon'   => 'ti ti-edit',
@@ -718,7 +754,7 @@ class RepositoryPage implements AdminPageInterface {
 					'url'   => $this->urlmanager->admin_repo_url( 'view',
 						[
 							'app_id' => $app?->get_id() ?? 0,
-							'type'   => $app?->get_type() ?? '',
+							'type'   => $type,
 						]
 					),
 					'icon'   => 'ti ti-eye',
@@ -731,7 +767,7 @@ class RepositoryPage implements AdminPageInterface {
 					'url'   => $this->urlmanager->admin_repo_url( 'monetization',
 						[
 							'app_id' => $app?->get_id() ?? 0,
-							'type'   => $app?->get_type() ?? '',
+							'type'   => $type,
 						]
 					),
 					'icon'   => 'ti ti-basket-dollar',

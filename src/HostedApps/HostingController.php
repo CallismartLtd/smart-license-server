@@ -139,11 +139,11 @@ class HostingController {
 
 				$update_method = "update_{$app_type}";
 
-				if ( ! method_exists( static::class, $update_method ) ) {
-					throw new RequestException( 'internal_server_error', sprintf( 'The update method for the application type "%s" was not found!', $app_type ) , [ 'status' => 500 ] );
-				}
-
-				$updated = self::$update_method( $app, $request );
+				// Built-in types may provide specialized update rules. New registered
+				// types inherit the common manifest and URL fields by default.
+				$updated = method_exists( static::class, $update_method )
+					? self::$update_method( $app, $request )
+					: $this->update_generic( $app, $request );
 
 				if ( is_smliser_error( $updated ) ) {
 					throw $updated;
@@ -224,6 +224,33 @@ class HostingController {
 			return Response::error( $e )
 				->set_header( 'Content-Type', 'application/json; charset=UTF-8' );
 		}
+	}
+
+	/**
+	 * Apply the common update fields used by hosted app types without a
+	 * specialized update_<type>() method.
+	 *
+	 * @param AbstractHostedApp $app Hosted app.
+	 * @param Request           $request Request.
+	 * @return true|RequestException
+	 */
+	protected function update_generic( AbstractHostedApp &$app, Request $request ) : true|RequestException {
+		$uploaded_json = $request->get_file( 'app_json_file' );
+
+		if ( $uploaded_json && $uploaded_json->is_upload_successful() ) {
+			$manifest = static::extract_app_json_content( $request );
+			if ( $manifest instanceof RequestException ) {
+				return $manifest;
+			}
+			$app->set_manifest( $manifest );
+		}
+
+		$app->set_download_url( $request->getTyped( 'app_download_url', 'string', '' ) );
+		$app->update_meta( 'support_url', $request->get( 'app_support_url', '' ) );
+		$app->update_meta( 'homepage_url', $request->get( 'app_homepage_url', '' ) );
+		$app->update_meta( 'documentation_url', $request->get( 'app_documentation_url', '' ) );
+
+		return true;
 	}
 
 	/**

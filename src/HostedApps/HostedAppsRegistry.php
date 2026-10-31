@@ -20,6 +20,7 @@ use SmartLicenseServer\FileSystem\SoftwareRepository;
 use SmartLicenseServer\FileSystem\SmliserExtensionRepository;
 use SmartLicenseServer\FileSystem\SmliserThemeRepository;
 use SmartLicenseServer\FileSystem\WPThemeRepository;
+use SmartLicenseServer\HostedApps\Storage\AppFile;
 
 /**
  * Centralized registry for managing any type of 
@@ -72,7 +73,10 @@ class HostedAppsRegistry extends AbstractRegistry {
 	 * @param array{
 	 *  class: class-string<HostedAppsInterface>,
 	 *  directory_class: class-string<Repository>,
-	 *  labels?: array{singular: string, plural: string}
+	 *  labels?: array{singular: string, plural: string},
+	 *  description?: string,
+	 *  icon?: string,
+	 *  storage_dir?: string
 	 * }|null $data The app class, its directory class and, optionally, the
 	 *              names people read (see get_app_type_labels()).
 	 * @return static
@@ -103,6 +107,16 @@ class HostedAppsRegistry extends AbstractRegistry {
 
 		if ( isset( $data['labels'] ) ) {
 			$this->assert_labels( $type, $data['labels'] );
+		}
+
+		foreach ( [ 'description', 'icon' ] as $presentation_key ) {
+			if ( isset( $data[ $presentation_key ] ) && ( ! is_string( $data[ $presentation_key ] ) || '' === trim( $data[ $presentation_key ] ) ) ) {
+				throw new InvalidArgumentException( sprintf( 'The %s for hosted app type "%s" must be a non-empty string.', $presentation_key, $type ) );
+			}
+		}
+
+		if ( isset( $data['storage_dir'] ) && ( ! is_string( $data['storage_dir'] ) || ! AppFile::is_segment( $data['storage_dir'] ) ) ) {
+			throw new InvalidArgumentException( sprintf( 'The storage_dir for hosted app type "%s" must be a valid directory name.', $type ) );
 		}
 
 		// Core registry entries always win.
@@ -155,7 +169,10 @@ class HostedAppsRegistry extends AbstractRegistry {
 	 * @return array{
 	 *  class: class-string<HostedAppsInterface>,
 	 *  directory_class: class-string<Repository>,
-	 *  labels?: array{singular: string, plural: string}
+	 *  labels?: array{singular: string, plural: string},
+	 *  description?: string,
+	 *  icon?: string,
+	 *  storage_dir?: string
 	 * }|null $entry 
 	 */
 	public function get_app_type_data( string $type ) : ?array {
@@ -168,10 +185,37 @@ class HostedAppsRegistry extends AbstractRegistry {
 		 * @var array{
 		 *  class: class-string<HostedAppsInterface>,
 		 *  directory_class: class-string<Repository>,
-		 *  labels?: array{singular: string, plural: string}
+		 *  labels?: array{singular: string, plural: string},
+		 *  description?: string,
+		 *  icon?: string,
+		 *  storage_dir?: string
 		 * }|null $entry 
 		 */
 		return $entry;
+	}
+
+	/**
+	 * Get the directory mapping required to initialize hosted app storage.
+	 *
+	 * Core types keep their existing on-disk directory names. Custom types
+	 * use their type identifier unless registration supplies storage_dir.
+	 *
+	 * @return array<string, string> Map of app type to storage directory.
+	 * @throws InvalidArgumentException When registered types share a directory.
+	 */
+	public function get_app_storage_type_dirs() : array {
+		$this->ensure_core();
+
+		$directories = [];
+		foreach ( array_merge( $this->core, $this->custom ) as $type => $data ) {
+			$directories[ $type ] = $data['storage_dir'] ?? $type;
+		}
+
+		if ( count( array_unique( $directories ) ) !== count( $directories ) ) {
+			throw new InvalidArgumentException( 'Each hosted app type must have a unique storage directory.' );
+		}
+
+		return $directories;
 	}
 
 	/**
@@ -325,26 +369,41 @@ class HostedAppsRegistry extends AbstractRegistry {
 				'class'           => WPPlugin::class,
 				'directory_class' => WPPluginRepository::class,
 				'labels'          => [ 'singular' => 'WordPress Plugin', 'plural' => 'WordPress Plugins' ],
+				'description'     => 'Upload plugins for WordPress sites.',
+				'icon'            => 'ti ti-plug',
+				'storage_dir'     => 'wp-plugins',
 			],
 			'wptheme' => [
 				'class'           => WPTheme::class,
 				'directory_class' => WPThemeRepository::class,
 				'labels'          => [ 'singular' => 'WordPress Theme', 'plural' => 'WordPress Themes' ],
+				'description'     => 'Upload themes for WordPress sites.',
+				'icon'            => 'ti ti-palette',
+				'storage_dir'     => 'wp-themes',
 			],
 			'software' => [
 				'class'           => Software::class,
 				'directory_class' => SoftwareRepository::class,
 				'labels'          => [ 'singular' => 'Software', 'plural' => 'Software' ],
+				'description'     => 'Upload other software packages.',
+				'icon'            => 'ti ti-device-desktop-code',
+				'storage_dir'     => 'software',
 			],
 			'smliser-theme' => [
 				'class'           => SmliserTheme::class,
 				'directory_class' => SmliserThemeRepository::class,
 				'labels'          => [ 'singular' => 'Smliser Theme', 'plural' => 'Smliser Themes' ],
+				'description'     => 'Upload themes for Smliser applications.',
+				'icon'            => 'ti ti-palette',
+				'storage_dir'     => 'smliser-theme',
 			],
 			'smliser-extension' => [
 				'class'           => SmliserExtension::class,
 				'directory_class' => SmliserExtensionRepository::class,
 				'labels'          => [ 'singular' => 'Smliser Extension', 'plural' => 'Smliser Extensions' ],
+				'description'     => 'Upload extensions for Smliser applications.',
+				'icon'            => 'ti ti-puzzle',
+				'storage_dir'     => 'smliser-extension',
 			],
 		];
 

@@ -13,6 +13,7 @@
  * @var \SmartLicenseServer\Core\Request $request
  * @var string $page_title
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var array $app_type_actions
  */
 
 use SmartLicenseServer\HostedApps\AbstractHostedApp;
@@ -48,29 +49,7 @@ $menu_args = [
 			'icon'  => 'ti ti-upload',
 		],
 
-		[
-			'title'  => 'WordPress Plugin Repository',
-			'label'  => 'WordPress Plugins',
-			'url'    => $urlmanager->admin_repo_url()->add_query_param( 'type', 'wpplugin' )->url(),
-			'icon'   => 'ti ti-plug',
-			'active' => 'wpplugin' === $type
-		],
-		
-		[
-			'title'  => 'WordPress Theme Repository',
-			'label'  => 'WordPress Themes',
-			'url'    => $urlmanager->admin_repo_url()->add_query_param( 'type', 'wptheme' )->url(),
-			'icon'   => 'ti ti-palette',
-			'active' => 'wptheme' === $type
-		],
-		
-		[
-			'title'  => 'Software Repository',
-			'label'  => 'Software',
-			'url'    => $current_url->add_query_param( 'type', 'software' )->url(),
-			'icon'   => 'ti ti-device-desktop-code',
-			'active' => 'software' === $type
-		],
+		...$app_type_actions
 	]
 ];
 

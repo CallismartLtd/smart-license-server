@@ -36,7 +36,7 @@ if ( ! isset( $app ) ) {
     <?php smliser_print_admin_content_header( $args ); ?>
 
     <form action="" class="app-uploader-form" id="appUploaderForm" data-slug="save-app">
-        <input type="hidden" name="action" value="smliser_save_<?php printf( '%s', escHtml( $type ) ) ?>">
+        <input type="hidden" name="action" value="smliser_save_app">
         <input type="hidden" name="app_type" value="<?php printf( '%s', escHtml( $type ) ) ?>">
         <input type="hidden" name="app_id" value="<?php printf( '%s', escHtml( $request->query( 'app_id' ) ) ) ?>">
         <div class="app-uploader-top-section">

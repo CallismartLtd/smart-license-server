@@ -7,6 +7,7 @@
  * @var string $title
  * @var array $app_action
  * @var \SmartLicenseServer\Core\URLManager $urlmanager
+ * @var array $app_type_options
  */
 
 defined( 'SMLISER_ROOT' ) || exit; ?>
@@ -39,9 +40,9 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
     <div class="smliser-admin-page smliser-upload-page ">
 
         <header class="smliser-page-header">
-            <h1 class="smliser-page-title">Upload Software</h1>
+            <h1 class="smliser-page-title">Upload a Hosted App</h1>
             <p class="smliser-page-subtitle">
-                Choose the software type you want to upload to this repository. 
+                Choose the app type you want to upload to this repository.
                 Before you proceed, there are a couple of things to keep in mind.
             </p>
         </header>
@@ -49,32 +50,25 @@ defined( 'SMLISER_ROOT' ) || exit; ?>
         <section class="smliser-upload-instructions notice notice-info">
             <h2 class="smliser-instructions-title">Before you upload</h2>
             <p>
-                Prepare the software (WordPress plugins, themes, or any other application type) 
+                Prepare the app package (WordPress plugins, themes, or any registered application type)
                 you want to upload and compress it into a ZIP file.
             </p>
         </section>
 
         <section class="smliser-upload-types">
-            <h2 class="smliser-upload-types-title">Select software type</h2>
+            <h2 class="smliser-upload-types-title">Select app type</h2>
             <p class="smliser-upload-types-subtitle">
-                Click one of the options below to start uploading your software.
+                Click one of the options below to start uploading your app.
             </p>
 
             <div class="smliser-upload-cards">
-                <a class="smliser-upload-card" href="<?php echo $urlmanager->admin_repo_url( 'add-new', ['type' => 'wpplugin'] ); ?>">
-                    <strong class="smliser-upload-card-title">WordPress Plugin</strong>
-                    <span class="smliser-upload-card-description">Upload a plugin for WordPress sites</span>
-                </a>
-
-                <a class="smliser-upload-card" href="<?php echo $urlmanager->admin_repo_url( 'add-new', ['type' => 'wptheme'] ); ?>">
-                    <strong class="smliser-upload-card-title">WordPress Theme</strong>
-                    <span class="smliser-upload-card-description">Upload a theme for WordPress sites</span>
-                </a>
-
-                <a class="smliser-upload-card" href="<?php echo $urlmanager->admin_repo_url( 'add-new', ['type' => 'software'] ); ?>">
-                    <strong class="smliser-upload-card-title">Other Software</strong>
-                    <span class="smliser-upload-card-description">Upload any other type of application</span>
-                </a>
+                <?php foreach ( $app_type_options as $option ) : ?>
+                    <a class="smliser-upload-card" href="<?php echo escUrl( $option['url'] ); ?>">
+                        <i class="<?php echo escAttr( $option['icon'] ); ?>" aria-hidden="true"></i>
+                        <strong class="smliser-upload-card-title"><?php echo escHtml( $option['label'] ); ?></strong>
+                        <span class="smliser-upload-card-description"><?php echo escHtml( $option['description'] ); ?></span>
+                    </a>
+                <?php endforeach; ?>
             </div>
         </section>
 
