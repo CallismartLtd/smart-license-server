@@ -14,6 +14,9 @@ use SmartLicenseServer\Admin\Contracts\AdminPageInterface;
 use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
+use SmartLicenseServer\Environments\Application\Extensions\Extension;
+use SmartLicenseServer\Environments\Application\Extensions\ExtensionException;
+use SmartLicenseServer\Environments\Application\Extensions\ExtensionInstaller;
 use SmartLicenseServer\Environments\Application\Extensions\ExtensionManager;
 use SmartLicenseServer\Environments\Application\Theming\Theme;
 use SmartLicenseServer\Environments\Application\Theming\ThemeException;
@@ -27,9 +30,9 @@ use SmartLicenseServer\Templates\TemplateLocator;
  *
  * Submenus:
  *   Themes       The installed site themes of the public pages.
- *   Marketplace  What the update server publishes, read from its repository
- *                REST endpoints, ready to install.
- * Extensions will be a submenu of their own.
+ *   Extensions   The installed extensions, enabled or not.
+ *   Marketplace  What the update server publishes (themes and extensions),
+ *                read from its repository REST endpoints, ready to install.
  *
  * Within a submenu, pages are chosen with the "section" query variable
  * (SECTION_VAR), e.g. modules/themes?section=upload; each submenu lists its
@@ -61,6 +64,14 @@ class ModulesPage implements AdminPageInterface {
 	];
 
 	/**
+	 * Sections of the Extensions page: section => header label. The first is the default.
+	 */
+	public const EXTENSION_SECTIONS = [
+		'installed' => 'Installed',
+		'upload'    => 'Upload',
+	];
+
+	/**
 	 * Sections of the Marketplace page: section => header label. The first is the default.
 	 */
 	public const MARKETPLACE_SECTIONS = [
@@ -69,14 +80,26 @@ class ModulesPage implements AdminPageInterface {
 	];
 
 	/**
+	 * The kind of module each Marketplace section lists: section => "theme" or "extension".
+	 *
+	 * modules.js reads it to know which endpoint (admin/json/<kind>s/marketplace) feeds a section.
+	 */
+	public const MARKETPLACE_KINDS = [
+		'extensions' => 'extension',
+		'themes'     => 'theme',
+	];
+
+	/**
 	 * Constructor.
 	 *
 	 * @param TemplateLocator $locator        Admin templates.
 	 * @param URLManager      $urlmanager     URL API.
 	 * @param AssetsManager   $assets_manager Admin styles and scripts.
-	 * @param ThemeManager    $themes         The installed themes and the active one.
-	 * @param ThemeInstaller  $installer      Package records and the marketplace.
-	 * @param FileSystem      $fs             Finds a theme's screenshot.
+	 * @param ThemeManager       $themes              The installed themes and the active one.
+	 * @param ExtensionManager   $extensions          The installed extensions and the enabled ones.
+	 * @param ThemeInstaller     $theme_installer     Theme package records and the marketplace.
+	 * @param ExtensionInstaller $extension_installer Extension package records and the marketplace.
+	 * @param FileSystem         $fs                  Finds a module's screenshot.
 	 */
 	public function __construct(
 		protected TemplateLocator $locator,
@@ -84,7 +107,8 @@ class ModulesPage implements AdminPageInterface {
 		protected AssetsManager $assets_manager,
 		protected ThemeManager $themes,
 		protected ExtensionManager $extensions,
-		protected ThemeInstaller $installer,
+		protected ThemeInstaller $theme_installer,
+		protected ExtensionInstaller $extension_installer,
 		protected FileSystem $fs
 	) {
 		$this->assets_manager->set_style_category( self::ASSETS, AssetsManager::CATEGORY_ADMIN_DASHBOARD );
@@ -124,43 +148,54 @@ class ModulesPage implements AdminPageInterface {
 	}
 
 	/**
-	 * Modules > Marketplace: what the update server publishes (?section=themes).
+	 * Modules > Extensions: the installed extensions, or the upload form (?section=upload).
+	 *
+	 * Template 'admin.contents.modules.extensions'. Variables:
+	 *   string      $section The section shown (an EXTENSION_SECTIONS key).
+	 *   list<array> $cards   Every installed extension as module cards (see card()); empty outside "installed".
+	 *
+	 * @param Request $request
+	 * @return void
+	 */
+	public function extensions_page( Request $request ) : void {
+		$section      = $this->section( $request, self::EXTENSION_SECTIONS );
+		$cards        = 'installed' === $section ? $this->extension_cards() : [];
+		$menu_args    = $this->header( $request, 'extensions', 'Extensions', self::EXTENSION_SECTIONS, $section );
+		$page_handler = $this;
+
+		$vars = \compact( 'section', 'cards', 'menu_args', 'page_handler', 'request' );
+		$this->locator->render( 'admin.contents.modules.extensions', $vars );
+	}
+
+	/**
+	 * Modules > Marketplace: the shell modules.js fills with what the update server publishes.
+	 *
+	 * The page never waits for the update server: it renders the search form
+	 * and the section tabs, and modules.js reads the section's modules from
+	 * admin/json/<kind>s/marketplace (searching, paging and switching section
+	 * included) and draws them as module cards.
 	 *
 	 * Template 'admin.contents.modules.marketplace'. Variables:
-	 *   string      $section    The section shown (a MARKETPLACE_SECTIONS key).
-	 *   string      $search     The search term (?search=).
-	 *   list<array> $cards      The page of published modules, as module cards.
-	 *   array|null  $pagination {total, page, limit, total_pages}; null when the marketplace could not be read.
-	 *   string|null $error      Why the marketplace could not be read.
-	 *   string      $page_url   This section's URL, for the search form and the pagination.
+	 *   string $section  The section shown (a MARKETPLACE_SECTIONS key).
+	 *   string $kind     The kind of module the section lists (MARKETPLACE_KINDS).
+	 *   string $search   The search term (?search=), the first state of the search form.
+	 *   int    $paged    The page number (?paged=), from 1.
+	 *   string $page_url This section's URL, the search form's action.
 	 *
 	 * @param Request $request
 	 * @return void
 	 */
 	public function marketplace_page( Request $request ) : void {
-		$section    = $this->section( $request, self::MARKETPLACE_SECTIONS );
-		$search     = \trim( (string) $request->query( 'search', '' ) );
-		$page       = \max( 1, (int) $request->query( 'paged', 1 ) );
-		$cards      = [];
-		$pagination = null;
-		$error      = null;
+		$section  = $this->section( $request, self::MARKETPLACE_SECTIONS );
+		$kind     = self::MARKETPLACE_KINDS[ $section ];
+		$search   = \trim( (string) $request->query( 'search', '' ) );
+		$paged    = \max( 1, (int) $request->query( 'paged', 1 ) );
+		$page_url = $this->urlmanager->admin_url( 'modules', 'marketplace', [ self::SECTION_VAR => $section ] )->url();
 
-		try {
-			$listing    = $this->installer->marketplace( $search, $page );
-			$pagination = $listing['pagination'];
-
-			foreach ( $listing['themes'] as $theme ) {
-				$cards[] = $this->marketplace_theme_card( $theme );
-			}
-		} catch ( ThemeException $e ) {
-			$error = $e->getMessage();
-		}
-
-		$page_url     = $this->urlmanager->admin_url( 'modules', 'marketplace', [ self::SECTION_VAR => $section ] )->url();
 		$menu_args    = $this->header( $request, 'marketplace', 'Marketplace', self::MARKETPLACE_SECTIONS, $section );
 		$page_handler = $this;
 
-		$vars = \compact( 'section', 'search', 'cards', 'pagination', 'error', 'page_url', 'menu_args', 'page_handler', 'request' );
+		$vars = \compact( 'section', 'kind', 'search', 'paged', 'page_url', 'menu_args', 'page_handler', 'request' );
 		$this->locator->render( 'admin.contents.modules.marketplace', $vars );
 	}
 
@@ -180,7 +215,7 @@ class ModulesPage implements AdminPageInterface {
 		$cards = [ $this->installed_theme_card( $this->themes->default_theme(), $active, null ) ];
 
 		foreach ( $this->themes->installed() as $slug => $theme ) {
-			$record = $this->installer->record( $slug );
+			$record = $this->theme_installer->record( $slug );
 
 			if ( $theme instanceof ThemeException ) {
 				$cards[] = $this->card(
@@ -201,11 +236,47 @@ class ModulesPage implements AdminPageInterface {
 	}
 
 	/**
+	 * Every installed extension as a module card.
+	 *
+	 * An enabled extension that does not load (an unmet dependency, a newer
+	 * app version needed, a namespace clash) says why on its card.
+	 *
+	 * @return list<array<string, mixed>> See card().
+	 */
+	public function extension_cards() : array {
+		$skipped = $this->extensions->resolve()['skipped'];
+		$cards   = [];
+
+		foreach ( $this->extensions->installed() as $slug => $extension ) {
+			$record = $this->extension_installer->record( $slug );
+
+			if ( $extension instanceof ExtensionException ) {
+				$cards[] = $this->card(
+					slug: $slug,
+					name: $slug,
+					kind: 'extension',
+					description: $extension->getMessage(),
+					badges: [ [ 'Broken', 'danger' ] ],
+					meta: $this->record_meta( $record ),
+					actions: $this->extensions->is_enabled( $slug )
+						? [ $this->action( 'disable', 'Disable', 'ti ti-player-pause', \sprintf( 'Disable the broken extension "%s"?', $slug ) ) ]
+						: [ $this->action( 'remove', 'Remove', 'ti ti-trash', \sprintf( 'Remove the broken extension "%s" and its files?', $slug ), true ) ]
+				);
+				continue;
+			}
+
+			$cards[] = $this->installed_extension_card( $extension, $record, $skipped[ $slug ] ?? null );
+		}
+
+		return $cards;
+	}
+
+	/**
 	 * A module card: the data card.php draws, the same for every kind of module.
 	 *
 	 * @param string                                      $slug        Module slug; the actions' target.
 	 * @param string                                      $name        Display name.
-	 * @param string                                      $kind        Module kind: "theme" (actions post to admin/json/themes/*).
+	 * @param string                                      $kind        Module kind: "theme" or "extension" (actions post to admin/json/<kind>s/*).
 	 * @param string                                      $version     Version; empty when unknown.
 	 * @param string                                      $description One or two sentences.
 	 * @param string                                      $image       Picture URL; empty for the name's initial.
@@ -281,6 +352,12 @@ class ModulesPage implements AdminPageInterface {
 				'title'      => 'Themes',
 				'slug'       => 'themes',
 				'callback'   => [ $this, 'themes_page' ],
+				'visibility' => true,
+			],
+			[
+				'title'      => 'Extensions',
+				'slug'       => 'extensions',
+				'callback'   => [ $this, 'extensions_page' ],
 				'visibility' => true,
 			],
 			[
@@ -368,34 +445,73 @@ class ModulesPage implements AdminPageInterface {
 	}
 
 	/**
-	 * A marketplace theme's card.
+	 * An installed extension's card.
 	 *
-	 * @param array{slug: string, name: string, version: string, summary: string, author: string, icon: string, homepage: string, installed: ?string, update: bool} $theme
+	 * @param Extension                 $extension
+	 * @param array<string, mixed>|null $record  Its package record; null for an extension copied in by hand.
+	 * @param string|null               $skipped Why it does not load although it is enabled; null when it does, or is disabled.
 	 * @return array<string, mixed>
 	 */
-	private function marketplace_theme_card( array $theme ) : array {
-		$badges  = [ [ 'Theme', 'muted' ] ];
-		$actions = [];
+	private function installed_extension_card( Extension $extension, ?array $record, ?string $skipped ) : array {
+		$enabled    = $this->extensions->is_enabled( $extension->slug );
+		$dependents = $enabled ? $this->extensions->dependents( $extension->slug ) : [];
+		$missing    = \array_values( \array_filter( $extension->depends, fn ( string $slug ) : bool => ! $this->extensions->is_enabled( $slug ) ) );
+		$supported  = $extension->supports( \SMLISER_VER );
+		$badges     = [];
+		$actions    = [];
+		$meta       = '' !== $extension->author ? [ [ 'ti ti-user', $extension->author ] ] : [];
 
-		if ( null === $theme['installed'] ) {
-			$actions[] = $this->action( 'install', 'Install', 'ti ti-download' );
-		} elseif ( $theme['update'] ) {
-			$badges[]  = [ \sprintf( 'Installed %s', $theme['installed'] ), 'info' ];
-			$actions[] = $this->action( 'install', \sprintf( 'Update to %s', $theme['version'] ), 'ti ti-download', \sprintf( 'Update %s from %s to %s? Its files are replaced.', $theme['name'], $theme['installed'], $theme['version'] ) );
+		if ( $enabled ) {
+			$badges[] = null === $skipped ? [ 'Enabled', 'active' ] : [ 'Not loading', 'danger' ];
 		} else {
-			$badges[] = [ 'Installed', 'active' ];
+			$badges[] = [ 'Disabled', 'muted' ];
+		}
+
+		if ( ! $supported ) {
+			$badges[] = [ \sprintf( 'Needs app %s', $extension->requires ), 'warning' ];
+		}
+
+		if ( [] !== $missing ) {
+			$badges[] = [ \sprintf( 'Needs %s enabled', \implode( ', ', $missing ) ), 'warning' ];
+		}
+
+		if ( [] !== $dependents ) {
+			$badges[] = [ \sprintf( 'Required by %s', \implode( ', ', $dependents ) ), 'info' ];
+		}
+
+		$badges[] = [ ExtensionInstaller::describe_source( $record ), 'muted' ];
+
+		if ( null !== $skipped ) {
+			$meta[] = [ 'ti ti-alert-triangle', $skipped ];
+		}
+
+		if ( $enabled && [] === $dependents ) {
+			$actions[] = $this->action( 'disable', 'Disable', 'ti ti-player-pause', \sprintf( 'Disable %s? It stops loading from the next request on.', $extension->name ) );
+		}
+
+		if ( ! $enabled && $supported && [] === $missing ) {
+			$actions[] = $this->action( 'enable', 'Enable', 'ti ti-player-play', \sprintf( 'Enable %s? Its PHP code runs on every request from the next one on.', $extension->name ) );
+		}
+
+		if ( ExtensionInstaller::SOURCE_MARKETPLACE === ( $record['source'] ?? null ) ) {
+			$actions[] = $this->action( 'update', 'Update', 'ti ti-download', \sprintf( 'Update %s from the marketplace? Its files are replaced with the latest version.', $extension->name ) );
+		}
+
+		if ( ! $enabled ) {
+			$actions[] = $this->action( 'remove', 'Remove', 'ti ti-trash', \sprintf( 'Remove %s and its files?', $extension->name ), true );
 		}
 
 		return $this->card(
-			slug: $theme['slug'],
-			name: $theme['name'],
-			version: $theme['version'],
-			description: $theme['summary'],
-			image: $theme['icon'],
+			slug: $extension->slug,
+			name: $extension->name,
+			kind: 'extension',
+			version: $extension->version,
+			description: $extension->description,
+			image: $this->screenshot( $extension, 'extensions' ),
 			badges: $badges,
-			meta: '' !== $theme['author'] ? [ [ 'ti ti-user', $theme['author'] ] ] : [],
+			meta: \array_merge( $meta, $this->record_meta( $record ) ),
 			actions: $actions,
-			links: '' !== $theme['homepage'] ? [ [ 'Details', $theme['homepage'] ] ] : []
+			highlight: $enabled && null === $skipped
 		);
 	}
 
@@ -426,15 +542,18 @@ class ModulesPage implements AdminPageInterface {
 	}
 
 	/**
-	 * A theme's card picture: its assets/screenshot.png, when it ships one.
+	 * A module's card picture: its assets/screenshot.png, when it ships one.
 	 *
-	 * @param Theme $theme
+	 * @param Theme|Extension $module
+	 * @param string          $public Folder of the module's published assets in public/: "themes" or "extensions".
 	 * @return string URL; empty for none.
 	 */
-	private function screenshot( Theme $theme ) : string {
+	private function screenshot( Theme|Extension $module, string $public = 'themes' ) : string {
 		foreach ( [ 'screenshot.png', 'screenshot.jpg', 'screenshot.webp', 'screenshot.svg' ] as $file ) {
-			if ( $this->fs->is_file( $theme->assets_dir() . '/' . $file ) ) {
-				return $this->urlmanager->themes_url( $theme->slug . '/' . $file, [ 'version' => $theme->version ] )->url();
+			if ( $this->fs->is_file( $module->assets_dir() . '/' . $file ) ) {
+				return 'themes' === $public
+					? $this->urlmanager->themes_url( $module->slug . '/' . $file, [ 'version' => $module->version ] )->url()
+					: $this->urlmanager->url( $public . '/' . $module->slug . '/' . $file, [ 'version' => $module->version ] )->url();
 			}
 		}
 
@@ -472,6 +591,7 @@ class ModulesPage implements AdminPageInterface {
 				'label'  => $label,
 				'url'    => $this->urlmanager->admin_url( 'modules', $tab, $section === \array_key_first( $sections ) ? [] : [ self::SECTION_VAR => $section ] )->url(),
 				'active' => $section === $current,
+				'data'   => [ 'section' => $section ],
 			];
 		}
 

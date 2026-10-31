@@ -1,11 +1,15 @@
 <?php
 /**
- * A module card: one installed or published module (a theme; extensions to come).
+ * A module card: one installed or published module (a theme or an extension).
  *
  * The same markup for every kind of module and every Modules page, so they
  * look and behave alike. Included by the Modules templates for each card.
  * modules.js posts an action button to admin/json/<kind>s/<action> with the
  * card's slug.
+ *
+ * The Marketplace page does not use this file: modules.js draws its cards in
+ * the browser from admin/json/<kind>s/marketplace, with buildCard(), which
+ * mirrors this markup. Change one, change the other.
  *
  * @author Callistus Nwachukwu
  * @var array{

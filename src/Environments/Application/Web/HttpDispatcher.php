@@ -20,6 +20,7 @@ use SmartLicenseServer\Admin\ActionHandlers\SystemManagement;
 use SmartLicenseServer\Admin\ActionHandlers\UpdateManagement;
 use SmartLicenseServer\Admin\ActionHandlers\BackgroundManagement;
 use SmartLicenseServer\Admin\ActionHandlers\MaintenanceManagement;
+use SmartLicenseServer\Admin\ActionHandlers\ExtensionManagement;
 use SmartLicenseServer\Admin\ActionHandlers\ThemeManagement;
 use SmartLicenseServer\Admin\ContentHandlers\ToolsPage;
 use SmartLicenseServer\Admin\Page\Dispatcher as AdminDispatcher;
@@ -546,19 +547,49 @@ final class HttpDispatcher {
 						prefix: 'themes',
 						callback: function() {
 							$actions = [
-								'activate' => 'activate',
-								'install'  => 'install',
-								'upload'   => 'upload',
-								'update'   => 'update',
-								'check'    => 'check',
-								'remove'   => 'remove',
-								'publish'  => 'publish',
+								'activate'    => 'activate',
+								'install'     => 'install',
+								'upload'      => 'upload',
+								'update'      => 'update',
+								'check'       => 'check',
+								'marketplace' => 'marketplace',
+								'remove'      => 'remove',
+								'publish'     => 'publish',
 							];
 
 							foreach ( $actions as $pattern => $method ) {
 								$this->router->post(
 									pattern: $pattern,
 									handler: [ ThemeManagement::class, $method ]
+								);
+							}
+						}
+					);
+
+					/*
+					|------------------------------
+					| MODULES > EXTENSIONS ACTIONS
+					|------------------------------
+					*/
+					$this->router->group(
+						prefix: 'extensions',
+						callback: function() {
+							$actions = [
+								'enable'      => 'enable',
+								'disable'     => 'disable',
+								'install'     => 'install',
+								'upload'      => 'upload',
+								'update'      => 'update',
+								'check'       => 'check',
+								'marketplace' => 'marketplace',
+								'remove'      => 'remove',
+								'publish'     => 'publish',
+							];
+
+							foreach ( $actions as $pattern => $method ) {
+								$this->router->post(
+									pattern: $pattern,
+									handler: [ ExtensionManagement::class, $method ]
 								);
 							}
 						}

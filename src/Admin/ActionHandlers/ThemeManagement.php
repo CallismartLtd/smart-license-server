@@ -156,6 +156,35 @@ class ThemeManagement {
 	}
 
 	/**
+	 * POST themes/marketplace
+	 *
+	 * The themes the marketplace publishes, with what is installed here. Read
+	 * by modules.js to draw the Modules > Marketplace page.
+	 *
+	 * Fields: search (the start of a theme slug; optional), paged (page number, from 1).
+	 *
+	 * @param Request $request
+	 * @return Response data.modules: list of {slug, name, version, summary, author, icon, homepage, installed, update};
+	 *                  data.pagination: {total, page, limit, total_pages}
+	 */
+	public function marketplace( Request $request ) : Response {
+		return $this->run( function () use ( $request ) : Response {
+			$listing = $this->installer->marketplace(
+				\trim( (string) $request->get( 'search', '' ) ),
+				\max( 1, (int) $request->get( 'paged', 1 ) )
+			);
+
+			return $this->ok(
+				'The marketplace was read.',
+				[
+					'modules'    => $listing[ ThemeInstaller::LIST_KEY ],
+					'pagination' => $listing['pagination'],
+				]
+			);
+		} );
+	}
+
+	/**
 	 * POST themes/remove
 	 *
 	 * Fields: slug.
