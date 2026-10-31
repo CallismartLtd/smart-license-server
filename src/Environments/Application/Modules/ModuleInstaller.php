@@ -79,7 +79,7 @@ abstract class ModuleInstaller {
 	/**
 	 * Hosted app type of modules on the marketplace.
 	 */
-	public const MARKETPLACE_TYPE = 'software';
+	public const MARKETPLACE_TYPE = '';
 
 	/**
 	 * Prefix of a module's hosted app slug on the marketplace.

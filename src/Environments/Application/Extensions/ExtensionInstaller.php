@@ -41,7 +41,7 @@ final class ExtensionInstaller extends ModuleInstaller {
 	public const NOUN               = 'extension';
 	public const RESULT_KEY         = 'extension';
 	public const LIST_KEY           = 'extensions';
-	public const MARKETPLACE_PREFIX = 'smliser-extension-';
+	public const MARKETPLACE_TYPE	= 'smliser_extension';
 
 	/**
 	 * Constructor.
