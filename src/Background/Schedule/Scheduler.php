@@ -23,7 +23,7 @@ use SmartLicenseServer\Background\Queue\JobQueue;
  * Manages and runs recurring scheduled tasks.
  *
  * Tasks are registered in memory at first access (lazy loaded).
- * Only execution state (last_ran_at, next_run_at) is persisted
+ * Execution state and the first scheduled baseline are persisted
  * via the Settings API - no new database table required.
  *
  * All task execution state is stored in a single Settings API
@@ -269,7 +269,7 @@ class Scheduler {
 		foreach ( $this->tasks as $id => $task ) {
 			$state = $this->get_task_state( $id );
 
-			if ( $task->is_due( $state['last_ran_at'] ) ) {
+			if ( $task->is_due( $state['last_ran_at'], $state['first_scheduled_at'] ) ) {
 				$due[ $id ] = $task;
 			}
 		}
@@ -284,6 +284,7 @@ class Scheduler {
 	 * @return array{
 	 *     last_ran_at: DateTimeImmutable|null,
 	 *     next_run_at: DateTimeImmutable|null,
+	 *     first_scheduled_at: DateTimeImmutable|null,
 	 *     last_error:  string|null,
 	 * }
 	 */
@@ -293,11 +294,17 @@ class Scheduler {
 		$raw = $state[ $task_id ] ?? null;
 
 		if ( empty( $raw ) || ! is_array( $raw ) ) {
-			return [
-				'last_ran_at' => null,
-				'next_run_at' => null,
-				'last_error'  => null,
-			];
+			$task = $this->tasks[ $task_id ] ?? null;
+			if ( null === $task ) {
+				return [ 'last_ran_at' => null, 'next_run_at' => null, 'first_scheduled_at' => null, 'last_error' => null ];
+			}
+
+			$raw = [];
+		}
+
+		if ( isset( $this->tasks[ $task_id ] ) && $this->initialize_first_run_state( $task_id, $this->tasks[ $task_id ], $raw ) ) {
+			$state = $this->get_persisted_state();
+			$raw = $state[ $task_id ] ?? $raw;
 		}
 
 		return [
@@ -307,6 +314,10 @@ class Scheduler {
 
 			'next_run_at' => ! empty( $raw['next_run_at'] )
 				? new DateTimeImmutable( $raw['next_run_at'], new DateTimeZone( 'UTC' ) )
+				: null,
+
+			'first_scheduled_at' => ! empty( $raw['first_scheduled_at'] )
+				? new DateTimeImmutable( $raw['first_scheduled_at'], new DateTimeZone( 'UTC' ) )
 				: null,
 
 			'last_error' => $raw['last_error'] ?? null,
@@ -323,6 +334,7 @@ class Scheduler {
 	 *     state: array{
 	 *         last_ran_at: DateTimeImmutable|null,
 	 *         next_run_at: DateTimeImmutable|null,
+	 *         first_scheduled_at: DateTimeImmutable|null,
 	 *         last_error: string|null
 	 *     }
 	 * }>
@@ -352,6 +364,7 @@ class Scheduler {
 	 * @return array<string, array{
 	 *     last_ran_at?: string|null,
 	 *     next_run_at?: string|null,
+	 *     first_scheduled_at?: string|null,
 	 *     last_error?: string|null
 	 * }>
 	 */
@@ -375,8 +388,9 @@ class Scheduler {
 	 * Synchronize persisted execution state with registered tasks.
 	 *
 	 * State belonging to tasks that are no longer registered is removed.
-	 * Registered tasks that have never executed do not receive an empty
-	 * state entry.
+	 * Registered tasks without run history receive a first-scheduled baseline
+	 * and their initial next-run time, so the scheduler and health checks can
+	 * reason about their first occurrence.
 	 *
 	 * @return void
 	 */
@@ -389,7 +403,50 @@ class Scheduler {
 			}
 		}
 
+		foreach ( $this->tasks as $task_id => $task ) {
+			$raw = $state[ $task_id ] ?? [];
+			$raw = is_array( $raw ) ? $raw : [];
+			$this->initialize_first_run_state( $task_id, $task, $raw, $state );
+		}
+
 		$this->set_persisted_state( $state );
+	}
+
+	/**
+	 * Give a task without a successful run a stable first-schedule baseline.
+	 *
+	 * @param array<string, mixed> $raw   Task state, updated in place.
+	 * @param array<string, array<string, mixed>>|null $all Persisted state to update in place.
+	 * @return bool Whether state changed.
+	 */
+	private function initialize_first_run_state( string $task_id, ScheduledTask $task, array &$raw, ?array &$all = null ) : bool {
+		$changed = false;
+		$utc = new DateTimeZone( 'UTC' );
+
+		if ( empty( $raw['first_scheduled_at'] ) ) {
+			$raw['first_scheduled_at'] = ( new DateTimeImmutable( 'now', $utc ) )->format( 'Y-m-d H:i:s' );
+			$changed = true;
+		}
+
+		if ( empty( $raw['next_run_at'] ) && $task->has_schedule() ) {
+			$first = new DateTimeImmutable( $raw['first_scheduled_at'], $utc );
+			$last  = ! empty( $raw['last_ran_at'] ) ? new DateTimeImmutable( $raw['last_ran_at'], $utc ) : null;
+			$next  = null === $last ? $task->compute_next_run( $first, true ) : $task->compute_next_run( $last );
+			$raw['next_run_at'] = $next->format( 'Y-m-d H:i:s' );
+			$changed = true;
+		}
+
+		if ( $changed ) {
+			if ( null === $all ) {
+				$all = $this->get_persisted_state();
+				$all[ $task_id ] = $raw;
+				$this->set_persisted_state( $all );
+			} else {
+				$all[ $task_id ] = $raw;
+			}
+		}
+
+		return $changed;
 	}
 
 	/**
@@ -423,9 +480,13 @@ class Scheduler {
 
 		$state = $this->get_persisted_state();
 
+		$previous = $state[ $task_id ] ?? [];
 		$state[ $task_id ] = [
 			'last_ran_at' => $now->format( 'Y-m-d H:i:s' ),
 			'next_run_at' => $next_run->format( 'Y-m-d H:i:s' ),
+			'first_scheduled_at' => is_array( $previous )
+				? ( $previous['first_scheduled_at'] ?? $now->format( 'Y-m-d H:i:s' ) )
+				: $now->format( 'Y-m-d H:i:s' ),
 			'last_error'  => null,
 		];
 

@@ -207,7 +207,7 @@ class ScheduleCommand extends AbstractCommand {
 
 			$last_ran = $state['last_ran_at'] ? $state['last_ran_at']->format( \smliser_datetime_format() ) : 'Never';
 			$next_run = $state['next_run_at'] ? $state['next_run_at']->format( \smliser_datetime_format() ) : 'N/A';
-			$status   = $task->is_due( $state['last_ran_at'] ) ? 'DUE' : 'WAITING';
+			$status   = $task->is_due( $state['last_ran_at'], $state['first_scheduled_at'] ) ? 'DUE' : 'WAITING';
 
 			if ( ! empty( $state['last_error'] ) ) {
 				$status = 'ERROR';

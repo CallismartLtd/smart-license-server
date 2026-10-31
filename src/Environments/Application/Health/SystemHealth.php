@@ -501,26 +501,28 @@ class SystemHealth {
 	/**
 	 * Scheduled tasks that should have run more than TASK_OVERDUE_MINUTES ago.
 	 *
-	 * A task that has never run counts once the installation is older than
-	 * that grace period too.
+	 * A task that has never run is evaluated against its first eligible
+	 * scheduled time, not the installation date.
 	 *
 	 * @return array<int, array{id: string, label: string, due_at: ?\DateTimeImmutable}>
 	 */
 	private function overdue_tasks() : array {
 		$cutoff    = \time() - self::TASK_OVERDUE_MINUTES * 60;
-		$state     = $this->state->read();
-		$installed = \is_array( $state ) && ! empty( $state['installed_at'] ) ? \strtotime( (string) $state['installed_at'] ) : false;
 		$overdue   = [];
 
 		foreach ( $this->scheduler->get_tasks_with_state() as $id => $data ) {
-			$next = $data['state']['next_run_at'];
+			$task  = $data['task'];
+			$state = $data['state'];
+			$next  = $state['next_run_at'];
 
-			$late = null !== $next
-				? $next->getTimestamp() < $cutoff
-				: null === $data['state']['last_ran_at'] && false !== $installed && $installed < $cutoff;
+			if ( null === $state['last_ran_at'] && null !== $state['first_scheduled_at'] && $task->has_schedule() ) {
+				$next = $task->compute_next_run( $state['first_scheduled_at'], true );
+			}
+
+			$late = null !== $next && $next->getTimestamp() < $cutoff;
 
 			if ( $late ) {
-				$overdue[] = [ 'id' => (string) $id, 'label' => $data['task']->get_label(), 'due_at' => $next ];
+				$overdue[] = [ 'id' => (string) $id, 'label' => $task->get_label(), 'due_at' => $next ];
 			}
 		}
 

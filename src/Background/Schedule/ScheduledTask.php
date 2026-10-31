@@ -45,8 +45,8 @@ use SmartLicenseServer\Background\Schedule\DayMatchers\Weekdays;
  *
  * IMPORTANT: Scheduler rebuilds every ScheduledTask from scratch on
  * every tick crontab, CLI — see Scheduler's docblock; nothing
- * persists in memory between runs, only last_ran_at/next_run_at via
- * Settings). Nothing in this class may rely on "when was this object
+ * persists in memory between runs; first_scheduled_at/last_ran_at/next_run_at
+ * are persisted via Settings. Nothing in this class may rely on "when was this object
  * constructed" for scheduling math — every_days()/every_months() are
  * deliberately anchored to a fixed epoch inside their DayMatcher
  * (not to a timestamp captured here) for exactly that reason.
@@ -409,24 +409,27 @@ class ScheduledTask {
 	/**
 	 * Determine whether this task is due to run.
 	 *
-	 * @param DateTimeImmutable|null $last_ran_at Last execution time, or null if never run.
+	 * @param DateTimeImmutable|null $last_ran_at Last successful execution, or null if never run.
+	 * @param DateTimeImmutable|null $first_scheduled_at When the scheduler first registered the task.
 	 * @return bool True if the task should run now.
 	 */
-	public function is_due( ?DateTimeImmutable $last_ran_at ) : bool {
-		if ( null === $this->day_matcher && 0 === $this->interval_seconds ) {
+	public function is_due( ?DateTimeImmutable $last_ran_at, ?DateTimeImmutable $first_scheduled_at = null ) : bool {
+		if ( ! $this->has_schedule() ) {
 			return false; // No schedule defined yet.
 		}
 
-		$now = new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) );
-
-		// Never run before — resolve the first eligible slot from right
-		// now. (Deliberately "now", not a stored construction time —
-		// see the class docblock on why nothing here may depend on that.)
 		$next = null === $last_ran_at
-			? $this->compute_next_run( $now, true )
+			? $this->compute_next_run( $first_scheduled_at ?? new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ), true )
 			: $this->compute_next_run( $last_ran_at, false );
 
-		return $now >= $next;
+		return new DateTimeImmutable( 'now', new DateTimeZone( 'UTC' ) ) >= $next;
+	}
+
+	/**
+	 * Whether a recurrence has been configured for this task.
+	 */
+	public function has_schedule() : bool {
+		return null !== $this->day_matcher || 0 !== $this->interval_seconds;
 	}
 
 	/**
