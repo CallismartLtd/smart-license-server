@@ -17,6 +17,8 @@ use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\FileSystem\WPPluginRepository;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\FileSystem\SoftwareRepository;
+use SmartLicenseServer\FileSystem\SmliserExtensionRepository;
+use SmartLicenseServer\FileSystem\SmliserThemeRepository;
 use SmartLicenseServer\FileSystem\WPThemeRepository;
 
 /**
@@ -333,6 +335,16 @@ class HostedAppsRegistry extends AbstractRegistry {
 				'class'           => Software::class,
 				'directory_class' => SoftwareRepository::class,
 				'labels'          => [ 'singular' => 'Software', 'plural' => 'Software' ],
+			],
+			'smliser-theme' => [
+				'class'           => SmliserTheme::class,
+				'directory_class' => SmliserThemeRepository::class,
+				'labels'          => [ 'singular' => 'Smliser Theme', 'plural' => 'Smliser Themes' ],
+			],
+			'smliser-extension' => [
+				'class'           => SmliserExtension::class,
+				'directory_class' => SmliserExtensionRepository::class,
+				'labels'          => [ 'singular' => 'Smliser Extension', 'plural' => 'Smliser Extensions' ],
 			],
 		];
 
