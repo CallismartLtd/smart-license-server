@@ -25,8 +25,8 @@ use ZipArchive;
  * Installs, updates and removes the modules (themes, extensions) of one type.
  *
  * The pipeline is the same for every type; a type's installer says what is
- * its own: the exception it throws, its manifest and package rules, the
- * marketplace prefix, and what must hold before a module is removed.
+ * its own: the exception it throws, its manifest and package rules, its
+ * marketplace app type, and what must hold before a module is removed.
  *
  * Philosophy:
  *
@@ -39,10 +39,15 @@ use ZipArchive;
  *    signed by a release key. Marketplace packages must be signed. An
  *    uploaded package without a valid signature installs only when the
  *    administrator trusts it explicitly, and the record says so.
- *  - The marketplace is the update server (UpdateServer::HOST). A module
- *    "<slug>" is published there as the hosted app MARKETPLACE_TYPE /
- *    "<MARKETPLACE_PREFIX><slug>", with the artifacts
- *    "<MARKETPLACE_PREFIX><slug>-<version>.zip|.sha256|.sha256.sig".
+ *  - The marketplace is this same application, running on our
+ *    infrastructure (UpdateServer::HOST). Copies of it are released for
+ *    download, and it hosts free and paid modules for them. A module is a
+ *    hosted app there, like any other: its app type is MARKETPLACE_TYPE (the
+ *    application itself is the "software" app type) and its app slug is the
+ *    module slug. Everything follows the hosted apps' own URL structure,
+ *    /{repository|downloads}/{app_type}/{app_slug}[.zip], with the artifacts
+ *    under /downloads/{app_type}/{app_slug}/artifacts/ named
+ *    "<slug>-<version>.zip|.sha256|.sha256.sig".
  *  - Assets are published in public/, where a copy (on servers without
  *    symlinks) is served by the web server as it is. A package with PHP in
  *    assets/, or with server configuration files (.htaccess, .user.ini,
@@ -77,14 +82,9 @@ abstract class ModuleInstaller {
 	public const LIST_KEY = 'modules';
 
 	/**
-	 * Hosted app type of modules on the marketplace.
+	 * Hosted app type of modules of this type on the marketplace.
 	 */
 	public const MARKETPLACE_TYPE = '';
-
-	/**
-	 * Prefix of a module's hosted app slug on the marketplace.
-	 */
-	public const MARKETPLACE_PREFIX = '';
 
 	/**
 	 * Working folder, inside the installed folder (same filesystem, so swaps are renames).
@@ -336,7 +336,7 @@ abstract class ModuleInstaller {
 		$installed = $this->modules->is_installed( $slug ) ? $this->installed_version( $slug ) : null;
 
 		try {
-			$latest = $this->server->latest_of( static::MARKETPLACE_TYPE, static::marketplace_slug( $slug ), $progress );
+			$latest = $this->server->latest_of( static::MARKETPLACE_TYPE, $slug, $progress );
 		} catch ( UpdateException $e ) {
 			throw $this->fail( $e->getMessage(), $e );
 		}
@@ -352,7 +352,7 @@ abstract class ModuleInstaller {
 			$this->make_dir( $dir );
 
 			try {
-				$download = $this->server->download_artifact( static::MARKETPLACE_TYPE, static::marketplace_slug( $slug ), static::artifact_base( $slug, $latest['version'] ), $dir, false, $progress );
+				$download = $this->server->download_artifact( static::MARKETPLACE_TYPE, $slug, static::artifact_base( $slug, $latest['version'] ), $dir, false, $progress );
 			} catch ( UpdateException $e ) {
 				throw $this->fail( $e->getMessage(), $e );
 			}
@@ -415,7 +415,7 @@ abstract class ModuleInstaller {
 			$installed = $module instanceof Module ? $module->version : null;
 
 			try {
-				$latest           = $this->server->latest_of( static::MARKETPLACE_TYPE, static::marketplace_slug( $slug ), $progress )['version'];
+				$latest           = $this->server->latest_of( static::MARKETPLACE_TYPE, $slug, $progress )['version'];
 				$results[ $slug ] = [
 					'installed' => $installed,
 					'latest'    => $latest,
@@ -434,11 +434,10 @@ abstract class ModuleInstaller {
 	 * The modules the marketplace publishes, with what is installed here.
 	 *
 	 * Read from the update server's repository REST listing: the hosted apps
-	 * MARKETPLACE_TYPE whose slug starts with MARKETPLACE_PREFIX. The server
-	 * matches the start of a slug, so a search finds the modules whose slug
-	 * starts with the term.
+	 * of the app type MARKETPLACE_TYPE. The server searches the apps' slug,
+	 * name and author.
 	 *
-	 * @param string $search Search term (start of a module slug); empty to list.
+	 * @param string $search Search term (matched against a module's slug, name and author); empty to list.
 	 * @param int    $page   Page number, from 1.
 	 * @return array{
 	 *     pagination: array{total: int, page: int, limit: int, total_pages: int}
@@ -448,7 +447,7 @@ abstract class ModuleInstaller {
 	 */
 	public function marketplace( string $search = '', int $page = 1 ) : array {
 		try {
-			$result = $this->server->browse( static::MARKETPLACE_TYPE, static::MARKETPLACE_PREFIX . strtolower( trim( $search ) ), $page, self::MARKETPLACE_PER_PAGE );
+			$result = $this->server->browse( static::MARKETPLACE_TYPE, trim( $search ), $page, self::MARKETPLACE_PER_PAGE );
 		} catch ( UpdateException $e ) {
 			throw $this->fail( $e->getMessage(), $e );
 		}
@@ -456,10 +455,9 @@ abstract class ModuleInstaller {
 		$modules = [];
 
 		foreach ( $result['apps'] as $app ) {
-			$hosted = (string) ( $app['slug'] ?? '' );
-			$slug   = substr( $hosted, strlen( static::MARKETPLACE_PREFIX ) );
+			$slug = (string) ( $app['slug'] ?? '' );
 
-			if ( ! str_starts_with( $hosted, static::MARKETPLACE_PREFIX ) || 1 !== preg_match( $this->slug_pattern(), $slug ) || null !== $this->reserved_message( $slug ) ) {
+			if ( 1 !== preg_match( $this->slug_pattern(), $slug ) || null !== $this->reserved_message( $slug ) ) {
 				continue;
 			}
 
@@ -595,24 +593,14 @@ abstract class ModuleInstaller {
 	}
 
 	/**
-	 * A module's hosted app slug on the marketplace.
-	 *
-	 * @param string $slug Module slug.
-	 * @return string E.g. "smliser-theme-acme".
-	 */
-	public static function marketplace_slug( string $slug ) : string {
-		return static::MARKETPLACE_PREFIX . $slug;
-	}
-
-	/**
 	 * A module package's artifact base name.
 	 *
 	 * @param string $slug    Module slug.
 	 * @param string $version Module version.
-	 * @return string E.g. "smliser-theme-acme-1.0.0".
+	 * @return string E.g. "acme-1.0.0".
 	 */
 	public static function artifact_base( string $slug, string $version ) : string {
-		return static::marketplace_slug( $slug ) . '-' . $version;
+		return $slug . '-' . $version;
 	}
 
 	/*

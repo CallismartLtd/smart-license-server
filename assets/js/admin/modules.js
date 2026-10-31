@@ -261,7 +261,7 @@
 			root.dataset.section    = state.section;
 			root.dataset.moduleKind = kind;
 			input.value             = state.search;
-			input.placeholder       = `Search by the start of a ${ kind } slug`;
+			input.placeholder       = 'Search by name, slug or author';
 			form.querySelector( 'input[name="section"]' ).value = state.section;
 
 			tabs.forEach( ( tab ) => tab.classList.toggle( 'active', tab.dataset.section === state.section ) );
@@ -393,7 +393,7 @@
 		if ( 0 === modules.length ) {
 			results.replaceChildren( messageNode(
 				'ti ti-mood-empty',
-				'' === state.search ? `The marketplace publishes no ${ kind }s yet.` : `No ${ kind } slug starts with "${ state.search }".`
+				'' === state.search ? `The marketplace publishes no ${ kind }s yet.` : `No ${ kind } matches "${ state.search }".`
 			) );
 			return;
 		}

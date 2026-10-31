@@ -99,11 +99,11 @@ class SiteThemeCommand extends AbstractCommand {
 			'  --activate            install: activate the theme once it is installed.',
 			'  --yes, -y             Do not ask for confirmation.',
 			'',
-			sprintf( 'Marketplace themes are published on the update server as %s apps named "%s<slug>".', ThemeInstaller::MARKETPLACE_TYPE, ThemeInstaller::MARKETPLACE_PREFIX ),
+			sprintf( 'Marketplace themes are published on the update server as %s apps, by theme slug.', ThemeInstaller::MARKETPLACE_TYPE ),
 			'',
 			'Examples:',
 			"  {$prefix} install aurora --activate",
-			"  {$prefix} install ./smliser-theme-aurora-1.2.0.zip",
+			"  {$prefix} install ./aurora-1.2.0.zip",
 			"  {$prefix} update --all",
 			"  {$prefix} activate default",
 		] );

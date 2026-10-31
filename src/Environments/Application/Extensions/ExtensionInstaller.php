@@ -29,8 +29,9 @@ use Throwable;
  *  - An extension package holds one folder named after the extension slug
  *    (extension.json, src/, optional assets/), installed in
  *    storage/extensions/<slug>.
- *  - An extension "<slug>" is published on the marketplace as the hosted app
- *    "smliser-extension-<slug>".
+ *  - An extension "<slug>" is published on the marketplace as a hosted app
+ *    of the app type "smliser-extension", with the extension slug as its
+ *    app slug.
  *  - Installing does not enable. Whether an extension runs is
  *    ExtensionManager's record, changed with enable() and disable().
  *  - Replacing an enabled extension is allowed: the new files load from the
@@ -41,7 +42,7 @@ final class ExtensionInstaller extends ModuleInstaller {
 	public const NOUN               = 'extension';
 	public const RESULT_KEY         = 'extension';
 	public const LIST_KEY           = 'extensions';
-	public const MARKETPLACE_TYPE	= 'smliser_extension';
+	public const MARKETPLACE_TYPE	= 'smliser-extension';
 
 	/**
 	 * Constructor.

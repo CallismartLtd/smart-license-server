@@ -161,7 +161,7 @@ class ThemeManagement {
 	 * The themes the marketplace publishes, with what is installed here. Read
 	 * by modules.js to draw the Modules > Marketplace page.
 	 *
-	 * Fields: search (the start of a theme slug; optional), paged (page number, from 1).
+	 * Fields: search (matched against the theme's slug, name and author; optional), paged (page number, from 1).
 	 *
 	 * @param Request $request
 	 * @return Response data.modules: list of {slug, name, version, summary, author, icon, homepage, installed, update};

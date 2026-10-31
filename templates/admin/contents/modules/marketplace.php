@@ -37,7 +37,7 @@ use SmartLicenseServer\Admin\ContentHandlers\ModulesPage;
 	<div class="smliser-modules-toolbar">
 		<form class="smliser-modules-search" method="get" action="<?php echo escUrl( $page_url ); ?>" role="search" data-marketplace-search>
 			<input type="hidden" name="<?php echo escAttr( ModulesPage::SECTION_VAR ); ?>" value="<?php echo escAttr( $section ); ?>">
-			<input type="search" name="search" class="smliser-form-input" value="<?php echo escAttr( $search ); ?>" placeholder="<?php echo escAttr( sprintf( 'Search by the start of a %s slug', $kind ) ); ?>" aria-label="Search the marketplace">
+			<input type="search" name="search" class="smliser-form-input" value="<?php echo escAttr( $search ); ?>" placeholder="Search by name, slug or author" aria-label="Search the marketplace">
 			<button type="submit" class="smliser-btn smliser-btn-glass"><i class="ti ti-search"></i> Search</button>
 		</form>
 		<p class="smliser-section-description">

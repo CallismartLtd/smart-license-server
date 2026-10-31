@@ -162,8 +162,8 @@ final class UpdateServer {
 	/**
 	 * Browse the hosted apps the update server publishes (its repository REST listing).
 	 *
-	 * The server's search matches the start of an app's name, slug or author;
-	 * an empty search lists every app of the type.
+	 * The server's search matches an app's name, slug or author; an empty
+	 * search lists every app of the type.
 	 *
 	 * @param string        $app_type Hosted app type on the update server.
 	 * @param string        $search   Search term; empty to list.
@@ -243,7 +243,7 @@ final class UpdateServer {
 	 *
 	 * @param string        $app_type       Hosted app type on the update server.
 	 * @param string        $app_slug       Hosted app slug on the update server.
-	 * @param string        $base           Artifact base name, e.g. "smliser-theme-acme-1.0.0".
+	 * @param string        $base           Artifact base name, e.g. "acme-1.0.0".
 	 * @param string        $dir            Existing, writable directory to download into.
 	 * @param bool          $trust_unsigned Accept a package without a valid signature.
 	 * @param callable|null $progress       Progress callback, see UpdateProgressTrait.

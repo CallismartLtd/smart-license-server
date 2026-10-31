@@ -28,8 +28,8 @@ use Throwable;
  *
  *  - A theme package holds one folder named after the theme slug
  *    (theme.json, templates/, assets/), installed in storage/themes/<slug>.
- *  - A theme "<slug>" is published on the marketplace as the hosted app
- *    "smliser-theme-<slug>".
+ *  - A theme "<slug>" is published on the marketplace as a hosted app of
+ *    the app type "smliser-theme", with the theme slug as its app slug.
  *  - PHP runs only from templates/. A package with PHP anywhere else is
  *    refused.
  *  - A theme that names a parent needs it installed first, and only one
