@@ -1,0 +1,11 @@
+{
+    "slug": "smliser-official-marketplace",
+    "name": "Smliser Official Marketplace",
+    "version": "1.0.0",
+    "entry": "Callismart\\SmliserOfficialMarketplace\\OfficialHostedAppTypes",
+    "namespace": "Callismart\\SmliserOfficialMarketplace\\",
+    "source": "src",
+    "requires": "0.4.7",
+    "description": "Registers the official Smliser theme and extension hosting types.",
+    "author": "Callismart"
+}

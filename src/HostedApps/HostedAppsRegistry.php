@@ -17,8 +17,6 @@ use SmartLicenseServer\Exceptions\EnvironmentBootstrapException;
 use SmartLicenseServer\FileSystem\WPPluginRepository;
 use SmartLicenseServer\FileSystem\Repository;
 use SmartLicenseServer\FileSystem\SoftwareRepository;
-use SmartLicenseServer\FileSystem\SmliserExtensionRepository;
-use SmartLicenseServer\FileSystem\SmliserThemeRepository;
 use SmartLicenseServer\FileSystem\WPThemeRepository;
 use SmartLicenseServer\HostedApps\Storage\AppFile;
 use SmartLicenseServer\HostedApps\Storage\AppStorage;
@@ -433,24 +431,6 @@ class HostedAppsRegistry extends AbstractRegistry {
 				'description'     => 'Upload other software packages.',
 				'icon'            => 'ti ti-device-desktop-code',
 				'storage_dir'     => 'software',
-			],
-			'smliser-theme' => [
-				'class'           => SmliserTheme::class,
-				'directory_class' => SmliserThemeRepository::class,
-				'labels'          => [ 'singular' => 'Smliser Theme', 'plural' => 'Smliser Themes' ],
-				'description'     => 'Upload themes for Smliser applications.',
-				'icon'            => 'ti ti-palette',
-				'storage_dir'     => 'smliser-theme',
-				'marketplace_attestation' => true,
-			],
-			'smliser-extension' => [
-				'class'           => SmliserExtension::class,
-				'directory_class' => SmliserExtensionRepository::class,
-				'labels'          => [ 'singular' => 'Smliser Extension', 'plural' => 'Smliser Extensions' ],
-				'description'     => 'Upload extensions for Smliser applications.',
-				'icon'            => 'ti ti-puzzle',
-				'storage_dir'     => 'smliser-extension',
-				'marketplace_attestation' => true,
 			],
 		];
 

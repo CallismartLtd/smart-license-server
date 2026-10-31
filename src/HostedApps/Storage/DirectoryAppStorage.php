@@ -55,9 +55,7 @@ class DirectoryAppStorage implements AppStorageAdapterInterface {
 	public const CORE_TYPE_DIRS = [
 		'wpplugin' => 'wp-plugins',
 		'wptheme'  => 'wp-themes',
-		'software'          => 'software',
-		'smliser-theme'     => 'smliser-theme',
-		'smliser-extension' => 'smliser-extension',
+		'software' => 'software',
 	];
 
 	/**
