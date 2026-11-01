@@ -1,0 +1,11 @@
+{
+    "name": "Marketplace Test Greeter",
+    "slug": "marketplace-test-greeter",
+    "version": "1.0.0",
+    "type": "extension",
+    "platforms": ["Smart License Server"],
+    "tech_stack": ["PHP"],
+    "dependencies": [],
+    "tags": ["sample", "testing", "extension"],
+    "short_description": "A small sample extension with a public greeting route."
+}

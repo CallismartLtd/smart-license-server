@@ -1,0 +1,11 @@
+{
+    "name": "Marketplace Test Greeter Add-on",
+    "slug": "marketplace-test-greeter-addon",
+    "version": "1.0.0",
+    "type": "extension",
+    "platforms": ["Smart License Server"],
+    "tech_stack": ["PHP"],
+    "dependencies": ["marketplace-test-greeter"],
+    "tags": ["sample", "testing", "extension", "add-on"],
+    "short_description": "A companion sample that depends on the Marketplace Test Greeter."
+}

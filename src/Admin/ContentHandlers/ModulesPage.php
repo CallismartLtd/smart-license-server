@@ -490,7 +490,7 @@ class ModulesPage implements AdminPageInterface {
 		}
 
 		if ( ! $enabled && $supported && [] === $missing ) {
-			$actions[] = $this->action( 'enable', 'Enable', 'ti ti-player-play', \sprintf( 'Enable %s? Its PHP code runs on every request from the next one on.', $extension->name ) );
+			$actions[] = $this->action( 'enable', 'Enable', 'ti ti-player-play', \sprintf( 'Enable "%s" %s?', $extension->name, 'extension' ) );
 		}
 
 		if ( ExtensionInstaller::SOURCE_MARKETPLACE === ( $record['source'] ?? null ) ) {

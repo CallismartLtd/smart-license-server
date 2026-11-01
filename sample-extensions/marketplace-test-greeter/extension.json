@@ -1,0 +1,10 @@
+{
+    "slug": "marketplace-test-greeter",
+    "name": "Marketplace Test Greeter",
+    "version": "1.0.0",
+    "entry": "Callismart\\MarketplaceTestGreeter\\GreeterExtension",
+    "namespace": "Callismart\\MarketplaceTestGreeter\\",
+    "source": "src",
+    "description": "A small sample extension with a public greeting route.",
+    "author": "Callismart Test Samples"
+}

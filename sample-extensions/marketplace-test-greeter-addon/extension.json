@@ -1,0 +1,13 @@
+{
+    "slug": "marketplace-test-greeter-addon",
+    "name": "Marketplace Test Greeter Add-on",
+    "version": "1.0.0",
+    "entry": "Callismart\\MarketplaceTestGreeterAddon\\GreeterAddonExtension",
+    "namespace": "Callismart\\MarketplaceTestGreeterAddon\\",
+    "source": "src",
+    "depends": [
+        "marketplace-test-greeter"
+    ],
+    "description": "A companion sample that depends on the Marketplace Test Greeter.",
+    "author": "Callismart Test Samples"
+}
