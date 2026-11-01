@@ -31,6 +31,7 @@ use SmartLicenseServer\ClientDashboard\ActionHandlers\ContextSwitch;
 use SmartLicenseServer\ClientDashboard\ActionHandlers\AppActions;
 use SmartLicenseServer\ClientDashboard\ActionHandlers\OrganizationActions;
 use SmartLicenseServer\ClientDashboard\ActionHandlers\PreferenceManagement;
+use SmartLicenseServer\ClientDashboard\ActionHandlers\SecurityManagement;
 use SmartLicenseServer\ClientDashboard\Page\Dispatcher as ClientDashboardDispatcher;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\Request;
@@ -153,6 +154,7 @@ final class HttpDispatcher {
 		$this->router->group( $urlmanager->login_url_prefix(),
 			function() {
 				$this->pages->get( '/', [AuthPages::class, 'sign_in'] );
+				$this->pages->get( 'mfa', [AuthPages::class, 'mfa'] );
 				$this->pages->get( 'signup', [AuthPages::class, 'sign_up'] );
 				$this->pages->get( 'forgot-password', [AuthPages::class, 'forgot_password'] );
 				$this->pages->get( 'reset-password', [AuthPages::class, 'reset_password'] );
@@ -163,6 +165,16 @@ final class HttpDispatcher {
 					handler: [AuthManagement::class, 'handle_login'],
 					middleware: [ LoginMonitorMiddleware::class ]
 				);
+				$this->router->post(
+					pattern: 'form/mfa/email',
+					handler: [AuthManagement::class, 'handle_mfa_email']
+				);
+				$this->router->post(
+					pattern: 'form/mfa/verify',
+					handler: [AuthManagement::class, 'handle_mfa_verify']
+				);
+				$this->router->post( 'form/mfa/passkey/options', [ AuthManagement::class, 'handle_mfa_passkey_options' ] );
+				$this->router->post( 'form/mfa/passkey/verify', [ AuthManagement::class, 'handle_mfa_passkey_verify' ] );
 				$this->router->post(
 					pattern: 'form/signup',
 					handler: [AuthManagement::class, 'handle_signup'],
@@ -678,6 +690,15 @@ final class HttpDispatcher {
 						pattern: 'preferences',
 						handler: [PreferenceManagement::class, 'save']
 					);
+
+					$this->router->post( 'security/email/start', [ SecurityManagement::class, 'start_email' ] );
+					$this->router->post( 'security/email/verify', [ SecurityManagement::class, 'verify_email' ] );
+					$this->router->post( 'security/totp/start', [ SecurityManagement::class, 'start_totp' ] );
+					$this->router->post( 'security/totp/verify', [ SecurityManagement::class, 'verify_totp' ] );
+					$this->router->post( 'security/passkey/start', [ SecurityManagement::class, 'start_passkey' ] );
+					$this->router->post( 'security/passkey/finish', [ SecurityManagement::class, 'finish_passkey' ] );
+					$this->router->post( 'security/passkey/revoke', [ SecurityManagement::class, 'revoke_passkey' ] );
+					$this->router->post( 'security/disable', [ SecurityManagement::class, 'disable' ] );
 
 					$this->router->post(
 						pattern: 'context',

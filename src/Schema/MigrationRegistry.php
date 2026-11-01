@@ -42,6 +42,8 @@ final class MigrationRegistry {
 		// Schema 0.2.1.
 		Migrations\ClearBrokenAppLinks::class,
 		Migrations\FlattenThemeAuthors::class,
+		// Schema 0.2.3.
+		Migrations\CreateAuthenticationTables::class,
 	];
 
 	/**

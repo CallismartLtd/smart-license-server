@@ -20,6 +20,7 @@ use SmartLicenseServer\Security\Authentication\Session\SessionManager;
 use SmartLicenseServer\Security\Authentication\Session\UserSessionCutoff;
 use SmartLicenseServer\Security\Authentication\UserAccounts;
 use SmartLicenseServer\Security\Authentication\UserAuthenticator;
+use SmartLicenseServer\Security\Authentication\AuthenticationResult;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Owner;
@@ -161,7 +162,7 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 		bool $remember = false
 	) : RequestException|Principal {
 
-		$auth_result = ( new UserAuthenticator( $email, $pwd ) )->authenticate();
+		$auth_result = $this->authenticate_credentials( $email, $pwd );
 
 		if ( ! $auth_result->is_authenticated() ) {
 			return new RequestException(
@@ -170,26 +171,44 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 			);
 		}
 
-		$claims = [];
+		return $this->complete_login( $auth_result, $remember );
+	}
 
-		if ( $auth_result->owner ) {
-			$claims['owner_id'] = $auth_result->owner->get_id();
+	/** Verify a password without issuing a full authenticated session. */
+	public function authenticate_credentials( string $email, #[\SensitiveParameter] string $password ) : AuthenticationResult {
+		return ( new UserAuthenticator( $email, $password ) )->authenticate();
+	}
+
+	/** Issue the normal authenticated session after all required factors pass. */
+	public function complete_login( AuthenticationResult $auth_result, bool $remember = false ) : Principal|RequestException {
+		if ( ! $auth_result->is_authenticated() || ! $auth_result->actor instanceof User || ! $auth_result->role ) {
+			return new RequestException( 'invalid_authentication_state', 'Authentication could not be completed.' );
 		}
 
-		$this->sessions->create(
-			$auth_result->actor->get_id(),
-			$claims,
-			$remember
-		);
+		return $this->complete_login_for_user( $auth_result->actor, $remember );
+	}
 
-		$principal = new Principal(
-			$auth_result->actor,
-			$auth_result->role,
-			$auth_result->owner
-		);
+	/** Complete login after an out-of-band factor challenge. */
+	public function complete_login_for_user( User $user, bool $remember = false ) : Principal|RequestException {
 
-		$this->authenticate();
+		if ( ! $user->can_authenticate() ) {
+			return new RequestException( 'account_inactive', 'This account is not active. Contact the site administrator.' );
+		}
 
+		$role = ContextServiceProvider::get_context_role( $user, $user );
+		if ( ! $role ) {
+			return new RequestException( 'invalid_role', 'Authentication denied due to invalid role.' );
+		}
+		try {
+			$owner = ContextServiceProvider::get_self_owner( $user, $role );
+		} catch ( \Throwable ) {
+			$owner = ContextServiceProvider::get_owner_for( $user );
+		}
+
+		$claims = $owner ? [ 'owner_id' => $owner->get_id() ] : [];
+		$this->sessions->create( $user->get_id(), $claims, $remember );
+		$principal = new Principal( $user, $role, $owner );
+		$this->guard->set_principal( $principal );
 		return $principal;
 	}
 

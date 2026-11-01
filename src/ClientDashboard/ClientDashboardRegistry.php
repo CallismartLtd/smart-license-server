@@ -14,6 +14,7 @@ use SmartLicenseServer\ClientDashboard\ContentHandlers\OrganizationPage;
 use SmartLicenseServer\ClientDashboard\ContentHandlers\OrganizationsPage;
 use SmartLicenseServer\ClientDashboard\ContentHandlers\OverviewPage;
 use SmartLicenseServer\ClientDashboard\ContentHandlers\PurchasesPage;
+use SmartLicenseServer\ClientDashboard\ContentHandlers\SecurityPage;
 use SmartLicenseServer\ClientDashboard\Contracts\ClientPageInterface;
 use SmartLicenseServer\Contracts\AbstractDashboardRegistry;
 use SmartLicenseServer\Core\Container\Container;
@@ -70,6 +71,7 @@ final class ClientDashboardRegistry extends AbstractDashboardRegistry {
 			AppsPage::class,
 			OrganizationsPage::class,
 			OrganizationPage::class,
+			SecurityPage::class,
 		];
 
 		foreach ( $core_menu as $id ) {

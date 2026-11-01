@@ -20,10 +20,14 @@ use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
 use SmartLicenseServer\Security\Authentication\AuthenticationMonitor;
+use SmartLicenseServer\Security\Authentication\AuthenticationFactorManager;
+use SmartLicenseServer\Security\Authentication\WebAuthnManager;
 use SmartLicenseServer\Security\Authentication\PasswordResetToken;
 use SmartLicenseServer\Security\Authentication\UserAccounts;
+use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -55,6 +59,10 @@ class AuthManagement {
 		protected PasswordResetToken $reset_tokens,
 		protected UserAccounts $accounts,
 		protected AuthenticationMonitor $authentication_monitor,
+		protected AuthenticationFactorManager $factor_manager,
+		protected WebAuthnManager $webauthn,
+		protected WebIdentityProvider $web_identity_provider,
+		protected Mailer $mailer,
 		JobQueue $job_queue
 	) {
 		$this->job_queue = $job_queue;
@@ -88,7 +96,43 @@ class AuthManagement {
 			);
 		}
 
-		$principal = $this->id_provider->logon( $username, $password, $remember );
+		$auth_result = $this->web_identity_provider->authenticate_credentials( $username, $password );
+		$principal   = $auth_result->is_authenticated()
+			? null
+			: new RequestException(
+				(string) ( $auth_result->error_code ?? 'invalid_credentials' ),
+				(string) ( $auth_result->message ?? 'The credentials are invalid.' )
+			);
+
+		if ( null === $principal && $this->factor_manager->requires_second_factor( (int) $auth_result->actor->get_id() ) ) {
+			try {
+				$challenge = $this->factor_manager->create_challenge(
+					(int) $auth_result->actor->get_id(),
+					'login',
+					[
+						'remember'     => $remember,
+						'redirect_url' => $this->redirect_url(
+							$request,
+							'system_admin' === $auth_result->role->get_slug()
+								? $this->urlmanager->admin_url()
+								: $this->urlmanager->client_dashboard_url()
+						)->url(),
+					]
+				);
+			} catch ( \Throwable ) {
+				return static::error_response( 503, 'mfa_unavailable', 'Additional verification could not be started. Please try again.' );
+			}
+
+			return static::success_response( 200, [
+				'success'  => true,
+				'message'  => 'Password accepted. Complete the additional verification to sign in.',
+				'redirect' => $this->urlmanager->login_url( 'mfa', [ 'challenge' => $challenge ] )->url(),
+			] );
+		}
+
+		if ( null === $principal ) {
+			$principal = $this->web_identity_provider->complete_login( $auth_result, $remember );
+		}
 
 		if ( $principal instanceof RequestException ) {
 			try {
@@ -130,6 +174,187 @@ class AuthManagement {
 				'redirect' => $redirect_url->url()
 			]
 		);
+	}
+
+	/** Send an email verification code for a pending password login. */
+	public function handle_mfa_email( Request $request ) : Response {
+		$token = trim( (string) $request->post( 'challenge', '' ) );
+		$challenge = $this->factor_manager->get_challenge( $token, 'login' );
+		if ( ! $challenge ) {
+			return static::error_response( 401, 'challenge_expired', 'This sign-in challenge has expired. Sign in again.' );
+		}
+
+		$user = User::get_by_id( (int) $challenge['user_id'] );
+		$status = $user ? $this->factor_manager->status( (int) $user->get_id() ) : null;
+		if ( ! $user || ! $status['email'] || ! $user->is_email_verified() ) {
+			return static::error_response( 400, 'email_factor_unavailable', 'Email verification is not available for this account.' );
+		}
+
+		try {
+			$code_challenge = $this->factor_manager->create_email_code_challenge(
+				(int) $user->get_id(),
+				'login_email',
+				[
+					'remember'     => (bool) ( $challenge['payload']['remember'] ?? false ),
+					'redirect_url' => (string) ( $challenge['payload']['redirect_url'] ?? '' ),
+				]
+			);
+			$this->mailer->to( $user->get_email() )
+				->subject( 'Your sign-in verification code' )
+				->body( sprintf(
+					'<p>Your Smart License Server sign-in code is <strong>%s</strong>.</p><p>It expires in 10 minutes. If you did not request it, you can ignore this message.</p>',
+					escHtml( $code_challenge['code'] )
+				) )
+				->send();
+
+			if ( ! $this->factor_manager->consume_challenge( $token ) ) {
+				$this->factor_manager->consume_challenge( $code_challenge['token'] );
+				return static::error_response( 409, 'challenge_used', 'This sign-in challenge has already been used.' );
+			}
+		} catch ( \Throwable $e ) {
+			if ( isset( $code_challenge['token'] ) ) {
+				$this->factor_manager->consume_challenge( $code_challenge['token'] );
+			}
+			\smliser_log_error( sprintf( '[Authentication] Could not send a sign-in code: %s', $e->getMessage() ) );
+			return static::error_response( 503, 'email_delivery_failed', 'The sign-in code could not be sent. Please try again.' );
+		}
+
+		return static::success_response( 200, [
+			'success'  => true,
+			'message'  => 'A verification code was sent to your verified email address.',
+			'redirect' => $this->urlmanager->login_url( 'mfa', [ 'challenge' => $code_challenge['token'], 'method' => 'email' ] )->url(),
+		] );
+	}
+
+	/** Verify an email/TOTP/recovery code and only then issue the login session. */
+	public function handle_mfa_verify( Request $request ) : Response {
+		$token  = trim( (string) $request->post( 'challenge', '' ) );
+		$method = (string) $request->post( 'method', 'totp' );
+		$code   = trim( (string) $request->post( 'code', '' ) );
+		$challenge = null;
+		$already_consumed = false;
+
+		if ( 'email' === $method ) {
+			$pending_email = $this->factor_manager->get_challenge( $token, 'login_email' );
+			$challenge = $this->factor_manager->verify_email_code( $token, 'login_email', $code );
+			$already_consumed = null !== $challenge;
+			if ( ! $challenge && $pending_email ) {
+				$this->record_mfa_failure( User::get_by_id( (int) $pending_email['user_id'] ) );
+			}
+		} elseif ( 'totp' === $method ) {
+			$challenge = $this->factor_manager->get_challenge( $token, 'login' );
+			$user = $challenge ? User::get_by_id( (int) $challenge['user_id'] ) : null;
+			$valid = $challenge && $user && (
+				$this->factor_manager->consume_totp( (int) $user->get_id(), $code )
+				|| $this->factor_manager->consume_recovery_code( (int) $user->get_id(), $code )
+			);
+			if ( ! $valid && $challenge ) {
+				$this->factor_manager->record_challenge_failure( $token );
+				$this->record_mfa_failure( $user );
+			}
+		} else {
+			return static::error_response( 400, 'invalid_factor', 'Choose a supported verification method.' );
+		}
+
+		if ( ! $challenge ) {
+			return static::error_response( 401, 'invalid_code', 'The verification code is invalid or has expired.' );
+		}
+
+		$user = User::get_by_id( (int) $challenge['user_id'] );
+		if ( ! $user || ! $user->can_authenticate() ) {
+			return static::error_response( 401, 'account_unavailable', 'This account cannot sign in.' );
+		}
+
+		if ( ! $already_consumed && ! $this->factor_manager->consume_challenge( $token ) ) {
+			return static::error_response( 409, 'challenge_used', 'This sign-in challenge has already been used.' );
+		}
+
+		$principal = $this->web_identity_provider->complete_login_for_user(
+			$user,
+			(bool) ( $challenge['payload']['remember'] ?? false )
+		);
+		if ( $principal instanceof RequestException ) {
+			return static::error_response( 401, $principal->get_error_code(), $principal->get_error_message() );
+		}
+
+		try {
+			$this->authentication_monitor->record_success( $user->get_email(), $this->monitor_source( $request ) );
+		} catch ( \Throwable $e ) {
+			\smliser_log_error( sprintf( '[Authentication Monitor] Could not record successful MFA login: %s', $e->getMessage() ) );
+		}
+
+		$fallback = $principal->is( 'system_admin' ) ? $this->urlmanager->admin_url() : $this->urlmanager->client_dashboard_url();
+		$redirect = URL::from( (string) ( $challenge['payload']['redirect_url'] ?? '' ) );
+		if ( ! $redirect->is_valid() || $redirect->get_origin() !== $this->urlmanager->url()->get_origin() ) {
+			$redirect = $fallback;
+		}
+
+		return static::success_response( 200, [
+			'success'  => true,
+			'message'  => sprintf( 'Welcome back, %s.', $principal->get_display_name() ),
+			'redirect' => $redirect->url(),
+		] );
+	}
+
+	/** Return WebAuthn options for one password-authenticated sign-in challenge. */
+	public function handle_mfa_passkey_options( Request $request ) : Response {
+		$token = trim( (string) $request->post( 'challenge', '' ) );
+		$challenge = $this->factor_manager->get_challenge( $token, 'login' );
+		$user = $challenge ? User::get_by_id( (int) $challenge['user_id'] ) : null;
+		if ( ! $challenge || ! $user || ! $user->can_authenticate() || empty( $this->factor_manager->status( (int) $user->get_id() )['passkeys'] ) ) {
+			return Response::json( [ 'success' => false, 'message' => 'This passkey sign-in request is invalid or expired.' ], 400 );
+		}
+		try {
+			$setup = $this->webauthn->begin_assertion( $user, $token );
+			return Response::json( [ 'success' => true, 'challenge' => $setup['challenge'], 'options' => json_decode( $setup['options'], true, 32, JSON_THROW_ON_ERROR ) ] );
+		} catch ( \Throwable $e ) {
+			\smliser_log_error( '[Authentication] Could not start passkey verification: ' . $e->getMessage() );
+			return Response::json( [ 'success' => false, 'message' => 'Passkey verification could not be started.' ], 503 );
+		}
+	}
+
+	/** Verify a passkey assertion and finish the pending password login. */
+	public function handle_mfa_passkey_verify( Request $request ) : Response {
+		$passkey_challenge = trim( (string) $request->post( 'challenge', '' ) );
+		$pending = $this->factor_manager->get_challenge( $passkey_challenge, 'login_passkey' );
+		$finish = $this->webauthn->finish_assertion(
+			$passkey_challenge,
+			(string) $request->post( 'credential', '' )
+		);
+		if ( ! $finish ) {
+			$this->record_mfa_failure( $pending ? User::get_by_id( (int) $pending['user_id'] ) : null );
+			return Response::json( [ 'success' => false, 'message' => 'The passkey could not verify this sign-in. Try again or use another method.' ], 401 );
+		}
+		$user = User::get_by_id( (int) $finish['user_id'] );
+		if ( ! $user || ! $user->can_authenticate() ) {
+			return Response::json( [ 'success' => false, 'message' => 'This account cannot sign in.' ], 401 );
+		}
+		$principal = $this->web_identity_provider->complete_login_for_user( $user, (bool) ( $finish['payload']['remember'] ?? false ) );
+		if ( $principal instanceof RequestException ) {
+			return Response::json( [ 'success' => false, 'message' => $principal->get_error_message() ], 401 );
+		}
+		$fallback = $principal->is( 'system_admin' ) ? $this->urlmanager->admin_url() : $this->urlmanager->client_dashboard_url();
+		$redirect = URL::from( (string) ( $finish['payload']['redirect_url'] ?? '' ) );
+		if ( ! $redirect->is_valid() || $redirect->get_origin() !== $this->urlmanager->url()->get_origin() ) {
+			$redirect = $fallback;
+		}
+		try {
+			$this->authentication_monitor->record_success( $user->get_email(), $this->monitor_source( $request ) );
+		} catch ( \Throwable $e ) {
+			\smliser_log_error( '[Authentication Monitor] Could not record successful passkey login: ' . $e->getMessage() );
+		}
+		return Response::json( [ 'success' => true, 'message' => sprintf( 'Welcome back, %s.', $principal->get_display_name() ), 'redirect' => $redirect->url() ] );
+	}
+
+	private function record_mfa_failure( ?User $user ) : void {
+		if ( ! $user ) {
+			return;
+		}
+		try {
+			$this->authentication_monitor->record_failure( $user->get_email(), 'mfa_challenge', null );
+		} catch ( \Throwable $e ) {
+			\smliser_log_error( sprintf( '[Authentication Monitor] Could not record failed MFA: %s', $e->getMessage() ) );
+		}
 	}
 
 	/**

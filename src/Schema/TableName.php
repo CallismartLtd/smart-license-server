@@ -50,6 +50,9 @@ enum TableName : string {
 	case ORGANIZATIONS            = 'organizations';
 	case ORGANIZATION_MEMBERS     = 'organization_members';
 	case IDENTITY_PROVIDER_LOOKUP = 'identity_provider_lookup';
+	case USER_SECURITY          = 'user_security';
+	case USER_PASSKEYS          = 'user_passkeys';
+	case AUTH_CHALLENGES        = 'auth_challenges';
 	case BACKGROUND_JOBS          = 'background_jobs';
 	case FAILED_JOBS              = 'failed_jobs';
 

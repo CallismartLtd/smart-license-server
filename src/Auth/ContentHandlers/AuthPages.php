@@ -20,6 +20,7 @@ use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Authentication\EmailVerificationToken;
 use SmartLicenseServer\Security\Authentication\PasswordResetToken;
 use SmartLicenseServer\Security\Authentication\UserAccounts;
+use SmartLicenseServer\Security\Authentication\AuthenticationFactorManager;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\SettingsAPI\Settings;
 
@@ -56,7 +57,8 @@ final class AuthPages {
 		private Settings $settings,
 		private PasswordResetToken $reset_tokens,
 		private EmailVerificationToken $verify_tokens,
-		private UserAccounts $accounts
+		private UserAccounts $accounts,
+		private AuthenticationFactorManager $factor_manager
 	) {}
 
 	/**
@@ -76,6 +78,36 @@ final class AuthPages {
 	public function sign_in( Request $request ) : View {
 		return $this->form_page( 'auth.sign-in', 'Sign in', 'form/login' )
 			->set( 'redirect_url', $this->redirect_url( $request ) );
+	}
+
+	/** GET <login prefix>/mfa?challenge=… — complete a password-login challenge. */
+	public function mfa( Request $request ) : View {
+		$token  = trim( (string) $request->get( 'challenge', '', false ) );
+		$method = (string) $request->get( 'method', '', false );
+		$purpose = 'email' === $method ? 'login_email' : 'login';
+		$challenge = $this->factor_manager->get_challenge( $token, $purpose );
+		$user = $challenge ? User::get_by_id( (int) $challenge['user_id'] ) : null;
+		$status = $user ? $this->factor_manager->status( (int) $user->get_id() ) : [
+			'email' => false, 'totp' => false, 'passkeys' => [], 'recovery_codes' => 0,
+		];
+
+		return View::make( 'auth.mfa', [
+			'valid'              => null !== $challenge && null !== $user && $user->can_authenticate(),
+			'challenge'          => $token,
+			'email_pending'      => 'login_email' === $purpose,
+			'email_available'    => $status['email'] && $user instanceof User && $user->is_email_verified(),
+			'totp_available'     => $status['totp'],
+			'passkey_available'  => ! empty( $status['passkeys'] ),
+			'email_action'       => $this->urls->login_url( 'form/mfa/email' )->url(),
+			'verify_action'      => $this->urls->login_url( 'form/mfa/verify' )->url(),
+			'passkey_options_action' => $this->urls->login_url( 'form/mfa/passkey/options' )->url(),
+			'passkey_verify_action'  => $this->urls->login_url( 'form/mfa/passkey/verify' )->url(),
+		] )
+			->set_title( 'Verify your sign-in' )
+			->set_header( 'Cache-Control', 'no-store' )
+			->set_header( 'Referrer-Policy', 'no-referrer' )
+			->add_script( View::FORMS_SCRIPT )
+			->add_script( 'passkeys' );
 	}
 
 	/**

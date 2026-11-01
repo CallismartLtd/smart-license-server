@@ -11,6 +11,7 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Environments\Application\Boot;
 
+use Callismart\DBPrism\Database;
 use SmartLicenseServer\Admin\AdminDashboardRegistry;
 use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
@@ -38,6 +39,8 @@ use SmartLicenseServer\RuntimeConfig;
 use SmartLicenseServer\Security\Authentication\Session\SessionManager;
 use SmartLicenseServer\Security\Authentication\Session\UserSessionCutoff;
 use SmartLicenseServer\Security\Authentication\AuthenticationMonitor;
+use SmartLicenseServer\Security\Authentication\AuthenticationFactorManager;
+use SmartLicenseServer\Security\Authentication\WebAuthnManager;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\CSRF\CSRF;
 use SmartLicenseServer\SettingsAPI\UserSettings;
@@ -166,6 +169,24 @@ class WebBootstrapper implements BootstrapperInterface {
 			AuthenticationMonitor::class,
 			fn ( Container $c ) : AuthenticationMonitor => new AuthenticationMonitor(
 				$c->get( Cache::class ),
+				$c->get( RuntimeConfig::class )->secret
+			)
+		);
+
+		$container->singleton(
+			AuthenticationFactorManager::class,
+			fn ( Container $c ) : AuthenticationFactorManager => new AuthenticationFactorManager(
+				$c->get( Database::class ),
+				$c->get( RuntimeConfig::class )->secret,
+				$c->get( RuntimeConfig::class )->salt
+			)
+		);
+
+		$container->singleton(
+			WebAuthnManager::class,
+			fn ( Container $c ) : WebAuthnManager => new WebAuthnManager(
+				$c->get( AuthenticationFactorManager::class ),
+				$c->get( URLManager::class ),
 				$c->get( RuntimeConfig::class )->secret
 			)
 		);

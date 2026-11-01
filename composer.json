@@ -15,7 +15,8 @@
         "callismart/dto": "^1.0",
         "callismart/dbprism": "^2.0",
         "ext-zip": "*",
-        "symfony/html-sanitizer": "^8.1"
+        "symfony/html-sanitizer": "^8.1",
+        "web-auth/webauthn-lib": "^5.3"
     },
     "suggest": {
         "ext-pdo_mysql": "Required for MySQL 8.0.45 support.",
