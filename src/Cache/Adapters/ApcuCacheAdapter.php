@@ -18,6 +18,12 @@ use SmartLicenseServer\Cache\Exceptions\CacheTestException;
  */
 class ApcuCacheAdapter implements CacheAdapterInterface {
 
+	/** Seconds to wait for another atomic cache update to finish. */
+	private const MODIFY_LOCK_WAIT_SECONDS = 5;
+
+	/** Expiry for a modify lock if its owning process terminates unexpectedly. */
+	private const MODIFY_LOCK_TTL_SECONDS = 30;
+
 	/**
 	 * APCu availability status.
 	 *
@@ -119,9 +125,10 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
 	/**
 	 * Atomically read, modify, and rewrite a cached value via a callback.
 	 *
-	 * Utilizes native `apcu_entry()` for memory-level write locks. If the key is
-	 * missing, `$default` is passed to the callback. If the callback returns `false`,
-	 * the update is aborted.
+	 * Serializes updates with a per-key APCu lock, then fetches and rewrites the
+	 * value. If the key is missing, `$default` is passed to the callback. If the
+	 * callback returns `false`, the update is aborted. Lock contention times out
+	 * after a short wait; abandoned locks expire automatically.
 	 *
 	 * @param string                 $key      Unique cache key.
 	 * @param callable(mixed $currentValue ): mixed $callback Receives $currentValue, returns updated value.
@@ -134,23 +141,41 @@ class ApcuCacheAdapter implements CacheAdapterInterface {
 			return false;
 		}
 
-		// Check key existence beforehand to supply the correct `$current` argument to the callback.
-		$exists  = \apcu_exists( $key );
-		$aborted = false;
+		// apcu_entry() only calls its callback on a cache miss, so it cannot
+		// implement read-modify-write once the key already exists. Serialize
+		// this key's updates with a short-lived APCu lock instead.
+		$lock_key = $key . ':__smliser_modify_lock';
+		$token    = bin2hex( random_bytes( 16 ) );
+		$deadline = microtime( true ) + self::MODIFY_LOCK_WAIT_SECONDS;
 
-		$result = \apcu_entry( $key, function ( string $entryKey ) use ( $exists, $callback, $default, &$aborted ) {
-			$current = $exists ? \apcu_fetch( $entryKey ) : $default;
-			$updated = $callback( $current );
-
-			if ( false === $updated ) {
-				$aborted = true;
-				return $current; // Returning original value aborts modification intent.
+		while ( ! \apcu_add( $lock_key, $token, self::MODIFY_LOCK_TTL_SECONDS ) ) {
+			if ( microtime( true ) >= $deadline ) {
+				return false;
 			}
 
-			return $updated;
-		}, $ttl );
+			usleep( 10_000 );
+		}
 
-		return $aborted ? false : $result;
+		try {
+			$exists  = false;
+			$current = \apcu_fetch( $key, $exists );
+			$updated = $callback( $exists ? $current : $default );
+
+			if ( false === $updated ) {
+				return false;
+			}
+
+			return \apcu_store( $key, $updated, $ttl ) ? $updated : false;
+		} catch ( \Throwable ) {
+			return false;
+		} finally {
+			$lock_exists = false;
+			$lock_owner  = \apcu_fetch( $lock_key, $lock_exists );
+
+			if ( $lock_exists && is_string( $lock_owner ) && hash_equals( $token, $lock_owner ) ) {
+				\apcu_delete( $lock_key );
+			}
+		}
 	}
 
 	/**

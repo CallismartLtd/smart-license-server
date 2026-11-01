@@ -16,6 +16,7 @@ use SmartLicenseServer\Assets\AssetsManager;
 use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
 use SmartLicenseServer\Assets\CSS;
 use SmartLicenseServer\Assets\JS;
+use SmartLicenseServer\Cache\Cache;
 use SmartLicenseServer\Environments\Application\Boot\BootstrapperInterface;
 use SmartLicenseServer\Core\Container\Container;
 use SmartLicenseServer\Core\Request;
@@ -36,6 +37,7 @@ use SmartLicenseServer\Routing\Router;
 use SmartLicenseServer\RuntimeConfig;
 use SmartLicenseServer\Security\Authentication\Session\SessionManager;
 use SmartLicenseServer\Security\Authentication\Session\UserSessionCutoff;
+use SmartLicenseServer\Security\Authentication\AuthenticationMonitor;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\CSRF\CSRF;
 use SmartLicenseServer\SettingsAPI\UserSettings;
@@ -158,6 +160,14 @@ class WebBootstrapper implements BootstrapperInterface {
 
 		$container->singleton( UserSessionCutoff::class,
 			fn() : UserSessionCutoff => new UserSessionCutoff()
+		);
+
+		$container->singleton(
+			AuthenticationMonitor::class,
+			fn ( Container $c ) : AuthenticationMonitor => new AuthenticationMonitor(
+				$c->get( Cache::class ),
+				$c->get( RuntimeConfig::class )->secret
+			)
 		);
 
 		$container->singleton(

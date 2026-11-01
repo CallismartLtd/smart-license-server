@@ -43,6 +43,9 @@ use SmartLicenseServer\Environments\Application\Middlewares\AppDownloadMiddlewar
 use SmartLicenseServer\Core\CallableResolver;
 use SmartLicenseServer\Environments\Application\Middlewares\ClientAccessMiddleware;
 use SmartLicenseServer\Environments\Application\Middlewares\CSRFMiddleware;
+use SmartLicenseServer\Environments\Application\Middlewares\LoginMonitorMiddleware;
+use SmartLicenseServer\Environments\Application\Middlewares\SignupMonitorMiddleware;
+use SmartLicenseServer\Environments\Application\Middlewares\ForgotPasswordMonitorMiddleware;
 use SmartLicenseServer\Environments\Application\Theming\CorePages;
 use SmartLicenseServer\Environments\Application\Theming\PageHandler;
 use SmartLicenseServer\Environments\Application\Theming\PageRoutes;
@@ -157,15 +160,18 @@ final class HttpDispatcher {
 
 				$this->router->post(
 					pattern: 'form/login',
-					handler: [AuthManagement::class, 'handle_login']
+					handler: [AuthManagement::class, 'handle_login'],
+					middleware: [ LoginMonitorMiddleware::class ]
 				);
 				$this->router->post(
 					pattern: 'form/signup',
-					handler: [AuthManagement::class, 'handle_signup']
+					handler: [AuthManagement::class, 'handle_signup'],
+					middleware: [ SignupMonitorMiddleware::class ]
 				);
 				$this->router->post(
 					pattern: 'form/forgot-password',
-					handler: [AuthManagement::class, 'handle_forgot_password']
+					handler: [AuthManagement::class, 'handle_forgot_password'],
+					middleware: [ ForgotPasswordMonitorMiddleware::class ]
 				);
 				$this->router->post(
 					pattern: 'form/reset-password',

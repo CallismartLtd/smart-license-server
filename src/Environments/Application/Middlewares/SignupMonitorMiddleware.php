@@ -12,10 +12,11 @@ use SmartLicenseServer\Core\Request;
 class SignupMonitorMiddleware extends AuthenticationMonitorMiddleware {
 
 	protected function account_from_request( Request $request ) : ?string {
-		return $request->get( 'email' );
+		$email = $request->post( 'email' );
+		return is_string( $email ) && '' !== trim( $email ) ? trim( $email ) : null;
 	}
 
-	protected function source_from_request( Request $request ) : string {
-		return $request->ip();
+	protected function action() : string {
+		return 'signup';
 	}
 }

@@ -21,6 +21,7 @@ use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
+use SmartLicenseServer\Security\Authentication\AuthenticationMonitor;
 use SmartLicenseServer\Security\Authentication\PasswordResetToken;
 use SmartLicenseServer\Security\Authentication\UserAccounts;
 use SmartLicenseServer\Security\Context\Guard;
@@ -53,6 +54,7 @@ class AuthManagement {
 		protected Settings $settings,
 		protected PasswordResetToken $reset_tokens,
 		protected UserAccounts $accounts,
+		protected AuthenticationMonitor $authentication_monitor,
 		JobQueue $job_queue
 	) {
 		$this->job_queue = $job_queue;
@@ -89,11 +91,29 @@ class AuthManagement {
 		$principal = $this->id_provider->logon( $username, $password, $remember );
 
 		if ( $principal instanceof RequestException ) {
+			try {
+				$activity = $this->authentication_monitor->record_failure( $username, $this->monitor_source( $request ), $password );
+				if ( $activity['detected'] ) {
+					\smliser_log_error( sprintf( '[Authentication Monitor] Detected %s login activity (%s).', $activity['severity'], implode( ', ', $activity['threats'] ) ) );
+				}
+			} catch ( \Throwable $e ) {
+				\smliser_log_error( sprintf( '[Authentication Monitor] Could not record failed login: %s', $e->getMessage() ) );
+			}
+
 			return static::error_response(
 				401,
 				$principal->get_error_code(),
 				$principal->get_error_message()
 			);
+		}
+
+		try {
+			$activity = $this->authentication_monitor->record_success( $username, $this->monitor_source( $request ) );
+			if ( $activity['suspicious'] ) {
+				\smliser_log_error( sprintf( '[Authentication Monitor] Successful login followed %d recent failed attempts.', $activity['recent_failures'] ) );
+			}
+		} catch ( \Throwable $e ) {
+			\smliser_log_error( sprintf( '[Authentication Monitor] Could not record successful login: %s', $e->getMessage() ) );
 		}
 
 		$redirect_url = $this->redirect_url(
@@ -179,6 +199,19 @@ class AuthManagement {
 		}
 
 		return $redirect_url;
+	}
+
+	/**
+	 * Return the direct peer address used by auth monitoring.
+	 * Forwarded headers are ignored until trusted-proxy support exists.
+	 *
+	 * @param Request $request
+	 * @return string
+	 */
+	private function monitor_source( Request $request ) : string {
+		$remote = (string) $request->server( 'REMOTE_ADDR', '' );
+
+		return false !== filter_var( $remote, FILTER_VALIDATE_IP ) ? $remote : 'unresolved_ip';
 	}
 
 	/*

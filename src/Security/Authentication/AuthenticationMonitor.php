@@ -48,7 +48,8 @@ final class AuthenticationMonitor {
 	/**
 	 * Default monitoring window in seconds.
 	 */
-	private const DEFAULT_WINDOW = 900; // 15 minutes.
+	public const WINDOW_SECONDS = 900; // 15 minutes.
+	private const DEFAULT_WINDOW = self::WINDOW_SECONDS;
 
 	/**
 	 * Maximum number of events retained in one cache record.
@@ -73,6 +74,17 @@ final class AuthenticationMonitor {
 	private const VELOCITY_THRESHOLD          = 8;
 
 	/**
+	 * Request limits for account creation and password-reset email requests.
+	 * These have separate buckets from failed password attempts.
+	 *
+	 * @var array<string, array{account: int, source: int}>
+	 */
+	private const ACTION_LIMITS = [
+		'signup'          => [ 'account' => 5, 'source' => 20 ],
+		'forgot_password' => [ 'account' => 3, 'source' => 20 ],
+	];
+
+	/**
 	 * Constructor.
 	 *
 	 * @param string $hash_key Secret used to hash identifiers stored in
@@ -80,7 +92,7 @@ final class AuthenticationMonitor {
 	 */
 	public function __construct(
 		protected Cache $cache,
-		private string $hash_key = SMLISER_SECRET
+		#[\SensitiveParameter] private string $hash_key
 	) {}
 
 	/**
@@ -210,6 +222,44 @@ final class AuthenticationMonitor {
 			'suspicious'      => $recent_failures >= self::ACCOUNT_FAILURE_THRESHOLD,
 			'recent_failures' => $recent_failures,
 		];
+	}
+
+	/**
+	 * Consume one request from a non-login authentication action's budget.
+	 *
+	 * Attempts are isolated by action, account and source so password-reset
+	 * traffic cannot be confused with failed password attempts or signup.
+	 *
+	 * @param string      $action    One of the configured ACTION_LIMITS keys.
+	 * @param string|null $account   Submitted email address, when available.
+	 * @param string      $source    Request source, normally the client IP.
+	 * @param int|null    $timestamp Event time, primarily for deterministic use.
+	 * @return bool Whether this request is within its account and source limits.
+	 */
+	public function allow_action_attempt(
+		string $action,
+		?string $account,
+		string $source,
+		?int $timestamp = null
+	) : bool {
+		if ( ! isset( self::ACTION_LIMITS[ $action ] ) ) {
+			throw new \InvalidArgumentException( sprintf( 'Unknown authentication action "%s".', $action ) );
+		}
+
+		$timestamp = $timestamp ?? time();
+		$limits    = self::ACTION_LIMITS[ $action ];
+		$event     = [ 'timestamp' => $timestamp ];
+		$source_id = $this->identifier( 'action_source_' . $action, $source );
+		$source_events = $this->append_event( 'action_source_' . $action, $source_id, $event, $timestamp );
+
+		$account_events = [];
+		if ( null !== $account && '' !== trim( $account ) ) {
+			$account_id = $this->identifier( 'action_account_' . $action, $account );
+			$account_events = $this->append_event( 'action_account_' . $action, $account_id, $event, $timestamp );
+		}
+
+		return count( $source_events ) <= $limits['source']
+			&& ( [] === $account_events || count( $account_events ) <= $limits['account'] );
 	}
 
 	/**
@@ -486,19 +536,7 @@ final class AuthenticationMonitor {
 		);
 
 		if ( ! is_array( $events ) ) {
-
-			/*
-			 * modify() failed at the adapter level (lock timeout, backend
-			 * unreachable, etc.) rather than the callback aborting — the
-			 * callback above always returns an array, never false.
-			 *
-			 * Falling back to an empty list would silently undercount an
-			 * attack in progress, which is the wrong failure mode for a
-			 * security monitor. Fall back to a single-event list instead,
-			 * so this attempt is still visible to detect() even though
-			 * prior history for this key is temporarily unavailable.
-			 */
-			$events = [ $event ];
+			throw new \RuntimeException( 'The authentication monitoring cache could not record an event.' );
 		}
 
 		return $events;
@@ -582,6 +620,10 @@ final class AuthenticationMonitor {
 		string $type,
 		string $value
 	) : string {
+
+		if ( 'credential' !== $type ) {
+			$value = strtolower( trim( $value ) );
+		}
 
 		return hash_hmac(
 			'sha256',

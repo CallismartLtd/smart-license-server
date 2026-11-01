@@ -12,10 +12,11 @@ use SmartLicenseServer\Core\Request;
 class LoginMonitorMiddleware extends AuthenticationMonitorMiddleware {
 
 	protected function account_from_request( Request $request ) : ?string {
-		return $request->get( 'user_login' );
+		$account = $request->post( 'username' );
+		return is_string( $account ) && '' !== trim( $account ) ? trim( $account ) : null;
 	}
 
-	protected function source_from_request( Request $request ) : string {
-		return $request->ip();
+	protected function action() : string {
+		return 'login';
 	}
 }

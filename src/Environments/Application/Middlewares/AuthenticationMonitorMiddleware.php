@@ -15,13 +15,9 @@ use SmartLicenseServer\Security\Authentication\AuthenticationMonitor;
 /**
  * Base middleware for authentication abuse monitoring.
  *
- * Performs a cheap pre-flight check only: it asks whether the account
- * and/or source associated with this request are already known to be
- * under attack, based on events recorded by a prior AuthenticationHandler
- * run. It does not itself record anything — it has no way to know the
- * outcome of a request that hasn't been authenticated yet — and it does
- * not compute severity or a retry-after value, since AuthenticationMonitor
- * exposes neither pre-flight.
+ * Login failures are recorded by AuthManagement after the identity provider
+ * returns its result. Signup and password-reset requests use separate
+ * request budgets because they do not represent failed login attempts.
  */
 abstract class AuthenticationMonitorMiddleware implements MiddlewareInterface {
 
@@ -44,19 +40,24 @@ abstract class AuthenticationMonitorMiddleware implements MiddlewareInterface {
 	/**
 	 * {@inheritdoc}
 	 *
-	 * Blocks the request outright if the account or source is already
-	 * flagged from prior attempts. Does not record this request either
-	 * way — that happens downstream, once the outcome is known.
+	 * Applies the relevant pre-flight policy before the action handler.
 	 */
 	public function handle( Request $request, callable $next ) : mixed {
 
 		$account = $this->account_from_request( $request );
 		$source  = $this->source_from_request( $request );
 
-		if (
-			( null !== $account && $this->monitor->is_account_under_attack( $account ) )
-			|| $this->monitor->is_source_suspicious( $source )
-		) {
+		try {
+			$allowed = 'login' === $this->action()
+				? ( ( null === $account || ! $this->monitor->is_account_under_attack( $account ) ) && ! $this->monitor->is_source_suspicious( $source ) )
+				: $this->monitor->allow_action_attempt( $this->action(), $account, $source );
+		} catch ( \Throwable $e ) {
+			// Authentication remains available if the optional monitoring cache is down.
+			\smliser_log_error( sprintf( '[Authentication Monitor] Could not check %s request: %s', $this->action(), $e->getMessage() ) );
+			$allowed = true;
+		}
+
+		if ( ! $allowed ) {
 			return $this->blocked_response();
 		}
 
@@ -64,12 +65,7 @@ abstract class AuthenticationMonitorMiddleware implements MiddlewareInterface {
 	}
 
 	/**
-	 * Extract the account identifier this request is authenticating as,
-	 * if one is present at this stage (e.g. a username/email field on a
-	 * login request). Return null when the request doesn't carry one.
-	 *
-	 * NOTE: adapt this to Request's actual accessor methods — I haven't
-	 * seen Request's API, so this is illustrative only.
+	 * Extract the account identifier from the submitted form, if present.
 	 *
 	 * @param Request $request
 	 *
@@ -78,15 +74,24 @@ abstract class AuthenticationMonitorMiddleware implements MiddlewareInterface {
 	abstract protected function account_from_request( Request $request ) : ?string;
 
 	/**
-	 * Extract the source identifier (normally an IP) for this request.
-	 *
-	 * NOTE: adapt this to Request's actual accessor methods.
+	 * Use the server's direct peer address. Forwarded headers are not trusted
+	 * here because Request::ip() accepts them without a trusted-proxy check.
 	 *
 	 * @param Request $request
+	 * @return string
+	 */
+	protected function source_from_request( Request $request ) : string {
+		$remote = (string) $request->server( 'REMOTE_ADDR', '' );
+
+		return false !== filter_var( $remote, FILTER_VALIDATE_IP ) ? $remote : 'unresolved_ip';
+	}
+
+	/**
+	 * The monitored auth action: login, signup, or forgot_password.
 	 *
 	 * @return string
 	 */
-	abstract protected function source_from_request( Request $request ) : string;
+	abstract protected function action() : string;
 
 	/**
 	 * Create a response for a blocked request.
@@ -95,9 +100,10 @@ abstract class AuthenticationMonitorMiddleware implements MiddlewareInterface {
 	 */
 	protected function blocked_response() : Response {
 
-		return Response::make(
-			'Authentication temporarily blocked.',
-			429
+		return Response::json(
+			[ 'success' => false, 'code' => 'too_many_attempts', 'message' => 'Too many attempts. Please wait and try again.' ],
+			429,
+			[ 'Retry-After' => (string) AuthenticationMonitor::WINDOW_SECONDS ]
 		);
 	}
 }

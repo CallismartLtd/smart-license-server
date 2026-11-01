@@ -24,7 +24,10 @@ use SmartLicenseServer\Utils\Stopwatch;
  * Manage and inspect the system cache.
  *
  * Usage:
+ *   smliser cache adapters
+ *   smliser cache current
  *   smliser cache stats
+ *   smliser cache test-adapter <adapter_id>
  *   smliser cache clear
  *   smliser cache get <key>
  *   smliser cache delete <key>
@@ -55,7 +58,10 @@ class CacheCommand extends AbstractCommand {
 
 		return implode( PHP_EOL, [
 			'Subcommands:',
+			'  adapters                     List registered cache adapters and support status.',
+			'  current                      Show the currently selected cache adapter.',
 			'  stats                        Show cache engine metrics.',
+			'  test-adapter <adapter_id>    Test an adapter using its saved settings.',
 			'  clear                        Flush all cached data (confirms first).',
 			'  get <key>                    Retrieve and display a specific cache key.',
 			'  delete <key>                 Remove a specific key from the cache.',
@@ -67,6 +73,9 @@ class CacheCommand extends AbstractCommand {
 			'',
 			'Examples:',
 			"  {$prefix} stats",
+			"  {$prefix} adapters",
+			"  {$prefix} current",
+			"  {$prefix} test-adapter redis",
 			"  {$prefix} clear",
 			"  {$prefix} get smliser_some_key",
 			"  {$prefix} delete smliser_some_key",
@@ -86,7 +95,10 @@ class CacheCommand extends AbstractCommand {
 	 */
 	public function get_subcommands() : array {
 		return [
+			'adapters'    => [ $this, 'handle_adapters' ],
+			'current'     => [ $this, 'handle_current' ],
 			'stats'       => [ $this, 'handle_stats' ],
+			'test-adapter'=> [ $this, 'handle_test_adapter' ],
 			'clear'       => [ $this, 'handle_clear' ],
 			'get'         => [ $this, 'handle_get' ],
 			'delete'      => [ $this, 'handle_delete' ],
@@ -120,6 +132,110 @@ class CacheCommand extends AbstractCommand {
 	| SUBCOMMAND HANDLERS
 	|--------------------------------------------
 	*/
+
+	/**
+	 * List registered adapters and whether the runtime supports each one.
+	 * This does not initiate connections to external cache servers.
+	 *
+	 * @param CommandInput $input
+	 * @return int
+	 */
+	public function handle_adapters( CommandInput $input ) : int {
+		$current = CacheAdapterRegistry::get_default_adapter_id();
+		$rows    = [];
+
+		foreach ( $this->cache_adapter_registry->all() as $id => $class ) {
+			$name      = $class::get_name();
+			$adapter   = $this->cache_adapter_registry->get_adapter( (string) $id );
+			$supported = $adapter && $adapter->is_supported();
+
+			$rows[] = [
+				$id,
+				$name,
+				$id === $current ? 'Yes' : '',
+				$supported ? 'Yes' : 'No',
+				$adapter && $adapter->is_persistent() ? 'Yes' : 'No',
+			];
+		}
+
+		$this->output->table(
+			[ 'ID', 'Adapter', 'Selected', 'Supported', 'Persistent' ],
+			$rows
+		);
+
+		return 0;
+	}
+
+	/**
+	 * Show the selected adapter and runtime connection status.
+	 *
+	 * @param CommandInput $input
+	 * @return int
+	 */
+	public function handle_current( CommandInput $input ) : int {
+		$this->output->table(
+			[ 'Property', 'Value' ],
+			[
+				[ 'ID',          $this->cache->get_id() ],
+				[ 'Adapter',     $this->cache->get_name() ],
+				[ 'Supported',   $this->cache->is_supported() ? 'Yes' : 'No' ],
+				[ 'Connected',   $this->cache->is_active() ? 'Yes' : 'No' ],
+				[ 'Persistent',  $this->cache->is_persistent() ? 'Yes' : 'No' ],
+				[ 'Default TTL', (string) $this->cache->default_ttl() ],
+			]
+		);
+
+		return 0;
+	}
+
+	/**
+	 * Test a registered adapter using its saved settings.
+	 *
+	 * @param CommandInput $input
+	 * @return int
+	 */
+	public function handle_test_adapter( CommandInput $input ) : int {
+		$adapter_id = $input->get_argument( 0 );
+
+		if ( ! is_string( $adapter_id ) || '' === $adapter_id ) {
+			$this->output->error( sprintf( 'Usage: %s <adapter_id>', $this->command_prefix( 'test-adapter' ) ) );
+			return 1;
+		}
+
+		$class = $this->cache_adapter_registry->get( $adapter_id );
+		if ( null === $class ) {
+			$this->output->error( sprintf( 'The cache adapter "%s" is not registered.', $adapter_id ) );
+			return 1;
+		}
+
+		$adapter = $this->cache_adapter_registry->get_adapter( $adapter_id );
+		if ( ! $adapter ) {
+			$this->output->error( sprintf( 'Could not initialize cache adapter "%s".', $adapter_id ) );
+			return 1;
+		}
+
+		$settings = [];
+		foreach ( $adapter->get_settings_schema() as $name => $field ) {
+			$settings[ $name ] = CacheAdapterRegistry::get_option(
+				$adapter_id,
+				$name,
+				$field['default'] ?? ''
+			);
+		}
+
+		try {
+			if ( $adapter->test( $settings ) ) {
+				$this->output->success( sprintf( 'Cache adapter "%s" is operational.', $adapter->get_name() ) );
+				return 0;
+			}
+		} catch ( \Throwable $e ) {
+			$this->output->error( sprintf( 'Cache adapter test failed: %s', $e->getMessage() ) );
+			return 1;
+		}
+
+		$this->output->error( sprintf( 'Cache adapter "%s" did not pass its test.', $adapter->get_name() ) );
+		return 1;
+	}
 
 	/**
 	 * Display cache engine statistics.
