@@ -20,6 +20,10 @@ use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environments\Application\Boot\InstallationState;
 use SmartLicenseServer\Environments\Application\Boot\MaintenanceFlag;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
+use SmartLicenseServer\Environments\Application\Extensions\ExtensionException;
+use SmartLicenseServer\Environments\Application\Extensions\ExtensionManager;
+use SmartLicenseServer\Environments\Application\Theming\ThemeException;
+use SmartLicenseServer\Environments\Application\Theming\ThemeManager;
 use SmartLicenseServer\Environments\Application\Update\UpdateService;
 use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Schema\SchemaRegistry;
@@ -124,7 +128,9 @@ class SystemHealth {
 		protected InstallationState $state,
 		protected MaintenanceFlag $maintenance,
 		protected CodeChangeDetector $code_changes,
-		protected BackgroundSetup $background
+		protected BackgroundSetup $background,
+		protected ExtensionManager $extensions,
+		protected ThemeManager $themes
 	) {}
 
 	/*
@@ -327,10 +333,47 @@ class SystemHealth {
 			'Updates'               => fn() : array => $this->collect_update_diagnostics(),
 			'Required Extensions'   => fn() : array => $this->collect_required_extension_diagnostics(),
 			'Loaded Extensions'     => fn() : array => $this->collect_loaded_extension_diagnostics(),
+			'Modules'               => fn() : array => $this->collect_module_diagnostics(),
 			'Database'              => fn() : array => $this->collect_database_diagnostics(),
 			'Directories'           => fn() : array => $this->collect_directory_diagnostics(),
 			'Background Processing' => fn() : array => $this->collect_background_diagnostics(),
 		];
+	}
+
+	/**
+	 * Inventory installed extensions and themes, including invalid folders.
+	 * Reads manifests and manager state only; it does not execute module code.
+	 *
+	 * @return array<string, string>
+	 */
+	private function collect_module_diagnostics() : array {
+		$rows = [];
+		$enabled = $this->extensions->enabled_slugs();
+		$active_theme = $this->themes->active_slug();
+
+		foreach ( $this->extensions->installed() as $slug => $extension ) {
+			$key = 'Extension: ' . $slug;
+			if ( $extension instanceof ExtensionException ) {
+				$rows[ $key ] = 'Invalid package: ' . $extension->getMessage();
+				continue;
+			}
+			$rows[ $key ] = sprintf( '%s; version %s; %s', $extension->name, $extension->version, in_array( $slug, $enabled, true ) ? 'enabled' : 'disabled' );
+		}
+
+		foreach ( $this->themes->installed() as $slug => $theme ) {
+			$key = 'Theme: ' . $slug;
+			if ( $theme instanceof ThemeException ) {
+				$rows[ $key ] = 'Invalid package: ' . $theme->getMessage();
+				continue;
+			}
+			$rows[ $key ] = sprintf( '%s; version %s; %s', $theme->name, $theme->version, $slug === $active_theme ? 'active' : 'installed' );
+		}
+
+		if ( [] === $rows ) {
+			$rows['Installed Modules'] = 'No third-party extensions or themes are installed.';
+		}
+
+		return $rows;
 	}
 
 	/**
@@ -988,8 +1031,75 @@ class SystemHealth {
 			$checks,
 			$this->installation_state_checks(),
 			$this->background_health_checks(),
-			$this->update_health_checks()
+			$this->update_health_checks(),
+			$this->module_health_checks()
 		);
+	}
+
+	/**
+	 * Report broken installed modules and enabled extensions that cannot resolve.
+	 *
+	 * @return array<int, array{id: string, label: string, status: string, message: string, recommendation: ?string}>
+	 */
+	private function module_health_checks() : array {
+		$checks = [];
+		$enabled = $this->extensions->enabled_slugs();
+		$resolved = $this->extensions->resolve();
+
+		foreach ( $this->extensions->installed() as $slug => $extension ) {
+			if ( $extension instanceof ExtensionException ) {
+				$is_enabled = in_array( $slug, $enabled, true );
+				$checks[] = $this->make_check(
+					'extension_' . Format::slugify( $slug ),
+					sprintf( 'Extension: %s', $slug ),
+					$is_enabled ? 'critical' : 'warning',
+					'Invalid installed extension: ' . $extension->getMessage(),
+					$is_enabled ? 'Disable or reinstall this extension before relying on its functionality.' : 'Reinstall or remove this extension folder.'
+				);
+			}
+		}
+
+		foreach ( $resolved['skipped'] as $slug => $reason ) {
+			$checks[] = $this->make_check(
+				'extension_unavailable_' . Format::slugify( $slug ),
+				sprintf( 'Extension Unavailable: %s', $slug ),
+				'critical',
+				$reason,
+				'Fix the reported manifest, compatibility, namespace, dependency, or load-order issue, then re-enable the extension.'
+			);
+		}
+
+		$active = $this->themes->active_slug();
+		foreach ( $this->themes->installed() as $slug => $theme ) {
+			if ( $theme instanceof ThemeException ) {
+				$is_active = $slug === $active;
+				$checks[] = $this->make_check(
+					'theme_' . Format::slugify( $slug ),
+					sprintf( 'Theme: %s', $slug ),
+					$is_active ? 'critical' : 'warning',
+					'Invalid installed theme: ' . $theme->getMessage(),
+					$is_active ? 'Switch to another installed theme or reinstall this theme.' : 'Reinstall or remove this theme folder.'
+				);
+			}
+		}
+
+		if ( ThemeManager::DEFAULT_SLUG !== $active ) {
+			try {
+				$theme = $this->themes->find( $active );
+				if ( ! $theme->supports( SMLISER_VER ) ) {
+					throw new \RuntimeException( sprintf( 'Theme requires app version %s or later.', $theme->requires ) );
+				}
+				$this->themes->chain( $theme );
+			} catch ( \Throwable $e ) {
+				$checks[] = $this->make_check( 'active_theme', 'Active Theme', 'critical', $e->getMessage(), 'Install a compatible theme or switch to another installed theme.' );
+			}
+		}
+
+		if ( [] === $checks ) {
+			$checks[] = $this->make_check( 'modules', 'Installed Modules', 'pass', 'Installed extensions and themes are valid; enabled extensions resolve and the active theme is available.' );
+		}
+
+		return $checks;
 	}
 
 	/**
