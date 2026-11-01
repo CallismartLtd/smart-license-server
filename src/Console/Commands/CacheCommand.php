@@ -17,6 +17,7 @@ use SmartLicenseServer\Console\CommandInput;
 use SmartLicenseServer\Console\Contracts\InputInterface;
 use SmartLicenseServer\Console\Contracts\OutputInterface;
 use SmartLicenseServer\Console\ScriptName;
+use SmartLicenseServer\SettingsAPI\Settings;
 use SmartLicenseServer\Utils\Format;
 use SmartLicenseServer\Utils\Stopwatch;
 
@@ -26,6 +27,7 @@ use SmartLicenseServer\Utils\Stopwatch;
  * Usage:
  *   smliser cache adapters
  *   smliser cache current
+ *   smliser cache ttl [seconds]
  *   smliser cache stats
  *   smliser cache test-adapter <adapter_id>
  *   smliser cache clear
@@ -38,6 +40,7 @@ class CacheCommand extends AbstractCommand {
 	public function __construct(
 		protected Cache $cache,
 		protected CacheAdapterRegistry $cache_adapter_registry,
+		protected Settings $settings,
 		InputInterface $io,
 		OutputInterface $output,
 		ScriptName $script_name
@@ -60,6 +63,7 @@ class CacheCommand extends AbstractCommand {
 			'Subcommands:',
 			'  adapters                     List registered cache adapters and support status.',
 			'  current                      Show the currently selected cache adapter.',
+			'  ttl [seconds]                Show or set the default cache TTL (0 means no expiry).',
 			'  stats                        Show cache engine metrics.',
 			'  test-adapter <adapter_id>    Test an adapter using its saved settings.',
 			'  clear                        Flush all cached data (confirms first).',
@@ -75,6 +79,7 @@ class CacheCommand extends AbstractCommand {
 			"  {$prefix} stats",
 			"  {$prefix} adapters",
 			"  {$prefix} current",
+			"  {$prefix} ttl 3600",
 			"  {$prefix} test-adapter redis",
 			"  {$prefix} clear",
 			"  {$prefix} get smliser_some_key",
@@ -97,8 +102,9 @@ class CacheCommand extends AbstractCommand {
 		return [
 			'adapters'    => [ $this, 'handle_adapters' ],
 			'current'     => [ $this, 'handle_current' ],
+			'ttl'         => [ $this, 'handle_ttl' ],
 			'stats'       => [ $this, 'handle_stats' ],
-			'test-adapter'=> [ $this, 'handle_test_adapter' ],
+			'test-adapter' => [ $this, 'handle_test_adapter' ],
 			'clear'       => [ $this, 'handle_clear' ],
 			'get'         => [ $this, 'handle_get' ],
 			'delete'      => [ $this, 'handle_delete' ],
@@ -132,6 +138,50 @@ class CacheCommand extends AbstractCommand {
 	| SUBCOMMAND HANDLERS
 	|--------------------------------------------
 	*/
+
+	/**
+	 * Show or update the default cache TTL in seconds. Zero disables expiry.
+	 *
+	 * @param CommandInput $input
+	 * @return int
+	 */
+	public function handle_ttl( CommandInput $input ) : int {
+		$seconds = $input->get_argument( 0 );
+
+		if ( null === $seconds ) {
+			$ttl = $this->cache->default_ttl();
+			$this->output->info( sprintf(
+				'Default cache TTL: %d seconds%s',
+				$ttl,
+				0 === $ttl ? ' (no expiry)' : ''
+			) );
+			return 0;
+		}
+
+		if ( ! is_string( $seconds ) && ! is_int( $seconds ) ) {
+			$this->output->error( sprintf( 'Usage: %s [seconds]', $this->command_prefix( 'ttl' ) ) );
+			return 1;
+		}
+
+		$value = (string) $seconds;
+		if ( ! preg_match( '/^(0|[1-9][0-9]*)$/', $value ) || (float) $value > PHP_INT_MAX ) {
+			$this->output->error( 'TTL must be a non-negative whole number of seconds.' );
+			return 1;
+		}
+
+		$ttl = (int) $value;
+		if ( ! $this->settings->set( 'default_cache_ttl', $ttl ) ) {
+			$this->output->error( 'Unable to save the default cache TTL.' );
+			return 1;
+		}
+
+		$this->output->success( 0 === $ttl
+			? 'Default cache TTL set to 0 seconds (no expiry).'
+			: sprintf( 'Default cache TTL set to %d seconds.', $ttl )
+		);
+
+		return 0;
+	}
 
 	/**
 	 * List registered adapters and whether the runtime supports each one.
