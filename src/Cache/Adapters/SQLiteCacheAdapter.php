@@ -820,6 +820,8 @@ class SQLiteCacheAdapter implements CacheAdapterInterface {
 
 		} catch ( Exception $e ) {
 			\trigger_error( $e->getMessage(), \E_USER_NOTICE );
+
+			unset( $this->db );
 			return;
 		}
 

@@ -71,40 +71,114 @@ class MemcachedCacheAdapter implements CacheAdapterInterface {
 	*/
 
 	/**
+	 * Minimum seconds between liveness probes on an existing client.
+	 */
+	const PROBE_INTERVAL = 1;
+
+	/**
+	 * Key used by the liveness probe. It is never written, so a healthy server answers NOTFOUND.
+	 */
+	const PROBE_KEY = '__connection_probe__';
+
+	/**
+	 * Unix time of the last successful liveness probe.
+	 *
+	 * @var int
+	 */
+	private $last_probe = 0;
+
+	/**
 	 * Initialise and connect the Memcached client using current settings.
 	 *
-	 * Idempotent — if a client is already connected this is a no-op.
-	 * Re-call after set_settings() to reconnect with new credentials.
+	 * Verifies the server actually answers a real command, since addServer() only
+	 * registers the host and never opens a connection. If a client already exists it
+	 * is re-probed (throttled by PROBE_INTERVAL) and discarded when the server has
+	 * gone away, so the next call builds a fresh client.
 	 *
-	 * @return bool True if the server was added successfully.
+	 * @return bool True if the server is reachable.
 	 */
 	public function connect() : bool {
 		if ( $this->memcached instanceof Memcached ) {
-			return true;
+			return $this->is_alive();
 		}
 
 		if ( ! isset( $this->hostname ) || empty( $this->port ) ) {
 			return false;
 		}
 
-		$this->memcached = new Memcached();
+		$client = new Memcached();
+		$client->setOption( Memcached::OPT_CONNECT_TIMEOUT, 1000 );
 
-		return $this->memcached->addServer( $this->hostname, $this->port );
+		if ( ! $client->addServer( $this->hostname, $this->port ) ) {
+			return false;
+		}
+
+		$this->memcached = $client;
+
+		if ( ! $this->probe() ) {
+			$this->memcached->quit();
+			$this->memcached = null;
+
+			return false;
+		}
+
+		$this->last_probe = time();
+
+		return true;
 	}
 
 	/**
-	 * Return true if the client is initialised.
+	 * Return true if the client exists and its server is reachable.
 	 *
-	 * Does not guarantee the server is reachable — use test() for that.
+	 * Reconnects when needed. Within PROBE_INTERVAL seconds of a successful check
+	 * this returns without a network round trip.
 	 *
 	 * @return bool
 	 */
 	public function is_active() : bool {
-		if ( null === $this->memcached ) {
-			$this->connect();
+		return $this->connect();
+	}
+
+	/**
+	 * Re-verify an existing client, throttled. A dead client is closed and discarded
+	 * so the next connect() builds a fresh one.
+	 *
+	 * @return bool
+	 */
+	private function is_alive() : bool {
+		$now = time();
+
+		if ( ( $now - $this->last_probe ) < self::PROBE_INTERVAL ) {
+			return true;
 		}
-		
-		return $this->memcached instanceof Memcached;
+
+		if ( $this->probe() ) {
+			$this->last_probe = $now;
+
+			return true;
+		}
+
+		$this->memcached->quit();
+		$this->memcached  = null;
+		$this->last_probe = 0;
+
+		return false;
+	}
+
+	/**
+	 * Verify the server answers a real command.
+	 *
+	 * getVersion() is not usable for this: libmemcached caches the version and keeps
+	 * returning it after the server has died.
+	 *
+	 * @return bool
+	 */
+	private function probe() : bool {
+		$this->memcached->get( self::PROBE_KEY );
+
+		$code = $this->memcached->getResultCode();
+
+		return Memcached::RES_SUCCESS === $code || Memcached::RES_NOTFOUND === $code;
 	}
 
 	/**
