@@ -159,6 +159,12 @@ final class JS {
 				'version'      => SMLISER_VER,
 				'footer'       => true,
 			],
+			'security-tabs' => [
+				'url'          => $this->urlmanager->assets_url( sprintf( 'js/security-tabs%s.js', $suffix ) ),
+				'dependencies' => [],
+				'version'      => SMLISER_VER,
+				'footer'       => true,
+			],
 			// Enhances input[type="file"][data-smliser-uploader] into a drop zone (View::UPLOADER_ASSET).
 			'smliser-uploader' => [
 				'url'          => $this->urlmanager->assets_url( sprintf( 'js/smliser-uploader%s.js', $suffix ) ),

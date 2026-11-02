@@ -7,6 +7,9 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\ClientDashboard\ContentHandlers;
 
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\SvgWriter;
 use SmartLicenseServer\ClientDashboard\Contracts\ClientPageInterface;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
@@ -70,6 +73,17 @@ final class SecurityPage implements ClientPageInterface {
 		$uri    = null !== $totp_secret
 			? sprintf( 'otpauth://totp/%s?secret=%s&issuer=%s&algorithm=SHA1&digits=6&period=30', $label, rawurlencode( $totp_secret ), rawurlencode( $issuer ) )
 			: '';
+		$qr_code = '';
+		if ( '' !== $uri ) {
+			$qr_code = ( new SvgWriter() )->write( new QrCode( $uri, errorCorrectionLevel: ErrorCorrectionLevel::Medium, size: 240, margin: 12 ) )->getDataUri();
+		}
+		$active_tab = (string) $request->get( 'security_tab', '' );
+		if ( '' !== $totp_token ) {
+			$active_tab = 'authenticator';
+		}
+		if ( ! in_array( $active_tab, [ 'email', 'authenticator', 'passkeys' ], true ) ) {
+			$active_tab = 'email';
+		}
 
 		return View::make( 'client.security', [
 			'email'               => $user->get_email(),
@@ -83,6 +97,8 @@ final class SecurityPage implements ClientPageInterface {
 			'totp_challenge'      => $totp_challenge ? $totp_token : '',
 			'totp_secret'         => $totp_secret ?? '',
 			'totp_uri'            => $uri,
+			'totp_qr_code'        => $qr_code,
+			'active_tab'          => $active_tab,
 			'actions'             => [
 				'email_start'     => $this->urls->client_dashboard_url( 'json/security/email/start' )->url(),
 				'email_verify'    => $this->urls->client_dashboard_url( 'json/security/email/verify' )->url(),
@@ -98,6 +114,7 @@ final class SecurityPage implements ClientPageInterface {
 			->set_header( 'Cache-Control', 'no-store' )
 			->set_header( 'Referrer-Policy', 'no-referrer' )
 			->add_script( View::FORMS_SCRIPT )
-			->add_script( 'passkeys' );
+			->add_script( 'passkeys' )
+			->add_script( 'security-tabs' );
 	}
 }
