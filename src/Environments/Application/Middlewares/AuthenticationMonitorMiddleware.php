@@ -11,6 +11,7 @@ namespace SmartLicenseServer\Environments\Application\Middlewares;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Security\Authentication\AuthenticationMonitor;
+use SmartLicenseServer\Security\SecurityLogger;
 
 /**
  * Base middleware for authentication abuse monitoring.
@@ -22,20 +23,15 @@ use SmartLicenseServer\Security\Authentication\AuthenticationMonitor;
 abstract class AuthenticationMonitorMiddleware implements MiddlewareInterface {
 
 	/**
-	 * Authentication monitor.
-	 *
-	 * @var AuthenticationMonitor
-	 */
-	protected AuthenticationMonitor $monitor;
-
-	/**
 	 * Constructor.
 	 *
 	 * @param AuthenticationMonitor $monitor Authentication behavior monitor.
+	 * @param SecurityLogger $logger	The security logger instance.
 	 */
-	public function __construct( AuthenticationMonitor $monitor ) {
-		$this->monitor = $monitor;
-	}
+	public function __construct(
+		protected AuthenticationMonitor $monitor,
+		protected SecurityLogger $logger
+	) {}
 
 	/**
 	 * {@inheritdoc}
@@ -53,7 +49,11 @@ abstract class AuthenticationMonitorMiddleware implements MiddlewareInterface {
 				: $this->monitor->allow_action_attempt( $this->action(), $account, $source );
 		} catch ( \Throwable $e ) {
 			// Authentication remains available if the optional monitoring cache is down.
-			\smliser_log_error( sprintf( '[Authentication Monitor] Could not check %s request: %s', $this->action(), $e->getMessage() ) );
+			$this->logger->critical(
+				'auth_monitor_middleware',
+				sprintf( '[Authentication Monitor] Could not check %s request: %s', $this->action(), $e->getMessage() )
+			);
+			
 			$allowed = true;
 		}
 

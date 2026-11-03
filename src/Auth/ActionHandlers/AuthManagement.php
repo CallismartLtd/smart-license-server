@@ -29,6 +29,7 @@ use SmartLicenseServer\Security\Authentication\PasswordResetToken;
 use SmartLicenseServer\Security\Authentication\UserAccounts;
 use SmartLicenseServer\Environments\Application\Auth\WebIdentityProvider;
 use SmartLicenseServer\Security\Context\Guard;
+use SmartLicenseServer\Security\SecurityLogger;
 use SmartLicenseServer\SettingsAPI\Settings;
 
 /**
@@ -63,6 +64,7 @@ class AuthManagement {
 		protected WebAuthnManager $webauthn,
 		protected WebIdentityProvider $web_identity_provider,
 		protected Mailer $mailer,
+		protected SecurityLogger $logger,
 		JobQueue $job_queue
 	) {
 		$this->job_queue = $job_queue;
@@ -138,10 +140,10 @@ class AuthManagement {
 			try {
 				$activity = $this->authentication_monitor->record_failure( $username, $this->monitor_source( $request ), $password );
 				if ( $activity['detected'] ) {
-					\smliser_log_error( sprintf( '[Authentication Monitor] Detected %s login activity (%s).', $activity['severity'], implode( ', ', $activity['threats'] ) ) );
+					$this->logger->warning( 'login_activity_alert', sprintf( 'Detected %s login activity (%s).', $activity['severity'], implode( ', ', $activity['threats'] ) ), [ 'username' => $username ] );
 				}
 			} catch ( \Throwable $e ) {
-				\smliser_log_error( sprintf( '[Authentication Monitor] Could not record failed login: %s', $e->getMessage() ) );
+				$this->logger->warning( 'login_monitor_error', sprintf( 'Could not record failed login: %s', $e->getMessage() ), [ 'username' => $username ] );
 			}
 
 			return static::error_response(
@@ -154,10 +156,10 @@ class AuthManagement {
 		try {
 			$activity = $this->authentication_monitor->record_success( $username, $this->monitor_source( $request ) );
 			if ( $activity['suspicious'] ) {
-				\smliser_log_error( sprintf( '[Authentication Monitor] Successful login followed %d recent failed attempts.', $activity['recent_failures'] ) );
+				$this->logger->warning( 'suspicious_login_success', sprintf( 'Successful login followed %d recent failed attempts.', $activity['recent_failures'] ), [ 'username' => $username ] );
 			}
 		} catch ( \Throwable $e ) {
-			\smliser_log_error( sprintf( '[Authentication Monitor] Could not record successful login: %s', $e->getMessage() ) );
+			$this->logger->warning( 'login_monitor_error', sprintf( 'Could not record successful login: %s', $e->getMessage() ), [ 'username' => $username ] );
 		}
 
 		$redirect_url = $this->redirect_url(
@@ -215,7 +217,7 @@ class AuthManagement {
 			if ( isset( $code_challenge['token'] ) ) {
 				$this->factor_manager->consume_challenge( $code_challenge['token'] );
 			}
-			\smliser_log_error( sprintf( '[Authentication] Could not send a sign-in code: %s', $e->getMessage() ) );
+			$this->logger->warning( 'signin_code_failed', sprintf( 'Could not send a sign-in code: %s', $e->getMessage() ) );
 			return static::error_response( 503, 'email_delivery_failed', 'The sign-in code could not be sent. Please try again.' );
 		}
 
@@ -233,22 +235,24 @@ class AuthManagement {
 		$code   = trim( (string) $request->post( 'code', '' ) );
 		$challenge = null;
 		$already_consumed = false;
+		$verified = false;
 
 		if ( 'email' === $method ) {
 			$pending_email = $this->factor_manager->get_challenge( $token, 'login_email' );
 			$challenge = $this->factor_manager->verify_email_code( $token, 'login_email', $code );
-			$already_consumed = null !== $challenge;
-			if ( ! $challenge && $pending_email ) {
+			$verified = null !== $challenge;
+			$already_consumed = $verified;
+			if ( ! $verified && $pending_email ) {
 				$this->record_mfa_failure( User::get_by_id( (int) $pending_email['user_id'] ) );
 			}
 		} elseif ( 'totp' === $method ) {
 			$challenge = $this->factor_manager->get_challenge( $token, 'login' );
 			$user = $challenge ? User::get_by_id( (int) $challenge['user_id'] ) : null;
-			$valid = $challenge && $user && (
+			$verified = $challenge && $user && (
 				$this->factor_manager->consume_totp( (int) $user->get_id(), $code )
 				|| $this->factor_manager->consume_recovery_code( (int) $user->get_id(), $code )
 			);
-			if ( ! $valid && $challenge ) {
+			if ( ! $verified && $challenge ) {
 				$this->factor_manager->record_challenge_failure( $token );
 				$this->record_mfa_failure( $user );
 			}
@@ -256,7 +260,7 @@ class AuthManagement {
 			return static::error_response( 400, 'invalid_factor', 'Choose a supported verification method.' );
 		}
 
-		if ( ! $challenge ) {
+		if ( ! $challenge || ! $verified ) {
 			return static::error_response( 401, 'invalid_code', 'The verification code is invalid or has expired.' );
 		}
 
@@ -280,7 +284,7 @@ class AuthManagement {
 		try {
 			$this->authentication_monitor->record_success( $user->get_email(), $this->monitor_source( $request ) );
 		} catch ( \Throwable $e ) {
-			\smliser_log_error( sprintf( '[Authentication Monitor] Could not record successful MFA login: %s', $e->getMessage() ) );
+			$this->logger->warning( 'mfa_monitor_error', sprintf( 'Could not record successful MFA login: %s', $e->getMessage() ) );
 		}
 
 		$fallback = $principal->is( 'system_admin' ) ? $this->urlmanager->admin_url() : $this->urlmanager->client_dashboard_url();
@@ -308,7 +312,7 @@ class AuthManagement {
 			$setup = $this->webauthn->begin_assertion( $user, $token );
 			return Response::json( [ 'success' => true, 'challenge' => $setup['challenge'], 'options' => json_decode( $setup['options'], true, 32, JSON_THROW_ON_ERROR ) ] );
 		} catch ( \Throwable $e ) {
-			\smliser_log_error( '[Authentication] Could not start passkey verification: ' . $e->getMessage() );
+			$this->logger->warning( 'passkey_start_failed', 'Could not start passkey verification: ' . $e->getMessage() );
 			return Response::json( [ 'success' => false, 'message' => 'Passkey verification could not be started.' ], 503 );
 		}
 	}
@@ -341,7 +345,7 @@ class AuthManagement {
 		try {
 			$this->authentication_monitor->record_success( $user->get_email(), $this->monitor_source( $request ) );
 		} catch ( \Throwable $e ) {
-			\smliser_log_error( '[Authentication Monitor] Could not record successful passkey login: ' . $e->getMessage() );
+			$this->logger->warning( 'passkey_monitor_error', 'Could not record successful passkey login: ' . $e->getMessage() );
 		}
 		return Response::json( [ 'success' => true, 'message' => sprintf( 'Welcome back, %s.', $principal->get_display_name() ), 'redirect' => $redirect->url() ] );
 	}
@@ -353,7 +357,7 @@ class AuthManagement {
 		try {
 			$this->authentication_monitor->record_failure( $user->get_email(), 'mfa_challenge', null );
 		} catch ( \Throwable $e ) {
-			\smliser_log_error( sprintf( '[Authentication Monitor] Could not record failed MFA: %s', $e->getMessage() ) );
+			$this->logger->warning( 'mfa_failure_monitor_error', sprintf( 'Could not record failed MFA: %s', $e->getMessage() ) );
 		}
 	}
 
