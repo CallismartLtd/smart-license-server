@@ -173,8 +173,17 @@ final class HttpDispatcher {
 					pattern: 'form/mfa/verify',
 					handler: [AuthManagement::class, 'handle_mfa_verify']
 				);
-				$this->router->post( 'form/mfa/passkey/options', [ AuthManagement::class, 'handle_mfa_passkey_options' ] );
-				$this->router->post( 'form/mfa/passkey/verify', [ AuthManagement::class, 'handle_mfa_passkey_verify' ] );
+				// A passkey replaces the password, so these sit beside form/login, not under form/mfa.
+				$this->router->post(
+					pattern: 'form/passkey/options',
+					handler: [AuthManagement::class, 'handle_passkey_options'],
+					middleware: [ LoginMonitorMiddleware::class ]
+				);
+				$this->router->post(
+					pattern: 'form/passkey/verify',
+					handler: [AuthManagement::class, 'handle_passkey_verify'],
+					middleware: [ LoginMonitorMiddleware::class ]
+				);
 				$this->router->post(
 					pattern: 'form/signup',
 					handler: [AuthManagement::class, 'handle_signup'],

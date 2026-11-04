@@ -2,6 +2,9 @@
 /**
  * Complete a pending second-factor sign-in challenge.
  *
+ * The second step of a password sign-in: email code, authenticator app or
+ * recovery code. A passkey sign-in never reaches this page.
+ *
  * @var bool   $valid
  * @var string $challenge
  * @var bool   $email_pending
@@ -41,12 +44,6 @@
 					</label>
 					<button type="submit" class="btn btn-accent btn-block">Verify and sign in</button>
 				</form>
-			<?php endif; ?>
-			<?php if ( $passkey_available ) : ?>
-				<div class="panel-section" data-passkey-authenticate data-login-challenge="<?php echo escAttr( $challenge ); ?>" data-options-url="<?php echo escUrl( $passkey_options_action ); ?>" data-verify-url="<?php echo escUrl( $passkey_verify_action ); ?>">
-					<div class="notice" data-passkey-message hidden></div>
-					<button type="button" class="btn btn-block" data-passkey-button>Continue with a passkey</button>
-				</div>
 			<?php endif; ?>
 			<?php if ( $email_available ) : ?>
 				<form method="post" action="<?php echo escUrl( $email_action ); ?>" data-smliser-form>

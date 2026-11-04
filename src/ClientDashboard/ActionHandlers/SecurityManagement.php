@@ -13,17 +13,23 @@ use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Authentication\AuthenticationFactorManager;
+use SmartLicenseServer\Security\Authentication\PasskeyStore;
 use SmartLicenseServer\Security\Authentication\WebAuthnManager;
 use SmartLicenseServer\Security\Context\Guard;
 
-/** Self-service operations for a human user's second factors. */
+/**
+ * Self-service operations for a human user's sign-in security: second factors
+ * (email codes, authenticator app) and passkeys. A passkey is not a second
+ * factor, it is an alternative to the password.
+ */
 final class SecurityManagement {
 	public function __construct(
 		private Guard $guard,
 		private AuthenticationFactorManager $factors,
 		private Mailer $mailer,
 		private URLManager $urls,
-		private WebAuthnManager $webauthn
+		private WebAuthnManager $webauthn,
+		private PasskeyStore $passkeys
 	) {}
 
 	/** Start email-factor enrollment after password reauthentication. */
@@ -132,7 +138,7 @@ final class SecurityManagement {
 		);
 	}
 
-	/** Start passkey registration after password reauthentication. */
+	/** Start passkey registration after password reauthentication. The passkey is used to sign in instead of the password. */
 	public function start_passkey( Request $request ) : Response {
 		$user = $this->current_user();
 		if ( ! $user || ! $this->password_matches( $user, (string) $request->post( 'password', '', false ) ) ) {
@@ -164,7 +170,7 @@ final class SecurityManagement {
 		if ( ! $user || ! $this->password_matches( $user, (string) $request->post( 'password', '', false ) ) ) {
 			return $this->answer( false, 'Your current password is incorrect.', 403 );
 		}
-		if ( $id < 1 || ! $this->factors->revoke_passkey( (int) $user->get_id(), $id ) ) {
+		if ( $id < 1 || ! $this->passkeys->revoke( (int) $user->get_id(), $id ) ) {
 			return $this->answer( false, 'That passkey could not be found.', 404 );
 		}
 		return $this->answer( true, 'Passkey removed.', 200, $this->urls->client_dashboard_url( 'security' )->url() );

@@ -640,6 +640,18 @@ code {
 	margin-top: 6px;
 }
 
+/* Passkey sign-in, offered beside the password form. */
+.passkey-login {
+	margin-top: 18px;
+}
+
+.passkey-login-or {
+	margin-bottom: 12px;
+	color: var(--muted);
+	font-size: 13.5px;
+	text-align: center;
+}
+
 .strength {
 	height: 4px;
 	margin-top: 8px;
@@ -795,6 +807,24 @@ code {
 .security-tab-panel h2 {
 	margin-bottom: 5px;
 	font-size: 1.05rem;
+}
+
+/* Passkeys stand alone above the second-step tabs: they replace the password. */
+.security-passkeys {
+	min-height: 0;
+}
+
+.security-group {
+	margin-top: 28px;
+}
+
+.security-group-heading {
+	margin-bottom: 4px;
+	font-size: 1.05rem;
+}
+
+.security-group > .security-help {
+	margin-bottom: 14px;
 }
 
 .security-method-heading {

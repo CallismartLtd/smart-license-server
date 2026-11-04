@@ -39,7 +39,9 @@ use SmartLicenseServer\SettingsAPI\Settings;
  * on, a redirect URL: the page-forms.js script shows the message and
  * follows the redirect, so what happens next is decided here.
  *
- *   POST <login prefix>/form/login            Sign in.
+ *   POST <login prefix>/form/login            Sign in with email and password.
+ *   POST <login prefix>/form/passkey/options  Start a passkey sign-in.
+ *   POST <login prefix>/form/passkey/verify   Finish a passkey sign-in.
  *   POST <login prefix>/form/signup           Create an account.
  *   POST <login prefix>/form/forgot-password  Email a reset link.
  *   POST <login prefix>/form/reset-password   Choose a new password.
@@ -302,54 +304,107 @@ class AuthManagement {
 		] );
 	}
 
-	/** Return WebAuthn options for one password-authenticated sign-in challenge. */
-	public function handle_mfa_passkey_options( Request $request ) : Response {
-		$token = trim( (string) $request->post( 'challenge', '' ) );
-		$challenge = $this->factor_manager->get_challenge( $token, 'login' );
-		$user = $challenge ? User::get_by_id( (int) $challenge['user_id'] ) : null;
-		if ( ! $challenge || ! $user || ! $user->can_authenticate() || empty( $this->factor_manager->status( (int) $user->get_id() )['passkeys'] ) ) {
-			return Response::json( [ 'success' => false, 'message' => 'This passkey sign-in request is invalid or expired.' ], 400 );
-		}
+	/**
+	 * Start a passkey sign-in.
+	 *
+	 * A passkey replaces the password, so nobody is identified yet: this is
+	 * anonymous, and the browser offers the passkeys it holds for this site.
+	 * "remember" and "redirect_url" are kept with the challenge, so they are
+	 * decided here and not again by the client when it finishes.
+	 *
+	 * @param Request $request Contains: remember, redirect_url.
+	 * @return Response JSON { success, challenge, options }
+	 */
+	public function handle_passkey_options( Request $request ) : Response {
+		$posted   = URL::from( (string) $request->post( 'redirect_url', '' ) );
+		$redirect = $posted->is_valid() && $posted->get_origin() === $this->urlmanager->url()->get_origin() ? $posted->url() : '';
+
 		try {
-			$setup = $this->webauthn->begin_assertion( $user, $token );
-			return Response::json( [ 'success' => true, 'challenge' => $setup['challenge'], 'options' => json_decode( $setup['options'], true, 32, JSON_THROW_ON_ERROR ) ] );
+			$setup = $this->webauthn->begin_authentication( [
+				'remember'     => (bool) $request->post( 'remember', false ),
+				'redirect_url' => $redirect,
+			] );
+
+			return static::success_response( 200, [
+				'success'   => true,
+				'challenge' => $setup['challenge'],
+				'options'   => json_decode( $setup['options'], true, 32, JSON_THROW_ON_ERROR ),
+			] );
 		} catch ( \Throwable $e ) {
-			$this->logger->warning( 'passkey_start_failed', 'Could not start passkey verification: ' . $e->getMessage() );
-			return Response::json( [ 'success' => false, 'message' => 'Passkey verification could not be started.' ], 503 );
+			$this->logger->warning( 'passkey_login_start_failed', 'Could not start passkey sign-in: ' . $e->getMessage() );
+			return static::error_response( 503, 'passkey_unavailable', 'Passkey sign-in could not be started. Please try again.' );
 		}
 	}
 
-	/** Verify a passkey assertion and finish the pending password login. */
-	public function handle_mfa_passkey_verify( Request $request ) : Response {
-		$passkey_challenge = trim( (string) $request->post( 'challenge', '' ) );
-		$pending = $this->factor_manager->get_challenge( $passkey_challenge, 'login_passkey' );
-		$finish = $this->webauthn->finish_assertion(
-			$passkey_challenge,
+	/**
+	 * Finish a passkey sign-in.
+	 *
+	 * A valid assertion is the whole sign-in: the passkey was unlocked with the
+	 * device PIN or biometric, so no email, password or second factor follows.
+	 *
+	 * @param Request $request Contains: challenge, credential.
+	 * @return Response JSON { success, message, redirect }
+	 */
+	public function handle_passkey_verify( Request $request ) : Response {
+		$result = $this->webauthn->finish_authentication(
+			trim( (string) $request->post( 'challenge', '' ) ),
 			(string) $request->post( 'credential', '' )
 		);
-		if ( ! $finish ) {
-			$this->record_mfa_failure( $pending ? User::get_by_id( (int) $pending['user_id'] ) : null );
-			return Response::json( [ 'success' => false, 'message' => 'The passkey could not verify this sign-in. Try again or use another method.' ], 401 );
+
+		if ( ! $result ) {
+			$this->record_passkey_failure( $request );
+			return static::error_response( 401, 'passkey_rejected', 'The passkey could not sign you in. Try again, or sign in with your password.' );
 		}
-		$user = User::get_by_id( (int) $finish['user_id'] );
+
+		$user = User::get_by_id( $result['user_id'] );
+
 		if ( ! $user || ! $user->can_authenticate() ) {
-			return Response::json( [ 'success' => false, 'message' => 'This account cannot sign in.' ], 401 );
+			$this->record_passkey_failure( $request );
+			return static::error_response( 401, 'account_unavailable', 'This account cannot sign in.' );
 		}
-		$principal = $this->web_identity_provider->complete_login_for_user( $user, (bool) ( $finish['payload']['remember'] ?? false ) );
+
+		$principal = $this->web_identity_provider->complete_login_for_user( $user, (bool) ( $result['context']['remember'] ?? false ) );
+
 		if ( $principal instanceof RequestException ) {
-			return Response::json( [ 'success' => false, 'message' => $principal->get_error_message() ], 401 );
+			return static::error_response( 401, $principal->get_error_code(), $principal->get_error_message() );
 		}
-		$fallback = $principal->is( 'system_admin' ) ? $this->urlmanager->admin_url() : $this->urlmanager->client_dashboard_url();
-		$redirect = URL::from( (string) ( $finish['payload']['redirect_url'] ?? '' ) );
-		if ( ! $redirect->is_valid() || $redirect->get_origin() !== $this->urlmanager->url()->get_origin() ) {
-			$redirect = $fallback;
-		}
+
 		try {
 			$this->authentication_monitor->record_success( $user->get_email(), $this->monitor_source( $request ) );
 		} catch ( \Throwable $e ) {
 			$this->logger->warning( 'passkey_monitor_error', 'Could not record successful passkey login: ' . $e->getMessage() );
 		}
-		return Response::json( [ 'success' => true, 'message' => sprintf( 'Welcome back, %s.', $principal->get_display_name() ), 'redirect' => $redirect->url() ] );
+
+		$fallback = $principal->is( 'system_admin' ) ? $this->urlmanager->admin_url() : $this->urlmanager->client_dashboard_url();
+		$redirect = URL::from( (string) ( $result['context']['redirect_url'] ?? '' ) );
+
+		if ( ! $redirect->is_valid() || $redirect->get_origin() !== $this->urlmanager->url()->get_origin() ) {
+			$redirect = $fallback;
+		}
+
+		return static::success_response( 200, [
+			'success'  => true,
+			'message'  => sprintf( 'Welcome back, %s.', $principal->get_display_name() ),
+			'redirect' => $redirect->url(),
+		] );
+	}
+
+	/**
+	 * Count a rejected passkey sign-in against the request's source.
+	 *
+	 * A passkey sign-in has no account name to guess, so failures are counted
+	 * under one fixed account key and the source address does the work: it is
+	 * what LoginMonitorMiddleware checks before the next attempt.
+	 *
+	 * @param Request $request
+	 * @return void
+	 */
+	private function record_passkey_failure( Request $request ) : void {
+		try {
+			$this->authentication_monitor->record_failure( 'passkey_login', $this->monitor_source( $request ), null );
+		} catch ( \Throwable $e ) {
+			$this->logger->warning( 'passkey_monitor_error', 'Could not record failed passkey login: ' . $e->getMessage() );
+		}
 	}
 
 	private function record_mfa_failure( ?User $user ) : void {

@@ -40,6 +40,7 @@ use SmartLicenseServer\Security\Authentication\Session\SessionManager;
 use SmartLicenseServer\Security\Authentication\Session\UserSessionCutoff;
 use SmartLicenseServer\Security\Authentication\AuthenticationMonitor;
 use SmartLicenseServer\Security\Authentication\AuthenticationFactorManager;
+use SmartLicenseServer\Security\Authentication\PasskeyStore;
 use SmartLicenseServer\Security\Authentication\WebAuthnManager;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\CSRF\CSRF;
@@ -174,8 +175,14 @@ class WebBootstrapper implements BootstrapperInterface {
 		);
 
 		$container->singleton(
+			PasskeyStore::class,
+			fn ( Container $c ) : PasskeyStore => new PasskeyStore( $c->get( Database::class ) )
+		);
+
+		$container->singleton(
 			WebAuthnManager::class,
 			fn ( Container $c ) : WebAuthnManager => new WebAuthnManager(
+				$c->get( PasskeyStore::class ),
 				$c->get( AuthenticationFactorManager::class ),
 				$c->get( URLManager::class ),
 				$c->get( RuntimeConfig::class )->secret

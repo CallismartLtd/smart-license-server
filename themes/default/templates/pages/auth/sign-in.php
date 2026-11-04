@@ -5,6 +5,8 @@
  * @author Callistus Nwachukwu
  * @var string $action       The URL the form posts to.
  * @var string $redirect_url Where to return after signing in (?redirect_url=, this site only); may be empty.
+ * @var string $passkey_options_url Starts a passkey sign-in.
+ * @var string $passkey_verify_url  Finishes a passkey sign-in.
  * @var SmartLicenseServer\Environments\Application\Theming\ThemeContext $this
  */
 
@@ -28,11 +30,18 @@ if ( null !== $this->principal() ) {
 			<input type="password" name="password" autocomplete="current-password" required>
 		</label>
 		<label class="check">
-			<input type="checkbox" name="remember" value="1">
+			<input type="checkbox" name="remember" value="1" data-passkey-remember>
 			<span>Keep me signed in for 7 days</span>
 		</label>
 		<button type="submit" class="btn btn-accent btn-block">Sign in</button>
 	</form>
+
+	<?php // A passkey replaces the password. Shown by passkeys.js only where the browser supports passkeys. ?>
+	<div class="passkey-login" data-passkey-login data-options-url="<?php echo escUrl( $passkey_options_url ); ?>" data-verify-url="<?php echo escUrl( $passkey_verify_url ); ?>" hidden>
+		<p class="passkey-login-or">or</p>
+		<div class="notice" data-passkey-message hidden></div>
+		<button type="button" class="btn btn-block" data-passkey-button>Sign in with a passkey</button>
+	</div>
 
 	<div class="panel-links">
 		<p><a href="<?php echo escUrl( $this->urls()->login_url( 'forgot-password' )->url() ); ?>">Forgot your password?</a></p>

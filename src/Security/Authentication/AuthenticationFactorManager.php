@@ -15,8 +15,13 @@ use Throwable;
 /**
  * Manages persisted second-factor state and short-lived challenges.
  *
+ * The factors are email codes, authenticator apps (TOTP) and recovery codes.
+ * They are the second step of a password sign-in. Passkeys are not factors:
+ * they replace the password, and live in {@see PasskeyStore}.
+ *
  * TOTP seeds are encrypted with an application-secret-derived key. Challenge
  * identifiers are random bearer tokens; only their SHA-256 digests are stored.
+ * The challenge store is shared by every ceremony, passkey ceremonies included.
  */
 final class AuthenticationFactorManager {
 	private const CHALLENGE_TTL = 600;
@@ -38,39 +43,37 @@ final class AuthenticationFactorManager {
 	}
 
 	/**
+	 * The second factors a user has enabled.
+	 *
+	 * @param int $user_id User ID.
 	 * @return array{
 	 * 	email: bool,
 	 * 	totp: bool,
-	 * 	passkeys: array<int,array<string,mixed>>,
 	 * 	recovery_codes: int
 	 * }
 	 */
 	public function status( int $user_id ) : array {
-		$row      = $this->security_row( $user_id );
-		$passkeys = $this->passkeys( $user_id );
-		$codes    = json_decode( (string) ( $row['recovery_code_hashes'] ?? '[]' ), true );
+		$row   = $this->security_row( $user_id );
+		$codes = json_decode( (string) ( $row['recovery_code_hashes'] ?? '[]' ), true );
 
 		return [
-			'email'         => ! empty( $row['email_enabled_at'] ),
-			'totp'          => ! empty( $row['totp_enabled_at'] ) && ! empty( $row['totp_secret'] ),
-			'passkeys'      => array_map( static fn ( array $item ) : array => [
-				'id'         => (int) $item['id'],
-				'label'      => (string) $item['label'],
-				'created_at' => (string) $item['created_at'],
-				'last_used'  => (string) ( $item['last_used_at'] ?? '' ),
-			], $passkeys ),
+			'email'          => ! empty( $row['email_enabled_at'] ),
+			'totp'           => ! empty( $row['totp_enabled_at'] ) && ! empty( $row['totp_secret'] ),
 			'recovery_codes' => is_array( $codes ) ? count( $codes ) : 0,
 		];
 	}
 
 	/**
-	 * Whether a user must pass a second factor after a password. 
-	 * 
+	 * Whether a user must pass a second factor after a password.
+	 *
+	 * Applies to password sign-in only. A passkey sign-in never asks for one.
+	 *
+	 * @param int $user_id User ID.
 	 * @return bool
 	 */
 	public function requires_second_factor( int $user_id ) : bool {
 		$status = $this->status( $user_id );
-		return $status['email'] || $status['totp'] || ! empty( $status['passkeys'] );
+		return $status['email'] || $status['totp'];
 	}
 
 	/**
@@ -114,6 +117,8 @@ final class AuthenticationFactorManager {
 
 	/**
 	 * Reset all authentication factors and recovery codes for account recovery.
+	 *
+	 * Passkeys are sign-in credentials, not factors, and are left untouched.
 	 */
 	public function reset_all_factors( int $user_id ) : void {
 		$this->upsert_security( $user_id, [
@@ -363,49 +368,6 @@ final class AuthenticationFactorManager {
 			$sql->update_columns( ...array_values( array_diff( array_keys( $values ), [ 'user_id' ] ) ) );
 		}
 		$this->db->execute( $sql->build(), $sql->get_bindings() );
-	}
-
-	/** @return array<int,array<string,mixed>> */
-	public function passkeys( int $user_id ) : array {
-		$sql = $this->query()
-			->select()->from( TableName::USER_PASSKEYS->table() )
-			->where( 'user_id', '=', $user_id )->where_null( 'revoked_at' );
-		return $this->db->get_results( $sql->build(), $sql->get_bindings() ) ?: [];
-	}
-
-	/** Store an attested WebAuthn credential record. */
-	public function save_passkey( int $user_id, string $credential_id, string $credential_data, string $label ) : bool {
-		return false !== $this->db->insert( TableName::USER_PASSKEYS->table(), [
-			'user_id'             => $user_id,
-			'credential_id_hash'  => hash( 'sha256', $credential_id ),
-			'credential_data'     => $credential_data,
-			'label'               => mb_substr( trim( $label ) ?: 'Passkey', 0, 120 ),
-			'created_at'          => gmdate( 'Y-m-d H:i:s' ),
-		] );
-	}
-
-	/** Get one active credential by the hash of its credential ID. */
-	public function passkey_by_credential_id( string $credential_id ) : ?array {
-		$sql = $this->query()
-			->select()->from( TableName::USER_PASSKEYS->table() )
-			->where( 'credential_id_hash', '=', hash( 'sha256', $credential_id ) )
-			->where_null( 'revoked_at' )->limit( 1 );
-		return $this->db->get_row( $sql->build(), $sql->get_bindings() );
-	}
-
-	/** Persist a credential's updated authenticator counter after a valid assertion. */
-	public function update_passkey( int $id, string $credential_data ) : void {
-		$this->db->update( TableName::USER_PASSKEYS->table(), [
-			'credential_data' => $credential_data,
-			'last_used_at'    => gmdate( 'Y-m-d H:i:s' ),
-		], [ 'id' => $id ] );
-	}
-
-	/** Revoke one of a user's active passkeys. */
-	public function revoke_passkey( int $user_id, int $id ) : bool {
-		return 1 === $this->db->update( TableName::USER_PASSKEYS->table(), [
-			'revoked_at' => gmdate( 'Y-m-d H:i:s' ),
-		], [ 'id' => $id, 'user_id' => $user_id ] );
 	}
 
 	/** Remove expired challenges opportunistically. */

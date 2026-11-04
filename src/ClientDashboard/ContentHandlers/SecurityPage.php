@@ -16,14 +16,19 @@ use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environments\Application\Theming\View;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Authentication\AuthenticationFactorManager;
+use SmartLicenseServer\Security\Authentication\PasskeyStore;
 use SmartLicenseServer\Security\Context\Guard;
 
-/** Self-service management of a user's additional authentication factors. */
+/**
+ * Self-service management of how a user signs in: passkeys, which replace the
+ * password, and second factors, which add a step to a password sign-in.
+ */
 final class SecurityPage implements ClientPageInterface {
 	public function __construct(
 		private Guard $guard,
 		private URLManager $urls,
-		private AuthenticationFactorManager $factors
+		private AuthenticationFactorManager $factors,
+		private PasskeyStore $passkeys
 	) {}
 
 	public function get_menu_key() : string {
@@ -81,7 +86,7 @@ final class SecurityPage implements ClientPageInterface {
 		if ( '' !== $totp_token ) {
 			$active_tab = 'authenticator';
 		}
-		if ( ! in_array( $active_tab, [ 'email', 'authenticator', 'passkeys' ], true ) ) {
+		if ( ! in_array( $active_tab, [ 'email', 'authenticator' ], true ) ) {
 			$active_tab = 'email';
 		}
 
@@ -90,7 +95,7 @@ final class SecurityPage implements ClientPageInterface {
 			'email_verified'      => $user->is_email_verified(),
 			'email_enabled'       => $status['email'],
 			'totp_enabled'        => $status['totp'],
-			'passkeys'            => $status['passkeys'],
+			'passkeys'            => $this->passkeys->summaries( $user_id ),
 			'recovery_code_count' => $status['recovery_codes'],
 			'email_challenge'     => $email_challenge ? $email_token : '',
 			'email_disable_challenge' => $email_disable ? $email_disable_token : '',

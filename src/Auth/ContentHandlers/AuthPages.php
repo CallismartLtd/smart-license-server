@@ -65,22 +65,35 @@ final class AuthPages {
 	 * GET <login prefix>/ — sign in.
 	 *
 	 * Template 'auth.sign-in'. Data: $action, and
-	 *   string $redirect_url The page's ?redirect_url= when on this site; empty otherwise.
+	 *   string $redirect_url         The page's ?redirect_url= when on this site; empty otherwise.
+	 *   string $passkey_options_url  Starts a passkey sign-in.
+	 *   string $passkey_verify_url   Finishes a passkey sign-in.
 	 *
 	 * A redirect_url query parameter is posted with the form, so the visitor
 	 * returns where they were sent from. The link to sign up carries it on,
 	 * so someone without an account (e.g. invited to an organization) gets
 	 * back too.
 	 *
+	 * A passkey is an alternative to the password, so the page offers it
+	 * beside the password form. The core script passkeys.js drives it.
+	 *
 	 * @param Request $request
 	 * @return View
 	 */
 	public function sign_in( Request $request ) : View {
 		return $this->form_page( 'auth.sign-in', 'Sign in', 'form/login' )
-			->set( 'redirect_url', $this->redirect_url( $request ) );
+			->set( 'redirect_url', $this->redirect_url( $request ) )
+			->set( 'passkey_options_url', $this->urls->login_url( 'form/passkey/options' )->url() )
+			->set( 'passkey_verify_url', $this->urls->login_url( 'form/passkey/verify' )->url() )
+			->add_script( 'passkeys' );
 	}
 
-	/** GET <login prefix>/mfa?challenge=… — complete a password-login challenge. */
+	/**
+	 * GET <login prefix>/mfa?challenge=… — complete a password-login challenge.
+	 *
+	 * Second step of a password sign-in only: email code, authenticator app
+	 * or recovery code. A passkey sign-in never comes here.
+	 */
 	public function mfa( Request $request ) : View {
 		$token  = trim( (string) $request->get( 'challenge', '', false ) );
 		$method = (string) $request->get( 'method', '', false );
@@ -88,7 +101,7 @@ final class AuthPages {
 		$challenge = $this->factor_manager->get_challenge( $token, $purpose );
 		$user = $challenge ? User::get_by_id( (int) $challenge['user_id'] ) : null;
 		$status = $user ? $this->factor_manager->status( (int) $user->get_id() ) : [
-			'email' => false, 'totp' => false, 'passkeys' => [], 'recovery_codes' => 0,
+			'email' => false, 'totp' => false, 'recovery_codes' => 0,
 		];
 
 		return View::make( 'auth.mfa', [
@@ -97,17 +110,13 @@ final class AuthPages {
 			'email_pending'      => 'login_email' === $purpose,
 			'email_available'    => $status['email'] && $user instanceof User && $user->is_email_verified(),
 			'totp_available'     => $status['totp'],
-			'passkey_available'  => ! empty( $status['passkeys'] ),
 			'email_action'       => $this->urls->login_url( 'form/mfa/email' )->url(),
 			'verify_action'      => $this->urls->login_url( 'form/mfa/verify' )->url(),
-			'passkey_options_action' => $this->urls->login_url( 'form/mfa/passkey/options' )->url(),
-			'passkey_verify_action'  => $this->urls->login_url( 'form/mfa/passkey/verify' )->url(),
 		] )
 			->set_title( 'Verify your sign-in' )
 			->set_header( 'Cache-Control', 'no-store' )
 			->set_header( 'Referrer-Policy', 'no-referrer' )
-			->add_script( View::FORMS_SCRIPT )
-			->add_script( 'passkeys' );
+			->add_script( View::FORMS_SCRIPT );
 	}
 
 	/**
