@@ -58,7 +58,7 @@
 	</section>
 
 	<div class="security-group" data-security-tabs data-active-tab="<?php echo escAttr( $active_tab ); ?>">
-		<h2 class="security-group-heading">Second step for password sign-in</h2>
+		<h2 class="security-group-heading">2Factor Authentication setup</h2>
 		<p class="security-help">When you sign in with your password, you also confirm with one of these. Passkey sign-in does not ask for it.</p>
 
 		<div class="security-tablist" role="tablist" aria-label="Account security methods">
