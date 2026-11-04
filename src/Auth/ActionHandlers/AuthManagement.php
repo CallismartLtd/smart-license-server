@@ -8,6 +8,7 @@
 
 namespace SmartLicenseServer\Auth\ActionHandlers;
 
+use SmartLicenseServer\Background\Jobs\Accounts\EmailOtpJob;
 use SmartLicenseServer\Background\Jobs\Accounts\EmailVerificationJob;
 use SmartLicenseServer\Background\Jobs\Accounts\PasswordResetJob;
 use SmartLicenseServer\Background\Jobs\Accounts\SignupEmailJob;
@@ -20,7 +21,6 @@ use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Exceptions\RequestException;
 use SmartLicenseServer\Security\Actors\User;
-use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
 use SmartLicenseServer\Security\Authentication\AuthenticationMonitor;
 use SmartLicenseServer\Security\Authentication\AuthenticationFactorManager;
@@ -65,7 +65,6 @@ class AuthManagement {
 		protected AuthenticationFactorManager $factor_manager,
 		protected WebAuthnManager $webauthn,
 		protected WebIdentityProvider $web_identity_provider,
-		protected Mailer $mailer,
 		protected SecurityLogger $logger,
 		JobQueue $job_queue
 	) {
@@ -205,13 +204,17 @@ class AuthManagement {
 					'redirect_url' => (string) ( $challenge['payload']['redirect_url'] ?? '' ),
 				]
 			);
-			$this->mailer->to( $user->get_email() )
-				->subject( 'Your sign-in verification code' )
-				->body( sprintf(
-					'<p>Your Smart License Server sign-in code is <strong>%s</strong>.</p><p>It expires in 10 minutes. If you did not request it, you can ignore this message.</p>',
-					escHtml( $code_challenge['code'] )
-				) )
-				->send();
+			$this->dispatch_job(
+				EmailOtpJob::class,
+				[
+					'user_id'     => $user->get_id(),
+					'code'        => $this->factor_manager->seal_code( $code_challenge['code'] ),
+					'purpose'     => 'login_email',
+					'ip_address'  => $request->ip(),
+					'user_agent'  => $request->userAgent(),
+					'occurred_at' => time(),
+				]
+			);
 
 			if ( ! $this->factor_manager->consume_challenge( $token ) ) {
 				$this->factor_manager->consume_challenge( $code_challenge['token'] );

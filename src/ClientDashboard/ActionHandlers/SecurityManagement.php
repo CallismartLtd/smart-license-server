@@ -7,10 +7,13 @@ declare( strict_types = 1 );
 
 namespace SmartLicenseServer\ClientDashboard\ActionHandlers;
 
+use SmartLicenseServer\Background\Jobs\Accounts\EmailOtpJob;
+use SmartLicenseServer\Background\Jobs\Accounts\SecurityNoticeEmailJob;
+use SmartLicenseServer\Background\Queue\JobQueue;
+use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\Response;
 use SmartLicenseServer\Core\URLManager;
-use SmartLicenseServer\Email\Mailer;
 use SmartLicenseServer\Security\Actors\User;
 use SmartLicenseServer\Security\Authentication\AuthenticationFactorManager;
 use SmartLicenseServer\Security\Authentication\PasskeyStore;
@@ -23,14 +26,18 @@ use SmartLicenseServer\Security\Context\Guard;
  * factor, it is an alternative to the password.
  */
 final class SecurityManagement {
+	use QueueAwareTrait;
+
 	public function __construct(
 		private Guard $guard,
 		private AuthenticationFactorManager $factors,
-		private Mailer $mailer,
 		private URLManager $urls,
 		private WebAuthnManager $webauthn,
-		private PasskeyStore $passkeys
-	) {}
+		private PasskeyStore $passkeys,
+		JobQueue $job_queue
+	) {
+		$this->job_queue = $job_queue;
+	}
 
 	/** Start email-factor enrollment after password reauthentication. */
 	public function start_email( Request $request ) : Response {
@@ -50,7 +57,7 @@ final class SecurityManagement {
 
 		try {
 			$challenge = $this->factors->create_email_code_challenge( (int) $user->get_id(), 'enroll_email' );
-			$this->send_code( $user, $challenge['code'], 'Enable email two-factor authentication' );
+			$this->send_code( $user, $challenge['code'], 'enroll_email', $request );
 		} catch ( \Throwable $e ) {
 			if ( isset( $challenge['token'] ) ) {
 				$this->factors->consume_challenge( $challenge['token'] );
@@ -78,6 +85,7 @@ final class SecurityManagement {
 			return $this->answer( false, 'The verification code is incorrect or expired.', 400 );
 		}
 		$this->factors->enable_email( (int) $user->get_id() );
+		$this->notify( $user, 'two_factor_enabled', $request, 'email' );
 		return $this->answer( true, 'Email two-factor authentication is enabled.', 200, $this->urls->client_dashboard_url( 'security' )->url() );
 	}
 
@@ -131,6 +139,7 @@ final class SecurityManagement {
 		}
 		$this->factors->enable_totp( (int) $user->get_id(), $secret, $counter );
 		$codes = $this->factors->regenerate_recovery_codes( (int) $user->get_id() );
+		$this->notify( $user, 'two_factor_enabled', $request, 'totp' );
 		return $this->answer(
 			true,
 			'Authenticator app enabled. Save these one-time recovery codes now: ' . implode( '  ', $codes ),
@@ -160,6 +169,7 @@ final class SecurityManagement {
 		if ( ! $user || ! $this->webauthn->finish_registration( $user, (string) $request->post( 'challenge', '' ), $credential ) ) {
 			return $this->answer( false, 'Passkey registration failed or expired. Please try again.', 400 );
 		}
+		$this->notify( $user, 'passkey_added', $request );
 		return $this->answer( true, 'Passkey registered successfully.', 200, $this->urls->client_dashboard_url( 'security' )->url() );
 	}
 
@@ -173,6 +183,7 @@ final class SecurityManagement {
 		if ( $id < 1 || ! $this->passkeys->revoke( (int) $user->get_id(), $id ) ) {
 			return $this->answer( false, 'That passkey could not be found.', 404 );
 		}
+		$this->notify( $user, 'passkey_removed', $request );
 		return $this->answer( true, 'Passkey removed.', 200, $this->urls->client_dashboard_url( 'security' )->url() );
 	}
 
@@ -198,7 +209,7 @@ final class SecurityManagement {
 			if ( '' === $challenge_token ) {
 				try {
 					$challenge = $this->factors->create_email_code_challenge( (int) $user->get_id(), 'disable_email' );
-					$this->send_code( $user, $challenge['code'], 'Disable email two-factor authentication' );
+					$this->send_code( $user, $challenge['code'], 'disable_email', $request );
 				} catch ( \Throwable $e ) {
 					if ( isset( $challenge['token'] ) ) {
 						$this->factors->consume_challenge( $challenge['token'] );
@@ -221,6 +232,7 @@ final class SecurityManagement {
 		}
 
 		$this->factors->disable_factor( (int) $user->get_id(), $factor );
+		$this->notify( $user, 'two_factor_disabled', $request, $factor );
 		return $this->answer( true, ucfirst( $factor ) . ' two-factor authentication is disabled.', 200, $this->urls->client_dashboard_url( 'security' )->url() );
 	}
 
@@ -233,14 +245,47 @@ final class SecurityManagement {
 		return '' !== $password && password_verify( $password, $user->get_password_hash() );
 	}
 
-	private function send_code( User $user, string $code, string $purpose ) : void {
-		$this->mailer->to( $user->get_email() )
-			->subject( $purpose )
-			->body( sprintf(
-				'<p>Your verification code is <strong>%s</strong>.</p><p>It expires in 10 minutes. If you did not request this change, ignore this message.</p>',
-				escHtml( $code )
-			) )
-			->send();
+	/**
+	 * Queue a one-time code email.
+	 *
+	 * The code is sealed because job payloads are stored as readable JSON.
+	 * Throws when the job cannot be queued, so callers can discard the challenge.
+	 *
+	 * @param string $purpose Challenge purpose: enroll_email | disable_email.
+	 */
+	private function send_code( User $user, string $code, string $purpose, Request $request ) : void {
+		$this->dispatch_job( EmailOtpJob::class, [
+			'user_id'     => $user->get_id(),
+			'code'        => $this->factors->seal_code( $code ),
+			'purpose'     => $purpose,
+			'ip_address'  => $request->ip(),
+			'user_agent'  => $request->userAgent(),
+			'occurred_at' => time(),
+		] );
+	}
+
+	/**
+	 * Queue a security notice for a change that has already been made.
+	 *
+	 * A failure to queue is logged and swallowed: the change stands, and it
+	 * must not be reported to the user as failed.
+	 *
+	 * @param string $notice One of the SecurityNoticeEmailJob notice keys.
+	 * @param string $factor 'email' or 'totp', for two-factor notices.
+	 */
+	private function notify( User $user, string $notice, Request $request, string $factor = '' ) : void {
+		try {
+			$this->dispatch_job( SecurityNoticeEmailJob::class, [
+				'user_id'     => $user->get_id(),
+				'notice'      => $notice,
+				'factor'      => $factor,
+				'ip_address'  => $request->ip(),
+				'user_agent'  => $request->userAgent(),
+				'occurred_at' => time(),
+			] );
+		} catch ( \Throwable $e ) {
+			\smliser_log_error( sprintf( '[Authentication] Could not queue the "%s" security notice: %s', $notice, $e->getMessage() ) );
+		}
 	}
 
 	private function answer( bool $success, string $message, int $status, string $redirect = '' ) : Response {

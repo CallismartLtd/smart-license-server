@@ -24,7 +24,7 @@ use Throwable;
  * The challenge store is shared by every ceremony, passkey ceremonies included.
  */
 final class AuthenticationFactorManager {
-	private const CHALLENGE_TTL = 600;
+	public const CHALLENGE_TTL = 600;
 	private const MAX_CHALLENGE_ATTEMPTS = 5;
 	private const TOTP_STEP = 30;
 	private const TOTP_DIGITS = 6;
@@ -32,6 +32,7 @@ final class AuthenticationFactorManager {
 
 	private string $totp_key;
 	private string $challenge_key;
+	private string $code_key;
 
 	public function __construct(
 		private Database $db,
@@ -40,6 +41,7 @@ final class AuthenticationFactorManager {
 	) {
 		$this->totp_key      = hash_hkdf( 'sha256', $secret, 32, 'authentication_totp', $salt );
 		$this->challenge_key = hash_hkdf( 'sha256', $secret, 32, 'authentication_challenges', $salt );
+		$this->code_key      = hash_hkdf( 'sha256', $secret, 32, 'authentication_email_codes', $salt );
 	}
 
 	/**
@@ -204,6 +206,32 @@ final class AuthenticationFactorManager {
 		$payload['code_hash'] = hash_hmac( 'sha256', $code, $this->challenge_key );
 		$token = $this->create_challenge( $user_id, $purpose, $payload );
 		return [ 'token' => $token, 'code' => $code ];
+	}
+
+	/**
+	 * Seal an email code so it can travel in a queued job payload.
+	 *
+	 * Challenges keep only a keyed digest of their code, and job payloads are
+	 * stored as readable JSON, so the code is encrypted for the job and opened
+	 * again by open_code() when the email is sent.
+	 */
+	public function seal_code( #[\SensitiveParameter] string $code ) : string {
+		$nonce      = random_bytes( SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES );
+		$ciphertext = sodium_crypto_aead_xchacha20poly1305_ietf_encrypt( $code, 'smliser-email-code-v1', $nonce, $this->code_key );
+		return base64_encode( $nonce . $ciphertext );
+	}
+
+	/** Open a code sealed by seal_code(), or return null when it cannot be read. */
+	public function open_code( string $sealed ) : ?string {
+		$binary = base64_decode( $sealed, true );
+		$size   = SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_NPUBBYTES;
+		if ( false === $binary || strlen( $binary ) <= $size ) {
+			return null;
+		}
+		$code = sodium_crypto_aead_xchacha20poly1305_ietf_decrypt(
+			substr( $binary, $size ), 'smliser-email-code-v1', substr( $binary, 0, $size ), $this->code_key
+		);
+		return false === $code ? null : $code;
 	}
 
 	/** Verify an email code and consume its challenge on success. */
