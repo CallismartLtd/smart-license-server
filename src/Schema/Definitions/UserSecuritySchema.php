@@ -13,7 +13,9 @@ use Callismart\DBPrism\Utils\Constraint;
 use SmartLicenseServer\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Schema\TableName;
 
-/** Stores security-factor state for human user accounts. */
+/**
+ * Stores security-factor state for human user accounts.
+ */
 final class UserSecuritySchema implements DatabaseSchemaInterface {
 	public static function get_label() : string {
 		return 'User Security Factors';
@@ -42,6 +44,8 @@ final class UserSecuritySchema implements DatabaseSchemaInterface {
 	public static function get_constraints() : array {
 		return [
 			Constraint::primary( 'smliser_usersecurity_primary' )->on( 'user_id' ),
+			Constraint::foreign_key( 'smliser_usersecurity_fk' )->on( 'user_id' )
+				->references( TableName::USERS->table(), 'id' )->on_delete( 'CASCADE' )
 		];
 	}
 }

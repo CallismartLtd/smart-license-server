@@ -13,7 +13,9 @@ use Callismart\DBPrism\Utils\Constraint;
 use SmartLicenseServer\Schema\DatabaseSchemaInterface;
 use SmartLicenseServer\Schema\TableName;
 
-/** Stores short-lived, single-use authentication and enrollment challenges. */
+/**
+ * Stores short-lived, single-use authentication and enrollment challenges.
+ */
 final class AuthChallengesSchema implements DatabaseSchemaInterface {
 	public static function get_label() : string {
 		return 'Authentication Challenges';

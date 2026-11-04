@@ -8,6 +8,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Security\Authentication;
 
 use Callismart\DBPrism\Database;
+use Callismart\DBPrism\Query\SQLBuilder;
 use SmartLicenseServer\Schema\TableName;
 use Throwable;
 
@@ -129,7 +130,7 @@ final class AuthenticationFactorManager {
 	 * @return array<string,mixed>|null
 	 */
 	public function security_row( int $user_id ) : ?array {
-		$sql = \smliserQueryBuilder( $this->db->get_driver() )
+		$sql = $this->query()
 			->select()->from( TableName::USER_SECURITY->table() )
 			->where( 'user_id', '=', $user_id )->limit( 1 );
 		return $this->db->get_row( $sql->build(), $sql->get_bindings() );
@@ -170,7 +171,7 @@ final class AuthenticationFactorManager {
 			return null;
 		}
 
-		$sql = \smliserQueryBuilder( $this->db->get_driver() )
+		$sql = $this->query()
 			->select()->from( TableName::AUTH_CHALLENGES->table() )
 			->where( 'id', '=', hash( 'sha256', $token ) )
 			->where( 'purpose', '=', $purpose )
@@ -342,7 +343,7 @@ final class AuthenticationFactorManager {
 			unset( $hashes[ $i ] );
 			$before = (string) $row['recovery_code_hashes'];
 			$after  = json_encode( array_values( $hashes ), JSON_THROW_ON_ERROR );
-			$sql    = \smliserQueryBuilder( $this->db->get_driver() )
+			$sql    = $this->query()
 				->update( TableName::USER_SECURITY->table() )
 				->set( [ 'recovery_code_hashes' => $after, 'updated_at' => gmdate( 'Y-m-d H:i:s' ) ] )
 				->where( 'user_id', '=', $user_id )
@@ -355,7 +356,7 @@ final class AuthenticationFactorManager {
 	/** @param array<string,mixed> $data */
 	public function upsert_security( int $user_id, array $data ) : void {
 		$values = array_merge( [ 'user_id' => $user_id ], $data );
-		$sql = \smliserQueryBuilder( $this->db->get_driver() )
+		$sql = $this->query()
 			->upsert( TableName::USER_SECURITY->table() )
 			->values( $values )->on_conflict( 'user_id' );
 		if ( count( $values ) > 1 ) {
@@ -366,7 +367,7 @@ final class AuthenticationFactorManager {
 
 	/** @return array<int,array<string,mixed>> */
 	public function passkeys( int $user_id ) : array {
-		$sql = \smliserQueryBuilder( $this->db->get_driver() )
+		$sql = $this->query()
 			->select()->from( TableName::USER_PASSKEYS->table() )
 			->where( 'user_id', '=', $user_id )->where_null( 'revoked_at' );
 		return $this->db->get_results( $sql->build(), $sql->get_bindings() ) ?: [];
@@ -385,7 +386,7 @@ final class AuthenticationFactorManager {
 
 	/** Get one active credential by the hash of its credential ID. */
 	public function passkey_by_credential_id( string $credential_id ) : ?array {
-		$sql = \smliserQueryBuilder( $this->db->get_driver() )
+		$sql = $this->query()
 			->select()->from( TableName::USER_PASSKEYS->table() )
 			->where( 'credential_id_hash', '=', hash( 'sha256', $credential_id ) )
 			->where_null( 'revoked_at' )->limit( 1 );
@@ -446,5 +447,12 @@ final class AuthenticationFactorManager {
 			}
 		}
 		return $bytes;
+	}
+
+	/**
+	 * Begin query building.
+	 */
+	private function query() : SQLBuilder {
+		return \smliserQueryBuilder( $this->db->get_driver() );
 	}
 }

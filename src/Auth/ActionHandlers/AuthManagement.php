@@ -71,9 +71,9 @@ class AuthManagement {
 	}
 
 	/*
-	|--------------------------------------------------
+	|---------------
 	| LOGIN/LOGOUT
-	|--------------------------------------------------
+	|---------------
 	*/
 
 	/**
@@ -167,7 +167,7 @@ class AuthManagement {
 			$this->guard->get_principal()?->is( 'system_admin' ) ? $this->urlmanager->admin_url() : $this->urlmanager->client_dashboard_url()
 		);
 
-		// Return success with redirect
+		// Return success with redirect.
 		return static::success_response(
 			200,
 			[
@@ -178,10 +178,12 @@ class AuthManagement {
 		);
 	}
 
-	/** Send an email verification code for a pending password login. */
+	/**
+	 * Send an email verification code for a pending password login.
+	 */
 	public function handle_mfa_email( Request $request ) : Response {
-		$token = trim( (string) $request->post( 'challenge', '' ) );
-		$challenge = $this->factor_manager->get_challenge( $token, 'login' );
+		$token		= trim( (string) $request->post( 'challenge', '' ) );
+		$challenge	= $this->factor_manager->get_challenge( $token, 'login' );
 		if ( ! $challenge ) {
 			return static::error_response( 401, 'challenge_expired', 'This sign-in challenge has expired. Sign in again.' );
 		}
