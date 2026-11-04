@@ -21,7 +21,7 @@ if ( null !== $this->principal() ) {
 		<div class="notice" data-smliser-form-message hidden></div>
 		<label class="field">
 			<span class="field-label">Username or email</span>
-			<input type="text" name="username" autocomplete="username" required autofocus>
+			<input type="text" name="email" autocomplete="email" required autofocus>
 		</label>
 		<label class="field">
 			<span class="field-label">Password</span>

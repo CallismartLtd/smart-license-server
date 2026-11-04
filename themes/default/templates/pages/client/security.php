@@ -3,9 +3,8 @@
  * Self-service authentication-factor settings.
  *
  * Every form that asks for the current password carries an unnamed, visually hidden
- * username input. It tells password managers which account the password belongs to,
- * so a re-authentication is not treated as a password change. It has no `name`, so
- * it is never submitted and the server contract is unchanged.
+ * email input. It tells password managers which account the password belongs to,
+ * so a re-authentication is not treated as a password change.
  *
  * @var string $email
  * @var bool $email_verified
@@ -44,7 +43,7 @@
 					<input type="hidden" name="factor" value="email">
 					<input type="hidden" name="challenge" value="<?php echo escAttr( $email_disable_challenge ); ?>">
 					<div class="notice" data-smliser-form-message hidden></div>
-					<input type="text" class="security-username" value="<?php echo escAttr( $email ); ?>" autocomplete="username" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+					<input type="text" class="security-email" value="<?php echo escAttr( $email ); ?>" autocomplete="current-email" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 					<label class="field"><span class="field-label">Current password</span><input type="password" name="password" autocomplete="current-password" required></label>
 					<label class="field"><span class="field-label">Email confirmation code</span><input type="text" name="code" inputmode="numeric" autocomplete="one-time-code" required></label>
 					<button type="submit" class="btn">Disable email codes</button>
@@ -53,7 +52,7 @@
 				<form method="post" action="<?php echo escUrl( $actions['factor_disable'] ); ?>" data-smliser-form>
 					<input type="hidden" name="factor" value="email">
 					<div class="notice" data-smliser-form-message hidden></div>
-					<input type="text" class="security-username" value="<?php echo escAttr( $email ); ?>" autocomplete="username" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+					<input type="text" class="security-email" value="<?php echo escAttr( $email ); ?>" autocomplete="current-email" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 					<label class="field"><span class="field-label">Current password</span><input type="password" name="password" autocomplete="current-password" required></label>
 					<button type="submit" class="btn">Send code to disable</button>
 				</form>
@@ -61,7 +60,7 @@
 		<?php elseif ( $email_verified ) : ?>
 			<form method="post" action="<?php echo escUrl( $actions['email_start'] ); ?>" data-smliser-form>
 				<div class="notice" data-smliser-form-message hidden></div>
-				<input type="text" class="security-username" value="<?php echo escAttr( $email ); ?>" autocomplete="username" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+				<input type="text" class="security-email" value="<?php echo escAttr( $email ); ?>" autocomplete="current-email" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 				<label class="field"><span class="field-label">Current password</span><input type="password" name="password" autocomplete="current-password" required></label>
 				<button type="submit" class="btn btn-accent">Send enrollment code</button>
 			</form>
@@ -87,7 +86,7 @@
 			<form method="post" action="<?php echo escUrl( $actions['factor_disable'] ); ?>" data-smliser-form>
 				<input type="hidden" name="factor" value="totp">
 				<div class="notice" data-smliser-form-message hidden></div>
-				<input type="text" class="security-username" value="<?php echo escAttr( $email ); ?>" autocomplete="username" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+				<input type="text" class="security-email" value="<?php echo escAttr( $email ); ?>" autocomplete="current-email" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 				<label class="field"><span class="field-label">Current password</span><input type="password" name="password" autocomplete="current-password" required></label>
 				<label class="field"><span class="field-label">Authenticator or recovery code</span><input type="text" name="code" autocomplete="one-time-code" required></label>
 				<button type="submit" class="btn">Disable authenticator app</button>
@@ -116,7 +115,7 @@
 		<?php else : ?>
 			<form method="post" action="<?php echo escUrl( $actions['totp_start'] ); ?>" data-smliser-form>
 				<div class="notice" data-smliser-form-message hidden></div>
-				<input type="text" class="security-username" value="<?php echo escAttr( $email ); ?>" autocomplete="username" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+				<input type="text" class="security-email" value="<?php echo escAttr( $email ); ?>" autocomplete="current-email" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 				<label class="field"><span class="field-label">Current password</span><input type="password" name="password" autocomplete="current-password" required></label>
 				<button type="submit" class="btn btn-accent">Set up authenticator app</button>
 			</form>
@@ -140,7 +139,7 @@
 					<form method="post" action="<?php echo escUrl( $actions['passkey_revoke'] ); ?>" data-smliser-form>
 						<input type="hidden" name="id" value="<?php echo escAttr( (string) $passkey['id'] ); ?>">
 						<div class="notice" data-smliser-form-message hidden></div>
-						<input type="text" class="security-username" value="<?php echo escAttr( $email ); ?>" autocomplete="username" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+						<input type="text" class="security-email" value="<?php echo escAttr( $email ); ?>" autocomplete="current-email" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 						<label class="field"><span class="field-label">Current password</span><input type="password" name="password" autocomplete="current-password" required></label>
 						<button type="submit" class="btn btn-small">Remove passkey</button>
 					</form>
@@ -150,7 +149,7 @@
 		<form method="post" class="security-passkey-form" data-passkey-register data-start-url="<?php echo escUrl( $actions['passkey_start'] ); ?>" data-finish-url="<?php echo escUrl( $actions['passkey_finish'] ); ?>">
 			<div class="notice" data-passkey-message hidden></div>
 			<label class="field"><span class="field-label">Passkey name</span><input type="text" name="label" maxlength="120" placeholder="This device"></label>
-			<input type="text" class="security-username" value="<?php echo escAttr( $email ); ?>" autocomplete="username" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+			<input type="text" class="security-email" value="<?php echo escAttr( $email ); ?>" autocomplete="current-email" tabindex="-1" aria-hidden="true" readonly style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 			<label class="field"><span class="field-label">Current password</span><input type="password" name="password" autocomplete="current-password" required></label>
 			<button type="submit" class="btn btn-accent">Add a passkey</button>
 		</form>

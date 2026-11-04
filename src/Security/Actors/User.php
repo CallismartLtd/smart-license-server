@@ -237,7 +237,7 @@ class User extends DataStore implements ActorInterface, OwnerSubjectInterface {
 	/**
 	 * Set the user email
 	 *
-	 * @param string $email Email or username.
+	 * @param string $email Email.
 	 * @return static
 	 */
 	public function set_email( $email ) : static {

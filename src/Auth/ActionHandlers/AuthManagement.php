@@ -79,26 +79,26 @@ class AuthManagement {
 	/**
 	 * Handle login form submission.
 	 *
-	 * Authenticates user with username/email and password.
+	 * Authenticates user with email and password.
 	 * Sets authenticated session on success.
 	 *
 	 * @param Request $request Request object.
 	 * @return Response JSON response
 	 */
 	public function handle_login( Request $request ) : Response {
-		$username = (string) $request->post( 'username', '' );
-		$password = (string) $request->get( parameter: 'password', default: '', sanitize: false );
-		$remember = (bool) $request->post( 'remember', false );
+		$email		= (string) $request->post( 'email', '' );
+		$password	= (string) $request->get( parameter: 'password', default: '', sanitize: false );
+		$remember	= (bool) $request->post( 'remember', false );
 
-		if ( empty( $username ) || empty( $password ) ) {
+		if ( empty( $email ) || empty( $password ) ) {
 			return static::error_response(
 				400,
 				'missing_credentials',
-				'Username and password are required.'
+				'Email and password are required.'
 			);
 		}
 
-		$auth_result = $this->web_identity_provider->authenticate_credentials( $username, $password );
+		$auth_result = $this->web_identity_provider->authenticate_credentials( $email, $password );
 		$principal   = $auth_result->is_authenticated()
 			? null
 			: new RequestException(
@@ -138,12 +138,12 @@ class AuthManagement {
 
 		if ( $principal instanceof RequestException ) {
 			try {
-				$activity = $this->authentication_monitor->record_failure( $username, $this->monitor_source( $request ), $password );
+				$activity = $this->authentication_monitor->record_failure( $email, $this->monitor_source( $request ), $password );
 				if ( $activity['detected'] ) {
-					$this->logger->warning( 'login_activity_alert', sprintf( 'Detected %s login activity (%s).', $activity['severity'], implode( ', ', $activity['threats'] ) ), [ 'username' => $username ] );
+					$this->logger->warning( 'login_activity_alert', sprintf( 'Detected %s login activity (%s).', $activity['severity'], implode( ', ', $activity['threats'] ) ), [ 'email' => $email ] );
 				}
 			} catch ( \Throwable $e ) {
-				$this->logger->warning( 'login_monitor_error', sprintf( 'Could not record failed login: %s', $e->getMessage() ), [ 'username' => $username ] );
+				$this->logger->warning( 'login_monitor_error', sprintf( 'Could not record failed login: %s', $e->getMessage() ), [ 'email' => $email ] );
 			}
 
 			return static::error_response(
@@ -154,12 +154,12 @@ class AuthManagement {
 		}
 
 		try {
-			$activity = $this->authentication_monitor->record_success( $username, $this->monitor_source( $request ) );
+			$activity = $this->authentication_monitor->record_success( $email, $this->monitor_source( $request ) );
 			if ( $activity['suspicious'] ) {
-				$this->logger->warning( 'suspicious_login_success', sprintf( 'Successful login followed %d recent failed attempts.', $activity['recent_failures'] ), [ 'username' => $username ] );
+				$this->logger->warning( 'suspicious_login_success', sprintf( 'Successful login followed %d recent failed attempts.', $activity['recent_failures'] ), [ 'email' => $email ] );
 			}
 		} catch ( \Throwable $e ) {
-			$this->logger->warning( 'login_monitor_error', sprintf( 'Could not record successful login: %s', $e->getMessage() ), [ 'username' => $username ] );
+			$this->logger->warning( 'login_monitor_error', sprintf( 'Could not record successful login: %s', $e->getMessage() ), [ 'email' => $email ] );
 		}
 
 		$redirect_url = $this->redirect_url(
