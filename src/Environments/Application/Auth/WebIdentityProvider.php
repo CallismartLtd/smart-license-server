@@ -27,6 +27,9 @@ use SmartLicenseServer\Security\Owner;
 use SmartLicenseServer\Security\OwnerSubjects\OwnerSubjectInterface;
 use SmartLicenseServer\Security\Permission\Role;
 
+/**
+ * Identity provider for all http request via session cookie.
+ */
 class WebIdentityProvider implements PasswordIdentityProviderInterface {
 
 	/**
@@ -174,12 +177,24 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 		return $this->complete_login( $auth_result, $remember );
 	}
 
-	/** Verify a password without issuing a full authenticated session. */
+	/**
+	 * Verify a password without issuing a full authenticated session.
+	 * 
+	 * @param string $email
+	 * @param string $password
+	 * @return AuthenticationResult
+	 */
 	public function authenticate_credentials( string $email, #[\SensitiveParameter] string $password ) : AuthenticationResult {
 		return ( new UserAuthenticator( $email, $password ) )->authenticate();
 	}
 
-	/** Issue the normal authenticated session after all required factors pass. */
+	/**
+	 * Issue the normal authenticated session after all required factors pass.
+	 * 
+	 * @param AuthenticationResult $auth_result
+	 * @param bool $remember
+	 * @return Principal|RequestException
+	 */
 	public function complete_login( AuthenticationResult $auth_result, bool $remember = false ) : Principal|RequestException {
 		if ( ! $auth_result->is_authenticated() || ! $auth_result->actor instanceof User || ! $auth_result->role ) {
 			return new RequestException( 'invalid_authentication_state', 'Authentication could not be completed.' );
@@ -188,7 +203,13 @@ class WebIdentityProvider implements PasswordIdentityProviderInterface {
 		return $this->complete_login_for_user( $auth_result->actor, $remember );
 	}
 
-	/** Complete login after an out-of-band factor challenge. */
+	/**
+	 * Complete login after an out-of-band factor challenge. 
+	 * 
+	 * @param User $user
+	 * @param bool $remember
+	 * @return Principal|RequestException
+	 */
 	public function complete_login_for_user( User $user, bool $remember = false ) : Principal|RequestException {
 
 		if ( ! $user->can_authenticate() ) {

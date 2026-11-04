@@ -42,7 +42,7 @@ final class WebAuthnManager {
 			throw new \RuntimeException( 'WebAuthn requires a configured site origin.' );
 		}
 		$this->origin = $origin;
-		$this->rp_id  = (string) parse_url( $origin, PHP_URL_HOST );
+		$this->rp_id  = (string) $urls->url()->get_host();
 		if ( '' === $this->rp_id ) {
 			throw new \RuntimeException( 'WebAuthn requires a valid relying party host.' );
 		}

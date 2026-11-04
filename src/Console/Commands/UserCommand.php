@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\Console\Commands;
 
 use SmartLicenseServer\Background\Jobs\Accounts\EmailVerificationJob;
+use SmartLicenseServer\Background\Jobs\Accounts\MfaResetEmailJob;
 use SmartLicenseServer\Background\Queue\JobQueue;
 use SmartLicenseServer\Background\Queue\QueueAwareTrait;
 use SmartLicenseServer\Console\CommandInput;
@@ -21,11 +22,13 @@ use SmartLicenseServer\Console\Traits\CLIUtilsTrait;
 use SmartLicenseServer\Core\AvatarManager;
 use SmartLicenseServer\Exceptions\Exception;
 use SmartLicenseServer\Security\Actors\User;
+use SmartLicenseServer\Security\Authentication\AuthenticationFactorManager;
 use SmartLicenseServer\Security\Authentication\Session\UserSessionCutoff;
 use SmartLicenseServer\Security\Authentication\UserAccounts;
 use SmartLicenseServer\Security\Context\ContextServiceProvider;
 use SmartLicenseServer\Security\Context\Guard;
 use SmartLicenseServer\Security\Permission\Role;
+use SmartLicenseServer\Security\SecurityLogger;
 
 /**
  * Manage user accounts from the CLI.
@@ -60,20 +63,24 @@ class UserCommand extends AbstractCommand {
 	public const DEFAULT_ROLE = 'viewer';
 
 	/**
-	 * @param Guard             $guard    The principal running the command.
-	 * @param UserAccounts      $accounts User account rules (passwords, verification).
-	 * @param UserSessionCutoff $cutoff   Ends a user's sessions everywhere.
-	 * @param AvatarManager     $avatars  Renames the avatar when the email changes.
-	 * @param JobQueue          $job_queue Sends the verification email.
-	 * @param InputInterface    $io
-	 * @param OutputInterface   $output
-	 * @param ScriptName        $script_name
+	 * @param Guard                     $guard          The principal running the command.
+	 * @param UserAccounts              $accounts       User account rules (passwords, verification).
+	 * @param UserSessionCutoff         $cutoff         Ends a user's sessions everywhere.
+	 * @param AvatarManager             $avatars        Renames the avatar when the email changes.
+	 * @param AuthenticationFactorManager $factor_manager Manages 2FA factors and recovery codes.
+	 * @param SecurityLogger            $logger         Security audit logger.
+	 * @param JobQueue                  $job_queue      Sends the verification email.
+	 * @param InputInterface            $io
+	 * @param OutputInterface           $output
+	 * @param ScriptName                $script_name
 	 */
 	public function __construct(
 		Guard $guard,
 		protected UserAccounts $accounts,
 		protected UserSessionCutoff $cutoff,
 		protected AvatarManager $avatars,
+		protected AuthenticationFactorManager $factor_manager,
+		protected SecurityLogger $logger,
 		JobQueue $job_queue,
 		InputInterface $io,
 		OutputInterface $output,
@@ -112,6 +119,7 @@ class UserCommand extends AbstractCommand {
 			'  create                     Create a user.',
 			'  update <user>              Change a user\'s name, email, status or role.',
 			'  set-password <user>        Set a new password; signs the user out everywhere.',
+			'  reset-2fa <user>           Disable 2FA and clear recovery codes; signs the user out everywhere.',
 			'  verify <user>              Mark the email address verified and link its licenses.',
 			'  signout <user>             Sign the user out on every device.',
 			'  delete <user>              Delete a user. Licenses issued to them are kept.',
@@ -127,13 +135,13 @@ class UserCommand extends AbstractCommand {
 			'  --verified                 Create the user with the email address already verified.',
 			'                             Otherwise a verification email is sent.',
 			'  --page=<n>, --limit=<n>    Pagination (list, search). Default: 1, 20.',
-			'  -y, --yes, -f, --force     Do not ask for confirmation (delete).',
+			'  -y, --yes, -f, --force     Do not ask for confirmation (delete, reset-2fa).',
 			'',
 			'Who may run what:',
 			'  list, search, get, roles   security.user.view',
 			'  create                     security.user.create, and security.role.assign for a role other than ' . self::DEFAULT_ROLE,
 			'  update, set-password,      security.user.update, and security.role.assign to change the role',
-			'  verify, signout',
+			'  verify, signout, reset-2fa',
 			'  delete                     security.user.delete',
 			'  No change may leave the platform without an active system administrator.',
 			'',
@@ -143,6 +151,7 @@ class UserCommand extends AbstractCommand {
 			"  {$prefix} create --email=jane@example.com --name=\"Jane Doe\" --role=license_manager",
 			"  {$prefix} update jane@example.com --status=suspended",
 			"  {$prefix} set-password 12",
+			"  {$prefix} reset-2fa 12 -y",
 			"  {$prefix} delete jane@example.com -y",
 		] );
 	}
@@ -164,6 +173,7 @@ class UserCommand extends AbstractCommand {
 			'update'       => [ $this, 'handle_update' ],
 			'set-password' => [ $this, 'handle_set_password' ],
 			'verify'       => [ $this, 'handle_verify' ],
+			'reset-2fa'    => [ $this, 'handle_reset_2fa' ],
 			'signout'      => [ $this, 'handle_signout' ],
 			'delete'       => [ $this, 'handle_delete' ],
 			'roles'        => [ $this, 'handle_roles' ],
@@ -523,6 +533,50 @@ class UserCommand extends AbstractCommand {
 		$user = $this->resolve_user( $input, 'verify' );
 
 		return $user ? $this->verify( $user ) : 1;
+	}
+
+	/**
+	 * Reset 2FA (TOTP/email) and recovery codes for a user.
+	 *
+	 * @param CommandInput $input
+	 * @return int
+	 */
+	public function handle_reset_2fa( CommandInput $input ) : int {
+		if ( ! $this->require_capability( 'security.user.update' ) ) {
+			return 1;
+		}
+
+		$user = $this->resolve_user( $input, 'reset-2fa' );
+
+		if ( ! $user ) {
+			return 1;
+		}
+
+		$question = sprintf( 'Reset 2FA and recovery codes for user #%d (%s)? This cannot be undone.', $user->get_id(), $user->get_email() );
+
+		if ( ! $this->is_confirmed( $input ) && ! $this->io->confirm( $question, false ) ) {
+			$this->output->writeln( 'Aborted.' );
+			return 0;
+		}
+
+		try {
+			$this->factor_manager->reset_all_factors( $user->get_id() );
+		} catch ( Exception $e ) {
+			$this->output->error( sprintf( 'Could not reset 2FA: %s', $e->get_error_message() ) );
+			return 1;
+		}
+
+		// Cut off all sessions.
+		$this->cutoff->revoke_all( $user );
+
+		// Queue security notification email.
+		$this->dispatch_job( MfaResetEmailJob::class, [ 'user_id' => $user->get_id() ] );
+
+		$this->logger->warning( 'admin_reset_2fa', sprintf( 'CLI principal reset 2FA for user %s (#%d).', $user->get_email(), $user->get_id() ), [ 'user_id' => $user->get_id() ] );
+
+		$this->output->success( sprintf( '2FA and recovery codes reset for %s. They are signed out everywhere.', $user->get_email() ) );
+
+		return 0;
 	}
 
 	/**

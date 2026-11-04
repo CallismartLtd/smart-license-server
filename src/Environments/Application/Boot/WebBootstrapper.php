@@ -174,15 +174,6 @@ class WebBootstrapper implements BootstrapperInterface {
 		);
 
 		$container->singleton(
-			AuthenticationFactorManager::class,
-			fn ( Container $c ) : AuthenticationFactorManager => new AuthenticationFactorManager(
-				$c->get( Database::class ),
-				$c->get( RuntimeConfig::class )->secret,
-				$c->get( RuntimeConfig::class )->salt
-			)
-		);
-
-		$container->singleton(
 			WebAuthnManager::class,
 			fn ( Container $c ) : WebAuthnManager => new WebAuthnManager(
 				$c->get( AuthenticationFactorManager::class ),

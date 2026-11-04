@@ -36,7 +36,14 @@ final class AuthenticationFactorManager {
 		$this->challenge_key = hash_hkdf( 'sha256', $secret, 32, 'authentication_challenges', $salt );
 	}
 
-	/** @return array{email: bool, totp: bool, passkeys: array<int,array<string,mixed>>, recovery_codes: int} */
+	/**
+	 * @return array{
+	 * 	email: bool,
+	 * 	totp: bool,
+	 * 	passkeys: array<int,array<string,mixed>>,
+	 * 	recovery_codes: int
+	 * }
+	 */
 	public function status( int $user_id ) : array {
 		$row      = $this->security_row( $user_id );
 		$passkeys = $this->passkeys( $user_id );
@@ -55,13 +62,19 @@ final class AuthenticationFactorManager {
 		];
 	}
 
-	/** Whether a user must pass a second factor after a password. */
+	/**
+	 * Whether a user must pass a second factor after a password. 
+	 * 
+	 * @return bool
+	 */
 	public function requires_second_factor( int $user_id ) : bool {
 		$status = $this->status( $user_id );
 		return $status['email'] || $status['totp'] || ! empty( $status['passkeys'] );
 	}
 
-	/** Enable a factor after the user has proven control of it. */
+	/**
+	 * Enable a factor after the user has proven control of it.
+	 */
 	public function enable_email( int $user_id ) : void {
 		$this->upsert_security( $user_id, [
 			'email_enabled_at' => gmdate( 'Y-m-d H:i:s' ),
@@ -69,7 +82,9 @@ final class AuthenticationFactorManager {
 		] );
 	}
 
-	/** Save an already verified TOTP secret. */
+	/**
+	 * Save an already verified TOTP secret.
+	 */
 	public function enable_totp( int $user_id, string $secret, int $verified_counter ) : void {
 		$this->upsert_security( $user_id, [
 			'totp_secret'      => $this->encrypt_totp_secret( $secret ),
@@ -79,7 +94,9 @@ final class AuthenticationFactorManager {
 		] );
 	}
 
-	/** Disable a factor and clear its stored value. */
+	/** 
+	 * Disable a factor and clear its stored value.
+	 */
 	public function disable_factor( int $user_id, string $factor ) : void {
 		$data = [ 'updated_at' => gmdate( 'Y-m-d H:i:s' ) ];
 		if ( 'email' === $factor ) {
@@ -94,7 +111,23 @@ final class AuthenticationFactorManager {
 		$this->upsert_security( $user_id, $data );
 	}
 
-	/** @return array<string,mixed>|null */
+	/**
+	 * Reset all authentication factors and recovery codes for account recovery.
+	 */
+	public function reset_all_factors( int $user_id ) : void {
+		$this->upsert_security( $user_id, [
+			'totp_secret'          => null,
+			'totp_enabled_at'      => null,
+			'totp_last_counter'    => null,
+			'email_enabled_at'     => null,
+			'recovery_code_hashes' => null,
+			'updated_at'           => gmdate( 'Y-m-d H:i:s' ),
+		] );
+	}
+
+	/**
+	 * @return array<string,mixed>|null
+	 */
 	public function security_row( int $user_id ) : ?array {
 		$sql = \smliserQueryBuilder( $this->db->get_driver() )
 			->select()->from( TableName::USER_SECURITY->table() )

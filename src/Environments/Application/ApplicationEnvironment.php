@@ -65,6 +65,7 @@ use SmartLicenseServer\Monetization\MonetizationRegistry;
 use SmartLicenseServer\HostedApps\Storage\AppStorage;
 use SmartLicenseServer\HostedApps\Storage\DirectoryAppStorage;
 use SmartLicenseServer\RESTAPI\RESTProviderInterface;
+use SmartLicenseServer\Security\Authentication\AuthenticationFactorManager;
 use SmartLicenseServer\Security\Authentication\IdentityProviders\PasswordIdentityProviderInterface;
 use SmartLicenseServer\Security\Authentication\EmailVerificationToken;
 use SmartLicenseServer\Security\Authentication\PasswordResetToken;
@@ -314,7 +315,14 @@ class ApplicationEnvironment extends Environment {
 		$this->bootManager->add( new CLIBootstrapper() );
 
 		$this->cronRequest = ! \is_cli() && CronExecutionHandler::matches( url() );
-
+		$this->container->singleton(
+			AuthenticationFactorManager::class,
+			fn ( Container $c ) : AuthenticationFactorManager => new AuthenticationFactorManager(
+				$c->get( Database::class ),
+				$this->runtime->secret,
+				$this->runtime->salt
+			)
+		);
 		if ( ! \is_cli() && ! $this->cronRequest && BootMode::Maintenance === $this->bootMode() ) {
 			$this->resolveMaintenanceBypass();
 		}
