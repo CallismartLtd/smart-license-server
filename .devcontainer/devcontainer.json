@@ -1,6 +1,52 @@
 {
-  "name": "Smart License Server PHP 8.4",
-  "image": "mcr.microsoft.com/devcontainers/php:1.8-8.4",
-  "postCreateCommand": "bash startup.sh",
-  "postStartCommand": "bash startup.sh"
+	"name": "SmartLicenseServer",
+	"image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/node:2.1.1": {
+			"version": "lts"
+		}
+	},
+
+	"onCreateCommand": "bash .devcontainer/setup.sh",
+	"postStartCommand": "bash .devcontainer/setup.sh",
+
+	"forwardPorts": [8000],
+	"portsAttributes": {
+		"8000": {
+			"label": "PHP dev server",
+			"onAutoForward": "notify"
+		}
+	},
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"bmewburn.vscode-intelephense-client",
+				"bowlerr.sqlite-intelliview-vscode",
+				"fovelas.zipfilepreview",
+				"github.vscode-github-actions",
+				"johnbillion.vscode-wordpress-hooks",
+				"josee9988.minifyall",
+				"junstyle.php-cs-fixer",
+				"leon-pw.docx-reader",
+				"mads-hartmann.bash-ide-vscode",
+				"mechatroner.rainbow-csv",
+				"mrmlnc.vscode-apache",
+				"oub.zip",
+				"pkief.material-icon-theme",
+				"pranaygp.vscode-css-peek",
+				"redhat.vscode-xml",
+				"timonwong.shellcheck",
+				"tomoki1207.pdf"
+			],
+			"settings": {
+				"php.validate.executablePath": "/usr/bin/php",
+				"editor.insertSpaces": false,
+				"editor.detectIndentation": false,
+				"files.eol": "\n"
+			}
+		}
+	}
 }
