@@ -140,4 +140,24 @@ else
 	echo "-> Redis server is already running."
 fi
 
+# 6. Cloudflare Tunnel configuration & startup
+if ! command -v cloudflared &> /dev/null; then
+    echo "-> Installing cloudflared..."
+    $SUDO mkdir -p --mode=0755 /usr/share/keyrings
+    curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | $SUDO tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+    echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main' | $SUDO tee /etc/apt/sources.list.d/cloudflared.list >/dev/null
+    apt_update_once
+    $SUDO apt-get install -y cloudflared
+else
+    echo "-> cloudflared is already installed."
+fi
+
+# Start the registered cloudflare service if configured
+if service --status-all 2>&1 | grep -q "cloudflared"; then
+    echo "-> Starting Cloudflare Tunnel service..."
+    $SUDO service cloudflared start || true
+else
+    echo "-> Cloudflare service not yet installed with token. Run your 'sudo cloudflared service install <TOKEN>' command once."
+fi
+
 echo "=== Environment check completed successfully! ==="

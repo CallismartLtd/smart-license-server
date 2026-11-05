@@ -1,0 +1,6 @@
+{
+  "name": "Smart License Server PHP 8.4",
+  "image": "mcr.microsoft.com/devcontainers/php:1.8-8.4",
+  "postCreateCommand": "bash startup.sh",
+  "postStartCommand": "bash startup.sh"
+}
