@@ -752,6 +752,20 @@ code {
 	gap: 8px;
 }
 
+.dash-top-menu-links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.dash-top-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 12px;
+	margin-left: auto;
+}
+
 .dash-lead {
 	margin-bottom: 24px;
 	color: var(--muted);
@@ -957,39 +971,196 @@ code {
 /* Who the user acts for: themselves or one of their organizations. */
 .dash-context {
 	position: relative;
-	margin-left: auto;
 }
 
-.dash-context-field {
+.dash-context-dropdown {
+	position: relative;
+}
+
+.dash-context-trigger {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 10px;
+	min-width: 220px;
+	max-width: 320px;
+	padding: 8px 12px;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	background: var(--surface);
+	color: var(--ink);
+	cursor: pointer;
+	list-style: none;
+	transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.dash-context-trigger::-webkit-details-marker {
+	display: none;
+}
+
+.dash-context-dropdown[open] .dash-context-trigger,
+.dash-context-trigger:hover {
+	border-color: var(--accent);
+}
+
+.dash-context-trigger:focus-visible,
+.dash-context-option button:focus-visible {
+	outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent);
+	outline-offset: 2px;
+}
+
+.dash-context-avatar,
+.dash-context-option-avatar {
+	flex: 0 0 auto;
+	border-radius: 10px;
+	background: var(--accent-bg);
+	object-fit: cover;
+}
+
+.dash-context-avatar {
+	width: 38px;
+	height: 38px;
+}
+
+.dash-context-current {
+	display: grid;
+	min-width: 0;
+	gap: 1px;
+	line-height: 1.3;
+	text-align: left;
+}
+
+.dash-context-current strong {
+	overflow: hidden;
 	font-size: 13.5px;
+	font-weight: 600;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .dash-context-label {
 	color: var(--muted);
+	font-size: 11px;
+}
+
+.dash-context-chevron {
+	width: 18px;
+	height: 18px;
+	margin-left: auto;
+	color: var(--muted);
+	transition: transform 150ms ease;
+}
+
+.dash-context-dropdown[open] .dash-context-chevron {
+	transform: rotate(180deg);
+}
+
+.dash-context-panel {
+	position: absolute;
+	top: calc(100% + 8px);
+	right: 0;
+	z-index: 10;
+	width: min(320px, calc(100vw - 32px));
+	max-height: calc(100vh - 24px);
+	overflow-y: auto;
+	padding: 8px;
+	border: 1px solid var(--border);
+	border-radius: 14px;
+	background: var(--surface);
+	box-shadow: 0 12px 32px rgb(15 23 42 / 16%);
+	overscroll-behavior: contain;
+}
+
+.dash-context-dropdown[open] .dash-context-panel:not([data-positioned]) {
+	visibility: hidden;
+}
+
+.dash-context-heading {
+	padding: 7px 10px 9px;
+	color: var(--muted);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.dash-context-panel ul {
+	display: grid;
+	gap: 3px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.dash-context-option button {
+	display: flex;
+	width: 100%;
+	align-items: center;
+	gap: 10px;
+	padding: 9px 10px;
+	border: 0;
+	border-radius: 9px;
+	background: transparent;
+	color: var(--ink);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.dash-context-option button:hover,
+.dash-context-option button[aria-current="true"] {
+	background: var(--accent-bg);
+}
+
+.dash-context-option button:disabled {
+	cursor: default;
+}
+
+.dash-context-option-avatar {
+	width: 36px;
+	height: 36px;
+	border: 1px solid var(--border);
+	background: var(--surface);
+}
+
+.dash-context-option button[aria-current="true"] .dash-context-option-avatar {
+	border-color: transparent;
+	background: var(--surface);
+	color: var(--accent);
+}
+
+.dash-context-option-details {
+	display: grid;
+	min-width: 0;
+	gap: 1px;
+	line-height: 1.35;
+}
+
+.dash-context-option-details strong,
+.dash-context-option-details span {
+	overflow: hidden;
+	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.dash-context select {
-	max-width: 260px;
-	padding: 6px 8px;
-	border: 1px solid var(--border);
-	border-radius: 8px;
-	background: var(--surface);
-	color: var(--ink);
-	font: inherit;
+.dash-context-option-details strong {
+	font-size: 13px;
+	font-weight: 600;
 }
 
-.dash-context .notice {
-	position: absolute;
-	top: calc(100% + 6px);
-	right: 0;
-	z-index: 2;
-	width: max-content;
-	max-width: 320px;
-	margin: 0;
+.dash-context-option-details span {
+	color: var(--muted);
+	font-size: 11.5px;
+}
+
+.dash-context-check {
+	width: 18px;
+	height: 18px;
+	margin-left: auto;
+	color: var(--accent);
+}
+
+.dash-context-option .notice {
+	margin: 4px 0 0;
 }
 
 /* Records: the client dashboard's lists of licenses, purchases and the like. */
@@ -1711,25 +1882,181 @@ code {
 	.dash {
 		grid-template-columns: 1fr;
 		gap: 16px;
+		min-width: 0;
+		padding-bottom: calc(76px + env(safe-area-inset-bottom));
+	}
+
+	.dash-side {
+		display: grid;
+		min-width: 0;
+		gap: 10px;
+		padding: 12px;
+		border: 1px solid var(--border);
+		border-radius: 14px;
+		background: var(--surface);
+	}
+
+	.dash-side .site-brand {
+		margin: 0;
+	}
+
+	.dash-menu {
+		min-width: 0;
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		scrollbar-width: none;
+	}
+
+	.dash-menu::-webkit-scrollbar,
+	.dash-top-menu-links::-webkit-scrollbar {
+		display: none;
 	}
 
 	.dash-menu > ul {
 		display: flex;
-		flex-wrap: wrap;
+		width: max-content;
+		min-width: 100%;
+		flex-wrap: nowrap;
 		gap: 4px;
 	}
 
-	.dash-top {
-		flex-direction: column;
-		align-items: flex-start;
+	.dash-menu > ul > li {
+		flex: 0 0 auto;
 	}
 
-	.dash-context {
+	.dash-menu > ul > li > a {
+		white-space: nowrap;
+	}
+
+	.dash-submenu {
+		display: flex;
+		width: max-content;
+		flex-wrap: nowrap;
+		gap: 4px;
+		margin: 4px 0 0 !important;
+		padding: 6px 0 0 !important;
+		border-top: 1px solid var(--border);
+		border-left: 0;
+	}
+
+	.dash-submenu li {
+		flex: 0 0 auto;
+	}
+
+	.dash-top {
+		align-items: center;
+		gap: 10px;
+		margin-bottom: 16px;
+	}
+
+	.dash-title {
+		min-width: 0;
+		font-size: 1.25rem;
+		overflow-wrap: anywhere;
+	}
+
+	.dash-top-actions {
+		width: auto;
+		flex: 0 1 auto;
+		justify-content: flex-end;
 		margin-left: 0;
 	}
 
-	.dash-context select {
-		max-width: 100%;
+	.dash-top-menu {
+		position: fixed;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		z-index: 20;
+		display: flex;
+		width: 100%;
+		flex-wrap: nowrap;
+		align-items: center;
+		gap: 4px;
+		padding: 7px max(8px, env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+		border-top: 1px solid var(--border);
+		background: color-mix(in srgb, var(--surface) 94%, transparent);
+		box-shadow: 0 -6px 20px rgb(15 23 42 / 8%);
+	}
+
+	.dash-context-trigger {
+		width: auto;
+		min-width: 0;
+		gap: 0;
+		padding: 4px;
+		border-color: transparent;
+		background: transparent;
+	}
+
+	.dash-context-trigger:hover,
+	.dash-context-dropdown[open] .dash-context-trigger {
+		background: var(--bg);
+	}
+
+	.dash-context-avatar {
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+	}
+
+	.dash-context-current {
+		display: none;
+	}
+
+	.dash-context-chevron {
+		width: 14px;
+		height: 14px;
+		margin-left: 2px;
+	}
+
+	.dash-context-panel {
+		width: min(320px, calc(100vw - 24px));
+		max-height: calc(100dvh - 24px);
+	}
+
+	.dash-top-menu-links {
+		min-width: 0;
+		flex: 1 1 auto;
+		flex-wrap: nowrap;
+		gap: 4px;
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		scrollbar-width: none;
+	}
+
+	.dash-top-menu .btn {
+		display: flex;
+		min-width: 64px;
+		min-height: 52px;
+		flex: 0 0 auto;
+		flex-direction: column;
+		justify-content: center;
+		gap: 3px;
+		padding: 5px 8px;
+		border-color: transparent;
+		background: transparent;
+		line-height: 1.2;
+		text-align: center;
+		text-decoration: none;
+	}
+
+	.dash-top-menu .btn:hover,
+	.dash-top-menu .btn:focus-visible {
+		border-color: var(--border);
+		background: var(--bg);
+	}
+
+	.dash-top-menu .btn i {
+		font-size: 19px;
+		line-height: 1;
+	}
+
+	.dash-top-menu .btn span {
+		max-width: 88px;
+		overflow: hidden;
+		font-size: 10px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.app-hero {

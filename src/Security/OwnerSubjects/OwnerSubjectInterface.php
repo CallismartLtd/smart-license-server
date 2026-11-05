@@ -35,6 +35,13 @@ interface OwnerSubjectInterface {
 	public function get_type() : string;
 
 	/**
+	 * Get the unique identifier used to locate the owner's avatar.
+	 *
+	 * @return string
+	 */
+	public function get_unique_identifier() : string;
+
+	/**
 	 * Get allowed statuses.
 	 * 
 	 * @return array

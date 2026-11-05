@@ -12,7 +12,7 @@
  *         type: string, href: string, attributes: array<string, string>}>,
  *     current: array{menu: string, submenu: ?string},
  *     context: array{action: string, current: string,
- *         options: list<array{value: string, label: string, role: string, type: string, current: bool}>},
+ *         options: list<array{value: string, label: string, role: string, type: string, avatar: string, current: bool}>},
  *     account: array{name: string, email: string, verified: bool, resend_url: string}
  * } $dashboard See ClientDashboard\Page\Dispatcher.
  * @var SmartLicenseServer\Environments\Application\Theming\View $view
@@ -54,27 +54,67 @@
 		<header class="dash-top">
 			<h1 class="dash-title"><?php echo escHtml( $view->get_title() ); ?></h1>
 
-			<?php if ( count( $dashboard['context']['options'] ) > 1 ) : ?>
-				<form class="dash-context" method="post" action="<?php echo escUrl( $dashboard['context']['action'] ); ?>" data-smliser-form data-auto-submit>
-					<label class="dash-context-field">
-						<span class="dash-context-label">Acting as</span>
-						<select name="context">
-							<?php foreach ( $dashboard['context']['options'] as $option ) : ?>
-								<option value="<?php echo escAttr( $option['value'] ); ?>"<?php echo $option['current'] ? ' selected' : ''; ?>>
-									<?php echo escHtml( sprintf( '%s — %s', $option['label'], $option['role'] ) ); ?>
-								</option>
-							<?php endforeach; ?>
-						</select>
-					</label>
-					<div class="notice" data-smliser-form-message hidden></div>
-				</form>
-			<?php endif; ?>
+			<div class="dash-top-actions">
+				<nav class="dash-top-menu" aria-label="Account">
+					<?php if ( count( $dashboard['context']['options'] ) > 1 ) : ?>
+						<?php
+						$current_context = $dashboard['context']['options'][0];
+						foreach ( $dashboard['context']['options'] as $option ) {
+							if ( $option['current'] ) {
+								$current_context = $option;
+								break;
+							}
+						}
+						?>
+						<div class="dash-context">
+							<details class="dash-context-dropdown">
+								<summary class="dash-context-trigger" aria-label="Switch account">
+									<img class="dash-context-avatar" src="<?php echo escUrl( $current_context['avatar'] ); ?>" alt="" width="38" height="38">
+									<span class="dash-context-current">
+										<span class="dash-context-label">Acting as</span>
+										<strong><?php echo escHtml( $current_context['label'] ); ?></strong>
+									</span>
+									<svg class="dash-context-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+										<path d="m6 8 4 4 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+									</svg>
+								</summary>
 
-			<nav class="dash-top-menu" aria-label="Account">
-				<?php foreach ( $dashboard['top_menu'] as $item ) : ?>
-					<?php $this->partial( 'dashboard.top-menu-item', [ 'item' => $item ] ); ?>
-				<?php endforeach; ?>
-			</nav>
+								<div class="dash-context-panel">
+									<p class="dash-context-heading">Acting as</p>
+									<ul>
+										<?php foreach ( $dashboard['context']['options'] as $option ) : ?>
+											<li>
+												<form class="dash-context-option" method="post" action="<?php echo escUrl( $dashboard['context']['action'] ); ?>" data-smliser-form>
+													<input type="hidden" name="context" value="<?php echo escAttr( $option['value'] ); ?>">
+													<button type="submit"<?php echo $option['current'] ? ' aria-current="true" disabled' : ''; ?>>
+														<img class="dash-context-option-avatar" src="<?php echo escUrl( $option['avatar'] ); ?>" alt="" width="36" height="36">
+														<span class="dash-context-option-details">
+															<strong><?php echo escHtml( $option['label'] ); ?></strong>
+															<span><?php echo escHtml( $option['role'] ); ?></span>
+														</span>
+														<?php if ( $option['current'] ) : ?>
+															<svg class="dash-context-check" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+																<path d="m4 10 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+															</svg>
+														<?php endif; ?>
+													</button>
+													<div class="notice" data-smliser-form-message hidden></div>
+												</form>
+											</li>
+										<?php endforeach; ?>
+									</ul>
+								</div>
+							</details>
+						</div>
+					<?php endif; ?>
+
+					<div class="dash-top-menu-links">
+						<?php foreach ( $dashboard['top_menu'] as $item ) : ?>
+							<?php $this->partial( 'dashboard.top-menu-item', [ 'item' => $item ] ); ?>
+						<?php endforeach; ?>
+					</div>
+				</nav>
+			</div>
 		</header>
 
 		<?php if ( ! $dashboard['account']['verified'] ) : ?>

@@ -11,6 +11,7 @@ declare( strict_types = 1 );
 namespace SmartLicenseServer\ClientDashboard\Page;
 
 use SmartLicenseServer\ClientDashboard\ClientDashboardRegistry;
+use SmartLicenseServer\Core\AvatarManager;
 use SmartLicenseServer\Core\Request;
 use SmartLicenseServer\Core\URLManager;
 use SmartLicenseServer\Environments\Application\Theming\CorePages;
@@ -46,7 +47,7 @@ use SmartLicenseServer\Security\Context\Guard;
  *         context: array{
  *             action: string,
  *             current: string,
- *             options: list<array{value: string, label: string, role: string, type: string, current: bool}>
+ *             options: list<array{value: string, label: string, role: string, type: string, avatar: string, current: bool}>
  *         },
  *         account: array{name: string, email: string, verified: bool, resend_url: string}
  *     }
@@ -89,7 +90,8 @@ final class Dispatcher {
 		private ClientDashboardRegistry $registry,
 		private URLManager $urlmanager,
 		private CorePages $core_pages,
-		private Guard $guard
+		private Guard $guard,
+		private AvatarManager $avatar
 	) {}
 
 	/**
@@ -208,7 +210,7 @@ final class Dispatcher {
 	/**
 	 * Who the signed-in user can act for, and who they act for now.
 	 *
-	 * @return array{action: string, current: string, options: list<array{value: string, label: string, role: string, type: string, current: bool}>}
+	 * @return array{action: string, current: string, options: list<array{value: string, label: string, role: string, type: string, avatar: string, current: bool}>}
 	 */
 	private function context() : array {
 		$principal = $this->guard->get_principal();
@@ -227,6 +229,7 @@ final class Dispatcher {
 					'label'   => $context['subject'] instanceof User ? sprintf( '%s (you)', $context['subject']->get_display_name() ) : $context['subject']->get_display_name(),
 					'role'    => $context['role']->get_label(),
 					'type'    => $context['subject']->get_type(),
+					'avatar'  => $this->avatar->url( $context['subject']->get_unique_identifier(), $context['subject']->get_type() )->url(),
 					'current' => $value === $current,
 				];
 			}
