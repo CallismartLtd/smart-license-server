@@ -140,24 +140,28 @@ else
 	echo "-> Redis server is already running."
 fi
 
-# 6. Cloudflare Tunnel configuration & startup
+# 6. Cloudflare Tunnel: install the binary, run it from a token held in a Codespaces secret
 if ! command -v cloudflared &> /dev/null; then
-    echo "-> Installing cloudflared..."
-    $SUDO mkdir -p --mode=0755 /usr/share/keyrings
-    curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | $SUDO tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
-    echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main' | $SUDO tee /etc/apt/sources.list.d/cloudflared.list >/dev/null
-    apt_update_once
-    $SUDO apt-get install -y cloudflared
+	echo "-> Installing cloudflared..."
+	$SUDO apt-get install -y curl ca-certificates
+	$SUDO mkdir -p --mode=0755 /usr/share/keyrings
+	curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | $SUDO tee /usr/share/keyrings/cloudflare-main.gpg > /dev/null
+	echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main' \
+		| $SUDO tee /etc/apt/sources.list.d/cloudflared.list > /dev/null
+	APT_UPDATED=0
+	apt_update_once
+	$SUDO apt-get install -y cloudflared
 else
-    echo "-> cloudflared is already installed."
+	echo "-> cloudflared is already installed."
 fi
 
-# Start the registered cloudflare service if configured
-if service --status-all 2>&1 | grep -q "cloudflared"; then
-    echo "-> Starting Cloudflare Tunnel service..."
-    $SUDO service cloudflared start || true
+if [ -z "${CLOUDFLARE_TUNNEL_TOKEN:-}" ]; then
+	echo "-> CLOUDFLARE_TUNNEL_TOKEN is not set (add it as a Codespaces secret). Skipping tunnel."
+elif pgrep -x cloudflared > /dev/null; then
+	echo "-> Cloudflare Tunnel is already running."
 else
-    echo "-> Cloudflare service not yet installed with token. Run your 'sudo cloudflared service install <TOKEN>' command once."
+	echo "-> Starting Cloudflare Tunnel..."
+	# Token goes via env var so it doesn't show in `ps`. Fully detached so the lifecycle hook can't hang on it.
+	TUNNEL_TOKEN="$CLOUDFLARE_TUNNEL_TOKEN" setsid nohup cloudflared tunnel --no-autoupdate run > /tmp/cloudflared.log 2>&1 < /dev/null &
 fi
-
 echo "=== Environment check completed successfully! ==="
