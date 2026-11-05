@@ -4,6 +4,7 @@
  *
  * Usage:
  *   php tools/build/build.php <target> [options]
+ *   php tools/build/build.php <target> --link [options]
  *   php tools/build/build.php --generate-key=<path>
  *
  * Targets:
@@ -19,8 +20,19 @@
  *                    <name>-<version>-<target>.sha256.sig  Signature of the checksums (signed builds).
  * <name> comes from composer.json, <version> from SMLISER_VER under src/.
  *
+ * With --link, nothing is copied or released. The output folder is the release layout
+ * with this checkout standing in for the copy: entry points and server files are
+ * generated, and src/, templates/, assets/, themes/ and vendor/ are linked, so an edit
+ * is live on the next request. Running it again only repairs links; .env, storage/ and
+ * the installation are kept. Installs vendor/ with Composer when it is missing. Use a
+ * normal build to test what ships.
+ *
  * Options:
- *   --out=<dir>         Output directory. Default: <repo>/dist/<target>
+ *   --link              Link the application to this checkout instead of copying it, for
+ *                       development. Cannot be combined with --production, --sign-key,
+ *                       --allow-unsigned, --no-minify, --npm or --node.
+ *   --out=<dir>         Output directory. Default: <repo>/dist/<target>, or <repo>/dist/dev
+ *                       with --link.
  *   --composer=<path>   Composer binary. Default: composer
  *   --npm=<path>        npm binary, used once to install esbuild. Default: npm
  *   --node=<path>       Node.js binary, used to run esbuild. Default: node
@@ -47,6 +59,7 @@ use SmartLicenseServer\Build\BuildConsole;
 use SmartLicenseServer\Build\BuildContext;
 use SmartLicenseServer\Build\BuildException;
 use SmartLicenseServer\Build\Builder;
+use SmartLicenseServer\Build\LinkedBuilder;
 use SmartLicenseServer\Build\ProjectInfo;
 use SmartLicenseServer\Build\ReleaseSigner;
 use SmartLicenseServer\Build\Targets\StandaloneTarget;
@@ -94,7 +107,7 @@ $console = new BuildConsole();
 try {
 	// getopt() stops at the first positional argument, so parse by hand to
 	// allow options on either side of the target name.
-	$allowed = [ 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'production' => false, 'help' => false, 'sign-key' => true, 'generate-key' => true, 'allow-unsigned' => false ];
+	$allowed = [ 'out' => true, 'composer' => true, 'npm' => true, 'node' => true, 'no-minify' => false, 'production' => false, 'help' => false, 'sign-key' => true, 'generate-key' => true, 'allow-unsigned' => false, 'link' => false ];
 	$options = [];
 	$name    = null;
 
@@ -140,7 +153,16 @@ try {
 	}
 
 	$repo_root = dirname( __DIR__, 2 );
-	$out_dir   = (string) ( $options['out'] ?? $repo_root . '/dist/' . $name );
+	$linked    = isset( $options['link'] );
+	$out_dir   = (string) ( $options['out'] ?? $repo_root . '/dist/' . ( $linked ? 'dev' : $name ) );
+
+	if ( $linked ) {
+		foreach ( [ 'production', 'sign-key', 'allow-unsigned', 'no-minify', 'npm', 'node' ] as $release_only ) {
+			if ( isset( $options[ $release_only ] ) ) {
+				throw new BuildException( "--{$release_only} belongs to a release build and cannot be combined with --link." );
+			}
+		}
+	}
 
 	if ( ! str_starts_with( $out_dir, '/' ) && 1 !== preg_match( '#^[A-Za-z]:[/\\\\]#', $out_dir ) ) {
 		$out_dir = getcwd() . '/' . $out_dir;
@@ -169,7 +191,14 @@ try {
 		isset( $options['production'] )
 	);
 
-	( new Builder( $context, $console ) )->run( new $targets[ $name ]() );
+	$target = new $targets[ $name ]();
+
+	if ( $linked ) {
+		( new LinkedBuilder( $context, $console ) )->run( $target );
+		exit( 0 );
+	}
+
+	( new Builder( $context, $console ) )->run( $target );
 	exit( 0 );
 } catch ( BuildException $e ) {
 	$console->error( $e->getMessage() );

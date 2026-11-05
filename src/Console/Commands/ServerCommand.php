@@ -21,6 +21,7 @@ use SmartLicenseServer\Console\SignalInfo;
 use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
 use SmartLicenseServer\Core\Process\PhpRuntime;
+use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
 use SmartLicenseServer\Environments\Application\Update\PhpCli;
 
 /**
@@ -56,8 +57,12 @@ use SmartLicenseServer\Environments\Application\Update\PhpCli;
  * Request lines for application routes come from server/server.php; the
  * built-in server only logs requests for files it serves itself.
  *
- * The chosen URL reaches the application as SMLISER_APP_URL in the server
- * process's own environment; .env is never edited. This relies on DotEnv's
+ * The application URL reaches the application as SMLISER_APP_URL in the server
+ * process's own environment; .env is never edited. It is the address the
+ * application is reached at, which is not always where the server listens:
+ * behind a tunnel or reverse proxy the public URL differs from host:port.
+ * --url states it, and is never used to choose where to listen. Without it
+ * the URL is built from the listening address. This relies on DotEnv's
  * immutable mode letting the real environment win over the file.
  */
 final class ServerCommand extends AbstractCommand {
@@ -235,17 +240,21 @@ final class ServerCommand extends AbstractCommand {
 				sprintf( '  --host=<host>      Address to listen on. Default: %s. Use 0.0.0.0 to accept other machines.', self::DEFAULT_HOST ),
 				sprintf( '  -p, --port=<port>  Port to listen on. Default: %d, or the next free port.', self::DEFAULT_PORT ),
 				'  -f, --force        Use the offered alternative address without asking.',
+				'  --url=<url>        The URL the application is publicly reached at, e.g. through a tunnel.',
+				'                     Sets SMLISER_APP_URL. Does not change the host or port listened on.',
 				'',
 				'Quiet verbosity hides the server log (failures are still reported);',
 				'verbose verbosity adds the per-connection lines.',
 				'',
-				'SMLISER_APP_URL is set for the server process only; .env is not changed.',
+				'SMLISER_APP_URL is set for the server process only; .env is not changed. It is --url when',
+				'given, otherwise the address listened on.',
 				'Never use PHP\'s built-in server in production.',
 				'',
 				'Examples:',
 				"  {$prefix}",
 				"  {$prefix} --port=9000",
 				"  {$prefix} --host=0.0.0.0 -p 9000 --force",
+				"  {$prefix} --port=9000 --url=https://my-tunnel.example.dev",
 				"  {$prefix} help",
 			]
 		);
@@ -259,6 +268,8 @@ final class ServerCommand extends AbstractCommand {
 			$host  = $this->read_value( $input, 'host' );
 			$port  = $this->read_value( $input, 'port', 'p' );
 			$force = $this->read_flag( $input, 'force', 'f' );
+			$url   = $this->read_value( $input, 'url' );
+			$url   = null === $url ? null : AppInstaller::normalize_app_url( $url );
 		} catch ( InvalidArgumentException $e ) {
 			$this->output->error( $e->getMessage() );
 			return 1;
@@ -289,7 +300,7 @@ final class ServerCommand extends AbstractCommand {
 			return 1;
 		}
 
-		return $this->serve( $php, $host, $port );
+		return $this->serve( $php, $host, $port, $url );
 	}
 
 	/*
@@ -419,18 +430,19 @@ final class ServerCommand extends AbstractCommand {
 	/**
 	 * Start the server, relay its output until it stops, and report how it ended.
 	 *
-	 * @param string $php  PHP CLI binary.
-	 * @param string $host
-	 * @param int    $port
+	 * @param string      $php        PHP CLI binary.
+	 * @param string      $host
+	 * @param int         $port
+	 * @param string|null $public_url The URL the application is publicly reached at, when it is not where the server listens.
 	 * @return int Exit code.
 	 */
-	private function serve( string $php, string $host, int $port ) : int {
+	private function serve( string $php, string $host, int $port, ?string $public_url = null ) : int {
 		PhpRuntime::set_time_limit( 0 );
 
 		$url = $this->url( $host, $port );
 		$env = (array) getenv();
 
-		$env['SMLISER_APP_URL'] = $url;
+		$env['SMLISER_APP_URL'] = $public_url ?? $url;
 
 		$command = [
 			$php,
@@ -458,6 +470,12 @@ final class ServerCommand extends AbstractCommand {
 		fclose( $pipes[0] );
 
 		$this->output->success( sprintf( 'Server running at %s', $url ) );
+
+		if ( null !== $public_url ) {
+			$this->output->info( sprintf( 'Application URL (SMLISER_APP_URL): %s', $public_url ) );
+			$this->output->info( sprintf( 'Point your tunnel or proxy at %s.', $this->authority( $host, $port ) ) );
+		}
+
 		$this->output->info( 'Press Ctrl+C to stop.' );
 
 		$forward = static function ( int $signal, SignalInfo $info ) use ( $process ) : void {
