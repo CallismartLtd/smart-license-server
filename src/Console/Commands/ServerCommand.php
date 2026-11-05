@@ -20,7 +20,9 @@ use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Console\SignalInfo;
 use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
+use SmartLicenseServer\Core\Process\Process;
 use SmartLicenseServer\Core\Process\PhpRuntime;
+use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
 use SmartLicenseServer\Environments\Application\Update\PhpCli;
 
@@ -176,13 +178,15 @@ final class ServerCommand extends AbstractCommand {
 	 * @param ScriptName      $script_name
 	 * @param Terminal        $terminal Decides whether server lines are coloured.
 	 * @param SignalManager   $signals  Forwards stop signals to the server.
+	 * @param FileSystem      $fs       Creates the daemon log directory.
 	 */
 	public function __construct(
 		InputInterface $io,
 		OutputInterface $output,
 		ScriptName $script_name,
 		private Terminal $terminal,
-		private SignalManager $signals
+		private SignalManager $signals,
+		private FileSystem $fs
 	) {
 		parent::__construct( $io, $output, $script_name );
 	}
@@ -240,6 +244,7 @@ final class ServerCommand extends AbstractCommand {
 				sprintf( '  --host=<host>      Address to listen on. Default: %s. Use 0.0.0.0 to accept other machines.', self::DEFAULT_HOST ),
 				sprintf( '  -p, --port=<port>  Port to listen on. Default: %d, or the next free port.', self::DEFAULT_PORT ),
 				'  -f, --force        Use the offered alternative address without asking.',
+				'  --daemon           Run detached from the terminal; write output to storage/logs/server.log.',
 				'  --url=<url>        The URL the application is publicly reached at, e.g. through a tunnel.',
 				'                     Sets SMLISER_APP_URL. Does not change the host or port listened on.',
 				'',
@@ -255,6 +260,7 @@ final class ServerCommand extends AbstractCommand {
 				"  {$prefix} --port=9000",
 				"  {$prefix} --host=0.0.0.0 -p 9000 --force",
 				"  {$prefix} --port=9000 --url=https://my-tunnel.example.dev",
+				"  {$prefix} --daemon --port=9000",
 				"  {$prefix} help",
 			]
 		);
@@ -268,6 +274,7 @@ final class ServerCommand extends AbstractCommand {
 			$host  = $this->read_value( $input, 'host' );
 			$port  = $this->read_value( $input, 'port', 'p' );
 			$force = $this->read_flag( $input, 'force', 'f' );
+			$daemon = $this->read_flag( $input, 'daemon', '' );
 			$url   = $this->read_value( $input, 'url' );
 			$url   = null === $url ? null : AppInstaller::normalize_app_url( $url );
 		} catch ( InvalidArgumentException $e ) {
@@ -300,7 +307,7 @@ final class ServerCommand extends AbstractCommand {
 			return 1;
 		}
 
-		return $this->serve( $php, $host, $port, $url );
+		return $this->serve( $php, $host, $port, $url, $daemon );
 	}
 
 	/*
@@ -436,7 +443,7 @@ final class ServerCommand extends AbstractCommand {
 	 * @param string|null $public_url The URL the application is publicly reached at, when it is not where the server listens.
 	 * @return int Exit code.
 	 */
-	private function serve( string $php, string $host, int $port, ?string $public_url = null ) : int {
+	private function serve( string $php, string $host, int $port, ?string $public_url = null, bool $daemon = false ) : int {
 		PhpRuntime::set_time_limit( 0 );
 
 		$url = $this->url( $host, $port );
@@ -452,6 +459,10 @@ final class ServerCommand extends AbstractCommand {
 			SMLISER_ROOT . 'public',
 			SMLISER_ROOT . 'server/server.php',
 		];
+
+		if ( $daemon ) {
+			return $this->serve_daemon( $command, $env, $host, $port, $url, $public_url );
+		}
 
 		$descriptors = [
 			0 => [ 'pipe', 'r' ],
@@ -494,6 +505,112 @@ final class ServerCommand extends AbstractCommand {
 		}
 
 		return $this->conclude( $status );
+	}
+
+	/**
+	 * Start the built-in server detached from the terminal and confirm it is listening.
+	 *
+	 * @param list<string>       $command
+	 * @param array<string,mixed> $env
+	 * @param string             $host
+	 * @param int                $port
+	 * @param string             $url
+	 * @param string|null        $public_url
+	 * @return int
+	 */
+	private function serve_daemon( array $command, array $env, string $host, int $port, string $url, ?string $public_url ) : int {
+		if ( '\\' === DIRECTORY_SEPARATOR ) {
+			$this->output->error( 'The --daemon option is supported on POSIX systems with setsid available.' );
+			return 1;
+		}
+
+		$setsid = Process::find_executable( 'setsid' );
+
+		if ( null === $setsid ) {
+			$this->output->error( 'The --daemon option requires the setsid utility.' );
+			return 1;
+		}
+
+		$log_directory = rtrim( SMLISER_LOGS_DIR, '/\\' );
+
+		if ( ! $this->fs->is_dir( $log_directory ) && ! $this->fs->mkdir( $log_directory ) && ! $this->fs->is_dir( $log_directory ) ) {
+			$this->output->error( sprintf( 'Could not create the server log directory: %s', $log_directory ) );
+			return 1;
+		}
+
+		$log_file = $log_directory . DIRECTORY_SEPARATOR . 'server.log';
+		$log      = @fopen( $log_file, 'ab' );
+
+		if ( false === $log ) {
+			$this->output->error( sprintf( 'Could not open the server log file: %s', $log_file ) );
+			return 1;
+		}
+
+		fclose( $log );
+
+		$process = @proc_open(
+			array_merge( [ $setsid ], $command ),
+			[
+				0 => [ 'file', '/dev/null', 'r' ],
+				1 => [ 'file', $log_file, 'a' ],
+				2 => [ 'file', $log_file, 'a' ],
+			],
+			$pipes,
+			SMLISER_ROOT,
+			$env
+		);
+
+		if ( ! is_resource( $process ) ) {
+			$this->output->error( 'The detached server process could not be started.' );
+			return 1;
+		}
+
+		$pid      = (int) proc_get_status( $process )['pid'];
+		$probe    = $host;
+		$deadline = microtime( true ) + 10;
+
+		if ( '0.0.0.0' === $host ) {
+			$probe = '127.0.0.1';
+		} elseif ( '::' === $host ) {
+			$probe = '::1';
+		}
+
+		do {
+			$status = proc_get_status( $process );
+
+			if ( ! $status['running'] ) {
+				proc_close( $process );
+				$this->output->error( sprintf( 'The detached server stopped during startup. Check %s for details.', $log_file ) );
+				return 1;
+			}
+
+			$socket = @stream_socket_client( 'tcp://' . $this->authority( $probe, $port ), $errno, $errstr, 0.1 );
+
+			if ( false !== $socket ) {
+				fclose( $socket );
+				break;
+			}
+
+			usleep( self::POLL_INTERVAL );
+		} while ( microtime( true ) < $deadline );
+
+		if ( false === $socket ) {
+			proc_terminate( $process );
+			proc_close( $process );
+			$this->output->error( sprintf( 'The detached server did not start listening. Check %s for details.', $log_file ) );
+			return 1;
+		}
+
+		$this->output->success( sprintf( 'Server running at %s (PID %d)', $url, $pid ) );
+		$this->output->info( sprintf( 'Server output: %s', $log_file ) );
+		$this->output->info( sprintf( 'Stop it with: kill %d', $pid ) );
+
+		if ( null !== $public_url ) {
+			$this->output->info( sprintf( 'Application URL (SMLISER_APP_URL): %s', $public_url ) );
+			$this->output->info( sprintf( 'Point your tunnel or proxy at %s.', $this->authority( $host, $port ) ) );
+		}
+
+		return 0;
 	}
 
 	/**
