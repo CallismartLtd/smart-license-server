@@ -269,6 +269,7 @@ final class LinkedBuilder {
 	|-----------
 	*/
 
+	
 	/**
 	 * Tell the developer what to run next, from the state of the folder.
 	 */
@@ -278,13 +279,34 @@ final class LinkedBuilder {
 
 		if ( ! is_file( $env ) ) {
 			$this->console->write( "First time in this folder: php {$out}/smliser installer run" );
-			$this->console->write( 'Then set SMLISER_SCRIPT_DEBUG=true in its .env: the sources have no .min files.' );
-		} elseif ( 1 !== preg_match( '/^SMLISER_SCRIPT_DEBUG\s*=\s*(true|1|yes|on)\s*$/mi', (string) file_get_contents( $env ) ) ) {
-			$this->console->warn( "Set SMLISER_SCRIPT_DEBUG=true in {$env}, or every script and stylesheet request returns 404." );
+		} else {
+			$contents = (string) file_get_contents( $env );
+
+			if ( false === preg_match( '/^SMLISER_SCRIPT_DEBUG\s*=\s*(true|1|yes|on)\s*$/mi', $contents ) ) {
+				$contents = preg_replace(
+					'/^SMLISER_SCRIPT_DEBUG\s*=.*$/mi',
+					'SMLISER_SCRIPT_DEBUG=true',
+					$contents,
+					-1,
+					$count
+				);
+
+				if ( 0 === $count ) {
+					$contents = rtrim( $contents ) . "\nSMLISER_SCRIPT_DEBUG=true\n";
+				}
+
+				if ( false === file_put_contents( $env, $contents ) ) {
+					$this->console->error( "Unable to enable SMLISER_SCRIPT_DEBUG in {$env}." );
+					return;
+				}
+
+				$this->console->write( 'Enabled SMLISER_SCRIPT_DEBUG=true in .env.' );
+			}
 		}
 
 		$this->console->write( "Run it: php {$out}/smliser server" );
 	}
+
 
 	/*
 	|--------------------
