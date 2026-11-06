@@ -56,6 +56,15 @@ use SmartLicenseServer\FileSystem\FileSystem;
  * immutable mode letting the real environment win over the file. A change to
  * it, like any change to the environment, needs a restart to take effect: PHP
  * code is read again on every request, the environment is not.
+ *
+ * Workers: PHP's built-in server handles one request at a time, so one slow
+ * request holds up the rest. ServerConfig::$workers sets
+ * PHP_CLI_SERVER_WORKERS, which makes PHP fork that many server processes
+ * behind the one port. PHP documents the feature as experimental and it is not
+ * available on Windows, which run_attached() reports. Workers are forked from
+ * the server process, so stopping a managed server signals its whole process
+ * group, which it leads because it was started with setsid; signalling only
+ * the first process could leave workers holding the port.
  */
 final class DevServer {
 
@@ -259,6 +268,10 @@ final class DevServer {
 	 * @throws ServerException When the server process cannot be started.
 	 */
 	public function run_attached( ServerConfig $config, callable $on_line, ?callable $on_started = null ) : array {
+		if ( null !== $config->workers && $config->workers > 1 && '\\' === DIRECTORY_SEPARATOR ) {
+			throw new ServerException( 'Server workers are not available on Windows.' );
+		}
+
 		$php = $this->php();
 
 		PhpRuntime::set_time_limit( 0 );
@@ -373,7 +386,7 @@ final class DevServer {
 
 		// A server nothing can find again would have to be hunted down by hand.
 		if ( ! $this->fs->put_contents( $this->state_path(), (string) json_encode( $info->to_array(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ) ) {
-			$this->signal( $pid, self::SIGTERM );
+			$this->signal( $pid, self::SIGTERM, true );
 			throw new ServerException( sprintf( 'The server was started but could not be recorded in %s, so it was stopped again.', $this->state_path() ) );
 		}
 
@@ -394,14 +407,14 @@ final class DevServer {
 			return null;
 		}
 
-		$this->signal( $info->pid, self::SIGTERM );
+		$this->signal( $info->pid, self::SIGTERM, true );
 
 		if ( ! $this->wait_until_gone( $info->pid, self::STOP_WAIT ) ) {
 			if ( ! $force ) {
 				throw new ServerException( sprintf( 'The server (process %d) did not stop within %d seconds. Stop it anyway with force.', $info->pid, self::STOP_WAIT ) );
 			}
 
-			$this->signal( $info->pid, self::SIGKILL );
+			$this->signal( $info->pid, self::SIGKILL, true );
 
 			if ( ! $this->wait_until_gone( $info->pid, self::KILL_WAIT ) ) {
 				throw new ServerException( sprintf( 'The server (process %d) could not be stopped.', $info->pid ) );
@@ -544,6 +557,10 @@ final class DevServer {
 		$env                    = (array) getenv();
 		$env['SMLISER_APP_URL'] = $config->app_url();
 
+		if ( null !== $config->workers ) {
+			$env['PHP_CLI_SERVER_WORKERS'] = (string) $config->workers;
+		}
+
 		return $env;
 	}
 
@@ -616,7 +633,7 @@ final class DevServer {
 			usleep( self::POLL_INTERVAL );
 		} while ( microtime( true ) < $deadline );
 
-		proc_terminate( $process );
+		$this->signal( (int) proc_get_status( $process )['pid'], self::SIGTERM, true );
 		proc_close( $process );
 
 		return false;
@@ -672,19 +689,42 @@ final class DevServer {
 	}
 
 	/**
-	 * Send a signal to a process.
+	 * Send a signal to a process, or to its whole process group.
 	 *
-	 * @param int $pid
-	 * @param int $signal
+	 * The group is signalled only when the process leads its own, so a process
+	 * that merely belongs to somebody else's group (a terminal's, say) is
+	 * never taken down with its neighbours.
+	 *
+	 * @param int  $pid
+	 * @param int  $signal
+	 * @param bool $group  Signal the process's group, when it leads one.
 	 * @return void
 	 */
-	private function signal( int $pid, int $signal ) : void {
+	private function signal( int $pid, int $signal, bool $group = false ) : void {
+		$target = $group && $this->leads_group( $pid ) ? -$pid : $pid;
+
 		if ( function_exists( 'posix_kill' ) ) {
-			posix_kill( $pid, $signal );
+			posix_kill( $target, $signal );
 			return;
 		}
 
-		Process::run( [ 'kill', '-' . $signal, (string) $pid ], 5 );
+		Process::run( [ 'kill', '-' . $signal, '--', (string) $target ], 5 );
+	}
+
+	/**
+	 * Whether a process is the leader of its own process group.
+	 *
+	 * @param int $pid
+	 * @return bool
+	 */
+	private function leads_group( int $pid ) : bool {
+		$ps = Process::run( [ 'ps', '-o', 'pgid=', '-p', (string) $pid ], 5 );
+
+		if ( 0 === $ps['exit_code'] ) {
+			return (int) trim( $ps['output'] ) === $pid;
+		}
+
+		return function_exists( 'posix_getpgid' ) && posix_getpgid( $pid ) === $pid;
 	}
 
 	/**

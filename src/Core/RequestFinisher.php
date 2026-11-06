@@ -10,6 +10,8 @@ declare( strict_types=1 );
 
 namespace SmartLicenseServer\Core;
 
+use SmartLicenseServer\Core\Process\PhpRuntime;
+
 /**
  * Sends the response, closes the connection, and keeps PHP running.
  *

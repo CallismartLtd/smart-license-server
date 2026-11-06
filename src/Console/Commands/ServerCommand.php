@@ -76,6 +76,9 @@ use SmartLicenseServer\Server\ServerInfo;
  * --url states the address the application is publicly reached at, such as a
  * tunnel's. It is not where the server listens and never changes where it
  * does. See {@see DevServer} for how it reaches the application.
+ *
+ * --workers runs several server processes, so one slow request does not hold
+ * up the rest. Like --url it does not move the server, so a restart accepts it.
  */
 final class ServerCommand extends AbstractCommand {
 
@@ -200,7 +203,7 @@ final class ServerCommand extends AbstractCommand {
 				'Subcommands:',
 				'  start              Run in the background, so it keeps running when the terminal closes.',
 				'  stop               Stop the background server. -f/--force ends it if it will not stop.',
-				'  restart            Stop it and start it again at the same address. Applies a changed --url or .env.',
+				'  restart            Stop it and start it again at the same address. Applies a changed --url, --workers or .env.',
 				'                     Starts one if none is running.',
 				'  status             Show the background server. Exits 1 when none is running.',
 				'  help               Show this help message.',
@@ -212,6 +215,8 @@ final class ServerCommand extends AbstractCommand {
 				'  --daemon           Same as the start subcommand.',
 				'  --url=<url>        The URL the application is publicly reached at, e.g. through a tunnel.',
 				'                     Sets SMLISER_APP_URL. Does not change the host or port listened on.',
+				sprintf( '  --workers=<n>      Server processes, 1 to %d, so one slow request does not block the rest.', ServerConfig::MAX_WORKERS ),
+				'                     Sets PHP_CLI_SERVER_WORKERS. Experimental in PHP; not available on Windows.',
 				'',
 				sprintf( 'The background server writes to %s.', $this->server->log_path() ),
 				'Quiet verbosity hides the foreground server log (failures are still reported);',
@@ -225,7 +230,8 @@ final class ServerCommand extends AbstractCommand {
 				"  {$prefix}",
 				"  {$prefix} --port=9000",
 				"  {$prefix} --host=0.0.0.0 -p 9000 --force",
-				"  {$prefix} start --port=9000 --url=https://my-tunnel.example.dev",
+				"  {$prefix} start --port=9000 --url=https://my-tunnel.example.dev --workers=2",
+				"  {$prefix} restart --workers=4",
 				"  {$prefix} status",
 				"  {$prefix} restart",
 				"  {$prefix} stop",
@@ -309,9 +315,9 @@ final class ServerCommand extends AbstractCommand {
 	/**
 	 * Restart the background server at the address it has.
 	 *
-	 * Only --url may be given: it is the one setting that needs a restart to
-	 * take effect and does not move the server. With nothing running this is
-	 * a start, with every option.
+	 * Only --url and --workers may be given: they are the settings that need a
+	 * restart to take effect and do not move the server. With nothing running
+	 * this is a start, with every option.
 	 *
 	 * @param CommandInput $input
 	 * @return int Exit code.
@@ -330,9 +336,19 @@ final class ServerCommand extends AbstractCommand {
 		}
 
 		try {
-			$url    = $this->read_url( $input );
-			$config = null === $url ? null : $running->config->with_public_url( $url );
-			$info   = $this->server->restart( $config );
+			$url     = $this->read_url( $input );
+			$workers = $this->read_workers( $input );
+			$config  = $running->config;
+
+			if ( null !== $url ) {
+				$config = $config->with_public_url( $url );
+			}
+
+			if ( null !== $workers ) {
+				$config = $config->with_workers( $workers );
+			}
+
+			$info = $this->server->restart( $config === $running->config ? null : $config );
 		} catch ( InvalidArgumentException | ServerException $e ) {
 			$this->output->error( $e->getMessage() );
 			return 1;
@@ -347,14 +363,14 @@ final class ServerCommand extends AbstractCommand {
 	 * Show the background server.
 	 *
 	 * @param CommandInput $input
-	 * @return int
+	 * @return int 0 when a server is running, 1 when not.
 	 */
 	public function handle_status( CommandInput $input ) : int {
 		$info = $this->server->status();
 
 		if ( null === $info ) {
 			$this->output->info( 'No server is running.' );
-			return 0;
+			return 1;
 		}
 
 		$this->output->success( sprintf( 'Server running at %s (process %d)', $info->config->url(), $info->pid ) );
@@ -363,6 +379,7 @@ final class ServerCommand extends AbstractCommand {
 			$this->output->info( sprintf( 'Application URL (SMLISER_APP_URL): %s', $info->config->public_url ) );
 		}
 
+		$this->announce_workers( $info->config );
 		$this->output->info( sprintf( 'Started: %s UTC', $info->started_at ) );
 		$this->output->info( sprintf( 'Log: %s', $info->log ) );
 
@@ -392,6 +409,7 @@ final class ServerCommand extends AbstractCommand {
 				function ( callable $send ) use ( $config, &$forward ) : void {
 					$this->output->success( sprintf( 'Server running at %s', $config->url() ) );
 					$this->announce_public_url( $config );
+					$this->announce_workers( $config );
 					$this->output->info( 'Press Ctrl+C to stop.' );
 
 					$forward = static function ( int $signal, SignalInfo $info ) use ( $send ) : void {
@@ -556,8 +574,9 @@ final class ServerCommand extends AbstractCommand {
 		try {
 			$host  = $this->read_value( $input, 'host' );
 			$port  = $this->read_value( $input, 'port', 'p' );
-			$force = $this->read_flag( $input, 'force', 'f' );
-			$url   = $this->read_url( $input );
+			$force   = $this->read_flag( $input, 'force', 'f' );
+			$url     = $this->read_url( $input );
+			$workers = $this->read_workers( $input );
 		} catch ( InvalidArgumentException $e ) {
 			$this->output->error( $e->getMessage() );
 			return null;
@@ -575,7 +594,7 @@ final class ServerCommand extends AbstractCommand {
 		$port    = $port_given ? (int) $port : DevServer::DEFAULT_PORT;
 		$address = $this->resolve_address( $host, $port, $host_given, $port_given, $force );
 
-		return null === $address ? null : new ServerConfig( $address[0], $address[1], $url );
+		return null === $address ? null : new ServerConfig( $address[0], $address[1], $url, $workers );
 	}
 
 	/**
@@ -656,6 +675,7 @@ final class ServerCommand extends AbstractCommand {
 	private function report_running( ServerInfo $info, string $what ) : void {
 		$this->output->success( sprintf( 'Server %s at %s (process %d)', $what, $info->config->url(), $info->pid ) );
 		$this->announce_public_url( $info->config );
+		$this->announce_workers( $info->config );
 		$this->output->info( sprintf( 'Log: %s', $info->log ) );
 		$this->output->info( sprintf( 'Stop it with: %s stop', $this->command_prefix() ) );
 	}
@@ -673,6 +693,39 @@ final class ServerCommand extends AbstractCommand {
 
 		$this->output->info( sprintf( 'Application URL (SMLISER_APP_URL): %s', $config->public_url ) );
 		$this->output->info( sprintf( 'Point your tunnel or proxy at %s.', $config->authority() ) );
+	}
+
+	/**
+	 * Print the number of workers, when one was set.
+	 *
+	 * @param ServerConfig $config
+	 * @return void
+	 */
+	private function announce_workers( ServerConfig $config ) : void {
+		if ( null !== $config->workers ) {
+			$this->output->info( sprintf( 'Workers: %d', $config->workers ) );
+		}
+	}
+
+	/**
+	 * Read --workers.
+	 *
+	 * @param CommandInput $input
+	 * @return int|null Null when not given.
+	 * @throws InvalidArgumentException When the value is not a whole number from 1 to ServerConfig::MAX_WORKERS.
+	 */
+	private function read_workers( CommandInput $input ) : ?int {
+		$workers = $this->read_value( $input, 'workers' );
+
+		if ( null === $workers ) {
+			return null;
+		}
+
+		if ( 1 !== preg_match( '/^\d{1,3}$/', $workers ) || (int) $workers < 1 || (int) $workers > ServerConfig::MAX_WORKERS ) {
+			throw new InvalidArgumentException( sprintf( '--workers must be a whole number from 1 to %d, "%s" given.', ServerConfig::MAX_WORKERS, $workers ) );
+		}
+
+		return (int) $workers;
 	}
 
 	/**
