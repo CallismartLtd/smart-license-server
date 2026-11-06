@@ -1,6 +1,6 @@
 {
 	"name": "SmartLicenseServer",
-	"image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+	"image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
 
 	"features": {
 		"ghcr.io/devcontainers/features/git:1": {},
