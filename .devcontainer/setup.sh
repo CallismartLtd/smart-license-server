@@ -162,7 +162,48 @@ else
 	echo "-> PHP 8.4 is already the active default CLI."
 fi
 
-# 5. Redis daemon, then wait until it actually answers.
+# 5. Composer: install globally if missing.
+COMPOSER_BIN="/usr/local/bin/composer"
+
+if ! command -v composer &> /dev/null; then
+	echo "-> Installing Composer globally..."
+
+	apt_install curl ca-certificates
+
+	INSTALLER="$(mktemp)"
+	trap 'rm -f "$INSTALLER"' EXIT
+
+	EXPECTED_CHECKSUM="$(curl -fsSL https://composer.github.io/installer.sig)"
+	curl -fsSL https://getcomposer.org/installer -o "$INSTALLER"
+
+	ACTUAL_CHECKSUM="$(php -r 'echo hash_file("sha384", $argv[1]);' "$INSTALLER")"
+
+	if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then
+		echo "Error: Composer installer checksum verification failed."
+		exit 1
+	fi
+
+	$SUDO php "$INSTALLER" \
+		--install-dir=/usr/local/bin \
+		--filename=composer \
+		--quiet
+
+	rm -f "$INSTALLER"
+	trap - EXIT
+
+else
+	echo "-> Composer is already installed: $(command -v composer)"
+fi
+
+# Verify Composer is accessible globally.
+if ! command -v composer &> /dev/null; then
+	echo "Error: Composer installation failed or is not in PATH."
+	exit 1
+fi
+
+echo "-> $(composer --version --no-ansi)"
+
+# 6. Redis daemon, then wait until it actually answers.
 # --dir /tmp keeps dump.rdb out of the repo (lifecycle hooks run in the workspace folder).
 if ! redis-cli ping &> /dev/null; then
 	echo "-> Starting Redis background daemon..."
@@ -176,7 +217,7 @@ else
 	echo "-> Redis server is already running."
 fi
 
-# 6. Cloudflare Tunnel: install the binary, run it from a token held in a Codespaces secret
+# 7. Cloudflare Tunnel: install the binary, run it from a token held in a Codespaces secret
 if ! command -v cloudflared &> /dev/null; then
 	echo "-> Installing cloudflared..."
 	apt_install curl ca-certificates
@@ -198,7 +239,7 @@ elif pgrep -x cloudflared > /dev/null; then
 else
 	echo "-> Starting Cloudflare Tunnel..."
 	# Token goes via env var so it doesn't show in `ps`. Fully detached so the lifecycle hook can't hang on it.
-	TUNNEL_TOKEN="$CLOUDFLARE_TUNNEL_TOKEN" setsid nohup cloudflared tunnel --no-autoupdate run > /tmp/cloudflared.log 2>&1 < /dev/null &
+	sudo cloudflared service install "$CLOUDFLARE_TUNNEL_TOKEN"
 fi
 
 echo "=== Environment check completed successfully! ==="
