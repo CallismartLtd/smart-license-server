@@ -20,30 +20,43 @@ use SmartLicenseServer\Console\ScriptName;
 use SmartLicenseServer\Console\SignalInfo;
 use SmartLicenseServer\Console\SignalManager;
 use SmartLicenseServer\Console\Terminal;
-use SmartLicenseServer\Core\Process\Process;
-use SmartLicenseServer\Core\Process\PhpRuntime;
-use SmartLicenseServer\FileSystem\FileSystem;
 use SmartLicenseServer\Environments\Application\Installation\AppInstaller;
-use SmartLicenseServer\Environments\Application\Update\PhpCli;
+use SmartLicenseServer\Exceptions\ServerException;
+use SmartLicenseServer\Server\DevServer;
+use SmartLicenseServer\Server\ServerConfig;
+use SmartLicenseServer\Server\ServerInfo;
 
 /**
  * Runs the application on PHP's built-in web server, for local development.
  *
- * Philosophy, in two parts.
+ * Philosophy: this command is only the operator's side of {@see DevServer}.
+ * It turns options into a ServerConfig, asks the operator what to do when an
+ * address is taken, and shows what the API returns. Everything about how the
+ * server is started, found and stopped lives in DevServer, so none of it
+ * changes here when that does.
+ *
+ * Two ways to run:
+ *
+ *   server           In the foreground: the server is a child of this
+ *                    command, which shows its log until Ctrl+C.
+ *   server start     In the background (also `server --daemon`): the server
+ *                    outlives the terminal and is managed with stop, restart
+ *                    and status, which find it through its recorded state, not
+ *                    a process ID. Its output goes to its log file.
  *
  * Where it listens: the server listens where the operator asked, or the
  * operator agrees to where it listens instead. When nothing was asked
- * for, the canonical default (DEFAULT_HOST:DEFAULT_PORT) is used, moving up to the
- * next free port without asking. When a --host or --port the operator
- * gave cannot be used, an alternative is offered and only taken on
+ * for, the canonical default (DevServer::DEFAULT_HOST:DEFAULT_PORT) is used,
+ * moving up to the next free port without asking. When a --host or --port the
+ * operator gave cannot be used, an alternative is offered and only taken on
  * confirmation, or straight away with -f/--force. A non-interactive run
  * without --force therefore never ends up somewhere the operator did not
- * choose.
+ * choose. A restart keeps the address the server has; to change it, stop the
+ * server and start it again.
  *
  * What it prints: everything reaches the operator through OutputInterface.
- * The server process gets no stdin and writes into socket pairs (the one
- * transport that can be polled without blocking on every platform, Windows
- * included); this command reads them and decides what is shown:
+ * In the foreground, the server's lines are received from DevServer and this
+ * command decides what is shown:
  *
  *   quiet    nothing from the server; if it stops unexpectedly, its last
  *            lines are reported through error().
@@ -52,85 +65,19 @@ use SmartLicenseServer\Environments\Application\Update\PhpCli;
  *
  * Request lines are coloured by status (5xx red, 4xx yellow, others green)
  * and connection lines dimmed, when the Terminal supports ANSI. This is the
- * command's own scheme: behind a socket the server does not colour its log.
- * Every shown line is re-stamped with this process's clock, so server and
- * router lines agree on the time.
+ * command's own scheme: the server does not colour its log. Every shown line
+ * is re-stamped with this process's clock, so server and router lines agree
+ * on the time. A background server's log is the server's own output, as it
+ * wrote it.
  *
  * Request lines for application routes come from server/server.php; the
  * built-in server only logs requests for files it serves itself.
  *
- * The application URL reaches the application as SMLISER_APP_URL in the server
- * process's own environment; .env is never edited. It is the address the
- * application is reached at, which is not always where the server listens:
- * behind a tunnel or reverse proxy the public URL differs from host:port.
- * --url states it, and is never used to choose where to listen. Without it
- * the URL is built from the listening address. This relies on DotEnv's
- * immutable mode letting the real environment win over the file.
+ * --url states the address the application is publicly reached at, such as a
+ * tunnel's. It is not where the server listens and never changes where it
+ * does. See {@see DevServer} for how it reaches the application.
  */
 final class ServerCommand extends AbstractCommand {
-
-	/**
-	 * Address listened on when --host is not given.
-	 *
-	 * @var string
-	 */
-	public const DEFAULT_HOST = '127.0.0.1';
-
-	/**
-	 * Port listened on when --port is not given.
-	 *
-	 * @var int
-	 */
-	public const DEFAULT_PORT = 8383;
-
-	/**
-	 * How many consecutive ports are tried when looking for a free one.
-	 *
-	 * @var int
-	 */
-	private const PORT_SEARCH_LIMIT = 10;
-
-	/**
-	 * Microseconds to wait for server output before checking on the process.
-	 *
-	 * @var int
-	 */
-	private const POLL_INTERVAL = 100000;
-
-	/**
-	 * Bytes read from a server stream at a time.
-	 *
-	 * @var int
-	 */
-	private const READ_CHUNK = 8192;
-
-	/**
-	 * Server lines kept for the report when it stops unexpectedly.
-	 *
-	 * @var int
-	 */
-	private const TAIL_LINES = 20;
-
-	/**
-	 * Probe result: the address can be listened on.
-	 *
-	 * @var string
-	 */
-	private const ADDRESS_FREE = 'free';
-
-	/**
-	 * Probe result: the host is usable, but something already listens on the port.
-	 *
-	 * @var string
-	 */
-	private const PORT_IN_USE = 'port_in_use';
-
-	/**
-	 * Probe result: this machine cannot listen on the host at all.
-	 *
-	 * @var string
-	 */
-	private const HOST_UNAVAILABLE = 'host_unavailable';
 
 	/**
 	 * Signals that stop the server when sent to this process.
@@ -168,6 +115,13 @@ final class ServerCommand extends AbstractCommand {
 	/**
 	 * Server lines kept for the unexpected-stop report, oldest first.
 	 *
+	 * @var int
+	 */
+	private const TAIL_LINES = 20;
+
+	/**
+	 * Server lines kept for the unexpected-stop report.
+	 *
 	 * @var string[]
 	 */
 	private array $tail = [];
@@ -177,8 +131,8 @@ final class ServerCommand extends AbstractCommand {
 	 * @param OutputInterface $output
 	 * @param ScriptName      $script_name
 	 * @param Terminal        $terminal Decides whether server lines are coloured.
-	 * @param SignalManager   $signals  Forwards stop signals to the server.
-	 * @param FileSystem      $fs       Creates the daemon log directory.
+	 * @param SignalManager   $signals  Forwards stop signals to a foreground server.
+	 * @param DevServer       $server   Starts, finds and stops the server.
 	 */
 	public function __construct(
 		InputInterface $io,
@@ -186,7 +140,7 @@ final class ServerCommand extends AbstractCommand {
 		ScriptName $script_name,
 		private Terminal $terminal,
 		private SignalManager $signals,
-		private FileSystem $fs
+		private DevServer $server
 	) {
 		parent::__construct( $io, $output, $script_name );
 	}
@@ -208,11 +162,11 @@ final class ServerCommand extends AbstractCommand {
 	/**
 	 * {@inheritdoc}
 	 *
-	 * The command itself starts the server; `help` is its only subcommand,
-	 * so the usage line does not advertise a required <subcommand>.
+	 * The command itself runs the server in the foreground, so the usage
+	 * line does not advertise a required <subcommand>.
 	 */
 	public function synopsis() : string {
-		return sprintf( '%s [options]', $this->command_prefix() );
+		return sprintf( '%s [start|stop|restart|status] [options]', $this->command_prefix() );
 	}
 
 	/**
@@ -223,7 +177,11 @@ final class ServerCommand extends AbstractCommand {
 	 */
 	public function get_subcommands() : array {
 		return [
-			'help' => [ $this, 'handle_help' ],
+			'start'   => [ $this, 'handle_start' ],
+			'stop'    => [ $this, 'handle_stop' ],
+			'restart' => [ $this, 'handle_restart' ],
+			'status'  => [ $this, 'handle_status' ],
+			'help'    => [ $this, 'handle_help' ],
 		];
 	}
 
@@ -237,18 +195,26 @@ final class ServerCommand extends AbstractCommand {
 			PHP_EOL,
 			[
 				'',
+				'Run it in the foreground (Ctrl+C stops it), or in the background and manage it:',
+				'',
 				'Subcommands:',
+				'  start              Run in the background, so it keeps running when the terminal closes.',
+				'  stop               Stop the background server. -f/--force ends it if it will not stop.',
+				'  restart            Stop it and start it again at the same address. Applies a changed --url or .env.',
+				'                     Starts one if none is running.',
+				'  status             Show the background server. Exits 1 when none is running.',
 				'  help               Show this help message.',
 				'',
 				'Options:',
-				sprintf( '  --host=<host>      Address to listen on. Default: %s. Use 0.0.0.0 to accept other machines.', self::DEFAULT_HOST ),
-				sprintf( '  -p, --port=<port>  Port to listen on. Default: %d, or the next free port.', self::DEFAULT_PORT ),
+				sprintf( '  --host=<host>      Address to listen on. Default: %s. Use 0.0.0.0 to accept other machines.', DevServer::DEFAULT_HOST ),
+				sprintf( '  -p, --port=<port>  Port to listen on. Default: %d, or the next free port.', DevServer::DEFAULT_PORT ),
 				'  -f, --force        Use the offered alternative address without asking.',
-				'  --daemon           Run detached from the terminal; write output to storage/logs/server.log.',
+				'  --daemon           Same as the start subcommand.',
 				'  --url=<url>        The URL the application is publicly reached at, e.g. through a tunnel.',
 				'                     Sets SMLISER_APP_URL. Does not change the host or port listened on.',
 				'',
-				'Quiet verbosity hides the server log (failures are still reported);',
+				sprintf( 'The background server writes to %s.', $this->server->log_path() ),
+				'Quiet verbosity hides the foreground server log (failures are still reported);',
 				'verbose verbosity adds the per-connection lines.',
 				'',
 				'SMLISER_APP_URL is set for the server process only; .env is not changed. It is --url when',
@@ -259,417 +225,196 @@ final class ServerCommand extends AbstractCommand {
 				"  {$prefix}",
 				"  {$prefix} --port=9000",
 				"  {$prefix} --host=0.0.0.0 -p 9000 --force",
-				"  {$prefix} --port=9000 --url=https://my-tunnel.example.dev",
-				"  {$prefix} --daemon --port=9000",
+				"  {$prefix} start --port=9000 --url=https://my-tunnel.example.dev",
+				"  {$prefix} status",
+				"  {$prefix} restart",
+				"  {$prefix} stop",
 				"  {$prefix} help",
 			]
 		);
 	}
 
 	/**
+	 * Run the server in the foreground.
+	 *
 	 * {@inheritdoc}
 	 */
 	public function run( CommandInput $input ) : int {
+		if ( $this->read_flag( $input, 'daemon' ) ) {
+			return $this->handle_start( $input );
+		}
+
+		$config = $this->configure( $input );
+
+		return null === $config ? 1 : $this->serve( $config );
+	}
+
+	/**
+	 * Start the server in the background.
+	 *
+	 * @param CommandInput $input
+	 * @return int Exit code.
+	 */
+	public function handle_start( CommandInput $input ) : int {
+		$running = $this->server->status();
+
+		// Settled before the address is: with no --port, a free one further up would be taken.
+		if ( null !== $running ) {
+			$this->output->error( sprintf( 'A server is already running at %s (process %d). To restart it: %s restart', $running->config->url(), $running->pid, $this->command_prefix() ) );
+			return 1;
+		}
+
+		$config = $this->configure( $input );
+
+		if ( null === $config ) {
+			return 1;
+		}
+
 		try {
-			$host  = $this->read_value( $input, 'host' );
-			$port  = $this->read_value( $input, 'port', 'p' );
-			$force = $this->read_flag( $input, 'force', 'f' );
-			$daemon = $this->read_flag( $input, 'daemon', '' );
-			$url   = $this->read_value( $input, 'url' );
-			$url   = null === $url ? null : AppInstaller::normalize_app_url( $url );
-		} catch ( InvalidArgumentException $e ) {
+			$info = $this->server->start( $config );
+		} catch ( ServerException $e ) {
 			$this->output->error( $e->getMessage() );
 			return 1;
 		}
 
-		$host_given = null !== $host;
-		$port_given = null !== $port;
-		$host       = $host_given ? trim( $host, '[]' ) : self::DEFAULT_HOST;
-
-		if ( $port_given && ! $this->is_valid_port( $port ) ) {
-			$this->output->error( sprintf( '--port must be a number from 1 to 65535, "%s" given.', $port ) );
-			return 1;
-		}
-
-		$port    = $port_given ? (int) $port : self::DEFAULT_PORT;
-		$address = $this->resolve_address( $host, $port, $host_given, $port_given, $force );
-
-		if ( null === $address ) {
-			return 1;
-		}
-
-		[ $host, $port ] = $address;
-
-		$php = PhpCli::find();
-
-		if ( null === $php ) {
-			$this->output->error( 'No PHP command-line binary could be started (proc_open may be disabled).' );
-			return 1;
-		}
-
-		return $this->serve( $php, $host, $port, $url, $daemon );
-	}
-
-	/*
-	|-----------------
-	| ADDRESS CHOICE
-	|-----------------
-	*/
-
-	/**
-	 * Settle on the host and port to listen on.
-	 *
-	 * @param string $host       Requested host.
-	 * @param int    $port       Requested port.
-	 * @param bool   $host_given Whether the operator supplied the host.
-	 * @param bool   $port_given Whether the operator supplied the port.
-	 * @param bool   $force      Whether to take an alternative without asking.
-	 * @return array{0: string, 1: int}|null Host and port, or null when the server should not start.
-	 */
-	private function resolve_address( string $host, int $port, bool $host_given, bool $port_given, bool $force ) : ?array {
-		$status = $this->probe( $host, $port );
-
-		if ( self::ADDRESS_FREE === $status ) {
-			return [ $host, $port ];
-		}
-
-		$alt_host   = $host;
-		$first_port = $port + 1;
-
-		if ( self::HOST_UNAVAILABLE === $status ) {
-			if ( self::DEFAULT_HOST === $host ) {
-				$this->output->error( sprintf( 'This machine cannot listen on %s.', $host ) );
-				return null;
-			}
-
-			$alt_host   = self::DEFAULT_HOST;
-			$first_port = $port;
-		}
-
-		$alt_port = $this->find_free_port( $alt_host, $first_port );
-
-		if ( null === $alt_port ) {
-			$this->output->error( sprintf( 'No free port found on %s near %d.', $alt_host, $port ) );
-			return null;
-		}
-
-		$reason = self::HOST_UNAVAILABLE === $status
-			? sprintf( 'This machine cannot listen on %s', $host )
-			: sprintf( 'Port %d is already in use', $port );
-
-		$alternative = $this->authority( $alt_host, $alt_port );
-		$overrides   = ( $host_given && $alt_host !== $host ) || ( $port_given && $alt_port !== $port );
-
-		if ( ! $overrides ) {
-			$this->output->warning( sprintf( '%s; using %s instead.', $reason, $alternative ) );
-			return [ $alt_host, $alt_port ];
-		}
-
-		if ( $force ) {
-			$this->output->warning( sprintf( '%s; using %s instead (--force).', $reason, $alternative ) );
-			return [ $alt_host, $alt_port ];
-		}
-
-		if ( ! $this->io->confirm( sprintf( '%s. Use %s instead?', $reason, $alternative ), false ) ) {
-			$this->output->info( 'Server not started.' );
-			return null;
-		}
-
-		return [ $alt_host, $alt_port ];
-	}
-
-	/**
-	 * Find the first port this machine can listen on, starting at $from.
-	 *
-	 * @param string $host
-	 * @param int    $from
-	 * @return int|null
-	 */
-	private function find_free_port( string $host, int $from ) : ?int {
-		$last = min( 65535, $from + self::PORT_SEARCH_LIMIT - 1 );
-
-		for ( $candidate = $from; $candidate <= $last; $candidate++ ) {
-			if ( self::ADDRESS_FREE === $this->probe( $host, $candidate ) ) {
-				return $candidate;
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * Check whether an address can be listened on, by binding it briefly.
-	 *
-	 * When the bind fails, binding the same host on port 0 (any free port)
-	 * tells the two causes apart without platform-specific error codes. The
-	 * check is not a reservation: another process can still take the port
-	 * before the server binds it, and the server then reports that itself.
-	 *
-	 * @param string $host
-	 * @param int    $port
-	 * @return string One of the ADDRESS_FREE, PORT_IN_USE or HOST_UNAVAILABLE constants.
-	 */
-	private function probe( string $host, int $port ) : string {
-		$socket = @stream_socket_server( 'tcp://' . $this->authority( $host, $port ), $errno, $errstr );
-
-		if ( false !== $socket ) {
-			fclose( $socket );
-			return self::ADDRESS_FREE;
-		}
-
-		$any = @stream_socket_server( 'tcp://' . $this->authority( $host, 0 ), $errno, $errstr );
-
-		if ( false === $any ) {
-			return self::HOST_UNAVAILABLE;
-		}
-
-		fclose( $any );
-
-		return self::PORT_IN_USE;
-	}
-
-	/*
-	|-----------------
-	| SERVER PROCESS
-	|-----------------
-	*/
-
-	/**
-	 * Start the server, relay its output until it stops, and report how it ended.
-	 *
-	 * @param string      $php        PHP CLI binary.
-	 * @param string      $host
-	 * @param int         $port
-	 * @param string|null $public_url The URL the application is publicly reached at, when it is not where the server listens.
-	 * @return int Exit code.
-	 */
-	private function serve( string $php, string $host, int $port, ?string $public_url = null, bool $daemon = false ) : int {
-		PhpRuntime::set_time_limit( 0 );
-
-		$url = $this->url( $host, $port );
-		$env = (array) getenv();
-
-		$env['SMLISER_APP_URL'] = $public_url ?? $url;
-
-		$command = [
-			$php,
-			'-S',
-			$this->authority( $host, $port ),
-			'-t',
-			SMLISER_ROOT . 'public',
-			SMLISER_ROOT . 'server/server.php',
-		];
-
-		if ( $daemon ) {
-			return $this->serve_daemon( $command, $env, $host, $port, $url, $public_url );
-		}
-
-		$descriptors = [
-			0 => [ 'pipe', 'r' ],
-			1 => [ 'socket' ],
-			2 => [ 'socket' ],
-		];
-
-		$process = proc_open( $command, $descriptors, $pipes, SMLISER_ROOT, $env );
-
-		if ( ! is_resource( $process ) ) {
-			$this->output->error( 'The server process could not be started.' );
-			return 1;
-		}
-
-		// The server never reads input; closing stdin gives it an immediate EOF.
-		fclose( $pipes[0] );
-
-		$this->output->success( sprintf( 'Server running at %s', $url ) );
-
-		if ( null !== $public_url ) {
-			$this->output->info( sprintf( 'Application URL (SMLISER_APP_URL): %s', $public_url ) );
-			$this->output->info( sprintf( 'Point your tunnel or proxy at %s.', $this->authority( $host, $port ) ) );
-		}
-
-		$this->output->info( 'Press Ctrl+C to stop.' );
-
-		$forward = static function ( int $signal, SignalInfo $info ) use ( $process ) : void {
-			proc_terminate( $process, $signal );
-		};
-
-		foreach ( self::STOP_SIGNALS as $signal ) {
-			$this->signals->on( $signal, $forward );
-		}
-
-		$this->tail = [];
-		$status     = $this->relay( $process, [ 1 => $pipes[1], 2 => $pipes[2] ] );
-
-		foreach ( self::STOP_SIGNALS as $signal ) {
-			$this->signals->remove_listener( $signal, $forward );
-		}
-
-		return $this->conclude( $status );
-	}
-
-	/**
-	 * Start the built-in server detached from the terminal and confirm it is listening.
-	 *
-	 * @param list<string>       $command
-	 * @param array<string,mixed> $env
-	 * @param string             $host
-	 * @param int                $port
-	 * @param string             $url
-	 * @param string|null        $public_url
-	 * @return int
-	 */
-	private function serve_daemon( array $command, array $env, string $host, int $port, string $url, ?string $public_url ) : int {
-		if ( '\\' === DIRECTORY_SEPARATOR ) {
-			$this->output->error( 'The --daemon option is supported on POSIX systems with setsid available.' );
-			return 1;
-		}
-
-		$setsid = Process::find_executable( 'setsid' );
-
-		if ( null === $setsid ) {
-			$this->output->error( 'The --daemon option requires the setsid utility.' );
-			return 1;
-		}
-
-		$log_directory = rtrim( SMLISER_LOGS_DIR, '/\\' );
-
-		if ( ! $this->fs->is_dir( $log_directory ) && ! $this->fs->mkdir( $log_directory ) && ! $this->fs->is_dir( $log_directory ) ) {
-			$this->output->error( sprintf( 'Could not create the server log directory: %s', $log_directory ) );
-			return 1;
-		}
-
-		$log_file = $log_directory . DIRECTORY_SEPARATOR . 'server.log';
-		$log      = @fopen( $log_file, 'ab' );
-
-		if ( false === $log ) {
-			$this->output->error( sprintf( 'Could not open the server log file: %s', $log_file ) );
-			return 1;
-		}
-
-		fclose( $log );
-
-		$process = @proc_open(
-			array_merge( [ $setsid ], $command ),
-			[
-				0 => [ 'file', '/dev/null', 'r' ],
-				1 => [ 'file', $log_file, 'a' ],
-				2 => [ 'file', $log_file, 'a' ],
-			],
-			$pipes,
-			SMLISER_ROOT,
-			$env
-		);
-
-		if ( ! is_resource( $process ) ) {
-			$this->output->error( 'The detached server process could not be started.' );
-			return 1;
-		}
-
-		$pid      = (int) proc_get_status( $process )['pid'];
-		$probe    = $host;
-		$deadline = microtime( true ) + 10;
-
-		if ( '0.0.0.0' === $host ) {
-			$probe = '127.0.0.1';
-		} elseif ( '::' === $host ) {
-			$probe = '::1';
-		}
-
-		do {
-			$status = proc_get_status( $process );
-
-			if ( ! $status['running'] ) {
-				proc_close( $process );
-				$this->output->error( sprintf( 'The detached server stopped during startup. Check %s for details.', $log_file ) );
-				return 1;
-			}
-
-			$socket = @stream_socket_client( 'tcp://' . $this->authority( $probe, $port ), $errno, $errstr, 0.1 );
-
-			if ( false !== $socket ) {
-				fclose( $socket );
-				break;
-			}
-
-			usleep( self::POLL_INTERVAL );
-		} while ( microtime( true ) < $deadline );
-
-		if ( false === $socket ) {
-			proc_terminate( $process );
-			proc_close( $process );
-			$this->output->error( sprintf( 'The detached server did not start listening. Check %s for details.', $log_file ) );
-			return 1;
-		}
-
-		$this->output->success( sprintf( 'Server running at %s (PID %d)', $url, $pid ) );
-		$this->output->info( sprintf( 'Server output: %s', $log_file ) );
-		$this->output->info( sprintf( 'Stop it with: kill %d', $pid ) );
-
-		if ( null !== $public_url ) {
-			$this->output->info( sprintf( 'Application URL (SMLISER_APP_URL): %s', $public_url ) );
-			$this->output->info( sprintf( 'Point your tunnel or proxy at %s.', $this->authority( $host, $port ) ) );
-		}
+		$this->report_running( $info, 'running in the background' );
 
 		return 0;
 	}
 
 	/**
-	 * Relay the server's output until it has exited and both streams are drained.
+	 * Stop the background server.
 	 *
-	 * @param resource             $process
-	 * @param array<int, resource> $streams The server's stdout and stderr, keyed by descriptor.
-	 * @return array<string, mixed> The proc_get_status() result that saw the server exit.
+	 * @param CommandInput $input
+	 * @return int Exit code.
 	 */
-	private function relay( $process, array $streams ) : array {
-		$buffers = array_fill_keys( array_keys( $streams ), '' );
-
-		foreach ( $streams as $stream ) {
-			stream_set_blocking( $stream, false );
+	public function handle_stop( CommandInput $input ) : int {
+		try {
+			$info = $this->server->stop( $this->read_flag( $input, 'force', 'f' ) );
+		} catch ( ServerException $e ) {
+			$this->output->error( $e->getMessage() );
+			return 1;
 		}
 
-		while ( true ) {
-			$read   = array_values( $streams );
-			$write  = null;
-			$except = null;
+		if ( null === $info ) {
+			$this->output->info( 'No server is running.' );
+			return 0;
+		}
 
-			// False when a signal interrupts the wait; the loop just checks again.
-			$ready = empty( $read ) ? 0 : (int) @stream_select( $read, $write, $except, 0, self::POLL_INTERVAL );
+		$this->output->success( sprintf( 'Server stopped (process %d).', $info->pid ) );
 
-			foreach ( $ready > 0 ? $read : [] as $stream ) {
-				$key   = array_search( $stream, $streams, true );
-				$chunk = fread( $stream, self::READ_CHUNK );
+		return 0;
+	}
 
-				if ( false === $chunk || ( '' === $chunk && feof( $stream ) ) ) {
-					$this->relay_rest( $buffers[ $key ] );
-					fclose( $stream );
-					unset( $streams[ $key ] );
-					continue;
+	/**
+	 * Restart the background server at the address it has.
+	 *
+	 * Only --url may be given: it is the one setting that needs a restart to
+	 * take effect and does not move the server. With nothing running this is
+	 * a start, with every option.
+	 *
+	 * @param CommandInput $input
+	 * @return int Exit code.
+	 */
+	public function handle_restart( CommandInput $input ) : int {
+		$running = $this->server->status();
+
+		if ( null === $running ) {
+			$this->output->info( 'No server was running; starting one.' );
+			return $this->handle_start( $input );
+		}
+
+		if ( $input->has_option( 'host' ) || $input->has_option( 'port' ) || $input->has_option( 'p' ) ) {
+			$this->output->error( sprintf( 'A restart keeps the server\'s address. To change it: %1$s stop, then %1$s start.', $this->command_prefix() ) );
+			return 1;
+		}
+
+		try {
+			$url    = $this->read_url( $input );
+			$config = null === $url ? null : $running->config->with_public_url( $url );
+			$info   = $this->server->restart( $config );
+		} catch ( InvalidArgumentException | ServerException $e ) {
+			$this->output->error( $e->getMessage() );
+			return 1;
+		}
+
+		$this->report_running( $info, 'restarted in the background' );
+
+		return 0;
+	}
+
+	/**
+	 * Show the background server.
+	 *
+	 * @param CommandInput $input
+	 * @return int
+	 */
+	public function handle_status( CommandInput $input ) : int {
+		$info = $this->server->status();
+
+		if ( null === $info ) {
+			$this->output->info( 'No server is running.' );
+			return 0;
+		}
+
+		$this->output->success( sprintf( 'Server running at %s (process %d)', $info->config->url(), $info->pid ) );
+
+		if ( null !== $info->config->public_url ) {
+			$this->output->info( sprintf( 'Application URL (SMLISER_APP_URL): %s', $info->config->public_url ) );
+		}
+
+		$this->output->info( sprintf( 'Started: %s UTC', $info->started_at ) );
+		$this->output->info( sprintf( 'Log: %s', $info->log ) );
+
+		return 0;
+	}
+
+	/*
+	|-----------------
+	|Foreground server
+	|-----------------
+	*/
+
+	/**
+	 * Run the server as this command's child, show its log until it stops, and report how it ended.
+	 *
+	 * @param ServerConfig $config
+	 * @return int Exit code.
+	 */
+	private function serve( ServerConfig $config ) : int {
+		$this->tail = [];
+		$forward    = null;
+
+		try {
+			$status = $this->server->run_attached(
+				$config,
+				fn ( string $line ) => $this->relay_line( $line ),
+				function ( callable $send ) use ( $config, &$forward ) : void {
+					$this->output->success( sprintf( 'Server running at %s', $config->url() ) );
+					$this->announce_public_url( $config );
+					$this->output->info( 'Press Ctrl+C to stop.' );
+
+					$forward = static function ( int $signal, SignalInfo $info ) use ( $send ) : void {
+						$send( $signal );
+					};
+
+					foreach ( self::STOP_SIGNALS as $signal ) {
+						$this->signals->on( $signal, $forward );
+					}
 				}
-
-				$buffers[ $key ] .= $chunk;
-				$this->relay_lines( $buffers[ $key ] );
-			}
-
-			$status = proc_get_status( $process );
-
-			if ( ! $status['running'] && ( empty( $streams ) || 0 === $ready ) ) {
-				break;
-			}
-
-			if ( empty( $streams ) ) {
-				usleep( self::POLL_INTERVAL );
+			);
+		} catch ( ServerException $e ) {
+			$this->output->error( $e->getMessage() );
+			return 1;
+		} finally {
+			if ( null !== $forward ) {
+				foreach ( self::STOP_SIGNALS as $signal ) {
+					$this->signals->remove_listener( $signal, $forward );
+				}
 			}
 		}
 
-		foreach ( $streams as $key => $stream ) {
-			$buffers[ $key ] .= (string) stream_get_contents( $stream );
-			$this->relay_rest( $buffers[ $key ] );
-			fclose( $stream );
-		}
-
-		proc_close( $process );
-
-		return $status;
+		return $this->conclude( $status );
 	}
 
 	/**
@@ -679,7 +424,7 @@ final class ServerCommand extends AbstractCommand {
 	 * Being stopped by Ctrl+C, SIGTERM or SIGHUP is how the server is meant
 	 * to end, so it counts as success.
 	 *
-	 * @param array<string, mixed> $status A proc_get_status() result for the exited server.
+	 * @param array{signaled: bool, termsig: int, exitcode: int} $status How the server ended.
 	 * @return int
 	 */
 	private function conclude( array $status ) : int {
@@ -691,10 +436,10 @@ final class ServerCommand extends AbstractCommand {
 				return 0;
 			}
 
-			$code   = 128 + (int) $status['termsig'];
+			$code   = 128 + $status['termsig'];
 			$reason = sprintf( 'The server was killed by signal %d.', $status['termsig'] );
 		} else {
-			$code   = (int) $status['exitcode'];
+			$code   = $status['exitcode'];
 			$reason = sprintf( 'The server stopped with exit code %d.', $code );
 		}
 
@@ -716,40 +461,10 @@ final class ServerCommand extends AbstractCommand {
 	}
 
 	/*
-	|-------------
-	| SERVER LOG
-	|-------------
+	|----------
+	|Server log
+	|----------
 	*/
-
-	/**
-	 * Relay every complete line in $buffer, leaving any partial line in it.
-	 *
-	 * @param string $buffer
-	 * @return void
-	 */
-	private function relay_lines( string &$buffer ) : void {
-		$lines  = explode( "\n", $buffer );
-		$buffer = (string) array_pop( $lines );
-
-		foreach ( $lines as $line ) {
-			$this->relay_line( $line );
-		}
-	}
-
-	/**
-	 * Relay what is left in $buffer once its stream has ended.
-	 *
-	 * @param string $buffer
-	 * @return void
-	 */
-	private function relay_rest( string &$buffer ) : void {
-		$this->relay_lines( $buffer );
-
-		if ( '' !== $buffer ) {
-			$this->relay_line( $buffer );
-			$buffer = '';
-		}
-	}
 
 	/**
 	 * Remember one server line for the failure report and show it if the
@@ -826,10 +541,152 @@ final class ServerCommand extends AbstractCommand {
 	}
 
 	/*
-	|----------
-	| HELPERS
-	|----------
+	|--------------
+	|Address choice
+	|--------------
 	*/
+
+	/**
+	 * Build the config the options describe, settling where to listen.
+	 *
+	 * @param CommandInput $input
+	 * @return ServerConfig|null Null when the server should not start; the reason has been shown.
+	 */
+	private function configure( CommandInput $input ) : ?ServerConfig {
+		try {
+			$host  = $this->read_value( $input, 'host' );
+			$port  = $this->read_value( $input, 'port', 'p' );
+			$force = $this->read_flag( $input, 'force', 'f' );
+			$url   = $this->read_url( $input );
+		} catch ( InvalidArgumentException $e ) {
+			$this->output->error( $e->getMessage() );
+			return null;
+		}
+
+		$host_given = null !== $host;
+		$port_given = null !== $port;
+		$host       = $host_given ? trim( $host, '[]' ) : DevServer::DEFAULT_HOST;
+
+		if ( $port_given && ! $this->is_valid_port( $port ) ) {
+			$this->output->error( sprintf( '--port must be a number from 1 to 65535, "%s" given.', $port ) );
+			return null;
+		}
+
+		$port    = $port_given ? (int) $port : DevServer::DEFAULT_PORT;
+		$address = $this->resolve_address( $host, $port, $host_given, $port_given, $force );
+
+		return null === $address ? null : new ServerConfig( $address[0], $address[1], $url );
+	}
+
+	/**
+	 * Settle on the host and port to listen on.
+	 *
+	 * @param string $host       Requested host.
+	 * @param int    $port       Requested port.
+	 * @param bool   $host_given Whether the operator supplied the host.
+	 * @param bool   $port_given Whether the operator supplied the port.
+	 * @param bool   $force      Whether to take an alternative without asking.
+	 * @return array{0: string, 1: int}|null Host and port, or null when the server should not start.
+	 */
+	private function resolve_address( string $host, int $port, bool $host_given, bool $port_given, bool $force ) : ?array {
+		$status = $this->server->probe( $host, $port );
+
+		if ( DevServer::ADDRESS_FREE === $status ) {
+			return [ $host, $port ];
+		}
+
+		$alt_host   = $host;
+		$first_port = $port + 1;
+
+		if ( DevServer::HOST_UNAVAILABLE === $status ) {
+			if ( DevServer::DEFAULT_HOST === $host ) {
+				$this->output->error( sprintf( 'This machine cannot listen on %s.', $host ) );
+				return null;
+			}
+
+			$alt_host   = DevServer::DEFAULT_HOST;
+			$first_port = $port;
+		}
+
+		$alt_port = $this->server->find_free_port( $alt_host, $first_port );
+
+		if ( null === $alt_port ) {
+			$this->output->error( sprintf( 'No free port found on %s near %d.', $alt_host, $port ) );
+			return null;
+		}
+
+		$reason = DevServer::HOST_UNAVAILABLE === $status
+			? sprintf( 'This machine cannot listen on %s', $host )
+			: sprintf( 'Port %d is already in use', $port );
+
+		$alternative = ( new ServerConfig( $alt_host, $alt_port ) )->authority();
+		$overrides   = ( $host_given && $alt_host !== $host ) || ( $port_given && $alt_port !== $port );
+
+		if ( ! $overrides ) {
+			$this->output->warning( sprintf( '%s; using %s instead.', $reason, $alternative ) );
+			return [ $alt_host, $alt_port ];
+		}
+
+		if ( $force ) {
+			$this->output->warning( sprintf( '%s; using %s instead (--force).', $reason, $alternative ) );
+			return [ $alt_host, $alt_port ];
+		}
+
+		if ( ! $this->io->confirm( sprintf( '%s. Use %s instead?', $reason, $alternative ), false ) ) {
+			$this->output->info( 'Server not started.' );
+			return null;
+		}
+
+		return [ $alt_host, $alt_port ];
+	}
+
+	/*
+	|-------
+	|Helpers
+	|-------
+	*/
+
+	/**
+	 * Show a background server that is now running.
+	 *
+	 * @param ServerInfo $info
+	 * @param string     $what What happened to it, in words: "running in the background".
+	 * @return void
+	 */
+	private function report_running( ServerInfo $info, string $what ) : void {
+		$this->output->success( sprintf( 'Server %s at %s (process %d)', $what, $info->config->url(), $info->pid ) );
+		$this->announce_public_url( $info->config );
+		$this->output->info( sprintf( 'Log: %s', $info->log ) );
+		$this->output->info( sprintf( 'Stop it with: %s stop', $this->command_prefix() ) );
+	}
+
+	/**
+	 * Print the public application URL, when one was given.
+	 *
+	 * @param ServerConfig $config
+	 * @return void
+	 */
+	private function announce_public_url( ServerConfig $config ) : void {
+		if ( null === $config->public_url ) {
+			return;
+		}
+
+		$this->output->info( sprintf( 'Application URL (SMLISER_APP_URL): %s', $config->public_url ) );
+		$this->output->info( sprintf( 'Point your tunnel or proxy at %s.', $config->authority() ) );
+	}
+
+	/**
+	 * Read --url, normalized the way the installer normalizes the site address.
+	 *
+	 * @param CommandInput $input
+	 * @return string|null Null when not given.
+	 * @throws InvalidArgumentException When the value is not a usable URL.
+	 */
+	private function read_url( CommandInput $input ) : ?string {
+		$url = $this->read_value( $input, 'url' );
+
+		return null === $url ? null : AppInstaller::normalize_app_url( $url );
+	}
 
 	/**
 	 * Read a single-valued option given as --long or -short.
@@ -872,11 +729,11 @@ final class ServerCommand extends AbstractCommand {
 	 *
 	 * @param CommandInput $input
 	 * @param string       $long  Long name, without dashes.
-	 * @param string       $short Single-letter name, without the dash.
+	 * @param string       $short Single-letter name, without the dash; '' for none.
 	 * @return bool True when given, unless given as =false.
 	 */
-	private function read_flag( CommandInput $input, string $long, string $short ) : bool {
-		foreach ( [ $long, $short ] as $name ) {
+	private function read_flag( CommandInput $input, string $long, string $short = '' ) : bool {
+		foreach ( array_filter( [ $long, $short ] ) as $name ) {
 			if ( $input->has_option( $name ) ) {
 				return false !== $input->get_option( $name, true );
 			}
@@ -893,32 +750,5 @@ final class ServerCommand extends AbstractCommand {
 	 */
 	private function is_valid_port( string $port ) : bool {
 		return 1 === preg_match( '/^\d{1,5}$/', $port ) && (int) $port >= 1 && (int) $port <= 65535;
-	}
-
-	/**
-	 * host:port, with IPv6 hosts in brackets.
-	 *
-	 * @param string $host
-	 * @param int    $port
-	 * @return string
-	 */
-	private function authority( string $host, int $port ) : string {
-		return str_contains( $host, ':' ) ? "[{$host}]:{$port}" : "{$host}:{$port}";
-	}
-
-	/**
-	 * The URL the application is reached at.
-	 *
-	 * A wildcard host (0.0.0.0, ::) is where the server listens, not an
-	 * address a browser can open, so the URL uses localhost instead.
-	 *
-	 * @param string $host
-	 * @param int    $port
-	 * @return string
-	 */
-	private function url( string $host, int $port ) : string {
-		$url_host = in_array( $host, [ '0.0.0.0', '::' ], true ) ? 'localhost' : $host;
-
-		return 'http://' . $this->authority( $url_host, $port );
 	}
 }

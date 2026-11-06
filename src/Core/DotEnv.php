@@ -61,7 +61,7 @@ final class DotEnv {
 	 * @param string $path      Absolute path to the directory containing the .env file.
 	 * @param bool   $immutable When true, pre-existing variables are never overwritten.
 	 */
-	public function __construct( string $path, bool $immutable = false ) {
+	public function __construct( string $path, bool $immutable = true ) {
 		$this->path      = rtrim( $path, '/' );
 		$this->immutable = $immutable;
 	}
